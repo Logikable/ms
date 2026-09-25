@@ -1,8 +1,4 @@
-# GMS maxes this at 10 with 25% of both. Stretched to 20 levels for the book's
-# budget, ending at the same pair.
-#
-# The attack is a percentage of all attack, from gear and skills alike, and the
-# Ignore DEF combines with the gear's multiplicatively instead of adding.
+# GMS maxes this at 10; stretched to 20 levels ending at the same pair.
 name: "Marksmanship"
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "

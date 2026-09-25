@@ -1,7 +1,5 @@
-# HP is the whole skill here: its other effects (speed, jump, max speed,
-# knockback resistance) aren't modelled. It ends where GMS's does, at 20 HP per
-# character level, but climbs a point at a time instead of giving most of it
-# with the first point.
+# Its speed, jump and knockback effects aren't modelled. It ends at GMS's 20 HP
+# per character level, climbing a point at a time.
 name: "Warrior Mastery"
 description: "Trains up your warrior basics to increase Max HP."
 kind: SKILL_KIND_PASSIVE

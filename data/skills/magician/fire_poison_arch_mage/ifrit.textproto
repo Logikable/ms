@@ -1,6 +1,4 @@
-# GMS's own summon: 90+2x% three times, plus a 50+3x% burn per second for two
-# seconds on whatever it hit. Twenty levels here against GMS's thirty, so both
-# ladders are steeper and end where GMS's do.
+# Twenty levels against GMS's thirty, ending where GMS's do.
 name: "Ifrit"
 description: "Summon a fire ifrit. Permanently increases mastery."
 kind: SKILL_KIND_AUTO_ATTACK

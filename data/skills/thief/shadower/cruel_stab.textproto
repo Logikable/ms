@@ -1,10 +1,7 @@
-# GMS's own figures: 190+2x% six times on eight enemies, 4+2*floor(x/3)% final
-# damage, and Pick Pocket's drop rate halved for this skill only. The final
-# damage climbs evenly to GMS's 24% and is permanent: GMS lists it under
-# "[Passive Effects]", so it applies to Assassinate too.
+# The final damage is permanent: GMS lists it under "[Passive Effects]".
 #
-# Six enemies against GMS's eight: 480x245 is one storey and fits six across.
-# See Skill.max_enemies.
+# Six enemies against GMS's eight: 480x245 fits six across (see
+# Skill.max_enemies).
 name: "Cruel Stab"
 description:
   "Inflict a brutal stab with the dagger. Pick Pocket's Meso drop rate is "

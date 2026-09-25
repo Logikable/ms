@@ -1,33 +1,12 @@
-# The Shadower's fourth class node and the longest attack they have: ten slashes
-# over five and a quarter seconds from one press.
+# The client spaces the nine allies 900 down to 120ms apart, then the leader
+# lands at 4170ms. One ignoreMobpdpR of 100 covers the whole skill.
 #
-# GMS's own figures, and the client's timing too. Nine allies appear for
-# 705+28x% eleven times across six enemies, spaced 900, 780, 660, 480, 360, 240,
-# 180 and 120ms apart by the client: a formation closing in, not a steady drip.
-# Then at 4170ms the leader lands for 790+30x% fifteen times across eight, eight
-# slashes 30ms apart. Every hit ignores defense completely: GMS states one
-# ignoreMobpdpR of 100 for the whole skill.
+# The nine land together, not spaced with cast_interval_ms: spaced, the leader
+# would land nine times, and BarrageStrikes would price the 3.7-second beat at
+# 0.29 of a strike.
 #
-# The nine land together instead of spaced out with cast_interval_ms. Two things
-# rule spacing out, both because of the two-minute cooldown. An extra hit comes
-# with every strike of a spaced swing, so the leader would land nine times; and
-# BarrageStrikes prices a beat longer than the press at the rate it can sustain,
-# which for a 120ms press and a 3.7-second beat is 0.29 of a strike. That rule
-# is for swings limited by how fast they can be used again, and this one is
-# limited by its cooldown. So the nine land together, and the log shows them as
-# GMS's nine landings of eleven.
-#
-# The leader is an extra hit with its own crowd, so it is counted separately on
-# the eight it reaches instead of merged into the six. Its eight slashes are
-# 30ms apart, the same moment either way.
-#
-# The cast is 600ms of frames that GMS skips entirely while Assassinate or Cruel
-# Stab is running, which for a Shadower is always: the client's actionList names
-# both, and they are the two swings the player uses. So the animation is
-# recorded, and the press is what it costs (see waives_cast).
-#
-# Dropped: the 1200 MP, immunity to attack reflection, and the second press that
-# calls the leader in early.
+# GMS skips the 600ms cast while Assassinate or Cruel Stab is running, which for
+# a Shadower is always (see waives_cast).
 name: "Slash Shadow Formation"
 description:
   "Team up with dark allies in a special formation to perform a joint attack. "

@@ -1,7 +1,3 @@
-# The shape every boost node shares: final damage from level 1, one more enemy
-# at 20, and 20% Ignore DEF at 40. Three grants on one skill, because each
-# starts at a different level. GMS's rate here is 2% a level, so max is +120%
-# final damage.
 name: "Raging Blow Boost"
 description: "Strengthens Raging Blow."
 kind: SKILL_KIND_PASSIVE

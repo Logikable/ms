@@ -1,8 +1,5 @@
 # GMS's third Frailty Curse hyper deepens the Speed penalty, which this game
-# can't model. Renamed for DEF instead, like both archers' Sharp Eyes - Bulwark,
-# and just as worthless on purpose: DEF stops paying at a share of the attacking
-# monster's attack, and a 4th job character passes that cap on their stats
-# alone.
+# can't model, so it is renamed for DEF, worthless on purpose.
 name: "Frailty Curse - Bulwark"
 description: "Grants Frailty Curse a bonus to DEF."
 kind: SKILL_KIND_PASSIVE

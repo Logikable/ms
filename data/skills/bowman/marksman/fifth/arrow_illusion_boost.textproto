@@ -1,6 +1,3 @@
-# The decoy, and the first swing a bow buys. Arrow Blow gets the better rate for
-# the same reason as in the Bow Master's book, and its tier at 20 is the only
-# one on this page that is neither more enemies nor critical rate.
 name: "Arrow Illusion Boost"
 description: "Strengthens Arrow Illusion and Arrow Blow."
 kind: SKILL_KIND_PASSIVE

@@ -1,5 +1,3 @@
-# Only the coins get it. A Shadower's own swing is a different skill and gets
-# nothing from this, which is how it applies to the meso and not the thrower.
 name: "Meso Explosion - Guardbreak"
 description: "Increases Enemy DEF Ignored for Meso Explosion."
 kind: SKILL_KIND_PASSIVE

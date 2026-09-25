@@ -1,8 +1,5 @@
-# GMS offers four pacts and the player accepts one; this is the Full pact, the
-# one whose invincibility is worth having and whose cooldown is longest. The
-# invincibility isn't modelled: 40 seconds of it just means fighting on, which a
-# full HP bar already gives. The kills that shorten the cooldown are dropped
-# with it.
+# GMS's Full pact, the one worth having. Its invincibility isn't modelled, and
+# the kills that shorten the cooldown go with it.
 name: "Final Pact"
 description:
   "When your HP reaches 0, your dark contract keeps you alive. Permanently "

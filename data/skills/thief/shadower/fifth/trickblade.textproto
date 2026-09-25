@@ -1,25 +1,11 @@
-# The Shadower's third class node, and the one skill here with two forms. GMS
-# calls them Eviscerate Fail and Eviscerate Success, which is the whole
-# mechanism: one key, and which form comes out depends on whether an enemy has a
+# GMS's two forms, Eviscerate Fail and Success, depend on whether an enemy has a
 # full wound, not on the player.
 #
-# Used without one it summons hidden allies: 675+27x% five times across ten
-# enemies, on a 14-second cooldown. Used on a full wound, the Shadower appears
-# behind that enemy and slashes five times for 825+33x% seven times, with the
-# crit rate, Ignore DEF, 1.8 seconds of invulnerability and the longer 20-second
-# cooldown GMS states for that case only.
-#
 # The wound is defined here because GMS attaches it to this skill's passive
-# half: Assassinate and Sonic Blow cause it without mentioning it, and neither
-# does until this node is bought. Assassinate's finishing blow adds one stack
-# and every Sonic Blow attack adds three, so one Sonic Blow fills the wound, as
-# do three Assassinates. Only one enemy has it at a time.
+# half. Assassinate's blow adds one stack and each Sonic Blow attack three.
 #
-# Nothing here reads the wound for damage: GMS's tooltip gives no bonus per
-# stack, and the wound only unlocks the stronger form.
-#
-# Dropped: the 650 MP, the link windows after Assassinate and Sonic Blow (there
-# is no key to press), and both forms' immunity to attack reflection.
+# GMS's tooltip gives no bonus per stack: the wound only unlocks the stronger
+# form.
 name: "Trickblade"
 description:
   "Summon your hidden friends to strike the enemies around you. Against an "

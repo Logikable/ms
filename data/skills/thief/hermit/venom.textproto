@@ -1,7 +1,3 @@
-# GMS poisons the claw: a chance on every hit of 50+4x% a second for a few
-# seconds, not stacking. All of it is here: the chance is rolled per enemy the
-# swing reached, and the poison burns on the monster instead of pulsing from the
-# character.
 name: "Venom"
 description:
   "Poison is permanently applied to your Claw, giving all your attacks the "

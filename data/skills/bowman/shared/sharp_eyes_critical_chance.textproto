@@ -1,5 +1,4 @@
-# Party-wide for the same reason as Guardbreak (see that file). Adds to the
-# character's critical rate, which Sharp Eyes has already raised by 20%.
+# Party-wide for the same reason as Guardbreak (see that file).
 name: "Sharp Eyes - Critical Chance"
 description:
   "Increases the Critical Rate of Sharp Eyes. Applies to party members."

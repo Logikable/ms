@@ -1,14 +1,7 @@
-# GMS's own figures: 180+3x% six times, then a finishing blow of 340+5x% six
-# times on the same enemy. The blow is 50% stronger for using the Murderous
-# Intent buff, and a Shadower always has one, so the buff isn't modelled and its
-# final damage is written on the blow itself.
+# A Shadower always has Murderous Intent, so the buff isn't modelled and its
+# final damage is written on the blow, as GMS states it on the blow's own line.
 #
-# On the blow, not the swing: GMS states it on the blow's own line, and Blood
-# Money, which gives the buff, says it "enhances your next Assassinate's final
-# blow". The six strikes before it get nothing.
-#
-# 1200ms covers both presses, 660 for the strike and 540 for the blow, which are
-# one swing here.
+# 1200ms covers both presses, 660 for the strike and 540 for the blow.
 name: "Assassinate"
 description:
   "Attack an enemy's vital points over and over to deal tremendous damage, "

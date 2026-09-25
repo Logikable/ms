@@ -1,12 +1,8 @@
-# Every Explorer has this, and no two stack: one buff covers the party however
-# many cast it, so a party takes turns, and each player's own cooldown doesn't
-# matter. That is Buff.party_shared, and it is why none of this uses ally_base:
-# a partner's cast covers this character because they have the skill themselves,
-# which is all of the faction rule GMS states.
+# No two stack: one buff covers the party however many cast it
+# (Buff.party_shared), so none of this uses ally_base.
 #
-# GMS removed this skill's cast action entirely, so the frame data has no entry
-# for it. It costs what casting any buff costs: the 120ms a skill sequence paces
-# its skills at.
+# GMS removed its cast action, so the frame data has no entry; it costs the
+# 120ms a skill sequence paces buffs at.
 name: "Epic Adventure"
 description:
   "Call upon the bravery deep within to increase damage output. Applies to "

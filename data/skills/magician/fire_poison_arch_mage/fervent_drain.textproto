@@ -1,17 +1,7 @@
-# GMS raises Elemental Drain's rate to 5% per burn with the same cap of five, so
-# a full count is 25% instead of 15%. It supersedes instead of adding: one rate,
-# the better of the two, as Advanced Blessing supersedes Bless.
+# It supersedes Elemental Drain: one rate, the better of the two. It starts just
+# above a maxed Elemental Drain's 3%.
 #
-# That makes it a bossing passive, as GMS calls it: on a map the count is at the
-# cap anyway, and on a boss it is however many burns the rotation keeps on that
-# one enemy.
-#
-# It starts just above a maxed Elemental Drain's 3% and climbs to GMS's 5%, like
-# every superseding skill here; Advanced Blessing starts where Bless ends for
-# the same reason.
-#
-# It doesn't go past its max level. GMS maxes it at 1 and doesn't mark it for
-# Combat Orders, so there is no higher level to reach.
+# No Combat Orders: GMS maxes it at 1 and doesn't mark it.
 name: "Fervent Drain"
 description: "Increases the effect of Elemental Drain."
 kind: SKILL_KIND_PASSIVE

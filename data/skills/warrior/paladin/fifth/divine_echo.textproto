@@ -1,29 +1,12 @@
-# The Paladin's first class node: three GMS effects merged into one number. GMS
-# puts an echo on a party member, who then copies the Paladin's attacks, and
-# gives three separate final damage shares for it: 75% to the Paladin, 40% more
-# through the echo, and 15% more while Divine Blessing is on whoever carries it.
-# Final damage multiplies here as in GMS, so 1.75 x 1.40 x 1.15 is one buff of
-# 181.75%, which says the same thing.
+# GMS's three final damage shares for the echo multiply into one buff:
+# 1.75 x 1.40 x 1.15 = 181.75%. Only the blessing's share needs company.
 #
-# The blessing's share is the only part that needs company: it pays for the
-# blessing on whoever carries the echo, and alone nobody carries it. The other
-# two are unconditional; this game's Divine Blessing is a permanent passive with
-# nothing to aim, so the blessing is never what is missing.
+# Both steps are rounded instead of the exact 1.5517 and 0.3448 a level; max
+# level matches GMS to the hundredth.
 #
-# Both steps are rounded instead of the exact ladder between GMS's ends, which
-# would need 1.5517 and 0.3448 points a level. Max level matches GMS to the
-# hundredth on both; level 1 is 1.5 over on the first and 0.15 under on the
-# second.
-#
-# The echo itself gives one other member 100% Buff Duration, permanently instead
-# of on this skill's timer: a 30-second buff on a 60-second cooldown can't
-# lengthen someone else's buffs for only half the time, since there is one
-# duration per fight. GMS's 50-65% plus 1% per 1000 STR, capped at 100%, is
-# rounded up to the cap it heads for.
-#
-# Dropped: everything GMS's description is about: choosing the member by number
-# key, losing the echo when they move out of range, and not being able to echo a
-# Paladin who is already echoing someone.
+# The echo's Buff Duration is permanent: there is one duration per fight, so it
+# can't lengthen someone's buffs for half the time. GMS's 50-65% plus 1% per
+# 1000 STR is rounded up to its 100% cap.
 name: "Divine Echo"
 description:
   "Grants an echo of your battle prowess that mirrors your attack skills "

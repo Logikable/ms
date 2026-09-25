@@ -1,10 +1,5 @@
-# GMS writes it "Damage: +10%", the %Damage stat, not points on the Final
-# Attack's multiplier, so it adds to what the character already has and only the
-# extra hits get it.
-#
-# It targets Advanced Final Attack by name even though that is a passive, which
-# a boost normally can't reach. It boosts the extra hit, not a swing; see
-# SkillBoost.effect.
+# GMS's "Damage: +10%" is the %Damage stat. It targets a passive by name, which
+# a boost normally can't reach: it boosts the extra hit (see SkillBoost.effect).
 name: "Advanced Final Attack - Reinforce"
 description:
   "Increases the damage of Advanced Final Attack."

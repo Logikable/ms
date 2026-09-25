@@ -1,15 +1,9 @@
-# The orb pulses every 210ms for 4 seconds on a 5-second cooldown, so one throw
-# is 19 strikes on 8 enemies. Written as one swing of 19 lines: nothing here
-# uses the gaps between them, and making it a swing charges the player the 660ms
-# the throw costs. As a summon, those 19 strikes would come free while Chain
-# Lightning kept going.
+# One swing of 19 lines, not a summon, so the player pays the 660ms throw; as a
+# summon those strikes would come free. The client gives the rate in attackDelay
+# and the lifetime in time.
 #
-# Both numbers come from the client, not guesses: Frozen Orb is a ball skill, so
-# the client gives its rate in attackDelay and its lifetime in time.
-#
-# It freezes nothing. GMS says the orb slows what it hits, where every other ice
-# skill in the book states a freeze duration, so it builds stacks and leaves
-# freezing to the swings that do it.
+# It freezes nothing: GMS says it slows, where every other ice skill states a
+# freeze duration.
 name: "Frozen Orb"
 description:
   "Create and throw a Frozen Orb that fires ice shards everywhere to deal ice "

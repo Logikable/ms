@@ -1,13 +1,8 @@
-# GMS gives this for eighty seconds at a time to the whole party. Nothing runs
-# out here, so it is always up, on the White Knight and everyone with them.
+# One level for most of the ladder and two at the top: per_level holds a ninth,
+# written with enough digits that rounding down lands on 2 at level 10. See
+# SkillEffect.skill_level_bonus, and don't shorten the number.
 #
-# One level for most of the ladder and two at the top: a step, not a slope, so
-# per_level holds a ninth, written with enough digits that rounding down lands
-# on 2 at level 10. See SkillEffect.skill_level_bonus, and don't shorten the
-# number.
-#
-# Only skills marked exceeds_master_level go past their max level with these
-# levels; every other skill stops at its max.
+# Only skills marked exceeds_master_level go past their max level.
 name: "Combat Orders"
 description:
   "Grants bonus skill levels to the skills of all party members, including "

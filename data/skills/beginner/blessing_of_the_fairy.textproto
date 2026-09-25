@@ -1,6 +1,4 @@
-# The one skill nobody buys. Its level is the account's highest other character
-# divided by ten, so a new character has it at once and it rises on its own. GMS
-# caps it at 20; here it runs to the level cap, like every other ladder.
+# GMS caps it at 20; here it runs to the level cap.
 name: "Blessing of the Fairy"
 description:
   "Permanently increases your Attack Power and Magic Attack, based on the "

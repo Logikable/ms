@@ -1,7 +1,4 @@
-# Identical to the Night Lord's: GMS gives both branches 344+5x% seven times on
-# fifteen enemies, a burn of 90+4x% a second, and a cooldown going from 60s down
-# to 30s. The burn's duration is flat at the max-level value here, like all
-# durations.
+# The burn's duration is flat at GMS's max-level value, like all durations.
 name: "Sudden Raid"
 description: "Call in a horde of friends to attack enemies."
 kind: SKILL_KIND_ATTACK

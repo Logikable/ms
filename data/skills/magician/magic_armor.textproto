@@ -1,5 +1,5 @@
-# Pure defense, 10 a point. GMS stops at 9; one more point brings the magician's
-# book to the same 60 every other job gets.
+# GMS stops at 9; one more point brings the book to the same 60 every other job
+# gets.
 #
 # The wiki lists Magic Guard Lv. 3 as a prerequisite. This file sets no
 # required_skill, so the description leaves it out.

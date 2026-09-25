@@ -1,6 +1,3 @@
-# The two sweeps a Dark Knight grows out of; GMS gives the one left behind
-# earlier the better rate: 5% a level for Spear Sweep against La Mancha Spear's
-# 3%.
 name: "La Mancha Spear Boost"
 description: "Strengthens La Mancha Spear and Spear Sweep."
 kind: SKILL_KIND_PASSIVE

@@ -1,10 +1,5 @@
-# Dispel's Vengeance form, and the clearest gain of the swap: the skill it
-# replaces cures conditions nothing here inflicts. GMS's 170+6x over ten levels,
-# four feathers every three seconds.
-#
-# GMS triggers them by hitting an enemy, on their own three-second cooldown.
-# Here they just fall on that timer: a Bishop always has something to hit, so it
-# comes to the same thing.
+# GMS triggers the feathers by hitting an enemy on their own three-second
+# cooldown; a Bishop always has something to hit, so here they fall on it.
 name: "Triumph Feather"
 description:
   "Harness the power of the Angel of Victory. Angel feathers appear and seek "

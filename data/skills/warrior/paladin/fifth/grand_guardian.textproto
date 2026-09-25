@@ -1,19 +1,9 @@
-# The Paladin's third class node, a hold like Calamitous Cyclone: a cross of
-# light the player keeps up while the key is held, sheltering behind it while it
-# pulses.
+# The client has two keydown sets, 5thGrandCrossLoop at 480ms and at 720; the
+# four seconds split into 1080ms small, 480 growing and 2440 grown, 7 pulses
+# then 16 at 150ms.
 #
-# It is a hold that grows. The client has two full keydown sets,
-# 5thGrandCrossLoop at 480ms and again at 720, and the four seconds of holding
-# split into 1080ms small, 480 of growing, then 2440 grown. At the 150ms pulse
-# that is 7 pulses then 16, the 23 the data states.
-#
-# 1680ms is the wind-up plus the release (900ms of 5thGrandCrossPre and 780 of
-# 5thGrandCrossEnd), read like Calamitous Cyclone's 870. There is no strike on
-# release: GMS ends the cross by letting go, so the 780ms costs time and does
-# nothing.
-#
-# Dropped: the knockback and status immunity while held, and the attack speed
-# the growth also gives, which has no number anywhere.
+# 1680ms is 900ms of 5thGrandCrossPre and 780 of 5thGrandCrossEnd. GMS ends the
+# cross by letting go, so the release does nothing.
 name: "Grand Guardian"
 description:
   "Blaze a glorious cross-section of light, symbolizing noble sacrifice. You "

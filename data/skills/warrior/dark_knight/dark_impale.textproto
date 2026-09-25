@@ -1,6 +1,5 @@
-# The strike count climbs like GMS's: 5 thrusts, and a 6th at level 16. The rate
-# reaches a 7th at 31, so the two levels from Combat Orders are worth a whole
-# strike, not just rounding.
+# The rate reaches a 7th strike at 31, so the two levels from Combat Orders are
+# worth a whole strike.
 name: "Dark Impale"
 description: "Launch rapid spear thrusts on multiple enemies."
 kind: SKILL_KIND_ATTACK

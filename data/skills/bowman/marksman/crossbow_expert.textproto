@@ -1,9 +1,7 @@
-# The line's mastery skill, with 20 levels instead of GMS's 30 but GMS's top
-# figures: 70% mastery, +40 attack and 15% critical damage.
+# 20 levels instead of GMS's 30, at GMS's top figures.
 #
 # It must not supersede Crossbow Mastery: masteries take the better of the two,
-# not the sum, so this beats the Crossbowman's mastery while that skill keeps
-# giving its attack speed.
+# and that skill keeps giving its attack speed.
 name: "Crossbow Expert"
 description: "Increases Crossbow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE

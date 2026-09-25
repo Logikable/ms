@@ -1,10 +1,5 @@
-# GMS casts this on the party for 300 seconds at a time, a buff only in the way
-# Hyper Body is: a player keeps it up all the time. Here it is a permanent
-# passive for the whole party, like every such skill.
-#
-# Maxed at 20 instead of GMS's 30 to fill the book's 200, ending at GMS's top
-# pair: 20% critical rate and 15% critical damage. Both ladders step by their
-# level-1 value, so each level is an equal share.
+# A permanent party passive here: GMS's 300-second cast is kept up all the time.
+# 20 levels instead of GMS's 30, ending at GMS's top pair.
 name: "Sharp Eyes"
 description:
   "Grants party members the ability to locate an enemy's weak spot to deal "

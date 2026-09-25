@@ -1,20 +1,7 @@
-# The F/P's first class node, and the payoff for a book that spends every job
-# laying poison. Fifteen orbs, plus one for each burn stack already on the
-# group, up to twenty-five.
+# Orbs that double up keep 55% of their final damage (see Skill.scatter).
 #
-# It scatters, like Megiddo Flame. Each orb finds its own enemy, and orbs that
-# double up keep 55% of their final damage, so a crowd takes one orb each and a
-# lone boss takes them all. GMS aims them at the highest-HP boss first, which is
-# what sending extra strikes to the healthiest already does.
-#
-# The count is what makes this the F/P's own skill and not just another nuke.
-# Cast at the start of a fight it throws fifteen; after Poison Mist, Ifrit,
-# Inferno Aura and the current swing, twenty or more; on a map where every mob
-# burns it is at the cap. It reads the group live each time, so the chooser
-# learns the cooldown is worth more once the poisons are down.
-#
-# GMS's `time 20` is how long an orb hunts before it expires, not a beat: the
-# client gives no interval, so all of them land together.
+# GMS's `time 20` is how long an orb hunts, not a beat: the client gives no
+# interval, so all of them land together.
 name: "DoT Punisher"
 description:
   "Summons flame orbs from another dimension to pursue enemies. The flame "

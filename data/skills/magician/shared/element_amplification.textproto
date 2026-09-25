@@ -1,5 +1,5 @@
 # In GMS the damage costs extra MP on every spell. Nothing here uses MP, so it
-# is free: 5x% damage for nothing.
+# is free.
 name: "Element Amplification"
 description: "Increases the Damage of your magic skills."
 kind: SKILL_KIND_PASSIVE

@@ -1,9 +1,4 @@
-# GMS: 112+3x% fifteen times, a 110+3x% burn for thirty seconds, and a cooldown
-# that drops from 20 seconds to 10 with levels.
-#
-# GMS also makes the enemy untouchable, slows it and lays a Poison Mist where it
-# lands. None of the three has anything to act on here, so the skill is the
-# damage and the burn: all a single enemy is worth.
+# GMS's untouchability, slow and Poison Mist have nothing to act on here.
 name: "Flame Haze"
 description:
   "Surrounds enemies with burning poisonous mist, dealing continuous damage."

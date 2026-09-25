@@ -1,5 +1,3 @@
-# GMS's 198 + 3*L%, three hits, with Brandish's animation: the swing it grows
-# from, one line longer.
 name: "Intrepid Slash"
 description: "Deal consecutive attacks to multiple enemies in front of you."
 kind: SKILL_KIND_ATTACK

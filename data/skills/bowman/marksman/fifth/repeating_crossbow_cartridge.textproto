@@ -1,15 +1,8 @@
-# A magazine, not a swing: the cast loads eight cartridges and each press of
-# Full Burst Shot uses one, which is what Buff.magazine is for. The other option
-# was one 5,940ms swing for the whole burst: eight animations in a row would
-# show as a six-second cast, and Split Shot would trigger once instead of GMS's
-# eight.
+# A magazine, not a swing: one 5,940ms swing would show as a six-second cast,
+# and Split Shot would trigger once instead of GMS's eight.
 #
-# Single target on purpose: GMS gives the shot mobCount 1 and aims it at the
-# highest Max HP in range, which is what the fight already does for a swing that
-# hits one. The 790x290 box is where the arrows fly, not a crowd they hit.
-#
-# The group belongs to the skill, not the magazine: it is one button, so Split
-# Shot follows it the same way either way.
+# Single target: GMS gives the shot mobCount 1. The 790x290 box is where the
+# arrows fly, not a crowd they hit.
 name: "Repeating Crossbow Cartridge"
 description:
   "Load a special cartridge that fires several arrows at once. Full Burst Shot "

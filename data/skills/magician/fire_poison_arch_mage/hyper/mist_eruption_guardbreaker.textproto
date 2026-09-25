@@ -1,5 +1,3 @@
-# Ignore DEF combines multiplicatively instead of adding, so this and Mist
-# Eruption's own 40% leave the monster 48% of its DEF, not 40%.
 name: "Mist Eruption - Guardbreaker"
 description: "Increases the DEF ignored by Mist Eruption."
 kind: SKILL_KIND_PASSIVE

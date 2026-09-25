@@ -1,5 +1,3 @@
-# Ignore DEF combines multiplicatively wherever it meets, including here:
-# against the skill's own 30% at max level it leaves 56% of DEF instead of 50%.
 name: "Gungnir's Descent - Guardbreak"
 description: "Increases Ignore Defense for Gungnir's Descent."
 kind: SKILL_KIND_PASSIVE

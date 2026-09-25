@@ -1,10 +1,6 @@
-# GMS shields the party but not the caster: allies take 10+x% less damage and
-# guard against 10+x% of what gets through, and the caster gets 2x attack for
-# keeping the guard up. Both halves need someone to shield, so a White Knight
-# alone gets nothing. See Skill.requires_party.
-#
-# A guard blocks the whole hit instead of reducing it, which is what
-# dodge_chance is. GMS's own ten levels, exact at every level.
+# GMS shields the party but not the caster, so a White Knight alone gets nothing
+# (see Skill.requires_party). A guard blocks the whole hit, which is what
+# dodge_chance is.
 name: "Parashock Guard"
 description:
   "Reduces the damage nearby party members receive and gives them a chance to "

@@ -1,15 +1,8 @@
-# GMS leaves a wall of fire that lasts a few seconds and strikes on its own
-# clock. Nothing here stays on the ground, so this is what the whole wall is
-# worth: a Final Attack after the fire spell that lit it, at GMS's (10+4x)%
-# chance of (30+x)% a hit.
+# Nothing here stays on the ground, so GMS's wall of fire becomes a Final Attack
+# after the fire spell that lit it.
 #
-# Twelve hits, not three. The client's three are one burst of the wall, which
-# fires every 1.5 seconds (`subTime`) for the 4+floor(x/4) seconds it lasts:
-# four bursts once it lasts past five seconds, three before that. Folding the
-# wall into the roll counts it toward the swing that lit it.
-#
-# follows_skill_tag is what keeps it off Poison Breath, which is the point of
-# the skill.
+# Twelve hits, not three: the client's three are one burst, fired every 1.5
+# seconds (`subTime`) for the 4+floor(x/4) seconds the wall lasts.
 name: "Ignite"
 description:
   "Grants Fire magic a chance to create a wall of fire at the target "

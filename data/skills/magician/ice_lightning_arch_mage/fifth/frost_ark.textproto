@@ -1,19 +1,11 @@
-# The I/L's first class node: a structure that shocks whatever is in front of
-# the character each time lightning strikes it, for twenty seconds.
+# A Final Attack, as GMS's ark only triggers on lightning. It has its own
+# mobCount of 15 and box, so it hits fifteen even after Chain Lightning.
 #
-# A Final Attack, not a clock, which is what GMS's ark is: only lightning
-# triggers it. Split Shot has the same shape, and the reach works the same way:
-# the shock has its own mobCount of 15 and its own 480x625 box, so even after
-# Chain Lightning, which hits six, it hits fifteen.
+# GMS names Parabolic Bolt, Thunder Sphere and Cryo Shock; only the second
+# exists here. It follows by element instead (see follows_own_clock).
 #
-# Which lightning counts is set by group, not a list of names. GMS names
-# Parabolic Bolt, Thunder Sphere and Cryo Shock, and this game only has the
-# second, as an orb on its own clock, which is what follows_own_clock is for.
-# Read as the element, it follows that orb, Chain Lightning, Thunder Bolt and
-# Lightning Orb, which is what "struck by lightning" means in this book.
-#
-# The 0.1s reactivation cooldown isn't built: nothing here repeats faster than
-# 0.24s at the speed cap, so it would never matter.
+# The 0.1s reactivation cooldown isn't built: nothing repeats faster than
+# 0.24s.
 name: "Frost Ark"
 description:
   "Manifest the very essence of ice and lightning into a magical structure. "

@@ -1,12 +1,8 @@
-# Three stages of final damage, losing one every ten seconds. GMS gives 2 +
-# floor(x/6)% per stage over 15 + floor(x/2) seconds, so a magician who uses
-# their biggest skills right after it lands gets three times what one who waits
-# gets, which is why the stages are simulated instead of averaged.
+# Stages are simulated, not averaged: a magician who uses their biggest skills
+# right after it lands gets three times what one who waits gets.
 #
-# The client's tooltip says Final Damage where the wiki's template says Damage;
-# the client wins. Both ladders step by an even amount instead of GMS's floor,
-# so max level lands on its 7% a stage and 30 seconds exactly, and only the
-# start moves.
+# The client's tooltip says Final Damage where the wiki says Damage; the client
+# wins. Even steps land max level on GMS's 7% a stage and 30 seconds.
 #
 # Each stage uses a buff window (see kMaxBuffWindows in combat/constants.h).
 name: "Arcane Overdrive"

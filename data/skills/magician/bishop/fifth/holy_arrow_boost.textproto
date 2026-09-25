@@ -1,7 +1,5 @@
-# GMS's second skill here is Heal, which hurts the undead in GMS and does
-# nothing here: this game's Heal only restores HP and has no damage for a boost
-# to act on. So the page goes to the magician's first swing instead, as in the
-# I/L and F/P books.
+# GMS's second skill here is Heal, which has no damage here for a boost to act
+# on, so the page goes to Holy Arrow instead.
 name: "Holy Arrow Boost"
 description: "Strengthens Holy Arrow and Energy Bolt."
 kind: SKILL_KIND_PASSIVE

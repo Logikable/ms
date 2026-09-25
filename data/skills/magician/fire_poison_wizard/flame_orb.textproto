@@ -1,8 +1,5 @@
-# GMS gives it 20 levels at 141+8x with 2 attacks; here it is the same climb in
-# half the levels, ending where GMS ends.
-#
-# The only fire attack in this book, and the only reason the tag exists: Ignite
-# follows it and ignores Poison Breath.
+# GMS's climb in half the levels, ending where GMS ends. The fire tag is what
+# Ignite follows.
 name: "Flame Orb"
 description:
   "A fire-attribute attack. Create and throw a burning orb at multiple "

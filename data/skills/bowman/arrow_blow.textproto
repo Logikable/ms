@@ -1,6 +1,5 @@
-# One arrow to each of five enemies. GMS's "Arrows Fired: 3" is the ammo a swing
-# uses (the client's bulletConsume), not a hit count; the skill states none,
-# unlike Wind Arrow, which states three.
+# GMS's "Arrows Fired: 3" is the ammo a swing uses (the client's bulletConsume),
+# not a hit count.
 name: "Arrow Blow"
 description: "Shoot consecutive arrows at multiple enemies."
 kind: SKILL_KIND_ATTACK

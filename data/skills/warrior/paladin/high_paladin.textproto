@@ -1,16 +1,8 @@
-# GMS maxes this at 30. Scaled to 20 levels ending exactly at GMS's level-30
-# figures (70% mastery, 400 DEF, 40% critical rate, 22% critical damage, 30%
-# Ignore DEF and 35% final damage), so the book totals 200. The levels are
-# coarser; the skill is no stronger.
+# GMS's thirty levels are twenty here, ending at GMS's level-30 figures.
 #
-# The critical damage is one line instead of three: GMS gives 7 + floor(L/3),
-# 17% at its max, plus 5% for the weapon held, and every weapon this skill works
-# with got that 5%. It is folded into the base, so the ladder climbs half a
-# point a level and ends at 22%. The only weapon bonus left is the blunt
-# weapon's Ignore DEF, the only one that actually depended on the weapon.
-#
-# The final damage is GMS's own (5+x at 30), the number to watch when comparing
-# this line with the Dark Knight's Final Pact.
+# GMS's critical damage adds 5% for the weapon held, and every weapon this skill
+# works with got it, so it is folded into the base. The blunt weapon's Ignore
+# DEF is the only weapon bonus left.
 name: "High Paladin"
 description:
   "Increases Weapon Mastery, DEF, Critical Rate, Critical Damage, Ignore "

@@ -1,7 +1,5 @@
-# GMS pairs this with Final Attack: Bow. That skill is superseded here, so its
-# half moved to its own node (see advanced_final_attack_boost).
-#
-# Hurricane hits one enemy on purpose, so critical rate is the tier it can use.
+# GMS pairs this with Final Attack: Bow, which is superseded here; its half
+# moved to advanced_final_attack_boost.
 name: "Hurricane Boost"
 description: "Strengthens Hurricane."
 kind: SKILL_KIND_PASSIVE

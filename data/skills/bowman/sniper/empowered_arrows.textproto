@@ -1,13 +1,4 @@
-# Two grants from one skill, both on Piercing Arrow: a permanent bonus to every
-# shot, and every fourth shot replaced by a stronger one. GMS writes the second
-# as "after striking enemies with Piercing Arrow 3 times, your next Piercing
-# Arrow will be upgraded": three normal, then this. See Skill.empowered_form.
-#
-# GMS maxes this at 10 with +140% points and a 230% upgraded shot. Stretched to
-# 20 levels for the book's budget, ending at the same pair.
-#
-# Unlike Speed Mirage's boost to Wind Arrow, this one matters: Bolt Burst
-# recharges for seven seconds, so Piercing Arrow stays the filler swing.
+# GMS maxes this at 10; stretched to 20 levels ending at the same pair.
 name: "Empowered Arrows"
 description:
   "Empowers certain attack skills as you use them. Enhances Piercing Arrow."

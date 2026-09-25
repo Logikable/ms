@@ -1,5 +1,4 @@
-# A fifth star. The shadow copies whatever the swing became, so it throws five
-# too: the copy is set from the line count after the boost is applied.
+# The shadow copies the line count after the boost, so it throws five too.
 name: "Quad Star - Extra Strike"
 description: "Increases Number of Attacks for Quad Star."
 kind: SKILL_KIND_PASSIVE

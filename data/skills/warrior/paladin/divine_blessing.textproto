@@ -1,9 +1,5 @@
-# GMS keeps this up for a couple of minutes at a time, with nothing stopping the
-# player recasting it at once, so this game makes it permanent, like Cross Surge
-# and Hyper Body. See Skill.buff for when a buff really must be timed.
-#
-# Twenty levels instead of GMS's thirty, a point of final damage each, ending at
-# GMS's 20%.
+# Nothing stops GMS's player recasting it, so it is permanent here (see
+# Skill.buff for when a buff must be timed). GMS's thirty levels are twenty.
 name: "Divine Blessing"
 description: "A holy blessing increases your Final Damage."
 kind: SKILL_KIND_PASSIVE

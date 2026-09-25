@@ -1,6 +1,5 @@
-# GMS gives this for taunting enemies, and Showdown's taunt was cut (nothing
-# here can be taunted), so it works like Showdown's own EXP grant: a permanent
-# five points on both, for everything the character kills.
+# Showdown's taunt was cut (nothing here can be taunted), so this is a permanent
+# five points on both, like Showdown's own EXP grant.
 name: "Showdown - Enhance"
 description: "Increases EXP and items from enemies provoked by Showdown."
 kind: SKILL_KIND_PASSIVE

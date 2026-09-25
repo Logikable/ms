@@ -1,12 +1,6 @@
-# GMS's barrier blocks status conditions and recharges; only the passive half
-# listed under it is kept here. GMS reaches 40 of each at ten levels; this
-# reaches the same over twenty, two a level.
-#
-# Both levers are useless by design (nothing inflicts a status or has an
-# element) and are here so the stats page shows what the SP bought.
-#
-# None of it reaches the party. GMS's only party clause is a cooldown Dispel
-# shortens, and the resistances are for the caster only.
+# GMS's barrier blocks statuses and recharges; only its passive half is kept,
+# over twenty levels instead of ten. GMS's only party clause is a cooldown
+# Dispel shortens, so none of it reaches the party.
 name: "Divine Protection"
 description: "Permanently increases Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE

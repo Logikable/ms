@@ -1,34 +1,18 @@
-# The Bishop's second class node: two angels for thirty seconds on a two-minute
-# cooldown, one giving damage and one dealing it.
+# The Angel of Benevolence gives a four-second buff every five seconds (see
+# Buff.duty_seconds); folding that into the numbers would make the card say 80%
+# where GMS says 100%.
 #
-# The Angel of Benevolence re-grants instead of staying up: GMS gives a
-# four-second buff every five seconds it is out, so the damage is up four
-# seconds in five, 20% of the cooldown instead of 25%. See Buff.duty_seconds;
-# folding that into the numbers would make the card say 80% where GMS says 100%.
+# The Avenging Angel's 4.02-second clock isn't published: it is the community
+# DPM calculator's measurement, like Bahamut's 3.03.
 #
-# The Avenging Angel's 4.02-second clock isn't published anywhere: GMS's common
-# block uses every number for the tooltip, so the client holds this one. It is
-# the community DPM calculator's measurement, the same source as the 3.03
-# seconds used for Bahamut, Ifrit and Elquines. Seven strikes a cast make
-# 77,000%, or 642%/s over the cooldown, well under Spirit of Snow's 1,715%/s, as
-# fits a node that also carries a buff this big.
+# The mark is worth about a twentieth of a percent, and that is right: one line
+# uses it up, and the angel can't use its own marks, having no element.
 #
-# The mark is worth about a twentieth of a percent, and that is right. One line
-# uses it up (GMS's footnotes count this in hits), so seven marks a cast boost
-# seven lines out of the fourteen hundred a Bishop lands in the same two
-# minutes. The angel can't use its own marks: GMS gives it no element, and only
-# holy hits use them.
+# The party's share keeps GMS's INT steps exactly: rescaling would make it a
+# different skill.
 #
-# The party's share keeps GMS's INT steps exactly, as Benediction's does: 43,750
-# INT reaches the 40% cap, and a Bishop here tops out near 8,700, so the party
-# gets eleven points of it. Rescaling would make it a different skill.
-#
-# Dropped: the MP, attack reflection (nothing here has it), and "targets the
-# boss with the highest HP first", since a boss swing already hits the
-# healthiest part. GMS's "not usable while Bahamut is active" is also left out
-# of the description as older wording: the client dismisses the dragon instead,
-# which is what silences_skill_name does and what the card's Dismisses row
-# shows.
+# GMS's "not usable while Bahamut is active" is older wording: the client
+# dismisses the dragon instead, which is what silences_skill_name does.
 name: "Angel of Balance"
 description:
   "Summons an angel of compassion and vengeance. The Angel of Benevolence "

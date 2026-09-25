@@ -1,9 +1,8 @@
-# Chance is 2*L%; damage is two hits of (60+L)%, kept separate so each rolls its
-# own crit and mastery (see SkillEffect.final_attack_lines).
+# Two hits kept separate, each rolling its own crit and mastery (see
+# SkillEffect.final_attack_lines).
 #
-# The extra hit lands on one enemy the swing reached, not on each. GMS's Final
-# Attack has no mobCount or hitbox of its own, and its text names its target:
-# "attacks the boss with the highest HP first".
+# The extra hit lands on one enemy: GMS's Final Attack has no mobCount of its
+# own and its text says "attacks the boss with the highest HP first".
 name: "Final Attack"
 description:
   "Grants a chance to deliver an additional hit after a direct skill attack."

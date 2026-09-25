@@ -1,7 +1,3 @@
-# The magician's own rhythm: an ice swing leaves a Freeze Stack for each line it
-# lands, and a lightning swing uses one per line for its final damage. GMS's own
-# numbers: 1% of each per stack at max, up to five stacks.
-#
 # The critical damage applies to every swing, since a frozen enemy is frozen
 # whatever element hits it. Only the final damage uses stacks.
 name: "Freezing Crush"

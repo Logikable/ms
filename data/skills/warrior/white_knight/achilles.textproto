@@ -1,6 +1,4 @@
-# Twenty levels instead of GMS's fourteen, a point a level, ending at the same
-# 30%. It multiplies with the character's other reductions instead of adding
-# (see AddEffect).
+# GMS's fourteen levels are twenty here, ending at the same 30%.
 name: "Achilles"
 description:
   "Permanently increases your defensive abilities so you take less damage "

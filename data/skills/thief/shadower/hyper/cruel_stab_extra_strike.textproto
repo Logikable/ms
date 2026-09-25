@@ -1,5 +1,4 @@
-# A seventh stab. Pick Pocket rolls per line, so the extra strike also drops
-# coins, at Cruel Stab's half rate.
+# Pick Pocket rolls per line, so the extra strike also drops coins.
 name: "Cruel Stab - Extra Strike"
 description: "Increases the number of attacks for Cruel Stab."
 kind: SKILL_KIND_PASSIVE

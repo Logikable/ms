@@ -1,5 +1,4 @@
-# GMS's own twenty points, and they reach the finishing blow: both presses are
-# one swing here, so anything aimed at the name covers all twelve strikes.
+# Both presses are one swing here, so it reaches the finishing blow too.
 name: "Assassinate - Reinforce"
 description: "Increases Assassinate damage."
 kind: SKILL_KIND_PASSIVE

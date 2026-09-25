@@ -1,17 +1,9 @@
-# A Final Attack after the Marksman's own shots, and the reason a Final Attack
-# can have its own reach: GMS gives the split its own mobCount and hitbox, so
-# even after Snipe, which hits one, it hits ten. Other Final Attacks land on the
-# one enemy their swing picked, which final_attack_max_enemies reads as 1.
+# GMS gives the split its own mobCount and hitbox, so it hits ten even after
+# Snipe. High Speed Shot, Perfect Shot and Surge Bolt are left out on purpose.
 #
-# The swings it follows are set by group, not a list of names. GMS names
-# Piercing Arrow, Snipe and the cartridge, and those three carry the tag. High
-# Speed Shot, Perfect Shot and Surge Bolt are left out on purpose.
-#
-# GMS's text says "Landing a hit with Full Burst Shot after using ..." and then
-# lists the cartridge among the skills it follows, naming the skill as an
-# alternative to itself. Grandis Library states it plainly (hits from those
-# skills release the burst), and Final Aim's text ("triggered up to 13 times")
-# only makes sense if the default is once per cast. So it is once per cast.
+# Once per cast. GMS's text names the cartridge as an alternative to itself;
+# Grandis Library states it plainly, and Final Aim's "triggered up to 13 times"
+# only makes sense if the default is once.
 name: "Split Shot"
 description:
   "Magically enchants your arrows to explode as they approach the enemy, "

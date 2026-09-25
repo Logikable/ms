@@ -1,6 +1,5 @@
-# The wall of fire a fire spell lights, and the two summons that burn beside it.
-# Ignite is a passive that carries a Final Attack, and the levers land on that
-# strike, as the Hero's node reaches Advanced Final Attack.
+# Ignite is a passive carrying a Final Attack, and the levers land on that
+# strike.
 name: "Ignite Boost"
 description: "Strengthens Ignite, Ifrit, and Inferno Aura."
 kind: SKILL_KIND_PASSIVE

@@ -1,9 +1,5 @@
-# Shaped like Beam Blade: a seven-second recharge on a swing worth several of
-# the filler. But without Beam Blade's doubled damage to normal monsters, which
-# GMS gives the Crusader and not the Sniper.
-#
-# 660ms is the animation's own, from the frame data: faster than the Piercing
-# Arrow it alternates with, and it also hits harder.
+# Without Beam Blade's doubled damage to normal monsters, which GMS gives the
+# Crusader and not the Sniper.
 name: "Bolt Burst"
 description: "Fire arrows in all directions, striking multiple enemies nearby."
 kind: SKILL_KIND_ATTACK

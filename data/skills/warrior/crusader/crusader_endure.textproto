@@ -1,10 +1,5 @@
-# GMS maxes this at 14 and ends at +30 of each. Stretched over 20 levels to the
-# same place, starting at 11 instead of the Berserker's 1: the Hero line's
-# version is the stronger one.
-#
-# Nothing in this game inflicts a status or deals elemental damage, so this
-# gives nothing yet. Written in full anyway: the figures belong with the skill,
-# and the stats page shows both rows.
+# GMS maxes this at 14; stretched over 20 levels to the same place. Nothing
+# inflicts a status or element here, so it gives nothing yet.
 name: "Endure"
 description:
   "Enhances your Abnormal Status Resistance and Elemental Resistance."

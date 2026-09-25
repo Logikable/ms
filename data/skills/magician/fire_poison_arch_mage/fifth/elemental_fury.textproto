@@ -1,30 +1,12 @@
-# The F/P's third class node: Ifrit rages for three seconds and strikes every
-# 0.6 seconds, six lines on twelve enemies.
+# 600ms is GMS's `x`, the one number in its common block the tooltip never uses.
+# `t`, the 0.6 seconds added per active Fervent Drain, confirms it: each stack
+# buys one more strike.
 #
-# 600ms is GMS's `x`, the one number in its common block the tooltip never uses,
-# which is also where Spirit of Snow's timing was found. What confirms it is
-# that `t`, the 0.6 seconds added per active Fervent Drain, is the same number:
-# each stack buys exactly one more strike, and the window runs 3 to 6 seconds as
-# five strikes become ten.
+# Twelve enemies stands: the client gives it no hitbox, so the stated cap is the
+# reach.
 #
-# "Active Fervent Drain" means burns up, capped at five, the same count that
-# skill reads for itself. On a boss the F/P usually has two to four: Flame Sweep
-# and Ifrit always, DoT Punisher and Poison Nova for part of their 25-second
-# cycles. So the window really varies here; it is not a cap in disguise.
-#
-# Weak next to its siblings on purpose: 26,400% at most against Poison Nova's
-# 66,000%, as GMS wrote it. It is filler beside the branch's two big buttons,
-# and its numbers are all its own.
-#
-# Twelve enemies stands: the client gives this skill no hitbox, so the stated
-# cap is the reach.
-#
-# masonym's 480ms cast isn't what it costs: buffs are cast from a sequence,
-# which paces them all at 120ms.
-#
-# GMS's "only when Ifrit is summoned" is the required skill. Summons here are
-# permanent once learned, so the condition always holds, but a book that hasn't
-# paid for Ifrit can't have this.
+# GMS's "only when Ifrit is summoned" is the required skill: summons here are
+# permanent, but a book without Ifrit can't have this.
 name: "Elemental Fury"
 description:
   "Unleash the fury of flame in the form of an enraged spirit. Can only be "

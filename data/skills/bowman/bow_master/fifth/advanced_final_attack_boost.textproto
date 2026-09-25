@@ -1,10 +1,8 @@
-# GMS's node 5 is Covering Fire and Swift Surge, which don't exist here, and
-# every other swing in the line is taken. So Final Attack gets the page alone,
-# at GMS's node-5 rate of 3% a level instead of the 2% it gets sharing node 1.
+# GMS's node 5 is Covering Fire and Swift Surge, which don't exist here, so
+# Final Attack gets the page alone at GMS's node-5 rate of 3% a level.
 #
-# It targets Advanced Final Attack, not Final Attack: Bow, which GMS names. The
-# later skill supersedes the earlier one, and a boost keyed to the superseded
-# name reaches nothing.
+# It targets Advanced Final Attack, not the Final Attack: Bow GMS names: a boost
+# keyed to the superseded name reaches nothing.
 name: "Advanced Final Attack Boost"
 description: "Strengthens Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE

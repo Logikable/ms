@@ -1,9 +1,5 @@
-# Reach cut from GMS's 6 to 4. Its hitbox is 295x175, one storey of a map
-# fitting 4 monsters side by side, so 6 is a cap GMS never fills but this fight
-# would always fill. See Skill.max_enemies.
-#
-# The wiki starts with the swing's MP cost. Nothing here uses MP, so only the
-# attack is left to describe.
+# Reach cut from GMS's 6 to 4: the 295x175 hitbox fits four across, and 6 is a
+# cap GMS never fills but this fight always would (see Skill.max_enemies).
 name: "Slash Blast"
 description: "Attack nearby enemies all at once."
 kind: SKILL_KIND_ATTACK

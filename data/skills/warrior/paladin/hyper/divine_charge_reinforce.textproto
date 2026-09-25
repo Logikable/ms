@@ -1,8 +1,5 @@
-# GMS writes it "Damage: +20%": the %Damage stat for one swing, adding to what
-# the character already has, not points on Divine Charge's multiplier.
-#
-# It boosts the White Knight's skill from the Paladin's page, since the Paladin
-# still uses it.
+# GMS's "Damage: +20%" is the %Damage stat. It boosts the White Knight's skill
+# from the Paladin's page, since the Paladin still uses it.
 name: "Divine Charge - Reinforce"
 description:
   "Increases the damage of Divine Charge."

@@ -1,5 +1,3 @@
-# The magician's Physical Training: eight points of the job's main stat a level,
-# GMS's own figure.
 name: "High Wisdom"
 description: "Permanently increases INT through mental discipline."
 kind: SKILL_KIND_PASSIVE

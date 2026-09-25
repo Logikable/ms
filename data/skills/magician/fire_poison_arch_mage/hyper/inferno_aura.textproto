@@ -1,10 +1,6 @@
-# GMS's toggle: 100 MP a second to stand in a ring of fire that bursts every
-# three seconds and burns everything it touches for half a minute. Nothing here
-# uses MP, so what is left is the burst on its own clock, which is what the
-# skill amounts to anyway, since players keep it on.
-#
-# GMS excludes it from Ignite by name. That happens here automatically: a skill
-# on its own clock isn't the character's swing, so no Final Attack follows it.
+# GMS's MP toggle; nothing here uses MP, so what is left is the burst on its own
+# clock. GMS's exclusion from Ignite holds automatically: no Final Attack
+# follows a skill on its own clock.
 name: "Inferno Aura"
 description:
   "Channel fire chakras to burst into flame, damaging nearby enemies."

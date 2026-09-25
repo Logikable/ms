@@ -1,9 +1,5 @@
-# The lever goes on the character, not on Hex of the Evil Eye, which is a
-# passive with nothing to boost: what Hex gives is already the character's, and
-# 30 more attack is the same 30 either way.
-#
-# GMS also raises magic attack. Hex has none here (no warrior weapon has any),
-# so there is nothing to raise.
+# On the character, not Hex of the Evil Eye, which is a passive with nothing to
+# boost. Hex has no magic attack here, so GMS's half has nothing to raise.
 name: "Evil Eye - Hex Reinforce"
 description: "Increases Hex of the Evil Eye's Attack Power boost."
 kind: SKILL_KIND_PASSIVE

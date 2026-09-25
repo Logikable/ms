@@ -1,9 +1,5 @@
-# GMS stacks this five times with a 95% chance per hit, so in practice a
-# character is always at five. That steady state is written flat: 40% damage at
-# the top, over twenty levels instead of GMS's thirty.
-#
-# The Ignore DEF beside it only matters against bosses; no map mob has any
-# defense.
+# GMS stacks this five times at a 95% chance per hit, so a character is always
+# at five; that steady state is written flat, over twenty levels, not thirty.
 name: "Arcane Aim"
 description: "Ignores a portion of enemy DEF when attacking."
 kind: SKILL_KIND_PASSIVE

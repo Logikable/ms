@@ -1,10 +1,6 @@
-# The first of the six Decents: GMS's potential-skill grant, kept permanently
-# instead of cast. All six have Decent Mystic Door's ladder (a point of All
-# Stats every fifth level, `base 1, per_level 0.2`) plus a flat half that
-# doesn't climb, which is what "Decent" means.
-#
-# The flat half doesn't stack with the real skill (see Skill.exclusive_group).
-# The All Stats does, since no other skill in the group gives any.
+# GMS's potential-skill grant, kept permanently instead of cast. The flat half
+# doesn't stack with the real skill (see Skill.exclusive_group); the All Stats
+# does.
 name: "Decent Sharp Eyes"
 description:
   "Locates an enemy's weak spot to deal lethal damage. Does not stack with "

@@ -1,10 +1,7 @@
-# GMS strengthens this while the orbs are full, and this game assumes full orbs
-# everywhere, so only the strengthened version ships: 267 + 4L% four times, the
-# last two always critical.
+# GMS strengthens this while the orbs are full, and orbs are always full here,
+# so only the strengthened version ships.
 #
-# Those two are a second hit of the same swing, not a lever on top of it. They
-# use the same multiplier as the other two, so the only difference between the
-# halves is the guaranteed crit, which is why they are kept separate.
+# The last two lines are kept separate only for their guaranteed crit.
 name: "Raging Blow"
 description:
   "Instantly slash several times to slice multiple enemies in front of you. "

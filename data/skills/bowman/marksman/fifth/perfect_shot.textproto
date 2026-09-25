@@ -1,23 +1,13 @@
-# One shot, six arrows. GMS's "Multiple Critical Shot Count: 6" is a
-# mistranslation of a volley: KMS says six arrows, each striking fourteen times
-# for 2090%. Written as six casts, not 84 lines, because six arrows is what the
-# skill is (see Skill.casts).
+# GMS's "Multiple Critical Shot Count: 6" mistranslates a volley: KMS says six
+# arrows, each striking fourteen times for 2090%. Written as six casts.
 #
-# The cast time is the aim, not the animation. The client's action is one 120ms
-# frame; after that the player holds the scope for up to two seconds before
-# firing. Measured from a video at 2.12 seconds, and fixed: the aim time is in
-# the tooltip, and attack speed doesn't shorten it.
+# The cast time is the aim, measured from a video at 2.12 seconds and fixed: the
+# client's action is one 120ms frame, then the player holds the scope.
 #
-# Reach is cut from GMS's 12 to what the hitbox holds. The whole volley lands in
-# the 310x310 hitbox; the 1400x800 second box is the scope's aiming range, not
-# ground the arrows cover. So the rule gives 4 across and 2 storeys.
+# Reach is cut from GMS's 12 to the 310x310 hitbox; the 1400x800 second box is
+# the scope's aiming range, not ground the arrows cover.
 #
-# The +100% is GMS's damR: it adds to the character's damage % rather than
-# multiplying it, and only for this swing, which is why damage_pct is a swing
-# lever beside Ignore DEF and boss damage.
-#
-# Marked Target is dropped. Greater Empowered Arrows folds that buff into its
-# own passive, so a Marksman with this node already has it.
+# Marked Target is dropped: Greater Empowered Arrows folds it into its passive.
 name: "Perfect Shot"
 description:
   "Catch your enemies square in your sights. Unaffected by attack ignore and "

@@ -1,9 +1,3 @@
-# GMS's own skill, poison included: 130+5x% six times, and the cloud keeps
-# damaging whatever it touched for as long as it lasts.
-#
-# The longer animation of the pair, which the burn makes up for: the chooser
-# values a burn at the rate the swing can keep up, so that total decides which
-# of the two it picks, not a cooldown.
 name: "Poison Breath"
 description:
   "Conjure a poison-attribute cloud, inflicting fatal damage to enemies. The "

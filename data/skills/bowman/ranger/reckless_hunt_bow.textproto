@@ -1,6 +1,3 @@
-# This takes a stat away: DEF goes down, attack and final damage go up, and the
-# stats page shows the loss as a loss (see TotalWithBreakdown). The Ranger can
-# afford it: DEF stops mattering long before this much is gone.
 name: "Reckless Hunt: Bow"
 description: "Reduces DEF and instead increases Attack Power and Final Damage."
 kind: SKILL_KIND_PASSIVE

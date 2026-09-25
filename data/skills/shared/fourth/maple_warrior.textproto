@@ -1,10 +1,5 @@
-# GMS describes this skill as "all stats with a direct AP investment", and
-# counts the share it gives as added stat, so it lands where a ring's stat does
-# and anything that scales the character's stats scales it too. See
-# SkillEffect.ap_stat_pct.
-#
-# The ladder is GMS's L/2%: half a point a level, 15% at 30, and 16% at the
-# second of the two levels past max that Combat Orders reaches.
+# GMS's "all stats with a direct AP investment" is counted as added stat, so it
+# lands where a ring's stat does (see SkillEffect.ap_stat_pct).
 name: "Maple Warrior"
 description: "The Goddess of Maple World's grace increases your stats."
 kind: SKILL_KIND_PASSIVE

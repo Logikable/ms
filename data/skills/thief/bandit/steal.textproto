@@ -1,6 +1,5 @@
-# GMS steals a potion from whatever you hit, and a potion stolen from a boss
-# gives a buff worth 30 attack. Nothing here drinks anything, so only the buff
-# is left, kept permanently, reaching GMS's 30 at the top of the ladder.
+# Nothing here drinks anything, so only GMS's stolen-potion buff is left, kept
+# permanently.
 name: "Steal"
 description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE

@@ -1,5 +1,3 @@
-# GMS's "Damage: +20%" again. It combines with the hammer's boss damage the way
-# two damage % sources always do: one multiplier containing both.
 name: "Heaven's Hammer - Reinforce"
 description:
   "Increases damage of Heaven's Hammer."

@@ -1,9 +1,5 @@
-# GMS's own figures: 200+8x% on three enemies. The summon's duration is dropped,
-# like every duration here: the shuriken is always there.
-#
-# 900ms between pulses is the skill's own `subTime`, and dpm_calc counted 62
-# strikes over its 60 seconds, which agrees within a frame. The shuriken's
-# animation doesn't set the timing; the server does.
+# 900ms is the skill's own `subTime`, and dpm_calc counted 62 strikes over 60
+# seconds, which agrees within a frame.
 name: "Dark Flare"
 description:
   "Release dark energy to summon a large shuriken that attacks enemies "

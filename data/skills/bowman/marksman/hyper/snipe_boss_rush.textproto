@@ -1,6 +1,3 @@
-# The bossing half of the pair Reinforce starts: the same two swings and the
-# same mark, against bosses only. Adds to the gear's boss damage, since both are
-# the same kind of damage %.
 name: "Snipe - Boss Rush"
 description:
   "Increases boss damage of Snipe, Empowered Snipe, and of Snipe's additional "

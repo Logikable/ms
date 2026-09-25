@@ -1,6 +1,5 @@
-# Final Pact is a passive, so its final damage is already the character's and
-# there is nothing to aim a boost at: the 5% goes here and combines with the
-# pact's own the way two sources of final damage always do, by multiplying.
+# Final Pact is a passive with nothing to aim a boost at, so the 5% goes here
+# and multiplies with the pact's own.
 name: "Final Pact - Damage"
 description:
   "Increases passive final damage of Final Pact. Stacks with existing final "

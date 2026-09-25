@@ -1,6 +1,5 @@
-# GMS pairs this with Final Attack: Crossbow, which got its own page to fill the
-# node Covering Fire and Swift Surge left empty (see
-# final_attack_crossbow_boost). The widest swing in the book, so the wider tier.
+# GMS pairs this with Final Attack: Crossbow, which got its own page (see
+# final_attack_crossbow_boost).
 name: "High Speed Shot Boost"
 description: "Strengthens High Speed Shot."
 kind: SKILL_KIND_PASSIVE

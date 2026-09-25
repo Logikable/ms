@@ -1,12 +1,5 @@
-# GMS: 140+2x% seven times, and everything it hits burns for 120+4x% a second
-# for five seconds. Both ladders are GMS's own.
-#
-# Seven enemies instead of GMS's eight: the sweep is 495 pixels wide and one
-# storey tall, which fits seven across. See Skill.max_enemies.
-#
-# The burn was the game's first damage over time. Earlier ones were dropped
-# because a map mob dies within a swing, so a few seconds of ticking never
-# mattered; this class is built on them, which changed that.
+# Seven enemies instead of GMS's eight: the 495-pixel sweep fits seven across
+# (see Skill.max_enemies).
 name: "Flame Sweep"
 description:
   "A fire-attribute attack. Sweep the area in front of you with a powerful "

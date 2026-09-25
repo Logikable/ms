@@ -1,11 +1,6 @@
-# GMS names Final Attack here, but a Hero's extra hit comes from Advanced Final
-# Attack, which supersedes it, so the grant targets the skill that actually
-# strikes. Cry Valhalla gets critical rate at 20 instead of the extra enemy the
-# other two get: it attacks with a buff's pulse, whose reach is stated on the
-# pulse itself.
-#
-# Named for its main skill only, like every node that boosts more than one: the
-# description names the other two.
+# GMS names Final Attack, but Advanced Final Attack supersedes it, so the grant
+# targets the skill that actually strikes. Cry Valhalla's reach is stated on its
+# pulse, so it gets critical rate at 20.
 name: "Cry Valhalla Boost"
 description: "Strengthens Cry Valhalla, Puncture and Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE

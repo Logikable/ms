@@ -1,6 +1,3 @@
-# 35 + floor(L/2)% and 6 + L%, straight from GMS. The Ignore DEF only matters
-# against bosses: no map mob has physical defense, so while farming only the
-# final damage shows.
 name: "Armor Break"
 description:
   "Pierces the enemy's defenses with the sharpness of a bowman that sees "

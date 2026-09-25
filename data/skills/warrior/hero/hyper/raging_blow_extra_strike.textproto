@@ -1,6 +1,5 @@
-# The strike goes on the normal half of the swing, not the two guaranteed
-# criticals: GMS adds an ordinary attack, so Raging Blow becomes three strikes
-# and then the pair that always crit.
+# GMS adds an ordinary attack, so the strike goes on the normal half, not the
+# two guaranteed criticals.
 name: "Raging Blow - Extra Strike"
 description:
   "Increases Raging Blow's attack count."

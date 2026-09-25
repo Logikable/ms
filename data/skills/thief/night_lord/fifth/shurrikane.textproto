@@ -1,22 +1,10 @@
-# The Night Lord's second class node: one huge shuriken thrown forward, hitting
-# everything it passes, then spinning where it stops.
+# The tooltip never gives the beat; the client's `subTime` is 180ms. The
+# shuriken's 0.4s flight plus 2 seconds spinning land fourteen strikes.
 #
-# GMS's own figures: 285+11x% seven times on six enemies, on a 25s cooldown. The
-# tooltip never gives the beat; the client's `subTime` is 180ms, the field Bolt
-# Barrage and Inhuman Speed take theirs from. The shuriken lasts for its flight
-# (600px at v25, about 0.4s) plus 2 seconds of spinning, so fourteen strikes
-# land: 60,270% at max, or 2,411%/s over the cooldown, just under Bolt Barrage's
-# 2,580%/s.
+# GMS cuts Assassin's Mark to 40% of its chance on this swing, which would
+# otherwise roll it fourteen times a press.
 #
-# `cast_interval_ms` fits for two reasons: it is GMS's own beat, and strikes
-# landing one at a time is what a shuriken that keeps hitting whatever is left
-# looks like in an engine without positions.
-#
-# The mark is the cost. GMS cuts Assassin's Mark to 40% of its normal chance on
-# this swing, which would otherwise roll it fourteen times a press.
-#
-# Dropped: the recast that stops the shuriken in place, which needs a place, and
-# immunity to attack reflection, which nothing here has.
+# The recast that stops it in place needs a place, so it is dropped.
 name: "Shurrikane"
 description:
   "Throws a massive shuriken said to be used by the thieves of old. Reduced "

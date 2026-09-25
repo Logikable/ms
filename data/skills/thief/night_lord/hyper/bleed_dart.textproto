@@ -1,11 +1,4 @@
-# GMS's own figures: +50 attack, and a bleed on everything the Night Lord hits
-# for 2000% a second over three seconds. A passive instead of GMS's 90-second
-# buff, at the user's request: the coating is on the stars, so everything the
-# stars hit gets it.
-#
-# The burn always applies and doesn't stack, so a second swing refreshes the
-# mark instead of adding one: it is worth 2000% a second for as long as the
-# Night Lord keeps attacking.
+# A passive instead of GMS's 90-second buff, at the user's request.
 name: "Bleed Dart"
 description:
   "Coats your stars with a deadly poison that causes bleeding, increasing "

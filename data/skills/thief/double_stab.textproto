@@ -1,11 +1,7 @@
-# Two stabs of 85+4x%: 178% per target at level 1 and 330% at max. GMS gives
-# 90+5x over 15 levels; stretching to 20 keeps the same 165% a stab at the top,
-# the rule every skill here follows. It ends even with Lucky Seven, which is why
-# the dagger it needs matters: both are 330% on the same four targets, and only
-# the weapon differs.
+# GMS gives 90+5x over 15 levels; 20 here keep the same 165% a stab at the top.
 #
-# Four enemies against GMS's five: the box is 330x175, one storey tall, and fits
-# four across. See Skill.max_enemies.
+# Four enemies against GMS's five: the 330x175 box fits four across (see
+# Skill.max_enemies).
 name: "Double Stab"
 description: "Quickly stab a nearby enemy."
 kind: SKILL_KIND_ATTACK

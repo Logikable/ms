@@ -1,6 +1,3 @@
-# See decent_sharp_eyes.textproto for the shape all six share. GMS's 40% is two
-# thirds of a maxed Hyper Body, so the Spearman's own skill beats this from its
-# seventh level on.
 name: "Decent Hyper Body"
 description:
   "Increases Max HP and Max MP. Does not stack with Hyper Body."

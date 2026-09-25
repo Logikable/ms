@@ -1,5 +1,4 @@
-# As with the pact's damage: a passive's critical rate already belongs to the
-# character, so the 20% goes here and adds to theirs.
+# A passive's critical rate is already the character's, so the 20% goes here.
 name: "Final Pact - Critical Chance"
 description: "Increases Critical Rate bonus from Final Pact's passive effect."
 kind: SKILL_KIND_PASSIVE

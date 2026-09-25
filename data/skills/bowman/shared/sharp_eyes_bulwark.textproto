@@ -1,14 +1,8 @@
-# GMS's version is Sharp Eyes - Persist, which adds thirty seconds to the buff.
-# Sharp Eyes is a permanent passive here, so there is no duration to extend, and
-# it is renamed for the DEF it gives instead.
+# GMS's version is Sharp Eyes - Persist, which lengthens the buff. Sharp Eyes is
+# permanent here, so it is renamed for the DEF it gives instead.
 #
-# That DEF is worth nothing, on purpose: DEF stops paying at a share of the
-# attacking monster's attack, and a Bow Master passes that cap on their stats
-# alone. See SkillEffect.def_pct. The Hero's Advanced Combo Attack - Barricade
-# is the other such skill.
-#
-# Unlike the other two, this stays with the archer who bought it: it is not
-# GMS's grant, so GMS's party rule doesn't apply.
+# That DEF is worth nothing on purpose (see SkillEffect.def_pct). It stays with
+# the archer: it is not GMS's grant, so GMS's party rule doesn't apply.
 name: "Sharp Eyes - Bulwark"
 description:
   "Grants Sharp Eyes a bonus to DEF."

@@ -1,37 +1,18 @@
-# The F/P's fourth and last class node. A lash poisons two enemies, and the
-# poison explodes every two seconds for five lines, harder each time.
+# GMS's poison adds 60 points to the next explosion on anything that survives
+# one, five deep (see `skill_pct_per_repeat`).
 #
-# The build-up is the skill. GMS's poison builds on anything that survives an
-# explosion: each helping adds 60 percentage points to the next, five deep, so a
-# boss goes from 330% to 630% over six explosions and stays there. That is what
-# `skill_pct_per_repeat` was built for: on a boss the helpings and the
-# explosions are the same count, because it survives them all.
+# GMS caps nine explosions per enemy and seventeen overall, within twenty
+# seconds.
 #
-# The two caps set the damage, not the clock. GMS allows nine explosions per
-# enemy and seventeen across all enemies, and the poison lasts up to twenty
-# seconds, so the count runs out first and the interval only spreads the nine.
-# Nine at two seconds fill eighteen of the twenty.
+# GMS publishes no interval. Two seconds is ours: above 20/9 seconds the nine-
+# explosion cap could never be reached on a boss.
 #
-# GMS publishes no interval: the client, the wiki and namu all say only
-# "periodically", and the one unused number in its common block is the three
-# crystals a map can hold, not a beat. Two seconds is ours, and it is limited,
-# not arbitrary: above 20/9 of a second the nine-explosion cap could never be
-# reached on a boss, which is exactly where GMS meant it to apply.
+# GMS's final explosion lands with the ninth (`final_repeat_strike`).
 #
-# GMS's final explosion ("all poison is removed, followed by an additional
-# explosion") is not a tick. It lands with the ninth, at the top of the ramp;
-# that is `final_repeat_strike`.
+# The crystal and spreading are dropped, so a crowd is worth a bit more here.
 #
-# The crystal is dropped, and the spreading with it. Both are how GMS moves the
-# poison off a dead mob, and the total is capped either way: two enemies
-# exploding nine times each is eighteen against GMS's seventeen. What is lost is
-# that a newly infected mob starts its ramp again, so a crowd is worth a bit
-# more here than in GMS. On a boss, where this skill matters, there is nothing
-# to spread to.
-#
-# This poison is not a burn. GMS says plainly it doesn't trigger Elemental
-# Drain, so it is a pulse, not a `dot`, and DoT Punisher's orb count and Fervent
-# Drain's final damage don't count it.
+# Not a burn: GMS says it doesn't trigger Elemental Drain, so it is a pulse, not
+# a `dot`, and DoT Punisher and Fervent Drain don't count it.
 name: "Poison Chain"
 description:
   "Unleash a fatal poison on a chain of enemies. Poisoned enemies "

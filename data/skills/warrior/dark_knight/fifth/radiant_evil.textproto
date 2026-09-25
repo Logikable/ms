@@ -1,7 +1,5 @@
-# GMS requires Evil Eye of Domination to be up, which is permanent here, and
-# costs 1000 MP, which this game doesn't use. What is left is the shout itself:
-# an eye that appears every 20 seconds and hits ten enemies six times, ignoring
-# a fifth of their defense.
+# GMS requires Evil Eye of Domination, which is permanent here, and 1000 MP,
+# which this game doesn't use.
 name: "Radiant Evil"
 description:
   "The Evil Eye reveals itself and blasts nearby enemies. Only usable while "

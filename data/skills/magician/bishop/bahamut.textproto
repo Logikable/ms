@@ -1,9 +1,5 @@
-# GMS's own: 110+3x% three times on three enemies, on the 3030ms clock Ifrit and
-# Elquines share.
-#
-# It is the only magician summon with no mastery. The other two are their books'
-# mastery skill; the Priest's Holy Focus already reaches 70%, so a Bishop has
-# full staff mastery before 4th job.
+# The only magician summon with no mastery: the Priest's Holy Focus already
+# reaches 70%.
 name: "Bahamut"
 description: "Summons Bahamut to deal Holy damage."
 kind: SKILL_KIND_AUTO_ATTACK

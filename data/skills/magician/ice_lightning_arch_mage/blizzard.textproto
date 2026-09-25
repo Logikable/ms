@@ -1,11 +1,5 @@
-# Two skills on one ladder: the screen-wide swing on a 45-second cooldown, and a
-# Final Attack that follows every other swing while it recharges. It freezes the
-# room it hits, as GMS says, for eight seconds, like the rest of the family; GMS
-# states no number of its own. The fight uses Chain Lightning in between, which
-# is why this one can hit so hard.
-#
-# The Final Attack falls on one enemy, as GMS states, which is the usual rule.
-# See Skill.final_attack_max_enemies.
+# It freezes for eight seconds like the rest of the family; GMS states no number
+# of its own. The Final Attack falls on one enemy, as GMS states.
 name: "Blizzard"
 description:
   "Summon spears of ice from the sky, showering multiple enemies with a nasty "

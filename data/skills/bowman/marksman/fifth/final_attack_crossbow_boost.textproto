@@ -1,10 +1,5 @@
-# GMS's node 5 is Covering Fire and Swift Surge, which don't exist here, and
-# every other swing in the line is taken. So Final Attack gets the page alone,
-# at GMS's node-5 rate of 3% a level instead of the 4% it gets sharing node 4
-# with High Speed Shot.
-#
-# Unlike the Bow Master's, this Final Attack neither supersedes nor is
-# superseded, so the boost uses GMS's name directly.
+# GMS's node 5 is Covering Fire and Swift Surge, which don't exist here, so
+# Final Attack gets the page alone at GMS's node-5 rate of 3% a level.
 name: "Final Attack: Crossbow Boost"
 description: "Strengthens Final Attack: Crossbow."
 kind: SKILL_KIND_PASSIVE

@@ -1,6 +1,5 @@
-# Halves the cooldown, from ten seconds to five. GMS also cuts two more seconds
-# when a cast sets off five mists at once; nothing here places mists, so the
-# count can't change and that half has nothing to count.
+# GMS's two-second cut for setting off five mists at once is dropped: nothing
+# here places mists.
 name: "Mist Eruption - Cooldown Cutter"
 description: "Reduces Mist Eruption's cooldown."
 kind: SKILL_KIND_PASSIVE

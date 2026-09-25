@@ -1,6 +1,3 @@
-# The switch that lets the barrier weaken a boss. It enables everything the
-# character takes off an enemy's attack, including this skill's neighbour (see
-# SkillEffect.enemy_attack_reaches_boss).
 name: "Frailty Curse - Boss Rush"
 description: "Bosses are affected by Frailty Curse."
 kind: SKILL_KIND_PASSIVE

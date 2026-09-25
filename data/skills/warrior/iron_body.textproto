@@ -1,6 +1,5 @@
-# GMS reduces damage taken by ceil(level/2)%, which base + per_level*(L-1) can't
-# express. The plain level/2 below is exact at every even level, including max,
-# and half a point low at odd ones.
+# GMS's ceil(level/2)% can't be expressed as base + per_level; level/2 is exact
+# at even levels and half a point low at odd ones.
 name: "Iron Body"
 description:
   "Boosts DEF and Max HP, and decreases damage taken when hit by enemies."

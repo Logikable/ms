@@ -1,7 +1,5 @@
-# Twenty added to both halves of Advanced Blessing, for the Bishop and everyone
-# with them. A plain grant, not a boost, for the same reason as Holy Symbol -
-# Experience: the skill it names is a permanent passive, so this adds to the
-# same total.
+# A plain grant, not a boost: Advanced Blessing is a permanent passive, so this
+# adds to the same total.
 name: "Advanced Blessing - Ferocity"
 description:
   "Increases the Attack Power and Magic ATT Advanced Blessing grants you and "

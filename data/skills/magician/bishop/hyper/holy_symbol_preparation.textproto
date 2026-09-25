@@ -1,11 +1,5 @@
-# GMS states it twice, ten points while Holy Symbol is up and ten more
-# permanently, and this is the pair as one grant. Self only: GMS halves the
-# while-up half for party members away from the caster, which needs positions
-# this game doesn't have.
-#
-# Useless as it ships, like every resistance in the game: nothing inflicts a
-# status or element. The stats page shows it so the player can see what the
-# point bought.
+# GMS's two halves as one grant. Self only: GMS halves it for party members away
+# from the caster, which needs positions this game doesn't have.
 name: "Holy Symbol - Preparation"
 description:
   "Increases resistance to status ailments and all elements from using Holy "

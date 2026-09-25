@@ -1,6 +1,5 @@
-# GMS gives two charges on one 4-second cooldown. One charge here, since the
-# fight never saves one for later, so the cooldown is just the time until the
-# next.
+# GMS gives two charges on one cooldown. One here, since the fight never saves
+# one for later.
 name: "Flash Blade"
 description: "Zip forward in a flash, cutting enemies in your path."
 kind: SKILL_KIND_ATTACK

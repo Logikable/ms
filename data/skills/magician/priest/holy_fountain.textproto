@@ -1,9 +1,7 @@
-# GMS's 10+3x% of HP per drink, from a fountain the party walks to. Nobody walks
-# here, so it just pours, for the Priest and everyone with them, on a cooldown
-# that drops half a second a level.
+# Nobody walks here, so GMS's fountain just pours, for the Priest and the party.
 #
-# Half seconds, not whole ones, because the drop from level 1 to 10 must divide
-# by nine, and 7.5 is the nearest start to eight that does.
+# Half seconds, because the drop from level 1 to 10 must divide by nine, and
+# 7.5 is the nearest start to eight that does.
 name: "Holy Fountain"
 description:
   "Summons a Holy Fountain that restores party members' HP on its own."

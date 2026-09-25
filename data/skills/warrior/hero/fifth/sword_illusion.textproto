@@ -1,22 +1,11 @@
-# The Hero's last class node: twelve slashes of four lines, then five explosions
-# of five, all on eight enemies. Modelled as GMS's twelve and five instead of
-# one 48-line swing and one 25-line hit: the total is the same, but merging
-# would misdescribe the skill, and the log would show one landing where GMS
-# shows twelve.
+# GMS's twelve and five instead of one 48-line swing and a 25-line hit, so the
+# log shows what GMS shows.
 #
-# The final damage it unlocks is worth six Combo Orbs for eight seconds, and it
-# starts at the cast. GMS makes the distinction in one sentence: the explosions
-# come "afterwards" and the final damage "upon use". So all of this cast gets
-# it, and so does everything else in the window: about 1.3 times damage on every
-# swing, once every 30 seconds.
+# The final damage starts at the cast: GMS says the explosions come "afterwards"
+# and the final damage "upon use".
 #
-# Six orbs' worth, not six orbs: only an orb's final damage is raised, not the
-# attack, boss damage or DEF it also gives. A Hero with no per-orb final damage
-# gets nothing, which is GMS's "while Combo Attack is active" without needing a
-# condition.
-#
-# The 660ms cast is short for a 5th job skill: the slashes and explosions play
-# out after it, not during it.
+# Only an orb's final damage is raised, so a Hero with none gets nothing, which
+# is GMS's "while Combo Attack is active" without a condition.
 name: "Sword Illusion"
 description:
   "Slice forward faster than the eye can see using a combo orb. Sword "

@@ -1,32 +1,14 @@
-# The Bishop's third class node: an orb thrown forward that hits as it drifts,
-# then bursts into a light that hits wider and gives the party a buff.
+# GMS's "Max Contact Count: 6" limits how many party members the orb heals, not
+# how often it hits; `mobCount` is the six enemies each beat reaches.
 #
-# GMS's tooltip has two sixes, and they mean different things. `mobCount` is the
-# six enemies each beat reaches. The "Max Contact Count: 6" beside it is a
-# separate budget, and the next sentence says only the healing uses it. So
-# contacts limit how many party members the orb heals, not how often it hits.
+# The rate isn't published. The 350ms beat is GMS's `attackDelay`, and the count
+# of three is the community DPM calculator's.
 #
-# How often it hits isn't published. The beat is GMS's `attackDelay`, 350ms. The
-# count of three is the community DPM calculator's, and the orb's speed agrees:
-# 600 pixels at `v 12`, six times slower than the F/P's projectiles, keeps a
-# 220-pixel orb over a boss for about three beats.
+# The buff is final damage: Holy Light, 400021077, states it as `indieDamR`.
 #
-# The buff is final damage: Holy Light is its own skill, 400021077, and states
-# it as `indieDamR`. Twelve seconds on a ten-second cooldown means the Bishop
-# keeps it up permanently, which is the point; namu has a Bishop casting this
-# every ten seconds as the core of the rotation.
-#
-# The orb and the light both land when the cast ends. GMS first flies the orb
-# out over three quarters of a second, and nothing here has room to fly.
-#
-# The three beats land together instead of on their own clock. A swing split by
-# `cast_interval_ms` repeats all of itself on every beat, and this swing
-# includes the light, so splitting would burst the light three times. The map
-# doesn't change in those 700ms anyway.
-#
-# Dropped: the 350 MP (not tracked), the recast that dismisses an orb already
-# out (pointless on a ten-second cooldown), and immunity to attack reflection,
-# which nothing here has.
+# The three beats land together: `cast_interval_ms` would repeat the whole
+# swing, and this swing includes the light, so the light would burst three
+# times.
 name: "Peacemaker"
 description:
   "Hurl the embodiment of divine power directly at your enemies. Upon contact "

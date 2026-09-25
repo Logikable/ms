@@ -1,10 +1,5 @@
-# Holy Fountain's Vengeance form: instead of the party drinking from it, the
-# fountain attacks. GMS's 140+4x over ten levels, and the two seconds between
-# eruptions is the client's own attackDelay.
-#
-# Its duration is dropped, like every placed summon's here: nothing stops the
-# Bishop placing it again, so all that matters is the rate. See
-# SKILL_KIND_AUTO_ATTACK.
+# The two seconds between eruptions is the client's own attackDelay. Its
+# duration is dropped, like every placed summon's (see SKILL_KIND_AUTO_ATTACK).
 name: "Fountain of Vengeance"
 description:
   "Summon a divine talisman of vengeance that punishes nearby enemies. The "

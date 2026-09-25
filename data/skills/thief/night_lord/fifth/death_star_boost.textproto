@@ -1,5 +1,3 @@
-# Sudden Raid's burn gets the node's numbers too: a burn uses the swing's own
-# stats, which already include the boost.
 name: "Death Star Boost"
 description: "Strengthens Death Star and Sudden Raid."
 kind: SKILL_KIND_PASSIVE

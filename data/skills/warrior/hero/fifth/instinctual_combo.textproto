@@ -1,22 +1,11 @@
-# The Hero's burst button. For 20 seconds the Combo Counter is worth more, and
-# every Raging Blow tears the space it swings through.
+# The orb line raises what the orbs already give by 13%: GMS's tables take 20
+# ATT to 22.2 and 120% final damage to 133.2%.
 #
-# The orb line looks like a fifth bonus per orb but isn't: it raises what the
-# orbs already give by 13%, whichever skill gives it. GMS's own tables take
-# Combo Attack's 20 ATT to 22.2 and Advanced Combo's 120% final damage to
-# 133.2%, exactly that multiplier.
+# The orb charge rate does nothing here, and Soul Trace fires from a 6th job
+# skill.
 #
-# Two of GMS's three clauses are dropped. The orb charge rate it halves does
-# nothing here, since the orb count is fixed, and Soul Trace fires from Spirit
-# Calibur, a 6th job skill this game never reaches.
-#
-# GMS says only "periodically" and keeps the number in Skill.wz, but a 41-second
-# battle analysis settles it: 180 rifts over a 30-second window is 60 firings,
-# one every half second, exactly one per Raging Blow. The tear follows the
-# swing, not a clock, so a faster Hero tears more often.
-#
-# That is 7,200% per firing against the swing's own 1,548%, on purpose: the Hero
-# is a burst job, much stronger with this up than without.
+# A 41-second battle analysis settles GMS's "periodically": 180 rifts over 30
+# seconds is one firing per Raging Blow, so the tear follows the swing.
 name: "Instinctual Combo"
 description:
   "Tap into your subconscious abilities and use your power to its fullest "

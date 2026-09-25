@@ -1,7 +1,4 @@
-# Nothing supersedes the Page's Final Attack, so the boost uses GMS's name
-# directly. Both halves get critical rate at 20: Final Attack's strike only
-# reaches the one enemy the swing found, and Smite Shield's fifteen already
-# covers the map.
+# Nothing supersedes the Page's Final Attack, so the boost uses GMS's name.
 name: "Final Attack Boost"
 description: "Strengthens Final Attack and Smite Shield."
 kind: SKILL_KIND_PASSIVE

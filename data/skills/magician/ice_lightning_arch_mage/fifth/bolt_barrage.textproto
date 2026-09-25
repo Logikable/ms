@@ -1,22 +1,10 @@
-# The I/L's second class node: a wall of eight lightning bolts that moves across
-# the screen, each bolt striking fifteen times for 860% at max.
+# All eight bolts hit: GMS gives the wall two attack objects, one moving and one
+# locked, each with the full `mobCount 12` and `attackCount 15`.
 #
-# All eight hit. GMS gives the wall two invisible attack objects, one moving and
-# one locked in place, and each has the full `mobCount 12`, `attackCount 15` and
-# `380+16x`, so an enemy the wall passes over takes all eight. 103,200% at max,
-# and its rate over the cooldown almost exactly matches Spear of Darkness:
-# 2,580%/s against 2,589%/s.
+# `cast_interval_ms` is GMS's `subTime`, so each bolt hits what the one before
+# left standing.
 #
-# Twelve enemies is GMS's own mobCount, and this game's hitbox rule gets the
-# same from the bolt's 300x610 box: floor(300/70) * (1 + floor(610/250)) = 12.
-#
-# `cast_interval_ms` is GMS's `subTime`: the bolts land one at a time, 210ms
-# apart, so each hits what the one before left standing. Nothing here has a
-# position, so the wall clearing twelve and moving to the next twelve is what
-# moving across the screen means here.
-#
-# Dropped: the recast that locks the wall in place, which needs a place; and
-# immunity to attack reflection, which nothing here has.
+# The recast that locks the wall in place needs a place, so it is dropped.
 name: "Bolt Barrage"
 description:
   "Summons a wall of lightning that pulses forward, electrocuting enemies in "

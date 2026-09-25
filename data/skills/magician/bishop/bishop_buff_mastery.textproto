@@ -1,12 +1,5 @@
-# Magic attack, final damage, and Buff Duration. Buff Duration lengthens a buff
-# but not its cooldown, which is what makes a stat that gives nothing alone
-# worth having. The V matrix is outside it: GMS marks every node
-# notIncBuffDuration.
-#
-# GMS gives 3+4*floor(x/5)% final damage, 11% at max. Here it is L+1, so the
-# ladder is even and the top is GMS's.
-#
-# GMS's knockback resistance is dropped: nothing here knocks a character back.
+# The V matrix is outside the Buff Duration: GMS marks every node
+# notIncBuffDuration. GMS's 3+4*floor(x/5)% is written as L+1, the same top.
 name: "Buff Mastery"
 description:
   "Permanently increases Magic ATT and Final Damage and increases the "

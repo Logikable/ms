@@ -1,5 +1,4 @@
-# Extra damage % only this swing gets, which is what GMS's "Damage: +20%" means.
-# The mark gets it too, because both use the same stats.
+# GMS's "Damage: +20%": extra damage % only this swing gets.
 name: "Snipe - Reinforce"
 description:
   "Increases damage of Snipe, Empowered Snipe, and of Snipe's additional "

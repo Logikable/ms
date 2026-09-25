@@ -1,5 +1,3 @@
-# Three arrows to each of six enemies: 249% per target at level 1, rising to
-# 534% at 20, close enough to Brandish that the two branches are even.
 name: "Wind Arrow"
 description: "Fire multiple arrows that fly like the wind."
 kind: SKILL_KIND_ATTACK

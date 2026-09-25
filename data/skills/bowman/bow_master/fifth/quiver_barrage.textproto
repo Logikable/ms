@@ -1,20 +1,8 @@
-# Every arrowhead at once, plus a flaming one. The buff is the small half (15%
-# final damage and 20% attack for 40 seconds); the flaming arrows are all the
-# damage.
+# GMS's "Duration: 5 sec." is how long an arrow hunts for a target. Namu gives
+# the total, 534,600%: 6 arrows x 18 volleys x 9 lines x 550%.
 #
-# One trigger fires six arrows, each one attack of nine lines on six enemies,
-# one after another. GMS's "Duration: 5 sec." is how long an arrow hunts for a
-# target, which is why namuwiki praises it for farming. Namu gives the total,
-# 534,600%, which is exactly 6 arrows x 18 volleys x 9 lines x 550%.
-#
-# It has eighteen volleys on a 2-second re-trigger, so it runs out at 36 seconds
-# of the 40-second buff; the tooltip itself warns the attack stops while the
-# buff is still up. GMS fires it "upon attack", and this game's swing never
-# pauses, so that is simply every 2 seconds.
-#
-# The attack % goes in the same pool as Marksmanship's. GMS writes this one as
-# indiePadR and Marksmanship's as padR, but this game has one pool, and
-# namuwiki's table also sums the pair to 45%.
+# The attack % shares Marksmanship's pool: GMS writes indiePadR and padR, but
+# this game has one pool, and namuwiki's table also sums the pair to 45%.
 name: "Quiver Barrage"
 description:
   "Fire every type of arrowhead at once, including a special flaming arrowhead "

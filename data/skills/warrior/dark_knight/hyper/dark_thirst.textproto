@@ -1,10 +1,8 @@
 # 120ms, not the 900ms animation: buffs are cast from a skill sequence, which
 # paces every skill in it the same way.
 #
-# GMS restores HP on a hit, not every hit, and gives no chance; the expected
-# value is what an expected-damage fight can use, so it heals a share of HP on
-# every swing. What it really gives a Dark Knight is the ability to keep
-# attacking while Final Pact's cooldown runs.
+# GMS gives no chance for its heal, so the expected value heals a share on every
+# swing.
 name: "Dark Thirst"
 description:
   "Channels your inner vampire to increase Attack Power and sap life from "

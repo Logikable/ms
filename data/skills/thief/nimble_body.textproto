@@ -1,10 +1,5 @@
-# The thief's only passive: LUK, the stat a thief's damage is built on. GMS
-# gives 2 a level over 10 levels; this gives 1 over 20, ending at the same +20.
-# Halving it keeps the skill in line with the others: 20 LUK is worth about 13%
-# more damage at level 30, close to Critical Shot's 14%, where the full 40 would
-# put it well ahead.
-#
-# The wiki says "Luck"; every stat this game shows says LUK.
+# GMS gives 2 a level over 10 levels; this gives 1 over 20, ending at +20, in
+# line with Critical Shot where the full 40 would put it well ahead.
 name: "Nimble Body"
 description: "Permanently increases LUK."
 kind: SKILL_KIND_PASSIVE

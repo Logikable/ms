@@ -1,6 +1,3 @@
-# The other half of the pair, with GMS's own figures: 130+8x over 10 levels, so
-# it ends a little above Cold Beam with the same animation length. The lightning
-# half: it uses the Freeze Stacks the ice half left.
 name: "Thunder Bolt"
 description:
   "A lightning-attribute attack. Create a powerful magnetic field, which "

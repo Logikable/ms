@@ -1,6 +1,3 @@
-# GMS's own figures: 323+4x% four times over 30 levels, on one enemy. Single
-# target is the whole point: a Night Lord keeps it for bosses and Showdown for
-# everything else. 660ms is the animation's own.
 name: "Quad Star"
 description: "Masterfully unleash four throwing stars."
 kind: SKILL_KIND_ATTACK

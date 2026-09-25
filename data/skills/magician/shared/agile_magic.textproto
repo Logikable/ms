@@ -1,5 +1,4 @@
-# GMS gives 2 INT a level over 10 levels. Here it is spread over 5 at 4 each,
-# the same 20 total for half the points, like Agile Arms and Agile Bows.
+# GMS gives 2 INT a level over 10 levels. Here it is spread over 5 at 4 each.
 name: "Agile Magic"
 description: "Increases Attack Speed and INT."
 kind: SKILL_KIND_PASSIVE

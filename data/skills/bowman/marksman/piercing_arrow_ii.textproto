@@ -1,10 +1,4 @@
-# The Crossbowman's arrow, stated in full instead of as an increase (more
-# enemies, strikes and damage), so it supersedes the skill it grows from instead
-# of adding to it.
-#
-# The fragment bounces off the first enemy onto two of the eight the arrow
-# passed through, which is what lead_enemies is for: like a Rogue's opening hit,
-# but landing on more than one.
+# GMS states it in full, not as an increase, so it supersedes Piercing Arrow.
 name: "Piercing Arrow II"
 description:
   "Enhances Piercing Arrow. Upon striking the first foe, your Piercing Arrow "

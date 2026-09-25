@@ -1,9 +1,4 @@
 # GMS gives 4x of each over 5 levels; ten levels at 2 each reach the same top.
-# The three go together: the attack for the swing, the drop rate for the purse,
-# and the last for what Meso Explosion throws.
-#
-# Its points go on each line of the explosion, as GMS states them, which is why
-# it says "per shot": 20 points at max is 40% on a two-line meso.
 name: "Meso Mastery"
 description:
   "Increases Attack Power, amount of Mesos that drop, and Meso Explosion's "

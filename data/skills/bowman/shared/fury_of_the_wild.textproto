@@ -1,22 +1,10 @@
-# The bird doesn't gain an attack; it is replaced. The client keeps this skill's
-# animations under a `summon` node, and the 6th job skill that uses it says
-# "while Fury of the Wild is summoned", so for forty seconds the Phoenix or
-# Frostprey is this.
+# The bird is replaced, not given an attack: the client keeps this skill under a
+# `summon` node, and the 6th job skill says "while Fury of the Wild is
+# summoned".
 #
-# 3.42 seconds isn't published anywhere. It is twice the 1.71 used for the two
-# birds, which matches their animations: theirs run 1170ms and this one
-# 2310ms, almost exactly double. `attackAfter` is not the period: both birds
-# state 450 against a real 1710.
-#
-# Reach is GMS's 10: the summon's attack box is 730x240, and floor(730/70) is
-# exactly 10.
-#
-# Damage is GMS's 450 + 15x on seven lines: 465% at level 1 and 900% at 30. A
-# pulse on its own clock gets no Final Attack and no Shadow Partner, like every
-# summon here: nothing the character didn't swing is doubled.
-#
-# Every explorer archer has a bird by their 3rd job, so GMS's "only while one is
-# summoned" needs no gate.
+# 3.42 seconds is twice the birds' 1.71, as its 2310ms animation is twice
+# their 1170ms. `attackAfter` is not the period: both birds state 450 against
+# a real 1710.
 name: "Fury of the Wild"
 description:
   "Fills your summoned bird with an older, wilder power, and for a while it "

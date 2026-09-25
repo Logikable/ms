@@ -1,6 +1,5 @@
-# Twenty levels instead of the other branches' ten, because the Page's book
-# drops two skills this game has no use for and the points must go somewhere. So
-# mastery climbs 2% a level from 12 and still reaches GMS's 50 at the top.
+# Twenty levels instead of ten: the Page's book drops two skills this game has
+# no use for, and the points must go somewhere.
 name: "Weapon Mastery"
 description: "Increases Sword Mastery, Blunt Weapon Mastery, and Attack Speed."
 kind: SKILL_KIND_PASSIVE

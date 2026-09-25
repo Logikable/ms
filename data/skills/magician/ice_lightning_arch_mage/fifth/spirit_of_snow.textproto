@@ -1,24 +1,12 @@
-# The I/L's third class node: a spirit summoned for thirty seconds that brings
-# down El Nath's blizzard every three seconds, twelve times on ten enemies.
-#
-# A buff with a pulse instead of its own summon, which is what a summon on a
-# cooldown is here: Elquines and Thunder Sphere are permanent and need no
-# duration, and this one is up a quarter of its cooldown. Darkness Aura has the
-# same shape.
+# A buff with a pulse instead of its own summon: Elquines and Thunder Sphere are
+# permanent, and this one is up a quarter of its cooldown.
 #
 # Three seconds is GMS's `x`, the one number in its common block the tooltip
-# never uses. The animation can't decide it (attack1 runs 810ms, and Phoenix's
-# 1170ms animation ships at 1.71s, so animations have never set a summon's
-# timing here), but the balance range can: ten pulses is 205,800% on a 120s
-# cooldown, 1,715%/s against Bolt Barrage's 2,580%/s, while the 810ms reading
-# would be 761,460%, far outside the range.
+# never uses. The 810ms animation reading would make it 761,460%, far outside
+# the balance range.
 #
-# Ten enemies is GMS's own. The rule gives 51 from the spirit's 1200x700 box,
-# and it only lowers a cap, never raises one.
-#
-# GMS gives 3 Freeze Stacks "when attacking 1 enemy" and the usual 1 on a crowd.
-# That is a bossing bonus written into the skill, not something ice does, so the
-# skill states both instead of the one stack per line the element would give.
+# GMS gives 3 Freeze Stacks "when attacking 1 enemy", a bossing bonus written
+# into the skill, so the skill states both counts.
 name: "Spirit of Snow"
 description:
   "Summon the devastating frosts of the El Nath Mountains. They freeze what "

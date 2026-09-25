@@ -1,11 +1,5 @@
-# GMS names five swings: both arrows, both empowered forms and the fragment. Two
-# boosts cover them all. The damage is extra damage % only this swing gets, and
-# the swing's first hit and its explosion use the same stats, so the fragment
-# gains with the arrow that threw it.
-#
-# Piercing Arrow is replaced by Piercing Arrow II long before 140, so the boost
-# on it never applies. It is written because GMS writes it, and so this hyper
-# pays if the arrow is ever used again.
+# Piercing Arrow is replaced long before 140, so its boost never applies. It is
+# written because GMS writes it.
 name: "Piercing Arrow - Reinforce"
 description:
   "Increases damage of Piercing Arrow, Piercing Arrow II, Arrow Fragments, "

@@ -1,5 +1,4 @@
-# GMS's "Damage: +20%", read as everywhere else on this page: extra damage %
-# that only Arrow Stream gets.
+# GMS's "Damage: +20%" read as extra damage % only Arrow Stream gets.
 name: "Arrow Stream - Reinforce"
 description:
   "Increases Arrow Stream's damage."

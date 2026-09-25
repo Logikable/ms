@@ -1,4 +1,3 @@
-# Extra damage % only this swing gets, which is what GMS's "Damage: +20%" means.
 # It stops at the talisman: a boost names a skill, and the shuriken beside it
 # isn't that skill's swing.
 name: "Showdown - Reinforce"

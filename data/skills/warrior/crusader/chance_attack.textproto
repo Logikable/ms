@@ -1,9 +1,5 @@
-# GMS only gives the final damage against an enemy that is already pierced or
-# held. Scarring Sword is what pierces, so the condition is real here: the
-# damage lands on scarred monsters and nothing else. The critical rate is
-# permanent, as GMS states.
-#
-# GMS's own ten levels and ladder, exact at every level.
+# GMS only gives the final damage against an enemy already pierced or held;
+# Scarring Sword is what pierces, so the condition is real here.
 name: "Chance Attack"
 description:
   "Deals greater damage when attacking weakened enemies. Permanently "

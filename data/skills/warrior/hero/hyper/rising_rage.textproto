@@ -1,5 +1,3 @@
-# 660ms is the animation's own, from the frame data: the same as Raging Blow, so
-# the ten-second cooldown buys damage, not a slower swing.
 name: "Rising Rage"
 description:
   "Manifest the rage of the ancients to wipe out the enemy in front of "

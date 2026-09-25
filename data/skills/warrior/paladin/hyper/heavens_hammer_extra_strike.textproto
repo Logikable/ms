@@ -1,5 +1,3 @@
-# Two strikes instead of one, as GMS reads it: the hammer is the Paladin's
-# widest swing, and every enemy under it takes both.
 name: "Heaven's Hammer - Extra Strike"
 description:
   "Increases Heaven's Hammer's number of attacks."

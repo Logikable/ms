@@ -1,12 +1,8 @@
 # GMS builds this up over twelve strikes, then fires three afterimages at once.
-# Here it is one afterimage every four strikes: the same arrows at the same
-# rate, with no burst to model. "Pierces up to 5 enemies" is GMS's mobCount,
-# which it calls "Max Enemies Hit" elsewhere: five in total, including the
-# target.
+# Here it is one every four strikes: the same arrows at the same rate.
 #
-# Counted in attacks, not seconds, so the rate holds whatever the character is
-# using; that is why Arrow Blaster counts a seventh. See
-# Skill.hits_per_attack_count.
+# Counted in attacks, not seconds, so the rate holds whatever the character uses
+# (see Skill.hits_per_attack_count).
 name: "Speed Mirage"
 description:
   "Fire arrows fast enough to leave afterimages. After striking enemies with "

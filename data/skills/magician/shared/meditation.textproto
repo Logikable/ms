@@ -1,8 +1,5 @@
-# A timed party buff in GMS, at 10+x magic attack. Nothing runs out here, so it
-# is always up, on the magician and everyone with them.
-#
 # GMS requires MP Eater Lv. 3 first. MP Eater isn't in this book, since nothing
-# uses MP, so the requirement would name a skill that doesn't exist.
+# uses MP.
 name: "Meditation"
 description:
   "Enhances the Magic ATT of all nearby party members through meditation."

@@ -1,10 +1,5 @@
-# This game has no range or movement speed. The attack speed is real: +1 stage,
-# flat at every level, so the first point buys the whole ~8% DPS. The defense is
-# our addition; without it the other 19 points bought nothing.
-#
-# The description adds to GMS's here instead of trimming it: the wiki names
-# range and movement speed and no defense. Ours grants defense, so the text says
-# so, or the levels below would seem to come from nowhere.
+# This game has no range or movement speed. The defense is our addition, so the
+# other 19 levels buy something; the description says so for the same reason.
 name: "Archery Mastery"
 description:
   "Gain proficiency in the fundamentals of Archery. Increases Attack Speed."

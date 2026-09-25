@@ -1,9 +1,5 @@
-# GMS's barrier blocks status conditions and recharges; only the passive half
-# listed under it is kept here, x% of each resistance at level x.
-#
-# Both levers are useless by design. Nothing in this game inflicts a status or
-# has an element, so neither is ever used; they keep the wiki's figures with the
-# skill, and the stats page shows them.
+# GMS's barrier blocks statuses and recharges; only its passive half is kept.
+# Nothing inflicts a status or has an element here, so neither lever is used.
 name: "Elemental Adaptation"
 description: "Permanently increases Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE

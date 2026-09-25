@@ -1,6 +1,4 @@
-# The stun is GMS's max value, 10+4x% for 2+ceil(x/5) seconds, since stuns have
-# no ladder. Nothing a Paladin uses checks whether an enemy is stunned, so it is
-# a status only, with no damage effect.
+# The stun is GMS's max value, since stuns have no ladder.
 name: "Divine Swing"
 description:
   "Swing a large hammer conjured from light, damaging and stunning nearby "

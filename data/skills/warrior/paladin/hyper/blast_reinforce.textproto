@@ -1,5 +1,3 @@
-# GMS's "Damage: +20%", read as everywhere else on this page: extra damage %
-# only Blast gets.
 name: "Blast - Reinforce"
 description:
   "Increases the damage of Blast."

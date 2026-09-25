@@ -1,10 +1,5 @@
-# GMS maxes this at 10 with 6*L% less damage taken. Stretched to 20 levels at
-# half the step, ending at the same 60%, which the Bandit's Shield Mastery also
-# reaches for half the points. It multiplies with Evasion Boost's dodge instead
-# of adding to it.
-#
-# What it really is, a barrier with a cap on what it absorbs, isn't modelled:
-# nothing here tracks damage over time.
+# GMS maxes this at 10; stretched to 20 levels ending at the same 60%. GMS's
+# barrier with a cap on what it absorbs isn't modelled.
 name: "Aggressive Resistance"
 description:
   "When attacking, creates a barrier that reduces a percentage of incoming "

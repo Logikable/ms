@@ -1,12 +1,7 @@
-# The magicians' link skill: a stack rolled on every swing, up to three at once,
-# each lasting its own ten seconds.
+# GMS's 1%, 1%, 2%, 2% ... is written as half a point a level.
 #
-# GMS's value per stack is 1% through level 2, 2% through 4 and so on: half a
-# point a level in whole numbers. Half a point is written here, so levels 1 and
-# 9 match GMS and the even levels are half a point above.
-#
-# The Ignore DEF doesn't simply triple: the three stacks combine like any two
-# sources of it. See CombineIgnoredDefense.
+# The three stacks' Ignore DEF combines like separate sources, not a triple (see
+# CombineIgnoredDefense).
 name: "Empirical Knowledge"
 description:
   "Has a chance when attacking to increase your damage and your ignored "

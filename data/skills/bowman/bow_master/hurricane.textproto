@@ -1,14 +1,7 @@
-# The bossing swing: one arrow at one enemy, over and over, at a rate attack
-# speed can't change. 120ms is GMS's own figure, and a key-down skill is
-# `fixed_delay` (see Skill.fixed_delay).
+# 120ms is GMS's own figure, and a key-down skill is `fixed_delay`.
 #
-# Seven of them count as one attack, just like Arrow Blaster's. Otherwise a
-# swing landing eight times a second would trigger every counter in the book
-# several times over.
-#
-# It hits one enemy, so Arrow Stream wins any map with a crowd. What keeps this
-# ahead on a single target is that both Final Attacks roll once per swing: eight
-# rolls a second against Arrow Stream's two.
+# Seven of them count as one attack, or a swing landing eight times a second
+# would trigger every counter in the book several times over.
 name: "Hurricane"
 description:
   "Launch a tremendous volley of arrows, like a catastrophic rainstorm."

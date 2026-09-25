@@ -1,4 +1,3 @@
-# The class's main swing gets the page alone, as in GMS.
 name: "Chain Lightning Boost"
 description: "Strengthens Chain Lightning."
 kind: SKILL_KIND_PASSIVE

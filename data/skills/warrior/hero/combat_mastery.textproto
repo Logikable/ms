@@ -1,5 +1,3 @@
-# 20 + L% straight from GMS. It only matters against bosses: no map mob has
-# physical defense for it to cancel.
 name: "Combat Mastery"
 description: "Ignores a portion of a monster's defense while attacking."
 kind: SKILL_KIND_PASSIVE

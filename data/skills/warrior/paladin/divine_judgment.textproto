@@ -1,14 +1,7 @@
-# A brand is on the enemy, as in GMS: every Blast that hits one brands it, and
-# the fifth brand detonates on that enemy alone, on top of the strike that
-# triggered it. So a boss with several bodies gives several detonations, and a
-# monster that dies at four brands gives none, which suits a bossing passive.
+# The brand is on the enemy, as in GMS: the fifth brand detonates on that enemy
+# alone, so a monster that dies at four gives none.
 #
-# GMS's own ladder, 502+4x%. At max the detonation is 6220% against Blast's
-# 3400%, so a Blast that triggers one lands nearly twice what the four before
-# did. It is the first number to trim if the Paladin outgrows the Dark Knight.
-#
-# Its 20% Ignore DEF is the point of the skill. It applies to this swing only,
-# which is what ied_pct on an attack means (see WithoutSwingLevers).
+# The 20% Ignore DEF applies to this swing only (see WithoutSwingLevers).
 name: "Divine Judgment"
 description:
   "Marks enemies struck by your Blast skill with a Divine Brand. Upon "

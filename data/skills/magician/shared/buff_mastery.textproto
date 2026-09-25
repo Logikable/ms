@@ -1,9 +1,5 @@
-# Magic attack and Buff Duration. Buff Duration lengthens a buff but not its
-# cooldown, which is what makes a stat that gives nothing alone worth having.
-# The V matrix is outside it: GMS marks every node notIncBuffDuration, and
-# BuffDurationFor checks v_node instead of each file.
-#
-# GMS's knockback resistance is dropped: nothing here knocks a character back.
+# The V matrix is outside the Buff Duration: GMS marks every node
+# notIncBuffDuration, and BuffDurationFor checks v_node.
 name: "Buff Mastery"
 description:
   "Permanently increases Magic ATT and increases the duration of all buffs on "

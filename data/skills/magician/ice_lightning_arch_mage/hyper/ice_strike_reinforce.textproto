@@ -1,7 +1,5 @@
-# GMS attaches these three to Teleport Mastery, which this game doesn't have.
-# They go on Ice Strike instead, which is just as useless: a 4th job I/L uses
-# Chain Lightning or Frozen Orb, and twenty points of damage on a 3rd job spell
-# doesn't change that. The three knowingly ship worthless, as GMS's do.
+# GMS attaches these three to Teleport Mastery, which this game doesn't have. On
+# Ice Strike they ship worthless, as GMS's do.
 name: "Ice Strike - Reinforce"
 description: "Increases Ice Strike damage."
 kind: SKILL_KIND_PASSIVE

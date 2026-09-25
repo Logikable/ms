@@ -1,10 +1,8 @@
-# Reach cut from GMS's 8 to 5. Its hitbox is 360x190, one storey of a map
-# fitting 5 monsters side by side, so 8 is a cap GMS never fills but this fight
-# would always fill. See Skill.max_enemies.
+# Reach cut from GMS's 8 to 5: the 360x190 hitbox fits five across, and 8 is a
+# cap GMS never fills but this fight always would (see Skill.max_enemies).
 #
-# GMS pulls and stuns everything it hits. The pull is dropped, since the fight
-# has no positions. The two-second stun is our choice: GMS states no duration,
-# which means the client hardcodes one.
+# The two-second stun is ours: GMS states no duration, which means the client
+# hardcodes one.
 name: "Spear Sweep"
 description: "Swing your spear in a long arc, stunning the enemies around you."
 kind: SKILL_KIND_ATTACK

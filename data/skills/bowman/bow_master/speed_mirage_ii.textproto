@@ -1,10 +1,8 @@
 # GMS lowers the strikes Speed Mirage needs from twelve to seven and raises the
-# afterimages from three to four. Our Speed Mirage is one rate (four strikes
-# every four attacks), and the new pair doesn't reduce, so it is written out:
-# sixteen strikes every seven attacks.
+# afterimages from three to four; our Speed Mirage is one rate, so this is
+# written out as sixteen strikes every seven attacks.
 #
-# A boost, not a supersede. Speed Mirage keeps paying, as it must: its Wind
-# Arrow bonus is its own, and this skill says nothing about it.
+# A boost, not a supersede: Speed Mirage's Wind Arrow bonus must keep paying.
 name: "Speed Mirage II"
 description: "Your continued archery training has empowered your Speed Mirage."
 kind: SKILL_KIND_PASSIVE

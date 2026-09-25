@@ -1,12 +1,4 @@
-# GMS's is a toggle: 2% of Max MP for 5 + floor(x/10)% final damage, on a 60 - x
-# second cooldown. Nothing here uses MP, and a toggle nobody would turn off is a
-# passive, so only the final damage is left.
-#
-# The step is a tenth of a point a level instead of GMS's floor, so max level
-# lands exactly on its 8% and only the start moves.
-#
-# Ethereal Form, the magician's other node, isn't built: it gives three seconds
-# of invincibility, and the fight has no input to use them on.
+# GMS's is an MP toggle nobody turns off, so only the final damage is left.
 name: "Mana Overload"
 description:
   "Increases your attack skills by overloading the mana flowing through you."

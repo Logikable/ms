@@ -1,9 +1,7 @@
-# Cast instead of a swing when the character's HP drops low, exactly like the
-# Cleric's Heal (see kHealBelowFraction in fight.cc). GMS's own figures, 20 +
-# 3L% of HP, topping out at half instead of the Cleric's full heal.
+# Cast instead of a swing when HP drops below kHealBelowFraction (fight.cc),
+# like the Cleric's Heal.
 #
-# The penalty for recasting it soon after is dropped: the user asked for it out,
-# and a fight paid in expected damage has no clock to apply it to.
+# The penalty for recasting it soon after is dropped, as the user asked.
 name: "HP Recovery"
 description: "Instantly recovers your HP."
 kind: SKILL_KIND_ACTIVE

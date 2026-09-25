@@ -1,11 +1,6 @@
-# GMS's own figures: 10+x% boss damage on Meso Explosion, x% critical damage,
-# and ceil(x/2) LUK. The boss damage applies to the coins, not the Shadower,
-# which is what a boost targeting Meso Explosion is for.
-#
-# A passive here. In GMS it is a toggle that replaces Pick Pocket at the same
-# 30% chance, so what it replaces is what it gives, and the drop needs no
-# mention. Its buff is Assassinate's finishing blow, which that skill already
-# assumes. Combat Orders doesn't reach it in GMS either.
+# A passive here: in GMS it is a toggle replacing Pick Pocket at the same 30%.
+# Its buff is Assassinate's finishing blow, which that skill already assumes. No
+# Combat Orders in GMS either.
 name: "Blood Money"
 description:
   "Drops coins branded with an Assassin's Mark. Enhances Meso Explosion. "

@@ -1,5 +1,4 @@
-# GMS gives 30 DEF a level over 9 levels. Here it is spread over 10 at 27 each,
-# the same 270 total with one more step.
+# GMS gives 30 DEF a level over 9 levels; here 27 over 10, the same total.
 name: "Iron Wall"
 description: "Steel your resolve to bolster your defenses."
 kind: SKILL_KIND_PASSIVE

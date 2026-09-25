@@ -1,17 +1,5 @@
-# The wound is on the enemy, as in GMS: the swing leaves a burn, and every later
-# swing hits harder on whatever is still burning. So both halves depend on a
-# monster the Hero has actually punctured, not on a window on the character.
-#
-# The burn is rolled: 40 + 2L% on each enemy the swing reached, certain at max
-# level and only better above it. A boss always gets it; in a room, some of the
-# enemies hit get it.
-#
-# So the Hero rarely uses this swing: the chooser comes back to it as the burn
-# is running out and uses Raging Blow the rest of the time, which matches GMS:
-# puncture, then keep attacking.
-#
-# The party's share works the same way from the ally's side: GMS gives them
-# ceil(L/3)% where the Hero gets 10 + ceil(L/2)%, 10% against 25% at max.
+# The wound is on the enemy, as in GMS: a burn, and later swings hit harder on
+# whatever is still burning.
 name: "Puncture"
 description:
   "Pour your swordsman's spirit into a forward-downward strike, leaving a "

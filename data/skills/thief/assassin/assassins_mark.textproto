@@ -1,13 +1,7 @@
-# GMS marks an enemy on hit and uses the mark on the next attack, throwing two
-# stars for 150%. One level in GMS; ten here, climbing to GMS's figures from a
-# little over half of them.
+# One level in GMS; ten here, climbing to GMS's figures.
 #
-# In GMS the mark and its use are one beat apart; here they happen together, so
-# what is left is a Final Attack: a chance, on every enemy the swing reached, of
-# two more stars. It names no tag, so every swing can trigger it.
-#
-# The two stars are two lines, not one line worth double, so each rolls its own
-# crit and mastery. 300% at max level either way.
+# GMS's mark and its use are one beat apart; here they happen together, so it is
+# a Final Attack. The two stars are two lines, each rolling its own crit.
 name: "Assassin's Mark"
 description:
   "Has a chance to tag the enemy with the assassin's mark when attacking. The "

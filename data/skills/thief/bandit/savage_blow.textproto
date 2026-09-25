@@ -1,11 +1,5 @@
-# GMS's own figures over GMS's own 20 levels: 150+3x% three times on six
-# enemies, ending at 630% a swing, even with the magicians' pairs and Shuriken
-# Burst's explosion.
-#
-# The Bandit's only attack, so it has no cooldown.
-#
-# Four enemies against GMS's six: 340x175 is one storey and fits four across.
-# See Skill.max_enemies.
+# Four enemies against GMS's six: 340x175 is one storey and fits four across
+# (see Skill.max_enemies).
 name: "Savage Blow"
 description: "Deal very quick consecutive attacks to the enemy in front."
 kind: SKILL_KIND_ATTACK

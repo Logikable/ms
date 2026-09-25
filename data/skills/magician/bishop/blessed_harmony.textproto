@@ -1,16 +1,9 @@
 # GMS maxes this at 1 for +10% final damage, replacing the Cleric's Blessed
-# Ensemble instead of adding to it: a Bishop's line is 10%, not 13%. Here it has
-# ten levels of half a point each, so the book has a ladder and the total is
-# GMS's. It starts at 5.5% because the first point must beat the Ensemble's 3%,
-# or it would be a loss.
+# Ensemble. Here it has ten levels ending at GMS's total, starting at 5.5% so
+# the first point beats the Ensemble's 3%.
 #
-# It restates everything it replaces, so the Ensemble's party EXP is written
-# again here, flat at its full 20% for the same reason and because GMS only
-# raises the damage. The Bishop replaces the skill, not the party bonus, so it
-# stacks as the Ensemble did.
-#
-# It doesn't go past its max level. GMS maxes it at 1 and doesn't mark it for
-# Combat Orders, so there is no higher level to reach.
+# It restates the Ensemble's party EXP, since a superseding skill restates all
+# it replaces. No Combat Orders: GMS doesn't mark it.
 name: "Blessed Harmony"
 description: "Increases the effect of Blessed Ensemble."
 kind: SKILL_KIND_PASSIVE

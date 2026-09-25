@@ -1,18 +1,11 @@
-# GMS's own figures: 365+8x% twice on six enemies, and a dark shuriken that
-# attacks six times for 9+3*floor(x/6)% every five seconds, doing 200% more to
-# ordinary monsters. The taunt is dropped (nothing here can be taunted), but the
-# bonus from taunted enemies stays: GMS's ceil(x/6)% covers EXP and Item Drop
-# Rate alike, both given permanently, stepped evenly.
+# The taunt is dropped, but the bonus from taunted enemies stays, given
+# permanently.
 #
-# The shuriken is a side strike, not a summon, on purpose: it must come out with
-# this swing only, or a Night Lord using Quad Star on a boss would be firing it
-# the whole time. Its six enemies are stated instead of taken from the swing,
-# because GMS's Showdown - Spread widens the talisman and leaves the shuriken at
-# six.
+# The shuriken is a side strike, not a summon, so it comes out with this swing
+# only. Its six are stated because GMS's Showdown - Spread leaves them at six.
 #
-# Six go out, and each hunts one enemy (`mobCount` is 1 in the client). So it
-# scatters: against six monsters each takes one, and against a lone boss all six
-# hit it, with the second and later ones at half damage, as GMS states outright.
+# Each shuriken hunts one enemy (`mobCount` 1 in the client), so it scatters;
+# the second and later ones on one enemy do half, as GMS states.
 name: "Showdown"
 description:
   "Attacks enemies and provokes them. Provoked enemies grant more EXP. When "

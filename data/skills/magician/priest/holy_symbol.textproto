@@ -1,10 +1,5 @@
-# GMS's 20+ceil(3x)/2 %, from 21.5% at level 1 to 50% at 20: an even point and a
-# half a level. The duration is dropped, since nothing needs recasting. The
-# party half is GMS's own, without the halving for standing away from the
-# caster, which needs positions this game doesn't have.
-#
-# It speeds up levelling, not the swing. Blessed Ensemble pays into the same
-# total, and the two simply add.
+# The party half is GMS's own, without the halving for standing away from the
+# caster.
 name: "Holy Symbol"
 description:
   "Allows all nearby party members to gain additional EXP while hunting."

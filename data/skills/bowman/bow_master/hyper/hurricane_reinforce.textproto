@@ -1,7 +1,5 @@
-# Two boosts because GMS names two skills: the client targets Hurricane, Arrow
-# Blaster and the turret it leaves. The second boost covers both halves of Arrow
-# Blaster, because the turret carries its parent's name and boosts are keyed by
-# name.
+# Two boosts because the client targets Hurricane, Arrow Blaster and the turret;
+# the turret carries its parent's name, so one boost covers both.
 name: "Hurricane - Reinforce"
 description:
   "Increases damage for Hurricane, Arrow Blaster, and installed Arrow "

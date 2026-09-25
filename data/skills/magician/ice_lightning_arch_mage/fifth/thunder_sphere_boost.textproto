@@ -1,5 +1,3 @@
-# The two summons that fire while the magician uses something else, both at the
-# wider tier.
 name: "Thunder Sphere Boost"
 description: "Strengthens Thunder Sphere and Elquines."
 kind: SKILL_KIND_PASSIVE

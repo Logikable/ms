@@ -1,5 +1,5 @@
-# GMS's own twenty points. The coins are thrown, not swung, so a boost aimed at
-# Meso Explosion applies where the throw is calculated (see FoldMesoExplosion).
+# The coins are thrown, not swung, so a boost aimed at Meso Explosion applies
+# where the throw is calculated (see FoldMesoExplosion).
 name: "Meso Explosion - Reinforce"
 description: "Increases Meso Explosion's damage."
 kind: SKILL_KIND_PASSIVE

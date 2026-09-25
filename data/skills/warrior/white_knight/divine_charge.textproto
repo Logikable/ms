@@ -1,11 +1,7 @@
-# Reach cut from GMS's 8 to 5. Its hitbox is 415x200, one storey of a map
-# fitting 5 monsters side by side, so 8 is a cap GMS never fills but this fight
-# would always fill. See Skill.max_enemies.
+# Reach cut from GMS's 8 to 5: the 415x200 hitbox fits five across, and 8 is a
+# cap GMS never fills but this fight always would (see Skill.max_enemies).
 #
-# GMS silences what it hits and gives the hammer an element. Neither exists
-# here, so only the hammer is left: 250 + 3L% four times.
-#
-# Uses Divine Swing's animation, the same hammer one tier down.
+# GMS's silence and element don't exist here.
 name: "Divine Charge"
 description:
   "Instantly conjure a holy hammer that slams your enemies, inflicting "

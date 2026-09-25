@@ -1,8 +1,4 @@
-# GMS maxes this at 30 with 70% mastery, 30 attack and 15% critical damage.
-# Scaled to 20 levels ending at exactly those three, so the book totals 200: the
-# levels are coarser, the skill is no stronger. Mastery climbs from 51% to 70%,
-# like every 4th job mastery skill. Attack starts at 11 instead of GMS's 10
-# because it is a whole number and must reach 30 in twenty steps.
+# GMS's thirty levels are twenty here, ending at GMS's three figures.
 name: "Barricade Mastery"
 description:
   "Improves Spear and Polearm Mastery to their human limits. Increases "

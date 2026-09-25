@@ -1,14 +1,4 @@
-# GMS throws three blue flames that each split once on landing, up to eleven in
-# all. Each flame burns one enemy for 380% four times and leaves it burning for
-# half a minute; a flame landing on an enemy another already hit keeps 45% of
-# its final damage. All GMS's own numbers.
-#
-# Scatter handles that (see Skill.scatter). It matters most where the skill
-# does: against a lone boss all eleven flames hit it, worth five and a half
-# swings, where hitting eleven different enemies would land only one.
-#
-# GMS aims the flames at bosses first, highest HP first. The fight sends the
-# extra flames to the healthiest enemy, which is the same rule.
+# All GMS's own numbers; the flames scatter (see Skill.scatter).
 #
 # The delay is ours: GMS states none, and 660ms is what every other cast in this
 # book takes.

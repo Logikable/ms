@@ -1,15 +1,8 @@
-# The skill Chance Attack depends on, and the only thing in the game that scars
-# a monster. GMS calls it piercing the enemy; the word here comes from the
-# sword, since "pierce" already means an arrow going through a row of enemies.
+# GMS calls it piercing the enemy; "pierce" already means an arrow through a row
+# of enemies here, so the word comes from the sword.
 #
-# GMS runs it for 80 + 6*L seconds for an MP cost, with nothing stopping the
-# player recasting it straight away, so it is simply always up, like every buff
-# of that kind. The levels buy the chance each line scars its target, which
-# reaches 100% at max.
-#
-# Its accuracy half is dropped: this game has no accuracy. What is left is the
-# attack reduction, which works like any other and adds to the character's
-# others (see SkillEffect.enemy_attack_pct).
+# Nothing stops GMS's player recasting it, so it is always up. Its accuracy half
+# is dropped: this game has no accuracy.
 name: "Scarring Sword"
 description:
   "Infuses the sword with spirit, which leaves an indelible scar on the "

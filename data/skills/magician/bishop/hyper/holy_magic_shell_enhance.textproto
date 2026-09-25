@@ -1,6 +1,5 @@
-# GMS increases what the shell takes off the attacks it can't block, those that
-# deal a share of the target's Max HP. A boss's hit stands in for those here, so
-# this adds five points to the tenth the shell already takes off.
+# GMS raises what the shell takes off the attacks it can't block; a boss's hit
+# stands in for those here.
 name: "Holy Magic Shell - Enhance"
 description:
   "Increases Holy Magic Shell's damage reduction rate against attacks that "

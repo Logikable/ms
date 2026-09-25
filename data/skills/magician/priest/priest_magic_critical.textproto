@@ -1,5 +1,3 @@
-# GMS's exact figures: 10+2x% critical rate and 6+x% critical damage, the same
-# rate as the two mages and a point more damage than either.
 name: "Magic Critical"
 description: "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE

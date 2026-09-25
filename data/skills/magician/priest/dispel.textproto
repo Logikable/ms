@@ -1,7 +1,5 @@
-# Gives nothing per level, on purpose. Nothing in this game inflicts a
-# condition, so there is nothing to remove; the skill is kept for a boss that
-# will, and for its Vengeance form, Triumph Feather. cures_conditions lets its
-# page say what it does instead of looking empty.
+# Nothing here inflicts a condition to remove; it is kept for its Vengeance
+# form, Triumph Feather. cures_conditions lets its page say what it does.
 name: "Dispel"
 description: "Removes the abnormal conditions afflicting you."
 kind: SKILL_KIND_PASSIVE

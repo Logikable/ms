@@ -1,9 +1,5 @@
-# GMS's own figures: 175+8x% four times over 20 levels, on eight enemies, with
-# eight seconds of freezing. The cooldown the pair below has is dropped: nothing
-# needs to be kept up for this one.
-#
-# 840ms is the animation's own, from the frame data: a bit slower than the Cold
-# Beam and Thunder Bolt it replaces.
+# The cooldown the pair below has is dropped: nothing needs to be kept up for
+# this one.
 name: "Ice Strike"
 description:
   "Create an ice-attribute explosion near you that attacks nearby enemies. "

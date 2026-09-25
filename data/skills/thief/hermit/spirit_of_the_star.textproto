@@ -1,9 +1,3 @@
-# GMS's own figures: 3x attack and x% boss damage over 10 levels. The half that
-# lets a thief attack without using throwing stars is already true here: stars
-# are worn, not used up.
-#
-# The boss damage only matters in boss fights, so while farming it shows only on
-# the stats page.
 name: "Spirit of the Star"
 description: "Increases Attack Power and Boss Damage."
 kind: SKILL_KIND_PASSIVE

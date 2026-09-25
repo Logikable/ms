@@ -1,11 +1,5 @@
-# GMS counts the Ranger's hits and gives a window when the count is reached: "if
-# the direct skill attacks hit 30 times, damage increases by 3L+5% for 5 sec."
-# Hits are lines, so a fast multi-line swing keeps it up and a slow one barely
-# triggers it.
-#
-# Nothing counts while the window is up, so its uptime is capped however fast
-# the character attacks: five seconds out of five plus the time thirty more
-# lines take.
+# Hits are lines, so a fast multi-line swing keeps it up. Nothing counts while
+# the window is up, which caps its uptime however fast the character attacks.
 name: "Mortal Blow"
 description:
   "If the attack hits a certain number of times, the damage increases."

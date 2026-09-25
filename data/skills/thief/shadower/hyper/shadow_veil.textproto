@@ -1,13 +1,8 @@
-# GMS's own figures: 800% on fifteen enemies, pulsing every 900ms for twelve
-# seconds, on a 60-second cooldown. Thirteen strikes per cast.
+# There are no places here, so the veil becomes a mark on what it caught, like
+# Poison Mist: the cast is the first strike and the burn carries twelve, hence
+# 10.8s instead of GMS's 12.
 #
-# A veil hangs in one place and there are no places here, so it becomes a mark
-# on what it caught, exactly like Poison Mist. The cast is the veil's first
-# strike and the burn carries the other twelve, which is why it lasts 10.8s
-# instead of GMS's 12.
-#
-# The stealth half is dropped: Advanced Dark Sight here is only final damage, so
-# a better chance of it means nothing.
+# The stealth half is dropped: Advanced Dark Sight here is only final damage.
 name: "Shadow Veil"
 description:
   "Summons a dark ally to deal damage over time."

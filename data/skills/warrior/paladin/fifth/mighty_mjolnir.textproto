@@ -1,28 +1,15 @@
-# The Paladin's last class node: a thrown hammer that hunts one enemy after
-# another, leaving a shockwave on each.
+# GMS's charges, one every twelve seconds up to three, are written as all three
+# thrown together every thirty-six: the same sustained rate, and the burst lines
+# up with Divine Echo.
 #
-# GMS uses charges instead of a cooldown: one hammer every twelve seconds, up to
-# three held, thrown one at a time or all at once. Written as all three thrown
-# together: three hammers every thirty-six seconds. The sustained rate is a
-# hammer every twelve either way, and the burst is the point: a fight has no
-# windows but a job does, and a Paladin uses this with Divine Echo.
-#
-# The four enemies each hammer tracks are hit at once instead of one after
-# another, which is what a swing here can express, so three hammers are three
-# strikes on the same four, not twelve separate targets. Still twelve
-# shockwaves: one for every enemy every hammer tracks.
+# Each hammer's four enemies are hit at once, so three hammers are three strikes
+# on the same four.
 #
 # The shockwave hits six of its own, so it is a side strike, not an extra hit,
-# since an extra hit always shares the swing's reach. It comes with the cast
-# with no timer of its own: this is used once per cooldown, so every use should
-# trigger one. The extra critical rate belongs to the hammer only, as GMS states
-# it.
+# which always shares the swing's reach.
 #
 # 570ms is the data's own q, the only leftover value that looks like a cast
 # time. GMS publishes no frame data for this one.
-#
-# Dropped: throwing several hammers with the direction keys, Omnia Mode, and the
-# right-click toggle, all of them key presses.
 name: "Mighty Mjolnir"
 description:
   "Summon the hammer of an ancient god, then hurl it straight toward your "

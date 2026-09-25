@@ -1,13 +1,10 @@
-# GMS's decoy, cut down to damage on a timer and its stun, at GMS's max 10+2x%
-# for ceil(x/8) seconds. Its health bar and the counterattack when hit are
-# dropped: nothing here draws aggro, so a decoy for aggro would do nothing.
+# GMS's decoy, cut down to damage and its stun. Nothing here draws aggro, so its
+# health bar and counterattack are dropped.
 #
-# Six enemies instead of GMS's eight, and its top 200% at 20 levels instead of
-# 30. With nothing left but damage, it would otherwise overshadow Frostprey,
-# the Sniper's only summon.
+# Six enemies instead of GMS's eight and 200% at 20 levels instead of 30: with
+# only damage left it would otherwise overshadow Frostprey.
 #
-# Three seconds between strikes, observed rather than read: GMS states no rate,
-# and unlike Phoenix its animation has no timing either.
+# Three seconds between strikes, observed: GMS states no rate.
 name: "Arrow Illusion"
 description:
   "Summons an arrow illusion that damages enemies on its own. Also increases "
@@ -25,7 +22,6 @@ stun {
 base { skill_pct: 1.05 }
 per_level { skill_pct: 0.05 }
 # GMS lists the Ignore DEF under "[Passive Effects]", so it belongs to the
-# Marksman, not the decoy. Radiant Evil's is different: the eye ignores DEF with
-# its own strikes.
+# Marksman, not the decoy.
 passive { ied_pct: 0.015 }
 passive_per_level { ied_pct: 0.015 }

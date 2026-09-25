@@ -1,20 +1,8 @@
-# The Dark Knight's first class node and the hardest-hitting single cast in the
-# game: nine spears of seven lines each, 55,125% at max. GMS's own numbers, and
-# of every Explorer V node in the client, only a 6th job skill does more per
-# second. It roughly doubles the class's sustained damage.
+# Nine casts instead of 63 lines, so each spear rolls its own mastery and
+# criticals.
 #
-# Nine casts instead of 63 lines, for the same reason Sword Illusion is twelve
-# and five: the log shows what GMS shows, and each spear rolls its own mastery
-# and criticals.
-#
-# The 660ms cast is fixed. All six animation frames have a negative delay, the
-# client's mark for a frame attack speed doesn't shorten, where Dark Impale's
-# are -180 then four scaled frames. So a Dark Knight at the speed cap uses Dark
-# Impale in 510ms but still stands for the full 660 here.
-#
-# Dropped: aiming up and down, which needs a screen this game doesn't draw;
-# immunity to attack reflection, which nothing inflicts; and the 10% cut to %HP
-# damage taken during the wind-up.
+# The 660ms cast is fixed: all six frames have a negative delay, the client's
+# mark for a frame attack speed doesn't shorten.
 name: "Spear of Darkness"
 description: "Hurls a spear of utter darkness at the enemy."
 kind: SKILL_KIND_ATTACK

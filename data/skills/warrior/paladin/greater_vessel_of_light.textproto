@@ -1,18 +1,10 @@
-# GMS says this overrides Vessel of Light, so it supersedes it and states
-# everything a Paladin gets instead of the difference. Its first level already
-# beats the 2nd job skill's last, so buying it is never a step back.
+# GMS says this overrides Vessel of Light, so it supersedes it.
 #
 # Its HP recovery is dropped, as the user asked. GMS stops the damage at 25% and
-# the attack at 60 after level 10; the ladder here goes a little past both with
-# Combat Orders, which is the cost of climbing them at all.
+# the attack at 60 after level 10; Combat Orders goes a little past both.
 #
-# The strikes and reach are the rest of the skill and the reason SkillBoost
-# exists: a strike each for Divine Charge and Blast, and two more enemies for
-# Divine Charge by level 10 (GMS's ceil(L/5)).
-#
-# Those two take Divine Charge to seven, more than the five its 415x200 box
-# holds. That stands: the reach rule only lowers what a swing states for itself,
-# and a book's grant may raise it.
+# Divine Charge's seven enemies are more than its 415x200 box holds; the reach
+# rule only lowers what a swing states for itself.
 name: "Greater Vessel of Light"
 description:
   "Empowers Vessel of Light to its limit with your mastery. Increases Divine "

@@ -1,6 +1,4 @@
-# GMS's own ten points, added to what Frailty Curse already takes off the
-# attacks hitting the character. The DEF half of GMS's penalty is dropped, as on
-# the skill itself: nothing here reads a monster's DEF as a number to lower.
+# The DEF half of GMS's penalty is dropped, as on the skill itself.
 name: "Frailty Curse - Enhance"
 description: "Increases the Attack Power penalty from Frailty Curse."
 kind: SKILL_KIND_PASSIVE

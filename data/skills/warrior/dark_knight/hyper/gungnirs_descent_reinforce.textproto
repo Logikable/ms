@@ -1,5 +1,5 @@
-# GMS writes it "Damage: +20%": the %Damage stat for one swing, adding to what
-# the character already has, not points on the skill's multiplier.
+# GMS's "Damage: +20%" is the %Damage stat for one swing, not points on the
+# skill's multiplier.
 name: "Gungnir's Descent - Reinforce"
 description: "Increases Gungnir's Descent's damage."
 kind: SKILL_KIND_PASSIVE

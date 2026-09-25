@@ -1,11 +1,4 @@
-# Half of the magician's pair. GMS gives it 20 levels at 99+5x; here it is the
-# same climb in half the levels, ending where GMS ends.
-#
-# The ice half, and it leaves two things: Freeze Stacks on the character, and
-# eight seconds of freezing on what it hit, both from GMS. The stacks decide how
-# much Freezing Crush and Shatter are worth; the freeze decides whether they pay
-# at all, and it is all Storm Magic needs. Together they are the whole reason to
-# cast the weaker of the two.
+# GMS's climb in half the levels, ending where GMS ends.
 name: "Cold Beam"
 description:
   "An ice-attribute attack. Grow sharp ice crystals in front. Any enemies "

@@ -1,10 +1,7 @@
-# GMS gives it 20 levels at 125+3x with 3 attacks; here it is the same climb in
-# half the levels, ending where GMS ends.
+# GMS's climb in half the levels, ending where GMS ends.
 #
-# The only attack in this book, so it has no cooldown: a cooldown is for
-# alternating a pair, as the other two magicians do, and there is no pair here.
-# It is also GMS's slowest 2nd job magician animation and hits the fewest
-# enemies, which is the Cleric's price for Blessed Ensemble.
+# The only attack in the book, so no cooldown: a cooldown is for alternating a
+# pair.
 name: "Holy Arrow"
 description: "Attack multiple monsters with Holy Arrows."
 kind: SKILL_KIND_ATTACK

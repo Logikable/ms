@@ -1,14 +1,7 @@
-# A toggle in GMS, worth an elemental resistance nothing here uses. What is left
-# is the damage reduction, which the magician has all the time instead of only
-# while the aura is up.
+# A toggle in GMS; here the damage reduction is always on.
 #
-# Its freeze is dropped on purpose. GMS only says the aura "freezes up to 15
-# enemies periodically", and the client gives no interval; the branch's own Cold
-# Beam already freezes for eight seconds from a swing under a second, so
-# everything the book gains from frozen enemies is already there.
-#
-# Status resistance is kept but never used: nothing inflicts a status. It is
-# here to keep the wiki's figure with its skill.
+# The freeze is dropped: GMS states no interval, and Cold Beam already freezes
+# for eight seconds.
 name: "Absolute Zero Aura"
 description: "Envelops you and nearby party members in a shield of cold."
 kind: SKILL_KIND_PASSIVE

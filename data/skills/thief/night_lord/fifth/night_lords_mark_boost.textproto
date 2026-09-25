@@ -1,6 +1,5 @@
-# GMS targets Assassin's Mark, which Night Lord's Mark supersedes, and a boost
-# keyed to the superseded name reaches nothing. The mark is a Final Attack here,
-# and a Final Attack uses final damage, critical rate and Ignore DEF alike.
+# GMS targets Assassin's Mark, which Night Lord's Mark supersedes; a boost keyed
+# to the superseded name reaches nothing.
 name: "Night Lord's Mark Boost"
 description: "Strengthens Night Lord's Mark."
 kind: SKILL_KIND_PASSIVE

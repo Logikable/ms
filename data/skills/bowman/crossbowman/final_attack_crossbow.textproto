@@ -1,9 +1,5 @@
-# The same steps as every other Final Attack: chance 2*L%, damage one hit of
-# (100 + 5*floor(L/2))%, rounded down to the even level.
-#
-# The extra hit lands on one enemy the swing reached, not on each. GMS's Final
-# Attack has no mobCount or hitbox of its own, and its text names its target:
-# "attacks the boss with the highest HP first".
+# The extra hit lands on one enemy: GMS's Final Attack has no mobCount of its
+# own and its text says "attacks the boss with the highest HP first".
 name: "Final Attack: Crossbow"
 description:
   "When a direct attack skill lands, there's a chance to trigger additional "

@@ -1,9 +1,3 @@
-# The warriors' link skill, with GMS's own numbers: a third of HP back at level
-# 1 and another third at 9, with a cooldown going from 410 seconds down to 90.
-#
-# Worth little in an expected-damage fight, but written faithfully anyway: what
-# it really gives the player is a map one band above their gear. The lever is
-# this skill's own; see SkillEffect.emergency_heal_pct.
 name: "Invincible Belief"
 description:
   "When your HP falls below 15%, recovers a portion of your Max HP every "

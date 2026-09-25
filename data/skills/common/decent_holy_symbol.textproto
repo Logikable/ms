@@ -1,10 +1,5 @@
-# See decent_sharp_eyes.textproto for the shape all six share. The exception:
-# GMS gives this one no All Stats; its two halves climb instead, 20+floor(x/2)%
-# EXP and 14+floor(x/3)% drop rate, ending at 35 and 24. Both keep those tops
-# with a simple step of half a point a level, which only moves where they start.
-#
-# The Priest's own skill beats the EXP from its tenth level. It has no drop
-# rate, so that half always applies; the group decides one lever at a time.
+# GMS gives this one no All Stats. Its two halves keep GMS's tops, 35% and 24%,
+# on a step of half a point a level.
 name: "Decent Holy Symbol"
 description:
   "Gain extra EXP and items when hunting monsters. Does not stack with Holy "

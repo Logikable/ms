@@ -1,8 +1,5 @@
-# GMS's own figures: 200+3x% four times over 20 levels, on eight enemies. 800ms
-# is the animation's own, from the frame data.
-#
-# Five enemies against GMS's eight: 380x240 is one storey and fits five across.
-# See Skill.max_enemies.
+# Five enemies against GMS's eight: 380x240 fits five across (see
+# Skill.max_enemies).
 name: "Shuriken Challenge"
 description: "Summon a large shadow-powered shuriken to annihilate enemies."
 kind: SKILL_KIND_ATTACK

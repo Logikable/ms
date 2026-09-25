@@ -1,5 +1,5 @@
 # GMS's third Teleport Mastery hyper makes a teleport longer, which means
-# nothing here. It gets the Extra Strike every other line gets instead.
+# nothing here, so it gets an Extra Strike instead.
 name: "Ice Strike - Extra Strike"
 description: "Increases Ice Strike's number of attacks."
 kind: SKILL_KIND_PASSIVE

@@ -1,8 +1,5 @@
-# The reason to reach the class: 91% final damage, plus a tenth of HP back every
-# five seconds whether the fight is going well or not.
-#
-# Combat Orders doesn't reach it, so it has no exceeds_master_level. GMS climbs
-# it in steps of five levels to 30; twenty even levels reach the same 91%.
+# No Combat Orders: GMS doesn't mark it. GMS climbs in steps of five levels to
+# 30; twenty even levels reach the same 91%.
 name: "Infinity"
 description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE

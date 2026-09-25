@@ -1,9 +1,5 @@
-# GMS lowers the elemental resistance of everything the magician attacks and
-# adds final damage too. Both halves are here: GMS's `u = x+1` and `mdR = 4x+4`
-# reach 10% and 40% at its nine levels, and this reaches the same over its ten.
-#
-# The elemental half only matters against bosses; ordinary monsters resist
-# nothing. See kBossElementalBase.
+# GMS's `u = x+1` and `mdR = 4x+4` reach 10% and 40% at nine levels; this
+# reaches the same over ten. See kBossElementalBase.
 name: "Elemental Decrease"
 description:
   "Decreases the Elemental Resistance to all of your attacks. Also "

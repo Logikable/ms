@@ -1,13 +1,5 @@
-# What a critical rate over 100% is good for: at max level, half of it comes
-# back as critical damage. 20 + x% of the rate: 21% at level 1 and 50% at 30, so
-# an archer at 120% gets 60% critical damage.
-#
 # Critical rate a swing states for itself doesn't count, as GMS says outright:
-# Snipe's guaranteed critical doesn't add. The engine already splits character
-# and swing, so the lever reads the character's.
-#
-# The roll still caps at 100%; the excess is used here and nowhere else, as GMS
-# also says.
+# Snipe's guaranteed critical doesn't add.
 name: "Vicious Shot"
 description:
   "When inflicting a critical wound, your strike hits the enemy where they "

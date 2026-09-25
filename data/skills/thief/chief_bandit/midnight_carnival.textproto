@@ -1,13 +1,9 @@
-# GMS gives this 150+2x% four times on eight enemies, and Phase Dash 320+5x%
-# twice on the same eight: 760% against 840% at max, with a swing 270ms shorter.
-# Phase Dash is simply better, and two buttons where one is always worse isn't a
-# choice.
+# GMS's Phase Dash beats Midnight Carnival at max, 840% to 760% on a shorter
+# swing, so here they are one skill: Midnight Carnival's lines, Phase Dash's
+# total.
 #
-# So here they are one skill: Midnight Carnival's four lines with Phase Dash's
-# total. 750ms is Midnight Carnival's own, from the frame data.
-#
-# Five enemies against GMS's eight: 360x210 is one storey and fits five across.
-# Phase Dash's own 380x125 gives the same five. See Skill.max_enemies.
+# Five enemies against GMS's eight: 360x210 fits five across (see
+# Skill.max_enemies).
 name: "Midnight Carnival"
 description: "Overwhelm enemies with supersonic slashes."
 kind: SKILL_KIND_ATTACK

@@ -1,28 +1,12 @@
-# The Bishop's fourth class node: a forward channel paid for from a bank of holy
-# lights instead of a cooldown.
+# GMS makes one light every 11 seconds, banks five, and uses one per second
+# held. A flat 55-second cooldown would give the same damage but lock the player
+# out for five seconds at a time on a map.
 #
-# GMS makes one light every 11 seconds, banks five, and uses one for each
-# second the key is held, so the skill follows the map instead of a clock. On a
-# crowd the Bishop uses the light that is ready and goes back to Angel Ray;
-# against a boss the lights pile up and go out together. A flat 55-second
-# cooldown would give the same damage but the wrong skill: it would lock the
-# player out for five seconds at a time on a map, where respawns come every
-# 7.56 seconds.
+# `pulses_per_charge` is one second held at GMS's `attackDelay 240` beat, 4.17
+# rounded to 4; the community DPM calculator's key-down tick agrees.
 #
-# `pulses_per_charge` is GMS's one second of holding at its 240ms beat, 4.17
-# rounded to the pulses that fit, so emptying all five lights is 20 pulses, not
-# 21. The beat is `attackDelay 240`, not published elsewhere; the community DPM
-# calculator's key-down tick is also 240, and its note that nine lights fire 41
-# ticks agrees to within a hundredth.
-#
-# `base_delay_ms` is the client's own wind-up and release (`prepare/time 240`
-# plus `keydownend/time 120`), the minimum a press commits to. It never matters:
-# one light already takes 960ms. masonym's 1320 is the loop action, not this
-# minimum.
-#
-# Dropped: the 40 MP per attack, the knockback and status immunity (nothing here
-# inflicts either), and the forward hitbox, since nothing has a position. It
-# doesn't retarget, which matches GMS: the light falls where the Bishop stands.
+# `base_delay_ms` is the client's wind-up and release (`prepare/time 240` plus
+# `keydownend/time 120`). masonym's 1320 is the loop action, not this minimum.
 name: "Divine Punishment"
 description:
   "Punish the wicked in the name of Heaven. Spends the holy light you have "

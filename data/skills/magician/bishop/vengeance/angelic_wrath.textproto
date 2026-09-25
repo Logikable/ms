@@ -1,11 +1,5 @@
-# What Heal becomes while Righteously Indignant is on: the Cleric's emergency
-# heal traded for a six-enemy swing. It sits in Heal's row of the Cleric's book
-# and has whatever level Heal has, so it costs nothing of its own (see
-# Skill.replaces_skill_name).
-#
-# GMS climbs 250+5x over twenty levels; here ten levels end exactly where GMS
-# does. Its DEF reduction on what it hits is dropped: nothing here keeps a
-# condition on a monster.
+# GMS climbs 250+5x over twenty levels; here ten end where GMS does. Its DEF
+# reduction is dropped: nothing here keeps a condition on a monster.
 name: "Angelic Wrath"
 description:
   "Calls down an avenging angel to strike the enemy. Enemies struck will be "

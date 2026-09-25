@@ -1,10 +1,7 @@
-# GMS: 225+3x% twelve times on 15 enemies every 45 seconds, plus a permanent 2x%
-# chance of a meteorite worth 100+4x%. Both ends are GMS's, stretched over 20
-# levels instead of 30.
+# Both ends are GMS's, over 20 levels instead of 30.
 #
-# The meteorite falls on one enemy, like Blizzard's. GMS only says so for
-# Blizzard, but the two passives have identical numbers, and counted per enemy
-# this one would pay fifteen times over in a full room.
+# The meteorite falls on one enemy. GMS only says so for Blizzard, but the two
+# passives have identical numbers, and per enemy this would pay fifteen times.
 name: "Meteor Shower"
 description:
   "Summon meteorites from the sky to inflict intense fire damage. Landing "

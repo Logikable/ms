@@ -1,22 +1,10 @@
-# GMS never prints the afterimage's rate. Every language says only "fires at set
-# intervals", and the client doesn't hold it either: neither 400031020 nor
-# 400031021 has a `summon` node, which marks a pulse timed by the server (see
-# periodic_intervals). So the rate is the user's own observation, one attack a
-# second. `subTime 180` is not the rate; reading it that way once made the
-# afterimage fire five times too fast.
+# GMS never prints the afterimage's rate and the client doesn't hold it (no
+# `summon` node on 400031020 or 400031021), so one attack a second is the user's
+# own observation. `subTime 180` is not the rate; reading it that way once made
+# the afterimage fire five times too fast.
 #
-# GMS gives the buff 30 seconds and the afterimages 3, adding 3 more for each
-# second their attacks land, up to the buff's length. A Bow Master never stops
-# attacking, so the afterimages simply fire for the whole 30.
-#
-# One enemy per volley. GMS states no mobCount, and though the hitbox fits 24 by
-# the reach rule, that rule only lowers a stated cap, it doesn't create one.
-#
-# The passive counts ten of the character's own attacks. Hurricane's
-# hits_per_attack_count defines an attack, so the rate follows Hurricane if it
-# ever changes. Its afterimage lasts `q` = 1 second and strikes once a second,
-# so it gets one attack of 3 lines. GMS states a lifetime and an attackCount but
-# never a repeat count.
+# One enemy per volley: GMS states no mobCount, and the reach rule only lowers a
+# stated cap, it doesn't create one.
 name: "Inhuman Speed"
 description:
   "Causes you to attack so quickly you produce afterimages. Unaffected by "

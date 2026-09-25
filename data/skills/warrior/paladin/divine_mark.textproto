@@ -1,14 +1,8 @@
-# Two hits landing at once: the hammer, and the brand of light it leaves, which
-# GMS detonates a moment later. Nothing here would use the gap, so they are one
-# swing, but calculated separately, because only the explosion does more to
-# ordinary monsters, and one averaged multiplier would spread that over the
-# hammer's seven strikes too. See Skill.extra_hit.
+# One swing, calculated as two hits, because only the explosion does more to
+# ordinary monsters (see Skill.extra_hit).
 #
-# The silence and extra range it also gives are dropped: nothing here is ever
-# silenced, and this game has no range.
-#
-# 660ms is Divine Charge's, the same hammer one tier down: this one's animation
-# frames aren't published anywhere we could read.
+# 660ms is Divine Charge's: this one's frames aren't published anywhere we could
+# read.
 name: "Divine Mark"
 description:
   "Allows you to summon a more powerful holy hammer. Enhances the damage and "

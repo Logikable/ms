@@ -1,8 +1,5 @@
-# The taunting swing and the shuriken summoned with it.
-#
-# Showdown's own shuriken is left out on purpose: a side strike uses the
-# character's base stats, without anything aimed at the skill by name, exactly
-# as GMS's Showdown - Reinforce says.
+# Showdown's own shuriken is left out: a side strike uses base stats, as GMS's
+# Showdown - Reinforce says.
 name: "Showdown Boost"
 description: "Strengthens Showdown and Dark Flare."
 kind: SKILL_KIND_PASSIVE

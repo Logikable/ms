@@ -1,28 +1,12 @@
-# The Bishop's first class node: its party half is worth more than a cut to
-# damage taken.
+# Two halves, which GMS keeps separate: the Bishop's own is flat, and everyone
+# else's grows with the Bishop's INT, then is capped to a share of what the
+# Bishop kept (see AllyIntLever).
 #
-# Two halves, which GMS keeps separate. The Bishop's own is flat: 33% final
-# damage at max, whatever their INT or party. Everyone else's grows with the
-# Bishop's INT and is then capped to a share of what the Bishop kept: one
-# blessing split across everyone in the zone, so a party of two gets 17% each
-# and a party of three 11%. See AllyIntLever.
+# GMS's INT steps are kept exactly, though a Bishop here tops out near 8,700 INT
+# against GMS's 100,000+; rescaling them would make it a different skill.
 #
-# GMS's INT steps are kept exactly, though stats here don't reach GMS's: a
-# Bishop here tops out near 8,700 INT against the 100,000+ of an endgame GMS
-# Bishop, so the party gets a few points instead of the cap, and nobody reaches
-# the attack speed yet. That is the ratio the description states; rescaling the
-# steps would make it a different skill.
-#
-# Both ladders are smoothed to end exactly at GMS's max: half a point of final
-# damage a level against GMS's `18+floor(x/2)`, and 0.35 seconds against its
-# `20+floor(x/3)`. Level 1 is 0.5pp higher and 0.15s shorter.
-#
-# The cast is kBuffCastMs like every other buff, not its 360ms animation: buffs
-# are cast from a sequence, which paces them all the same way.
-#
-# Dropped: the MP half of the recovery, since MP isn't tracked. Kept, though
-# nothing uses them yet: the status clear, and the attack speed, which the
-# Fastest 1 soft cap swallows for a party that already has its own +3.
+# Both ladders are smoothed to end at GMS's max, `18+floor(x/2)` and
+# `20+floor(x/3)`.
 name: "Benediction"
 description:
   "Calls upon your holy power to create a consecrated space that empowers and "

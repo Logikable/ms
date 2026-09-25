@@ -1,6 +1,4 @@
-# GMS gives 5+2x attack, 6+ceil(x/2)% final damage and x% Ignore DEF over 20
-# levels. Ten here, so all three end where GMS's do and attack climbs two points
-# a level.
+# GMS's twenty levels are ten here, ending where GMS's do.
 name: "Shadower Instinct"
 description:
   "Awakens your merciless Shadower's instincts, increasing your Attack, Final "

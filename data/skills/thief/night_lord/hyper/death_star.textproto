@@ -1,8 +1,5 @@
-# GMS's own figures: 358% seven times on eight enemies every 14 seconds, plus a
-# hundred points on Night Lord's Mark. GMS states the second half as "[Passive
-# Effect - Night Lord's Mark Damage: +100% points]", points on the strike's own
-# multiplier, not a share of the character's damage. 660ms is what every other
-# throw in this book takes.
+# GMS's "[Passive Effect - Night Lord's Mark Damage: +100% points]" is points on
+# the strike's own multiplier, not a share of the character's damage.
 name: "Death Star"
 description: "Summons 4 shurikens that combine into one giant shuriken."
 kind: SKILL_KIND_ATTACK

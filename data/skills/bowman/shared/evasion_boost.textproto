@@ -1,8 +1,5 @@
-# GMS maxes this at 4. Stretched to 10 levels to help fill the book's 120,
-# ending at GMS's top figures, like ranger/marksmanship.textproto.
-#
-# The crit after a dodge and the knockback resistance are left out: the first is
-# a window this game has no timer for, and no mob knocks back.
+# GMS maxes this at 4; stretched to 10 levels ending at GMS's top figures. The
+# crit after a dodge is a window with no timer here, and nothing knocks back.
 name: "Evasion Boost"
 description:
   "Grants a chance to dodge enemy attacks. Also permanently increases Max HP."

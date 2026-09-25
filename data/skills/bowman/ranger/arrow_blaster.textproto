@@ -1,19 +1,12 @@
-# GMS's 4 stands. Its 120x120 hitbox is one arrow's burst and it travels: the
-# shot is aimed, so the box sweeps along a platform instead of covering one
-# patch. The reach rule is for boxes that stay put (see Skill.max_enemies).
+# GMS's 4 stands: the 120x120 hitbox travels along the platform, and the reach
+# rule is for boxes that stay put (see Skill.max_enemies).
 #
-# Two attacks from one skill: the volley the player holds the key for, and the
-# turret left behind that fires on its own. One row in the book and one SP
-# ladder, because it is one skill.
+# The turret is a buff, not an auto mode: GMS places it mid-cast for 20+2x
+# seconds, so the player pays the 800ms to place it again. An auto mode would
+# fire all fight for free.
 #
-# The turret is a buff, not an auto mode. GMS places it with the Interact key
-# mid-cast and gives it u = 20+2x seconds, so the player puts it up, loses it
-# and puts it up again, and pays the 800ms to place it. An auto mode has no such
-# timer and would fire all fight for free. See Buff.own_cast_delay_ms.
-#
-# Neither half uses attack speed. The volley is a key-down skill, which GMS
-# paces itself, and the turret is a summon, which nothing speeds up. So a Ranger
-# gets nothing from Agile Bows, just as in GMS.
+# Neither half uses attack speed: the volley is key-down and the turret a
+# summon. So a Ranger gets nothing from Agile Bows, just as in GMS.
 name: "Arrow Blaster"
 description:
   "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
@@ -29,7 +22,6 @@ hits_per_attack_count: 7
 base { skill_pct: 1.24 }
 per_level { skill_pct: 0.03 }
 buff {
-  # GMS u = 20+2x with x the level: 22 at 1 and 60 at 20.
   duration_seconds: 22.0
   duration_seconds_per_level: 2.0
   own_cast_delay_ms: 800

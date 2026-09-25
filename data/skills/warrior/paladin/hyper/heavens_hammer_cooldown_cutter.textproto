@@ -1,6 +1,3 @@
-# Cuts another skill's cooldown by a share (see SkillBoost.cooldown_pct).
-# Heaven's Hammer goes from 29.5 seconds down to 15 with levels, and the cut is
-# 30% of wherever it is, so a maxed hammer comes back in 10.5.
 name: "Heaven's Hammer - Cooldown Cutter"
 description:
   "Reduces the cooldown of Heaven's Hammer."

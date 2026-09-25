@@ -1,11 +1,6 @@
-# The party half comes from the client. GMS stores this hyper's 5% in its own
-# block with no psd flag and no target skill, the shape used for a value that is
-# added to the Sharp Eyes buff. The Arrow Stream and Hurricane hypers all carry
-# psd and name the skill they boost. Whatever is added to the buff reaches
-# whoever the buff reaches.
-#
-# GMS states the party rule on Sharp Eyes's page, not here, so it is written out
-# here instead of left out.
+# Party-wide because of the client: GMS stores this 5% in its own block with no
+# psd flag or target skill, the shape of a value added to the Sharp Eyes buff,
+# and that buff reaches the party.
 name: "Sharp Eyes - Guardbreak"
 description:
   "Grants Sharp Eyes a bonus to Enemy DEF Ignored. Applies to party members."

@@ -1,5 +1,3 @@
-# See rope_lift.textproto: one of the four forgotten nodes. GMS pays this one in
-# attack instead of stats, at the same rate: a point a level.
 name: "Blink"
 description:
   "Teleports you somewhere else on the map. Nobody here remembers what it was "

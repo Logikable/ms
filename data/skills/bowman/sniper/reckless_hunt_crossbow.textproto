@@ -1,7 +1,5 @@
 # GMS sells avoidability here without saying how much, and it is the avoid stat,
-# not the flat roll dodge_chance models. So this gives the same DEF as its bow
-# twin, with critical damage instead of attack and final damage. See
-# reckless_hunt_bow.
+# not the roll dodge_chance models, so this gives DEF instead.
 name: "Reckless Hunt: Crossbow"
 description: "Reduces DEF and instead increases Critical Damage."
 kind: SKILL_KIND_PASSIVE

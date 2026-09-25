@@ -1,19 +1,8 @@
-# The Dark Knight's second class node: an aura that pulses once a second for
-# forty seconds, and one dark slash released from it whenever the player
-# chooses.
+# GMS takes two presses, but the slash lands once per cast wherever it falls, so
+# here both animations are paid at once: 5thDarknessAura's 600ms plus
+# 5thDarknessAuraEnd's 570.
 #
-# Here the slash is the swing, and the aura goes up with it. GMS takes two
-# presses, one for each, but the slash lands once per cast wherever it falls in
-# the window, so nothing is lost by paying both animations at once:
-# base_delay_ms is 5thDarknessAura's 600ms plus 5thDarknessAuraEnd's 570.
-#
-# The 3% heal is per pulse, not per line, as Calamitous Cyclone's heal is read,
-# so the aura heals 120% of HP over its forty seconds.
-#
-# Dropped: the shield built from overhealing (75% of it, capped at a third of
-# HP), the tenth off damage taken while the key is held, and cancelling
-# Gungnir's Descent, Nightshade Explosion and Calamitous Cyclone's detonations;
-# nothing here models cancels.
+# The 3% heal is per pulse, not per line, as Calamitous Cyclone's is read.
 name: "Darkness Aura"
 description:
   "Unleash a dark aura that siphons the life force of nearby enemies. "

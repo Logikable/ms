@@ -1,12 +1,6 @@
-# The seventh Decent, and the fourth forgotten node (see rope_lift.textproto).
-# GMS's other half is a fountain the player walks up to and uses, and there is
-# nowhere to walk here, so it sits at the bottom of the page with the other
-# three that do nothing.
-#
-# It keeps only its passive: GMS's All Stats +ceil(x/5), the `base 1, per_level
-# 0.2` ladder half the Decents share. No exclusive_group: only the flat half
-# doesn't stack, and this one has none. See decent_sharp_eyes.textproto for that
-# rule.
+# GMS's other half is a fountain the player walks up to, and there is nowhere to
+# walk here, so only the passive is kept. No exclusive_group: there is no flat
+# half to exclude.
 name: "Decent Holy Fountain"
 description:
   "Summons a fountain that restores the HP of anyone who drinks from it. "

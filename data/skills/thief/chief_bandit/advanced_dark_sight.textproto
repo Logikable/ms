@@ -1,7 +1,5 @@
-# GMS attaches this to Dark Sight: 12% final damage when attacking out of
-# stealth, one level. There is no stealth here, so only the final damage is
-# left: 1% a level over five, kept low because the character never has to earn
-# it.
+# There is no stealth here, so only the final damage is left: 1% a level over
+# five, kept low because the character never has to earn it.
 name: "Advanced Dark Sight"
 description: "Hones your stealth technique, increasing Final Damage."
 kind: SKILL_KIND_PASSIVE

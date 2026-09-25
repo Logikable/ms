@@ -1,6 +1,3 @@
-# GMS's exact figures: 5+L% Ignore DEF and 1+L% damage over its 20 levels. The
-# Ranger's version gives attack, a percentage of all attack; this one gives
-# damage.
 name: "Marksmanship"
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "

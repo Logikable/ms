@@ -1,11 +1,7 @@
-# GMS's Frost Clutch is one level and one number: Freezing Crush's critical
-# damage per stack goes from 1% to 2%. It supersedes instead of adding (the
-# better of the two stacks is kept, never their sum), and the final damage half
-# stays at Freezing Crush's 1%. Ten levels here instead of GMS's one, stepping
-# evenly to that 2%.
+# GMS's one level is ten here, stepping evenly to 2%. It supersedes Freezing
+# Crush's stack value; the final damage half stays at 1%.
 #
-# It doesn't go past its max level. GMS maxes it at 1 and doesn't mark it for
-# Combat Orders, so there is no higher level to reach.
+# No Combat Orders: GMS maxes it at 1 and doesn't mark it.
 name: "Frost Clutch"
 description: "Increases the effect of Freezing Crush."
 kind: SKILL_KIND_PASSIVE

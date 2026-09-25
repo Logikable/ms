@@ -1,6 +1,5 @@
-# GMS gives this to the caster only, while Holy Symbol itself covers the party.
-# So it is a plain grant, not a boost: it adds to the same total the named skill
-# pays into, and the two simply add.
+# Caster only in GMS, so it is a plain grant, not a boost: it adds to the same
+# total Holy Symbol pays into.
 name: "Holy Symbol - Experience"
 description: "Increases your EXP earned when using Holy Symbol."
 kind: SKILL_KIND_PASSIVE

@@ -1,8 +1,3 @@
-# The Paladin's single-target swing: ten strikes on three enemies, where Divine
-# Charge spreads four across eight. It is mainly for bosses, and on a map it is
-# what a Paladin uses when one enemy is left.
-#
-# GMS's own ladder, 250+3x%, so a maxed Blast strikes ten times for 340%.
 name: "Blast"
 description:
   "Call upon the full divine might of the Paladin to deal a powerful blow to "

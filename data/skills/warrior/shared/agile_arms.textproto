@@ -1,5 +1,4 @@
-# GMS gives 2 STR a level over 10 levels. Here it is spread over 5 at 4 each,
-# the same 20 total for half the points.
+# GMS gives 2 STR a level over 10 levels. Here it is spread over 5 at 4 each.
 name: "Agile Arms"
 description: "Increases Attack Speed and STR."
 kind: SKILL_KIND_PASSIVE

@@ -1,7 +1,5 @@
-# GMS names Piercing Arrow, which Piercing Arrow II supersedes. A boost keyed to
-# the superseded name reaches nothing, so this targets the arrow a Marksman
-# actually fires. GMS also names the empowered form, which Greater Empowered
-# Arrows grants, so each grant covers both.
+# GMS names Piercing Arrow, which Piercing Arrow II supersedes; a boost keyed to
+# the superseded name reaches nothing.
 name: "Piercing Arrow II Boost"
 description: "Strengthens Piercing Arrow II and its empowered form."
 kind: SKILL_KIND_PASSIVE

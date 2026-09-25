@@ -1,11 +1,5 @@
-# 660ms is the animation's own, from the frame data. Twelve strikes across
-# twelve enemies every fifteen seconds, the widest thing in the book: Arrow
-# Stream hits eight and Hurricane one.
-#
-# The 90 points go on skill_pct, not damage_pct. GMS writes "%p": points on the
-# skill's own multiplier, so they count once per line.
-#
-# The slow on what it hits is dropped; nothing here moves.
+# The 90 points go on skill_pct, not damage_pct: GMS writes "%p", points on the
+# skill's own multiplier.
 name: "Gritty Gust"
 description:
   "Tear nearby enemies apart with a gust of wind. Also boosts Arrow Blaster "

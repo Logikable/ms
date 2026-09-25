@@ -1,8 +1,5 @@
-# GMS runs this for 80 + 6*L seconds for an MP cost. There is no MP to spend and
-# nothing runs out, so it is always up.
-#
 # The attack goes to the party, as GMS writes it: "Attack Power of Party Members
-# Including Yourself". The protection and the reflection are the Fighter's only.
+# Including Yourself".
 name: "Spirit Blade"
 description:
   "The sword and the spirit are united to improve the Attack Power of party "

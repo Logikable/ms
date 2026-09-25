@@ -1,12 +1,7 @@
-# GMS reapplies this every 24-4*floor(L/4) seconds for 20+4L seconds, so it is
-# almost always up, and there are no buff timers here anyway, so it just is.
+# GMS reapplies this so often it is almost always up.
 #
-# Party members get half, as GMS states, rounded down where the lever is a whole
-# number. The DEF loses nine points at the top of its ladder because of that,
-# which nobody will notice: DEF caps long before that.
-#
-# GMS's magic attack alongside the weapon attack is dropped: no warrior weapon
-# has any, so it would be a row of zeroes.
+# Party members get half, as GMS states, rounded down for whole-number levers.
+# GMS's magic attack is dropped: no warrior weapon has any.
 name: "Hex of the Evil Eye"
 description: "Your Evil Eye buffs you and your party members."
 kind: SKILL_KIND_PASSIVE

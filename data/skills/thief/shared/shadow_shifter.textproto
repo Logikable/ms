@@ -1,5 +1,3 @@
-# GMS's own figure: a 35+x% chance that a wooden doll takes the hit instead. The
-# knockback resistance is dropped, like every other one.
 name: "Shadow Shifter"
 description:
   "Grants a chance to summon a wooden doll to take damage in your place."

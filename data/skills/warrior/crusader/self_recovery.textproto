@@ -1,10 +1,5 @@
-# GMS's own shape and ten levels: a share of HP on its own clock, ending at 4%
-# every 4 seconds.
-#
-# GMS climbs both halves in steps (ceil(L/4)+1 percent every 9 - floor(L/2)
-# seconds), which base + per_level can't follow. Straightened to a fifth of a
-# percent and half a second a level, which lands exactly on GMS's max and starts
-# a little above its first step.
+# GMS's steps, ceil(L/4)+1 percent every 9 - floor(L/2) seconds, are
+# straightened to land on GMS's max.
 name: "Self Recovery"
 description: "Regularly recovers some HP, even in combat."
 kind: SKILL_KIND_PASSIVE

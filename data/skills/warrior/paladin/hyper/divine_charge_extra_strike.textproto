@@ -1,5 +1,5 @@
-# On top of the strike Greater Vessel of Light already gives: two boosts on one
-# skill add up, so a Paladin with both swings six times.
+# Two boosts on one skill add up, so with Greater Vessel of Light it swings six
+# times.
 name: "Divine Charge - Extra Strike"
 description:
   "Increases the attack count of Divine Charge."

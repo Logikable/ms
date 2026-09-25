@@ -1,8 +1,5 @@
-# GMS ignores 2% of the enemy's defense per Freeze Stack, on frozen enemies
-# only, with a chance that reaches 100% at max over four levels. The chance is
-# dropped, like every roll that ends at certain here; what is left is GMS's 2% a
-# stack, stepped evenly over this book's twenty levels. A full five stacks
-# ignore GMS's 10%.
+# GMS's chance, which reaches 100% at max, is dropped like every roll that ends
+# at certain; GMS's 2% a stack is stepped over twenty levels.
 name: "Shatter"
 description:
   "When attacking Frozen enemies, ignores a portion of their defenses for "

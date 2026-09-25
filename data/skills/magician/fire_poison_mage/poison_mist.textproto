@@ -1,14 +1,6 @@
-# GMS casts a fog that lasts a few seconds and ticks 120+6x% inside it, plus a
-# 190+4x% hit when it lands.
-#
-# The duration is ours. GMS's fog lasts a few seconds after its cast and can be
-# laid over itself; here a mark stays on the monster, so the fog becomes a burn
-# that is relit. Nine and a half seconds up to twenty-one: long enough that the
-# chooser uses other swings and comes back, instead of spending every swing on
-# it.
-#
-# Six enemies against the pool's ten: GMS caps neither, and the difference is
-# that one is a fog you stand in and the other spreads along the platform.
+# The duration is ours: GMS's fog lasts a few seconds and can be laid over
+# itself, while here the mark stays on the monster, so the fog becomes a burn
+# that is relit.
 name: "Poison Mist"
 description:
   "Creates a poisonous fog around you, dealing poison damage to all enemies "

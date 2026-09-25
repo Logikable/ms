@@ -1,11 +1,8 @@
-# A summon, not a swing: the orb floats and discharges on its own, so the
-# magician uses Ice Strike the whole time. GMS's 196+5x% three times on six
-# enemies, plus 70+5x% against non-bosses, which is a share of the character's
-# damage, as GMS's "(additive)" says.
+# GMS's non-boss bonus is a share of the character's damage, as its "(additive)"
+# says.
 #
-# 1.8s between discharges is the orb's own attack animation, fifteen frames of
-# 120ms. It strikes on its own timing (`attackAfter`), like Phoenix, and read
-# the same way Phoenix gives back the 1710ms it already uses.
+# 1.8s is the orb's own attack animation, fifteen frames of 120ms; it strikes
+# on its own `attackAfter` timing, like Phoenix.
 name: "Thunder Sphere"
 description:
   "Summon an orb of condensed lightning. The orb discharges a high-voltage "

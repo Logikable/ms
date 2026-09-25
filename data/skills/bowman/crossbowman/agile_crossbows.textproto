@@ -1,5 +1,4 @@
-# Agile Bows for crossbows: GMS's 2 DEX a level over 10 levels, spread over 5 at
-# 4 each, ending at the same total for half the points.
+# GMS's 2 DEX a level over 10 levels, spread over 5 at 4 each.
 name: "Agile Crossbows"
 description: "Increases Attack Speed and DEX."
 kind: SKILL_KIND_PASSIVE

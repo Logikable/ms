@@ -1,6 +1,4 @@
-# GMS writes it "Damage: +20%": the %Damage stat for one swing, adding to what
-# the character already has, not points on Raging Blow's multiplier. Both halves
-# of the swing get it, since the two guaranteed criticals are the same swing.
+# GMS's "Damage: +20%" is the %Damage stat. Both halves of the swing get it.
 name: "Raging Blow - Reinforce"
 description:
   "Increases Raging Blow's damage."

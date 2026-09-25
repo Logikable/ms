@@ -1,9 +1,5 @@
-# Phoenix's twin: GMS gives both summons 210+18*L% damage, four enemies and a
-# permanent 3*L% DEF, and the Korean DPM calculator uses delay=1710 for both.
-#
-# What it has that Phoenix doesn't is the freeze: 1 + floor(L/5) seconds in GMS,
-# 3 at max. Skill.freeze_seconds has no ladder, so it holds the max value. The
-# stun is Phoenix's alone.
+# The Korean DPM calculator uses delay=1710 for both this and Phoenix.
+# Skill.freeze_seconds has no ladder, so it holds GMS's max, 3.
 name: "Frostprey"
 description:
   "Summons a Frostprey that attacks on its own, freezing what it hits. Also "

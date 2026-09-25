@@ -1,7 +1,4 @@
-# GMS's own figures: 344+5x% seven times on fifteen enemies, a burn of 90+4x% a
-# second, and a cooldown going from 60s down to 30s. The burn's duration climbs
-# from 5s to 10s in GMS; here it is flat at the max-level value, like all
-# durations. 720ms is the animation's own.
+# The burn's duration is flat at GMS's max-level value, like all durations.
 name: "Sudden Raid"
 description: "Call in a horde of friends to attack enemies."
 kind: SKILL_KIND_ATTACK

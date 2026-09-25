@@ -1,7 +1,5 @@
-# Two arrows a pulse at three quarters damage each: half as much again. Written
-# as GMS states it, a strike added and damage taken off, instead of one
-# multiplier, because the player is buying the second arrow and the page should
-# say so.
+# Written as GMS states it, a strike added and damage taken off, because the
+# player is buying the second arrow.
 name: "Hurricane - Split Attack"
 description:
   "Increases the number of attacks. Reduces the damage of Hurricane."

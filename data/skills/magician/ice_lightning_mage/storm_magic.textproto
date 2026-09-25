@@ -1,11 +1,5 @@
-# GMS only pays this against enemies with damage over time, freeze, stun,
-# darkness or paralysis. This game tracks three of those on monsters, and the
-# I/L's ice is one, so this pays on anything the book has frozen. GMS's 10+x%
-# ladder is kept whole: 11% up to 20%.
-#
-# The condition is on or off, as in GMS: a monster is afflicted or not, and a
-# second status adds nothing. What grows with stacks is Freezing Crush's own
-# pair.
+# GMS pays this against damage over time, freeze, stun, darkness or paralysis;
+# this game tracks three of those on monsters.
 name: "Storm Magic"
 description:
   "Increases your Final Damage when attacking enemies that are Frozen."

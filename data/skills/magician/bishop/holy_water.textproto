@@ -1,13 +1,6 @@
-# GMS fills a chalice from Angel Ray's hits, and party members drink from it for
-# 5% of HP, +5% per 2500 INT. Nobody walks anywhere here, so it just pours, for
-# the Bishop and everyone with them: the same 5% at max level, on a ten-second
-# cooldown, plus the same again for every 2500 INT the Bishop has.
-#
-# The party's share uses the drinker's INT, not the Bishop's, because the
+# Nobody walks anywhere here, so the chalice just pours, for the Bishop and the
+# party. The party's share uses the drinker's INT, not the Bishop's: the
 # calculation only knows the character it is for.
-#
-# The value scales with a stat instead of a level, which is why a Bishop's INT
-# is worth more than its damage suggests.
 name: "Holy Water"
 description:
   "Summons a chalice of holy water nearby that restores party members' HP "

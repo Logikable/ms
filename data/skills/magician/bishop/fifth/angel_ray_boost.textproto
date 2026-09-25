@@ -1,5 +1,3 @@
-# The class's main swing gets the page alone, as in GMS. Critical rate, not more
-# enemies: the ray hits one target on purpose.
 name: "Angel Ray Boost"
 description: "Strengthens Angel Ray."
 kind: SKILL_KIND_PASSIVE

@@ -1,6 +1,5 @@
-# The magician's version of Archery Mastery: +1 attack speed stage flat, so the
-# first point buys the speed, and more MP for the rest. Its "+5% critical rate
-# while holding a wand" depends on weapon type, which nothing here models.
+# Its "+5% critical rate while holding a wand" depends on weapon type, which
+# nothing here models.
 name: "MP Boost"
 description:
   "Increases Max MP and Attack Speed. Also increases MP proportional to your "

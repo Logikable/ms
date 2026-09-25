@@ -1,17 +1,7 @@
-# GMS's shield is a shell the warrior detonates: 5% of their HP raises it, it
-# absorbs 15 + floor(x/5)% of their max for five seconds, and a second press two
-# seconds later blows it up. Only the blast is built. A shell nobody keeps isn't
-# a shell, nothing here spends HP, and the client's own trigger is `condition:
-# damaged`, a hit taken while it is up, which a character here is never asked to
-# time.
+# Only GMS's blast is built: nothing here spends HP, and the client's trigger is
+# `condition: damaged`, a hit a character here is never asked to time.
 #
-# Damage is exactly GMS's 500 + 20x: 520% at level 1 and 1100% at 30, five lines
-# on twelve enemies every fifteen seconds. The blast has no hitbox in the
-# client, so its reach is GMS's cap and the reach rule has nothing to lower it
-# with, like Flash Blade and Cry Valhalla.
-#
-# One weapon list covers all three books, like the Swordman's own attacks: every
-# warrior can use this, whatever their line.
+# The blast has no hitbox in the client, so its reach is GMS's cap.
 name: "Blitz Shield"
 description:
   "Draws on your own lifeforce to raise a shield, then detonates it over the "

@@ -1,12 +1,7 @@
-# GMS's shell: a set number of hits fully blocked, and a heal on cast that
-# reaches the party too. The 90-second cooldown is GMS's own.
+# The blocks are rounded down when read, so the fractional step climbs 5 to 15.
 #
-# The blocks go from 5 to 15, more than one a level, hence the fractional step,
-# rounded down when read.
-#
-# GMS exempts attacks that deal a share of the target's Max HP and reduces them
-# instead. Nothing here deals damage that way, so a boss's hit stands in for
-# one: never blocked, and 10% less while the shell is up.
+# GMS exempts attacks that deal a share of Max HP; a boss's hit stands in for
+# those here: never blocked, and 10% less while the shell is up.
 name: "Holy Magic Shell"
 description:
   "Create a shield that blocks a set number of attacks on you and your party "

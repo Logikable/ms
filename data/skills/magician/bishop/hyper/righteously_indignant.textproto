@@ -1,13 +1,5 @@
-# The switch: a skill the player turns on and off. While it is on, the Bishop's
-# four Benevolence skills become their Vengeance forms (see the vengeance folder
-# and Skill.toggle).
-#
-# What it grants doesn't depend on the switch: GMS marks it "[Passive Effects]",
-# which is permanent once learned. The switch trades the party's fountains and
-# the Bishop's own Heal for four attacks, which is choice enough.
-#
-# Its half-second cooldown is the gap between two presses and doesn't matter in
-# a fight.
+# What it grants doesn't depend on the switch: GMS marks it "[Passive Effects]"
+# (see Skill.toggle).
 name: "Righteously Indignant"
 description:
   "Fuel your body with the fury of an avenging angel. Converts Benevolence "

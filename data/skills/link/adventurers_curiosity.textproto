@@ -1,9 +1,5 @@
-# The archers' link skill. GMS pairs the critical rate with a Monster Collection
-# chance; this game has no collection, so the rate is the whole skill.
-#
-# Its ladder is GMS's 3, 4, 6, 7, 9 ... written as the 1.5 a level it really is,
-# which matches GMS at every odd level and is half a point above at the even
-# ones.
+# GMS pairs the critical rate with a Monster Collection chance; there is no
+# collection here. GMS's 3, 4, 6, 7, 9 ... is written as 1.5 a level.
 name: "Adventurer's Curiosity"
 description: "Your curiosity about the world sharpens your eye for a weak spot."
 kind: SKILL_KIND_PASSIVE
