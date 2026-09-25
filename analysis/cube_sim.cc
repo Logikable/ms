@@ -1,18 +1,14 @@
-/* What a potential goal costs in cubes.
+/* cube_sim: what a potential goal costs in cubes.
  *
- * Every question here is the same shape: start from an item with no
- * potential, cube until it holds what is wanted, count the cubes. The rank
- * ladder is most of the bill -- Rare to Legendary is 7 + 17 + 42 cubes on
- * average before a single line is looked at -- so each goal is printed beside
- * the cost of reaching the rank it needs, and the difference is what the lines
- * themselves are worth waiting for.
+ * Every question here has the same shape: start from an item with no potential,
+ * cube until it has what's wanted, and count the cubes. Climbing the ranks is
+ * most of the cost, so each goal is printed next to the cost of reaching the
+ * rank it needs. The difference is the cost of waiting for the lines
+ * themselves.
  *
  * The distributions are long-tailed, so the median and the tail are printed
- * with the mean. A goal whose mean is twice its median is one where the plan
- * should be the median and the budget the tail.
- *
- * Not a test. Tests pin behaviour that must not change; this prints numbers to
- * look at while deciding what the behaviour should be.
+ * with the mean. When a goal's mean is twice its median, plan on the median and
+ * budget for the tail.
  *
  *   bazelisk run //analysis:cube_sim
  *   bazelisk run //analysis:cube_sim -- --item_level=200 --trials=50000
@@ -45,7 +41,7 @@ struct Goal {
   Predicate met;
 };
 
-// What one goal cost, over every trial of it.
+// Cost of one goal, over all its trials.
 struct Cost {
   double mean = 0.0;
   int median = 0;
@@ -57,8 +53,8 @@ int LineValue(const PotentialLine& line, int item_level) {
   return PotentialLineValue(line.type(), line.rank(), item_level);
 }
 
-// The share of the wearer's main stat a potential grants. All Stats counts:
-// it pays the main stat like any other line, a rank down.
+// Percent of the wearer's main stat a potential grants. All Stats counts, since
+// it gives the main stat like any other line, one rank lower.
 int MainStatPct(const Potential& potential, int item_level) {
   int total = 0;
   for (const PotentialLine& line : potential.lines()) {
@@ -81,9 +77,9 @@ int CountLines(const Potential& potential,
   return found;
 }
 
-// The lines worth having on a weapon: attack, boss damage and ignored
-// defence, whatever size each rolled at. Magic attack is the same deal for a
-// magician and is left out so the count is one job's.
+// Lines worth having on a weapon: attack, boss damage and ignored defence, at
+// any size. Magic attack is the magician equivalent and is left out so the
+// count is for one job.
 const std::vector<PotentialLineType>& UsefulWeaponLines() {
   static const std::vector<PotentialLineType>* kUseful =
       new std::vector<PotentialLineType>{
@@ -111,8 +107,8 @@ Predicate HoldsLines(std::vector<PotentialLineType> wanted, int count) {
   };
 }
 
-// Both of a pair on one potential. Not the same as two lines drawn from the
-// pair: duplicates are allowed, so two -1s lines are two cooldown lines and
+// Both lines of a pair on one potential. This differs from two lines drawn from
+// the pair: duplicates are allowed, so two -1s lines are two cooldown lines but
 // still only -1s.
 Predicate HoldsBoth(PotentialLineType first, PotentialLineType second) {
   return [first, second](const Potential& potential, int) {
@@ -202,8 +198,8 @@ void PrintMainStat(int item_level, int trials, int cap, std::mt19937& rng) {
   }
 }
 
-// The -3s hat wants both cooldown lines on one potential, which is why it is
-// printed beside each line on its own.
+// The -3s hat needs both cooldown lines on one potential, which is why it's
+// printed next to each line alone.
 void PrintSingleLines(int item_level, int trials, int cap, std::mt19937& rng) {
   const std::vector<Goal> singles = {
       {"8% critical damage (gloves)", PotentialGroup::kGloves,
@@ -239,11 +235,10 @@ void PrintAccessoryLines(int item_level, int trials, int cap,
   PrintCost(meso.name, meso_cost);
   PrintCost(drop.name, drop_cost);
   PrintCost(both.name, both_cost);
-  // The farming set: eight accessories, one wanted line apiece. Five meso
-  // lines fill the 100% the worn share is capped at and three drop lines come
-  // to 60%. Spreading them over eight pieces rather than doubling up on five
-  // is half the price -- a piece asked for two named lines wants the second to
-  // come up prime, and that is the whole difference.
+  // The farming set: eight accessories, one wanted line each. Five meso lines
+  // reach the 100% cap and three drop lines give 60%. Spreading them over eight
+  // pieces costs half as much as doubling up on five, because a piece needing
+  // two named lines needs the second to roll as a prime line.
   std::printf(
       "\n  8 pieces, one wanted line each -- 5 meso and 3 drop:"
       "\n    %.0f cubes on average, against %.0f for the same lines"

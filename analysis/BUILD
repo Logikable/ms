@@ -3,9 +3,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load(":sim.bzl", "sim_binary")
 
-# Sims, not tests. Tests pin behaviour that must not change; each of these
-# prints numbers to look at while deciding what the behaviour should be.
-# They live outside //src so a tuning tool is never mistaken for the game.
+# Sims print numbers to read while tuning; tests pin behaviour that must not
+# change. This package holds the sims and the tested libraries they share. It
+# lives outside //src so a tuning tool is never mistaken for the game.
 
 cc_library(
     name = "sim_jobs",

@@ -27,20 +27,20 @@
 namespace ms {
 namespace {
 
-// The map and mob a weapon is tried out on, invented rather than taken from
-// the catalog: a real map would let its crowd answer a question meant for one
-// weapon against one mob.
+// Map and mob for weapon tryouts, made up rather than taken from the catalog: a
+// real map's crowd would skew a comparison meant for one weapon against one
+// mob.
 constexpr char kTryoutMap[] = "__sim_gear_tryout";
 constexpr char kTryoutMob[] = "__sim_gear_tryout_mob";
 
-// How long each candidate is swung for, in the game's own seconds. Long enough
-// that a four-second cooldown lands a dozen times, which is all the settling
-// the comparison needs -- bench_sim's own horizon is ten times this because
-// it prints the number, where this only ranks with it.
+// How long each candidate attacks, in game seconds. Long enough that a
+// four-second cooldown fires a dozen times, which is enough for ranking.
+// bench_sim uses ten times this because it prints the number rather than just
+// ranking by it.
 constexpr double kTryoutSeconds = 60.0;
 
-// The required level of what is worn in `slot`, which is how one rung is
-// ranked against another: the shop's ladder is ordered by it.
+// Required level of what is worn in `slot`, which orders tiers against each
+// other: the shop's weapon tiers are ordered by it.
 int HeldTier(const CharacterInstance& character, EquipSlot slot) {
   WornGear::const_iterator it = character.equipped().find(slot);
   return it == character.equipped().end()
@@ -48,9 +48,9 @@ int HeldTier(const CharacterInstance& character, EquipSlot slot) {
              : it->second->prototype().required_level();
 }
 
-// Puts `proto` on without charging for it, which is what trying a weapon out
-// costs a player. A copy already in the bag is worn again rather than
-// duplicated: the bag is finite and this runs at every level.
+// Wears `proto` without charging for it, as trying on a weapon costs a player
+// nothing. Reuses a copy already in the bag rather than adding another, since
+// the bag is finite and this runs at every level.
 bool WearCopy(CharacterInstance& character, const EquipPrototype& proto) {
   if (EquipByName(character, proto.name())) {
     return true;
@@ -61,9 +61,9 @@ bool WearCopy(CharacterInstance& character, const EquipPrototype& proto) {
   return character.Equip(character.inventory().size() - 1);
 }
 
-// Both shelves of one stock list, one after the other. What a token buys is
-// stock like any other here: the sims play the fights that drop the tokens, so
-// the Frozen tier is as reachable to them as it is to a player.
+// Both shelves of one stock list, meso first then tokens. Token items count as
+// stock like any other, since the sims play the fights that drop the tokens and
+// the Frozen tier is as reachable for them as for a player.
 std::vector<std::string> BothShelves(std::vector<std::string> meso,
                                      const std::vector<std::string>& tokens) {
   meso.insert(meso.end(), tokens.begin(), tokens.end());
@@ -80,9 +80,8 @@ std::vector<std::string> EquipShelf(const GameState& state) {
                      ShopEquipStock(state.equips, kPaidInTokens));
 }
 
-// The off-hands alone. The shelf also carries the rings, the emblem and the
-// medal, which fill slots of their own and are not what a branch re-arms its
-// hand with.
+// Off-hands only. The shelf also has rings, the emblem and the medal, which
+// fill their own slots and aren't what a branch equips in its off-hand.
 std::vector<std::string> SecondaryShelf(const GameState& state) {
   std::vector<std::string> keys = EquipShelf(state);
   keys.erase(std::remove_if(keys.begin(), keys.end(),
@@ -94,7 +93,7 @@ std::vector<std::string> SecondaryShelf(const GameState& state) {
   return keys;
 }
 
-// The token `proto` is priced in, or null for one the shop takes meso for.
+// The token `proto` is priced in, or null if it's priced in meso.
 const ItemPrototype* TokenFor(const GameState& state,
                               const EquipPrototype& proto) {
   if (proto.token_price() <= 0) {
@@ -105,9 +104,8 @@ const ItemPrototype* TokenFor(const GameState& state,
   return it == state.items.end() ? nullptr : &it->second;
 }
 
-// Whether the character can pay for `proto` as they stand. A token price is
-// met out of what the fights dropped, so this asks the Etc tab rather than the
-// purse.
+// Whether the character can currently afford `proto`. A token price is paid
+// from tokens that fights dropped, so this checks the Etc tab rather than meso.
 bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
   const ItemPrototype* token = TokenFor(state, proto);
   if (token == nullptr) {
@@ -116,15 +114,15 @@ bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
   return proto.token_price() <= state.character.CountItem(token->name());
 }
 
-// Pays for one of `proto`, in whichever currency it is priced in.
+// Buys one `proto` in whichever currency it's priced in.
 bool BuyOne(GameState& state, const EquipPrototype& proto) {
   const ItemPrototype* token = TokenFor(state, proto);
   return token == nullptr ? state.character.Buy(proto, 1)
                           : state.character.BuyWithToken(proto, *token, 1);
 }
 
-// The best rung of `type` the character can reach, or null when the shop
-// stocks none they can hold. `budget` also asks whether they can pay.
+// Best tier of `type` the character can use, or null if the shop stocks none
+// they can equip. With `budget`, it must also be affordable.
 const EquipPrototype* BestRung(const GameState& state, EquipType type,
                                bool budget) {
   const EquipPrototype* best = nullptr;
@@ -143,9 +141,9 @@ const EquipPrototype* BestRung(const GameState& state, EquipType type,
   return best;
 }
 
-// The top rung of every weapon ladder the character can hold. Only the top of
-// each is worth trying: within a type the tiers only climb, so the question
-// left to measure is which ladder, not which rung.
+// Top tier of every weapon type the character can use. Only the top of each is
+// worth trying: within a type tiers only improve, so the question is which
+// type, not which tier.
 std::vector<const EquipPrototype*> Ladders(const GameState& state,
                                            bool budget) {
   std::vector<const EquipPrototype*> tops;
@@ -168,10 +166,10 @@ std::vector<const EquipPrototype*> Ladders(const GameState& state,
   return tops;
 }
 
-// Stands the tryout map and its mob up, and moves the character onto it.
-// The mob is their own level, so the level multiplier lands where a player
-// fighting their own tier would put it, and carries the measurement's own HP
-// so a held swing is not let go early. Returns the map they came from.
+// Creates the tryout map and mob and moves the character there. The mob is the
+// character's own level, so the level multiplier matches fighting their own
+// tier, and has the measurement's HP so a held attack isn't released early.
+// Returns the map they came from.
 std::string OpenTryout(GameState& state) {
   Mob mob;
   mob.set_name("Tryout");
@@ -189,19 +187,19 @@ std::string OpenTryout(GameState& state) {
   return farming;
 }
 
-// Tears it down again. It is scratch, not one of the game's.
+// Removes the tryout map and mob, which are scratch data.
 void CloseTryout(GameState& state, const std::string& farming) {
   state.current_map = farming;
   state.maps.erase(kTryoutMap);
   state.mobs.erase(kTryoutMob);
 }
 
-// What the character now hits for a second against a lone mob of their own
-// level: their swings, plus anything of theirs on a clock of its own.
+// Damage per second the character now deals to a lone mob of their own level:
+// their attacks plus anything of theirs on its own clock.
 double MeasureRate(GameState& state) {
   CombatParams params = ComputeCombatParams(state);
-  // Stretched on the way in, since MeasureFight counts in that clock -- see
-  // its header. A minute here was six game seconds at level 200.
+  // Stretched on the way in, since MeasureFight counts in that clock (see its
+  // header).
   Sequence played = MeasureFight(
       params,
       kTryoutSeconds * GameSpeedFactor(state.character.proto().level()));
@@ -229,27 +227,27 @@ std::string HeldWeaponName(const CharacterInstance& character) {
 
 namespace {
 
-// Which weapon type the character hits hardest with as they stand. Every
-// ladder's TOP rung is tried on and swung at a mob of their own level, plus
-// the weapon in hand: within a type the tiers climb, so the rung is not in
-// question. Unspecified where nothing can be worn or tried on.
+// The weapon type the character currently hits hardest with. The top tier of
+// each type is tried on and used against a mob of their own level, along with
+// the weapon in hand. Within a type tiers only improve, so the tier isn't in
+// question. Unspecified if nothing can be worn or tried.
 EquipType MeasureBestType(GameState& state, bool budget) {
   std::vector<const EquipPrototype*> ladders = Ladders(state, budget);
   if (ladders.empty() ||
       state.character.inventory().room() < static_cast<int>(ladders.size())) {
     return EQUIP_TYPE_UNSPECIFIED;
   }
-  // The character as they arrived. Every try-on wears a fresh copy and leaves
-  // the one it displaced in the bag, and restoring from the proto is the only
-  // eraser there is -- see FullyUpgrade. Without it a sweep that measures at
-  // every level fills the bag with the weapons it did not buy, and the guard
-  // above then quietly stops the character shopping for good.
+  // Save the character as they arrived. Each try-on wears a fresh copy and
+  // leaves the displaced one in the bag, and restoring from the proto is the
+  // only way to undo that (see FullyUpgrade). Without it, a sweep measuring at
+  // every level fills the bag with unbought weapons, and the room check above
+  // then silently stops the character shopping for good.
   Character before = state.character.ToProto();
 
-  // The weapon already in their hands is a candidate too, and the first one,
-  // so a tie keeps it. Without this the shelf can talk them out of a weapon
-  // better than anything on it -- a Frozen weapon has no second token behind
-  // it, and a purse just spent leaves only the cheap rungs on offer.
+  // The weapon in hand is a candidate too, and goes first so a tie keeps it.
+  // Otherwise the shelf can talk the character out of a weapon better than
+  // anything on it: a Frozen weapon can't be bought twice with one token, and
+  // after spending their meso only the cheap tiers are affordable.
   EquipPrototype worn;
   WornGear::const_iterator it =
       state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -266,9 +264,9 @@ EquipType MeasureBestType(GameState& state, bool budget) {
     if (!WearCopy(state.character, *candidate)) {
       continue;
     }
-    // A claw with an empty projectile slot swings for nothing, and a dagger
-    // wearing stars would be credited with ammunition it never throws. Either
-    // way the candidate is measured holding exactly what it draws from.
+    // A claw with no projectiles deals nothing, and a dagger with throwing
+    // stars would be credited for ammunition it never uses. So each candidate
+    // is measured with exactly the ammunition it uses.
     state.character.Unequip(EQUIP_SLOT_PROJECTILE);
     EquipType ammo = AmmoFor(candidate->equip_type());
     if (ammo != EQUIP_TYPE_UNSPECIFIED) {
@@ -285,16 +283,16 @@ EquipType MeasureBestType(GameState& state, bool budget) {
   }
 
   CloseTryout(state, farming);
-  // Everything tried on goes with it. What the character wears is what they
-  // paid for, which is Buy's business below.
+  // Undo every try-on. What the character wears is what they paid for, which
+  // the buying code below handles.
   state.character.RestoreFrom(before, state.equips, state.items);
   return winner;
 }
 
-// Buys and wears the best rung of `type` within reach. Nothing happens when
-// the character already holds that ladder no lower down -- but a character on
-// the wrong ladder swaps whatever the rungs say, because the measurement has
-// just told them the type itself is worth more than the tier.
+// Buys and wears the best tier of `type` within reach. Does nothing if the
+// character already has that type at the same tier or higher. A character on
+// the wrong type swaps regardless of tier, because the measurement just showed
+// the type matters more than the tier.
 void ClimbLadder(GameState& state, EquipType type, bool budget) {
   const EquipPrototype* best = BestRung(state, type, budget);
   if (best == nullptr) {
@@ -314,15 +312,15 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
   WearCopy(state.character, *best);
 }
 
-// The best off-hand the shop will sell the character. Nothing is measured
-// here: one branch owns each off-hand and they carry plain stats, so there is
-// no choice to make -- only a tier to reach.
+// Best off-hand the shop will sell the character. Nothing is measured: each
+// off-hand belongs to one branch and has plain stats, so the only choice is the
+// tier.
 const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
   const EquipPrototype* best = nullptr;
   for (const std::string& key : SecondaryShelf(state)) {
     const EquipPrototype& proto = state.equips.at(key);
-    // The shop's own filter rather than CanEquip, which asks only the job
-    // category -- and the three warrior off-hands are not interchangeable.
+    // Use the shop's own filter rather than CanEquip, which only checks the job
+    // category. The three warrior off-hands aren't interchangeable.
     if (!state.character.MeetsLevel(proto) ||
         !state.character.MeetsJob(proto)) {
       continue;
@@ -341,9 +339,9 @@ const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
 
 namespace {
 
-// The scrolls `proto` takes: the tier its level falls in, the kind of
-// equipment it is, and a job category both sides name. The scroll panel's own
-// three rules, less the clean slate, which undoes rather than upgrades.
+// Scrolls `proto` can take: matching its level tier, its equipment kind, and a
+// shared job category. These are the scroll panel's three rules, excluding the
+// clean slate scroll, which undoes rather than upgrades.
 std::vector<const Scroll*> ScrollsFor(const GameState& state,
                                       const EquipPrototype& proto) {
   std::vector<const Scroll*> taken;
@@ -371,16 +369,16 @@ std::vector<const Scroll*> ScrollsFor(const GameState& state,
   return taken;
 }
 
-// The golden hammers a character at `level` could have driven in. None below
-// the gate: a ceiling is what the player could reach, not what the item could
-// hold.
+// Golden hammers a character at `level` could have used. None below the unlock
+// level, since a ceiling is what the player could reach, not what the item
+// could hold.
 int HammersAt(int level) {
   return level >= UnlockLevel(Feature::kHammer) ? kMaxHammers : 0;
 }
 
-// `proto` as a player who kept at it would leave it: `hammers` driven in,
-// every slot spent on `scroll` and every star up to `star_cap` landed. A null
-// scroll leaves the slots unspent, which is what an item taking none gets.
+// `proto` as a dedicated player would leave it: `hammers` applied, every slot
+// filled with `scroll`, and stars up to `star_cap`. A null scroll leaves the
+// slots unused, as for an item that takes none.
 Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
                 int hammers) {
   Equip state;
@@ -407,10 +405,10 @@ Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
   return state;
 }
 
-// Wears a fresh `proto` carrying `made` in `slot`, the displaced copy staying
-// in the bag. `slot` is where the item is WORN, which for a family is not the
-// slot its prototype names: every ring says EQUIP_SLOT_RING, and stripping
-// that takes off the wrong ring.
+// Wears a fresh `proto` with state `made` in `slot`, leaving the displaced copy
+// in the bag. `slot` is where the item is worn, which for a family differs from
+// the prototype's slot: every ring says EQUIP_SLOT_RING, and unequipping that
+// would remove the wrong ring.
 bool WearMade(CharacterInstance& character, EquipSlot slot,
               const EquipPrototype& proto, const Equip& made) {
   character.Unequip(slot);
@@ -420,11 +418,11 @@ bool WearMade(CharacterInstance& character, EquipSlot slot,
   return character.Equip(character.inventory().size() - 1);
 }
 
-// Which scroll `slot` wants: the one the character measures best in, wearing
-// NONE included and first, so an item no scroll helps keeps its slots.
-// `success_rate` narrows the field; a budgeted player picks a rate before a
-// stat, a 30% trace wasting seven slots in ten. Leaves the character wearing
-// the last try-on for the caller to put back.
+// The scroll `slot` should use: the one the character measures best with,
+// including no scroll (tried first), so an item no scroll helps keeps its
+// slots. `success_rate` narrows the choice, since a player on a budget picks a
+// rate before a stat; a 30% scroll wastes seven slots in ten. Leaves the
+// character wearing the last try-on for the caller to restore.
 const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
                                 int success_rate) {
   WornGear::const_iterator it = state.character.equipped().find(slot);
@@ -438,10 +436,10 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
       candidates.push_back(scroll);
     }
   }
-  // Wearing none is a candidate only where the slots are worth keeping. An
-  // item that takes stars has to spend every slot before it can hold one, so
-  // declining a scroll worth almost nothing there costs it the stars as well
-  // -- and the stars are worth more than any scroll on the item.
+  // No scroll is a candidate only when the slots are worth keeping. An item
+  // that takes stars must use every slot before it can take one, so declining a
+  // nearly worthless scroll would also cost the stars, which are worth more
+  // than any scroll on the item.
   if (!Supports(proto, UPGRADE_STAR_FORCE)) {
     candidates.insert(candidates.begin(), nullptr);
   }
@@ -466,10 +464,10 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
 
 namespace {
 
-// True for something Outfit already shopped for. TWO questions: the slots it
-// climbs a ladder in, and any item naming a price. Asking only the slot would
-// hand a bought ring over free; asking only the price would hand over the
-// Fafnir, priced at nothing because nothing sells it.
+// True for items Outfit already shops for. Checks two things: the slots it buys
+// weapons and off-hands for, and any item with a price. Checking only the slot
+// would give a bought ring away free; checking only the price would give away
+// the Fafnir, which has no price because nothing sells it.
 bool Shopped(const EquipPrototype& proto) {
   EquipSlot slot = proto.equip_slot();
   return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_SECONDARY ||
@@ -478,9 +476,9 @@ bool Shopped(const EquipPrototype& proto) {
 }
 
 // Wears the best of `candidates` in every slot of one family, highest tier
-// first and the name breaking a tie so a run repeats. A list rather than one
-// item because a character wears four rings, and "the best ring" is then four
-// answers -- a second copy of one would only swap for the first.
+// first, with name breaking ties so runs repeat. Takes a list because a
+// character wears four rings, so "the best ring" means four rings; a second
+// copy of one would only swap with the first.
 void WearBestOfFamily(CharacterInstance& character, EquipSlot family,
                       std::vector<const EquipPrototype*> candidates) {
   std::sort(candidates.begin(), candidates.end(),
@@ -501,10 +499,9 @@ void WearBestOfFamily(CharacterInstance& character, EquipSlot family,
   }
 }
 
-// The rest of the shop's equipment shelf: the rings, the emblem and the medal.
-// Nothing is measured, for the reason the off-hand is not -- they carry plain
-// stats, so a higher tier is simply more -- and a family takes as many as it
-// holds rather than one.
+// The rest of the shop's equipment: rings, emblem and medal. Nothing is
+// measured, for the same reason as off-hands (plain stats, so a higher tier is
+// simply better), and a family takes as many as it has slots.
 void BuyAccessories(GameState& state, bool budget) {
   std::map<EquipSlot, std::vector<const EquipPrototype*>> by_family;
   for (const std::string& key : EquipShelf(state)) {
@@ -537,10 +534,10 @@ void FullyUpgrade(GameState& state, int star_cap) {
     worn[entry.first] = entry.second->prototype();
   }
   std::string farming = OpenTryout(state);
-  // The character as they arrived, which is what the ceilings are written
-  // into. Trying a scroll on means wearing it, and every try-on leaves its
-  // predecessor in the bag -- a sim that upgrades at every level would fill
-  // the bag with them. Restoring from the proto is the only eraser there is.
+  // The character as they arrived, into which the maxed items are written.
+  // Trying on a scroll means wearing it, and every try-on leaves the previous
+  // item in the bag, which would fill it if a sim upgraded at every level.
+  // Restoring from the proto is the only way to undo that.
   Character before = state.character.ToProto();
   int hammers = HammersAt(state.character.proto().level());
   for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
@@ -567,8 +564,8 @@ std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
   std::map<EquipSlot, const Scroll*> chosen;
   for (EquipSlot slot : worn) {
     const Scroll* scroll = BestScrollForSlot(state, slot, success_rate);
-    // Every try-on left its predecessor in the bag, and restoring from the
-    // proto is the only eraser there is -- see FullyUpgrade.
+    // Each try-on left the previous item in the bag; restoring from the proto
+    // undoes that (see FullyUpgrade).
     state.character.RestoreFrom(before, state.equips, state.items);
     if (scroll != nullptr) {
       chosen[slot] = scroll;
@@ -598,8 +595,8 @@ bool ReachedSymbolArea(const CharacterInstance& character,
 }
 
 int CollectSymbols(CharacterInstance& character) {
-  // The slots first, then the absorbing: taking a spare rebuilds the symbol it
-  // went into, and nothing should be walking the worn map while that happens.
+  // Collect the slots first, then absorb: absorbing a spare rebuilds the
+  // symbol, so nothing should be iterating the worn map at that point.
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
@@ -620,8 +617,8 @@ int CollectSymbols(CharacterInstance& character) {
 namespace {
 
 // Whether a copy of `proto` is worn anywhere in its family. Equipping another
-// SWAPS for it, sending the worn one back to the bag -- where it would be
-// offered again, for ever.
+// would swap with it, sending the worn one to the bag, where it would be
+// offered again forever.
 bool WearsCopyOf(const CharacterInstance& character,
                  const EquipPrototype& proto) {
   for (EquipSlot slot : SlotFamily(proto.equip_slot())) {
@@ -637,8 +634,8 @@ bool WearsCopyOf(const CharacterInstance& character,
 }  // namespace
 
 void WearBestFromBag(CharacterInstance& character) {
-  // Restarted after every change: equipping shuffles the bag, since whatever
-  // is displaced goes back into it.
+  // Restart after every change, since equipping reorders the bag: the displaced
+  // item goes back into it.
   bool moved = true;
   while (moved) {
     moved = false;
@@ -695,9 +692,8 @@ EquipType SettledWeaponType(GameState& state, bool budget) {
 }
 
 void Outfit(GameState& state, bool budget, EquipType settled) {
-  // Nothing is for sale before the shop opens, so there is nothing to choose
-  // between and nothing to climb -- the character keeps what the game gave
-  // them, as a player that early does.
+  // Nothing is for sale before the shop unlocks, so there's nothing to choose.
+  // The character keeps what the game gave them, as an early player does.
   if (!Unlocked(Feature::kShop, state.character, state.account)) {
     return;
   }
@@ -712,8 +708,8 @@ void Outfit(GameState& state, bool budget, EquipType settled) {
   if (ammo != EQUIP_TYPE_UNSPECIFIED) {
     ClimbLadder(state, ammo, budget);
   }
-  // After the weapon, because the purse is spent in the order that matters:
-  // a ring is worth less than the thing it is swung beside.
+  // After the weapon, because meso is spent in order of importance: a ring is
+  // worth less than the weapon.
   const EquipPrototype* off_hand = BestSecondary(state, budget);
   if (off_hand != nullptr &&
       off_hand->required_level() >

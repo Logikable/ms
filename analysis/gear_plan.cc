@@ -28,7 +28,7 @@
 namespace ms {
 namespace {
 
-// The Spell Trace's own catalog entry, which is where its shop price is.
+// The Spell Trace's catalog entry, which holds its shop price.
 const ItemPrototype* TraceItem(const GameState& state) {
   std::map<std::string, ItemPrototype>::const_iterator it =
       state.items.find("spell_trace");
@@ -40,19 +40,18 @@ const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
   return it == state.character.equipped().end() ? nullptr : it->second;
 }
 
-// What the character wears and what their passives grant, summed. The
-// expensive half of scoring a candidate, so it is taken once a round and every
-// candidate is added to a copy of it.
+// Stats the character wears plus what their passives grant. This is the
+// expensive half of scoring a candidate, so it's computed once a round and each
+// candidate is added to a copy.
 EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
   derived = DerivedStatsFor(state.character, state.skills);
   return TotalEquipStats(state.character, derived);
 }
 
-// The character's combat power with `stats` in place of what they wear.
-// COMBAT POWER rather than a played swing: ranking one star against another is
-// a question about the stat block, which the closed form answers for no
-// simulation. What it leaves out is the Max HP a star pays, which would need a
-// rate of exchange against damage that nothing states.
+// Damage against the yardstick with `stats` in place of what the character
+// wears. Uses the closed form over the yardstick's strands rather than a played
+// fight. It leaves out the Max HP a star gives, which would need an exchange
+// rate against damage that nothing defines.
 double PowerWith(const GameState& state, const Yardstick& yard,
                  const DerivedStats& derived, const EquipStats& stats) {
   return WorthOf(state, yard, stats, PassiveOffenseFor(derived));
@@ -63,9 +62,9 @@ EquipStats Plus(const EquipStats& a, const EquipStats& b) {
   return SumEquipStats(sources);
 }
 
-// What one more star adds, which is the gap between what the stars are worth
-// at each level rather than what the next one is worth on its own -- the
-// scaled ones compound, so the eleventh star is not the first star again.
+// Difference of two stat blocks. Used for what one more star adds: the gap
+// between the star gains at each level, not the next star alone, since scaled
+// stars compound.
 EquipStats Minus(const EquipStats& a, const EquipStats& b) {
   EquipStats d;
   d.set_str(a.str() - b.str());
@@ -80,18 +79,15 @@ EquipStats Minus(const EquipStats& a, const EquipStats& b) {
   return d;
 }
 
-// Whether an attempt from `stars` can destroy the item. The shopper will not
-// take one: nothing here recovers a trace, so a destroyed piece is simply
-// gone, and pricing a loss the sim cannot undo would be fiction. GMS puts the
-// first such attempt at 15 stars, so that is where this stops -- read off the
-// rate table rather than written down, so it moves if the table does.
+// Whether an attempt from `stars` can destroy the item. GMS starts at 15 stars;
+// this reads the rate table so it follows any change there.
 bool CanDestroy(int stars) {
   return EquipInstance::RateAt(stars).destroy > 0;
 }
 
-// Whether any attempt this piece will ever take can destroy it. A level whose
-// star ceiling sits at or below the first destroying star makes the piece safe
-// however far it is taken -- and a spare of it worth nothing but the sale.
+// Whether any attempt this piece could ever take can destroy it. A piece whose
+// star cap is at or below the first destroying star is safe however far it
+// goes, and a spare of it is worth only its sale price.
 bool CanEverDestroy(const EquipPrototype& proto) {
   if (!Supports(proto, UPGRADE_STAR_FORCE)) {
     return false;
@@ -105,15 +101,14 @@ bool CanEverDestroy(const EquipPrototype& proto) {
   return false;
 }
 
-// What one more copy of `proto` costs. The shop's price where it stocks the
-// piece; otherwise the sale a kept spare forgoes, which is what holding one
-// against a boom actually costs.
+// Cost of one more copy of `proto`: the shop price if the shop stocks it,
+// otherwise the sale price a kept spare gives up.
 int64_t SpareCost(const EquipPrototype& proto) {
   return proto.shop_price() > 0 ? proto.shop_price() : SellPrice(proto);
 }
 
-// Copies of `name` sitting in the bag. Traces are not copies: a trace is what
-// a boom leaves behind, not what puts the piece back.
+// Copies of `name` in the bag. Traces don't count: a trace is what a boom
+// leaves, not what restores the piece.
 int SparesInBag(const CharacterInstance& character, const std::string& name) {
   int spares = 0;
   const InventoryInstance& bag = character.inventory();
@@ -126,27 +121,27 @@ int SparesInBag(const CharacterInstance& character, const std::string& name) {
   return spares;
 }
 
-// Whether a boom on this piece could be put right. The shop stocking it is
-// cover enough -- a copy is one purchase away -- and otherwise it takes a
-// spare already in the bag.
+// Whether a boom on this piece could be recovered from. The shop stocking it is
+// enough, since a copy is one purchase away; otherwise it needs a spare in the
+// bag.
 bool CanCoverBoom(const CharacterInstance& character,
                   const EquipPrototype& proto) {
   return proto.shop_price() > 0 || SparesInBag(character, proto.name()) > 0;
 }
 
-// Spares of a piece worth keeping: the booms expected on the longest star run
-// the purse could pay for. INCOME decides it, not a constant -- a piece that
-// drops faster than the meso to boom it with is one to sell. One is the floor
-// while it can boom at all.
+// Spares worth keeping of a piece: the expected booms on the longest star run
+// the character could afford. Income decides it, not a constant, so a piece
+// that drops faster than the meso to boom it should be sold. At least one while
+// it can boom at all.
 int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
                        int stars) {
   if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
-    return 0;  // safe however far it goes, or a copy is a purchase away
+    return 0;  // safe however far it goes, or a copy is one purchase away
   }
   int level = proto.required_level();
-  // A run only gets dearer the further it goes, so the furthest one the purse
-  // covers is bisected for rather than walked to -- the walk is a linear
-  // system a star, and this runs at every look.
+  // A run only gets more expensive the further it goes, so bisect for the
+  // furthest affordable one instead of walking to it. Each step solves a linear
+  // system, and this runs at every look.
   int lo = stars;
   int hi = EquipTabItem::MaxStarsForLevel(level);
   double booms = 0.0;
@@ -163,7 +158,7 @@ int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
   return std::max(1, static_cast<int>(std::ceil(booms)));
 }
 
-// The stars on the worn copy of `name`, or -1 where none is worn.
+// Stars on the worn copy of `name`, or -1 if none is worn.
 int WornStars(const CharacterInstance& character, const std::string& name) {
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
@@ -181,16 +176,17 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   if (item == nullptr) {
     return nullptr;
   }
-  // By value: the measurement below puts the character back together from a
-  // proto, and every EquipInstance in the map goes with it.
+  // Copy the name: the measurement below rebuilds the character from a proto,
+  // destroying every EquipInstance in the map.
   std::string name = item->prototype().name();
   std::map<std::string, const Scroll*>::const_iterator held =
       chosen_.find(name);
   if (held != chosen_.end()) {
     return held->second;
   }
-  // Measured for every worn slot at once: the try-on costs a swing per
-  // candidate either way, and the character has to be put back afterwards.
+  // Measure every worn slot at once, since trying on scrolls costs a measured
+  // fight per candidate either way and the character must be restored
+  // afterwards.
   std::map<EquipSlot, const Scroll*> picked =
       ChooseScrolls(state, plan_.scroll_rate);
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
@@ -203,10 +199,10 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   return chosen_[name];
 }
 
-// The upgrade slot `slot`'s item could fill next, and the hammer that opens one
-// where none is left. The hammer is offered only where there is NO open slot,
-// being the wrong thing to buy while the last is unspent, and is priced with
-// the scroll that fills it.
+// The upgrade slot `slot`'s item could fill next, or the hammer that opens one
+// if none is left. A hammer is only offered when no slot is open, since it's
+// the wrong buy while one is unused, and it's priced together with the scroll
+// that fills it.
 std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     GameState& state, const Basis& basis, EquipSlot slot, int level,
     int open_slots, bool can_hammer) {
@@ -222,9 +218,8 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   offer.scroll = scroll;
   offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
                basis.trace->shop_price();
-  // What the slot is worth is what it lands times how often it lands: a scroll
-  // that fails has still spent the slot, and on a piece nothing sells that slot
-  // does not come back.
+  // A slot's value is its gain times its success rate. A failed scroll still
+  // uses up the slot, and on a piece nothing sells that slot is gone.
   offer.gain = (PowerWith(state, basis.yard, basis.derived,
                           Plus(basis.worn, scroll->stats())) -
                 basis.power) *
@@ -236,10 +231,9 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   return offer;
 }
 
-// The next star `slot`'s item could take. Nothing where it takes none, where
-// it has reached the plan's ceiling, where the next click could destroy it, or
-// where the item is not scrolled out -- GMS refuses a star while an upgrade
-// slot is still open.
+// The next star `slot`'s item could take. Nothing if it takes no stars, has
+// reached the plan's limit, or isn't fully scrolled, since GMS refuses a star
+// while an upgrade slot is open.
 std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
                                                              const Basis& basis,
                                                              EquipSlot slot,
@@ -252,31 +246,30 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   if (run.meso <= 0.0) {
     return std::nullopt;
   }
-  // Fetched here rather than passed in: ScrollOffer above measures, and
-  // measuring puts the character back together from a proto -- every
-  // EquipInstance in the map goes with it, this one included.
+  // Looked up here rather than passed in: ScrollOffer measures, and measuring
+  // rebuilds the character from a proto, destroying every EquipInstance in the
+  // map, this one included.
   const EquipInstance* item = Worn(state, slot);
   if (item == nullptr) {
     return std::nullopt;
   }
-  // A destroying attempt is only walked into with something to put back. The
-  // trace a boom leaves needs a spare body, and where the shop stocks none and
-  // the bag holds none, the piece is simply gone -- which is not a price, it
-  // is a loss the sim cannot undo.
+  // Only risk destruction with a way to recover. The trace a boom leaves needs
+  // a spare copy, and if neither the shop nor the bag has one, the piece would
+  // simply be lost, which the sim can't undo.
   if (run.booms > 0.0 && !CanCoverBoom(state.character, item->prototype())) {
     return std::nullopt;
   }
   Candidate offer;
   offer.slot = slot;
   offer.star = true;
-  // The expected price of GETTING the star, not of one attempt at it: every
-  // click is paid for whether it lands or not, and that gap is most of what
-  // makes a late star the wrong thing to buy. Past fifteen the copies the run
-  // eats are the larger half of it.
+  // The expected price of getting the star, not of one attempt. Every attempt
+  // is paid for whether it succeeds or not, and that gap is most of why late
+  // stars are poor buys. Past 15 stars, the copies consumed by booms are the
+  // larger part.
   offer.cost =
       static_cast<int64_t>(run.meso + run.booms * SpareCost(item->prototype()));
-  // Against what is already worn, which already holds the stars the item has:
-  // only the gap between them is on offer.
+  // Worn stats already include the item's current stars, so only the gap is on
+  // offer.
   EquipStats added = Minus(item->StarForceStatGains(stars + 1),
                            item->StarForceStatGains(stars));
   offer.gain =
@@ -291,9 +284,9 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   if (item == nullptr || !IsArcaneSymbol(item->prototype())) {
     return std::nullopt;
   }
-  // Meso alone does not raise a symbol: the rung is paid for in duplicates the
-  // map has to have dropped, and the purse only settles the rest. So a slot
-  // short of them offers nothing, however full the purse is.
+  // Meso alone can't level a symbol: the level also needs duplicates from
+  // drops. So a slot short of them offers nothing, however much meso the
+  // character has.
   const ms::Equip& worn = item->equip_state();
   if (!SymbolCanLevelUp(worn)) {
     return std::nullopt;
@@ -306,10 +299,9 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   if (offer.cost <= 0) {
     return std::nullopt;
   }
-  // What the rung pays is the primary stat the next level grants over this
-  // one. The Arcane Force it also carries is left out: that is a fact about
-  // the maps the character may then stand on rather than about the character,
-  // the way ignored defence is -- see CubeBasis.boss_pdr.
+  // The level's value is the primary stat it adds. Its Arcane Force is left
+  // out, since that affects which maps the character can fight on rather than
+  // the character itself, like ignored defence (see CubeBasis.yard).
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
       Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
@@ -325,8 +317,8 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   basis.worn = WornAndGranted(state, basis.derived);
   basis.yard = yard_.For(state);
   basis.power = PowerWith(state, basis.yard, basis.derived, basis.worn);
-  // The hammer's own gate. The shopper buys what a player at this level could,
-  // so below it there is nothing to offer.
+  // The hammer's unlock level. The shopper only buys what a player at this
+  // level could.
   bool hammers_open =
       state.character.proto().level() >= UnlockLevel(Feature::kHammer);
   std::vector<EquipSlot> slots;
@@ -343,10 +335,10 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
     std::optional<Candidate> symbol = SymbolOffer(state, basis, slot);
     if (symbol.has_value()) {
       offers.push_back(*symbol);
-      continue;  // a symbol takes neither a scroll nor a star
+      continue;  // a symbol takes neither scrolls nor stars
     }
-    // Read out before either offer, which measure: putting a scroll on to try
-    // it rebuilds the character, and every EquipInstance in the map goes too.
+    // Read these before either offer, since both measure: trying on a scroll
+    // rebuilds the character, destroying every EquipInstance in the map.
     int level = item->prototype().required_level();
     int stars = item->stars();
     int open_slots = item->equip_state().remaining_upgrade_slots();
@@ -365,9 +357,9 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       offers.push_back(*star);
     }
   }
-  // After the rest, which is what says what a meso is worth: an income line
-  // pays in meso, and only a rate turns that into something rankable beside a
-  // damage line. See CubeOffers.
+  // Cube offers come after the rest, which set what a meso is worth. An income
+  // line pays in meso, and only that rate lets it rank against damage lines.
+  // See CubeOffers.
   double best = 0.0;
   for (const Candidate& offer : offers) {
     if (offer.cost > 0) {
@@ -379,8 +371,8 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   return offers;
 }
 
-// Cubing's own gate, and a pass of its own: every candidate is priced against
-// one CubeBasis, which costs a rebuild to work out.
+// Cubing has its own unlock level and its own pass, since every candidate is
+// priced against one CubeBasis, which needs a rebuild.
 std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
                                                             double best) {
   std::vector<Candidate> offers;
@@ -388,9 +380,9 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       state.character.proto().level() < UnlockLevel(Feature::kPotential)) {
     return offers;
   }
-  // What a meso buys elsewhere is only what an income line is RANKED at: it
-  // pays for itself when what it earns over the horizon beats the cube, and
-  // that test needs no rate. Kept so the accept decision uses the same one.
+  // The meso rate only sets an income line's rank. Whether it pays for itself
+  // depends on its earnings over the horizon against the cube's cost, which
+  // needs no rate. Stored so the accept decision uses the same value.
   income_.power_per_meso = best;
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
@@ -405,10 +397,10 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
     Candidate offer;
     offer.slot = entry.first;
     offer.cube = true;
-    // The RUN's price and the run's worth, so a slot needing a dozen rolls to
-    // show a line is ranked on what the dozen costs. One cube is bought out of
-    // it at a time -- the next pass prices the rest of the run afresh, against
-    // whatever the last roll left behind.
+    // Price and value the whole run, so a slot needing a dozen rolls to show a
+    // line is ranked on the dozen's cost. Cubes are bought one at a time; the
+    // next pass reprices the rest of the run against whatever the last roll
+    // left.
     offer.cost = run.cost;
     offer.gain = run.gain;
     if (offer.gain > 0) {
@@ -420,16 +412,15 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
 
 bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   std::vector<Candidate> offers = Offers(state);
-  // Cross-multiplied rather than divided, so two candidates a rounding apart
-  // are still ordered by what they are worth.
+  // Compare by cross-multiplying rather than dividing, so candidates within
+  // rounding of each other still sort by value.
   std::sort(offers.begin(), offers.end(),
             [](const Candidate& a, const Candidate& b) {
               return a.gain * b.cost > b.gain * a.cost;
             });
-  // Down the list wherever one is refused. A bag that cannot take the traces
-  // for one piece is no reason to stop buying for every other piece -- and
-  // stopping is what this did, so a full Etc tab quietly ended the shopping
-  // for the rest of the run.
+  // Move down the list when an offer is refused. One piece's refusal shouldn't
+  // stop buying for every other piece. It once did, and a full Etc tab silently
+  // ended shopping for the rest of the run.
   for (const Candidate& offer : offers) {
     if (offer.gain <= 0.0 || offer.cost <= 0 ||
         offer.cost > state.character.meso()) {
@@ -442,16 +433,16 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   return false;
 }
 
-// Keep-better, as the game offers it: a roll that does not beat what the item
-// holds is declined, and the cube is spent either way.
+// Keep-better, as the game offers: a roll that doesn't beat the item's current
+// lines is declined, and the cube is spent either way.
 bool GearShopper::BuyCube(GameState& state, EquipSlot slot, GearSpend& spend) {
-  // Taken before the cube is bought: the comparison is against the character
-  // as they stand, and buying moves them.
+  // Computed before buying the cube, since the comparison is against the
+  // character as they are now and buying changes them.
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   std::optional<Potential> rolled =
       state.character.BuyCube(slot, CubeType::kRed);
   if (!rolled.has_value()) {
-    return false;  // the purse or the piece refused it
+    return false;  // refused for meso or by the item
   }
   spend.cubes += kCubeCost;
   ++spend.cubes_bought;
@@ -465,7 +456,7 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, GearSpend& spend) {
 bool GearShopper::BuyHammer(GameState& state, EquipSlot slot,
                             GearSpend& spend) {
   if (!state.character.HammerEquipped(slot)) {
-    return false;  // the purse or the item refused it
+    return false;  // refused for meso or by the item
   }
   spend.hammers += kGoldenHammerCost;
   ++spend.hammers_driven;
@@ -482,7 +473,7 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
   int traces = TraceCost(*candidate.scroll, item->prototype().required_level());
   if (!state.character.Buy(*trace, traces) ||
       !state.character.SpendItem(kSpellTraceName, traces)) {
-    return false;  // the bag refused them, which is not the purse's fault
+    return false;  // the bag refused them, not a lack of meso
   }
   state.character.ScrollEquipped(candidate.slot, *candidate.scroll);
   spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
@@ -490,21 +481,20 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
   return true;
 }
 
-// Attempts until the star lands or the purse runs dry. The price the offer
-// carried was what the star is expected to take; this is what it actually
-// took, and one run is not the average.
+// Attempts until the star lands or meso runs out. The offer's price was the
+// expected cost; this is the actual cost, and one run isn't the average.
 bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
   const EquipInstance* item = Worn(state, slot);
   int before = item == nullptr ? 0 : item->stars();
-  // Copied out: a boom takes the EquipInstance with it, and the recovery needs
+  // Copy the prototype: a boom destroys the EquipInstance, and recovery needs
   // to know what was lost.
   EquipPrototype proto = item == nullptr ? EquipPrototype() : item->prototype();
   while (true) {
     item = Worn(state, slot);
     if (item == nullptr) {
-      // The last attempt destroyed it. Trace plus spare body makes the piece
-      // again, several stars down and with its scrolls intact, and the run
-      // carries on from there -- which is the loop the price above solved.
+      // The last attempt destroyed it. The trace plus a spare copy rebuilds the
+      // piece, several stars lower with its scrolls intact, and the run
+      // continues from there. That loop is what the offer's price solved.
       if (!RecoverBoom(state, slot, proto, spend)) {
         break;
       }
@@ -530,8 +520,6 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
   return true;
 }
 
-// Pays for one offer and puts it on. False for one the bag or the purse
-// refused, which is the caller's cue to try the next.
 bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
                             GearSpend& spend) {
   const EquipInstance* item = Worn(state, slot);
@@ -574,8 +562,8 @@ bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
     if (bag[i].prototype().name() != proto.name()) {
       continue;
     }
-    // A trace answers null to equip_instance, which is how the two are told
-    // apart: one is what was lost, the other is what puts it back.
+    // A trace returns null from equip_instance, which tells the two apart: one
+    // is what was lost, the other is what restores it.
     if (bag.equip_instance(i) == nullptr) {
       trace_index = trace_index < 0 ? i : trace_index;
     } else {
@@ -594,26 +582,26 @@ bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
   }
   state.character.RecoverTrace(trace_index, spare_index);
   ++spend.booms;
-  // RecoverTrace appends the piece it made, which is what goes back on.
+  // RecoverTrace appends the restored piece, which is what goes back on.
   return state.character.Equip(state.character.inventory().size() - 1);
 }
 
 void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
-  // Worked out per piece rather than per copy: what a spare is worth depends
-  // on the piece and the purse, not on how many of it the bag happens to hold.
+  // Computed per piece rather than per copy: a spare's worth depends on the
+  // piece and the character's meso, not on how many the bag holds.
   std::map<std::string, int> allowance;
   int i = 0;
   while (i < state.character.inventory().size()) {
     const EquipInstance* item = state.character.inventory().equip_instance(i);
     if (item == nullptr) {
-      ++i;  // a trace, which is the other half of a recovery
+      ++i;  // a trace, the other half of a recovery
       continue;
     }
     const EquipPrototype& proto = item->prototype();
-    // NEVER a spare of a worn symbol: what it is worth is the rung it combines
-    // into, so selling one throws a duplicate away for nothing. One they are
-    // not wearing falls through to the allowance and keeps a copy, or an
-    // unreachable area's symbol piles up a bag row at a time.
+    // Never sell a spare of a worn symbol, since it's a duplicate that levels
+    // the worn one. A symbol not worn falls through to the allowance and keeps
+    // one copy; otherwise symbols from unreachable areas would pile up a bag
+    // row at a time.
     if (IsArcaneSymbol(proto) &&
         WornStars(state.character, proto.name()) >= 0) {
       ++i;
@@ -622,8 +610,8 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
     std::map<std::string, int>::iterator kept = allowance.find(proto.name());
     if (kept == allowance.end()) {
       int worn = WornStars(state.character, proto.name());
-      // A piece not worn keeps one copy -- it is gear, not a spare. A piece
-      // worn keeps as many as a boom could use.
+      // A piece not worn keeps one copy, since it's gear, not a spare. A worn
+      // piece keeps as many as booms could use.
       kept =
           allowance
               .insert({proto.name(),
