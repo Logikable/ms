@@ -126,12 +126,14 @@ TEST(BossClearPanelTest, ATokenStandsWithTheGear) {
   EXPECT_NE(ScreenRows(screen)[shard + 1].find("\u2500"), std::string::npos);
 }
 
-// A clear that rolled nothing says so instead of leaving a gap where the
-// rewards would be.
-TEST(BossClearPanelTest, AClearThatPaidNothingSaysSo) {
+// A clear that paid nothing, like a Practice run, has no rewards section: one
+// rule between the title and the prompt.
+TEST(BossClearPanelTest, AClearThatPaidNothingHasNoRewardsSection) {
   ftxui::Screen screen = RenderCard(BossReward());
-  EXPECT_TRUE(AnyRowHas(screen, "no rewards"));
-  EXPECT_TRUE(AnyRowHas(screen, "[ Continue ]"));
+  int title = RowOf(screen, "Normal Zakum in");
+  ASSERT_EQ(RowOf(screen, "[ Continue ]"), title + 2);
+  EXPECT_NE(ScreenRows(screen)[title + 1].find("\u2500"), std::string::npos);
+  EXPECT_FALSE(AnyRowHas(screen, "no rewards"));
   EXPECT_FALSE(AnyRowHas(screen, "meso"));
   EXPECT_FALSE(AnyRowHas(screen, "EXP"));
 }

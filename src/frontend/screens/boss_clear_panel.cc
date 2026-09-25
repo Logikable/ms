@@ -70,10 +70,11 @@ ftxui::Element BossClearPanel(const std::string& title, double seconds,
   for (const BossRewardItem* item : prizes) {
     rows.push_back(CenteredRow(DropLine(*item)));
   }
-  if (rows.size() == 2) {
-    rows.push_back(EmptyState("no rewards"));
+  // A clear that paid nothing, like a Practice run, has no rewards section,
+  // so the title's rule is the only one.
+  if (rows.size() > 2) {
+    rows.push_back(AccentSeparator(kYellow));
   }
-  rows.push_back(AccentSeparator(kYellow));
   rows.push_back(CenteredRow(std::move(prompt)));
   // A minimum width rather than a fit, like the level-up card: centring shrinks
   // a window to its content, and a card only as wide as "Cleared!" looks wrong.
