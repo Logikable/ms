@@ -27,9 +27,8 @@ Mob MakeMob(const std::string& name, int max_hp, int level = 0) {
   return mob;
 }
 
-// A mob type together with the damage one swing does to it. Damage lives on
-// the attack rather than the type now, but a test reads better stating the two
-// side by side.
+// A mob type with the damage one attack does to it. Damage is stored on the
+// attack, not the type, but tests read better with the two side by side.
 struct TypeSpec {
   const Mob* mob = nullptr;
   double damage = 0.0;
@@ -40,8 +39,8 @@ TypeSpec MakeType(const Mob* mob, double damage, int simultaneous) {
   return TypeSpec{mob, damage, simultaneous};
 }
 
-// Params with a single attack of the given reach -- the common case. Tests
-// that need a choice between attacks push more onto params.attacks.
+// Params with a single attack of the given reach, the common case. Tests that
+// need a choice of attacks push more onto params.attacks.
 CombatParams MakeParams(double swing, double respawn,
                         std::vector<TypeSpec> specs, int reach = 1,
                         const std::string& map = "field") {
@@ -63,23 +62,23 @@ CombatParams MakeParams(double swing, double respawn,
   return params;
 }
 
-// Wide open or barely at all, a rolling swing has to kill at the rate its
-// average would: the only thing rolling costs is overkill on the killing blow,
-// which against a mob eighty swings deep is a fraction of one kill.
+// Whether the roll is wide or narrow, a rolled attack must kill at the rate its
+// average would. The only cost of rolling is overkill on the killing blow,
+// which against a mob eighty attacks deep is a fraction of one kill.
 TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
-  // A deep roster and no respawn, so the damage is what limits the kills. The
-  // HP is many swings deep and no multiple of one: a mob dying on an exact
-  // swing count would lose a whole swing to the smallest jitter.
+  // Many mobs and no respawn, so damage limits the kills. The HP takes many
+  // attacks and isn't a multiple of one: a mob dying on an exact attack count
+  // would lose a whole attack to the smallest jitter.
   Mob mob = MakeMob("Snail", 2013);
   double kills[3] = {0.0, 0.0, 0.0};
-  // Enough kills to compare rates over. Not more: a roll is weighed at its
-  // average rather than sampled, so a longer run buys no certainty.
+  // Enough kills to compare rates. No more: a roll is weighed at its average,
+  // not sampled, so a longer run adds no certainty.
   constexpr int kSteps = 5000;
   for (int run = 0; run < 3; ++run) {
     CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 25.0, 400)});
     if (run > 0) {
-      // Four lines of a quarter of the damage apiece: the same 25 on average
-      // either way. Run 1 rolls wide open and crit-heavy, run 2 barely at all.
+      // Four lines of a quarter of the damage each: 25 on average either way.
+      // Run 1 rolls wide with many crits, run 2 barely varies.
       HitGroup group;
       group.damage = {25.0};
       group.rolls.lines = 4;
@@ -99,8 +98,8 @@ TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
   EXPECT_NEAR(kills[2] / kills[0], 1.0, 0.01);
 }
 
-// The same swing landing differently twice, which is the whole point: without
-// this the roll could be a constant and every average above would still hold.
+// The same attack lands differently twice. Without this, the roll could be a
+// constant and every average above would still hold.
 TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -118,7 +117,7 @@ TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
     sim.Advance(params, 1.0);
     left.push_back(sim.view().target_hp_fraction);
   }
-  // Five swings, so four gaps -- at least one of them differs from the first.
+  // Five attacks, so four gaps; at least one must differ from the first.
   bool varied = false;
   for (std::size_t i = 2; i < left.size(); ++i) {
     if (std::abs((left[i - 1] - left[i]) - (left[0] - left[1])) > 1e-9) {
@@ -129,7 +128,7 @@ TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
 }
 
 // A Final Attack is a chance, not a fraction of a hit. It rolls once per enemy
-// the swing reached, and over a long run it has to pay what the fraction did.
+// the attack reached, and over a long run must pay what the fraction did.
 TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   Mob mob = MakeMob("Snail", 2013);
   double kills[2] = {0.0, 0.0};
@@ -138,8 +137,8 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
     CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 20.0, 400)});
     params.attacks[0].final_attack_damage = {5.0};
     if (run == 1) {
-      // A quarter chance of a hit worth four times as much: the same 5 on
-      // average, and mostly nothing at all.
+      // A quarter chance of a hit worth four times as much: 5 on average, and
+      // mostly nothing.
       FinalAttackRoll roll;
       roll.chance = 0.25;
       roll.damage = {20.0};
@@ -155,8 +154,8 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
-// The burn a hand-built swing leaves: the one slot such a swing ever needs,
-// what a tick of it costs one mob type, and the clock it burns on.
+// The burn a hand-built attack leaves: the one slot such an attack needs, the
+// damage per tick to one mob type, and its timing.
 DotApplication MakeBurn(double damage, double interval, double duration) {
   DotApplication burn;
   burn.slot = 0;
@@ -166,15 +165,16 @@ DotApplication MakeBurn(double damage, double interval, double duration) {
   return burn;
 }
 
-// A burn is worth what it can sustain, not what one lighting of it comes to:
-// a swing that relights it every second buys one tick a second however long
-// the burn would have lasted. Priced in full it would look thirty times its
-// worth and the fight would swing it over something five times better.
+// A burn is worth what it can sustain, not the whole of one application. An
+// attack reapplying it every second gets one tick per second however long the
+// burn would last. Priced in full, it would look thirty times its worth, and
+// the fight would pick it over something five times better.
 TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   Mob mob = MakeMob("Snail", 100);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 40)});
-  // Beside the hard swing, a feeble one leaving a burn that would last half a
-  // minute. Relit every second it is worth 10 a second, not 300 a swing.
+  // Beside the strong attack, a weak one leaving a burn that lasts half a
+  // minute. Reapplied every second, it's worth 10 per second, not 300 per
+  // attack.
   AttackOption smoulder = params.attacks[0];
   smoulder.name = "Smoulder";
   smoulder.damage_per_hit.assign(1, 10.0);
@@ -188,20 +188,20 @@ TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
     sim.Advance(params, 1.0);
     killed += sim.view().kills_this_step[0];
   }
-  // The hard swing kills one a second; the smoulder would manage one every
-  // five. Anything near the latter means the burn was priced at its whole life.
+  // The strong attack kills one per second; the weak one would kill one every
+  // five. Anything near that means the burn was priced at its full duration.
   EXPECT_GT(killed, 20);
 }
 
-// Relighting a burn on something already burning buys nothing, so the fight
-// leaves it alone and swings the harder thing until the burn nears its end.
-// Priced as though every lighting were the first, the feeble swing would go
-// out every time and the harder one would never be swung at all.
+// Reapplying a burn to something already burning adds nothing, so the fight
+// leaves it and uses the stronger attack until the burn nears its end. If every
+// application were priced as the first, the weak attack would always be chosen
+// and the strong one never.
 TEST(CombatSimTest, ABurnAlreadyStandingIsNotWorthRelighting) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 300.0, 1)});
-  // A swing that deals nothing itself and leaves a burn worth 400 a tick for
-  // ten seconds: worth lighting, and worth nothing at all to light again.
+  // An attack that deals nothing itself and leaves a burn worth 400 per tick
+  // for ten seconds: worth applying, and worth nothing to reapply.
   AttackOption smoulder = params.attacks[0];
   smoulder.name = "Smoulder";
   smoulder.damage_per_hit.assign(1, 0.0);
@@ -214,13 +214,13 @@ TEST(CombatSimTest, ABurnAlreadyStandingIsNotWorthRelighting) {
     sim.Advance(params, 0.5);
   }
   double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
-  // Thirty seconds of burning is 12000 whichever swing goes out, so anything
-  // above it is the harder swing landing in between.
+  // Thirty seconds of burning is 12000 whichever attack is used, so anything
+  // above that is the stronger attack landing in between.
   EXPECT_GT(taken, 16000.0);
 }
 
-// A pile with room for another helping is still worth topping up, so the fight
-// keeps relighting until the pile is full and only then swings elsewhere.
+// A poison with room for another stack is still worth reapplying, so the fight
+// keeps reapplying until it's full, and only then uses another attack.
 TEST(CombatSimTest, APileWithRoomIsStillWorthTopping) {
   Mob mob = MakeMob("Snail", 1000000);
   double taken[2] = {0.0, 0.0};
@@ -241,14 +241,14 @@ TEST(CombatSimTest, APileWithRoomIsStillWorthTopping) {
     }
     taken[run] = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   }
-  // Three helpings burn for three times as much as one, and the fight only
-  // gets them by spending swings the single-helping run had no reason to.
+  // Three stacks burn three times as much as one, and the fight only gets them
+  // by spending attacks the single-stack run had no reason to.
   EXPECT_GT(taken[1], taken[0] * 1.5);
 }
 
-// A burn afflicts as surely as the ice does: GMS names the same five
-// conditions on Storm Magic and on Burning Magic, and the F/P's half of them
-// is the burn. Nothing is frozen here and the gate still pays.
+// A burn counts as an affliction just as a freeze does. GMS lists the same five
+// conditions on Storm Magic and Burning Magic, and the F/P's version is the
+// burn. Nothing is frozen here, and the bonus still applies.
 TEST(CombatSimTest, ABurnAfflictsTheMonsterTheIceWouldHave) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 1)});
@@ -268,9 +268,9 @@ TEST(CombatSimTest, ABurnAfflictsTheMonsterTheIceWouldHave) {
   EXPECT_DOUBLE_EQ(lit.view().damage_this_step, 150.0);  // and every one after
 }
 
-// Elemental Drain counts the burns standing on the GROUP, not the one being
-// hit: eight monsters carrying one apiece are eight. The count is capped, and
-// a rate with no cap behind it buys nothing.
+// Elemental Drain counts burns on the whole group, not just the enemy being
+// hit: eight monsters with one each count as eight. The count is capped, and a
+// rate with no cap gives nothing.
 TEST(CombatSimTest, TheDrainCountsEveryBurningMonsterUpToItsCap) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 8)}, 8);
@@ -289,26 +289,26 @@ TEST(CombatSimTest, TheDrainCountsEveryBurningMonsterUpToItsCap) {
   capped.Advance(params, 1.0);
   EXPECT_DOUBLE_EQ(capped.view().damage_this_step, 800.0);  // lights them
   capped.Advance(params, 1.0);
-  // Eight alight, three of them counted: 8 x 100 x 1.3.
+  // Eight burning, three counted: 8 x 100 x 1.3.
   EXPECT_DOUBLE_EQ(capped.view().damage_this_step, 1040.0);
 }
 
-// A burn ticks on its own clock for as long as it was lit for, and then stops
-// -- it is not a second attack that runs forever.
+// A burn ticks on its own clock for its duration and then stops. It isn't a
+// second attack that runs forever.
 TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
   Mob mob = MakeMob("Snail", 10000);
-  // A slow swing, so one cast's burn runs out well before the next lights it.
+  // A slow attack, so one cast's burn ends well before the next one applies it.
   CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
   params.dot_count = 1;
   params.attacks[0].dots.push_back(MakeBurn(100.0, 1.0, 5.0));
 
   CombatSim sim;
-  // Through the first cast at 10s and the five ticks behind it.
+  // Through the first cast at 10s and its five ticks.
   for (int step = 0; step < 32; ++step) {
     sim.Advance(params, 0.5);
   }
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
-  // Six more seconds with the burn out and the next cast still to come.
+  // Six more seconds with the burn over and the next cast not yet due.
   for (int step = 0; step < 8; ++step) {
     sim.Advance(params, 0.5);
   }
@@ -316,10 +316,9 @@ TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
       << "the burn kept ticking past the seconds it was lit for";
 }
 
-// Lighting a burn again refreshes it rather than adding a second one, so
-// swinging twice as often buys none of it. It must also not put the tick clock
-// back, or a swing faster than the interval would refresh it out of ever
-// ticking.
+// Reapplying a burn refreshes it instead of adding a second one, so attacking
+// twice as often gains nothing. It also must not reset the tick timer, or an
+// attack faster than the interval would keep it from ever ticking.
 TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
   Mob mob = MakeMob("Snail", 100000);
   double left[2] = {0.0, 0.0};
@@ -334,15 +333,16 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
     }
     left[run] = sim.view().target_hp_fraction;
   }
-  // Forty seconds of burning either way, to within the one tick the earlier
-  // first swing buys the faster run.
+  // Forty seconds of burning either way, within the one tick the faster run's
+  // earlier first attack gains.
   EXPECT_LT(left[0], 1.0);
   EXPECT_NEAR(left[0], left[1], 100.0 / 100000.0 + 1e-9);
 }
 
-// A strike the swing sets off waits out its own clock: a swing a second and a
-// wait of five buys one strike in five, not one a swing. And it goes out only
-// with the swing that carries it -- the other swing sets nothing off.
+// A strike triggered by an attack has its own cooldown: one attack per second
+// with a five-second cooldown gives one strike every five seconds, not one per
+// attack. It fires only with the attack that carries it; the other attack
+// triggers nothing.
 TEST(CombatSimTest, ASideStrikeGoesOutOnItsOwnWait) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
@@ -356,15 +356,15 @@ TEST(CombatSimTest, ASideStrikeGoesOutOnItsOwnWait) {
   for (int step = 0; step < 100; ++step) {
     sim.Advance(params, 0.5);
   }
-  // Fifty seconds of one-second swings: ten strikes at a wait of five, and the
-  // swing itself deals nothing.
+  // Fifty seconds of one-second attacks: ten strikes at a five-second cooldown,
+  // and the attack itself deals nothing.
   double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   EXPECT_NEAR(taken, 10.0 * 1000.0, 1000.0);
 }
 
-// A poison piles helpings up to its limit and no further, each ticking for the
-// whole damage. Three of them are worth three times one, and the swings after
-// the third buy nothing but the duration.
+// A poison stacks up to its limit and no further, each stack ticking for full
+// damage. Three are worth three times one, and attacks after the third only
+// refresh the duration.
 TEST(CombatSimTest, APoisonPilesUpToItsLimit) {
   Mob mob = MakeMob("Snail", 1000000);
   double taken[2] = {0.0, 0.0};
@@ -380,15 +380,15 @@ TEST(CombatSimTest, APoisonPilesUpToItsLimit) {
     }
     taken[run] = 1.0 - sim.view().target_hp_fraction;
   }
-  // A swing a second saturates the pile in three, so all but the first two
-  // seconds of a hundred tick three times over.
+  // An attack per second fills the stacks in three seconds, so all but the
+  // first two of a hundred seconds tick three times.
   EXPECT_GT(taken[0], 0.0);
   EXPECT_NEAR(taken[1] / taken[0], 3.0, 0.05);
 }
 
-// A poison is rolled for on each enemy the swing reached, so half of them
-// burn. What is asked of the roll is only that it thins the burn -- a poison
-// that always took hold would be the burn above.
+// A poison is rolled per enemy the attack reached, so half of them burn. The
+// test only checks that the roll reduces the burn; a poison that always applied
+// would be the burn above.
 TEST(CombatSimTest, APoisonIsRolledForPerEnemy) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 8)}, 8);
@@ -401,17 +401,16 @@ TEST(CombatSimTest, APoisonIsRolledForPerEnemy) {
   for (int step = 0; step < 400; ++step) {
     sim.Advance(params, 0.5);
   }
-  // One tick per swing per enemy at certainty; half of them at half a chance.
-  // Loose bounds: what is being caught is a roll that never fires or never
-  // misses, not the shape of the distribution.
+  // One tick per attack per enemy at 100%, half as many at a 50% chance. The
+  // bounds are loose: the test catches a roll that never fires or never misses,
+  // not the shape of the distribution.
   double burned = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   EXPECT_GT(burned, 100.0 * 200.0 * 0.3);
   EXPECT_LT(burned, 100.0 * 200.0 * 0.7);
 }
 
-// The burn takes its damage from the character as they stood when it was lit,
-// and keeps it: a buff that drops halfway through does not thin what is
-// already burning.
+// A burn uses the character's damage at the moment it was applied, and keeps
+// it. A buff ending halfway through doesn't weaken a burn already running.
 TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
   Mob mob = MakeMob("Snail", 10000);
   CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
@@ -423,8 +422,8 @@ TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
     sim.Advance(params, 0.5);  // the cast at 10s, and one tick after it
   }
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
-  // Whatever the character is worth now, the four ticks still owed were
-  // priced when the burn landed.
+  // Whatever the character is worth now, the four remaining ticks were priced
+  // when the burn landed.
   params.attacks[0].dots[0].damage.assign(1, 1.0);
   for (int step = 0; step < 10; ++step) {
     sim.Advance(params, 0.5);
@@ -432,11 +431,11 @@ TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
-// Blizzard's passive falls on one enemy however many the swing reached, so
-// four times the reach is not four times the Final Attack. The ordinary bank
-// beside it scales with the reach, which is what tells the two apart.
+// Blizzard's passive hits one enemy however many the attack reached, so four
+// times the reach isn't four times the Final Attack. The ordinary bucket beside
+// it scales with reach, which is how the two differ.
 TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
-  // One hit of the Final Attack kills outright, so kills count the hits.
+  // One Final Attack hit kills outright, so kills count the hits.
   Mob mob = MakeMob("Snail", 100);
   int64_t killed[2][2] = {{0, 0}, {0, 0}};
   for (int single = 0; single < 2; ++single) {
@@ -455,20 +454,19 @@ TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
     }
   }
   ASSERT_GT(killed[0][0], 0);
-  // The ordinary bank pays per enemy reached; the single-enemy one does not.
+  // The ordinary bucket pays per enemy reached; the single-enemy one doesn't.
   EXPECT_EQ(killed[0][1], 4 * killed[0][0]);
   EXPECT_EQ(killed[1][1], killed[1][0]);
 }
 
-// Split Shot's shape: rolled once for the swing like Blizzard's, but landing
-// on a crowd of its own. Four enemies behind a swing that reaches one, and
-// still four behind a swing that reaches four -- the reach is the follow-up's,
-// not the swing's.
+// Split Shot's shape: rolled once per attack like Blizzard's, but hitting its
+// own number of enemies. Four enemies behind an attack that reaches one, and
+// still four behind one that reaches four: the reach is the follow-up's own.
 TEST(CombatSimTest, AFinalAttackWithItsOwnReachIgnoresTheSwings) {
-  // One hit of the follow-up kills outright, so kills count where it landed.
+  // One follow-up hit kills outright, so kills count where it landed.
   Mob mob = MakeMob("Snail", 100);
-  // Its own reach, and the swing's: one enemy behind a narrow swing, four
-  // behind the same swing, and four behind a swing four times as wide.
+  // Its own reach, and the attack's: one enemy behind a narrow attack, four
+  // behind the same attack, and four behind an attack four times as wide.
   const int kOwn[] = {1, 4, 4};
   const int kSwing[] = {1, 1, 4};
   int64_t killed[3] = {0, 0, 0};
@@ -489,10 +487,10 @@ TEST(CombatSimTest, AFinalAttackWithItsOwnReachIgnoresTheSwings) {
   EXPECT_EQ(killed[2], killed[1]) << "the follow-up took the swing's reach";
 }
 
-// An arrow that gains as it travels: the enemy it reaches first takes the
-// plain damage, and each one after takes 15% more than the last, compounding.
-// Six of them and the last takes 1.15^5 -- twice the first, which is the
-// doubling GMS names beside the 15%.
+// An arrow that gains as it travels: the first enemy takes normal damage, and
+// each one after takes 15% more than the last, compounding. With six, the last
+// takes 1.15^5, about twice the first, which is the doubling GMS lists beside
+// the 15%.
 TEST(CombatSimTest, APiercingSwingCompoundsAsItGoes) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 6; ++i) {
@@ -519,9 +517,9 @@ TEST(CombatSimTest, APiercingSwingCompoundsAsItGoes) {
   }
 }
 
-// The rate a swing is chosen on carries the escalation too, averaged over the
-// mobs it would reach. Six of them make the piercing swing worth 8.75 hits
-// rather than 6, which is what wins it the pick over a flatter, harder one.
+// The rate used to choose an attack includes the gain too, averaged over the
+// mobs it would reach. Six mobs make the piercing attack worth 8.75 hits
+// instead of 6, which is why it's picked over a flatter, harder one.
 TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 6; ++i) {
@@ -534,8 +532,8 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   CombatParams params = MakeParams(1.0, 1e9, specs, /*reach=*/6);
   params.attacks[0].name = "Piercing Arrow";
   params.attacks[0].pierce_gain_pct = 0.15;
-  // Harder on every mob it reaches and gaining nothing: 840 a swing against
-  // the arrow's 875, so it wins only if the gain is left out of the reckoning.
+  // Harder on every mob but with no gain: 840 per attack against the arrow's
+  // 875, so it wins only if the gain is ignored.
   AttackOption flat;
   flat.name = "Bolt Burst";
   flat.max_enemies = 6;
@@ -547,17 +545,18 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   sim.Advance(params, 0.1);
   EXPECT_EQ(sim.view().attack_name, "Piercing Arrow");
 
-  // Take the gain away and the flatter swing wins, which is what says the
-  // pick above was made on the gain rather than on anything else.
+  // Without the gain the flatter attack wins, which shows the choice above was
+  // made on the gain.
   params.attacks[0].pierce_gain_pct = 0.0;
   CombatSim without;
   without.Advance(params, 0.1);
   EXPECT_EQ(without.view().attack_name, "Bolt Burst");
 }
 
-// A boss's parts differ in HP and none respawns, so a narrow swing must spend
-// itself on what will outlast it: four parts with three reachable clear in six
-// swings picking the healthiest, and eight taking the front of the queue.
+// A boss's parts have different HP and none respawn, so a narrow attack must
+// target what will outlast it. Four parts with three in reach clear in six
+// attacks when picking the healthiest, and eight when taking them in queue
+// order.
 TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 4; ++i) {
@@ -583,9 +582,9 @@ TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
   EXPECT_EQ(swings[1], 8);
 }
 
-// Which enemy the arrow meets first is drawn fresh, so the gain does not
-// always fall on the same end of the queue. Without this the front mob would
-// take the plain hit every swing of the fight.
+// The order the arrow meets enemies is random each time, so the gain doesn't
+// always fall on the same end of the queue. Otherwise the front mob would take
+// the plain hit on every attack.
 TEST(CombatSimTest, APiercingSwingDrawsTheOrderItTravelsIn) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 4; ++i) {
@@ -604,8 +603,8 @@ TEST(CombatSimTest, APiercingSwingDrawsTheOrderItTravelsIn) {
     sim.Advance(params, 1.0);
     first.push_back(sim.view().engaged_groups[0].hp_fraction);
   }
-  // Twenty swings, so nineteen gaps: the mob at the front cannot have taken
-  // the same share of the swing every time.
+  // Twenty attacks, so nineteen gaps: the front mob can't have taken the same
+  // share every time.
   bool varied = false;
   for (std::size_t i = 2; i < first.size(); ++i) {
     if (std::abs((first[i - 1] - first[i]) - (first[0] - first[1])) > 1e-12) {
@@ -615,8 +614,8 @@ TEST(CombatSimTest, APiercingSwingDrawsTheOrderItTravelsIn) {
   EXPECT_TRUE(varied);
 }
 
-// A swing worth three pokes, held back by a three-second cooldown -- so it
-// lands once every four swings rather than every one.
+// An attack worth three basic attacks, with a three-second cooldown, so it
+// lands once every four attacks.
 AttackOption MakeBurst() {
   AttackOption burst;
   burst.name = "Burst";
@@ -627,8 +626,8 @@ AttackOption MakeBurst() {
   return burst;
 }
 
-// A learned swing, harder than the poke and held back for a moment after it
-// lands so that something else has to fill the gap.
+// A learned attack, stronger than the basic attack, with a short cooldown after
+// it lands so something else has to fill the gap.
 AttackOption MakeSkill(const std::string& name, double damage,
                        double cooldown) {
   AttackOption skill;
@@ -641,7 +640,7 @@ AttackOption MakeSkill(const std::string& name, double damage,
 }
 
 // Adds a skill that fires on its own clock, hitting `reach` mobs for `damage`
-// apiece every `interval` seconds.
+// each every `interval` seconds.
 void AddAutoAttack(CombatParams& params, double interval, double damage,
                    int reach = 1) {
   AttackOption cast;
@@ -652,8 +651,8 @@ void AddAutoAttack(CombatParams& params, double interval, double damage,
   params.auto_attacks.push_back(std::move(cast));
 }
 
-// Adds a skill clocked by swings landed rather than by seconds, hitting
-// `reach` mobs for `damage` apiece every `attacks` of them.
+// Adds a skill timed by attacks landed instead of seconds, hitting `reach` mobs
+// for `damage` each every `attacks` attacks.
 void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
                         int reach = 1) {
   AttackOption cast;
@@ -664,8 +663,8 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
   params.triggered_attacks.push_back(std::move(cast));
 }
 
-// Adds a skill clocked by enemies defeated, hitting `reach` mobs for `damage`
-// apiece every `kills` of them.
+// Adds a skill timed by enemies defeated, hitting `reach` mobs for `damage`
+// each every `kills` kills.
 void AddKillClockedAttack(CombatParams& params, int kills, double damage,
                           int reach = 1) {
   AttackOption cast;
@@ -676,10 +675,10 @@ void AddKillClockedAttack(CombatParams& params, int kills, double damage,
   params.triggered_attacks.push_back(std::move(cast));
 }
 
-// Gives `attack` a bigger form that takes the place of every `every`th swing
-// of it, hitting `reach` mobs for `damage` apiece. With `marks` the count runs
-// against each mob struck instead, and the form lands on top of the strike
-// that set it off rather than in place of the swing.
+// Gives `attack` a bigger form that replaces every `every`th use of it, hitting
+// `reach` mobs for `damage` each. With `marks`, the count runs per mob struck
+// instead, and the form lands on top of the strike that triggered it instead of
+// replacing the attack.
 void SetEmpoweredForm(AttackOption& attack, int every, double damage,
                       int reach = 1, bool marks = false) {
   std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
@@ -726,17 +725,16 @@ TEST(CombatSimTest, ChargesAttackBarThenLandsAHit) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.6, 1e-9);  // 10 - 4 = 6
 }
 
-// A step wider than the swing lands every swing it covered, rather than one
-// and a growing residue. The residue used to pin the charge bar full: a 120ms
-// key-down skill under the TUI's 150ms frame gave back 120ms of the 150 it
-// took, so the phase climbed past a whole swing and stayed there.
+// A step longer than the attack lands every attack it covers, instead of one
+// plus a growing remainder. The remainder once kept the charge bar stuck full
+// when a 120ms key-down skill ran under the TUI's 150ms frame.
 TEST(CombatSimTest, AStepWiderThanTheSwingLandsEverySwingItCovers) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
   CombatParams params = MakeParams(0.6, 100.0, {MakeType(&snail, 1.0, 1)});
-  // A 120ms key-down skill beside the bare poke, worth more per second so the
-  // chooser takes it. The poke stays the slow one, since it is what the step
-  // is clamped against.
+  // A 120ms key-down skill beside the basic attack, worth more per second so
+  // it's chosen. The basic attack stays the slow one, since the step is clamped
+  // against it.
   AttackOption fast = params.attacks.front();
   fast.swing_seconds = 0.12;
   fast.damage_per_hit[0] = 10.0;
@@ -751,8 +749,8 @@ TEST(CombatSimTest, AStepWiderThanTheSwingLandsEverySwingItCovers) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.94, 1e-9);
 }
 
-// Same rule for a skill on its own clock, which RunDots and RunRegen already
-// followed.
+// The same rule for a skill on its own clock, which RunDots and RunRegen
+// already followed.
 TEST(CombatSimTest, AStepWiderThanTheIntervalFiresEveryCastItCovers) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -821,7 +819,7 @@ TEST(CombatSimTest, AdvancesToTheNextMobAfterAKill) {
 TEST(CombatSimTest, ASingleTargetSwingSparesTheSecond) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // Reach 1 (the default): a swing hits only the front mob, so the second is
+  // Reach 1 (the default): an attack hits only the front mob, so the second is
   // still at full HP after the first dies.
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
 
@@ -834,7 +832,7 @@ TEST(CombatSimTest, ASingleTargetSwingSparesTheSecond) {
 TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // A 3-way attack over three mobs: one swing hits and one-shots all three.
+  // A 3-target attack over three mobs: one attack kills all three.
   CombatParams params =
       MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 3)}, /*reach=*/3);
 
@@ -846,7 +844,7 @@ TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
 TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // Reach 6 but only two mobs are up, so the swing hits (and clears) just two.
+  // Reach 6 but only two mobs are up, so the attack hits (and kills) just two.
   CombatParams params =
       MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)}, /*reach=*/6);
 
@@ -858,8 +856,8 @@ TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
 TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // Two mobs, a 2-way attack, 6 damage: each needs two hits. The first swing
-  // leaves both alive at partial HP; the second kills both on the same swing.
+  // Two mobs, a 2-target attack, 6 damage: each needs two hits. The first
+  // attack leaves both damaged; the second kills both at once.
   CombatParams params =
       MakeParams(1.0, 100.0, {MakeType(&snail, 6.0, 2)}, /*reach=*/2);
 
@@ -888,27 +886,27 @@ TEST(CombatSimTest, NamesNoSwingWhileRespawning) {
 TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
-  // A wide, weak swing against a narrow, strong one, over four mobs: 4 x 5 = 20
-  // beats 1 x 12, so the wide one takes it.
+  // A wide, weak attack against a narrow, strong one, over four mobs: 4 x 5 =
+  // 20 beats 1 x 12, so the wide one is chosen.
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 4)});
   params.attacks[0].name = "Attack";
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
-  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
+  wide.swing_seconds = 1.0;  // same speed as the basic attack
   wide.damage_per_hit = {5.0};
   params.attacks.push_back(wide);
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().attack_name, "Sweep");
-  // All four took the 5, rather than one taking 12.
+  // All four took 5, instead of one taking 12.
   ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
   EXPECT_EQ(sim.view().engaged_groups[0].count, 4);
   EXPECT_NEAR(sim.view().engaged_groups[0].hp_fraction, 0.95, 1e-9);
 }
 
-// A swing is worth what it lands per second, not per swing: a skill hitting
-// half again as hard but taking twice as long is the worse choice.
+// An attack is worth what it lands per second, not per use: a skill hitting 50%
+// harder but taking twice as long is the worse choice.
 TEST(CombatSimTest, PrefersTheFasterSwingWhenItLandsMorePerSecond) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -925,8 +923,8 @@ TEST(CombatSimTest, PrefersTheFasterSwingWhenItLandsMorePerSecond) {
   EXPECT_EQ(sim.view().attack_name, "Attack");
 }
 
-// And the same skill wins once its animation is quick enough to pay for
-// itself, which is the whole reason the delay is per skill.
+// The same skill wins once its animation is quick enough to pay for itself,
+// which is why the delay is per skill.
 TEST(CombatSimTest, TheSlowerSwingWinsWhenItHitsHardEnough) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -943,15 +941,14 @@ TEST(CombatSimTest, TheSlowerSwingWinsWhenItHitsHardEnough) {
   EXPECT_EQ(sim.view().attack_name, "Heavy");
 }
 
-// Final Attack rides the swing, so it is part of what the swing is worth. It
-// does not depend on which skill set it off, which means a slower swing
-// spreads the same extra hit over more seconds -- and that alone can decide
-// the choice.
+// Final Attack follows the attack, so it's part of the attack's value. It
+// doesn't depend on which skill triggered it, so a slower attack spreads the
+// same extra hit over more seconds, and that alone can decide the choice.
 TEST(CombatSimTest, TheChoiceCountsTheFinalAttackThatFollowsIt) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
-  // Counting it: the poke is 30/s against the heavy swing's 25/s. Ignoring it:
-  // 10/s against 15/s, and the heavy swing would win instead.
+  // Counting it, the basic attack is 30/s against the heavy attack's 25/s.
+  // Ignoring it, 10/s against 15/s, and the heavy attack would win instead.
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
   params.attacks[0].name = "Attack";
   params.attacks[0].final_attack_damage = {20.0};
@@ -967,8 +964,8 @@ TEST(CombatSimTest, TheChoiceCountsTheFinalAttackThatFollowsIt) {
   EXPECT_EQ(sim.view().attack_name, "Attack");
 }
 
-// A swing three times the poke would simply replace it, so what a cooldown is
-// worth is the swings it is NOT there for.
+// An attack three times the basic attack would simply replace it, so a cooldown
+// matters only in the gaps when it's unavailable.
 TEST(CombatSimTest, ACooldownKeepsTheBestSwingOffTheMenu) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -979,7 +976,7 @@ TEST(CombatSimTest, ACooldownKeepsTheBestSwingOffTheMenu) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  // One burst and then two pokes: 50, not the 90 three bursts would be.
+  // One burst and then two basic attacks: 50, not the 90 three bursts would be.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
@@ -993,15 +990,15 @@ TEST(CombatSimTest, ACooldownSwingComesBackWhenItRunsOut) {
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 1.0);
   }
-  // The cooldown started on the first swing, so three seconds later the fourth
+  // The cooldown started on the first attack, so three seconds later the fourth
   // is a burst again: 30 + 10 + 10 + 30.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.92, 1e-9);
 }
 
-// Unlike a summon's clock, which earns no free cast on an empty map: a player
-// waiting out a respawn really does have their cooldown back when the mobs
-// land. Here the burst kills the only mob, and the four seconds of empty map
-// are exactly the recharge -- so the mob that respawns dies to a burst too.
+// Unlike a summon's clock, which gets no free cast on an empty map, a player
+// waiting for a respawn really does have their cooldown back when mobs appear.
+// Here the burst kills the only mob, and the four seconds of empty map are
+// exactly the recharge, so the respawned mob dies to a burst too.
 TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 30);
   CombatSim sim;
@@ -1019,10 +1016,9 @@ TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
       << "the respawned mob survived, so the burst was still recharging";
 }
 
-// A cooldown belongs to the character, not to what is in front of them, so
-// arriving somewhere new does not hand one back. A boss phase is a change of
-// encounter too -- without this a fight reopens every phase with every skill
-// ready.
+// A cooldown belongs to the character, not the encounter, so arriving somewhere
+// new doesn't reset it. A boss phase is a new encounter too; without this,
+// every phase would start with every skill ready.
 TEST(CombatSimTest, ACooldownSurvivesAChangeOfEncounter) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1040,8 +1036,8 @@ TEST(CombatSimTest, ACooldownSurvivesAChangeOfEncounter) {
       << "the burst was ready again in the new encounter";
 }
 
-// The pair of skills a wizard alternates between: each one out of reach for a
-// moment after it lands, so the other one is what there is.
+// The pair of skills a wizard alternates between: each on a short cooldown
+// after it lands, so the other is used meanwhile.
 CombatParams MakeAlternatingParams(const Mob& snail) {
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 1.0, 1)});
   params.attacks[0].name = "Attack";
@@ -1050,9 +1046,9 @@ CombatParams MakeAlternatingParams(const Mob& snail) {
   return params;
 }
 
-// The commitment is what makes a short cooldown alternate a pair of skills:
-// without it the harder one comes back mid-animation and simply takes the
-// swing, and the other is bought and never seen.
+// Committing to an attack in progress is what makes a short cooldown alternate
+// two skills. Without it, the stronger one comes back mid-animation and takes
+// over, and the other is never used.
 TEST(CombatSimTest, ASwingUnderwayIsNotDisplacedByABetterOne) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1085,9 +1081,9 @@ TEST(CombatSimTest, TwoRechargingSkillsTakeTurns) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.964, 1e-9);
 }
 
-// The poke is the exception to the commitment: it is what the character is
-// left with while everything else recharges, and holding them to it would
-// cost them the skill for the rest of the animation.
+// The basic attack is the exception to committing: it's what the character uses
+// while everything else recharges, and waiting it out would delay the skill for
+// the rest of the animation.
 TEST(CombatSimTest, TheFallbackPokeYieldsAsSoonAsTheSkillIsBack) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1109,14 +1105,14 @@ TEST(CombatSimTest, TheFallbackPokeYieldsAsSoonAsTheSkillIsBack) {
 TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
-  // The same pair of attacks, but only one mob is up: the wide swing's reach is
-  // worth nothing, so 5 loses to 12 and the narrow one takes over.
+  // The same pair of attacks, but only one mob is up: the wide attack's reach
+  // is worthless, so 5 loses to 12 and the narrow one takes over.
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 1)});
   params.attacks[0].name = "Attack";
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
-  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
+  wide.swing_seconds = 1.0;  // same speed as the basic attack
   wide.damage_per_hit = {5.0};
   params.attacks.push_back(wide);
 
@@ -1128,14 +1124,14 @@ TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
 TEST(CombatSimTest, TheChoiceChangesAsTheQueueThins) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // Two mobs, both one-shot by the wide swing. It clears them on the first
-  // swing, and with the queue empty the narrow swing is what is charging next.
+  // Two mobs, both killed in one hit by the wide attack. It clears them on the
+  // first attack, and with the queue empty the narrow attack charges next.
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 2)});
   params.attacks[0].name = "Attack";
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
-  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
+  wide.swing_seconds = 1.0;  // same speed as the basic attack
   wide.damage_per_hit = {10.0};
   params.attacks.push_back(wide);
 
@@ -1151,7 +1147,7 @@ TEST(CombatSimTest, EngagedGroupsAverageASingleTypesWindow) {
   Mob snail = MakeMob("Snail", 20, 3);
   CombatSim sim;
   // Five mobs, reach 3: only the front three are engaged, so the bar merges
-  // three of them -- not all five.
+  // three of them, not all five.
   CombatParams params =
       MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 5)}, /*reach=*/3);
 
@@ -1167,8 +1163,9 @@ TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
   Mob snail = MakeMob("Snail", 100, 1);
   Mob slug = MakeMob("Slug", 100, 2);
   CombatSim sim;
-  // Two of each, reach 4 hits the whole queue. Same-type mobs entered together
-  // and take the same damage, so each type merges to one bar at a shared HP.
+  // Two of each, and reach 4 hits the whole queue. Same-type mobs that arrived
+  // together take the same damage, so each type merges into one bar at a shared
+  // HP.
   CombatParams params = MakeParams(
       1.0, 100.0, {MakeType(&snail, 50.0, 2), MakeType(&slug, 20.0, 2)},
       /*reach=*/4);
@@ -1189,7 +1186,7 @@ TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
 TEST(CombatSimTest, RefillsAtTheRespawnBeat) {
   Mob snail = MakeMob("Snail", 30);
   CombatSim sim;
-  // 30 HP / 10 dmg = 3 hits to clear the lone mob; respawn beat at 5s.
+  // 30 HP / 10 damage = 3 hits to kill the lone mob; respawn at 5s.
   CombatParams params = MakeParams(1.0, 5.0, {MakeType(&snail, 10.0, 1)});
 
   sim.Advance(params, 1.0);  // hp 20
@@ -1207,8 +1204,8 @@ TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
   Mob snail = MakeMob("Snail", 10);
   Mob slug = MakeMob("Slug", 100);
   CombatSim sim;
-  // One swing hits both: the Snail dies outright, the Slug drops to 90%. The
-  // beat at t=1.5 then falls between swings, with only the Snail to replace.
+  // One attack hits both: the Snail dies, and the Slug drops to 90%. The
+  // respawn at t=1.5 falls between attacks, with only the Snail to replace.
   CombatParams params = MakeParams(
       1.0, 1.5, {MakeType(&snail, 10.0, 1), MakeType(&slug, 10.0, 1)},
       /*reach=*/2);
@@ -1224,18 +1221,18 @@ TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
   const EngagedGroup* slugs = FindGroup(groups, "Slug");
   ASSERT_NE(snails, nullptr);
   ASSERT_NE(slugs, nullptr);
-  // The Snail is a new spawn, so it arrives whole.
+  // The Snail is a new spawn, so it arrives at full HP.
   EXPECT_NEAR(snails->hp_fraction, 1.0, 1e-9);
-  // The Slug was never dead. A beat that rebuilt the roster would have healed
-  // it back to full.
+  // The Slug never died. A respawn that rebuilt the whole roster would have
+  // healed it to full.
   EXPECT_NEAR(slugs->hp_fraction, 0.9, 1e-9);
 }
 
 TEST(CombatSimTest, AMobSlowerThanTheBeatStillDies) {
   Mob slug = MakeMob("Slug", 100);
   CombatSim sim;
-  // Ten swings to kill, with a beat every five. The damage has to survive the
-  // beats or the mob can never be killed at all.
+  // Ten attacks to kill, with a respawn every five. The damage must persist
+  // through respawns, or the mob could never die.
   CombatParams params = MakeParams(1.0, 5.0, {MakeType(&slug, 10.0, 1)});
 
   int64_t kills = 0;
@@ -1249,9 +1246,9 @@ TEST(CombatSimTest, AMobSlowerThanTheBeatStillDies) {
 TEST(CombatSimTest, ABeatMidFightKeepsTheSwingCharging) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
-  // 10 dmg against 100 HP, so the mob is still up when the beat lands. Swing
-  // 2s, beat 3s, stepped 0.5s at a time -- the beat at t=3 catches a swing
-  // half charged.
+  // 10 damage against 100 HP, so the mob is still up at the respawn. Attack
+  // every 2s, respawn every 3s, stepped 0.5s at a time: the respawn at t=3
+  // catches an attack half charged.
   CombatParams params = MakeParams(2.0, 3.0, {MakeType(&snail, 10.0, 1)});
 
   for (int i = 0; i < 5; ++i) {
@@ -1261,16 +1258,16 @@ TEST(CombatSimTest, ABeatMidFightKeepsTheSwingCharging) {
 
   sim.Advance(params, 0.5);  // t=3: the beat, then another half second
   EXPECT_FALSE(sim.respawning());
-  // 0.5s of charge survived the beat and 0.5s was added on top. A beat that
-  // restarted the swing would read 0.25 here.
+  // 0.5s of charge survived the respawn and 0.5s more was added. A respawn that
+  // restarted the attack would read 0.25 here.
   EXPECT_NEAR(sim.view().attack_fraction, 0.5, 1e-9);
 }
 
 TEST(CombatSimTest, ARespawnBeatAfterAClearStartsAFreshSwing) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // One swing clears the map. Stepping 0.75s against a 1s swing leaves 0.25s
-  // of overshoot behind, which the idle stretch must not bank.
+  // One attack clears the map. Stepping 0.75s against a 1s attack leaves 0.25s
+  // of overshoot, which the idle time must not keep.
   CombatParams params = MakeParams(1.0, 3.0, {MakeType(&snail, 10.0, 1)});
 
   sim.Advance(params, 0.75);
@@ -1281,8 +1278,8 @@ TEST(CombatSimTest, ARespawnBeatAfterAClearStartsAFreshSwing) {
 
   sim.Advance(params, 0.75);  // t=3: the beat, then a fresh swing begins
   EXPECT_FALSE(sim.respawning());
-  // Exactly the 0.75s since the beat. Carrying the overshoot would have put
-  // the swing over the line and landed a hit already.
+  // Exactly 0.75s since the respawn. Keeping the overshoot would have pushed
+  // the attack over the line and landed a hit already.
   EXPECT_NEAR(sim.view().attack_fraction, 0.75, 1e-9);
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
 }
@@ -1300,9 +1297,9 @@ TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
   EXPECT_EQ(sim.view().target_name, "Snail");
   EXPECT_NEAR(sim.view().target_hp_fraction, 20.0 / 30.0, 1e-9);
 
-  // The move re-engages from the new map: a fresh Slug, whose 30 HP takes this
-  // step's hit rather than carrying the Snail's damage -- and the kill credited
-  // to the new map's lone type, not a stale index from the old roster.
+  // The move starts fresh on the new map: a new Slug, whose 30 HP takes this
+  // step's hit instead of inheriting the Snail's damage, and the kill is
+  // credited to the new map's only type, not a stale index from the old roster.
   sim.Advance(there, 1.0);
   EXPECT_EQ(sim.view().target_name, "Slug");
   EXPECT_NEAR(sim.view().target_hp_fraction, 20.0 / 30.0, 1e-9);
@@ -1316,9 +1313,9 @@ TEST(CombatSimTest, ShufflingTheRosterSpreadsKillsAcrossTypes) {
   Mob snail = MakeMob("Snail", 10);
   Mob blue = MakeMob("Blue Snail", 10);
   CombatSim sim;
-  // Six mobs but only a couple die before the 5s beat refills the whole roster,
-  // so the player never clears it. Were the fight order fixed, only the front
-  // type would ever be reached; the shuffle must let both types die over beats.
+  // Six mobs, but only a couple die before the 5s respawn refills the roster,
+  // so the player never clears it. With a fixed order only the front type would
+  // ever be reached; shuffling must let both types die across respawns.
   CombatParams params = MakeParams(
       1.0, 5.0, {MakeType(&snail, 10.0, 3), MakeType(&blue, 10.0, 3)});
 
@@ -1342,9 +1339,9 @@ TEST(CombatSimTest, ClampsLargeGapsToOneSwing) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);  // 100 - 4 = 96
 }
 
-// Gives `params` a player with a pool to lose, hit every `interval` seconds
-// for `damage` by whichever mob is at the front. Every type hits alike unless
-// a test says otherwise.
+// Gives `params` a player with HP to lose, hit every `interval` seconds for
+// `damage` by the front mob. Every type hits the same unless a test says
+// otherwise.
 void GivePlayerHp(CombatParams& params, int max_hp, double interval,
                   double damage) {
   params.max_player_hp = max_hp;
@@ -1373,9 +1370,8 @@ TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
   EXPECT_EQ(sim.view().player_hp, 80);
 }
 
-// A frozen monster is stopped where it stands, so the beats that fall while
-// the ice holds land nothing on the player. Frostprey is what buys this for a
-// character with no ice swing of their own.
+// A frozen monster can't move, so its hits due while the freeze lasts don't
+// land. Frostprey gives this to a character without an ice attack.
 TEST(CombatSimTest, AFrozenMobLandsNoHit) {
   Mob snail = MakeMob("Snail", 100000);
   CombatParams params = MakeParams(0.5, 1000.0, {MakeType(&snail, 1.0, 1)});
@@ -1401,10 +1397,9 @@ TEST(CombatSimTest, AFrozenMobLandsNoHit) {
   EXPECT_LT(frozen.view().player_hp, 1000);
 }
 
-// Holy Fountain: healing on a clock of its own, costing no swing and asking
-// for no hit. It runs against the damage coming in rather than instead of it,
-// and it arrives in pulses -- nothing until the interval is up, then the whole
-// helping at once.
+// Holy Fountain: healing on its own clock, costing no attack and needing no
+// hit. It runs alongside incoming damage, and arrives in pulses: nothing until
+// the interval is up, then the whole amount at once.
 TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1412,8 +1407,8 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
   params.regen_pulses = {{0.20, 0, 5.0}};  // 20 HP every 5s against 10 a hit
 
-  // Four hits in, the fountain has poured nothing: the pulse is not owed until
-  // its interval is up. A rate would have paid 16 HP by here.
+  // After four hits the fountain has healed nothing, since the pulse isn't due
+  // until its interval is up. A continuous rate would have healed 16 HP by now.
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -1422,14 +1417,14 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   EXPECT_EQ(sim.view().player_hp, 70);
 }
 
-// Storm of Arrows: the rain grows with the crowd the character's OWN SWING is
-// on, not with its own reach -- so a single-target swing calls down the short
-// rain however many monsters are standing under it.
+// Storm of Arrows: the rain grows with the number of enemies the character's
+// own attack hits, not with its own reach. So a single-target attack calls the
+// short rain however many monsters are under it.
 TEST(CombatSimTest, APulseGrowsWithTheSwingsCrowdRatherThanItsOwn) {
   Mob snail = MakeMob("Snail", 1000000000);
   double landed[2] = {0.0, 0.0};
   for (int run = 0; run < 2; ++run) {
-    // The swing itself does nothing, so every point below is the rain's.
+    // The attack itself does nothing, so all damage below is the rain's.
     CombatParams params =
         MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 6)}, run == 0 ? 1 : 4);
     AddAutoAttack(params, /*interval=*/1.0, /*damage=*/70.0);
@@ -1446,14 +1441,14 @@ TEST(CombatSimTest, APulseGrowsWithTheSwingsCrowdRatherThanItsOwn) {
       landed[run] += sim.view().damage_this_step;
     }
   }
-  // The first rain falls before any swing has been aimed, so it is short in
-  // both runs; the four after it are worth three extra enemies' six lines.
+  // The first rain falls before any attack has been aimed, so it's short in
+  // both runs. The four after it add three extra enemies' six lines.
   EXPECT_NEAR(landed[0], 5 * 70.0, 1e-6);
   EXPECT_NEAR(landed[1], 70.0 + 4 * 130.0, 1e-6);
 }
 
-// Darkness Aura: an own-clock pulse that heals as it lands. Paid per strike
-// of the tick rather than per tick, and never past a full pool.
+// Darkness Aura: an own-clock pulse that heals as it lands. It heals per strike
+// of the tick, not per tick, and never past full HP.
 TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -1463,13 +1458,14 @@ TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {
   params.auto_attacks[0].hp_recover_pct = 0.03;
   params.auto_attacks[0].strikes_per_pulse = 2;
 
-  // A hit a second against 6% of a hundred-point pool: down four a second.
+  // One hit per second against 6% of a hundred-point pool: down four per
+  // second.
   for (int i = 0; i < 5; ++i) {
     sim.Advance(params, 1.0);
   }
   EXPECT_EQ(sim.view().player_hp, 80);
 
-  // And a pool already full takes nothing more.
+  // And full HP takes no more.
   CombatSim topped;
   CombatParams quiet = params;
   GivePlayerHp(quiet, 100, /*interval=*/1.0, /*damage=*/0.0);
@@ -1477,8 +1473,8 @@ TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {
   EXPECT_EQ(topped.view().player_hp, 100);
 }
 
-// The Evil Eye's aura, which pours a flat amount rather than a share of the
-// pool -- and pours it beside the share where a fountain states both.
+// The Evil Eye's aura heals a flat amount instead of a share of HP, and heals
+// it in addition to the share when a fountain has both.
 TEST(CombatSimTest, AFountainPoursItsFlatHalfToo) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1490,8 +1486,8 @@ TEST(CombatSimTest, AFountainPoursItsFlatHalfToo) {
   EXPECT_EQ(sim.view().player_hp, 944);
 }
 
-// One step wider than the interval owes every pulse it covered, the way a burn
-// ticks for each one it outlasted.
+// A step longer than the interval pays every pulse it covered, just as a burn
+// ticks for each interval it outlasted.
 TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1505,8 +1501,8 @@ TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
   EXPECT_EQ(sim.view().player_hp, 880);
 }
 
-// Two fountains on two clocks, which is what a Bishop carries. Neither waits
-// on the other, and a step both come due on pays both.
+// Two fountains on two clocks, as a Bishop has. Neither waits for the other,
+// and a step when both are due pays both.
 TEST(CombatSimTest, TwoFountainsPourOnSeparateClocks) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1526,8 +1522,7 @@ TEST(CombatSimTest, TwoFountainsPourOnSeparateClocks) {
   EXPECT_EQ(sim.view().player_hp, 520);  // both, on the same step
 }
 
-// It stops at the pool rather than running past it, the way every other heal
-// here does.
+// It stops at full HP instead of going past it, like every other heal here.
 TEST(CombatSimTest, AFountainNeverFillsPastTheHpPool) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1543,7 +1538,7 @@ TEST(CombatSimTest, OnlyOneMobHitsBackHoweverManyAreOnTheMap) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
   // Five of them standing there, and the player takes one hit, not five. A
-  // crowd is a crowd, not five attackers.
+  // crowd doesn't mean five attackers.
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 5)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
 
@@ -1562,15 +1557,14 @@ TEST(CombatSimTest, DamageTakenFollowsTheMobInFront) {
   params.types[0].damage_to_player = 5.0;
   params.types[1].damage_to_player = 50.0;
 
-  // Which of the two the queue puts in front is its own business -- it
-  // shuffles the arrivals -- but the hit the player takes has to be that
-  // one's, and not the other's.
+  // The queue shuffles arrivals, so either could be in front, but the hit the
+  // player takes must be from the one in front.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, sim.view().target_name == "Snail" ? 95 : 50);
 }
 
-// Spirit Blade: a share of every hit comes straight back out of whoever
-// landed it. Off the mob in front, since that is the one that swung.
+// Spirit Blade: a share of every hit taken is dealt back to the mob that landed
+// it, which is the one in front.
 TEST(CombatSimTest, ReflectionHurtsTheMobThatHits) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1578,7 +1572,8 @@ TEST(CombatSimTest, ReflectionHurtsTheMobThatHits) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
   params.damage_reflect_pct = 5.0;
 
-  // The swing is 100 seconds off, so every point the snail loses is reflected.
+  // The attack is 100 seconds away, so every point the snail loses is
+  // reflected.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 90);
   EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 0.95);
@@ -1590,14 +1585,13 @@ TEST(CombatSimTest, ReflectionCanFinishAMob) {
   CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 2)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
   params.damage_reflect_pct = 5.0;
-  // A kill is a kill however it happened: the reward layer pays for this one
-  // exactly as it pays for a swing's, and it charges a kill-clocked skill the
-  // same way. The swing is 100 seconds off, so neither is the swing's doing.
+  // A kill counts however it happened: rewards pay for it like any other kill,
+  // and it charges a kill-timed skill the same way. The attack is 100 seconds
+  // away, so neither is from the attack.
   AddKillClockedAttack(params, /*kills=*/1, /*damage=*/40.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.view().kills_this_step[0], 2);  // the reflection, and the
-                                                // release it charged
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);  // reflection and its release
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -1645,9 +1639,9 @@ TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
-// A passive that heals on attack pays per landed swing, costing none of them,
-// so it stacks with the beat rather than replacing it -- and it cannot carry
-// the pool past full.
+// A passive that heals on attack pays per attack landed, costing no attacks, so
+// it adds to the respawn heal instead of replacing it. It can't go past full
+// HP.
 TEST(CombatSimTest, RecoveryOnAttackRidesTheSwing) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1665,8 +1659,8 @@ TEST(CombatSimTest, RecoveryOnAttackRidesTheSwing) {
   EXPECT_LE(sim.view().player_hp, 100);
 }
 
-// A swing can heal on its own account, and what it heals lands on top of what
-// the character recovers on any swing at all: Angel Ray pays both.
+// An attack can heal on its own, on top of what the character recovers on every
+// attack: Angel Ray gets both.
 TEST(CombatSimTest, ASwingsOwnRecoveryPaysBesideTheCharacters) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1681,8 +1675,8 @@ TEST(CombatSimTest, ASwingsOwnRecoveryPaysBesideTheCharacters) {
   EXPECT_EQ(sim.view().player_hp, 80);
 }
 
-// Nothing to hit is nothing to heal off. A cleared map already gives the pool
-// back on the beat, and a swing at empty air must not pay twice for it.
+// Nothing to hit means nothing to heal from. A cleared map already restores HP
+// on the respawn, and attacking empty air must not pay for it twice.
 TEST(CombatSimTest, RecoveryOnAttackPaysNothingOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -1715,9 +1709,9 @@ TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
   ASSERT_FALSE(sim.respawning());
   ASSERT_EQ(sim.view().player_hp, 100);
 
-  // Nine tenths of a second of fighting since the map refilled. Had the two
-  // idle seconds counted toward the mob's clock, a hit would have landed by
-  // now -- several, in fact.
+  // Nine tenths of a second of fighting since the map refilled. If the two idle
+  // seconds had counted toward the mob's attack timer, several hits would have
+  // landed by now.
   sim.Advance(params, 0.4);
   EXPECT_EQ(sim.view().player_hp, 100);
 }
@@ -1725,9 +1719,9 @@ TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
 TEST(CombatSimTest, ARespawnBeatMidFightHealsASlice) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
-  // The mobs outlast the beat, so the top-up is more monsters arriving rather
-  // than the player's breather -- and the slice comes back regardless, which
-  // is what lets a map be held rather than only cleared.
+  // The mobs outlast the respawn interval, so the refill brings more monsters,
+  // not a break. The HP slice still comes back regardless, which is what lets a
+  // map be held instead of only cleared.
   CombatParams params = MakeParams(10.0, 2.0, {MakeType(&snail, 1.0, 2)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/30.0);
   params.beat_heal_fraction = 0.1;
@@ -1749,8 +1743,8 @@ TEST(CombatSimTest, ABeatCannotHealPastFull) {
 
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.view().player_hp, 95);
-  // The beat's tenth is more than the one hit took, and the surplus goes
-  // nowhere: the player is left one hit down, not banking healing for later.
+  // The respawn's tenth is more than the one hit took, and the surplus isn't
+  // kept: the player is left one hit down, not banking healing for later.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 95);
 }
@@ -1806,8 +1800,8 @@ TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.view().player_hp, 90);
 
-  // The level lands and the pool grows. Left alone, the bar would read 90 of
-  // 200 -- less than half full, having lost one hit.
+  // The level-up arrives and max HP grows. Otherwise the bar would read 90 of
+  // 200, less than half full after losing one hit.
   params.player_level = 31;
   params.max_player_hp = 200;
   sim.Advance(params, 0.5);
@@ -1815,9 +1809,9 @@ TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
   EXPECT_EQ(sim.view().player_max_hp, 200);
 }
 
-// A skill point into a passive that carries max HP widens the pool at the same
-// level. It is not a level-up and must not heal -- the player would otherwise
-// have a free full heal for every point they had left to spend.
+// Spending a skill point on a passive with max HP raises max HP at the same
+// level. That's not a level-up and must not heal, or the player would get a
+// free full heal for every point they had left to spend.
 TEST(CombatSimTest, AWiderPoolAtTheSameLevelDoesNotHeal) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1834,10 +1828,9 @@ TEST(CombatSimTest, AWiderPoolAtTheSameLevelDoesNotHeal) {
   EXPECT_EQ(sim.view().player_max_hp, 200);
 }
 
-// And a pool that shrank -- an unequipped hat -- takes the player down with
-// it, rather than leaving them holding HP their stats do not give them. It
-// holds for a character with no fountain at all: the clamp belongs to the
-// pool, not to the healing.
+// When max HP shrinks (say, removing a hat), current HP drops with it instead
+// of staying above what their stats allow. This holds for a character with no
+// fountain too: the clamp belongs to the HP pool, not to healing.
 TEST(CombatSimTest, ANarrowerPoolTakesTheOverflowWithIt) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1871,7 +1864,7 @@ TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {
 TEST(CombatSimTest, AnAutoAttackFiresOnItsOwnClock) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
-  // A swing far too slow to interfere, so what lands is the cast alone.
+  // An attack far too slow to interfere, so only the cast lands.
   CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   AddAutoAttack(params, /*interval=*/2.0, /*damage=*/25.0);
 
@@ -1907,7 +1900,7 @@ TEST(CombatSimTest, AnAutoAttackReachesWhatItsSkillSays) {
 TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
-  // A swing that does nothing, so what lands on the mob is the volley alone.
+  // An attack that does nothing, so only the volley damages the mob.
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
 
@@ -1917,8 +1910,8 @@ TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
   }
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
-  // And again four swings later, not every swing from here on. Stepped one
-  // swing at a time: a single long Advance is clamped to one of them.
+  // And again four attacks later, not every attack from here on. Stepped one
+  // attack at a time, since a single long Advance is clamped to one.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
     EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9) << "swing " << i + 5;
@@ -1927,8 +1920,8 @@ TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.80, 1e-9);
 }
 
-// The whole reason the weight exists: a swing landing seven times as often is
-// worth a seventh, so the volley comes at the same rate either way.
+// This is why the weight exists: an attack landing seven times as often counts
+// as a seventh, so the volley comes at the same rate either way.
 TEST(CombatSimTest, ARapidSwingTakesSevenTimesAsManyToFireIt) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1936,19 +1929,19 @@ TEST(CombatSimTest, ARapidSwingTakesSevenTimesAsManyToFireIt) {
   params.attacks[0].count_weight = 1.0 / 7.0;
   AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
 
-  // 27 swings is a hair under the 4 attacks it takes.
+  // 27 attacks is just short of the 4 it takes.
   for (int i = 0; i < 27; ++i) {
     sim.Advance(params, 1.0);
   }
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
-  // The 28th closes it. A seventh cannot be written exactly, so this is also
-  // the assertion that the counter is nudged rather than compared bare.
+  // The 28th completes it. A seventh isn't exact in floating point, so this
+  // also checks the counter uses a tolerance instead of a bare comparison.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
-// The remainder carries rather than resetting, or a swing worth a fraction
-// would throw the rest away and never come round at all.
+// The remainder carries over instead of resetting, or an attack worth a
+// fraction would lose the rest and never fire at all.
 TEST(CombatSimTest, TheSwingCountCarriesItsRemainder) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1956,16 +1949,16 @@ TEST(CombatSimTest, TheSwingCountCarriesItsRemainder) {
   params.attacks[0].count_weight = 3.0;
   AddTriggeredAttack(params, /*attacks=*/2, /*damage=*/100.0);
 
-  // Worth three where two are needed: it fires, and the spare one is still
-  // there to be half of the next.
+  // Worth three where two are needed: it fires, and the spare one counts toward
+  // the next.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
   sim.Advance(params, 1.0);  // 1 carried + 3 = 4, so two more casts
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.70, 1e-9);
 }
 
-// Inhuman Speed's afterimage: one firing is five shots, which land together
-// the way a pulse's strikes do rather than folding into one bigger hit.
+// Inhuman Speed's afterimage: one firing is five shots, which land separately
+// like a pulse's strikes instead of merging into one bigger hit.
 TEST(CombatSimTest, ATriggeredAttackLandsEveryStrikeOfOneFiring) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -1989,13 +1982,13 @@ TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
   EXPECT_EQ(sim.view().kills_this_step[0], 6);
 }
 
-// Erda Fountain's clock: the twelfth enemy to fall releases what the eleven
-// before it gathered. The defeats are credited a step behind, so the release
-// lands on the step after the one that finished the count.
+// Erda Fountain's timing: the twelfth enemy defeated releases what the previous
+// eleven built up. Defeats are counted one step late, so the release lands on
+// the step after the one that completed the count.
 TEST(CombatSimTest, AKillClockedAttackFiresOnTheTwelfthDefeat) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // One swing, one kill; the release kills one more when it comes.
+  // One attack, one kill; the release kills one more when it comes.
   CombatParams params = MakeParams(1.0, 1.0, {MakeType(&snail, 10.0, 13)});
   AddKillClockedAttack(params, /*kills=*/12, /*damage=*/10.0);
 
@@ -2007,9 +2000,8 @@ TEST(CombatSimTest, AKillClockedAttackFiresOnTheTwelfthDefeat) {
   EXPECT_EQ(sim.view().kills_this_step[0], 2);  // the release, and the swing
 }
 
-// A wide swing can bring down more than the whole count at once, and owes a
-// release for each of them. What is left over carries rather than being thrown
-// away, exactly as the swing count does.
+// A wide attack can kill more than the whole count at once, and owes a release
+// for each full count. The remainder carries over, as the attack count does.
 TEST(CombatSimTest, ACrowdFallingAtOnceOwesEveryReleaseItCharged) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2019,17 +2011,17 @@ TEST(CombatSimTest, ACrowdFallingAtOnceOwesEveryReleaseItCharged) {
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 12);  // the swing alone
-  // Twelve defeats owe two releases with two to spare, so the next twelve owe
-  // three: the remainder is still there to be counted.
+  // Twelve defeats owe two releases with two left over, so the next twelve owe
+  // three: the remainder still counts.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 14);
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 15);
 }
 
-// A defeat is a defeat however it was dealt: the character never swings here,
-// and a summon's kills charge the fountain on their own. The release's own
-// kill counts too, which is what keeps it going once it has started.
+// A defeat counts however it happened: the character never attacks here, and a
+// summon's kills charge the fountain alone. The release's own kill counts too,
+// which keeps it going once started.
 TEST(CombatSimTest, ADefeatChargesItHoweverItWasDealt) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2039,16 +2031,16 @@ TEST(CombatSimTest, ADefeatChargesItHoweverItWasDealt) {
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 1);  // the summon, charging it
-  // The second defeat releases, and its own kill is half of the next count --
-  // so from here the summon alone keeps a release coming every step.
+  // The second defeat triggers a release, and its kill is half of the next
+  // count, so from here the summon alone keeps a release coming every step.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
     EXPECT_EQ(sim.view().kills_this_step[0], 2) << "step " << i + 2;
   }
 }
 
-// A healing cast is not an attack, so it credits nothing -- a character
-// spending swings staying alive is not also building a volley.
+// A healing cast isn't an attack, so it counts toward nothing. A character
+// spending turns staying alive isn't building up a volley too.
 TEST(CombatSimTest, AHealingCastCreditsNothing) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -2062,8 +2054,8 @@ TEST(CombatSimTest, AHealingCastCreditsNothing) {
   params.attacks.push_back(std::move(heal));
   AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
 
-  // Beaten below a quarter of the pool, at which point every swing goes on the
-  // cast -- and the mob's HP never moves however many of them are spent.
+  // Beaten below a quarter of HP, at which point every turn goes to the cast,
+  // and the mob's HP never changes however many are spent.
   for (int i = 0; i < 40; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -2075,8 +2067,8 @@ TEST(CombatSimTest, AHealingCastCreditsNothing) {
   EXPECT_NEAR(sim.view().target_hp_fraction, before, 1e-9);
 }
 
-// The swing is chosen after the casts land, so a skill that thins the map out
-// changes what the character reaches for next.
+// The attack is chosen after the casts land, so a skill that thins out the map
+// changes what the character uses next.
 TEST(CombatSimTest, TheSwingIsPickedAfterTheCasts) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2088,10 +2080,9 @@ TEST(CombatSimTest, TheSwingIsPickedAfterTheCasts) {
   EXPECT_TRUE(sim.view().attack_name.empty());
 }
 
-// Bolt Barrage's shape: a wall struck once per bolt rather than all at once.
-// The dead are cleared between the bolts, so a wall that reaches two clears
-// eight of them in one swing -- what folding the eight into one landing throws
-// away as overkill.
+// Bolt Barrage's shape: a wall hit once per bolt, not all at once. Dead mobs
+// are cleared between bolts, so a wall reaching two enemies kills eight in one
+// attack. Merging the eight bolts into one hit would waste that as overkill.
 TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2100,8 +2091,9 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   params.attacks[0].strikes_in_sequence = 4;
   params.attacks[0].cast_interval_seconds = 0.25;
 
-  // The swing lands its opening strike and the rest come on the beat, two
-  // enemies at a time and never the same two: the dead are cleared between.
+  // The attack lands its first strike and the rest follow on their interval,
+  // two enemies at a time and never the same two, since the dead are cleared
+  // between.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 2);
   for (int strike = 0; strike < 3; ++strike) {
@@ -2109,8 +2101,8 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
     EXPECT_EQ(sim.view().kills_this_step[0], 2) << "strike " << strike + 2;
   }
 
-  // The same swing folded -- one strike of four times the damage -- reaches
-  // its two and no further, however much of it lands on them.
+  // The same attack merged into one strike of four times the damage hits its
+  // two targets and no more, however hard it lands.
   CombatSim folded;
   CombatParams lump =
       MakeParams(1.0, 1e9, {MakeType(&snail, 40.0, 8)}, /*reach=*/2);
@@ -2120,16 +2112,15 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   EXPECT_EQ(folded.view().kills_this_step[0], 0);
 }
 
-// What a told-apart swing is worth to the chooser is what the press really
-// lands: the strikes its beat gets through before the same skill can be cast
-// again and start the wall over.
+// A sequenced attack is valued at what one press really lands: the strikes that
+// fit before the same skill can be cast again and restart the wall.
 TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
   Mob boss = MakeMob("Boss", 1000000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&boss, 100.0, 1)});
   params.attacks[0].name = "Bolt Barrage";
   params.attacks[0].strikes_in_sequence = 4;
   params.attacks[0].cast_interval_seconds = 0.25;
-  // Harder in one landing than a bolt, and softer than the four together.
+  // Stronger in one hit than a bolt, and weaker than all four together.
   AttackOption flat;
   flat.name = "Chain Lightning";
   flat.max_enemies = 1;
@@ -2137,21 +2128,21 @@ TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
   flat.damage_per_hit.assign(1, 300.0);
   params.attacks.push_back(std::move(flat));
 
-  // Three beats of 0.25s fit inside the 1s press, so the wall is worth 400.
+  // Three intervals of 0.25s fit in the 1s press, so the wall is worth 400.
   CombatSim inside;
   inside.Advance(params, 0.1);
   EXPECT_EQ(inside.view().attack_name, "Bolt Barrage");
 
-  // Stretch the beat to the length of the press and the next cast cuts the wall
-  // off after two bolts, which is 200 against the flatter swing's 300.
+  // Make the interval as long as the press, and the next cast cuts the wall off
+  // after two bolts: 200 against the flatter attack's 300.
   params.attacks[0].cast_interval_seconds = 1.0;
   CombatSim overhanging;
   overhanging.Advance(params, 0.1);
   EXPECT_EQ(overhanging.view().attack_name, "Chain Lightning");
 
-  // A wait of its own is what the wall really runs against, and three seconds
-  // of one lets every bolt land. Jupiter Thunder's shape: a barrage nothing
-  // can cut short is worth all four.
+  // A cooldown is what really limits the wall, and a three-second one lets
+  // every bolt land. Jupiter Thunder's shape: a barrage nothing can cut short
+  // is worth all four.
   params.attacks[0].cooldown_seconds = 3.0;
   CombatSim waiting;
   waiting.Advance(params, 0.1);
@@ -2161,8 +2152,8 @@ TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // A swing slow enough never to land, so the casts are the only thing that
-  // kills and the timing is entirely theirs.
+  // An attack slow enough to never land, so only the casts kill and they
+  // control the timing.
   CombatParams params = MakeParams(1000.0, 5.0, {MakeType(&snail, 0.0, 1)});
   AddAutoAttack(params, /*interval=*/3.0, /*damage=*/50.0);
 
@@ -2172,9 +2163,9 @@ TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   ASSERT_EQ(sim.view().kills_this_step[0], 1);  // t=3: the cast lands
   ASSERT_TRUE(sim.respawning());
 
-  // t=4 is idle and buys the summon nothing. The beat at t=5 refills the map
-  // and the clock runs again from there, so the next cast is due at t=7. Had
-  // the idle second counted toward it, it would have come at t=6.
+  // t=4 is idle and gives the summon nothing. The respawn at t=5 refills the
+  // map and the clock resumes, so the next cast is due at t=7. If the idle
+  // second had counted, it would have come at t=6.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -2197,9 +2188,9 @@ TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
-  // A cast that hits vastly harder than the swing still does not become it:
-  // the charge bar names what the character is swinging, not what a summon
-  // is about to do.
+  // A cast that hits much harder than the attack still doesn't replace it: the
+  // charge bar shows what the character is attacking with, not what a summon is
+  // about to do.
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/500.0);
 
   sim.Advance(params, 0.5);
@@ -2208,7 +2199,7 @@ TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
 
 // --- Final Attack ---
 
-// Gives the swing a Final Attack worth `damage` against each enemy it reaches.
+// Gives the attack a Final Attack worth `damage` against each enemy it reaches.
 void AddFinalAttack(CombatParams& params, double damage) {
   params.attacks[0].final_attack_damage.assign(params.types.size(), damage);
 }
@@ -2220,12 +2211,12 @@ TEST(CombatSimTest, FinalAttackAddsToTheSwing) {
   AddFinalAttack(params, /*damage=*/15.0);
 
   sim.Advance(params, 1.0);
-  // 10 from the swing and 15 following it, on the one mob in front.
+  // 10 from the attack and 15 from the Final Attack, on the one mob in front.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.75, 1e-9);
 }
 
-// A Final Attack rolls separately against every enemy the swing reached, so a
-// wide swing sets it off as many times as it had targets.
+// A Final Attack rolls separately against every enemy the attack reached, so a
+// wide attack triggers it once per target.
 TEST(CombatSimTest, FinalAttackFollowsTheSwingOntoEveryEnemy) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
@@ -2234,14 +2225,14 @@ TEST(CombatSimTest, FinalAttackFollowsTheSwingOntoEveryEnemy) {
   AddFinalAttack(params, /*damage=*/40.0);
 
   sim.Advance(params, 1.0);
-  // All three took the swing's 10 and the 40 following it.
+  // All three took the attack's 10 and the Final Attack's 40.
   const std::vector<EngagedGroup>& groups = sim.view().engaged_groups;
   ASSERT_EQ(groups.size(), 1u);
   EXPECT_EQ(groups[0].count, 3);
   EXPECT_NEAR(groups[0].hp_fraction, 0.5, 1e-9);
 }
 
-// A swing that outruns the queue sets it off once per mob actually there, not
+// An attack wider than the queue triggers it once per mob actually present, not
 // once per target it could have reached.
 TEST(CombatSimTest, FinalAttackStopsWithTheSwing) {
   Mob snail = MakeMob("Snail", 100);
@@ -2267,7 +2258,7 @@ TEST(CombatSimTest, FinalAttackCanBeWhatKillsTheFrontMob) {
   EXPECT_EQ(sim.view().kills_this_step[0], 1);
 }
 
-// A summon is not the character swinging, so nothing follows it.
+// A summon isn't the character attacking, so nothing follows it.
 TEST(CombatSimTest, ACastOnItsOwnClockSetsOffNoFinalAttack) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
@@ -2289,13 +2280,13 @@ TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
-// Gives the swing an opening hit worth `damage` on one enemy.
+// Gives the attack an opening hit worth `damage` on one enemy.
 void AddLead(CombatParams& params, double damage) {
   params.attacks[0].lead_damage.assign(params.types.size(), damage);
 }
 
-// The opening hit lands once, on the healthiest of the mobs the swing reached
-// -- not on all of them, and not on the front one.
+// The opening hit lands once, on the healthiest mob the attack reached, not on
+// all of them and not on the front one.
 TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
   Mob snail = MakeMob("Snail", 100);
   Mob boar = MakeMob("Boar", 1000);
@@ -2306,8 +2297,8 @@ TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
   AddLead(params, /*damage=*/100.0);
 
   sim.Advance(params, 1.0);
-  // All three took the spread's 10. Only the boar, on 1000 against the snails'
-  // 100, also took the opening 100.
+  // All three took the spread's 10. Only the boar, at 1000 HP against the
+  // snails' 100, also took the opening 100.
   const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
   const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
   ASSERT_NE(snails, nullptr);
@@ -2316,8 +2307,8 @@ TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
   EXPECT_NEAR(boars->hp_fraction, 0.89, 1e-9);
 }
 
-// A second half that reaches fewer enemies than the first lands on that many
-// of them, healthiest first -- the shape Piercing Arrow II's fragment has.
+// A second part that reaches fewer enemies than the first lands on that many,
+// healthiest first. Piercing Arrow II's fragment works this way.
 TEST(CombatSimTest, TheOpeningHitCanLandOnSeveralMobs) {
   Mob snail = MakeMob("Snail", 100);
   Mob boar = MakeMob("Boar", 1000);
@@ -2332,8 +2323,8 @@ TEST(CombatSimTest, TheOpeningHitCanLandOnSeveralMobs) {
   params.attacks[0].lead_enemies = 2;
 
   sim.Advance(params, 1.0);
-  // The ogre and the boar are the two healthiest, so the fragment finds them
-  // and the snail takes the spread alone.
+  // The ogre and the boar are the two healthiest, so the fragment hits them and
+  // the snail takes only the spread.
   const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
   const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
   const EngagedGroup* ogres = FindGroup(sim.view().engaged_groups, "Ogre");
@@ -2345,8 +2336,8 @@ TEST(CombatSimTest, TheOpeningHitCanLandOnSeveralMobs) {
   EXPECT_NEAR(ogres->hp_fraction, 0.989, 1e-9);
 }
 
-// A swing worth more than its spread alone has to be ranked on the whole of
-// it, or the fight reaches for the wrong one.
+// An attack worth more than its spread alone must be ranked on its full value,
+// or the fight picks the wrong one.
 TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -2355,22 +2346,23 @@ TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
   AttackOption plain = MakeSkill("Plain", /*damage=*/20.0, /*cooldown=*/0.0);
   params.attacks.push_back(std::move(plain));
 
-  // The poke spreads for 5 where Plain lands 20, but its opening hit is worth
-  // 50 on top -- 55 against 20, so it is what gets swung.
+  // The basic attack spreads for 5 where Plain lands 20, but its opening hit
+  // adds 50: 55 against 20, so it's the one used.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().attack_name, "Attack");
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 55.0 / 100000.0, 1e-9);
 }
 
-// Throws the swing as `hits` scattered strikes, a repeat keeping `kept` of one.
+// Splits the attack into `hits` scattered strikes, with a repeat hit keeping
+// `kept` of a strike's damage.
 void AddScatter(CombatParams& params, int hits, double kept) {
   params.attacks[0].scatter_hits = hits;
   params.attacks[0].scatter_repeat_kept = kept;
 }
 
-// Five strikes over three enemies: every one of them takes a whole strike
-// before any takes a second, and the two spare strikes go to the healthiest --
-// GMS's "the flames go for the boss first", read through what this game has.
+// Five strikes over three enemies: each takes one strike before any takes a
+// second, and the two spare strikes go to the healthiest. This is GMS's "the
+// flames go for the boss first", as far as this game can model it.
 TEST(CombatSimTest, AScatteredSwingSpreadsBeforeItDoublesUp) {
   Mob snail = MakeMob("Snail", 100);
   Mob boar = MakeMob("Boar", 1000);
@@ -2390,17 +2382,16 @@ TEST(CombatSimTest, AScatteredSwingSpreadsBeforeItDoublesUp) {
   ASSERT_NE(snails, nullptr);
   ASSERT_NE(boars, nullptr);
   ASSERT_NE(ogres, nullptr);
-  // The ogre and the boar take two strikes apiece, the second worth 45% of the
-  // first; the snail takes the one nobody doubled up on.
+  // The ogre and the boar take two strikes each, the second worth 45% of the
+  // first; the snail takes one.
   EXPECT_NEAR(ogres->hp_fraction, 1.0 - 14.5 / 10000.0, 1e-9);
   EXPECT_NEAR(boars->hp_fraction, 1.0 - 14.5 / 1000.0, 1e-9);
   EXPECT_NEAR(snails->hp_fraction, 1.0 - 10.0 / 100.0, 1e-9);
 }
 
-// With nothing to spread to, every strike lands on the one enemy there is --
-// which is the whole of what the skill is for, and what a plain reading of it
-// as an N-enemy swing would throw away. The rate has to say so too, or the
-// fight would never reach for it.
+// With nobody else to spread to, every strike lands on the one enemy. That's
+// the point of the skill, and treating it as a plain N-enemy attack would lose
+// it. The rate must reflect this too, or the fight would never pick it.
 TEST(CombatSimTest, AScatteredSwingLandsEveryStrikeOnALoneEnemy) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -2416,9 +2407,9 @@ TEST(CombatSimTest, AScatteredSwingLandsEveryStrikeOnALoneEnemy) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 28.0 / 100000.0, 1e-9);
 }
 
-// Poison Nova's cap: fifteen clouds burst on a lone boss and only the three
-// GMS allows land, the rest finding nothing. The strikes past the cap are LOST
-// rather than moved along, which is what tells this from a repeat cut.
+// Poison Nova's cap: fifteen clouds burst on a lone boss, but only the three
+// GMS allows land and the rest hit nothing. Strikes past the cap are lost, not
+// moved elsewhere, which is how this differs from a repeat reduction.
 TEST(CombatSimTest, AScatteredSwingPilesNoDeeperThanItsCap) {
   Mob snail = MakeMob("Snail", 100000);
   Mob boar = MakeMob("Boar", 100000);
@@ -2429,8 +2420,8 @@ TEST(CombatSimTest, AScatteredSwingPilesNoDeeperThanItsCap) {
   AddScatter(params, /*hits=*/5, /*kept=*/1.0);
   params.attacks[0].scatter_max_hits_per_enemy = 2;
 
-  // Five strikes over two enemies would be three and two; the cap holds the
-  // healthier one to two and the third strike is thrown away.
+  // Five strikes over two enemies would be three and two. The cap limits the
+  // healthier one to two, and the third strike is lost.
   sim.Advance(params, 1.0);
   const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
   const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
@@ -2440,9 +2431,8 @@ TEST(CombatSimTest, AScatteredSwingPilesNoDeeperThanItsCap) {
   EXPECT_NEAR(boars->hp_fraction, 1.0 - 20.0 / 100000.0, 1e-9);
 }
 
-// A swing reaching further than it has strikes to throw touches only as many
-// enemies as it threw. The burns and the freeze follow, all three being read
-// off the one count.
+// An attack with more reach than strikes hits only as many enemies as it has
+// strikes. Burns and freezes follow suit, since all three read the same count.
 TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -2451,17 +2441,17 @@ TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
   AddScatter(params, /*hits=*/2, /*kept=*/0.45);
 
   sim.Advance(params, 1.0);
-  // Two of the four snails took a strike apiece; the other two took nothing at
-  // all, so the group has lost 20 of its 4000 rather than 40.
+  // Two of the four snails took a strike each and the other two nothing, so the
+  // group has lost 20 of its 4000, not 40.
   const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
   ASSERT_NE(snails, nullptr);
   EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 4000.0, 1e-9);
 }
 
-// DoT Punisher's count: the orbs are as many as the burn stacks already
-// standing, so the same swing widens as the fight goes on and stops at its
-// cap. The first cast proves the other half of the rule -- a swing's own burn
-// is laid after its damage, so it never widens itself.
+// DoT Punisher's count: there are as many orbs as burn stacks already active,
+// so the same attack widens as the fight goes on, up to its cap. The first cast
+// checks the other half of the rule: an attack's own burn is applied after its
+// damage, so it never widens itself.
 TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatSim sim;
@@ -2470,10 +2460,10 @@ TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
   AddScatter(params, /*hits=*/2, /*kept=*/0.5);
   params.attacks[0].scatter_hits_per_dot = 1.0;
   params.attacks[0].scatter_max_hits = 5;
-  // A burn worth nothing per tick, so the only thing it changes is the count.
+  // A burn dealing nothing per tick, so it only changes the count.
   DotApplication burn = MakeBurn(0.0, 1.0, 30.0);
-  // Deeper than the count can use, so the cap is what stops it and not the
-  // pile running out of room.
+  // More stacks than the count can use, so the cap stops it, not the stack
+  // limit.
   burn.max_stacks = 6;
   params.attacks[0].dots.push_back(burn);
   params.dot_count = 1;
@@ -2485,8 +2475,8 @@ TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
     taken[cast] = (left - sim.view().target_hp_fraction) * 1000000.0;
     left = sim.view().target_hp_fraction;
   }
-  // 2 strikes, then 3, 4 and 5 as the pile deepens, and 5 twice more with the
-  // pile still deepening under it: the count stops at its cap.
+  // 2 strikes, then 3, 4 and 5 as the stacks grow, then 5 twice more while the
+  // stacks keep growing: the count stops at its cap.
   EXPECT_NEAR(taken[0], 15.0, 1e-9);
   EXPECT_NEAR(taken[1], 20.0, 1e-9);
   EXPECT_NEAR(taken[2], 25.0, 1e-9);
@@ -2495,9 +2485,9 @@ TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
   EXPECT_NEAR(taken[5], 30.0, 1e-9);
 }
 
-// Puts a healing cast beside the swing, worth `fraction` of the pool. It
-// carries damage the fight must never land: what makes a cast harmless is the
-// fight declining to strike with it, not the encounter having zeroed it.
+// Adds a healing cast beside the attack, worth `fraction` of HP. It carries
+// damage the fight must never land: the cast is harmless because the fight
+// doesn't attack with it, not because the encounter zeroed it.
 void AddHeal(CombatParams& params, double fraction, double swing = 1.0) {
   AttackOption heal;
   heal.name = "Heal";
@@ -2508,9 +2498,9 @@ void AddHeal(CombatParams& params, double fraction, double swing = 1.0) {
   params.attacks.push_back(std::move(heal));
 }
 
-// The whole of the cast's rule on one setup: ignored while the player is
-// comfortable, taken the moment they fall under a quarter, and landing the
-// pool share it is worth instead of any damage at all.
+// The whole healing cast rule in one setup: ignored while the player is
+// healthy, used as soon as they drop below a quarter, and healing its share of
+// HP instead of dealing damage.
 TEST(CombatSimTest, AHealingCastIsSpentOnlyOnceThePlayerIsLow) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -2518,8 +2508,8 @@ TEST(CombatSimTest, AHealingCastIsSpentOnlyOnceThePlayerIsLow) {
   GivePlayerHp(params, /*max_hp=*/100, /*interval=*/1.0, /*damage=*/10.0);
   AddHeal(params, /*fraction=*/0.5);
 
-  // Seven seconds of being hit leaves them on 30, still above the quarter, so
-  // every swing so far has been the attack: seven of them, 70 damage.
+  // Seven seconds of hits leave them at 30, still above a quarter, so every
+  // turn so far has been the attack: seven of them, 70 damage.
   for (int i = 0; i < 7; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -2527,20 +2517,20 @@ TEST(CombatSimTest, AHealingCastIsSpentOnlyOnceThePlayerIsLow) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 70.0 / 100000.0, 1e-9);
   EXPECT_EQ(sim.view().attack_name, "Attack");
 
-  // The eighth hit takes them to 20, and that swing goes on the cast instead:
-  // half the pool back, and the mob left on the seven hits it has taken.
+  // The eighth hit takes them to 20, and that turn goes to the cast: half their
+  // HP back, and the mob still at the seven hits it has taken.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 70);
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 70.0 / 100000.0, 1e-9);
 }
 
-// The cast replaces the NEXT swing, not the one already on its way: a skill
-// winding up is committed to, and being in trouble is no exception to that.
+// The cast replaces the next attack, not the one already winding up. An attack
+// in progress is committed to, even when the player is in trouble.
 TEST(CombatSimTest, AHealingCastWaitsForTheSwingAlreadyWindingUp) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
-  // The poke does nothing, so the four-second skill is what gets chosen -- and
-  // unlike the poke, a skill is committed to once it is winding up.
+  // The basic attack does nothing, so the four-second skill is chosen, and
+  // unlike the basic attack, a skill is committed to once it's winding up.
   CombatParams params =
       MakeParams(4.0, 1000.0, {MakeType(&snail, 0.0, 3)}, /*reach=*/3);
   AttackOption skill = MakeSkill("Skill", /*damage=*/10.0, /*cooldown=*/0.0);
@@ -2550,8 +2540,8 @@ TEST(CombatSimTest, AHealingCastWaitsForTheSwingAlreadyWindingUp) {
   AddHeal(params, /*fraction=*/0.5, /*swing=*/4.0);
   GivePlayerHp(params, /*max_hp=*/1000, /*interval=*/3.0, /*damage=*/800.0);
 
-  // One hit lands on the third second and takes them to a fifth of the pool,
-  // with the skill three seconds into its four.
+  // A hit on the third second takes them to a fifth of their HP, with the skill
+  // three seconds into its four.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -2559,18 +2549,18 @@ TEST(CombatSimTest, AHealingCastWaitsForTheSwingAlreadyWindingUp) {
   EXPECT_EQ(sim.view().attack_name, "Skill");
   EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
 
-  // The fourth second finishes it: the skill lands rather than being dropped,
-  // and only then is the cast lined up.
+  // The fourth second finishes it: the skill lands instead of being cancelled,
+  // and only then is the cast queued.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 10.0 / 100000.0, 1e-9);
   EXPECT_EQ(sim.view().attack_name, "Heal");
-  // The cast reaches nobody, but the window it is charging in front of is
-  // still the last swing's -- the mob bars must not collapse behind it.
+  // The cast targets nobody, but the window it charges in still shows the last
+  // attack's targets, so the mob bars must not collapse behind it.
   ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
   EXPECT_EQ(sim.view().engaged_groups.front().count, 3);
 }
 
-// The pool is the ceiling: an overheal is wasted rather than banked.
+// Max HP is the ceiling: overhealing is wasted, not saved.
 TEST(CombatSimTest, AHealingCastStopsAtAFullPool) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -2584,9 +2574,9 @@ TEST(CombatSimTest, AHealingCastStopsAtAFullPool) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
-// A cleared map hands HP back on the beat for free, so a swing spent healing
-// there would buy nothing. Reachable because a skill on its own clock can take
-// the last mob before the swing is ever aimed.
+// A cleared map restores HP for free on the respawn, so a turn spent healing
+// there would gain nothing. This can happen because a skill on its own clock
+// can kill the last mob before the attack is aimed.
 TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2595,8 +2585,8 @@ TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
   GivePlayerHp(params, /*max_hp=*/100, /*interval=*/1.0, /*damage=*/80.0);
   AddHeal(params, /*fraction=*/0.5);
 
-  // The hit takes them under the quarter, and the cast clears the map before
-  // the swing is chosen.
+  // The hit takes them below a quarter, and the cast clears the map before the
+  // attack is chosen.
   sim.Advance(params, 1.0);
   ASSERT_TRUE(sim.respawning());
   EXPECT_EQ(sim.view().player_hp, 20);
@@ -2604,7 +2594,7 @@ TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
 }
 
 // Empowered Arrows: the Sniper's Piercing Arrow is upgraded every fourth shot.
-// Three ordinary swings, then the bigger one -- not the bigger one first.
+// Three normal attacks, then the bigger one, not the bigger one first.
 TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
@@ -2623,12 +2613,13 @@ TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
       << "and the count starts again from the fifth";
 }
 
-// Creeping Toxin: the pool ticks away, and every fourth tick detonates instead.
-// The same swap on the other clock, counted in pulses rather than swings.
+// Creeping Toxin: the poison pool ticks, and every fourth tick detonates
+// instead. The same swap on the other clock, counted in pulses instead of
+// attacks.
 TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
-  // A swing worth nothing, so only the summon moves the bar.
+  // An attack worth nothing, so only the summon moves the bar.
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/1.0);
   SetEmpoweredForm(params.auto_attacks[0], /*every=*/4, /*damage=*/8.0);
@@ -2645,8 +2636,8 @@ TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
       << "and the count starts again from the fifth";
 }
 
-// The count toward the bigger form is the character's, like their cooldowns:
-// three swings spent are three swings spent wherever they land.
+// The count toward the bigger form belongs to the character, like cooldowns:
+// three attacks used count wherever they landed.
 TEST(CombatSimTest, TheEmpoweredCountSurvivesAChangeOfEncounter) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
@@ -2658,15 +2649,15 @@ TEST(CombatSimTest, TheEmpoweredCountSurvivesAChangeOfEncounter) {
 
   CombatParams forest = field;
   forest.encounter = "forest";
-  // The fourth swing is the fourth wherever it lands, so it detonates on the
-  // fresh mob this encounter put in front of it.
+  // The fourth attack is the fourth wherever it lands, so it detonates on the
+  // new mob this encounter put in front.
   sim.Advance(forest, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.5, 1e-9);
 }
 
-// And the same for the wait on the strike a swing sets off, which runs beside
-// the swing's own: a Night Lord walking away keeps Showdown's wait exactly as
-// they keep the shuriken's.
+// The same holds for the cooldown on a strike an attack triggers, which runs
+// alongside the attack's own: a Night Lord leaving keeps Showdown's cooldown
+// just as they keep the shuriken's.
 TEST(CombatSimTest, TheSideStrikesWaitSurvivesAChangeOfEncounter) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams field = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
@@ -2682,14 +2673,14 @@ TEST(CombatSimTest, TheSideStrikesWaitSurvivesAChangeOfEncounter) {
   CombatParams forest = field;
   forest.encounter = "forest";
   sim.Advance(forest, 1.0);
-  // The mob is untouched: the swing itself deals nothing, and the strike that
-  // would have is still a hundred seconds from coming round.
+  // The mob is untouched: the attack itself deals nothing, and the strike that
+  // would is still a hundred seconds away.
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
 }
 
-// The two clocks count apart. A swing landing its empowered form must not
-// bring the summon's round forward, or the Sniper's Piercing Arrow would set
-// off a pool it has nothing to do with.
+// The two clocks count separately. An attack landing its empowered form must
+// not advance the summon's count, or the Sniper's Piercing Arrow would trigger
+// a pool it has nothing to do with.
 TEST(CombatSimTest, EachClockCountsItsOwnEmpoweredRound) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
@@ -2698,7 +2689,7 @@ TEST(CombatSimTest, EachClockCountsItsOwnEmpoweredRound) {
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/1.0);
   SetEmpoweredForm(params.auto_attacks[0], /*every=*/4, /*damage=*/40.0);
 
-  // Three seconds in: the swing has landed its form once, on the second of
+  // Three seconds in: the attack has landed its form once, on the second of
   // three, for 1 + 3 + 1. The summon has pulsed three times and must still be
   // waiting for its fourth, so all three are worth 1.
   for (int i = 0; i < 3; ++i) {
@@ -2707,8 +2698,8 @@ TEST(CombatSimTest, EachClockCountsItsOwnEmpoweredRound) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9);
 }
 
-// It takes the PLACE of the swing rather than riding on top of it: four swings
-// are three ordinary ones and one empowered, never four and a fifth.
+// It replaces the attack instead of adding to it: four attacks are three normal
+// ones and one empowered, never four plus a fifth.
 TEST(CombatSimTest, AnEmpoweredSwingReplacesTheOneItLandsFor) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
@@ -2722,8 +2713,8 @@ TEST(CombatSimTest, AnEmpoweredSwingReplacesTheOneItLandsFor) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9);
 }
 
-// The empowered form carries its own reach, which is wider than the swing it
-// stands in for: on its turn it takes mobs the ordinary swing never touches.
+// The empowered form has its own, wider reach than the attack it replaces, so
+// on its turn it hits mobs the normal attack never touches.
 TEST(CombatSimTest, AnEmpoweredSwingBringsItsOwnReach) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -2737,9 +2728,9 @@ TEST(CombatSimTest, AnEmpoweredSwingBringsItsOwnReach) {
   EXPECT_EQ(sim.view().kills_this_step[0], 3);
 }
 
-// Divine Judgment: Blast brands what it strikes, and the brand belongs to the
-// enemy. A monster stepping into a fight already in progress starts its own
-// count from nothing rather than inheriting where the swing had got to.
+// Divine Judgment: Blast brands what it hits, and the brand belongs to the
+// enemy. A monster joining a fight already in progress starts its own count
+// from zero instead of inheriting the attack's count.
 TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
   Mob soft = MakeMob("Soft", 20);
   Mob tough = MakeMob("Tough", 20);
@@ -2756,15 +2747,16 @@ TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9)
       << "the newcomer's first strike is an ordinary one, not the swing's 2nd";
   sim.Advance(params, 1.0);
-  // 19 - (1 + 6) of 20. Replacing the strike rather than riding it would leave
-  // 13, and inheriting the swing's count would have gone off a swing sooner.
+  // 19 - (1 + 6) of 20. Replacing the strike instead of adding to it would
+  // leave 13, and inheriting the attack's count would have triggered one attack
+  // sooner.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9)
       << "the mark goes off on the second strike IT has taken, on top of it";
 }
 
-// Marking enemies, the form never takes the whole swing: it goes off on the
-// mobs whose marks came due, and everything else the swing reached takes its
-// ordinary strike beside them.
+// With marks, the form never replaces the whole attack: it triggers on the mobs
+// whose marks are due, and everything else the attack reached takes its normal
+// strike.
 TEST(CombatSimTest, AMarkGoesOffOnlyOnTheEnemyThatEarnedIt) {
   Mob soft = MakeMob("Soft", 20);
   Mob tough = MakeMob("Tough", 20);
@@ -2775,7 +2767,7 @@ TEST(CombatSimTest, AMarkGoesOffOnlyOnTheEnemyThatEarnedIt) {
   SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/6.0, /*reach=*/2,
                    /*marks=*/true);
 
-  // The first swing kills the soft one and marks the tough one beside it. The
+  // The first attack kills the weak mob and marks the tough one beside it. The
   // second reaches both tough ones: one is due, the other has only just
   // arrived.
   sim.Advance(params, 1.0);
@@ -2789,9 +2781,9 @@ TEST(CombatSimTest, AMarkGoesOffOnlyOnTheEnemyThatEarnedIt) {
       << "12 and 19 of 20 apiece: only one of them was due";
 }
 
-// The choice between swings goes on damage per second, so an attack that lands
-// a much bigger form every few swings has to be weighed on the average of the
-// two. Weighed on its ordinary swing alone, this one loses to the poke.
+// Attacks are chosen by damage per second, so an attack that lands a much
+// bigger form every few uses must be weighed on the average of the two. On its
+// normal form alone, this one loses to the basic attack.
 TEST(CombatSimTest, WeighsAnEmpoweredSwingIntoTheChoice) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -2799,17 +2791,17 @@ TEST(CombatSimTest, WeighsAnEmpoweredSwingIntoTheChoice) {
   params.attacks.push_back(MakeSkill("Piercing Arrow", 2.0, /*cooldown=*/0.0));
   SetEmpoweredForm(params.attacks[1], /*every=*/4, /*damage=*/10.0);
 
-  // 2 + (10 - 2) / 4 = 4 a swing, against the poke's 3.
+  // 2 + (10 - 2) / 4 = 4 per attack, against the basic attack's 3.
   sim.Advance(params, 0.1);
   EXPECT_EQ(sim.view().attack_name, "Piercing Arrow");
 }
 
-// Final Pact: a passive that catches the hit that would have emptied the
-// player. They stand where they fell with the whole pool back, and the fight
-// carries on -- see AdvanceCombat for what dying costs when it is not caught.
+// Final Pact: a passive that catches the hit that would have killed the player.
+// They survive with full HP and the fight continues. See AdvanceCombat for what
+// dying costs when it isn't caught.
 TEST(CombatSimTest, APactCatchesTheHitThatWouldHaveKilled) {
-  Mob snail = MakeMob("Snail", 1000);  // too tough to kill, so the hits keep
-  CombatSim sim;                       // coming
+  Mob snail = MakeMob("Snail", 1000);  // too tough to kill, so hits keep coming
+  CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
   params.revive_cooldown_seconds = 10.0;
@@ -2821,7 +2813,7 @@ TEST(CombatSimTest, APactCatchesTheHitThatWouldHaveKilled) {
   EXPECT_FALSE(sim.view().died_this_step);
   EXPECT_EQ(sim.view().player_hp, 100);
 
-  // The next one inside the wait is a real death.
+  // The next one within the cooldown is a real death.
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.view().player_hp, 40);
   sim.Advance(params, 1.0);
@@ -2846,9 +2838,9 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
-// Invincible Belief's shape: under 15% of the pool it pours 20% of it a
-// second for three seconds, then waits. It answers NEARLY dying, where a pact
-// answers dying, so both can be carried at once.
+// Invincible Belief's shape: below 15% HP it heals 20% per second for three
+// seconds, then goes on cooldown. It triggers on nearly dying, while a pact
+// triggers on dying, so both can be carried at once.
 CombatParams EmergencyHealParams(Mob& snail, double damage) {
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, damage);
@@ -2858,19 +2850,19 @@ CombatParams EmergencyHealParams(Mob& snail, double damage) {
 
 TEST(CombatSimTest, TheEmergencyHealPoursOnceThePoolIsNearlyEmpty) {
   Mob snail = MakeMob("Snail", 1000);  // too tough to kill, so the hits keep
-  CombatSim sim;                       // coming
+  CombatSim sim;
   CombatParams params = EmergencyHealParams(snail, /*damage=*/10.0);
 
-  // Down to 20 with nothing poured: the line is 15 and they are above it.
+  // Down to 20 with nothing healed: the threshold is 15 and they're above it.
   for (int step = 0; step < 8; ++step) {
     sim.Advance(params, 1.0);
   }
   EXPECT_EQ(sim.view().player_hp, 20);
 
-  // The ninth hit puts them under it, so the second it arms pours 20 back.
+  // The ninth hit puts them below it, so the next second heals 20.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 30);
-  // Two more seconds of pouring against two more hits, and then it stops.
+  // Two more seconds of healing against two more hits, and then it stops.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 40);
   sim.Advance(params, 1.0);
@@ -2884,8 +2876,8 @@ TEST(CombatSimTest, TheEmergencyHealWaitsOutItsCooldownAndFillsNoFurther) {
   CombatSim sim;
   CombatParams params = EmergencyHealParams(snail, /*damage=*/10.0);
 
-  // Once it has fired, a second dip inside the wait is not answered: the
-  // pool runs down to nothing and the player dies.
+  // Once it has fired, a second dip within the cooldown isn't caught: HP runs
+  // down to zero and the player dies.
   for (int step = 0; step < 20 && !sim.view().died_this_step; ++step) {
     sim.Advance(params, 1.0);
   }
@@ -2895,7 +2887,7 @@ TEST(CombatSimTest, TheEmergencyHealWaitsOutItsCooldownAndFillsNoFurther) {
 TEST(CombatSimTest, TheEmergencyHealNeverPoursPastThePool) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
-  // One hit takes 90 of the 100, so three seconds of 20 would overfill it.
+  // One hit takes 90 of the 100, so three seconds of 20 would overfill.
   CombatParams params = EmergencyHealParams(snail, /*damage=*/90.0);
   params.hit_seconds = 100.0;  // and no second hit to spend it on
 
@@ -2905,10 +2897,10 @@ TEST(CombatSimTest, TheEmergencyHealNeverPoursPastThePool) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
-// Trickblade's shape: a swing that hits ten for 10 apiece, and a heavier form
-// it lands instead on one enemy for 300 while a wound stands three deep. The
-// wound is left by another swing entirely -- GMS's Assassinate and Sonic Blow
-// -- so a test has to swing that one first.
+// Trickblade's shape: an attack hitting ten enemies for 10 each, and a stronger
+// form hitting one enemy for 300 instead while a wound is three stacks deep.
+// The wound is left by a different attack (GMS's Assassinate and Sonic Blow),
+// so a test must use that one first.
 AttackOption MakeWoundedSwing() {
   AttackOption blade = MakeSkill("Trickblade", 10.0, /*cooldown=*/14.0);
   blade.max_enemies = 10;
@@ -2919,7 +2911,7 @@ AttackOption MakeWoundedSwing() {
   return blade;
 }
 
-// The swing that leaves the wound: `stacks` deep, for ten seconds.
+// The attack that leaves the wound: `stacks` deep, for ten seconds.
 AttackOption MakeWoundingSwing(int stacks, int reach = 1) {
   AttackOption blow = MakeSkill("Sonic Blow", 1.0, /*cooldown=*/0.0);
   blow.max_enemies = reach;
@@ -2929,9 +2921,9 @@ AttackOption MakeWoundingSwing(int stacks, int reach = 1) {
   return blow;
 }
 
-// One swing of Sonic Blow fills the wound, so the next Trickblade is the
-// heavier form: 300 on one enemy rather than 10 across ten, and the longer
-// wait that form states rather than the skill's own.
+// One Sonic Blow fills the wound, so the next Trickblade is the stronger form:
+// 300 on one enemy instead of 10 on each of ten, with the form's longer
+// cooldown instead of the skill's own.
 TEST(CombatSimTest, AFullWoundPutsTheHeavierFormInThePressesPlace) {
   Mob boss = MakeMob("Zakum", 100000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -2939,14 +2931,14 @@ TEST(CombatSimTest, AFullWoundPutsTheHeavierFormInThePressesPlace) {
   params.attacks.push_back(MakeWoundedSwing());
 
   CombatSim sim;
-  // Nothing is wounded yet, so the spread is what the press is worth.
+  // Nothing is wounded yet, so the key press gives the spread.
   sim.Advance(params, 1.0);
   double dealt = 100000 * (1.0 - sim.view().roster.front().hp_fraction);
   EXPECT_LT(dealt, 300.0);
 
   // Sonic Blow lands, and from here Trickblade is the five slashes: three of
-  // them over the next minute on the twenty second wait the FORM states, not
-  // four on the skill's own fourteen.
+  // them in the next minute on the form's twenty-second cooldown, not four on
+  // the skill's own fourteen.
   for (int step = 0; step < 60; ++step) {
     sim.Advance(params, 1.0);
   }
@@ -2955,13 +2947,13 @@ TEST(CombatSimTest, AFullWoundPutsTheHeavierFormInThePressesPlace) {
   EXPECT_LT(total, 4 * 300.0);
 }
 
-// The wound rides ONE monster: a fresh one takes it off whoever had it, and a
-// wounded monster that dies takes it to the grave. Either way the press falls
+// The wound is on one monster: a new wound moves it from whoever had it, and a
+// wounded monster that dies takes it with it. Either way, the key press falls
 // back to the spread.
 TEST(CombatSimTest, AWoundDiesWithItsMonster) {
   Mob snail = MakeMob("Snail", 5);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 2)});
-  // Wide enough to kill what it wounds, which is the case the rule is about.
+  // Wide enough to kill what it wounds, which is the case being tested.
   AttackOption blow = MakeWoundingSwing(3, /*reach=*/2);
   blow.damage_per_hit = {100.0};
   params.attacks.push_back(std::move(blow));
@@ -2970,13 +2962,12 @@ TEST(CombatSimTest, AWoundDiesWithItsMonster) {
   CombatSim sim;
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
-  // Nothing is left carrying a wound, so nothing to slash behind.
+  // Nothing is left with a wound, so there's nothing to slash.
   EXPECT_TRUE(sim.view().roster.empty());
 }
 
-// GMS names the wound's target by MAX HP rather than by what it has left, so
-// the snail standing beside a boss never takes it -- and killing the snail
-// leaves the wound where it was.
+// GMS picks the wound's target by max HP, not current HP, so a snail beside a
+// boss never gets it, and killing the snail leaves the wound where it was.
 TEST(CombatSimTest, AWoundGoesToTheBiggestEnemyTheSwingReached) {
   Mob snail = MakeMob("Snail", 10);
   Mob boss = MakeMob("Zakum", 100000);
@@ -2997,15 +2988,15 @@ TEST(CombatSimTest, AWoundGoesToTheBiggestEnemyTheSwingReached) {
   for (int step = 0; step < 60; ++step) {
     sim.Advance(params, 1.0);
   }
-  // The snail is long dead and the boss is still being slashed, which it would
-  // not be had the wound followed the snail.
+  // The snail is long dead and the boss is still being slashed, which wouldn't
+  // happen if the wound had followed the snail.
   ASSERT_EQ(sim.view().roster.size(), 1u);
   EXPECT_GT(100000 * (1.0 - sim.view().roster.front().hp_fraction), 3 * 300.0);
 }
 
-// Trickblade's invulnerability rides the heavier form alone: the spread it
-// throws with nothing wounded raises nothing at all. Read off the damage, the
-// buffed table here being the same swings doubled.
+// Trickblade's invulnerability comes only with the stronger form: the spread it
+// uses with nothing wounded triggers nothing. Checked through damage, since the
+// buffed table here is the same attacks doubled.
 TEST(CombatSimTest, AFormOnlyBuffIsNotRaisedByTheOrdinaryPress) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -3027,18 +3018,18 @@ TEST(CombatSimTest, AFormOnlyBuffIsNotRaisedByTheOrdinaryPress) {
   params.buffed[1] = std::move(set);
 
   CombatSim sim;
-  // Trickblade goes first, hitting hardest; nothing is wounded, so it throws
-  // the spread for 10 and raises nothing. Sonic Blow fills the wound after it
-  // and lands 1 a second while Trickblade recharges.
+  // Trickblade goes first, hitting hardest. Nothing is wounded, so it uses the
+  // spread for 10 and triggers nothing. Sonic Blow fills the wound after it and
+  // lands 1 per second while Trickblade recharges.
   for (int step = 0; step < 15; ++step) {
     sim.Advance(params, 1.0);
   }
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 24.0 / 1000000.0, 1e-9);
 }
 
-// Gives `params` a timed buff: while it is up, every swing hits `factor` times
-// as hard. Its table is the same attacks with bigger numbers in them, which is
-// the shape ComputeCombatParams really builds.
+// Gives `params` a timed buff: while it's up, every attack hits `factor` times
+// as hard. Its table is the same attacks with bigger numbers, which is what
+// ComputeCombatParams really builds.
 void GiveBuff(CombatParams& params, double duration, double cooldown,
               double factor, double heal = 0.0, double reduction = 0.0,
               double soften = 0.0) {
@@ -3062,10 +3053,10 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed[1] = std::move(set);
 }
 
-// Gives `params` a buff raised by a ROLL on every landed swing rather than by
-// a clock, in `stacks` helpings that each live out their own window. Every
-// helping's table hits `factor` times as hard as the one below it, so the
-// mask a swing is priced under is readable off the damage.
+// Gives `params` a buff triggered by a roll on every attack landed instead of
+// by a clock, in `stacks` stacks that each last their own duration. Each
+// stack's table hits `factor` times as hard as the one below, so the damage
+// shows which mask an attack was priced under.
 void GiveRolledBuff(CombatParams& params, int stacks, double duration,
                     double chance, bool needs_afflicted = false) {
   for (int stack = 0; stack < stacks; ++stack) {
@@ -3076,7 +3067,7 @@ void GiveRolledBuff(CombatParams& params, int stacks, double duration,
     buff.needs_afflicted_target = needs_afflicted;
     params.buffs.push_back(std::move(buff));
   }
-  // One table per helping count, which is every mask a prefix can make.
+  // One table per stack count, which covers every mask a prefix can make.
   for (int held = 1; held <= stacks; ++held) {
     AttackSet set;
     set.attacks = params.attacks;
@@ -3089,8 +3080,8 @@ void GiveRolledBuff(CombatParams& params, int stacks, double duration,
   }
 }
 
-// One helping a swing, three at a time, and the mask is always a PREFIX of
-// the group -- the whole reason the windows are kept in order.
+// One stack per attack, up to three at once, and the mask is always a prefix of
+// the group. That's why the windows are kept in order.
 TEST(CombatSimTest, ARolledBuffGathersOneHelpingPerSwing) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
@@ -3103,15 +3094,15 @@ TEST(CombatSimTest, ARolledBuffGathersOneHelpingPerSwing) {
   EXPECT_EQ(sim.buff_mask(), 3);
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.buff_mask(), 7);
-  // Three helpings are still one buff to the charge bar's dots.
+  // Three stacks still show as one buff in the charge bar's dots.
   EXPECT_EQ(sim.view().buff_count, 1);
-  // A full pile gains nothing: each helping lives out its own window.
+  // A full stack gains nothing: each stack lasts its own duration.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.buff_mask(), 7);
 }
 
-// The oldest helping lapses first, and the survivors close up: the mask goes
-// to 3 rather than leaving a hole at the front of the group.
+// The oldest stack expires first and the rest shift down, so the mask becomes 3
+// instead of leaving a gap at the front.
 TEST(CombatSimTest, ALapsedHelpingLeavesNoHoleInThePile) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
@@ -3122,13 +3113,13 @@ TEST(CombatSimTest, ALapsedHelpingLeavesNoHoleInThePile) {
     sim.Advance(params, 1.0);
   }
   ASSERT_EQ(sim.buff_mask(), 7);
-  // The first helping runs out half a second into the fourth swing, and the
-  // fourth roll fills the slot it freed.
+  // The first stack expires half a second into the fourth attack, and the
+  // fourth roll fills the freed slot.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.buff_mask(), 7);
-  // Nothing swings, so nothing is gathered and they lapse oldest first. Every
-  // table, since the swing is picked from whichever one the pile puts the
-  // fight in.
+  // Nothing attacks, so nothing is gathered and they expire oldest first. This
+  // applies to every table, since the attack is chosen from whichever table the
+  // stacks put the fight in.
   params.attacks[0].swing_seconds = 1000.0;
   for (std::pair<const int, AttackSet>& window : params.buffed) {
     window.second.attacks[0].swing_seconds = 1000.0;
@@ -3139,8 +3130,8 @@ TEST(CombatSimTest, ALapsedHelpingLeavesNoHoleInThePile) {
   EXPECT_EQ(sim.buff_mask(), 1);
 }
 
-// Thief's Cunning: the window opens only on a swing that finds an enemy
-// already suffering, so a character who inflicts nothing never opens one.
+// Thief's Cunning: the buff triggers only on an attack that hits an enemy
+// already afflicted, so a character who inflicts nothing never triggers it.
 TEST(CombatSimTest, ABuffNeedingAnAfflictedEnemyWaitsForOne) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
@@ -3153,8 +3144,8 @@ TEST(CombatSimTest, ABuffNeedingAnAfflictedEnemyWaitsForOne) {
   }
   EXPECT_EQ(unarmed.buff_mask(), 0);
 
-  // With ice on the swing the first one lands on a clean enemy and the
-  // second finds the one it just froze.
+  // With ice on the attack, the first one lands on a clean enemy and the second
+  // finds the one it just froze.
   params.attacks[0].freeze_seconds = 10.0;
   CombatSim frozen;
   frozen.Advance(params, 1.0);
@@ -3163,9 +3154,9 @@ TEST(CombatSimTest, ABuffNeedingAnAfflictedEnemyWaitsForOne) {
   EXPECT_EQ(frozen.buff_mask(), 1);
 }
 
-// Gives `params` a buff that LOADS a swing: while it stands the character can
-// fire the loaded attack, and only `charges` times per raising. The shape
-// Repeating Crossbow Cartridge has.
+// Gives `params` a buff that loads an attack: while it's up, the character can
+// fire the loaded attack, only `charges` times per cast. Repeating Crossbow
+// Cartridge works this way.
 void GiveMagazine(CombatParams& params, double duration, double cooldown,
                   int charges, double damage) {
   AttackOption loaded;
@@ -3188,7 +3179,7 @@ void GiveMagazine(CombatParams& params, double duration, double cooldown,
   params.buffed[1] = std::move(set);
 }
 
-// Runs `seconds` of fight in quarter-second steps and totals what landed.
+// Runs `seconds` of fight in quarter-second steps and totals the damage.
 double DamageOver(CombatSim& sim, const CombatParams& params, double seconds) {
   double total = 0.0;
   for (double t = 0.0; t < seconds; t += 0.25) {
@@ -3198,16 +3189,16 @@ double DamageOver(CombatSim& sim, const CombatParams& params, double seconds) {
   return total;
 }
 
-// Poison Nova's shape: the clouds are no button of their own, and go off on
-// the press of the skill named to spend them. One charge over a window that
-// holds several presses means the first takes the lot.
+// Poison Nova's shape: the clouds have no key of their own and go off when the
+// named skill is pressed. One charge over a window with several presses means
+// the first press uses it all.
 TEST(CombatSimTest, ALoadGoesOffOnThePressThatSpendsIt) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
   CombatParams params =
       MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
-  // The ordinary swing lands 10 a second and is what spends the load; the
-  // clouds are laid by a swing of their own, on a twenty-second wait.
+  // The normal attack lands 10 per second and spends the load. The clouds are
+  // laid by a separate attack on a twenty-second cooldown.
   params.attacks[0].damage_per_hit.assign(params.types.size(), 10.0);
   params.attacks.push_back(MakeSkill("Nova", /*damage=*/1.0,
                                      /*cooldown=*/20.0));
@@ -3218,27 +3209,27 @@ TEST(CombatSimTest, ALoadGoesOffOnThePressThatSpendsIt) {
   params.attacks[0].loaded =
       std::make_shared<AttackOption>(params.attacks[loaded]);
   params.attacks[0].loaded_attack = loaded;
-  // Laid by the swing that carries it, which is Poison Nova's shape: the
-  // clouds go up on the cast rather than on a clock of the buff's own, and
-  // that swing's own wait is what says how often they can be laid again.
+  // Laid by the attack that carries it, as in Poison Nova: the clouds go up on
+  // the cast instead of on the buff's own clock, and that attack's cooldown
+  // decides how often they can be laid again.
   params.buffs.back().laid_by_attack = 1;
   params.buffs.back().raised_on_cast = true;
   params.buffed[1].attacks = params.attacks;
 
-  // One second laying the clouds for 1, nine swings of 10, and the charge
-  // spent on the first of them. The buff refreshing every press is what the
-  // laying swing's own cooldown stops.
+  // One second laying the clouds for 1, nine attacks of 10, and the charge
+  // spent on the first of them. The laying attack's cooldown stops the buff
+  // refreshing on every press.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1.0 + 90.0 + 500.0);
-  // The clouds have lapsed and Nova is still recharging: bare presses only.
+  // The clouds have expired and Nova is still recharging: plain presses only.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 100.0);
-  // Nova comes round, and lays a fresh load.
+  // Nova is ready again and lays a new load.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1.0 + 90.0 + 500.0);
 }
 
-// Eight cartridges and a minute to spend them in: the loaded swing is the only
-// one that hurts, so what lands says how many charges were fired. It stops at
-// eight however long the buff stands, the count is gone with the buff rather
-// than carried, and a fresh load comes with the next raising.
+// Eight cartridges and a minute to fire them: only the loaded attack does
+// damage, so the damage shows how many charges were fired. It stops at eight
+// however long the buff lasts, the count disappears with the buff instead of
+// carrying over, and the next cast brings a new load.
 TEST(CombatSimTest, AMagazineFiresItsChargesAndNoMore) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3247,25 +3238,25 @@ TEST(CombatSimTest, AMagazineFiresItsChargesAndNoMore) {
   GiveMagazine(params, /*duration=*/30.0, /*cooldown=*/120.0, /*charges=*/8,
                /*damage=*/100.0);
 
-  // Well past the eighth shot but still inside the buff: the spent magazine is
-  // what stops it, not the clock.
+  // Well past the eighth shot but still within the buff: the empty magazine
+  // stops it, not the clock.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 25.0), 800.0);
-  // The buff lapses and the wait runs out at 120s, so nothing more lands until
-  // it comes round.
+  // The buff expires and the cooldown runs out at 120s, so nothing lands until
+  // then.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 90.0), 0.0);
-  // Reloaded whole, and spent again.
+  // Fully reloaded, and spent again.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 25.0), 800.0);
 }
 
-// Throw Blasting's shape: a press takes several charges out of the one bank
-// and lands the strike once for each. Eight at three a press is three presses
-// -- three, three, and the two that are left.
+// Throw Blasting's shape: a press takes several charges from one bank and lands
+// the strike once for each. Eight charges at three per press is three presses:
+// three, three, and the last two.
 TEST(CombatSimTest, APressSpendsSeveralChargesAndTheLastTakesWhatIsLeft) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
   CombatParams params =
       MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
-  // The swing itself is worth nothing, so what lands is the load alone.
+  // The attack itself is worth nothing, so only the load does damage.
   params.attacks[0].damage_per_hit.assign(params.types.size(), 0.0);
   GiveMagazine(params, /*duration=*/30.0, /*cooldown=*/120.0, /*charges=*/8,
                /*damage=*/100.0);
@@ -3277,16 +3268,16 @@ TEST(CombatSimTest, APressSpendsSeveralChargesAndTheLastTakesWhatIsLeft) {
   params.attacks[0].loaded_attack = loaded;
   params.buffed[1].attacks = params.attacks;
 
-  // Four seconds is four presses and only three of them find anything: one at
-  // a time the eight would still be going.
+  // Four seconds is four presses, and only three find charges. One at a time,
+  // the eight would still be going.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 4.0), 800.0);
 }
 
-// The other half of Throw Blasting: a bank that prepares a charge for itself
-// on a clock of its own. It is not topped up while a raising of the buff
-// stands -- and it comes back the moment those charges are gone, rather than
-// waiting out the duration, which is what GMS means by the active and passive
-// halves never firing together.
+// The other half of Throw Blasting: a bank that prepares charges for itself on
+// its own clock. It doesn't refill while a cast of the buff is active, and it
+// resumes as soon as those charges are gone instead of waiting for the
+// duration. That's what GMS means by the active and passive halves never firing
+// together.
 TEST(CombatSimTest, ABankFillsItselfOnlyOnceTheLoadIsSpent) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3304,19 +3295,19 @@ TEST(CombatSimTest, ABankFillsItselfOnlyOnceTheLoadIsSpent) {
   params.attacks[0].loaded_attack = loaded;
   params.buffed[1].attacks = params.attacks;
 
-  // The buff goes up on the opening step and hands over four, which the first
-  // four presses spend. Had the clock been running under them there would be
-  // more than four in those seconds.
+  // The buff goes up on the first step and gives four charges, which the first
+  // four presses spend. If the clock had been running during them, there would
+  // be more than four in those seconds.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 4.0), 400.0);
-  // The load is gone and the buff has twenty-six seconds still to run: the
-  // charge the bank prepares for itself lands every four of them.
+  // The load is gone and the buff has twenty-six seconds left: the bank's own
+  // charge lands every four of them.
   double later = DamageOver(sim, params, 24.0);
   EXPECT_GT(later, 0.0) << "the bank stayed silent for the rest of the buff";
   EXPECT_DOUBLE_EQ(later, 600.0);
 }
 
-// A buff too short to spend its load takes the rest of it down: the cartridges
-// are not carried past the duration.
+// A buff too short to use its whole load loses the rest: cartridges don't carry
+// past the duration.
 TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3330,8 +3321,8 @@ TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
   EXPECT_LT(fired, 8.0) << "the buff lapsed with charges still loaded";
 }
 
-// Angel of Balance dismisses Bahamut: GMS will not have the two summons out
-// at once, so the dragon goes quiet for as long as the angel stands.
+// Angel of Balance dismisses Bahamut: GMS doesn't allow both summons at once,
+// so the dragon stops while the angel is out.
 TEST(CombatSimTest, ABuffPutsOutTheSummonItNames) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3347,15 +3338,15 @@ TEST(CombatSimTest, ABuffPutsOutTheSummonItNames) {
   GiveBuff(params, /*duration=*/5.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // The angel goes up on the opening step and stands five seconds, so the
-  // dragon strikes over the five that are left.
+  // The angel goes up on the first step and lasts five seconds, so the dragon
+  // strikes during the remaining five.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 50.0);
 }
 
 // Angel of Balance's mark: the angel brands what it touches, the next holy
-// swing spends the brand, and ONE line of that swing is worth the lift. Built
-// twice over, differing only in what the mark is worth, so what the lift added
-// is the difference between the two.
+// attack spends the brand, and one line of that attack gets the bonus. Built
+// twice, differing only in the mark's value, so the difference between them is
+// the bonus.
 CombatParams MarkingParams(std::vector<TypeSpec> specs, double lift) {
   CombatParams params = MakeParams(1.0, 0.0, std::move(specs), 1, "zakum");
   params.attacks[0].lines = 4;
@@ -3379,19 +3370,19 @@ TEST(CombatSimTest, AMarkIsWorthOneLineAndIsThenSpent) {
   CombatParams with = MarkingParams({MakeType(&boss, 0.0, 1)}, 0.10);
   CombatParams without = MarkingParams({MakeType(&boss, 0.0, 1)}, 0.0);
 
-  // One swing of 100 over four lines found the mark: a quarter of the lift.
+  // One attack of 100 over four lines found the mark: a quarter of the bonus.
   EXPECT_DOUBLE_EQ(
       DamageOver(marked, with, 10.0) - DamageOver(plain, without, 10.0), 2.5);
-  // The angel has fired its one strike and the mark is spent, so the swings
-  // that follow land alike however long the mark had left on its clock.
+  // The angel has fired its one strike and the mark is spent, so the following
+  // attacks land the same however long the mark had left.
   EXPECT_DOUBLE_EQ(
       DamageOver(marked, with, 10.0) - DamageOver(plain, without, 10.0), 0.0);
 }
 
-// Angel of Balance's shape: a buff that stands for ten seconds but grants only
-// four seconds in every five, with a summon striking on its own clock
-// throughout. The swing hits for 10 and the buff doubles it, so what lands
-// says which seconds were granted.
+// Angel of Balance's shape: a buff lasting ten seconds but active only four
+// seconds in every five, with a summon striking on its own clock throughout.
+// The attack hits for 10 and the buff doubles it, so the damage shows which
+// seconds the buff was active.
 TEST(CombatSimTest, ADutyCycledBuffGrantsInBursts) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3402,13 +3393,14 @@ TEST(CombatSimTest, ADutyCycledBuffGrantsInBursts) {
   params.buffs.back().duty_seconds = 4.0;
   params.buffs.back().duty_interval_seconds = 5.0;
 
-  // Eight of the ten seconds at 20 and two at 10. Granted the whole window it
+  // Eight of the ten seconds at 20 and two at 10. Active the whole time, it
   // would be 200.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 180.0);
 }
 
-// The grant flickers; the buff does not. A summon it put up strikes through
-// the gap, which is what keeps the two masks apart.
+// The buff's effect switches on and off, but the buff itself stays. A summon it
+// cast keeps striking through the gaps, which is why the two masks are
+// separate.
 TEST(CombatSimTest, ADutyCycledBuffsSummonStrikesThroughTheGap) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3426,13 +3418,13 @@ TEST(CombatSimTest, ADutyCycledBuffsSummonStrikesThroughTheGap) {
   params.buffs.back().duty_interval_seconds = 5.0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // Ten strikes over the ten seconds it stands, not the eight it grants.
+  // Ten strikes over the ten seconds it lasts, not the eight it's active.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1000.0);
 }
 
-// A buff with two forms to choose between, the shape Burning Soul Blade has: a
-// short dense one and a long thin one, both bleeding through a pulse of their
-// own. Their pulses go in as auto attacks tagged with the form that fires them.
+// A buff with two forms to choose between, as in Burning Soul Blade: a short
+// dense one and a long thin one, each dealing damage through its own pulse.
+// Their pulses are added as auto attacks tagged with the form that fires them.
 void GiveStancedBuff(CombatParams& params, double cooldown, double dense_length,
                      double dense_damage, double thin_length,
                      double thin_damage) {
@@ -3464,10 +3456,10 @@ void GiveStancedBuff(CombatParams& params, double cooldown, double dense_length,
   params.buffed[1] = std::move(set);
 }
 
-// The dense form delivers 2000 over its 20 seconds and the thin one 20 a
-// second, so the thin form needs 100 seconds to match it. A boss that will not
-// last that long cannot collect on the thin form, and the dense one wins with
-// no buff standing to make it.
+// The dense form deals 2000 over its 20 seconds and the thin one 20 per second,
+// so the thin form needs 100 seconds to match it. A boss that won't last that
+// long can't pay off the thin form, so the dense one wins, with no buff active
+// to decide it.
 TEST(CombatSimTest, AShortFightRaisesTheDenseStance) {
   Mob boss = MakeMob("Zakum", 3000);
   CombatSim sim;
@@ -3478,13 +3470,13 @@ TEST(CombatSimTest, AShortFightRaisesTheDenseStance) {
                   /*dense_damage=*/100.0, /*thin_length=*/120.0,
                   /*thin_damage=*/20.0);
 
-  // 3000 HP at 100 a second is 30 seconds left, well inside the crossover.
+  // 3000 HP at 100 per second is 30 seconds left, well under the crossover.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 100.0);
 }
 
-// A map refills on the beat, so it never ends however little is standing on
-// it. The thin form's rate is what counts there, whatever the queue holds.
+// A map refills on respawn, so it never ends however few mobs are left. The
+// thin form's rate is what counts there, whatever the queue holds.
 TEST(CombatSimTest, AMapRaisesTheThinStanceHoweverLowItRuns) {
   Mob snail = MakeMob("Snail", 1);
   CombatSim sim;
@@ -3494,15 +3486,15 @@ TEST(CombatSimTest, AMapRaisesTheThinStanceHoweverLowItRuns) {
                   /*dense_damage=*/100.0, /*thin_length=*/120.0,
                   /*thin_damage=*/20.0);
 
-  // One snail with a single point of HP is a second of fight by the arithmetic
-  // a boss would use, and still the planted sword goes up.
+  // One snail with 1 HP is a second of fight by the math a boss would use, and
+  // the planted sword still goes up.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 20.0);
 }
 
-// A boss that outlasts the dense form's payout gets the thin form, and keeps
-// it when the fight turns short: GMS took away the key that swapped one form
-// for the other, so there is nothing to change its mind with.
+// A boss that will outlast the dense form's payout gets the thin form, and
+// keeps it when the fight gets short: GMS removed the key that swapped forms,
+// so there's no way to change.
 TEST(CombatSimTest, ALongFightRaisesTheThinStanceAndKeepsIt) {
   Mob boss = MakeMob("Zakum", 20000);
   CombatSim sim;
@@ -3513,19 +3505,18 @@ TEST(CombatSimTest, ALongFightRaisesTheThinStanceAndKeepsIt) {
                   /*dense_damage=*/100.0, /*thin_length=*/120.0,
                   /*thin_damage=*/20.0);
 
-  // 20000 HP at 100 a second is 200 seconds left, over the crossover.
+  // 20000 HP at 100 per second is 200 seconds left, over the crossover.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 20.0);
-  // Ten seconds later the boss is nearly dead -- and the sword planted for two
-  // minutes is still the one bleeding.
+  // Ten seconds later the boss is nearly dead, and the sword planted for two
+  // minutes is still the one dealing damage.
   sim.Advance(params, 10.0);
   ASSERT_LT(sim.view().target_hp_fraction, 0.99);
   EXPECT_EQ(sim.view().damage_this_step, 200.0);
 }
 
-// A cast is time the character is not swinging in: raising the buff takes its
-// animation off the swing they were charging, so the step it goes up on lands
-// one swing fewer.
+// Casting a buff takes time away from attacking: its animation is taken from
+// the attack being charged, so the step it goes up on lands one attack fewer.
 TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3534,22 +3525,22 @@ TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
   GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0);
   params.buffs[0].cast_seconds = 0.6;
 
-  // A second of a one-second swing, less the six-tenths the cast took: the
-  // swing the step would have landed is still four-tenths short.
+  // A second of a one-second attack, minus the six-tenths the cast took: the
+  // attack this step would have landed is still four-tenths short.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 0.0);
-  // A step this much wider than the cast ends with it long finished, so the
-  // bar is back on the swing and reads what is left of the animation.
+  // A step this much longer than the cast ends with the cast long finished, so
+  // the bar is back on the attack and shows what's left of its animation.
   EXPECT_EQ(sim.view().attack_name, "Hurricane");
   EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.4);
-  // It carries, so the swing the cast held up lands on the step after.
+  // The remainder carries over, so the attack the cast delayed lands next step.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 10.0);
 }
 
-// Several buffs going up at once leave the swing clock in debt, and the bar
-// spends it naming them: each cast in turn, filling over its own animation,
-// rather than an empty bar under the name of a swing that is not coming.
+// Several buffs cast at once put the attack clock in debt, and the bar shows
+// each cast in turn, filling over its own animation, instead of an empty bar
+// under the name of an attack that isn't coming.
 TEST(CombatSimTest, TheChargeBarNamesEachBuffBeingCast) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3562,8 +3553,8 @@ TEST(CombatSimTest, TheChargeBarNamesEachBuffBeingCast) {
   params.buffs[1].name = "Sharp Eyes";
   params.buffs[1].cast_seconds = 0.3;
 
-  // Both go up on the first step, nine-tenths of a second of animation
-  // against a one-second swing. The last raised is the one in hand.
+  // Both go up on the first step: nine-tenths of a second of animation against
+  // a one-second attack. The last cast is the one shown.
   sim.Advance(params, 0.1);
   EXPECT_EQ(sim.view().attack_name, "Sharp Eyes");
   EXPECT_NEAR(sim.view().attack_fraction, 1.0 / 3.0, 1e-9);
@@ -3571,7 +3562,7 @@ TEST(CombatSimTest, TheChargeBarNamesEachBuffBeingCast) {
   EXPECT_EQ(sim.view().attack_name, "Sharp Eyes");
   EXPECT_NEAR(sim.view().attack_fraction, 2.0 / 3.0, 1e-9);
 
-  // Finished, and the one under it takes the bar from the top.
+  // Finished, and the one below it takes the bar from the start.
   sim.Advance(params, 0.1);
   EXPECT_EQ(sim.view().attack_name, "Epic Adventure");
   EXPECT_NEAR(sim.view().attack_fraction, 0.0, 1e-9);
@@ -3579,16 +3570,16 @@ TEST(CombatSimTest, TheChargeBarNamesEachBuffBeingCast) {
   EXPECT_EQ(sim.view().attack_name, "Epic Adventure");
   EXPECT_NEAR(sim.view().attack_fraction, 0.5, 1e-9);
 
-  // Out of debt: the swing has the bar back, and nothing has been landed yet.
+  // Out of debt: the attack has the bar back, and nothing has landed yet.
   sim.Advance(params, 0.3);
   EXPECT_EQ(sim.view().attack_name, "Hurricane");
   EXPECT_NEAR(sim.view().attack_fraction, 0.0, 1e-9);
   EXPECT_EQ(sim.view().damage_this_step, 0.0);
 }
 
-// A cast raised over a part-charged swing holds the bar for the whole of its
-// animation too. Whether the clock it came off had enough banked to cover it
-// is the swing's business; the character is casting either way.
+// A cast over a partly charged attack also holds the bar for its whole
+// animation. Whether the attack had enough charge banked to cover it doesn't
+// matter; the character is casting either way.
 TEST(CombatSimTest, ACastTakesTheBarOverAPartChargedSwing) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3598,23 +3589,23 @@ TEST(CombatSimTest, ACastTakesTheBarOverAPartChargedSwing) {
   params.buffs[0].name = "Sharp Eyes";
   params.buffs[0].cast_seconds = 0.5;
 
-  // Five steps: the opening cast, three the swing charges through, and the
-  // buff coming round again half a second into the swing's own clock.
+  // Five steps: the first cast, three steps of charging the attack, and the
+  // buff coming back half a second into the attack's own clock.
   for (int step = 0; step < 5; ++step) {
     sim.Advance(params, 0.25);
   }
   ASSERT_EQ(sim.view().attack_name, "Sharp Eyes");
   EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.5);
 
-  // Done casting, and the swing has every second it had charged for.
+  // Done casting, and the attack has all the charge it had built.
   sim.Advance(params, 0.25);
   EXPECT_EQ(sim.view().attack_name, "Hurricane");
   EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.0625);
 }
 
-// Smokescreen's shape: a buff that costs the mob rather than paying the
-// player. What it cancels lapses with it, so the hit after it is the whole
-// hit again.
+// Smokescreen's shape: a buff that reduces the mob's hits instead of helping
+// the player directly. The reduction ends with the buff, so the next hit is
+// full again.
 TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -3623,8 +3614,8 @@ TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
   GiveBuff(params, /*duration=*/2.0, /*cooldown=*/10.0, /*factor=*/1.0,
            /*heal=*/0.0, /*reduction=*/0.0, /*soften=*/0.5);
 
-  // The buff answers this hit with its heal rather than softening it: it goes
-  // up after the blow has landed, which is the order the whole step runs in.
+  // The buff heals after this hit instead of reducing it: it goes up after the
+  // hit lands, which is the order every step runs in.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 90);
   sim.Advance(params, 1.0);
@@ -3635,9 +3626,9 @@ TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
   EXPECT_EQ(sim.view().player_hp, 70);
 }
 
-// Smokescreen over a party: the Shadower's clock rather than the reader's,
-// and no swing of theirs spent raising it. It softens the same way their own
-// buff would and lapses the same way, so the hit after it is whole again.
+// Smokescreen from a party member: on the Shadower's clock, not the reader's,
+// and costing the reader no attack to cast. It reduces hits like their own buff
+// would and ends the same way, so the next hit is full again.
 TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -3650,8 +3641,8 @@ TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
   ally.damage_taken_pct = 0.5;
   params.buffs.push_back(std::move(ally));
 
-  // Up after this step's blow has landed, as the character's own buffs are --
-  // and the swing still lands, because nobody here cast anything.
+  // Up after this step's hit lands, like the character's own buffs, and the
+  // attack still lands, because nobody here cast anything.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 90);
   EXPECT_EQ(sim.view().damage_this_step, 1.0);
@@ -3667,8 +3658,8 @@ TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
   EXPECT_EQ(sim.view().player_hp, 55);
 }
 
-// Two shelters are not one shelter twice over: the party's and the
-// character's own multiply, the way every reduction in the game does.
+// Two damage reductions don't double up: the party's and the character's own
+// multiply, like every damage reduction in the game.
 TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -3689,8 +3680,8 @@ TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
   EXPECT_EQ(sim.view().player_hp, 75);  // a quarter of the hit, not none of it
 }
 
-// Holy Magic Shell's shape: a buff that cancels whole hits rather than taking
-// a share off each of them, and heals the pool it is raised on.
+// Holy Magic Shell's shape: a buff that blocks whole hits instead of reducing
+// each one, and heals the HP of whoever it's cast on.
 void GiveShield(CombatParams& params, int hits, double boss_soften,
                 double heal = 0.0) {
   BuffOption buff;
@@ -3708,9 +3699,9 @@ void GiveShield(CombatParams& params, int hits, double boss_soften,
   params.buffed[1] = std::move(set);
 }
 
-// The shell waits for the pool to be worth filling, swallows its count of
-// hits whole, and falls the moment the last of them is spent -- with its
-// clock nowhere near run out.
+// The shell waits until HP is low enough to be worth healing, blocks its count
+// of hits entirely, and breaks as soon as the last is used, even with plenty of
+// duration left.
 TEST(CombatSimTest, AShellBlocksWholeHitsUntilItsCountRunsOut) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3733,8 +3724,8 @@ TEST(CombatSimTest, AShellBlocksWholeHitsUntilItsCountRunsOut) {
   EXPECT_TRUE(sim.view().died_this_step);
 }
 
-// A boss's hit is the one a shell cannot swallow: it costs its share less and
-// spends no block, so the shell is still whole however many land.
+// A shell can't block a boss hit: the hit is reduced by its share instead, and
+// uses no block, so the shell stays whole however many land.
 TEST(CombatSimTest, AShellBluntsABossHitInsteadOfBlockingIt) {
   Mob zakum = MakeMob("Zakum", 1e9);
   zakum.set_boss(true);
@@ -3743,8 +3734,8 @@ TEST(CombatSimTest, AShellBluntsABossHitInsteadOfBlockingIt) {
   GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/40.0);
   GiveShield(params, /*hits=*/2, /*boss_soften=*/0.5);
 
-  // Raised on the first step rather than held for a low pool: against a boss
-  // one blow is the whole fight, so it goes up the moment it comes round.
+  // Cast on the first step instead of waiting for low HP: against a boss, one
+  // hit could end the fight, so it goes up as soon as it's ready.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 960);
   sim.Advance(params, 1.0);
@@ -3757,7 +3748,7 @@ TEST(CombatSimTest, AShellBluntsABossHitInsteadOfBlockingIt) {
 }
 
 // One shell over the whole party: an ally's cast heals this character and
-// blocks their hits, on the caster's clock and costing them no swing.
+// blocks their hits, on the caster's clock and costing them no attack.
 TEST(CombatSimTest, APartysShellHealsAndBlocksForEverybodyUnderIt) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3784,9 +3775,9 @@ TEST(CombatSimTest, APartysShellHealsAndBlocksForEverybodyUnderIt) {
   EXPECT_EQ(sim.view().player_hp, 30);
 }
 
-// Two shells are not one shell twice over: a hit spends a block off one of
-// them, so the party's and the character's own last twice as long between
-// them rather than being burned two at a time.
+// Two shells don't double up: a hit uses one block from one of them, so the
+// party's and the character's own together last twice as long, instead of being
+// used two at a time.
 TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -3812,9 +3803,9 @@ TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
   EXPECT_EQ(sim.view().player_hp, 0);
 }
 
-// Puncture's shape: a weaker swing that leaves a wound, and a harder one the
-// fight would otherwise never put down. The buff is laid by the weak swing
-// rather than raised on a wait, and while it stands every swing hits `factor`
+// Puncture's shape: a weaker attack that leaves a wound, and a stronger one the
+// fight would otherwise always use. The weak attack applies the buff instead of
+// it being cast on a cooldown, and while it's up every attack hits `factor`
 // times as hard.
 void GiveWound(CombatParams& params, double duration, double factor) {
   params.attacks.push_back(MakeSkill("Puncture", 5.0, /*cooldown=*/0.0));
@@ -3836,36 +3827,36 @@ void GiveWound(CombatParams& params, double duration, double factor) {
   params.buffed[1] = std::move(set);
 }
 
-// The fight spends a swing laying the wound, goes back to the hardest swing,
-// and comes back when it lapses. Read off the damage rather than
-// attack_name(), which names the swing being charged NEXT.
+// The fight spends an attack applying the wound, returns to the strongest
+// attack, and comes back when it expires. Checked through damage instead of
+// attack_name(), which shows the attack being charged next.
 TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
   GiveWound(params, /*duration=*/3.0, /*factor=*/2.0);
 
-  // 5: Puncture, the weakest swing on offer, and landing bare -- the wound it
-  // leaves is not up while it is being laid.
+  // 5: Puncture, the weakest attack available, landing unbuffed, since its
+  // wound isn't up while it's being applied.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9995, 1e-9);
-  // 40 twice: the hardest swing, doubled by the wound now standing.
+  // 40 twice: the strongest attack, doubled by the wound now active.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9955, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9915, 1e-9);
-  // Three seconds up, so the wound has lapsed -- but the swing aimed while it
-  // still stood is committed to and finishes, landing 20 rather than 40.
+  // Three seconds in, the wound has expired, but the attack started while it
+  // was active is committed to and finishes, landing 20 instead of 40.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9895, 1e-9);
-  // Only then is it laid again, for another 5.
+  // Only then is it applied again, for another 5.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9890, 1e-9);
 }
 
-// Sword Illusion's shape against Puncture's: the buff GMS grants "upon use"
-// goes up before its own swing lands, so the swing that lays it is already
-// under it.
+// Sword Illusion's shape, compared to Puncture's: a buff GMS grants "upon use"
+// goes up before its own attack lands, so the attack that applies it is already
+// buffed.
 TEST(CombatSimTest, ABuffRaisedAtTheCastLiftsItsOwnSwing) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
@@ -3873,18 +3864,17 @@ TEST(CombatSimTest, ABuffRaisedAtTheCastLiftsItsOwnSwing) {
   GiveWound(params, /*duration=*/3.0, /*factor=*/2.0);
   params.buffs[0].raised_on_cast = true;
 
-  // 10 rather than Puncture's bare 5: the window opened at the cast, so the
-  // laying swing is priced inside it.
+  // 10 instead of Puncture's unbuffed 5: the buff started at the cast, so the
+  // applying attack is priced under it.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9990, 1e-9);
-  // And every swing after it, exactly as before.
+  // And every attack after it, as before.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9950, 1e-9);
 }
 
-// The wound itself: a pulse that waits for the buff its skill lays, so it
-// ticks only where one was left rather than from the moment the skill is
-// learned.
+// The wound itself: a pulse that waits for the buff its skill applies, so it
+// ticks only where a wound was left, not from the moment the skill is learned.
 TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
@@ -3895,24 +3885,24 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   params.auto_attacks[0].needs_buff = 0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // 5 for the swing that lays it and nothing from the pulse: no wound stood
-  // when the step began.
+  // 5 for the attack that applies it and nothing from the pulse, since no wound
+  // existed when the step began.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9995, 1e-9);
-  // Now it ticks, beside the 20 the hardest swing lands.
+  // Now it ticks, alongside the strongest attack's 20.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9875, 1e-9);
 }
 
-// Elemental Fury's shape: a window the poisons already alight lengthen, read
-// at the raise. The first raising finds a clean board and stands its own
-// second; the second finds both burns and stands three.
+// Elemental Fury's shape: a buff lengthened by the poisons already active when
+// it's cast. The first cast finds nothing burning and lasts its base second;
+// the second finds both burns and lasts three.
 TEST(CombatSimTest, ABuffStandsLongerForTheBurnsAlreadyAlight) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 100.0, 1)});
-  // Two burns worth nothing a tick, so the only thing they change is the count
-  // the window is read against.
+  // Two burns dealing nothing per tick, so they only change the count the buff
+  // duration reads.
   params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 30.0));
   params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 30.0));
   params.attacks[0].dots[1].slot = 1;
@@ -3928,8 +3918,8 @@ TEST(CombatSimTest, ABuffStandsLongerForTheBurnsAlreadyAlight) {
     taken[step] = (left - sim.view().target_hp_fraction) * 1000000.0;
     left = sim.view().target_hp_fraction;
   }
-  // Nothing was burning when the first went up, so it stood one second. By the
-  // time it came round both burns were alight and it stood three.
+  // Nothing was burning when the first went up, so it lasted one second. By the
+  // next cast both burns were active, and it lasted three.
   EXPECT_NEAR(taken[0], 200.0, 1e-9);
   EXPECT_NEAR(taken[1], 100.0, 1e-9);
   EXPECT_NEAR(taken[2], 100.0, 1e-9);
@@ -3940,9 +3930,9 @@ TEST(CombatSimTest, ABuffStandsLongerForTheBurnsAlreadyAlight) {
   EXPECT_NEAR(taken[7], 100.0, 1e-9);
 }
 
-// Inhuman Speed's passive half: it counts the character's swings only while
-// its own buff is down, and picks the count up again where it left off when
-// the buff lapses.
+// Inhuman Speed's passive half: it counts the character's attacks only while
+// its own buff is down, and resumes the count where it left off when the buff
+// expires.
 TEST(CombatSimTest, ASilencedHalfCountsNothingWhileItsBuffStands) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
@@ -3953,22 +3943,22 @@ TEST(CombatSimTest, ASilencedHalfCountsNothingWhileItsBuffStands) {
   GiveBuff(params, /*duration=*/4.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.buffed[1].triggered_attacks = params.triggered_attacks;
 
-  // The buff goes up on the first step and stands for four seconds. Nothing
-  // fires in them however many swings land.
+  // The buff goes up on the first step and lasts four seconds. Nothing fires
+  // during them, however many attacks land.
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
     EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9) << "step " << step;
   }
-  // It lapses, and the count starts running again: two swings, one firing.
+  // It expires, and counting resumes: two attacks, one firing.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
 }
 
-// Cry Valhalla's shape: a pulse that lands several strikes at once and runs
-// out before the buff behind it does. Twelve strikes over four ticks here, at
-// three a tick -- and the fifth tick, still inside the window, lands nothing.
+// Cry Valhalla's shape: a pulse landing several strikes at once that runs out
+// before its buff does. Twelve strikes over four ticks here, three per tick,
+// and the fifth tick, still within the buff, lands nothing.
 TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -3981,21 +3971,21 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   params.auto_attacks[0].needs_buff = 0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // Three strikes of 100 a tick, four ticks: 1200 of the snail's 100000.
+  // Three strikes of 100 per tick, four ticks: 1200 of the snail's 100000.
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
-  // Four more seconds of a buff that is still up, and nothing more lands.
+  // Four more seconds with the buff still up, and nothing more lands.
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
-// Poison Chain's shape: a pulse that gains a step every time it fires and pins
-// at the top of its ramp. Nine ticks here of 100, 200, 300, 300... -- the ramp
-// is two deep, so the third tick and every one after it lands 300.
+// Poison Chain's shape: a pulse that gains a step each time it fires and stays
+// at the top of its ramp. Nine ticks here of 100, 200, 300, 300...: the ramp is
+// two steps, so the third tick and every one after it lands 300.
 TEST(CombatSimTest, ARampedPulseClimbsAStepAFiringAndPinsAtTheTop) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -4014,7 +4004,7 @@ TEST(CombatSimTest, ARampedPulseClimbsAStepAFiringAndPinsAtTheTop) {
   params.buffed[1].auto_attacks = params.auto_attacks;
 
   // 100 + 200 + 300 + 300 + 300 = 1200 of the snail's 100000, and the count
-  // stops it there however long the buff stands.
+  // stops it there however long the buff lasts.
   for (int step = 0; step < 5; ++step) {
     sim.Advance(params, 1.0);
   }
@@ -4023,8 +4013,8 @@ TEST(CombatSimTest, ARampedPulseClimbsAStepAFiringAndPinsAtTheTop) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
-// The extra explosion GMS goes out on: one more strike at the top of the ramp,
-// landing WITH the last tick rather than an interval after it.
+// The extra explosion GMS ends on: one more strike at the top of the ramp,
+// landing with the last tick instead of an interval after it.
 TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -4041,12 +4031,12 @@ TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
   params.auto_attacks[0].needs_buff = 0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // Two seconds in: 100 and then 500, with the count not yet spent.
+  // Two seconds in: 100 and then 500, with the count not yet used up.
   sim.Advance(params, 1.0);
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.999, 1e-9);
   sim.Advance(params, 1.0);
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.994, 1e-9);
-  // The third tick spends it, so 500 lands and another 500 goes out with it.
+  // The third tick uses it up, so 500 lands and another 500 goes with it.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.984, 1e-9);
   sim.Advance(params, 5.0);
@@ -4054,7 +4044,7 @@ TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
 }
 
 // The scroll bursting as it leaves: a strike of its own shape, landing with the
-// last tick and as many times over as it states.
+// last tick, as many times as it states.
 TEST(CombatSimTest, APulseGoesOutOnAStrikeOfItsOwnShape) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -4071,18 +4061,18 @@ TEST(CombatSimTest, APulseGoesOutOnAStrikeOfItsOwnShape) {
   params.auto_attacks[0].needs_buff = 0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // Two ordinary ticks of 100, the count not yet spent.
+  // Two ordinary ticks of 100, the count not yet used up.
   sim.Advance(params, 2.0);
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.998, 1e-9);
-  // The third spends it: 100, then two strikes of 400 going out with it.
+  // The third uses it up: 100, then two strikes of 400 with it.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.989, 1e-9);
   sim.Advance(params, 5.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.989, 1e-9);
 }
 
-// The count is per raising, not per fight: the next window is worth the whole
-// twelve again.
+// The count resets per cast, not per fight: the next cast gives all twelve
+// again.
 TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   Mob snail = MakeMob("Snail", 100000);
   CombatSim sim;
@@ -4095,8 +4085,8 @@ TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   params.auto_attacks[0].needs_buff = 0;
   params.buffed[1].auto_attacks = params.auto_attacks;
 
-  // Two ticks of 300 while the first window stands, then nothing until it
-  // comes round on the seventh second and pays another two.
+  // Two ticks of 300 while the first cast lasts, then nothing until it's ready
+  // on the seventh second and pays another two.
   for (int step = 0; step < 6; ++step) {
     sim.Advance(params, 1.0);
   }
@@ -4107,8 +4097,8 @@ TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
-// The other half of the rule: a wound still standing is left alone. Nothing
-// re-lays it early, so the hard swing keeps every turn after the first.
+// The other half of the rule: an active wound is left alone. Nothing reapplies
+// it early, so the strong attack takes every turn after the first.
 TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
@@ -4118,14 +4108,13 @@ TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {
   for (int step = 0; step < 6; ++step) {
     sim.Advance(params, 1.0);
   }
-  // 5 to lay it, then 40 five times over.
+  // 5 to apply it, then 40 five times.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9795, 1e-9);
 }
 
-// Dark Resonance's shape, and the one thing that makes a timed buff a
-// mechanism rather than another passive: it lapses before it comes round
-// again, so the fight swings buffed for part of the time and bare for the
-// rest.
+// Dark Resonance's shape, and what makes a timed buff more than a passive: it
+// expires before it's ready again, so the fight attacks buffed part of the time
+// and unbuffed the rest.
 TEST(CombatSimTest, ABuffLandsHarderUntilItLapses) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -4136,7 +4125,7 @@ TEST(CombatSimTest, ABuffLandsHarderUntilItLapses) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.98, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);
-  // Two seconds on it lapses, and the same swing is worth half of what it was.
+  // After two seconds it expires, and the same attack is worth half as much.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
@@ -4150,16 +4139,16 @@ TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
   for (int step = 0; step < 5; ++step) {
     sim.Advance(params, 1.0);
   }
-  // 20, 20, then 10 three times: the buff is spent and the wait is not out.
+  // 20, 20, then 10 three times: the buff is over and the cooldown isn't.
   ASSERT_NEAR(sim.view().target_hp_fraction, 0.93, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.91, 1e-9);
 }
 
-// A buff belongs to the character, not to the map: walking somewhere else
-// neither takes one away nor hands its wait back early. Both halves are the
-// same clock, so one walk tests them: the buff stands out the rest of the
-// duration it left with, then comes round on the wait it was already serving.
+// A buff belongs to the character, not the map: moving elsewhere neither
+// removes it nor resets its cooldown early. Both run on the same clock, so one
+// move tests both: the buff lasts the rest of its duration, then comes back on
+// the cooldown it was already on.
 TEST(CombatSimTest, WalkingToAnotherMapKeepsTheBuffsClocks) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -4169,24 +4158,24 @@ TEST(CombatSimTest, WalkingToAnotherMapKeepsTheBuffsClocks) {
 
   CombatParams forest = field;
   forest.encounter = "forest";
-  // The mob here is a fresh one, so what the fractions measure is this map.
+  // The mob here is new, so the fractions measure this map.
   sim.Advance(forest, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.98, 1e-9)
       << "the buff walked over still standing";
   for (int step = 0; step < 3; ++step) {
     sim.Advance(forest, 1.0);
   }
-  // 10 three times: it lapses on the second here, not two steps later, and a
-  // fresh map does not hand the wait back.
+  // 10 three times: it expires on the second step here, not two steps later,
+  // and a new map doesn't reset the cooldown.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
   sim.Advance(forest, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.93, 1e-9)
       << "and it comes back on the wait it left the other map serving";
 }
 
-// What the player buys by swinging fast, beyond the damage: the buff comes
-// round sooner. Five seconds of waiting, less a second for every swing landed
-// in the meantime, is a buff back in four steps rather than six.
+// Attacking fast has another benefit beyond damage: the buff comes back sooner.
+// A five-second cooldown, less one second per attack landed in the meantime, is
+// back in four steps instead of six.
 TEST(CombatSimTest, AttackingShortensTheWaitForTheNextBuff) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -4210,17 +4199,17 @@ TEST(CombatSimTest, ABuffHealsTheShareItPromisesWhenItGoesUp) {
   GiveBuff(params, /*duration=*/1.0, /*cooldown=*/1000.0, /*factor=*/1.0,
            /*heal=*/0.5);
 
-  // The hit lands first, then the buff goes up and hands half the pool back.
+  // The hit lands first, then the buff goes up and restores half the HP.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 90);
-  // And only when it goes up: the next hit is not healed.
+  // Only when it goes up: the next hit isn't healed.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 30);
 }
 
-// Mortal Blow's shape: a chance rolled once for the whole swing that lands a
-// share of it again on ONE enemy, and hands a slice of the pool back when it
-// does. Certain and doubled, so the roll cannot hide behind the noise.
+// Mortal Blow's shape: a chance rolled once per attack that lands a share of it
+// again on one enemy, and restores some HP when it does. Certain and doubled
+// here, so random noise can't hide the roll.
 TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params =
@@ -4228,7 +4217,7 @@ TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
   GivePlayerHp(params, 100, /*interval=*/1000.0, /*damage=*/0.0);
   CombatSim plain;
   plain.Advance(params, 1.0);
-  // Two enemies, ten apiece, averaged into the one bar the pair share.
+  // Two enemies, ten each, averaged into the one bar they share.
   ASSERT_EQ(plain.view().engaged_groups.size(), 1u);
   ASSERT_NEAR(plain.view().engaged_groups[0].hp_fraction, 0.99, 1e-9);
 
@@ -4236,7 +4225,7 @@ TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
       {/*chance=*/1.0, /*damage_pct=*/1.0, /*hp_recover_pct=*/0.25});
   CombatSim rolled;
   rolled.Advance(params, 1.0);
-  // The front one takes its ten twice over; the one behind it takes ten still.
+  // The front one takes its ten twice; the one behind still takes ten.
   ASSERT_EQ(rolled.view().engaged_groups.size(), 1u);
   EXPECT_NEAR(rolled.view().engaged_groups[0].hp_fraction, 0.985, 1e-9);
   EXPECT_EQ(rolled.view().player_hp,
@@ -4245,17 +4234,17 @@ TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
   GivePlayerHp(params, 100, /*interval=*/0.5, /*damage=*/50.0);
   CombatSim healed;
   healed.Advance(params, 1.0);
-  // Fifty taken, then twenty-five put back by the swing that landed.
+  // Fifty taken, then twenty-five restored by the attack that landed.
   EXPECT_EQ(healed.view().player_hp, 75);
 }
 
-// A barrage charges a hit-counting buff as its bolts LAND, not all at the cast:
+// A barrage charges a hit-counting buff as its bolts land, not all at the cast:
 // a shock that finds an empty map landed nothing and counts for nothing.
 TEST(CombatSimTest, ABarrageChargesAHitBuffOnlyForBoltsThatLand) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // One monster and a beat a second, so the barrage kills what it has and its
-  // last three bolts fall on an empty map.
+  // One monster and a respawn every second, so the barrage kills its target and
+  // its last three bolts fall on an empty map.
   CombatParams params = MakeParams(1.0, 1.0, {MakeType(&snail, 0.0, 1)});
   BuffOption buff;
   buff.name = "Mortal Blow";
@@ -4273,8 +4262,8 @@ TEST(CombatSimTest, ABarrageChargesAHitBuffOnlyForBoltsThatLand) {
   set.attacks[1].damage_per_hit[0] = 1000.0;
   params.buffed[1] = std::move(set);
 
-  // The cast lands one line and its three bolts land none, so one of the two
-  // the buff wants is paid.
+  // The cast lands one line and its three bolts none, so one of the two lines
+  // the buff needs is counted.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().damage_this_step, 100.0, 1e-9);
   for (int bolt = 0; bolt < 3; ++bolt) {
@@ -4282,23 +4271,23 @@ TEST(CombatSimTest, ABarrageChargesAHitBuffOnlyForBoltsThatLand) {
     EXPECT_NEAR(sim.view().damage_this_step, 0.0, 1e-9);
   }
 
-  // The beat refills the map but the swing clock froze while it was empty, so
-  // the next cast is a step further out.
+  // The respawn refills the map, but the attack clock was paused while it was
+  // empty, so the next cast is a step later.
   sim.Advance(params, 0.25);
   EXPECT_NEAR(sim.view().damage_this_step, 0.0, 1e-9);
-  // That cast pays the second line and the buff goes up behind it, so it still
-  // lands plain. Charged at the cast it would have gone up three steps ago and
-  // this would already be the buffed thousand.
+  // That cast counts the second line and the buff goes up after it, so it still
+  // lands unbuffed. Counting at the cast would have raised the buff three steps
+  // ago, and this would already be the buffed thousand.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().damage_this_step, 100.0, 1e-9);
-  // And the one after it lands under the buff.
+  // And the next one lands under the buff.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().damage_this_step, 1000.0, 1e-9);
 }
 
-// A buff bought with landed hits rather than with a wait: it goes up on the
-// hit that finishes the count, and nothing counts while it stands -- so its
-// uptime is what the character's firing rate buys and no more.
+// A buff earned by landing hits instead of by a cooldown: it goes up on the hit
+// that completes the count, and nothing counts while it's active. Its uptime
+// depends on how fast the character attacks.
 TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -4313,18 +4302,18 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   set.attacks[0].damage_per_hit[0] = 100.0;
   params.buffed[1] = std::move(set);
 
-  // Three swings to charge it, each landing the plain ten.
+  // Three attacks to charge it, each landing a plain ten.
   for (int step = 0; step < 3; ++step) {
     sim.Advance(params, 1.0);
   }
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.97, 1e-9);
-  // It stands now, and the next two swings land under it.
+  // It's up now, and the next two attacks land under it.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.87, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.77, 1e-9);
-  // Those two landed while it stood, so neither counted toward the next one:
-  // three more plain swings are owed before it comes back.
+  // Those two landed while it was up, so neither counted toward the next one:
+  // three more plain attacks are needed before it returns.
   for (int step = 0; step < 3; ++step) {
     sim.Advance(params, 1.0);
   }
@@ -4333,10 +4322,10 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.64, 1e-9);
 }
 
-// Freezing Crush's shape: ice leaves a stack per line and four seconds of ice,
-// lightning spends a stack per line and hits harder for each it went in
-// holding. Lightning is the harder swing on its own, so what makes the pile
-// get built is the CREDIT ice takes for what it leaves behind.
+// Freezing Crush's shape: ice leaves a stack per line and four seconds of ice;
+// lightning spends a stack per line and hits harder for each stack it spent.
+// Lightning is the stronger attack by itself, so stacks get built only because
+// ice gets credit for what it leaves behind.
 void GiveFreezeStacks(CombatParams& params, int cap) {
   params.freeze_cap = cap;
   AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);
@@ -4357,25 +4346,25 @@ TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   GiveFreezeStacks(params, /*cap=*/2);
 
-  // Ice first: 10 of its own, plus the two stacks it leaves, which are worth
-  // half of the lightning swing apiece.
+  // Ice first: 10 of its own, plus the two stacks it leaves, each worth half
+  // the lightning attack.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().attack_name, "Thunder Bolt");  // aimed next, pile full
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
-  // Lightning next, at 11 doubled by the two stacks it spends.
+  // Lightning next, at 11, doubled by the two stacks it spends.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.968, 1e-9);
-  // And back, because the pile is empty again.
+  // And back again, because the stacks are gone.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.958, 1e-9);
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.936, 1e-9);
 }
 
-// What an ice swing leaves is only worth laying if something can collect it.
-// Priced against every swing the character knows, a pile looks worth building
-// for a storm two minutes from its next cast -- and the chooser lays ice it
-// will never spend.
+// Ice stacks are only worth building if something can spend them. Priced
+// against every attack the character knows, stacks would look worth building
+// for a storm two minutes from ready, and the fight would lay ice it never
+// spends.
 TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 20.0, 1)});
@@ -4390,9 +4379,9 @@ TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   storm.freeze_fd_per_stack = 0.5;
   params.attacks.push_back(std::move(storm));
 
-  // The ice is laid once, for the storm standing ready, and the storm spends
-  // the pile. Its wait then leaves nothing on offer that can collect a stack,
-  // so the plain swing takes every press after it.
+  // The ice is laid once, for the storm that's ready, and the storm spends the
+  // stacks. Its cooldown then leaves nothing available that can spend a stack,
+  // so the plain attack takes every press after that.
   CombatSim spent;
   for (int step = 0; step < 6; ++step) {
     spent.Advance(params, 1.0);
@@ -4401,8 +4390,8 @@ TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   EXPECT_NEAR(spent.by_attack()[2].damage, 200.0, 1e-9);
   EXPECT_NEAR(spent.by_attack()[0].damage, 80.0, 1e-9);
 
-  // The same storm with no wait on it collects every pile it is laid, so the
-  // ice goes on being worth the press and the plain swing never wins one.
+  // The same storm without a cooldown spends every stack laid, so ice stays
+  // worth using and the plain attack never wins.
   CombatParams ready = params;
   ready.attacks[2].cooldown_seconds = 0.0;
   CombatSim standing;
@@ -4413,9 +4402,9 @@ TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   EXPECT_NEAR(standing.by_attack()[0].damage, 0.0, 1e-9);
 }
 
-// Spirit of Snow's shape: a blizzard worth three stacks to a lone enemy and
-// one to a crowd. What it leaves is read off what the strike actually reached,
-// so the same attack pays differently on the two maps.
+// Spirit of Snow's shape: a blizzard worth three stacks on a lone enemy and one
+// on each in a crowd. The stacks depend on what the strike actually hit, so the
+// same attack gives different results on the two maps.
 TEST(CombatSimTest, AStrikeAloneLeavesItsOwnCountOfFreezeStacks) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim alone;
@@ -4431,7 +4420,7 @@ TEST(CombatSimTest, AStrikeAloneLeavesItsOwnCountOfFreezeStacks) {
   alone.Advance(one, 1.0);
   EXPECT_EQ(alone.freeze_stacks(), 3);
 
-  // The same blizzard over a crowd is worth the one GMS states.
+  // The same blizzard over a crowd gives the one GMS states.
   CombatSim crowd;
   CombatParams many = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 8)},
                                  /*reach=*/10);
@@ -4441,8 +4430,8 @@ TEST(CombatSimTest, AStrikeAloneLeavesItsOwnCountOfFreezeStacks) {
   EXPECT_EQ(crowd.freeze_stacks(), 1);
 }
 
-// Jupiter Thunder's rate: a shock spends one stack every five lines, so a pile
-// of five outlasts the opening shock instead of going with it.
+// Jupiter Thunder's rate: a shock spends one stack every five lines, so five
+// stacks outlast the first shock instead of being spent by it.
 TEST(CombatSimTest, ASwingCanSpendTheFreezePileByTheLine) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -4454,27 +4443,27 @@ TEST(CombatSimTest, ASwingCanSpendTheFreezePileByTheLine) {
   shock.freeze_lines_per_spend = 5;
   params.attacks.push_back(shock);
 
-  // Seeded by hand: what the pile is worth is not the point here, only what a
-  // shock takes off it.
+  // Set by hand: the stacks' value isn't the point here, only how many a shock
+  // removes.
   CombatParams built = params;
   built.attacks[1].freeze_spends = false;
   built.attacks[1].freeze_build = 5;
   sim.Advance(built, 1.0);
   ASSERT_EQ(sim.freeze_stacks(), 5);
 
-  // Eight lines at one per five is one stack, not eight.
+  // Eight lines at one stack per five is one stack, not eight.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.freeze_stacks(), 4);
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.freeze_stacks(), 3);
 }
 
-// Jupiter Thunder's refund: a barrage that outlives the crowd hands back the
-// wait for every shock it never spent, and hands back nothing on a boss.
+// Jupiter Thunder's refund: a barrage that outlasts the crowd refunds cooldown
+// for every shock it didn't land, and refunds nothing on a boss.
 TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
-  // Two mobs and ten shocks, so eight of them find an empty map.
+  // Two mobs and ten shocks, so eight find an empty map.
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 2)});
   AttackOption orb = MakeSkill("Jupiter Thunder", 200.0, /*cooldown=*/100.0);
   orb.max_enemies = 1;
@@ -4483,8 +4472,8 @@ TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
   orb.cooldown_refund_seconds = 3.4;
   params.attacks.push_back(orb);
 
-  // Read off the difference against the same barrage that hands nothing back,
-  // rather than off a clock that has also been running down.
+  // Measured against the same barrage without a refund, not against a cooldown
+  // that has also been ticking down.
   CombatSim plain;
   CombatParams unpaid = params;
   unpaid.attacks[1].cooldown_refund_seconds = 0.0;
@@ -4495,10 +4484,10 @@ TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
     plain.Advance(unpaid, 0.25);
   }
   EXPECT_EQ(sim.view().kills_this_step[0], 0);
-  // Two mobs took the opening shocks and eight found an empty map.
+  // Two mobs took the first shocks and eight found an empty map.
   EXPECT_NEAR(plain.cooldown_left(1) - sim.cooldown_left(1), 3.4 * 8, 1e-9);
 
-  // A crowd deep enough to take every shock hands nothing back.
+  // A crowd big enough to take every shock gets no refund.
   CombatSim full;
   CombatSim full_unpaid;
   CombatParams many = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 20)});
@@ -4514,9 +4503,9 @@ TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
   EXPECT_NEAR(full.cooldown_left(1), full_unpaid.cooldown_left(1), 1e-9);
 }
 
-// Two barrages in the air at once, as an I/L Arch Mage holding both Jupiter
-// Thunder and Bolt Barrage has. Each keeps its own beat: casting the second
-// does not throw away what the first has left to land.
+// Two barrages at once, as with an I/L Arch Mage who has both Jupiter Thunder
+// and Bolt Barrage. Each keeps its own timing: casting the second doesn't
+// cancel what the first has left to land.
 TEST(CombatSimTest, ASecondBarrageDoesNotCutTheFirstShort) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -4531,9 +4520,9 @@ TEST(CombatSimTest, ASecondBarrageDoesNotCutTheFirstShort) {
   bolts.cast_interval_seconds = 0.5;
   params.attacks.push_back(bolts);
 
-  // The thunder is cast first as the harder of the two, and its shocks fall at
-  // 1.5, 2.0 and 2.5 seconds. The bolts are cast at 2.0, in the middle of
-  // them, and their own second lands at 2.5 beside the thunder's last.
+  // The thunder is cast first as the stronger of the two, and its shocks fall
+  // at 1.5, 2.0 and 2.5 seconds. The bolts are cast at 2.0, in the middle of
+  // them, and their second lands at 2.5 alongside the thunder's last.
   for (int step = 0; step < 6; ++step) {
     sim.Advance(params, 0.5);
   }
@@ -4541,8 +4530,8 @@ TEST(CombatSimTest, ASecondBarrageDoesNotCutTheFirstShort) {
   EXPECT_NEAR(sim.by_attack()[2].damage, 100.0, 1e-9);
 }
 
-// The current arcs onto two where the orb rides one, so the wide half lands on
-// an enemy the swing itself never touched.
+// The current reaches two enemies while the orb hits one, so the wide part
+// lands on an enemy the attack itself never touched.
 TEST(CombatSimTest, AWideHitReachesPastTheSwingCarryingIt) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
@@ -4555,13 +4544,13 @@ TEST(CombatSimTest, AWideHitReachesPastTheSwingCarryingIt) {
   params.attacks.push_back(orb);
 
   sim.Advance(params, 1.0);
-  // Two dead: the one the orb rode, taking both halves, and the one the
-  // current alone reached.
+  // Two dead: the one the orb hit, taking both parts, and the one only the
+  // current reached.
   EXPECT_EQ(sim.view().kills_this_step[0], 2);
 }
 
-// Jupiter Thunder's shock: the enemy carrying it takes more from every OTHER
-// lightning swing, and nothing from its own.
+// Jupiter Thunder's shock: the enemy with it takes more from every other
+// lightning attack, but not from Jupiter Thunder itself.
 TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
@@ -4570,13 +4559,13 @@ TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
   bolt.collects_stun_lift = true;
   params.attacks.push_back(bolt);
 
-  // Nothing has stunned it yet, so the bolt lands for what it says.
+  // Nothing has stunned it yet, so the bolt lands for its stated damage.
   sim.Advance(params, 1.0);
   double plain = sim.view().damage_this_step;
   EXPECT_NEAR(plain, 100.0, 1e-9);
 
-  // The orb alone first, to leave the stun on it, and then the bolt: under a
-  // mark worth 12% the same bolt lands for 112.
+  // The orb alone first, to leave the stun, then the bolt: with a 12% mark, the
+  // same bolt lands for 112.
   CombatSim stunned;
   CombatParams shocking = MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 1)});
   AttackOption orb = MakeSkill("Jupiter Thunder", 1.0, /*cooldown=*/0.0);
@@ -4587,17 +4576,17 @@ TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
   stunned.Advance(params, 1.0);
   EXPECT_NEAR(stunned.view().damage_this_step, 112.0, 1e-9);
 
-  // The skill that left it never collects its own -- GMS excludes the shock
-  // from the swings its own shock lifts.
+  // The skill that left the stun never benefits from it: GMS excludes the shock
+  // from the attacks its own stun boosts.
   CombatSim itself;
   itself.Advance(shocking, 1.0);
   itself.Advance(shocking, 1.0);
   EXPECT_NEAR(itself.view().damage_this_step, 1.0, 1e-9);
 }
 
-// Scarring Sword's shape: each of two lines scars at even odds, and a line on
-// a scarred monster takes half again. The first swing collects only on its
-// second line; the second finds the scar three times in four already there.
+// Scarring Sword's shape: each of two lines scars at even odds, and a line on a
+// scarred monster does 50% more. The first attack benefits only on its second
+// line; the second finds the scar already there three times in four.
 TEST(CombatSimTest, AScarPaysTheLinesLandingAfterIt) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -4614,8 +4603,8 @@ TEST(CombatSimTest, AScarPaysTheLinesLandingAfterIt) {
   EXPECT_NEAR(sim.view().damage_this_step, 140.625, 1e-9);
 }
 
-// A stun afflicts a monster but never a boss, which still takes the lift; a
-// stun that fails its roll leaves neither.
+// A stun afflicts monsters but never bosses, though a boss still gets the
+// damage bonus. A stun that fails its roll gives neither.
 TEST(CombatSimTest, AStunAfflictsNoBossAndOnlyWhereItTakes) {
   auto bolt_after_orb = [](bool boss, double chance) {
     Mob mob = MakeMob("Target", 1e9);
@@ -4654,13 +4643,13 @@ TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.956, 1e-9);  // 11 four times
 }
 
-// The critical damage a held stack grants rides EVERY swing, ice and lightning
-// alike: a frozen enemy is frozen whichever element is hitting it.
+// The critical damage from a held stack applies to every attack, ice and
+// lightning alike: a frozen enemy is frozen whatever element hits it.
 TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   GiveFreezeStacks(params, /*cap=*/4);
-  // No lightning swing at all, so nothing ever spends what the ice leaves.
+  // No lightning attack at all, so nothing spends what the ice leaves.
   params.attacks.pop_back();
   params.attacks[1].freeze_crit_gain = 0.25;
 
@@ -4679,9 +4668,9 @@ TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
               1e-9);  // capped, so no more
 }
 
-// Lightning Orb's shape: a swing that is held, pulsing at 10 damage every
-// 0.15s for up to 12 pulses, and ending on a 50-damage burst that costs 0.2s.
-// The floor is 0.96s, which five pulses and the finish fit inside.
+// Lightning Orb's shape: a held attack pulsing 10 damage every 0.15s for up to
+// 12 pulses, ending on a 50-damage burst that takes 0.2s. The minimum is 0.96s,
+// which fits five pulses and the finish.
 AttackOption MakeHeldSwing() {
   AttackOption orb = MakeSkill("Lightning Orb", 0.0, /*cooldown=*/0.0);
   orb.channel.pulses = 12;
@@ -4696,9 +4685,8 @@ AttackOption MakeHeldSwing() {
   return orb;
 }
 
-// Steps the fight in slices and totals what the character dealt. Advance
-// clamps one call to a single swing of the bare poke, so a hold longer than
-// that has to be walked rather than jumped.
+// Steps the fight in slices and totals the character's damage. Advance limits
+// one call to a single basic attack, so a longer hold must be stepped through.
 double RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
   double damage = 0.0;
   for (double step = 0.0; step + 1e-9 < seconds; step += 0.01) {
@@ -4708,8 +4696,8 @@ double RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
   return damage;
 }
 
-// A boss is never within reach of the finish, so the orb is held to the end:
-// twelve pulses and the burst, over the whole two seconds.
+// A boss is never close to dying from the finish, so the orb is held to the
+// end: twelve pulses and the burst, over the full two seconds.
 TEST(CombatSimTest, AHoldRunsToTheEndAgainstSomethingThatSurvivesIt) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -4721,8 +4709,8 @@ TEST(CombatSimTest, AHoldRunsToTheEndAgainstSomethingThatSurvivesIt) {
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 170.0);  // 12 x 10, then 50
 }
 
-// Against something the burst alone nearly kills, the hold is let go at its
-// floor: five pulses and the finish, in 0.96s rather than 2s.
+// Against something the burst alone nearly kills, the hold is released at its
+// minimum: five pulses and the finish, in 0.96s instead of 2s.
 TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
   Mob snail = MakeMob("Snail", 60);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 0.0, 1)});
@@ -4734,9 +4722,9 @@ TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
   EXPECT_TRUE(sim.view().roster.empty());
 }
 
-// A hold that GROWS: two pulses at 10, then 30 apiece, and no strike to end
-// on. A boss takes the whole six; a monster of 50 is let go at the third, the
-// first grown pulse finishing what the opening run left.
+// A hold that grows: two pulses at 10, then 30 each, with no final strike. A
+// boss takes all six; a monster with 50 HP is released at the third, the first
+// grown pulse finishing it off.
 AttackOption MakeGrowingHold() {
   AttackOption hold = MakeSkill("Hurricane", 0.0, /*cooldown=*/0.0);
   hold.channel.pulses = 6;
@@ -4768,9 +4756,8 @@ TEST(CombatSimTest, AGrowingHoldBeatsAtBothStrengths) {
   EXPECT_TRUE(quick.view().roster.empty());
 }
 
-// Sonic Blow's shape: a hold that ends on no strike. It is let go early all
-// the same -- the pulses past a dead crowd fall on corpses, and the seconds
-// they cost are real.
+// Sonic Blow's shape: a hold with no final strike. It's still released early,
+// since pulses after the crowd is dead hit nothing and still cost time.
 TEST(CombatSimTest, AHoldThatEndsOnNoStrikeIsStillLetGoEarly) {
   Mob snail = MakeMob("Snail", 30);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 0.0, 1)});
@@ -4785,8 +4772,8 @@ TEST(CombatSimTest, AHoldThatEndsOnNoStrikeIsStillLetGoEarly) {
   EXPECT_TRUE(sim.view().roster.empty());
 }
 
-// The hold is the shelter: what the player takes while the key is down is cut
-// by half, and back to full the moment the swing lands.
+// Holding protects the player: damage taken while the key is down is halved,
+// and back to full as soon as the attack lands.
 TEST(CombatSimTest, AHoldShelttersThePlayerWhileItRuns) {
   Mob biter = MakeMob("Biter", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&biter, 0.0, 1)});
@@ -4796,14 +4783,14 @@ TEST(CombatSimTest, AHoldShelttersThePlayerWhileItRuns) {
   params.attacks.push_back(std::move(orb));
 
   CombatSim sim;
-  // Three hits land inside the two-second hold, each halved.
+  // Three hits land during the two-second hold, each halved.
   RunFor(sim, params, 1.6);
   EXPECT_EQ(sim.view().player_hp, 1000 - 150);
 }
 
-// A hold that heals pays for the pulses it landed, not for the pulses it could
-// have: the same swing let go at its floor puts back less of the pool than one
-// held to the end.
+// A healing hold heals for the pulses it landed, not the pulses it could have:
+// the same attack released at its minimum restores less than one held to the
+// end.
 TEST(CombatSimTest, AHoldRecoversForThePulsesItActuallyLanded) {
   auto play = [](int mob_hp) {
     Mob mob = MakeMob("Mob", mob_hp);
@@ -4817,18 +4804,17 @@ TEST(CombatSimTest, AHoldRecoversForThePulsesItActuallyLanded) {
     RunFor(sim, params, 2.05);
     return sim.view().player_hp;
   };
-  // Held to the end: four hits taken over the two seconds, then twelve pulses
-  // and the finish put back 17% of the pool.
+  // Held to the end: four hits taken over two seconds, then twelve pulses and
+  // the finish restore 17% of HP.
   EXPECT_EQ(play(1000000), 1000 - 800 + 170);
-  // Let go at its 0.96s floor: one hit taken before it lands and five pulses
-  // paid for, then the fight idles on a cleared map.
+  // Released at its 0.96s minimum: one hit taken before it lands and five
+  // pulses healed, then the fight idles on a cleared map.
   EXPECT_EQ(play(60), 1000 - 200 + 100);
 }
 
-// Divine Punishment's shape: a hold bought out of a bank rather than out of a
-// cooldown. One charge every 2s, one banked at a time, and each buys four of
-// the twelve pulses -- so a press runs as long as the bank pays for and no
-// longer.
+// Divine Punishment's shape: a hold paid for from a charge bank instead of a
+// cooldown. One charge every 2s, one stored at a time, and each buys four of
+// the twelve pulses, so a press lasts only as long as the bank pays for.
 AttackOption MakeBankedHold() {
   AttackOption punish = MakeSkill("Divine Punishment", 0.0, /*cooldown=*/0.0);
   punish.channel.pulses = 12;
@@ -4844,9 +4830,9 @@ AttackOption MakeBankedHold() {
   return punish;
 }
 
-// The boss survives whatever the hold is worth, so nothing but the bank can
-// shorten it: one charge buys four pulses, and the hold is let go at 0.6s
-// having dealt a third of what a full one would.
+// The boss survives anything the hold does, so only the bank can shorten it:
+// one charge buys four pulses, and the hold is released at 0.6s after a third
+// of a full hold's damage.
 TEST(CombatSimTest, ABankedHoldRunsOnlyAsLongAsItsChargesPayFor) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -4857,10 +4843,10 @@ TEST(CombatSimTest, ABankedHoldRunsOnlyAsLongAsItsChargesPayFor) {
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 40.0);
 }
 
-// The bank fills on its own clock while the player swings, so the hold comes
-// back on the charge rather than on a cooldown. The press spends a whole
-// charge and keeps whatever had filled toward the next, which is what puts the
-// second hold at 2s rather than at 2.6s.
+// The bank refills on its own clock while the player attacks, so the hold comes
+// back as charges arrive, not on a cooldown. A press uses one whole charge and
+// keeps any progress toward the next, which puts the second hold at 2s instead
+// of 2.6s.
 TEST(CombatSimTest, ABankRefillsOnItsOwnClockAndBringsTheHoldBack) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -4871,14 +4857,14 @@ TEST(CombatSimTest, ABankRefillsOnItsOwnClockAndBringsTheHoldBack) {
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.7), 40.0);   // the bank paid again
 }
 
-// Glacial Fury's half of the pile: magic attack per held stack, and only an
-// ice swing collects it.
+// Glacial Fury's part of the stacks: magic attack per held stack, and only an
+// ice attack gets it.
 TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   GiveFreezeStacks(params, /*cap=*/4);
-  // No lightning swing, so the pile only ever grows: what is being read is
-  // what the ice swing collects for holding it.
+  // No lightning attack, so the stacks only grow, and the test reads what the
+  // ice attack gains from holding them.
   params.attacks.pop_back();
   params.attacks[1].freeze_matt_gain = 0.25;
 
@@ -4897,13 +4883,13 @@ TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {
               1e-9);  // capped, so no more
 }
 
-// Storm Magic's half: final damage while the pile stands, taken whole however
-// deep it is rather than climbing with it.
+// Storm Magic's part: final damage while any stacks are held, the same however
+// many there are.
 TEST(CombatSimTest, StormMagicStandsOnAnyStackHoweverDeep) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
   GiveFreezeStacks(params, /*cap=*/4);
-  // No lightning swing, so nothing ever spends what the ice leaves.
+  // No lightning attack, so nothing spends what the ice leaves.
   params.attacks.pop_back();
   params.attacks[1].fd_when_afflicted = 0.5;
 
@@ -4922,8 +4908,8 @@ TEST(CombatSimTest, StormMagicStandsOnAnyStackHoweverDeep) {
               1e-9);  // and no more at the cap
 }
 
-// The share of one mob's HP left, by name -- the queue is shuffled as it fills,
-// so the roster's order says nothing about which monster is which.
+// The fraction of HP left on the named mob. The queue is shuffled as it fills,
+// so the roster's order doesn't say which monster is which.
 double LeftOn(const CombatSim& sim, const std::string& name) {
   for (const MobStatus& mob : sim.view().roster) {
     if (mob.name == name) {
@@ -4933,8 +4919,8 @@ double LeftOn(const CombatSim& sim, const std::string& name) {
   return -1.0;
 }
 
-// Shatter's half: what a held stack ignores of the enemy's defence, priced per
-// mob type -- against a monster carrying none it buys nothing at all.
+// Shatter's part: the defence ignored per held stack, priced per mob type.
+// Against a monster with no defence it gives nothing.
 TEST(CombatSimTest, ShattersDefenceRideIsPricedPerMobType) {
   Mob armoured = MakeMob("Armoured", 1000);
   Mob bare = MakeMob("Bare", 1000);
@@ -4954,8 +4940,8 @@ TEST(CombatSimTest, ShattersDefenceRideIsPricedPerMobType) {
   EXPECT_NEAR(LeftOn(sim, "Bare"), 0.98, 1e-9);
 }
 
-// The ice is the permission and the pile is the amount: a character holding a
-// full pile against a monster no swing has frozen collects none of it.
+// The freeze enables the bonus and the stacks set its size: a character with
+// full stacks gets nothing against a monster no attack has frozen.
 TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
@@ -4969,21 +4955,21 @@ TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
-  // Four swings of a flat 10, however deep the pile got.
+  // Four attacks of a flat 10, however many stacks were held.
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);
 }
 
-// The ice outlives the swing that laid it: everything the character swings
-// afterwards collects on it until the monster thaws, which is the whole of the
-// alternation. Storm Magic rides the bare poke here for the same reason it
-// rides every swing -- it is the character's, not the skill's.
+// The freeze outlasts the attack that applied it: every attack after it
+// benefits until the monster thaws, which is what makes alternating work. Storm
+// Magic applies to the basic attack here for the same reason it applies to
+// every attack: it belongs to the character, not the skill.
 TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 10.0, 1)});
   GiveFreezeStacks(params, /*cap=*/4);
   params.attacks.pop_back();  // no lightning swing to spend the pile
   params.attacks[1].freeze_seconds = 2.5;
-  params.attacks[1].cooldown_seconds = 100.0;  // one cast, then the poke
+  params.attacks[1].cooldown_seconds = 100.0;  // cast once only
   params.attacks[0].fd_when_afflicted = 1.0;
   params.attacks[1].fd_when_afflicted = 1.0;
 
@@ -4993,16 +4979,16 @@ TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
                    10.0);  // ice, on a thawed monster
   sim.Advance(params, 1.0);
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step,
-                   20.0);  // the poke, on 1.5s of ice
+                   20.0);  // the basic attack, on 1.5s of ice
   sim.Advance(params, 1.0);
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 20.0);  // and on the last 0.5s
   sim.Advance(params, 1.0);
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step,
-                   10.0);  // thawed, so a flat poke
+                   10.0);  // thawed, so a flat basic attack
 }
 
-// The pile is deeper while the buff raising it stands, and the fight reads the
-// cap for the buffs standing rather than one number for the whole encounter.
+// The stack cap is higher while the buff raising it is up, and the fight reads
+// the cap for the active buffs instead of one number for the whole encounter.
 TEST(CombatSimTest, ABuffDeepensThePile) {
   Mob snail = MakeMob("Snail", 1000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
@@ -5014,12 +5000,12 @@ TEST(CombatSimTest, ABuffDeepensThePile) {
   deeper.freeze_cap = 10;
   params.buffed[1] = std::move(deeper);
   EXPECT_EQ(params.FreezeCap(1), 10);
-  // Out of range is no buffs at all, exactly as the attack tables read.
+  // An out-of-range index means no buffs, as the attack tables read it.
   EXPECT_EQ(params.FreezeCap(2), 2);
 }
 
-// A boss fight is the roster it opened with: nothing refills, and an emptied
-// queue stays empty however long the fight runs on.
+// A boss fight keeps the roster it started with: nothing refills, and an empty
+// queue stays empty however long the fight lasts.
 TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
   Mob mob = MakeMob("Arm", 10);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 100.0, 2)});
@@ -5031,9 +5017,9 @@ TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
   EXPECT_TRUE(sim.view().roster.empty());
 }
 
-// The roster is one entry per mob rather than the merged window, and each
-// entry keeps its id as the ones beside it die -- what pins one of Zakum's
-// arms to one panel.
+// The roster has one entry per mob instead of the merged bars, and each entry
+// keeps its id as those beside it die. That's what keeps each of Zakum's arms
+// in its own panel.
 TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
   Mob mob = MakeMob("Arm", 100, 110);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 60.0, 3)});
@@ -5048,8 +5034,8 @@ TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
   }
   EXPECT_EQ(std::set<int>(ids.begin(), ids.end()).size(), 3u);
 
-  // Two swings kill the front mob and a third wounds the next; the survivors
-  // keep the ids they had.
+  // Two attacks kill the front mob and a third damages the next; the survivors
+  // keep their ids.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
@@ -5060,8 +5046,8 @@ TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
   EXPECT_DOUBLE_EQ(sim.view().roster[1].hp_fraction, 1.0);
 }
 
-// The encounter name is what the fight watches to know it is somewhere else,
-// so a boss phase turning over rebuilds the roster the way a map change does.
+// The fight watches the encounter name to know it has moved, so a boss phase
+// change rebuilds the roster just like a map change does.
 TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
   Mob arm = MakeMob("Arm", 100);
   Mob body = MakeMob("Body", 500);
@@ -5077,8 +5063,8 @@ TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
   EXPECT_EQ(sim.view().roster[0].name, "Body");
 }
 
-// The record is off unless it is asked for: the sims step the fight millions
-// of times and draw none of it.
+// Recording is off unless requested: the sims step the fight millions of times
+// and draw none of it.
 TEST(CombatSimTest, NothingIsRecordedUnlessItIsAskedFor) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5087,8 +5073,8 @@ TEST(CombatSimTest, NothingIsRecordedUnlessItIsAskedFor) {
   EXPECT_TRUE(sim.damage_lines_this_step().empty());
 }
 
-// The whole contract of the record: one line per hit, all of one swing on one
-// monster under one event, against the monster that actually took it, and
+// The full recording contract: one line per hit, all lines from one attack on
+// one monster under one event, recorded against the monster that took them, and
 // summing to what that monster lost.
 TEST(CombatSimTest, ASwingIsRecordedLineByLine) {
   Mob mob = MakeMob("Snail", 1000000);
@@ -5121,7 +5107,7 @@ TEST(CombatSimTest, ASwingIsRecordedLineByLine) {
               1e-6);
 }
 
-// Two monsters, one swing: each keeps its own stack, so the numbers can be
+// Two monsters, one attack: each gets its own stack, so the numbers can be
 // drawn where the damage landed.
 TEST(CombatSimTest, EachMonsterOfASwingGetsItsOwnEvent) {
   Mob mob = MakeMob("Snail", 1000000);
@@ -5137,8 +5123,8 @@ TEST(CombatSimTest, EachMonsterOfASwingGetsItsOwnEvent) {
   EXPECT_NE(lines[0].event, lines[1].event);
 }
 
-// A crit is told apart from a plain line, which is the only thing the colour
-// of a number depends on.
+// A crit is marked separately from a plain line; the number's colour depends
+// only on this.
 TEST(CombatSimTest, ACritIsRecordedAsOne) {
   Mob mob = MakeMob("Snail", 100000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5159,9 +5145,9 @@ TEST(CombatSimTest, ACritIsRecordedAsOne) {
     for (const DamageLine& line : sim.damage_lines_this_step()) {
       crit_seen = crit_seen || line.crit;
       plain_seen = plain_seen || !line.crit;
-      // Nothing spreads, so a plain line is the swing's 25 over its eight
-      // lines and the half-again the crit rate already averaged in, and a
-      // crit is exactly twice that.
+      // Nothing varies, so a plain line is the attack's 25 over its eight
+      // lines, less the 50% the crit rate already averaged in, and a crit is
+      // exactly twice that.
       double plain = 25.0 / (8 * 1.5);
       EXPECT_NEAR(line.damage, line.crit ? 2 * plain : plain, 1e-9);
     }
@@ -5170,8 +5156,8 @@ TEST(CombatSimTest, ACritIsRecordedAsOne) {
   EXPECT_TRUE(plain_seen);
 }
 
-// What did the damage rides every line, so a caller drawing them can tell a
-// swing from what fires beside it.
+// Every line says what dealt it, so a caller drawing them can tell an attack
+// from what fires beside it.
 TEST(CombatSimTest, EveryLineSaysWhatDidIt) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5207,9 +5193,9 @@ TEST(CombatSimTest, EveryLineSaysWhatDidIt) {
   EXPECT_TRUE(burned);
 }
 
-// Every line names the skill it is credited to: a Final Attack and a burn
-// under their own, on the cast of the swing that set them off. A burn's tick
-// is a cast of its own.
+// Every line names the skill it's credited to. A Final Attack and a burn get
+// their own names, on the cast of the attack that triggered them. A burn tick
+// counts as its own cast.
 TEST(CombatSimTest, EveryLineNamesItsSkill) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5248,8 +5234,8 @@ TEST(CombatSimTest, EveryLineNamesItsSkill) {
   }
 }
 
-// Nothing is named unless the lines are being recorded: a sim pays nothing
-// for the breakdown.
+// Nothing is named unless lines are being recorded, so a sim pays nothing for
+// the breakdown.
 TEST(CombatSimTest, ACreditIsOnlyNumberedWhileRecording) {
   DamageLedger ledger;
   ledger.BeginStep(false);
@@ -5262,7 +5248,7 @@ TEST(CombatSimTest, ACreditIsOnlyNumberedWhileRecording) {
   EXPECT_EQ(ledger.credit_name(-1), "");
 }
 
-// A hold is a cast per pulse, numbered on from the landing's own.
+// A hold counts one cast per pulse, numbered after the landing's own.
 TEST(CombatSimTest, AHoldTakesACastPerPulse) {
   DamageLedger ledger;
   ledger.BeginStep(true);
@@ -5272,8 +5258,8 @@ TEST(CombatSimTest, AHoldTakesACastPerPulse) {
   EXPECT_EQ(ledger.LandingAt(7, 0, 1.0).cast, held.cast + 5);
 }
 
-// A burn ticks between the swings rather than with one, so it is its own
-// landing and gets its own stack of numbers.
+// A burn ticks between attacks, not with one, so it's a separate event with its
+// own stack of numbers.
 TEST(CombatSimTest, ABurnTickIsItsOwnEvent) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5297,8 +5283,8 @@ TEST(CombatSimTest, ABurnTickIsItsOwnEvent) {
   EXPECT_DOUBLE_EQ(lines[1].damage, 40.0);
 }
 
-// Damage is counted whether or not the lines are being recorded, and it counts
-// what the swing rolled rather than what the mob had left.
+// Damage is counted whether or not lines are recorded, and it counts what the
+// attack rolled, not what the mob had left.
 TEST(CombatSimTest, DamageThisStepCountsOverkill) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 250.0, 1)});
@@ -5308,13 +5294,13 @@ TEST(CombatSimTest, DamageThisStepCountsOverkill) {
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 250.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 1);
 
-  // A step that swings at nothing does no damage, and the count does not
-  // carry over from the step that did.
+  // A step that hits nothing does no damage, and the count doesn't carry over
+  // from the previous step.
   sim.Advance(params, 0.1);
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 0.0);
 }
 
-// A burn ticking between swings is damage the character dealt.
+// A burn ticking between attacks counts as damage the character dealt.
 TEST(CombatSimTest, DamageThisStepCountsBurnTicks) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
@@ -5332,7 +5318,7 @@ TEST(CombatSimTest, DamageThisStepCountsBurnTicks) {
   EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 80.0);
 }
 
-// The beat is flagged on the step it comes round, and on no other.
+// The respawn is flagged on the step it happens, and no other.
 TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
   Mob mob = MakeMob("Snail", 100);
   CombatParams params = MakeParams(1.0, 2.0, {MakeType(&mob, 10.0, 1)});
@@ -5348,9 +5334,8 @@ TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
   EXPECT_FALSE(sim.view().respawned_this_step);
 }
 
-// A totem halves the beat in the middle of a wait, and the wait the player is
-// already standing through is not the one it shortens. Putting it away again
-// is the same rule the other way round.
+// A totem halves the respawn interval mid-wait, but doesn't shorten the wait
+// already in progress. Removing it follows the same rule in reverse.
 TEST(CombatSimTest, ChangingTheBeatWaitsOutTheCycleItFound) {
   Mob mob = MakeMob("Snail", 1'000'000);  // never falls: only the beat moves
   CombatParams slow = MakeParams(1.0, 8.0, {MakeType(&mob, 1.0, 1)});
@@ -5358,7 +5343,7 @@ TEST(CombatSimTest, ChangingTheBeatWaitsOutTheCycleItFound) {
   fast.respawn_seconds = 4.0;
 
   CombatSim sim;
-  // A second a step, since Advance clamps a step to one swing.
+  // One second per step, since Advance limits a step to one attack.
   auto seconds = [&sim](const CombatParams& params, int n) {
     bool beat = false;
     for (int i = 0; i < n; ++i) {
@@ -5381,8 +5366,8 @@ TEST(CombatSimTest, ChangingTheBeatWaitsOutTheCycleItFound) {
   EXPECT_TRUE(seconds(slow, 1)) << "put away mid-cycle: this one stays short";
 }
 
-// A measured fight keeps its roster: the monsters take the damage and none of
-// them falls, so what is read is the rate rather than how fast the map emptied.
+// A measured fight keeps its roster: the monsters take damage but none die, so
+// the result is the damage rate, not how fast the map emptied.
 TEST(CombatSimTest, AMeasuredRosterNeverFalls) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 1000.0, 4)}, 4);
@@ -5398,8 +5383,8 @@ TEST(CombatSimTest, AMeasuredRosterNeverFalls) {
   EXPECT_NEAR(damage, 100 * 4 * 1000.0, 1e-6);
 }
 
-// Every roll lands its mean while measuring, so two runs of one build agree to
-// the last digit and a difference between two builds is the build.
+// Every roll lands its mean while measuring, so two runs of one build agree
+// exactly, and any difference between two builds comes from the build.
 TEST(CombatSimTest, AMeasuredSwingLandsItsMean) {
   Mob mob = MakeMob("Snail", 1000000);
   double dealt[3] = {0.0, 0.0, 0.0};
@@ -5424,8 +5409,8 @@ TEST(CombatSimTest, AMeasuredSwingLandsItsMean) {
   EXPECT_NEAR(dealt[2], dealt[0], 1e-6);
 }
 
-// A Final Attack that lands a fifth of the time is worth a fifth of a hit to a
-// measurement, rather than a coin toss that takes a long run to average out.
+// A Final Attack landing a fifth of the time counts as a fifth of a hit in a
+// measurement, instead of a coin toss that needs a long run to average out.
 TEST(CombatSimTest, AMeasuredChanceIsPaidAsItsShare) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
@@ -5442,8 +5427,8 @@ TEST(CombatSimTest, AMeasuredChanceIsPaidAsItsShare) {
   EXPECT_NEAR(sim.view().damage_this_step, 20.0, 1e-6);
 }
 
-// What each swing dealt, told apart. A burn is the swing's that lit it, and a
-// summon is nobody's -- it runs on a clock of its own.
+// Damage per attack, separated. A burn counts for the attack that applied it,
+// and a summon counts for no attack, since it runs on its own clock.
 TEST(CombatSimTest, AMeasurementTellsTheSwingsApart) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 10.0, 1)});
@@ -5469,13 +5454,14 @@ TEST(CombatSimTest, AMeasurementTellsTheSwingsApart) {
   }
   ASSERT_EQ(sim.by_attack().size(), 1u);
   EXPECT_EQ(sim.by_attack()[0].swings, 10);
-  // Ten swings at 10, and the burn ticking every second from the first swing.
+  // Ten attacks at 10, plus the burn ticking every second from the first
+  // attack.
   EXPECT_NEAR(sim.by_attack()[0].damage, 10 * 10.0 + 9 * 5.0, 1e-6);
   EXPECT_NEAR(sim.own_clock_damage(), 10 * 7.0, 1e-6);
 }
 
-// The step a measurement may take: to the swing landing, or to a buff moving,
-// whichever comes first.
+// How far a measurement can step: to the next attack landing or the next buff
+// change, whichever comes first.
 TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(4.0, 1e9, {MakeType(&mob, 10.0, 1)});
@@ -5494,12 +5480,12 @@ TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   params.buffed[1] = std::move(set);
   CombatSim buffed;
   buffed.Advance(params, 1.0);
-  // The buff went up on that step with its whole window, which runs out
-  // sooner than the three seconds the swing still needs.
+  // The buff went up on that step with its full duration, which ends sooner
+  // than the three seconds the attack still needs.
   EXPECT_NEAR(buffed.SecondsToNextEvent(params), 2.0, 1e-9);
 
-  // A buff a swing rolls for, with a helping not yet gathered, waits on the
-  // swing: it must not hold the step at nothing.
+  // A rolled buff with a stack not yet gathered waits on the attack; it must
+  // not set the step to zero.
   CombatParams rolled = MakeParams(4.0, 1e9, {MakeType(&mob, 10.0, 1)});
   rolled.measuring = true;
   GiveRolledBuff(rolled, /*stacks=*/3, /*duration=*/10.0, /*chance=*/0.2);
@@ -5508,9 +5494,9 @@ TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   EXPECT_NEAR(rolling.SecondsToNextEvent(rolled), 3.0, 1e-9);
 }
 
-// A fight with an ordinary swing and a big move on a cooldown, under a buff
-// that doubles every number. The buff stands for `up` seconds of every
-// `every`, so the window the chooser can see coming opens at `every`.
+// A fight with a normal attack and a big move on a cooldown, under a buff that
+// doubles all damage. The buff is up for `up` seconds of every `every`, so the
+// window the fight can see coming opens at `every`.
 CombatParams MakeWindowFight(const Mob& boss, double cooldown, double up,
                              double every) {
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 10.0, 1)});
@@ -5519,7 +5505,7 @@ CombatParams MakeWindowFight(const Mob& boss, double cooldown, double up,
   return params;
 }
 
-// When each swing of the attack at `index` landed, in seconds from the start.
+// When each use of the attack at `index` landed, in seconds from the start.
 std::vector<double> SwingTimes(CombatSim& sim, const CombatParams& params,
                                int index, double seconds) {
   std::vector<double> times;
@@ -5537,9 +5523,9 @@ std::vector<double> SwingTimes(CombatSim& sim, const CombatParams& params,
   return times;
 }
 
-// The window doubles every number, so a press landing inside it is worth two
-// outside. The second press comes free at 21 with the window four seconds off,
-// and waits rather than spending itself in the gap.
+// The window doubles all damage, so a press inside it is worth two outside. The
+// second press is ready at 21 with the window four seconds away, and waits
+// instead of being spent in the gap.
 TEST(CombatSimTest, ABigMoveWaitsForTheWindowComing) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params =
@@ -5553,9 +5539,9 @@ TEST(CombatSimTest, ABigMoveWaitsForTheWindowComing) {
   EXPECT_NEAR(sim.by_attack()[1].damage, 400.0, 1e-6);  // both doubled
 }
 
-// The same fight against a boss with a sliver left: the window is further off
-// than the fight has to live, so the press goes out while there is still
-// something to spend it on.
+// The same fight against a boss that's nearly dead: the window is further off
+// than the fight will last, so the press is used while there's still something
+// to hit.
 TEST(CombatSimTest, NothingIsHeldForAWindowTheFightWontReach) {
   Mob boss = MakeMob("Zakum", 440);
   CombatParams params =
@@ -5568,8 +5554,8 @@ TEST(CombatSimTest, NothingIsHeldForAWindowTheFightWontReach) {
   EXPECT_NEAR(sim.by_attack()[1].damage, 300.0, 1e-6);  // the second bare
 }
 
-// A cooldown back on its feet before the window opens is spent now and had
-// again inside it: there is nothing to place, so nothing to wait for.
+// A cooldown that will be ready again before the window opens is used now and
+// used again inside it. There's nothing to gain by waiting.
 TEST(CombatSimTest, ACooldownBackBeforeTheWindowIsSpentNow) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params =
@@ -5577,16 +5563,16 @@ TEST(CombatSimTest, ACooldownBackBeforeTheWindowIsSpentNow) {
 
   CombatSim sim;
   std::vector<double> times = SwingTimes(sim, params, 1, 24.0);
-  // Every five seconds throughout, the one at 16 going out with the window
-  // four off and the next landing inside it.
+  // Every five seconds throughout: the one at 16 is used with the window four
+  // seconds away, and the next lands inside it.
   ASSERT_EQ(times.size(), 5u);
   EXPECT_NEAR(times[3], 16.0, 0.02);
   EXPECT_NEAR(times[4], 21.0, 0.02);
 }
 
-// The window lifts the ordinary swing and leaves the big move where it was, so
-// what a press buys over the swing it displaces is smaller inside the window
-// than outside. Nothing is held.
+// Here the window boosts the normal attack and leaves the big move unchanged,
+// so a press is worth less relative to the normal attack inside the window than
+// outside. Nothing is held.
 TEST(CombatSimTest, NothingIsHeldForAWindowThatLiftsTheFillerInstead) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params =
@@ -5599,8 +5585,8 @@ TEST(CombatSimTest, NothingIsHeldForAWindowThatLiftsTheFillerInstead) {
   EXPECT_NEAR(times[1], 21.0, 0.02);
 }
 
-// Holding the only swing there is would mean standing still, and the fight
-// never idles to wait for a window.
+// Holding the only attack would mean standing still, and the fight never idles
+// to wait for a window.
 TEST(CombatSimTest, NothingIsHeldWithNothingElseToSwing) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params =
@@ -5614,8 +5600,8 @@ TEST(CombatSimTest, NothingIsHeldWithNothingElseToSwing) {
   EXPECT_NEAR(times[1], 22.0, 0.02);
 }
 
-// Divine Punishment's shape with room in the bank: a charge every three
-// seconds and three held at once, each buying the whole short hold.
+// Divine Punishment's shape with room in the bank: a charge every three seconds
+// and up to three stored, each buying the whole short hold.
 AttackOption MakeRoomyBank() {
   AttackOption punish = MakeSkill("Divine Punishment", 0.0, /*cooldown=*/0.0);
   punish.channel.pulses = 4;
@@ -5631,9 +5617,9 @@ AttackOption MakeRoomyBank() {
   return punish;
 }
 
-// Sitting on a bank costs nothing -- dribbling it and dumping it take the same
-// seconds -- so the charges that land in the seconds before a window are saved
-// and spent inside it. What stops the saving is the top of the bank, not a
+// Storing charges costs nothing, since using them one at a time or all at once
+// takes the same seconds. So charges gained just before a window are saved and
+// spent inside it. Saving stops when the bank is full, not because of a
 // cooldown.
 TEST(CombatSimTest, ABankFillsIntoTheWindowAndIsSpentInside) {
   Mob boss = MakeMob("Zakum", 1000000);
@@ -5652,8 +5638,8 @@ TEST(CombatSimTest, ABankFillsIntoTheWindowAndIsSpentInside) {
       ++inside;
     }
   }
-  // The bank opened full and emptied at once, then held every charge that
-  // landed in the gap: two of them go out with the window, back to back.
+  // The bank started full and was emptied at once, then kept every charge
+  // gained in the gap: two of them are used back to back when the window opens.
   EXPECT_EQ(before, 0);
   EXPECT_EQ(inside, 3);
 }
