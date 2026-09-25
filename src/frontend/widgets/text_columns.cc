@@ -10,7 +10,7 @@
 namespace ms {
 namespace {
 
-// One character and the columns it takes.
+// One character and the number of columns it takes.
 struct Glyph {
   std::string text;
   int columns;
@@ -61,8 +61,8 @@ std::string ColumnWindow(const std::string& text, int from, int count) {
       filled += glyph.columns;
       continue;
     }
-    // Half a fullwidth character draws as nothing, so the column it cannot
-    // fill is given up instead.
+    // Half a fullwidth character draws as nothing, so the column it can't fill
+    // is left blank instead.
     int columns = std::min(at, from + count) - std::max(start, from);
     window.append(columns, ' ');
     filled += columns;

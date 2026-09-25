@@ -34,7 +34,7 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
-  // A bow master far enough along to be asked the 5th job question.
+  // A bow master at `job_stage`, for testing the 5th job difference.
   CharacterInstance MakeArcher(int job_stage) {
     Character proto;
     proto.set_level(200);
@@ -45,7 +45,7 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
-  // A passive worth more crit than any character can roll against.
+  // A passive granting more crit rate than any attack can roll against.
   static Skill CritPassive(JobAdvancement advancement) {
     Skill skill;
     skill.set_name("Sharp Eyes");
@@ -66,7 +66,7 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
-  // A passive that scales the whole of the character's attack, up or down.
+  // A passive that scales the character's whole attack, up or down.
   Skill AttackPercentSkill(double share) {
     Skill skill;
     skill.set_name("Marksmanship");
@@ -112,11 +112,10 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   for (const StatLine& line : lines) {
     labels.push_back(line.label);
   }
-  // The Character panel drops the tail of this list on a short terminal, and
-  // the All Stats screen lays it out down one column and then the other. Both
-  // depend on this order.
-  // The empty label is the rule between the combat stats and the three that
-  // are not about a fight.
+  // The Character panel drops the end of this list on a short terminal, and the
+  // All Stats screen lays it out down one column and then the other, so both
+  // depend on this order. The empty label is the rule between the combat stats
+  // and the rows that aren't about fighting.
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Final Damage", "Damage",
                         "Boss Damage", "Normal Damage", "Ignore DEF",
@@ -126,7 +125,7 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   EXPECT_TRUE(lines[11].rule) << "the empty row is the rule, not a blank stat";
 }
 
-// Sacred Power joins the list where Grandis opens, and not before.
+// The Sacred Power row appears at the Grandis level, not before.
 TEST_F(StatRowsTest, SacredPowerRowOpensWithGrandis) {
   CharacterInstance c = MakeWarrior();
   auto has_row = [](const std::vector<StatLine>& lines) {
@@ -147,11 +146,11 @@ TEST_F(StatRowsTest, SacredPowerRowOpensWithGrandis) {
   EXPECT_EQ(lines.back().value, "0");
 }
 
-// The panel's list is the same one, opened up by the advancements. The All
-// Stats screen's is not touched: it is where every stat always is.
+// The panel shows the same list, revealed as the character advances. The All
+// Stats screen always shows every stat.
 TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   Character proto;
-  proto.set_level(60);  // high enough that only the job can be holding it back
+  proto.set_level(60);  // high enough that only the job can block it
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
@@ -165,8 +164,8 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   EXPECT_EQ(labels, (std::vector<std::string>{"Attack", "Magic Attack",
                                               "Attack Speed"}));
 
-  // The second opens the percent block, but not the rows that pay out on
-  // something the player has not met yet -- nor the rule over them.
+  // The second advancement adds the percent rows, but not the rows for things
+  // the player hasn't reached yet, nor the rule above them.
   Character second_proto;
   second_proto.set_level(35);
   second_proto.set_job(JOB_SPEARMAN);
@@ -191,15 +190,14 @@ TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
   std::vector<StatLine> lines = ExtraStatLines(c, skills);
   EXPECT_EQ(ValueOf(lines, "Damage"), "7.50%");
   EXPECT_EQ(ValueOf(lines, "Final Damage"), "5.00%");
-  // Crit carries the base pair every character has under the skill's own.
+  // Crit includes the base pair every character has, under the skill's own.
   EXPECT_EQ(ValueOf(lines, "Critical Rate"), "25.00%");
   EXPECT_EQ(ValueOf(lines, "Critical Damage"), "37.50%");
 }
 
-// A character who has bought nothing still crits, still ignores a share of
-// armour and still holds a buff longer: the page says so rather than reading
-// 0.00% at four numbers every character has. The fifth base, ignored elemental
-// resistance, is not a row -- see constants.h.
+// A character who has bought nothing still crits, ignores some defence and
+// keeps buffs longer, so the page shows those four bases instead of 0.00%. The
+// fifth base, ignored elemental resistance, has no row (see constants.h).
 TEST_F(StatRowsTest, TheBasesEveryCharacterCarriesAreShown) {
   CharacterInstance c = MakeWarrior();
   std::vector<StatLine> lines = ExtraStatLines(c, {});
@@ -209,8 +207,8 @@ TEST_F(StatRowsTest, TheBasesEveryCharacterCarriesAreShown) {
   EXPECT_EQ(ValueOf(lines, "Buff Duration"), "10.00%");
 }
 
-// A rate past 100% promises damage no swing can land: every roll in the fight
-// is held there. The archer's 5th job is the one build that spends the excess,
+// A rate above 100% promises damage no attack can deal, since every roll is
+// capped there. The archer's 5th job is the only build that uses the excess,
 // and the only one shown it.
 TEST_F(StatRowsTest, CritRateReadsCappedBelowTheArchersFifthJob) {
   Skill warrior_crit = CritPassive(JOB_ADVANCEMENT_SWORDMAN);
@@ -249,8 +247,8 @@ TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fast 2");
 }
 
-// A staff is Slow and no magician casts at Slow: the row has to say what they
-// swing at, not what they hold.
+// Staffs are Slow, but no magician attacks at Slow, so the row has to show the
+// speed they attack at, not the weapon's.
 TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
   EquipPrototype staff;
   staff.set_name("Staff");
@@ -262,7 +260,7 @@ TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
   mage.Equip(0);
   EXPECT_EQ(ValueOf(ExtraStatLines(mage, {}), "Attack Speed"), "Average");
 
-  // The same staff on someone who really does swing it reads its own stage.
+  // The same staff on a job that does use its speed reads the staff's stage.
   CharacterInstance warrior = MakeWarrior();
   warrior.PickUp(std::make_unique<EquipInstance>(staff));
   warrior.Equip(0);
@@ -283,7 +281,7 @@ TEST_F(StatRowsTest, AttackSpeedStopsAtTheSoftCap) {
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 1");
 }
 
-// The two buffs pull in opposite directions, and each tab shows only its own.
+// The two buffs affect different activities, and each tab shows only its own.
 TEST_F(StatRowsTest, EachBuffShowsOnTheTabItPaysOn) {
   Character proto;
   proto.set_level(190);
@@ -327,15 +325,16 @@ TEST_F(StatRowsTest, TheMainStatsAreTheFourApStats) {
   // Down the left column and then the right, so the screen reads STR/INT over
   // DEX/LUK.
   EXPECT_EQ(labels, (std::vector<std::string>{"STR", "DEX", "INT", "LUK"}));
-  // The breakdown leads the total, so the totals still end in one column.
+  // The breakdown comes before the total, so the totals still line up at the
+  // end.
   EXPECT_EQ(ValueOf(lines, "STR"), "(40+5) 45");
   EXPECT_EQ(ValueOf(lines, "LUK"), "0");
 }
 
-// The Attack row shows the split, so the player can see a percentage land
-// rather than only the number it left them. A skill can take attack away as
-// well as add it, and the sign belongs in the breakdown: a smaller number with
-// nothing explaining it reads as a bug.
+// The Attack row shows the split, so the player can see a percentage's effect,
+// not only the result. A skill can lower attack as well as raise it, and the
+// breakdown shows the sign, since an unexplained smaller number looks like a
+// bug.
 TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
   CharacterInstance up = MakeWarrior();
   ASSERT_TRUE(up.LearnSkill(AttackPercentSkill(0.25), 1));
@@ -349,14 +348,14 @@ TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
   EXPECT_EQ(ValueOf(ExtraStatLines(down, SkillMap(-0.25)), "Attack"),
             "(80-20) 60");
 
-  // The same row with nothing taken or added stays a plain total.
+  // The same row with nothing added or removed shows only the total.
   CharacterInstance bare = MakeWarrior();
   EquipBow(bare);
   EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Attack"), "80");
 }
 
-// The two allocations are two sets of numbers, and every row here reads
-// whichever one it is handed -- which is what the Farm/Boss tabs switch.
+// The two allocations are separate sets of numbers, and every row reads the one
+// it is given. That is what the Farm/Boss tabs switch.
 TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
   Character proto;
   proto.set_level(200);

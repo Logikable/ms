@@ -1,9 +1,8 @@
-/* ItemMenu is the context menu that appears when the player presses Enter on
- * an item in the equipped or bag panel. It shows actions relevant to that
- * item (e.g. Unequip, Inspect, Scroll) as a bordered list anchored near the
- * selected row via dbox layering. The caller drives navigation: call Up() and
- * Down() on arrow-key events, selected() to read the chosen action, and
- * Reset() each time the menu is opened.
+/* ItemMenu is the context menu that opens when the player presses Enter on an
+ * item in the equipped or bag panel. It lists actions for that item (e.g.
+ * Unequip, Inspect, Scroll) in a bordered box placed near the selected row with
+ * dbox layering. The caller drives it: Up() and Down() on arrow keys,
+ * selected() to read the chosen action, and Reset() each time the menu opens.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_ITEM_MENU_H_
 #define MS_SRC_FRONTEND_WIDGETS_ITEM_MENU_H_
@@ -18,42 +17,42 @@ namespace ms {
 class ItemMenu {
  public:
   explicit ItemMenu(std::vector<std::string> options);
-  // Returns a positioned element for dbox layering. The element includes
-  // top/left padding so the menu box appears at (row, col).
+  // Returns an element for dbox layering, padded on the top and left so the box
+  // appears at (row, col).
   ftxui::Element Render(int row, int col) const;
-  // Walk the entries, skipping disabled ones. The list is a ring: Up off the
-  // first entry lands on the last, and Down off the last lands on the first.
+  // Move between entries, skipping disabled ones. The list wraps: Up from the
+  // first entry goes to the last, and Down from the last goes to the first.
   void Up();
   void Down();
   void Reset();
-  // Dims the entry at `index` and skips it in Up/Down. After Reset().
+  // Dims the entry at `index` and skips it in Up/Down. Call after Reset().
   //
-  // For an action the item could take but for the STATE it is in -- a trace
-  // that cannot be worn. It stays visible because its absence would be the
-  // surprise. An upgrade the item refuses outright is Hide's, not this.
+  // Use it for an action the item could take but not in its current state, such
+  // as a trace that can't be worn. The row stays visible because a missing row
+  // would be more surprising. An upgrade the item can never take uses Hide.
   void Disable(int index);
-  // Hides the entry at `index` entirely. After Reset().
+  // Hides the entry at `index`. Call after Reset().
   //
-  // For an action the player has NOT UNLOCKED, where a greyed row would
-  // advertise something they cannot ask about. Leave one entry standing.
+  // Use it for an action the player hasn't unlocked, where a grey row would
+  // advertise something they can't use. Leave at least one entry visible.
   void Hide(int index);
-  // Draws the entry at `index` gold, reachable as any other. After Reset() AND
-  // after any Disable(), a disabled entry refusing the gold. For an action just
-  // handed over: the far end of the trail the level-up card starts.
+  // Draws the entry at `index` in gold. It can still be selected as normal.
+  // Call after Reset() and after any Disable(); a disabled entry is never gold.
+  // Use it for a newly unlocked action at the end of the trail the level-up
+  // card starts.
   void Highlight(int index);
-  // Renames the entry at `index`. After Reset() and BEFORE Width(), the box
-  // having to be wide enough for the new label. For an action named by the
-  // state it would leave behind: a buff's Enable and Disable are one door.
+  // Renames the entry at `index`. Call after Reset() and before Width(), so the
+  // box is wide enough for the new label. Use it for an action named after the
+  // state it leads to, such as a buff's Enable and Disable.
   void SetLabel(int index, std::string label);
-  // The columns the rendered box takes, borders included. What a caller
-  // anchoring the menu needs to keep it inside the panel it belongs to. Read
-  // after Hide(): a hidden entry is not one the box has to be wide enough for.
+  // The width of the box, borders included, for a caller keeping the menu
+  // inside its panel. Call after Hide(), since hidden entries don't count.
   int Width() const;
   int selected() const;
 
  private:
-  // One step of `delta` places, past any disabled entries in the way. Stays put
-  // when there is nowhere enabled to go.
+  // Moves `delta` places, skipping disabled entries. Stays put when there is no
+  // enabled entry to move to.
   void Step(int delta);
 
   std::vector<std::string> options_;

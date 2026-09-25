@@ -22,18 +22,17 @@
 namespace ms {
 namespace {
 
-// The columns each balance takes on a bar whose cursor can stand on it. Wide
-// enough for the most either can hold -- a hundred billion meso and a million
-// traces -- so the band is the same block however much is in it.
+// The width of each balance when the bar's cursor can land on it. It fits the
+// largest value either can hold (a hundred billion meso, a million traces), so
+// the band stays the same size.
 constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
 
-// The least the balances stand off the last tab chip. The bar is read left to
-// right and the two run into each other without it: a count reads as part of
-// the tab beside it.
+// The minimum gap between the balances and the last tab chip. Without it a
+// count reads as part of the tab beside it.
 constexpr int kBalanceGutter = 8;
 
-// The row's cells hboxed together, with whichever affixes the caller brought.
+// The row's cells side by side, with any lead and tail cells the caller passed.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
                    ftxui::Element tail, int body_width) {
   ftxui::Element body = ftxui::hbox(std::move(cells));
@@ -52,27 +51,26 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
   return ftxui::hbox(std::move(row));
 }
 
-// The Token tab's four columns. The name widths are the longest the game
-// ships -- "Frozen Secondary Token" and "Crimson Queen's" -- and two columns
-// over, so the longest name keeps a gap before its count rather than running
-// into it. The mark cell holds one glyph and the space after it.
+// The Token tab's four columns. The name widths are the longest names in the
+// game ("Frozen Secondary Token" and "Crimson Queen's") plus two, so a name
+// never runs into its count. The mark cell holds one glyph and a space.
 constexpr int kCurrencyMarkWidth = 2;
 constexpr int kTokenNameWidth = 24;
 constexpr int kShardNameWidth = 17;
 constexpr int kCurrencyCountWidth = 10;
-// What separates the token half of a row from the shard half. Wider than the
-// gap between ordinary columns: it is the seam between two lists, not between
-// two columns of one.
+// The gap between the token half of a row and the shard half. It is wider than
+// a normal column gap because it separates two lists.
 constexpr char kCurrencyGap[] = "      ";
 
-// Blanks as wide as a column pair, for the half of a row whose list ran out.
+// Blank space as wide as a mark and name, for the half of a row whose list has
+// run out.
 ftxui::Element BlankCurrencyCell(int mark_width, int name_width) {
   return ftxui::text(
       std::string(mark_width + name_width + kCurrencyCountWidth, ' '));
 }
 
-// A name and its count. The mark rides in front of a token and keeps its own
-// colour, which is what says at a glance which piece the currency buys.
+// A name and its count. A token's mark keeps its own colour, which shows which
+// piece the currency buys.
 ftxui::Element CurrencyCell(const CurrencyAmount& held, bool marked,
                             int name_width) {
   const ItemPrototype& proto = held.prototype();
@@ -138,7 +136,7 @@ std::vector<InventoryRowState> BuildEquipRows(
     cells.job = FormatJobCategories(proto);
     cells.stats = ItemStatsCell(character.proto().job(), item.stats());
     InventoryRowState row;
-    // Only the selected row's name slides; the rest sit at their heads.
+    // Only the selected row's name scrolls. The others show from the start.
     std::chrono::steady_clock::duration slide =
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero();
     row.label = FormatItemRow(columns, cells, slide);
@@ -161,17 +159,17 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               int body_width) {
   std::string cursor = on_cursor ? "> " : "  ";
   const ItemRowText& label = row.label;
-  // A row nothing can be done with: too low for it, the wrong class for it, or
-  // a trace, which is a record of an item rather than one. Dimmed whole, the
-  // way the skills tab dims a skill that cannot be learned -- one answer for
-  // "this row's action is shut", in both lists (colors.h).
+  // A row the player can't act on: too low a level, the wrong class, or a
+  // trace, which records an item rather than being one. The whole row is
+  // dimmed, the same way the skills tab dims a skill that can't be learned
+  // (colors.h).
   bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
   if (!blocked) {
     return HighlightRow(Row(std::move(lead), {ftxui::text(cursor + label.text)},
                             std::move(tail), body_width),
                         on_cursor);
   }
-  // The caret stays bright: it is the cursor, not part of the row.
+  // The caret stays bright because it is the cursor, not part of the row.
   std::vector<ftxui::Element> cells = {ftxui::text(cursor)};
   for (int i = 0; i < kNumItemColumns; ++i) {
     ItemColumn column = static_cast<ItemColumn>(i);
@@ -181,8 +179,8 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
     }
     ftxui::Element cell =
         ftxui::text(label.text.substr(span.offset, span.bytes));
-    // The cell that says WHY stays bright and red while the rest of the row
-    // dims. Dimming it too would mute the one thing on the row worth reading.
+    // The cell that explains the block stays bright red while the rest dims,
+    // since it is the one thing on the row worth reading.
     bool why = (column == ItemColumn::kLevel && !row.level_ok) ||
                (column == ItemColumn::kJob && !row.job_ok);
     cells.push_back(why ? std::move(cell) | ftxui::color(kRed)
@@ -235,22 +233,17 @@ ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
   return ftxui::hbox(std::move(counters));
 }
 
-// The least the balances stand off the last tab chip. The bar is read left to
-// right and the two run into each other without it: a count reads as part of
-// the tab beside it.
-
 ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
                                ftxui::Element balances, bool row_selected,
                                bool highlighted, ftxui::Element trailing,
                                int width, ftxui::Box& bar_box) {
-  // Left to right: the chips, the balances, whatever trails them. No width
-  // limit on the chips: a bag's tabs are a fixed set and all of them fit.
+  // Left to right: chips, balances, then whatever trails them. The chips get no
+  // width limit because a bag's tabs are fixed and always fit.
   ftxui::Element chips = TabBar(tabs, active, row_selected, /*width=*/0);
   int chips_width = ftxui::Dimension::Fit(chips).dimx;
   int balances_width = ftxui::Dimension::Fit(balances).dimx;
-  // What the row has left once everything on it is drawn. The gutter gives
-  // way to it rather than the other way round: a bar squeezed until the
-  // balances fit is better than a number with digits cut off the end.
+  // The room left on the row after everything is drawn. The gutter shrinks to
+  // fit it, because a tight bar is better than a number with digits cut off.
   int room = std::max(0, width - chips_width - balances_width -
                              ftxui::Dimension::Fit(trailing).dimx);
   int lead =
@@ -276,22 +269,22 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                bool highlighted,
                                std::chrono::steady_clock::duration elapsed) {
   if (rows.empty()) {
-    // No header over nothing, as on an empty Equip tab. Column names are there
-    // to tell rows apart, and there are no rows to tell apart.
+    // No header over an empty list, as on an empty Equip tab. Column names tell
+    // rows apart, and there are no rows.
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
   std::vector<ftxui::Element> drawn;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    // The cursor shows only while the list holds focus, but the selected row
-    // is marked either way -- see below.
+    // The cursor shows only while the list has focus, but the selected row is
+    // always marked (see below).
     ftxui::Element row = RenderStackRow(
         stacks[rows[i]], focused && i == selected,
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
     if (i == selected) {
-      // What the frame scrolls to. These rows are plain text rather than an
-      // ftxui::Menu, so nothing else marks the cursor. Marked whether or not
-      // the panel holds focus, so the view does not jump on the way back, and
-      // reflected so the item menu knows the row to open beside.
+      // The frame scrolls to this row. These rows are plain text, not an
+      // ftxui::Menu, so nothing else marks the cursor. It is marked even
+      // without focus so the view doesn't jump when focus returns, and
+      // reflected so the item menu knows which row to open beside.
       row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
     drawn.push_back(std::move(row));
@@ -299,7 +292,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
   return ftxui::vbox({
       StackHeader(),
       PanelSeparator(highlighted),
-      // Only the rows scroll; the header and its rule stay put.
+      // Only the rows scroll. The header and its rule stay in place.
       ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,
   });

@@ -31,29 +31,29 @@ TEST(StepCursorTest, WalksTheRingOneStopAtATime) {
   EXPECT_EQ(StepCursor(3, -1, 4), 2);
 }
 
-// The whole point of it. Down off the last stop lands on the first, and Up off
-// the first lands on the last.
+// Down from the last stop goes to the first, and Up from the first goes to the
+// last.
 TEST(StepCursorTest, ComesOutTheOtherEndAtEitherEdge) {
   EXPECT_EQ(StepCursor(3, 1, 4), 0);
   EXPECT_EQ(StepCursor(0, -1, 4), 3);
 }
 
-// A ring with one place to stand is every step a no-op -- a panel whose list is
-// empty, where the tab bar is the only stop there is.
+// In a ring with one stop every step does nothing. This is a panel with an
+// empty list, where the tab bar is the only stop.
 TEST(StepCursorTest, AOneStopRingGoesNowhere) {
   EXPECT_EQ(StepCursor(0, 1, 1), 0);
   EXPECT_EQ(StepCursor(0, -1, 1), 0);
 }
 
-// Nowhere to stand at all: answered rather than left to the caller, because
-// every list here can be empty and none of them wants its own check.
+// An empty ring returns zero instead of leaving it to the caller, because every
+// list here can be empty and none of them should need its own check.
 TEST(StepCursorTest, AnEmptyRingAnswersZero) {
   EXPECT_EQ(StepCursor(0, -1, 0), 0);
   EXPECT_EQ(StepCursor(3, 1, -1), 0);
 }
 
-// C++ hands a negative dividend a negative remainder, so a single modulo would
-// answer -1 here and put the cursor off the list.
+// In C++ a negative number's remainder is negative, so a single modulo would
+// return -1 here and put the cursor off the list.
 TEST(StepCursorTest, NeverAnswersBelowZero) {
   for (int stops = 1; stops <= 8; ++stops) {
     for (int current = 0; current < stops; ++current) {
@@ -65,14 +65,14 @@ TEST(StepCursorTest, NeverAnswersBelowZero) {
   }
 }
 
-// A cursor left pointing past the end of a list that shrank under it -- a tab
-// switched, an item sold -- is folded back in rather than walked further off.
+// A cursor left past the end of a list that shrank (a tab switched, an item
+// sold) is brought back into range instead of moving further off.
 TEST(StepCursorTest, FoldsACurrentFromOutsideTheRingBackIn) {
   EXPECT_EQ(StepCursor(9, 1, 4), 2);
   EXPECT_EQ(StepCursor(-3, 0, 4), 1);
 }
 
-// Any delta, not just the one step every caller passes today.
+// Any delta works, not just the single step every caller passes today.
 TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
   EXPECT_EQ(StepCursor(0, 3, 4), 3);
   EXPECT_EQ(StepCursor(0, 5, 4), 1);
@@ -82,7 +82,7 @@ TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
 // --- StepTabRing ---
 
 // The bar holds only the tabs the character has reached, so its entries need
-// not run 0, 1, 2 -- a step is one place along the bar, not one on the tab.
+// not be 0, 1, 2. A step moves one place along the bar, not one tab number.
 TEST(StepTabRingTest, StepsAlongTheBarRatherThanTheTabNumbers) {
   std::vector<int> tabs = {0, 3, 5};
   EXPECT_EQ(StepTabRing(tabs, {0, false}, 1).tab, 3);
@@ -90,7 +90,7 @@ TEST(StepTabRingTest, StepsAlongTheBarRatherThanTheTabNumbers) {
   EXPECT_FALSE(StepTabRing(tabs, {0, false}, 1).on_door);
 }
 
-// The door is the stop past the last tab, and the bar comes round through it.
+// The door is the stop after the last tab, and the bar wraps through it.
 TEST(StepTabRingTest, TheDoorClosesTheRing) {
   std::vector<int> tabs = {0, 1};
   TabStop door = StepTabRing(tabs, {1, false}, 1);
@@ -103,8 +103,8 @@ TEST(StepTabRingTest, TheDoorClosesTheRing) {
       << "left off the first tab reaches the door";
 }
 
-// A tab that is not on the bar at all: nothing locks one away today, but
-// landing on the first beats landing on a tab the player cannot see.
+// A tab that isn't on the bar at all. Nothing hides one today, but landing on
+// the first beats landing on a tab the player can't see.
 TEST(StepTabRingTest, ATabOffTheBarLandsOnTheFirst) {
   EXPECT_EQ(StepTabRing({1, 2}, {7, false}, 1).tab, 1);
   EXPECT_EQ(StepTabRing({}, {7, false}, 1).tab, 7)
@@ -115,8 +115,8 @@ TEST(StepTabRingTest, ATabOffTheBarLandsOnTheFirst) {
 
 namespace {
 
-// A three-row ftxui::Menu wrapped for cycling, sharing `selected` and
-// `entries` with the caller so a test can move one and read the other.
+// A three-row ftxui::Menu wrapped to cycle. It shares `selected` and `entries`
+// with the caller, so a test can change one and read the other.
 ftxui::Component WrappedMenu(std::vector<std::string>& entries, int& selected) {
   return WrappingList(ftxui::Menu(&entries, &selected), selected, [&entries]() {
     return static_cast<int>(entries.size());
@@ -145,9 +145,9 @@ TEST(WrappingListTest, EitherEndRollsRoundToTheOther) {
   EXPECT_EQ(selected, 0);
 }
 
-// The count is asked at the keypress, not taken once. These lists lose rows
-// under the cursor -- an item sold, a filter narrowed -- and a wrap that
-// remembered the old length would send the cursor off the end of the new one.
+// The count is read on each keypress, not once. These lists lose rows under the
+// cursor (an item sold, a filter narrowed), and a wrap using the old length
+// would send the cursor past the end.
 TEST(WrappingListTest, AsksHowLongTheListIsEveryTime) {
   std::vector<std::string> entries = {"a", "b", "c", "d", "e"};
   int selected = 0;
@@ -157,9 +157,9 @@ TEST(WrappingListTest, AsksHowLongTheListIsEveryTime) {
   EXPECT_EQ(selected, 1) << "the last row of the list as it is now";
 }
 
-// Nothing to be at either end of, so the key is swallowed. Handing it down
-// instead is not harmless: an ftxui::Menu with no entries still moves its
-// index, and the cursor ends up at row -1 of a list that has no rows.
+// There is no end to wrap from, so the key is consumed. Passing it down would
+// cause harm: an ftxui::Menu with no entries still moves its index, and the
+// cursor ends up at row -1 of an empty list.
 TEST(WrappingListTest, SwallowsTheKeyOnAnEmptyList) {
   std::vector<std::string> entries;
   int selected = 0;
@@ -170,8 +170,8 @@ TEST(WrappingListTest, SwallowsTheKeyOnAnEmptyList) {
   EXPECT_EQ(selected, 0);
 }
 
-// A list of one is a ring of one: the cursor is at both ends at once, and
-// either key leaves it where it is rather than appearing to move.
+// A list of one wraps onto itself. The cursor is at both ends, and either key
+// leaves it in place instead of seeming to move it.
 TEST(WrappingListTest, ASingleRowGoesNowhere) {
   std::vector<std::string> entries = {"only"};
   int selected = 0;
@@ -182,8 +182,8 @@ TEST(WrappingListTest, ASingleRowGoesNowhere) {
   EXPECT_EQ(selected, 0);
 }
 
-// Everything that is not an edge step passes through untouched, so wrapping a
-// list does not cost it any other key.
+// Every key except an edge step passes through, so wrapping a list costs it no
+// other key.
 TEST(WrappingListTest, PassesEveryOtherKeyThrough) {
   std::vector<std::string> entries = {"a", "b", "c"};
   int selected = 0;
@@ -203,8 +203,8 @@ TEST(WrappingListTest, PassesEveryOtherKeyThrough) {
 
 namespace {
 
-// A component that reports itself unfocusable, as ftxui::Menu does when it has
-// no entries. Renderer() without a child is the shortest one to hand.
+// A component that reports itself unfocusable, as ftxui::Menu does with no
+// entries. Renderer() without a child is the simplest one.
 ftxui::Component UnfocusableComponent() {
   return ftxui::Renderer([]() { return ftxui::text("PANEL"); });
 }
@@ -234,8 +234,8 @@ TEST(AlwaysFocusableTest, PassesEventsToTheChild) {
 }
 
 // The reason the wrapper exists. Container::Tab asks only its active child
-// whether it is focusable and drops every key when the answer is no, so an
-// unwrapped panel never sees the event at all.
+// whether it is focusable and drops every key when it isn't, so an unwrapped
+// panel never sees the event.
 TEST(AlwaysFocusableTest, ATabContainerReachesTheChild) {
   bool seen_bare = false;
   int selector = 0;

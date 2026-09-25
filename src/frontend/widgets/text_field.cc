@@ -13,8 +13,8 @@ bool IsAlphanumeric(char c) {
          (c >= '0' && c <= '9');
 }
 
-// `text` without the spaces on its end. A name is padded into fixed-width
-// columns, where a trailing space is a space nobody typed.
+// `text` without trailing spaces. A name is padded into fixed-width columns,
+// where a trailing space is one nobody can see.
 std::string Trimmed(const std::string& text) {
   std::size_t last = text.find_last_not_of(' ');
   return last == std::string::npos ? "" : text.substr(0, last + 1);
@@ -42,8 +42,8 @@ TextEntry TextField::OnEvent(const ftxui::Event& event) {
     return TextEntry::kCancelled;
   }
   if (IsForward(event)) {
-    // Committing hands the caller the buffer, so the edit ends after it is
-    // read rather than here.
+    // Committing gives the caller the buffer, so the edit ends after it is
+    // read, not here.
     text_ = Trimmed(text_);
     if (text_.empty()) {
       EndEdit();
@@ -63,8 +63,8 @@ TextEntry TextField::OnEvent(const ftxui::Event& event) {
     return TextEntry::kPending;
   }
   char typed = event.character()[0];
-  // A space is only a space between two other characters: one typed first
-  // would let a name hide behind the column it is padded into.
+  // A space is allowed only after another character. A leading space would let
+  // a name hide in the padding of its column.
   bool space = typed == ' ' && !text_.empty();
   if (IsAlphanumeric(typed) || space) {
     text_ += typed;

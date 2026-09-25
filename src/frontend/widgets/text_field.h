@@ -1,13 +1,12 @@
-/* TextField is the shared one-line text entry: a row the player steps onto,
+/* TextField is the shared one-line text entry: a row the player selects,
  * presses Enter to edit, types into, and presses Enter again to keep.
  *
- * Editing starts from an empty buffer rather than from the old text, so the
- * common case -- replacing what is there -- is no keystrokes of deletion.
- * Leaving with nothing typed is how the old text is kept, which makes Escape,
- * Up, Down and an empty Enter all say the same thing.
+ * Editing starts from an empty buffer, not the old text, so the common case of
+ * replacing the text needs no deleting. Leaving with nothing typed keeps the
+ * old text, so Escape, Up, Down and an empty Enter all do the same thing.
  *
- * The field holds only the text being typed. What it is a name FOR belongs to
- * the caller, which is handed the entry once and stores it wherever it lives.
+ * The field holds only the text being typed. The caller decides what the text
+ * is for, takes the entry once, and stores it.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_TEXT_FIELD_H_
 #define MS_SRC_FRONTEND_WIDGETS_TEXT_FIELD_H_
@@ -18,8 +17,8 @@
 
 namespace ms {
 
-// What an event did to the field. kPending covers both a keystroke that
-// changed the buffer and one that was swallowed; either way editing goes on.
+// What an event did to the field. kPending covers both a keystroke that changed
+// the buffer and one that was ignored. Either way editing continues.
 enum class TextEntry {
   kPending,
   // Enter on something typed. The caller takes text() and stores it.
@@ -30,9 +29,8 @@ enum class TextEntry {
 
 class TextField {
  public:
-  // `max_length` is the most characters the field will hold; further ones are
-  // dropped rather than scrolling the row, since a caller sizes its panel by
-  // this.
+  // `max_length` is the most characters the field holds. Extra ones are dropped
+  // instead of scrolling the row, since callers size their panels by it.
   explicit TextField(int max_length) : max_length_(max_length) {
   }
 
@@ -43,18 +41,18 @@ class TextField {
     return editing_;
   }
   // What has been typed. Still readable right after kCommitted, which is when
-  // the caller takes it; cleared by a cancel and by the next BeginEdit.
+  // the caller reads it. Cleared by a cancel and by the next BeginEdit.
   const std::string& text() const {
     return text_;
   }
 
-  // Handles one key. Only letters, digits and spaces are taken: a name is shown
-  // in fixed-width rows and read by other players, so punctuation that could
-  // disguise one is not on offer. Backspace and Delete both erase, a player
-  // having possibly bound Backspace to Cancel.
+  // Handles one key. Only letters, digits and spaces are accepted: names are
+  // shown in fixed-width rows and read by other players, so no punctuation that
+  // could disguise one. Backspace and Delete both erase, since a player may
+  // have bound Backspace to Cancel.
   //
-  // Ends the edit on kCommitted and kCancelled. Up and Down cancel and are
-  // then left to the caller, which decides whether the arrow also moves.
+  // Ends the edit on kCommitted and kCancelled. Up and Down cancel and are then
+  // left to the caller, which decides whether the arrow also moves the cursor.
   TextEntry OnEvent(const ftxui::Event& event);
 
  private:

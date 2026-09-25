@@ -23,17 +23,17 @@
 namespace ms {
 namespace {
 
-// A fraction as a percentage, two decimals: 0.055 reads "5.50%".
+// A fraction as a percentage with two decimals: 0.055 reads "5.50%".
 std::string Percent(double fraction) {
   char buf[32];
   snprintf(buf, sizeof(buf), "%.2f%%", fraction * 100.0);
   return buf;
 }
 
-// What the Critical Rate row says, which is not always what was bought: every
-// swing rolls against a rate held to 100%, so a bigger number would promise
-// damage no attack can land. The archer's 5th job spends the overflow, which
-// is the one build worth showing it to.
+// The text for the Critical Rate row, which isn't always the amount bought.
+// Every attack rolls against a rate capped at 100%, so a bigger number would
+// promise damage no attack can deal. The archer's 5th job uses the excess, so
+// only that build shows it.
 std::string CritRateText(const CharacterInstance& character, double rate) {
   bool spends_excess =
       BranchOf(character.proto().job()) == JobBranch::kArcher &&
@@ -41,10 +41,10 @@ std::string CritRateText(const CharacterInstance& character, double rate) {
   return Percent(spends_excess ? rate : std::min(1.0, rate));
 }
 
-// The stage the character swings at: their job's, plus what the passives add,
-// held to the soft cap and then past it where allowed. A dash where there is
-// no swing to name. A magician reads Average whatever staff they hold, which
-// is the row saying what BaseAttackSpeedStage does.
+// The attack-speed stage the character attacks at: their job's, plus what
+// passives add, capped at the soft cap and past it where allowed. A dash when
+// there is no weapon speed to name. A magician reads Average whatever staff
+// they hold, as BaseAttackSpeedStage decides.
 std::string AttackSpeedText(Job job, const WornGear& equipped, int bonus,
                             int uncapped) {
   WornGear::const_iterator it = equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -58,10 +58,10 @@ std::string AttackSpeedText(Job job, const WornGear& equipped, int bonus,
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
-// "358", or "(308+50) 358" when gear or a skill contributes. A skill can also
-// take a stat away -- Reckless Hunt buys attack by giving DEF up -- and that
-// reads "(308-50) 258": the sign belongs in the breakdown, so the player can
-// see the trade they bought rather than only the number it left them.
+// "358", or "(308+50) 358" when gear or a skill adds to it. A skill can also
+// lower a stat (Reckless Hunt trades DEF for attack), which reads "(308-50)
+// 258". The breakdown shows the sign so the player can see the trade, not only
+// the result.
 std::string TotalWithBreakdown(int base, int bonus) {
   std::string total = std::to_string(base + bonus);
   if (bonus == 0) {
@@ -72,9 +72,9 @@ std::string TotalWithBreakdown(int base, int bonus) {
          ") " + total;
 }
 
-// The combat stats, in two tiers the panel can hold back. Both sit in the
-// middle of the order rather than on the end, so leaving either out is a gap
-// to close and not a tail to cut.
+// The combat stats, in two tiers the panel can hide. Both tiers sit in the
+// middle of the list rather than at the end, so leaving one out closes a gap
+// instead of cutting off the tail.
 std::vector<StatLine> CombatStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, bool with_percents,
@@ -82,12 +82,12 @@ std::vector<StatLine> CombatStatLines(
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
-  // The gear the row is showing, which is the preset the activity names.
+  // The gear the row shows, which is the preset for the activity.
   const EquipStats& worn =
       character.equip_stats(character.SlotFor(PresetKind::kEquip, preset));
-  // What the character wears and was granted, then whatever a percentage added
-  // on top. Read off the unscaled sum rather than held as a stat, because the
-  // split exists only for this row.
+  // What the character wears and was granted, then what percentages added on
+  // top. It is read from the unscaled sum instead of kept as a stat, because
+  // only this row needs the split.
   int flat_attack = worn.attack() + derived.skill_stats.attack();
   int flat_magic = worn.magic_attack() + derived.skill_stats.magic_attack();
   std::vector<StatLine> lines = {
@@ -96,39 +96,37 @@ std::vector<StatLine> CombatStatLines(
        TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
   };
   if (with_percents) {
-    // Final Damage leads because it multiplies the whole chain the rows under
-    // it feed, which is the order they are read in.
+    // Final Damage leads the damage rows because it multiplies everything the
+    // rows below it feed into, which is the order they are read in.
     lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
     lines.push_back({"Damage", Percent(derived.damage_pct)});
-    // Boss damage pays in a boss fight alone, and ignoring DEF against
-    // whatever defence the monster has. Both sit above the crit pair because
-    // they qualify the damage rows over them.
+    // Boss damage applies only in boss fights, and ignoring DEF only against
+    // the monster's defence. Both sit above the crit pair because they qualify
+    // the damage rows above them.
     if (with_advanced) {
       lines.push_back(
           {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});
-      // Its mirror, and only a Hyper Stat grants it. Beside boss damage
-      // because the pair says which half of the game a build is aimed at.
+      // The counterpart of boss damage. It sits beside boss damage because the
+      // pair shows which half of the game a build aims at.
       lines.push_back({"Normal Damage", Percent(derived.normal_pct)});
-      // What the base, the gear and the skills come to between them, which is
-      // not their sum.
-      // Shortened to seat the 16-column label: "Ignore Enemy Defense" is 20.
+      // The base, gear and skills combine into this value, which is not their
+      // sum. Shortened because "Ignore Enemy Defense" overflows the label.
       lines.push_back({"Ignore DEF", Percent(CombineIgnoredDefense(
                                          kBaseIgnoreDefense,
                                          CombineIgnoredDefense(
                                              e.ignore_enemy_defense() / 100.0,
                                              derived.ied)))});
     }
-    // The base pair every character carries, plus what they bought. The stats
-    // a skill writes to hold only its own contribution, so a page reading
-    // 0.00% for both would be telling a character with a 5% chance of a 35%
-    // bonus that they never crit at all.
+    // The base pair every character has, plus what they bought. The stats a
+    // skill writes hold only its own share, so showing 0.00% for both would
+    // tell a character with a 5% chance of a 35% bonus that they never crit.
     lines.push_back(
         {"Critical Rate",
          CritRateText(character, kBaseCritRate + derived.crit_rate)});
     lines.push_back(
         {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
-    // Under the crit pair because it qualifies neither: what it lengthens is
-    // whatever the character keeps up, which no other row here shows.
+    // Below the crit pair because it affects neither. It lengthens the buffs
+    // the character keeps up, which no other row here shows.
     lines.push_back({"Buff Duration",
                      Percent(kBaseBuffDuration + derived.buff_duration_pct)});
   }
@@ -138,15 +136,15 @@ std::vector<StatLine> CombatStatLines(
            character.proto().job(),
            character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
            derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
-  // Under a rule, none of these being about the swing: three buy the purse and
-  // the climb, and the last are Arcane River's and Grandis's tolls. Meso Drop
-  // Rate is the SIZE of a drop and Item Drop Rate the ODDS of one, so they sit
-  // together.
+  // Below a rule, since none of these are about attacking. The first three
+  // affect income and levelling, and the rest are the Arcane River and Grandis
+  // requirements. Meso Drop Rate is the size of a drop and Item Drop Rate the
+  // chance of one, so they sit together.
   if (with_advanced) {
     lines.push_back(StatRule());
-    // What a kill actually pays over what it would pay bare, so a potion that
-    // multiplies the purse reads on the same row as a passive that adds to it:
-    // a 20% share under a 1.2x multiplier is the 44% the player earns.
+    // How much more a kill pays than it would with no bonus, so a potion that
+    // multiplies meso and a passive that adds to it show on the same row. A 20%
+    // bonus under a 1.2x multiplier is the 44% the player earns.
     lines.push_back(
         {"Meso Drop Rate",
          Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});

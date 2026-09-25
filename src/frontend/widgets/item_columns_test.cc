@@ -22,7 +22,7 @@ ItemListOptions Bag() {
   return options;
 }
 
-// The columns drawn, in the order they are drawn.
+// The columns drawn, in drawing order.
 std::vector<ItemColumn> Drawn(const ItemColumns& columns) {
   std::vector<ItemColumn> drawn;
   for (int i = 0; i < kNumItemColumns; ++i) {
@@ -41,14 +41,14 @@ TEST(ItemColumnsTest, WideEnoughForEverything) {
                 ItemColumn::kName, ItemColumn::kSlot, ItemColumn::kLevel,
                 ItemColumn::kJob, ItemColumn::kStats, ItemColumn::kScroll,
                 ItemColumn::kStars, ItemColumn::kPotential}));
-  // Both elastic columns stop at their widest: three potential effects, and
-  // the longest name the game ships.
+  // Both stretchable columns stop at their widest: three potential effects, and
+  // the longest name in the game.
   EXPECT_EQ(columns.potential_width, kItemPotentialMax);
   EXPECT_EQ(columns.name_width, kItemNameMax);
 }
 
-// Columns go in priority order, so what a narrowing panel loses is the last
-// of that order and never a column above it.
+// Columns are taken in priority order, so a narrowing panel always loses the
+// lowest-ranked column first.
 TEST(ItemColumnsTest, DropsInPriorityOrder) {
   std::vector<ItemColumn> lost;
   ItemColumns wide = FitItemColumns(200, Bag());
@@ -60,20 +60,20 @@ TEST(ItemColumnsTest, DropsInPriorityOrder) {
         lost.push_back(column);
       }
     }
-    // Nothing comes back once it has gone.
+    // A column that has gone never comes back.
     for (ItemColumn column : lost) {
       EXPECT_FALSE(columns.Shows(column));
     }
   }
-  // The priority read backwards, down to the slot, which goes last of all --
-  // 40 columns will not hold a name and a slot together.
+  // The priority in reverse, down to the slot, which goes last because 40
+  // columns can't hold a name and a slot together.
   EXPECT_EQ(lost, (std::vector<ItemColumn>{
                       ItemColumn::kStats, ItemColumn::kJob, ItemColumn::kLevel,
                       ItemColumn::kScroll, ItemColumn::kStars,
                       ItemColumn::kPotential, ItemColumn::kSlot}));
 }
 
-// A column below one that did not fit stays out, however much narrower it is.
+// A column ranked below one that didn't fit stays out, however narrow it is.
 TEST(ItemColumnsTest, NarrowerColumnDoesNotSlipPastAWiderOne) {
   for (int width = 40; width <= 200; ++width) {
     ItemColumns columns = FitItemColumns(width, Bag());
@@ -88,29 +88,29 @@ TEST(ItemColumnsTest, NarrowerColumnDoesNotSlipPastAWiderOne) {
   }
 }
 
-// A mechanic the account has not unlocked has no column, and the room it did
-// not take goes to whatever is under it.
+// A mechanic the account hasn't unlocked has no column, and the room goes to
+// the columns ranked below it.
 TEST(ItemColumnsTest, GatesEachColumnOnItsMechanic) {
   ItemColumns none = FitItemColumns(85, ItemListOptions{});
   EXPECT_FALSE(none.Shows(ItemColumn::kScroll));
   EXPECT_FALSE(none.Shows(ItemColumn::kStars));
   EXPECT_FALSE(none.Shows(ItemColumn::kPotential));
-  // The stats column is the first thing a narrow panel drops, so it is what
-  // the three unlocks buy back.
+  // The stats column is the first thing a narrow panel drops, so the three
+  // unlocks are what push it out.
   EXPECT_TRUE(none.Shows(ItemColumn::kStats));
   EXPECT_FALSE(FitItemColumns(85, AllUnlocked()).Shows(ItemColumn::kStats));
 
-  // Level and job are the bag's alone: the equipped list is wearing the item.
+  // Level and job appear only in the bag, since the equipped list is already
+  // wearing the item.
   ItemColumns worn = FitItemColumns(200, AllUnlocked());
   EXPECT_FALSE(worn.Shows(ItemColumn::kLevel));
   EXPECT_FALSE(worn.Shows(ItemColumn::kJob));
   EXPECT_TRUE(FitItemColumns(200, Bag()).Shows(ItemColumn::kLevel));
 }
 
-// Whatever no column claimed widens the potential column, then the name, each
-// between its two bounds, and the row never outgrows the panel. Neither
-// climbs with the width for long: one column further along, a new cell takes
-// the room and they give it all back.
+// Leftover room widens the potential column, then the name, each within its
+// limits, and the row never outgrows the panel. Neither keeps growing with the
+// width for long: a little wider and the next column takes the room.
 TEST(ItemColumnsTest, LeftoverRoomWidensPotentialThenTheName) {
   for (int width = 40; width <= 200; ++width) {
     ItemColumns columns = FitItemColumns(width, Bag());
@@ -118,15 +118,15 @@ TEST(ItemColumnsTest, LeftoverRoomWidensPotentialThenTheName) {
     EXPECT_LE(columns.potential_width, kItemPotentialMax);
     EXPECT_GE(columns.name_width, kItemNameWidth);
     EXPECT_LE(columns.name_width, kItemNameMax);
-    // The gutter is spent before anything is handed out, so a row always
+    // The gutter is reserved before anything is handed out, so a row always
     // stops one column short of the border.
     EXPECT_LE(columns.TotalWidth(), width);
-    // Nothing is left on the table: either the name is full or the next
-    // column in the priority would not have fitted.
+    // No room is wasted: either the name is at its widest or the next column in
+    // priority wouldn't have fit.
     EXPECT_TRUE(columns.name_width == kItemNameMax ||
                 columns.TotalWidth() + kItemCellGap > width)
         << "width " << width;
-    // And the name takes nothing while the potential column can still use it.
+    // The name takes nothing while the potential column can still use the room.
     EXPECT_TRUE(columns.name_width == kItemNameWidth ||
                 !columns.Shows(ItemColumn::kPotential) ||
                 columns.potential_width == kItemPotentialMax)
@@ -134,26 +134,26 @@ TEST(ItemColumnsTest, LeftoverRoomWidensPotentialThenTheName) {
   }
 }
 
-// A locked potential column is no column at all, so the room goes on to the
-// name as it did before the mechanic opened.
+// A locked potential column takes no room, so the leftover goes to the name, as
+// it did before the mechanic unlocked.
 TEST(ItemColumnsTest, NameTakesTheRoomWithNoPotentialColumn) {
   ItemColumns columns = FitItemColumns(200, ItemListOptions{/*bag=*/true});
   EXPECT_FALSE(columns.Shows(ItemColumn::kPotential));
   EXPECT_EQ(columns.name_width, kItemNameMax);
 }
 
-// A panel too narrow for anything still lists names: a row with no name is
-// not a row.
+// A panel too narrow for anything else still lists names, since a row without a
+// name is useless.
 TEST(ItemColumnsTest, KeepsTheNameAtAnyWidth) {
   ItemColumns columns = FitItemColumns(10, Bag());
   EXPECT_TRUE(columns.Shows(ItemColumn::kName));
   EXPECT_EQ(columns.name_width, kItemNameWidth);
 }
 
-// The potential column is the one that grows, so the header over it moves
-// with it and the row still ends inside the panel.
+// The potential column is the one that grows, so its header moves with it and
+// the row still ends inside the panel.
 TEST(ItemColumnsTest, HeaderFollowsTheWidenedPotentialColumn) {
-  // 77 columns seats every cell the bag can show with nothing left over.
+  // At 77 columns every cell the bag can show fits with nothing left over.
   ItemColumns narrow = FitItemColumns(77, Bag());
   ItemColumns wide = FitItemColumns(200, Bag());
   EXPECT_EQ(narrow.potential_width, kItemPotentialWidth);
@@ -161,8 +161,7 @@ TEST(ItemColumnsTest, HeaderFollowsTheWidenedPotentialColumn) {
   EXPECT_LE(TextColumns(ItemListHeader(wide)) + kItemListGutter, 200);
 }
 
-// The header stands over the cells: one label per drawn column, each starting
-// where its cell starts.
+// Each drawn column gets one label, starting where its cell starts.
 TEST(ItemColumnsTest, HeaderStandsOverTheColumns) {
   ItemColumns columns = FitItemColumns(200, Bag());
   std::string header = ItemListHeader(columns);
@@ -179,7 +178,7 @@ TEST(ItemColumnsTest, HeaderStandsOverTheColumns) {
               ItemColumnHeader(column));
     at += columns.Width(column);
   }
-  // No blank tail: the last label ends the row.
+  // No trailing blanks: the last label ends the row.
   EXPECT_EQ(header.back(), 'l');  // "...Potential"
   EXPECT_LE(TextColumns(header) + kItemListGutter, 200);
 }

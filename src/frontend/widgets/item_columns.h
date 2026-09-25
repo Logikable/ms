@@ -1,15 +1,14 @@
-/* Which columns an item list draws, and how wide each one is.
+/* Which columns an item list draws, and how wide each is.
  *
  * The equipped panel and the bag's Equip tab list the same items in the same
- * columns, at whatever width the terminal has left them. A narrow panel
- * cannot hold all of them, so the columns are ranked and the list takes them
- * in that order until the room runs out -- and stops there. A lower-ranked
- * column never slips in past one that did not fit, however narrow it is.
+ * columns, at whatever width the terminal leaves. A narrow panel can't fit them
+ * all, so the columns are ranked and taken in order until the room runs out. A
+ * lower-ranked column never takes the place of one that didn't fit, however
+ * narrow.
  *
- * A column is also gated on its mechanic: potential, star force and scrolling
- * each appear only once the account has unlocked them, and the level and job
- * columns belong to the bag alone -- the equipped list is wearing the item, so
- * it has already answered both.
+ * A column also needs its mechanic: potential, star force and scrolling appear
+ * only once the account unlocks them. The level and job columns appear only in
+ * the bag, since a worn item already meets both.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_ITEM_COLUMNS_H_
 #define MS_SRC_FRONTEND_WIDGETS_ITEM_COLUMNS_H_
@@ -18,8 +17,8 @@
 
 namespace ms {
 
-// The columns of an item list, in the order they are drawn. Their ranking is
-// a separate order -- see kItemColumnPriority.
+// The columns of an item list, in drawing order. Their ranking is separate (see
+// kItemColumnPriority).
 enum class ItemColumn {
   kName,
   kSlot,
@@ -32,56 +31,55 @@ enum class ItemColumn {
 };
 inline constexpr int kNumItemColumns = 8;
 
-// Which column gives way to which. Name and slot say what the item is; the
-// three upgrades are what the player is working on; the level and job gates
-// and the stats are read on the item's own card.
+// The columns' ranking, highest first. Name and slot say what the item is. The
+// three upgrades are what the player works on. The level and job gates and the
+// stats can be read on the item's card.
 inline constexpr ItemColumn kItemColumnPriority[kNumItemColumns] = {
     ItemColumn::kName,  ItemColumn::kSlot,   ItemColumn::kPotential,
     ItemColumn::kStars, ItemColumn::kScroll, ItemColumn::kLevel,
     ItemColumn::kJob,   ItemColumn::kStats,
 };
 
-// The name column at its narrowest, on a panel that can spare nothing. Names
-// run past it -- "Fafnir Windwing Shooter Trace" does -- so a name is cut to
-// the column and slides under it while selected; see ScrollingWindow.
+// The name column at its narrowest. Longer names, such as "Fafnir Windwing
+// Shooter Trace", are cut to the column and scroll while selected (see
+// ScrollingWindow).
 inline constexpr int kItemNameWidth = 26;
 
-// And at its widest: the longest name the game ships, a trace's " Trace"
-// included. Past this the columns after the name would be pushed away from it
-// for no name's sake.
+// The name column at its widest: the longest name in the game, including a
+// trace's " Trace". Any wider would push the following columns away for
+// nothing.
 inline constexpr int kItemNameMax = 38;
 
-// The column inside the left border, which the cursor caret writes into, and
-// the blank column the rows keep inside the right border.
+// The column inside the left border where the cursor caret goes, plus the blank
+// column kept inside the right border.
 inline constexpr int kItemListCursor = 2;
 inline constexpr int kItemListGutter = 1;
 
 // The blank columns between one cell and the next.
 inline constexpr int kItemCellGap = 2;
 
-// The potential column at its narrowest, which holds one effect: "24% Crit
-// DMG" is the widest the game rolls.
+// The potential column at its narrowest, holding one effect. "24% Crit DMG" is
+// the widest one.
 inline constexpr int kItemPotentialWidth = 12;
 
-// And at its widest: all three lines an item carries, each folded to one
-// effect and parted from the next. A glove or a ring is read for several of
-// them at once, so the room a panel does not otherwise want goes here before
-// it goes to the name. Past this there is nothing left to say.
+// The potential column at its widest: all three of an item's lines, each as one
+// effect, with gaps. Gloves and rings are read for several effects at once, so
+// spare room goes here before the name.
 inline constexpr int kItemPotentialMax =
     3 * kItemPotentialWidth + 2 * kItemCellGap;
 
-// What a list is allowed to show. The three mechanics are the account's --
-// ask Unlocked(Feature::kPotential, ...) and its two neighbours.
+// What a list may show. The three mechanics come from the account (see
+// Unlocked(Feature::kPotential, ...) and the two after it).
 struct ItemListOptions {
-  // The bag, which lists items the character may not be able to wear. The
-  // equipped list leaves both gate columns out.
+  // True for the bag, which lists items the character may not be able to wear.
+  // The equipped list leaves out both gate columns.
   bool bag = false;
   bool scrolling = false;
   bool star_force = false;
   bool potential = false;
 };
 
-// The columns one list draws, and the room its two elastic columns got.
+// The columns a list draws, and the widths its two stretchable columns got.
 struct ItemColumns {
   int name_width = kItemNameWidth;
   int potential_width = kItemPotentialWidth;
@@ -90,17 +88,17 @@ struct ItemColumns {
   bool Shows(ItemColumn column) const {
     return shown[static_cast<int>(column)];
   }
-  // The room `column` gets, name column included. Zero for one not drawn.
+  // The width `column` gets, including the name column. Zero for a column not
+  // drawn.
   int Width(ItemColumn column) const;
-  // Everything the row spends: the cursor column, the cells with the gaps
-  // between them, and the gutter.
+  // The row's full width: the cursor column, the cells and the gaps between
+  // them, and the gutter.
   int TotalWidth() const;
 };
 
-// The columns that fit an item list `width` columns wide, cursor and gutter
-// included. Taken in priority order and stopped at the first one that does
-// not fit; whatever is left over afterwards widens the potential column, then
-// the name.
+// The columns that fit an item list `width` wide, including the cursor and
+// gutter. They are taken in priority order, stopping at the first that doesn't
+// fit. Leftover room widens the potential column, then the name.
 ItemColumns FitItemColumns(int width, const ItemListOptions& options);
 
 // What `column` is called at the head of a list.

@@ -12,7 +12,7 @@
 namespace ms {
 namespace {
 
-// `count` numbered rows, so a rendered card says which slice of them it drew.
+// `count` numbered rows, so a rendered card shows which slice it drew.
 std::vector<CardRow> NumberedRows(int count) {
   std::vector<CardRow> rows;
   for (int i = 0; i < count; ++i) {
@@ -21,7 +21,7 @@ std::vector<CardRow> NumberedRows(int count) {
   return rows;
 }
 
-// The columns the card asks for, borders and bar included.
+// The width the card asks for, borders and bar included.
 int CardWidth(const ScrollCard& card, std::vector<CardRow> rows,
               int content_width, int view_width = 0) {
   ftxui::Element element =
@@ -30,14 +30,14 @@ int CardWidth(const ScrollCard& card, std::vector<CardRow> rows,
   return element->requirement().min_x;
 }
 
-// A card of one section, which is what most of these tests are.
+// A card with one section, as in most of these tests.
 CardRows Body(std::vector<CardRow> rows) {
   CardRows card;
   card.body = std::move(rows);
   return card;
 }
 
-// The card drawn onto a screen of its own, one string per line.
+// The card drawn onto its own screen, one string per line.
 std::vector<std::string> Draw(const ScrollCard& card, CardRows rows,
                               int content_width, int view_width = 0) {
   ftxui::Element element =
@@ -58,7 +58,7 @@ std::vector<std::string> Draw(const ScrollCard& card, CardRows rows,
   return lines;
 }
 
-// Whether the card's right-hand column carries any bar glyph.
+// Whether the card's right-hand column has any bar glyph.
 bool HasBar(const std::vector<std::string>& lines) {
   for (const std::string& line : lines) {
     if (line.find("┃") != std::string::npos ||
@@ -70,7 +70,7 @@ bool HasBar(const std::vector<std::string>& lines) {
   return false;
 }
 
-// One row of `width` letters, so a squeezed card says which columns it drew.
+// Rows of `width` letters, so a squeezed card shows which columns it drew.
 std::vector<CardRow> LetterRows(int count, int width) {
   std::vector<CardRow> rows;
   for (int i = 0; i < count; ++i) {
@@ -83,7 +83,7 @@ std::vector<CardRow> LetterRows(int count, int width) {
   return rows;
 }
 
-// Whether the card's last line before the border carries a horizontal bar.
+// Whether the card's last line before the border has a horizontal bar.
 bool HasXBar(const std::vector<std::string>& lines) {
   if (lines.size() < 3) {
     return false;
@@ -104,7 +104,7 @@ TEST(ScrollCardTest, DrawsEveryRowWithNoBudget) {
   EXPECT_FALSE(HasBar(lines));
 }
 
-// The budget counts the borders, so a card given six rows draws four.
+// The budget includes the borders, so a card given six rows draws four.
 TEST(ScrollCardTest, CutsToTheBudgetAndDrawsABar) {
   ScrollCard card;
   card.SetMaxRows(6);
@@ -116,8 +116,8 @@ TEST(ScrollCardTest, CutsToTheBudgetAndDrawsABar) {
   EXPECT_TRUE(HasBar(lines));
 }
 
-// The column is held open from the moment there is a budget, so the card is
-// the same width whether or not it has anything to scroll.
+// The bar's column is reserved as soon as there is a budget, so the card is the
+// same width whether or not it has anything to scroll.
 TEST(ScrollCardTest, ReservesTheBarColumnWhateverFits) {
   ScrollCard fits;
   fits.SetMaxRows(20);
@@ -132,7 +132,7 @@ TEST(ScrollCardTest, ReservesTheBarColumnWhateverFits) {
 TEST(ScrollCardTest, ScrollsAndHoldsToBothEnds) {
   ScrollCard card;
   card.SetMaxRows(6);
-  Draw(card, Body(NumberedRows(10)), 8);  // Teaches it what it is showing.
+  Draw(card, Body(NumberedRows(10)), 8);  // renders once so it knows its rows
 
   card.ScrollBy(2);
   std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
@@ -152,8 +152,8 @@ TEST(ScrollCardTest, ScrollsAndHoldsToBothEnds) {
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
 
-// A card scrolled to its foot and then given more room comes back up rather
-// than drawing past the end of its rows.
+// A card scrolled to the bottom and then given more room scrolls back up
+// instead of drawing past the end of its rows.
 TEST(ScrollCardTest, ReclampsWhenTheBudgetGrows) {
   ScrollCard card;
   card.SetMaxRows(6);
@@ -165,8 +165,8 @@ TEST(ScrollCardTest, ReclampsWhenTheBudgetGrows) {
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
 
-// A rule reaches both borders, the bar's column included, and keeps reaching
-// them when something stretches the card past its own width.
+// A rule reaches both borders, including the bar's column, and still does when
+// something stretches the card wider.
 TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
   ScrollCard card;
   card.SetMaxRows(20);
@@ -179,9 +179,8 @@ TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
   EXPECT_EQ(lines[2], "├─────────┤");
 }
 
-// The scroll screen hands the card a flex box wider than it asked for. The
-// rule has to follow the border out to the bar, and the bar has to stay
-// against the border.
+// The scroll screen gives the card a flex box wider than it asked for. The rule
+// has to reach the border, and the bar has to stay against the border.
 TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
   ScrollCard card;
   card.SetMaxRows(6);
@@ -190,7 +189,7 @@ TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
                                                ftxui::Dimension::Fixed(6));
   ftxui::Render(screen, card.Render(" T ", std::move(rows), 8) | ftxui::flex);
-  // The rule runs out to the bar, which crosses it against the border.
+  // The rule runs out to the bar, which crosses it at the border.
   EXPECT_EQ(screen.PixelAt(0, 2).character, "├");
   EXPECT_EQ(screen.PixelAt(17, 2).character, "─") << "the rule reaches the bar";
   EXPECT_EQ(screen.PixelAt(19, 2).character, "│");
@@ -198,8 +197,8 @@ TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
   EXPECT_EQ(screen.PixelAt(18, 1).character, "┃") << "the bar, on the border";
 }
 
-// A rule inside the body gives way to the bar while it is drawn, so the bar
-// reads as one line rather than several cut apart by the rules.
+// A rule in the body gives way to the bar while the bar is drawn, so the bar is
+// one line rather than several pieces.
 TEST(ScrollCardTest, TheBarCrossesARuleInTheBody) {
   ScrollCard card;
   card.SetMaxRows(5);
@@ -220,8 +219,8 @@ TEST(ScrollCardTest, MeasuresTheRowsWhenGivenNoWidth) {
   EXPECT_EQ(CardWidth(card, std::move(rows), 0), 19) << "the row and a border";
 }
 
-// Head and foot are drawn whole and the body scrolls between them, so a rule
-// never crosses the bar and what names the card stays on screen.
+// The head and foot are drawn in full and the body scrolls between them, so the
+// card's title stays on screen.
 TEST(ScrollCardTest, HoldsTheHeadAndTheFootAndScrollsBetweenThem) {
   ScrollCard card;
   card.SetMaxRows(8);
@@ -237,7 +236,7 @@ TEST(ScrollCardTest, HoldsTheHeadAndTheFootAndScrollsBetweenThem) {
   EXPECT_NE(lines[4].find("row1"), std::string::npos);
   EXPECT_NE(lines[6].find("foot"), std::string::npos);
   EXPECT_TRUE(card.Overflows()) << "the body has more than it can draw";
-  // The bar runs beside the body alone.
+  // The bar runs beside the body only.
   EXPECT_FALSE(HasBar({lines[1]}));
   EXPECT_TRUE(HasBar({lines[3], lines[4]}));
   EXPECT_FALSE(HasBar({lines[6]}));
@@ -249,8 +248,8 @@ TEST(ScrollCardTest, HoldsTheHeadAndTheFootAndScrollsBetweenThem) {
   EXPECT_NE(lines[6].find("foot"), std::string::npos) << "the foot is held";
 }
 
-// A card too short to hold its fixed rows and a line between them scrolls
-// entire: a head with its top cut off says less than a card that moves.
+// A card too short for its fixed rows and a line between them scrolls as a
+// whole. A head with its top cut off is worse than a card that scrolls.
 TEST(ScrollCardTest, ScrollsEntireWhenTheFixedRowsDoNotFit) {
   ScrollCard card;
   card.SetMaxRows(4);
@@ -277,8 +276,8 @@ TEST(ScrollCardTest, AtLeastOneRowHoweverSmallTheBudget) {
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
 
-// The rows keep the width they were built at; the card draws a window onto
-// them, with a bar along its foot.
+// The rows keep their width, and the card shows a window onto them with a bar
+// along the bottom.
 TEST(ScrollCardTest, SqueezesToTheViewWidthAndDrawsABar) {
   ScrollCard card;
   std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20, 8);
@@ -292,7 +291,7 @@ TEST(ScrollCardTest, SqueezesToTheViewWidthAndDrawsABar) {
 
 TEST(ScrollCardTest, SlidesSidewaysAndHoldsToBothEnds) {
   ScrollCard card;
-  Draw(card, Body(LetterRows(3, 20)), 20, 8);  // Teaches it what it is showing.
+  Draw(card, Body(LetterRows(3, 20)), 20, 8);  // so it knows its rows
   card.ScrollXBy(4);
   EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20, 8)[1].find("efghijkl"),
             std::string::npos);
@@ -305,8 +304,8 @@ TEST(ScrollCardTest, SlidesSidewaysAndHoldsToBothEnds) {
       << "the last of the row, and no further";
 }
 
-// The whole card slides, head and all: a title left clipped while the reader
-// looks at the far end of a row says nothing.
+// The whole card scrolls sideways, head included. A clipped title is useless
+// while the reader looks at the far end of a row.
 TEST(ScrollCardTest, SlidesTheHeadWithTheBody) {
   ScrollCard card;
   CardRows rows;
@@ -332,7 +331,7 @@ TEST(ScrollCardTest, DrawsWholeWhenTheViewHoldsIt) {
       << "nothing off either edge to reach";
 }
 
-// The bar along the foot is a row of the budget like any other.
+// The bar along the bottom takes a row of the budget like any other.
 TEST(ScrollCardTest, TheHorizontalBarCostsARow) {
   ScrollCard card;
   card.SetMaxRows(6);

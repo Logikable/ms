@@ -8,10 +8,10 @@
 namespace ms {
 namespace {
 
-// What each column holds, at the width of the widest thing in it: "Equip
-// Slot" itself, "Lv150", "Magician", an attack figure beside a stat figure,
-// the "Scroll" heading over "7/7" and "25*". The potential column sets its own
-// bounds -- see kItemPotentialWidth.
+// Each column's width, set by the widest thing in it: "Equip Slot", "Lv150",
+// "Magician", an attack figure next to a stat figure, and the "Scroll" heading
+// over "7/7" and "25*". The potential column sets its own limits (see
+// kItemPotentialWidth).
 constexpr int kSlotWidth = 10;
 constexpr int kLevelWidth = 5;
 constexpr int kJobWidth = 8;
@@ -19,8 +19,8 @@ constexpr int kStatsWidth = 20;
 constexpr int kScrollWidth = 6;
 constexpr int kStarsWidth = 5;
 
-// Whether the mechanic behind `column` is open. The name and the slot answer
-// to nothing: an item always has both.
+// Whether the mechanic behind `column` is unlocked. The name and slot columns
+// always show, since every item has both.
 bool Eligible(ItemColumn column, const ItemListOptions& options) {
   switch (column) {
     case ItemColumn::kLevel:
@@ -71,8 +71,7 @@ int ItemColumns::TotalWidth() const {
     if (!Shows(column)) {
       continue;
     }
-    // The name follows the cursor with no gap of its own -- the cursor column
-    // is the gap.
+    // The name follows the cursor column, which serves as its gap.
     total += Width(column) + (column == ItemColumn::kName ? 0 : kItemCellGap);
   }
   return total;
@@ -80,31 +79,30 @@ int ItemColumns::TotalWidth() const {
 
 ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
   ItemColumns columns;
-  // The name is seated before anything is measured: a list of items with no
-  // names is not a list. Everything else answers to the room left.
+  // The name is placed before anything is measured, since a list needs names.
+  // Every other column depends on the room left.
   columns.shown[static_cast<int>(ItemColumn::kName)] = true;
   int left = width - columns.TotalWidth();
   for (ItemColumn column : kItemColumnPriority) {
     if (column == ItemColumn::kName || !Eligible(column, options)) {
       continue;
     }
-    // Seated first, then measured: Width answers zero for a column that is
-    // not drawn.
+    // Mark it shown before measuring, because Width returns zero for a hidden
+    // column.
     columns.shown[static_cast<int>(column)] = true;
     int cost = kItemCellGap + columns.Width(column);
     if (cost > left) {
-      // The first column that does not fit ends the list. A narrower one
-      // further down would fit, and taking it would put the lists' columns in
-      // an order the player never asked for.
+      // The first column that doesn't fit ends the list. A narrower one further
+      // down might fit, but taking it would put the columns in an order the
+      // player didn't ask for.
       columns.shown[static_cast<int>(column)] = false;
       break;
     }
     left -= cost;
   }
-  // What nothing claimed goes to the potential column first: a name too long
-  // for its column still slides under the cursor when the row is selected,
-  // while a second effect has nowhere else to appear. Then to the name, up to
-  // the longest name there is to show.
+  // Leftover room goes to the potential column first, then to the name up to
+  // the longest name. A long name can still scroll under the cursor, but a
+  // second effect has nowhere else to show.
   if (columns.Shows(ItemColumn::kPotential)) {
     int grow = std::clamp(left, 0, kItemPotentialMax - columns.potential_width);
     columns.potential_width += grow;
@@ -149,7 +147,7 @@ std::string ItemListHeader(const ItemColumns& columns) {
     }
     header += PadRight(ItemColumnHeader(column), columns.Width(column));
   }
-  // The last column's padding is blank to the border and worth nothing.
+  // The last column's padding is blank up to the border, so it is trimmed.
   header.erase(header.find_last_not_of(' ') + 1);
   return header;
 }

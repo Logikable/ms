@@ -23,8 +23,8 @@
 namespace ms {
 
 const DisplayStat* DisplayStatFor(StatField field) {
-  // Both tables spell a stat the same way, so the label is the join between
-  // them and neither needs to know the other's order.
+  // Both tables use the same label for a stat, so the label links them and
+  // neither depends on the other's order.
   std::string name = StatFieldName(field);
   if (name.empty()) {
     return nullptr;
@@ -38,9 +38,9 @@ const DisplayStat* DisplayStatFor(StatField field) {
 }
 
 std::string FormatWeaponList(const std::vector<EquipType>& types) {
-  // A weapon that comes in both hands' versions. Naming the two of them is how
-  // the data says "any sword", but "One-Handed Sword / Two-Handed Sword" is
-  // neither how a description writes it nor narrow enough for a column.
+  // A weapon with a one-handed and a two-handed version. The data names both to
+  // mean "any sword", but "One-Handed Sword / Two-Handed Sword" is too long for
+  // a column and not how a description would put it.
   struct WeaponPair {
     EquipType one_handed;
     EquipType two_handed;
@@ -53,8 +53,8 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
   };
   std::set<EquipType> listed(types.begin(), types.end());
 
-  // Walked in the order they were given, so a collapsed pair lands where its
-  // first half was named.
+  // Walk the types in the order given, so a collapsed pair appears where its
+  // first half was.
   std::string result;
   std::set<EquipType> written;
   for (EquipType type : types) {
@@ -64,8 +64,8 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
     written.insert(type);
     std::string name = FormatEquipType(type);
     for (const WeaponPair& pair : kWeaponPairs) {
-      // Only a list holding the whole pair collapses: one hand's version alone
-      // stays the weapon it names.
+      // A pair collapses only when the list holds both halves. One hand's
+      // version on its own keeps its full name.
       if ((type == pair.one_handed || type == pair.two_handed) &&
           listed.count(pair.one_handed) > 0 &&
           listed.count(pair.two_handed) > 0) {
@@ -88,10 +88,9 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
 
 namespace {
 
-// Appends `skill` to `out`, but only after whatever it waits on. Keyed by
-// display name, which is what a requirement names and what a learned level is
-// held under. Marking before the recursion rather than after is what stops a
-// cycle in the data from recurring forever.
+// Appends `skill` to `out`, after any skill it requires. Skills are keyed by
+// display name, which is what a requirement names. The skill is marked before
+// recursing so a cycle in the data can't loop forever.
 void EmitAfterRequirement(const Skill& skill,
                           const std::map<std::string, const Skill*>& by_name,
                           std::set<std::string>& emitted,
@@ -102,8 +101,8 @@ void EmitAfterRequirement(const Skill& skill,
   if (skill.has_required_skill()) {
     std::map<std::string, const Skill*>::const_iterator it =
         by_name.find(skill.required_skill().skill_name());
-    // A requirement naming a skill from another page is nothing this list can
-    // order around, and the player will find it in the book it belongs to.
+    // A requirement from another page can't be ordered here. The player finds
+    // it in its own book.
     if (it != by_name.end()) {
       EmitAfterRequirement(*it->second, by_name, emitted, out);
     }
@@ -111,9 +110,9 @@ void EmitAfterRequirement(const Skill& skill,
   out.push_back(&skill);
 }
 
-// Which block of the V page a kind of node sits in. SPELLED OUT rather than
-// taken off the enum's order, so renumbering VNodeKind cannot rearrange the
-// page. The blocks run from the most exclusive node to the least.
+// Which block of the V page a node kind goes in, from the most exclusive to the
+// least. The ranks are written out so renumbering VNodeKind can't reorder the
+// page.
 int VNodeRank(VNodeKind kind) {
   switch (kind) {
     case V_NODE_KIND_JOB:
@@ -127,9 +126,8 @@ int VNodeRank(VNodeKind kind) {
   }
 }
 
-// The Vengeance forms standing right now, keyed by the skill each takes the
-// place of. A form whose toggle is switched off is not here, and so is not on
-// the page at all.
+// The Vengeance forms whose toggle is on, keyed by the skill each replaces. A
+// form that is toggled off is left off the page.
 std::map<std::string, const Skill*> FormsShowing(
     const std::map<std::string, Skill>& catalog,
     const std::set<std::string>& toggles_on) {
@@ -154,9 +152,8 @@ std::vector<const Skill*> SkillsForAdvancement(
     return result;
   }
   for (const std::pair<const std::string, Skill>& entry : catalog) {
-    // A form takes its parent's row below rather than a row of its own: it
-    // carries that skill's skill_order, so listing both would be two skills
-    // at one place in the book.
+    // A form takes its parent's row instead of a row of its own. It shares that
+    // skill's skill_order, so listing both would put two skills in one place.
     if (ListedIn(entry.second, advancement) && entry.second.hyper() == hyper &&
         entry.second.replaces_skill_name().empty()) {
       result.push_back(&entry.second);
@@ -219,17 +216,16 @@ std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes) {
 }
 
 KindTag TagFor(const Skill& skill) {
-  // Orange rather than red for the attack tag: red is the colour that says a
-  // thing is refused (colors.h), and every attack skill carrying it on a
-  // screen that dims what cannot be learned spent the alarm on something that
-  // is never a problem.
+  // The attack tag is orange, not red. Red means refused (colors.h), and attack
+  // skills are never a problem, so red on every one of them would waste the
+  // warning.
   switch (skill.kind()) {
     case SKILL_KIND_ATTACK:
     case SKILL_KIND_ACTIVE:
       return {"A:  ", kGold};
     case SKILL_KIND_AUTO_ATTACK:
-      // Purple rather than another yellow: an auto-attack is not a shade of
-      // active, and two tags a step apart in the same hue read as one.
+      // Purple, not another yellow: an auto-attack isn't a kind of active, and
+      // two tags in the same hue read as one.
       return {"AA: ", kPurple};
     case SKILL_KIND_PASSIVE:
       return {"P:  ", kGreen};
@@ -285,13 +281,13 @@ std::string FormatSlot(EquipSlot slot) {
       return "Bottom";
     case EQUIP_SLOT_CAPE:
       return "Cape";
-    // Short of the full "Face Accessory": the slot column is ten columns wide.
+    // Shortened from "Face Accessory" to fit the ten-column slot column.
     case EQUIP_SLOT_FACE_ACCESSORY:
       return "Face";
     case EQUIP_SLOT_EYE_ACCESSORY:
       return "Eye";
-    // The family, not the slot: this is what a ring in the bag and a ring
-    // named by a set are. Which of the four one is worn in is FormatWornSlot.
+    // The family, not the slot: a ring in the bag or in a set is just a ring.
+    // FormatWornSlot says which of the four it is worn in.
     case EQUIP_SLOT_RING:
     case EQUIP_SLOT_RING_2:
     case EQUIP_SLOT_RING_3:
@@ -320,8 +316,7 @@ std::string FormatSlot(EquipSlot slot) {
       return "Medal";
     case EQUIP_SLOT_HEART:
       return "Heart";
-    // All six read alike: the item's own name is what says which area it is
-    // from, and the slot column has ten columns to say the rest.
+    // All six share one name. The item's own name says which area it is from.
     case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:
     case EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND:
     case EQUIP_SLOT_SYMBOL_LACHELEIN:
@@ -409,8 +404,8 @@ std::string FormatEquipType(EquipType type) {
       return "Rosary";
     case EQUIP_TYPE_IRON_CHAIN:
       return "Iron Chain";
-    // Three types, one name. Which branch's book it is shows in its own name
-    // -- calling it a "Fire/Poison Magic Book" here would say it twice.
+    // Three types share one name. The item's own name already says which
+    // branch's book it is.
     case EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON:
     case EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING:
     case EQUIP_TYPE_MAGIC_BOOK_HOLY:
@@ -424,7 +419,7 @@ std::string FormatEquipType(EquipType type) {
     case EQUIP_TYPE_DAGGER_SCABBARD:
       return "Dagger Scabbard";
     default:
-      return "";  // not yet implemented for other types
+      return "";  // other types have no name
   }
 }
 
@@ -544,8 +539,8 @@ std::string AbilityLineName(AbilityLineType type) {
 }
 
 std::string AbilityLineValueText(const AbilityLine& line) {
-  // The types stated in whole percents. Everything else is flat, Attack
-  // Speed's one swing stage included.
+  // These types are whole percents. The rest are flat, including Attack Speed's
+  // one stage.
   const bool percent = line.type() == ABILITY_LINE_TYPE_MAX_HP_PCT ||
                        line.type() == ABILITY_LINE_TYPE_CRIT_RATE ||
                        line.type() == ABILITY_LINE_TYPE_BOSS_DAMAGE ||
@@ -661,20 +656,20 @@ std::string PotentialLineName(PotentialLineType type) {
 
 namespace {
 
-// Whether a line takes something away rather than granting it, which is the
-// two cooldown lines and nothing else.
+// Whether a line takes something away instead of granting it. Only the two
+// cooldown lines do.
 bool TakesAway(PotentialLineType type) {
   return type == POTENTIAL_LINE_TYPE_COOLDOWN_1 ||
          type == POTENTIAL_LINE_TYPE_COOLDOWN_2;
 }
 
-// A value with the unit its line is stated in, and no sign: "12", "9%", "2s".
+// A value with its unit and no sign: "12", "9%", "2s".
 std::string PotentialValueText(PotentialLineType type, int value) {
   switch (type) {
     case POTENTIAL_LINE_TYPE_COOLDOWN_1:
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
       return std::to_string(value) + "s";
-    // The flat grants. Everything else is a share of something.
+    // Flat grants. The rest are percentages.
     case POTENTIAL_LINE_TYPE_STR:
     case POTENTIAL_LINE_TYPE_DEX:
     case POTENTIAL_LINE_TYPE_INT:
@@ -687,8 +682,7 @@ std::string PotentialValueText(PotentialLineType type, int value) {
   }
 }
 
-// The line granting a share of `stat`. HP and MP are not stats a potential
-// grants a share of, so they have no line.
+// The line granting a percentage of `stat`. HP and MP have none.
 PotentialLineType StatPercentLine(StatField stat) {
   switch (stat) {
     case STAT_FIELD_STR:
@@ -704,18 +698,17 @@ PotentialLineType StatPercentLine(StatField stat) {
   }
 }
 
-// The %attack line that reaches this character's damage. A magician swings
-// for magic attack, and the weapon attack a wand also carries never reaches
-// the chain -- the same question the stat column asks.
+// The %attack line that raises this character's damage. A magician's damage
+// uses magic attack, so a wand's weapon attack doesn't count. The stat column
+// asks the same question.
 PotentialLineType PrimaryAttackPercent(StatField primary) {
   return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
                                    : POTENTIAL_LINE_TYPE_ATTACK_PCT;
 }
 
-// The type the column counts `type` under. Two jobs: GMS states ignored
-// defence, boss damage and cooldown at several fixed sizes, each its own type,
-// so adding two asks for the EFFECT rather than the size; and All Stat% grants
-// the stat the character builds on.
+// The type the column counts `type` under. GMS gives ignored defence, boss
+// damage and cooldown several fixed sizes, each its own type, and this maps
+// them to one effect. All Stat% maps to the character's primary stat.
 PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
   static_assert(PotentialLineType_ARRAYSIZE == 28,
                 "a new potential line needs a family");
@@ -750,21 +743,19 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_LUK_PCT:
       return type == StatPercentLine(primary) ? type
                                               : POTENTIAL_LINE_TYPE_UNSPECIFIED;
-    // The flat lines and %HP, which Rare rolls and a player stops reading the
-    // day the item leaves Rare. A column that showed them would say nothing
-    // about most items but their rank.
+    // Flat lines and %HP. They roll on Rare items and stop mattering once an
+    // item passes Rare, so the column leaves them out.
     default:
       return POTENTIAL_LINE_TYPE_UNSPECIFIED;
   }
 }
 
-// The rank of an effect the column never reports.
+// The rank of an effect the column doesn't show.
 constexpr int kUnreported = -1;
 
-// Where `family` sits in the order the column prefers, best first: crit
-// damage, cooldown, %attack, boss damage and ignored defence, %damage, the two
-// rates, then the character's own stat. A shared rank is settled by whichever
-// the item rolled more of.
+// Where `family` ranks in the column, best first: crit damage, cooldown,
+// %attack, boss damage and ignored defence, %damage, the meso and drop rates,
+// then the character's own stat. Ties go to whichever the item rolled more of.
 int SummaryRank(PotentialLineType family) {
   switch (family) {
     case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
@@ -792,9 +783,9 @@ int SummaryRank(PotentialLineType family) {
   }
 }
 
-// What the lines of `family` in `potential` come to together. Everything adds
-// up except ignored defence, which meets in reverse the way it does
-// everywhere else -- see AddPotential.
+// The combined value of the `family` lines in `potential`. Everything adds
+// except ignored defence, which stacks multiplicatively as it does everywhere
+// else (see AddPotential).
 int PotentialFamilyTotal(const Potential& potential, PotentialLineType family,
                          int item_level, StatField primary) {
   bool ied = family == POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
@@ -811,10 +802,10 @@ int PotentialFamilyTotal(const Potential& potential, PotentialLineType family,
   return ied ? static_cast<int>(std::lround((1.0 - left) * 100.0)) : total;
 }
 
-// The two columns between one effect and the next in a cell.
+// The gap between effects in a cell.
 constexpr int kEffectGap = 2;
 
-// One effect a potential grants, folded across every line granting it.
+// One effect of a potential, summed over every line that grants it.
 struct PotentialEffect {
   PotentialLineType family;
   int rank;
@@ -828,9 +819,9 @@ bool WorthMore(const PotentialEffect& a, const PotentialEffect& b) {
   return a.total > b.total;
 }
 
-// What `potential` grants a character built on `primary`, best first: "12%
-// ATT", "41% IED". At most one entry per family, and nothing this character
-// does not read.
+// What `potential` grants a character whose primary stat is `primary`, best
+// first: "12% ATT", "41% IED". At most one entry per family, and only what this
+// character uses.
 std::vector<std::string> PotentialEffects(const Potential& potential,
                                           int item_level, StatField primary) {
   std::vector<PotentialEffect> effects;
@@ -862,9 +853,9 @@ std::vector<std::string> PotentialEffects(const Potential& potential,
   return text;
 }
 
-// The secondary stat, which the damage chain counts a quarter of the primary.
-// It reaches the column only on an item that says nothing else to this
-// character: worth reading where there is no better line, noise beside one.
+// The secondary stat, which the damage formula counts at a quarter of the
+// primary. The column shows it only when the item grants this character nothing
+// else: useful alone, noise beside a better line.
 std::vector<std::string> SecondaryStatEffect(const Potential& potential,
                                              int item_level,
                                              StatField secondary) {
@@ -921,7 +912,7 @@ std::string PotentialLineShortName(PotentialLineType type) {
     case POTENTIAL_LINE_TYPE_COOLDOWN_1:
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
       return "CD";
-    // Everything left reads the same in a column as on a card: STR, ATT,
+    // Everything else reads the same in a column as on a card: STR, ATT,
     // Damage.
     default:
       return PotentialLineName(type);
@@ -936,12 +927,12 @@ std::string PotentialCell(const Potential& potential, int item_level,
     effects = SecondaryStatEffect(potential, item_level, secondary);
   }
   if (effects.empty()) {
-    // An item that has been cubed and still grants this character nothing,
-    // against one that has never been cubed at all.
+    // "Junk" for a cubed item that still grants this character nothing, and "-"
+    // for one that was never cubed.
     return PadRight(potential.lines().empty() ? "-" : "Junk", width);
   }
-  // The best effect is the column's whatever the width; the rest join it only
-  // while they fit whole, so a cut-off figure never reads as a smaller one.
+  // The best effect always shows. The others are added only while they fit
+  // whole, so a cut-off number never looks like a smaller one.
   std::string text = effects.front();
   for (size_t i = 1; i < effects.size(); ++i) {
     int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
@@ -954,9 +945,9 @@ std::string PotentialCell(const Potential& potential, int item_level,
 }
 
 std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {
-  // The autoswap names the two it reads for what they are for. The third is
-  // storage it never reaches -- except for gear, where the boss drop roll
-  // reads it whatever the switch says.
+  // With the autoswap on, the two presets it uses are named for their use. The
+  // third is storage it never touches, except for gear, where the boss drop
+  // roll reads it regardless.
   if (autoswap) {
     switch (slot) {
       case StatPreset::kFirst:
@@ -976,13 +967,13 @@ std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {
 std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use,
                             PresetKind kind) {
   const std::string name = PresetSlotName(slot, autoswap, kind);
-  // No mark while the autoswap is on: what is in use is the fight's to say,
-  // and it is neither of them for good.
+  // No mark with the autoswap on: the fight decides which preset is in use, and
+  // it changes.
   if (autoswap) {
     return name;
   }
-  // The mark's column is held open either way, so putting a preset in use does
-  // not shuffle the row sideways.
+  // The mark's column is kept either way, so putting a preset in use doesn't
+  // shift the row.
   return name + (in_use ? " \u2713" : "  ");
 }
 
@@ -1024,7 +1015,8 @@ std::string HyperStatName(HyperStatField field) {
 }
 
 std::string HyperStatBonusText(HyperStatField field, int level) {
-  // Whole percents, except EXP's half-point steps, so the trailing zeros go.
+  // Percentages are whole except EXP, which moves in half points, so trailing
+  // zeros are trimmed.
   bool percent =
       field != HYPER_STAT_FIELD_STR && field != HYPER_STAT_FIELD_DEX &&
       field != HYPER_STAT_FIELD_INT && field != HYPER_STAT_FIELD_LUK &&

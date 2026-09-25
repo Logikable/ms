@@ -7,8 +7,8 @@
 namespace ms {
 namespace {
 
-// An accented letter is two bytes of one column; a CJK character is three
-// bytes of two; an emoji is four bytes of two.
+// An accented letter is two bytes and one column, a CJK character three bytes
+// and two columns, and an emoji four bytes and two columns.
 constexpr char kAccented[] = "Émeraude";
 constexpr char kWide[] = "青龍偃";
 constexpr char kEmoji[] = "\U0001f4dc";
@@ -25,7 +25,7 @@ TEST(TextColumnsTest, AWindowIsAlwaysTheColumnsAskedFor) {
   EXPECT_EQ(ColumnWindow("Iron", 0, 6), "Iron  ");
   EXPECT_EQ(ColumnWindow("Iron Sword", 0, 4), "Iron");
   EXPECT_EQ(ColumnWindow("Iron Sword", 5, 5), "Sword");
-  // Past the end of the text is space, not a short string.
+  // Past the end of the text is spaces, not a short string.
   EXPECT_EQ(ColumnWindow("Iron", 8, 3), "   ");
   EXPECT_EQ(ColumnWindow("Iron", 0, 0), "");
   EXPECT_EQ(ColumnWindow("Iron", 0, -2), "");
@@ -34,15 +34,15 @@ TEST(TextColumnsTest, AWindowIsAlwaysTheColumnsAskedFor) {
 TEST(TextColumnsTest, AMultibyteCharacterIsNotCutInHalf) {
   EXPECT_EQ(ColumnWindow(kAccented, 0, 4), "Émer");
   EXPECT_EQ(ColumnWindow(kAccented, 1, 3), "mer");
-  // A fullwidth character an edge falls inside gives up its column rather
-  // than being drawn as half of itself.
+  // When an edge falls inside a fullwidth character, its column is left blank
+  // instead of drawing half the character.
   EXPECT_EQ(ColumnWindow(kWide, 0, 3), "青 ");
   EXPECT_EQ(ColumnWindow(kWide, 0, 4), "青龍");
   EXPECT_EQ(ColumnWindow(kWide, 1, 4), " 龍 ");
   EXPECT_EQ(ColumnWindow(kWide, 1, 1), " ");
 }
 
-// Every window of every offset, measured: the promise the callers lean on.
+// Every window at every offset has the right width, which callers rely on.
 TEST(TextColumnsTest, EveryWindowMeasuresItsWidth) {
   const std::string kMixed = std::string(kAccented) + " " + kWide + kEmoji;
   for (int width = 1; width <= 20; ++width) {

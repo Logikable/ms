@@ -28,7 +28,8 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
     std::string prefix = (i == selected_) ? "> " : "  ";
     ftxui::Element entry = ftxui::text(prefix + options_[i] + " ");
     if (highlighted_[i]) {
-      // After the white the vbox paints below, so this is what the cell keeps.
+      // The vbox below paints white first, and this colour is applied after it,
+      // so the entry stays yellow.
       entry = entry | ftxui::color(kYellow);
     }
     if (disabled_[i]) {
@@ -59,10 +60,9 @@ void ItemMenu::Down() {
 
 void ItemMenu::Step(int delta) {
   int stops = static_cast<int>(options_.size());
-  // Rounds the ring at most once, so a menu with nothing enabled stops rather
-  // than walking forever -- a loop that terminates only because of a rule kept
-  // elsewhere is not one to leave lying around. A full round lands back where
-  // it started, which is also the right answer for a menu of one.
+  // Goes round the ring at most once, so a menu with nothing enabled stops
+  // instead of looping forever. A full round lands back where it started, which
+  // is also right for a menu of one.
   int next = selected_;
   for (int i = 0; i < stops; ++i) {
     next = StepCursor(next, delta, stops);
@@ -82,15 +82,14 @@ void ItemMenu::Reset() {
 
 void ItemMenu::Hide(int index) {
   hidden_[index] = true;
-  // A row that is not drawn must not be walked onto either, so hiding
-  // subsumes disabling.
+  // A row that isn't drawn can't be selected either, so hiding also disables.
   Disable(index);
 }
 
 void ItemMenu::Highlight(int index) {
-  // Gold says "press this", so a row that cannot be pressed does not take it.
-  // Star force is the case: it greys until the slots are spent, and the trail
-  // waits there rather than pointing at a row that does nothing.
+  // Gold means "press this", so a row that can't be pressed doesn't get it.
+  // Star force is the example: it stays grey until the scroll slots are used,
+  // and the trail waits there rather than pointing at a row that does nothing.
   if (disabled_[index]) {
     return;
   }
@@ -103,7 +102,8 @@ void ItemMenu::SetLabel(int index, std::string label) {
 
 void ItemMenu::Disable(int index) {
   disabled_[index] = true;
-  // Advance past newly-disabled entry; caller must leave at least one enabled.
+  // Move past the newly disabled entry. The caller must leave at least one
+  // enabled.
   while (selected_ < static_cast<int>(options_.size()) &&
          disabled_[selected_]) {
     selected_++;
@@ -117,7 +117,7 @@ int ItemMenu::Width() const {
       widest = std::max(widest, options_[i].size());
     }
   }
-  // The cursor prefix, the space after the entry, and the border either side.
+  // The cursor prefix, the space after the entry, and the border on each side.
   return static_cast<int>(widest) + 5;
 }
 

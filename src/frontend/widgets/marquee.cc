@@ -9,15 +9,15 @@ namespace ms {
 
 namespace {
 
-// How far into the name the window has slid, given how long the row has been
-// selected. Every offset is held one step except the two ENDS, held for the
-// pause: the head so it can be read before it goes, the tail so the answer
-// does not flick past.
+// How far into the name the window has scrolled, given how long the row has
+// been selected. Each offset is held for one step except the two ends, which
+// are held for the pause: the start so it can be read before it moves, and the
+// end so it doesn't flash past.
 int OffsetAt(int steps, std::chrono::steady_clock::duration elapsed) {
   std::chrono::milliseconds ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
   if (ms < std::chrono::milliseconds::zero()) {
-    return 0;  // a clock that ran backwards shows the head, not a crash
+    return 0;  // a clock that ran backwards shows the start
   }
   std::chrono::milliseconds slide = kMarqueeStep * (steps - 1);
   std::chrono::milliseconds cycle = kMarqueePause * 2 + slide;
@@ -27,7 +27,7 @@ int OffsetAt(int steps, std::chrono::steady_clock::duration elapsed) {
   }
   into -= kMarqueePause;
   if (into >= slide) {
-    return steps;  // the tail pause, spent at the end
+    return steps;  // the pause at the end
   }
   return 1 + static_cast<int>(into / kMarqueeStep);
 }

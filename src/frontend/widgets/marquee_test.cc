@@ -13,8 +13,8 @@ namespace {
 
 using std::chrono::milliseconds;
 
-// The name a skill row was widened by before the column was fixed: 22 columns
-// wanting 17, so five characters have to slide past.
+// A skill name 22 columns long in a 17-column window, so five characters have
+// to scroll past.
 constexpr char kLong[] = "Final Attack: Crossbow";
 constexpr int kWidth = 17;
 constexpr int kSteps = 5;
@@ -23,14 +23,13 @@ std::string At(milliseconds elapsed) {
   return ScrollingWindow(kLong, kWidth, elapsed);
 }
 
-// A name that fits is a name that never moves, however long it is looked at:
-// a column of short names must not start shuffling because one row is
-// selected.
+// A name that fits never moves, however long it is selected, so a column of
+// short names doesn't shift when one row is selected.
 TEST(MarqueeTest, ShortNamesArePaddedAndStayPut) {
   EXPECT_EQ(ScrollingWindow("Iron Body", 12, milliseconds(0)), "Iron Body   ");
   EXPECT_EQ(ScrollingWindow("Iron Body", 12, milliseconds(60000)),
             "Iron Body   ");
-  // Exactly filling the column is still short enough to sit still.
+  // A name that exactly fills the column still doesn't move.
   EXPECT_EQ(ScrollingWindow("Iron Body", 9, milliseconds(9000)), "Iron Body");
 }
 
@@ -38,14 +37,14 @@ TEST(MarqueeTest, AnUnselectedRowShowsTheHeadCut) {
   EXPECT_EQ(At(milliseconds(0)), "Final Attack: Cro");
 }
 
-// The head is held still first, so the beginning of the name can be read
-// before it leaves.
+// The start is held still first, so the beginning of the name can be read
+// before it moves.
 TEST(MarqueeTest, TheHeadIsHeldBeforeItSlides) {
   EXPECT_EQ(At(kMarqueePause - milliseconds(1)), "Final Attack: Cro");
   EXPECT_EQ(At(kMarqueePause), "inal Attack: Cros");
 }
 
-// One character a step, the window sliding along the name.
+// One character per step, with the window moving along the name.
 TEST(MarqueeTest, ItSlidesOneCharacterAStep) {
   EXPECT_EQ(At(kMarqueePause + kMarqueeStep), "nal Attack: Cross");
   EXPECT_EQ(At(kMarqueePause + kMarqueeStep * 2), "al Attack: Crossb");
@@ -53,51 +52,50 @@ TEST(MarqueeTest, ItSlidesOneCharacterAStep) {
   EXPECT_EQ(At(kMarqueePause + kMarqueeStep * 4), " Attack: Crossbow");
 }
 
-// The slide is the offsets between the two ends, so it takes one step fewer
-// than there are characters to get past.
+// The scroll covers the offsets between the two ends, so it takes one step
+// fewer than there are characters to pass.
 constexpr milliseconds kSlide = kMarqueeStep * (kSteps - 1);
 constexpr milliseconds kCycle = kMarqueePause * 2 + kSlide;
 
-// The tail arrives and stays put for the pause -- the whole point of sliding
-// is to be able to read the end, which needs longer than one step.
+// The end arrives and stays for the pause. Scrolling exists so the end can be
+// read, which takes longer than one step.
 TEST(MarqueeTest, TheTailIsHeldOnceItArrives) {
   EXPECT_EQ(At(kMarqueePause + kSlide), " Attack: Crossbow");
   EXPECT_EQ(At(kCycle - milliseconds(1)), " Attack: Crossbow");
 }
 
-// And then it begins again from the head rather than stopping at the end.
+// Then it starts again from the beginning instead of stopping at the end.
 TEST(MarqueeTest, ItStartsOverAfterTheTailPause) {
   EXPECT_EQ(At(kCycle), At(milliseconds(0)));
   EXPECT_EQ(At(kCycle + kMarqueePause), At(kMarqueePause));
-  // Still cycling many turns later, not run off the end of the string.
+  // Still cycling many rounds later, without running off the end of the string.
   EXPECT_EQ(At(kCycle * 20 + kMarqueeStep), At(kMarqueeStep));
 }
 
-// The window never runs past the end of the name, which is what a step count
-// taken straight from the clock would do.
+// The window never runs past the end of the name, which a step count taken
+// straight from the clock would do.
 TEST(MarqueeTest, TheWindowIsAlwaysFullWidth) {
   for (int ms = 0; ms < 20000; ms += 50) {
     EXPECT_EQ(static_cast<int>(At(milliseconds(ms)).size()), kWidth) << ms;
   }
 }
 
-// A name in bytes is not a name in columns. Cutting "Emeraude" at ten bytes
-// takes nine columns of it, and cutting it mid-character takes a character
-// nothing can draw.
+// Bytes aren't columns. Cutting "Emeraude" at ten bytes gives nine columns, and
+// cutting inside a character leaves something nothing can draw.
 constexpr char kAccented[] = "\u00c9meraude Sabre";
 
 TEST(MarqueeTest, AMultibyteNameIsCutByColumns) {
   EXPECT_EQ(ScrollingWindow(kAccented, 10, milliseconds(0)), "\u00c9meraude S");
   EXPECT_EQ(ScrollingWindow(kAccented, 10, kMarqueePause), "meraude Sa");
-  // Short enough to sit still is asked in columns too, so the padding is not
-  // a column short.
+  // Whether a name fits is also measured in columns, so the padding isn't a
+  // column short.
   EXPECT_EQ(ScrollingWindow(kAccented, 16, milliseconds(0)),
             "\u00c9meraude Sabre  ");
 }
 
-// A fullwidth character is two columns of one character, so an edge can fall
-// inside it. It gives up the column it cannot fill rather than being cut in
-// half or pushing the row a column wide.
+// A fullwidth character is one character in two columns, so a window edge can
+// fall inside it. The column it can't fill is left blank, rather than cutting
+// the character in half or making the row a column wider.
 constexpr char kFullwidth[] = "\u9752\u9f8d\u5043\u6708\u5200";
 
 TEST(MarqueeTest, AFullwidthNameKeepsItsColumns) {
@@ -113,16 +111,16 @@ TEST(MarqueeTest, AFullwidthNameKeepsItsColumns) {
   }
 }
 
-// Degenerate callers rather than a crash: a column with no room shows nothing,
-// and a clock that ran backwards shows the head.
+// Bad input doesn't crash: a zero-width column shows nothing, and a clock that
+// ran backwards shows the start.
 TEST(MarqueeTest, NoRoomAndNoTimeAreBothAnswerable) {
   EXPECT_EQ(ScrollingWindow(kLong, 0, milliseconds(5000)), "");
   EXPECT_EQ(ScrollingWindow(kLong, -3, milliseconds(5000)), "");
   EXPECT_EQ(At(milliseconds(-5000)), "Final Attack: Cro");
 }
 
-// A panel the cursor has left is not being read, so nothing on it slides --
-// however long the selection had been sitting there when focus went.
+// A panel the cursor has left isn't being read, so nothing on it scrolls,
+// however long the row had been selected when focus left.
 TEST(SelectionClockTest, AnUnfocusedRowHoldsAtZero) {
   SelectionClock clock;
   clock.Follow(3);
@@ -133,8 +131,8 @@ TEST(SelectionClockTest, AnUnfocusedRowHoldsAtZero) {
   EXPECT_EQ(clock.Elapsed(), std::chrono::steady_clock::duration::zero());
 }
 
-// Focus coming back reads the name from its head, the way stepping onto a row
-// does: the player never arrives to find a name already halfway past.
+// When focus returns the name starts from the beginning, as it does when the
+// cursor moves onto a row, so the player never finds a name halfway through.
 TEST(SelectionClockTest, FocusReturningStartsTheNameOver) {
   SelectionClock clock;
   clock.Follow(3);
@@ -144,7 +142,7 @@ TEST(SelectionClockTest, FocusReturningStartsTheNameOver) {
   EXPECT_LT(clock.Elapsed(), milliseconds(200));
 }
 
-// The selection moving is still what restarts a name, focus or not.
+// Moving the selection still restarts the name, with or without focus.
 TEST(SelectionClockTest, AMovedSelectionStartsOver) {
   SelectionClock clock;
   clock.Follow(3);

@@ -9,7 +9,7 @@
 namespace ms {
 namespace {
 
-// Types `text` one character at a time, the way a player does.
+// Types `text` one character at a time, as a player does.
 void Type(TextField& field, const std::string& text) {
   for (char c : text) {
     field.OnEvent(ftxui::Event::Character(c));
@@ -35,7 +35,7 @@ TEST(TextFieldTest, EnterOnSomethingTypedCommitsIt) {
   EXPECT_FALSE(field.editing());
 }
 
-// The four ways out that keep the old name. Enter is among them only while
+// The four ways to leave that keep the old name. Enter counts only while
 // nothing has been typed.
 TEST(TextFieldTest, EveryEmptyWayOutCancels) {
   for (const ftxui::Event& key :
@@ -48,8 +48,8 @@ TEST(TextFieldTest, EveryEmptyWayOutCancels) {
   }
 }
 
-// Up and Down abandon whatever was typed rather than committing it -- only
-// Enter keeps a name.
+// Up and Down discard what was typed instead of committing it. Only Enter keeps
+// a name.
 TEST(TextFieldTest, AnArrowThrowsAwayWhatWasTyped) {
   TextField field(12);
   field.BeginEdit();
@@ -80,7 +80,7 @@ TEST(TextFieldTest, CommittingDropsTheSpacesOnTheEnd) {
   EXPECT_EQ(field.text(), "IL Arch");
 }
 
-// Backspace reaches the field only when the player has not bound it to Cancel,
+// Backspace reaches the field only when the player hasn't bound it to Cancel,
 // so Delete has to erase too.
 TEST(TextFieldTest, EitherEraseKeyDropsTheLastCharacter) {
   TextField field(12);
@@ -107,8 +107,8 @@ TEST(TextFieldTest, DropsCharactersPastTheLimit) {
   EXPECT_EQ(field.text(), "Logi");
 }
 
-// The field is only live between BeginEdit and the way out, so a key arriving
-// while the cursor merely rests on the row must not be eaten.
+// The field is active only between BeginEdit and leaving, so it must not
+// consume keys while the cursor is just on the row.
 TEST(TextFieldTest, SwallowsNothingWhileClosed) {
   TextField field(12);
   EXPECT_EQ(field.OnEvent(ftxui::Event::Character('a')), TextEntry::kPending);

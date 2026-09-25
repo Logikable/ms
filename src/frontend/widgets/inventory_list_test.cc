@@ -25,7 +25,7 @@ class InventoryListTest : public PanelTest {
     return RenderElement(ftxui::vbox({std::move(row)}));
   }
 
-  // The bag's columns at `width`, with every mechanic open.
+  // The bag's columns at `width`, with every mechanic unlocked.
   ItemColumns Columns(int width) {
     return FitItemColumns(width, {/*bag=*/true, /*scrolling=*/true,
                                   /*star_force=*/true, /*potential=*/true});
@@ -46,7 +46,7 @@ class InventoryListTest : public PanelTest {
     return CurrencyAmount(proto, count);
   }
 
-  // Named the short way, as the shards in the catalog are: the boss alone.
+  // Uses the short name, as the catalog's shards do: just the boss.
   CurrencyAmount Shard(const std::string& boss, int64_t count) {
     ItemPrototype proto;
     proto.set_name(boss + "'s Soul Shard");
@@ -83,7 +83,7 @@ TEST_F(InventoryListTest, AffixColumnsRideEitherSideOfARow) {
       rows[0], /*on_cursor=*/false, ftxui::text("**"), ftxui::text("!!")));
   EXPECT_EQ(text.find("**"), 0u);
   EXPECT_NE(text.find("!!"), std::string::npos);
-  // The headers make the same room, so the columns line up over the rows.
+  // The headers leave the same room, so the columns line up over the rows.
   EXPECT_EQ(RenderElement(EquipHeader(Columns(kRightColumnMin - 2),
                                       ftxui::text("**"), ftxui::text("!!")))
                 .find("**"),
@@ -103,8 +103,8 @@ TEST_F(InventoryListTest, StackRowsNameTheirCount) {
   EXPECT_NE(text.find("42"), std::string::npos);
 }
 
-// A wide terminal buys the name column room, and the columns after it move
-// over rather than staying where a narrow panel put them.
+// A wide terminal gives the name column more room, and the columns after it
+// move right instead of staying where a narrow panel put them.
 TEST_F(InventoryListTest, AWideNameColumnMovesTheColumnsAfterIt) {
   EquipPrototype wordy = sword_;
   wordy.set_name("Metallic Blue Book (Antistrophe) Trace");
@@ -118,26 +118,26 @@ TEST_F(InventoryListTest, AWideNameColumnMovesTheColumnsAfterIt) {
       << "the narrow column cuts it, which is what this compares against";
   EXPECT_NE(wide[0].label.text.find("Metallic Blue Book (Antistrophe) Trace"),
             std::string::npos);
-  // The row still reads as columns: the header over it makes the same room.
-  // The row carries no cursor of its own, so its slot cell sits two columns
-  // left of the header's -- the width of the caret the render adds.
+  // The row still lines up with its header. The row has no cursor of its own,
+  // so its slot cell sits two columns left of the header's, the width of the
+  // caret the render adds.
   EXPECT_EQ(wide[0].label.text.find("Weapon") + kItemListCursor,
             RenderElement(EquipHeader(Columns(200))).find("Equip Slot"));
 }
 
-// The cell that says why a row is shut is found from its own span, so
-// widening the name column does not paint the wrong cell red.
+// The cell that explains a blocked row is found from its own span, so widening
+// the name column doesn't colour the wrong cell red.
 TEST_F(InventoryListTest, AWideRowStillReddensTheCellThatShutsIt) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  // As wide as the screen it is drawn on: a row wider than that is squeezed
-  // by the render, and the cells no longer land where the row put them.
+  // As wide as the test screen. A wider row gets squeezed by the render, and
+  // the cells no longer land where the row put them.
   std::vector<InventoryRowState> rows = Rows(kTestScreenWidth);
   ftxui::Element row = RenderEquipRow(rows[0], /*on_cursor=*/false);
   ftxui::Screen screen = ftxui::Screen::Create(
       ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, row);
-  // Where the level cell lands: the caret, then the cell's own span, whose
-  // two leading blanks the "L" follows.
+  // Where the level cell lands: the caret, then the cell's span, where the "L"
+  // follows two leading blanks.
   int column = kItemListCursor + rows[0].label.Span(ItemColumn::kLevel).offset +
                kItemCellGap;
   EXPECT_EQ(screen.PixelAt(column, 0).character, "L");
@@ -145,8 +145,8 @@ TEST_F(InventoryListTest, AWideRowStillReddensTheCellThatShutsIt) {
       << "the cell that says why the row is shut";
 }
 
-// The bag's lists carry the same columns as the equipped panel's, so they
-// share its minimum width -- see panel_widths.h.
+// The bag's lists have the same columns as the equipped panel's, so they share
+// its minimum width (see panel_widths.h).
 TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
   ftxui::Element equips = EquipHeader(Columns(kRightColumnMin - 2));
   ftxui::Element stacks = StackHeader();
@@ -154,8 +154,8 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
             kRightColumnMin);
   EXPECT_LE(ftxui::Dimension::Fit(stacks).dimx + kItemListGutter + 2,
             kRightColumnMin);
-  // Four columns on one row, which is the widest the bag asks a stack tab for,
-  // at the longest name each of them ships.
+  // Four columns on one row, the widest a stack tab gets, with the longest name
+  // each column has.
   CurrencyAmount token = Token("Frozen Secondary Token", "●", 999);
   CurrencyAmount shard = Shard("Crimson Queen", 99);
   ftxui::Element currency = CurrencyHeader();
@@ -166,8 +166,8 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
             kRightColumnMin);
 }
 
-// The Token tab writes the mark, the name and the count of each column, and
-// the short name is what a shard goes by under its own heading.
+// The Token tab shows each column's mark, name and count, and a shard goes by
+// its short name under its own heading.
 TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
   CurrencyAmount token = Token("Frozen Weapon Token", "●", 3);
   CurrencyAmount shard = Shard("Zakum", 47);
@@ -181,8 +181,8 @@ TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
   EXPECT_NE(text.find("47"), std::string::npos);
 }
 
-// The columns run out at different heights, and the half with nothing left in
-// it holds its width so the other stays under its heading.
+// The two lists run out at different heights, and the empty half keeps its
+// width so the other stays under its heading.
 TEST_F(InventoryListTest, AHalfEmptyCurrencyRowKeepsItsColumns) {
   CurrencyAmount token = Token("Frozen Weapon Token", "●", 3);
   CurrencyAmount shard = Shard("Zakum", 47);

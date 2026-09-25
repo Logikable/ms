@@ -11,14 +11,15 @@
 namespace ms {
 namespace {
 
-// The borders a framed card pays for before any row is drawn.
+// The rows the borders take before any row is drawn.
 constexpr int kBorderRows = 2;
 
-// One drawn line. A rule is left to stretch: sized to the rows it stops short
-// of the border the moment something widens the card, and reads as a notch.
-// Where the bar is drawn beside it, the rule gives way to the bar's cell, so
-// the bar reads as one unbroken line. Everything else is held to `width` with
-// `cell` -- the bar, or a blank holding its column -- against the right border.
+// One drawn line. A rule is left to stretch: if it were sized to the rows, it
+// would stop short of the border when something widened the card and look like
+// a notch. When the bar is drawn beside it, the rule gives way to the bar's
+// cell so the bar is one unbroken line. Everything else is held to `width`,
+// with `cell` (the bar, or a blank keeping its column) against the right
+// border.
 ftxui::Element Line(CardRow row, int width, bool bar, ftxui::Element cell,
                     bool bar_drawn = false) {
   if (row.separator) {
@@ -35,8 +36,8 @@ ftxui::Element Line(CardRow row, int width, bool bar, ftxui::Element cell,
   if (!bar) {
     return line;
   }
-  // The filler takes nothing when the card is at its own width, and holds the
-  // bar against the right border when something has stretched it.
+  // The filler takes no room when the card is at its own width, and keeps the
+  // bar against the right border when something has stretched the card.
   return ftxui::hbox({
       std::move(line),
       ftxui::filler(),
@@ -61,8 +62,8 @@ int NaturalWidth(const std::vector<ftxui::Element>& rows) {
 int NaturalWidth(const std::vector<CardRow>& rows) {
   std::vector<ftxui::Element> elements;
   for (const CardRow& row : rows) {
-    // Separators are left out: a rule asks for one column and stretches to
-    // whatever it is given, so it has no say in how wide the card should be.
+    // Rules are left out: a rule asks for one column and stretches to whatever
+    // it gets, so it has no say in the card's width.
     if (!row.separator) {
       elements.push_back(row.element);
     }
@@ -80,8 +81,9 @@ CardRows ScrollCard::Fitted(CardRows rows, int reserved) const {
   if (max_rows_ <= 0 || max_rows_ - kBorderRows - fixed >= 1) {
     return rows;
   }
-  // No room for the fixed groups and a line between them. Everything scrolls
-  // instead: a head with its top cut off says less than a card that moves.
+  // There isn't room for the fixed groups and a line between them, so
+  // everything scrolls. A head with its top cut off is worse than a card that
+  // scrolls.
   CardRows all;
   all.body = std::move(rows.head);
   Append(all.body, std::move(rows.body));
@@ -118,20 +120,20 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
                                   int content_width, bool focused,
                                   int view_width) const {
   int width = content_width > 0 ? content_width : NaturalWidth(rows);
-  // Measured before the rows are fitted, which only moves them between the
-  // groups: the horizontal bar takes a row of the budget, so whether the card
-  // squeezes has to be settled before the rows are cut to it.
+  // Measured before fitting the rows. The horizontal bar takes a row of the
+  // budget, so whether the card squeezes has to be known before the rows are
+  // cut to fit.
   bool squeeze = view_width > 0 && view_width < width;
   int reserved = squeeze ? 1 : 0;
   rows = Fitted(std::move(rows), reserved);
   total_ = static_cast<int>(rows.body.size());
   visible_ = VisibleRows(rows, reserved);
-  // Clamped here as well as in ScrollBy: the terminal can be made taller under
-  // a card already scrolled to its foot, which leaves the old offset too far
-  // down for the window it now has.
+  // Clamped here as well as in ScrollBy. The terminal can grow taller under a
+  // card scrolled to the bottom, which leaves the old offset too far down for
+  // the new window.
   offset_ = std::max(0, std::min(offset_, total_ - visible_));
-  // The bar's column is held open from the moment the card has a budget to
-  // outgrow, so the card does not widen the first time it does.
+  // The bar's column is reserved as soon as the card has a row budget, so the
+  // card doesn't widen the first time it overflows.
   bool bar = max_rows_ > 0;
 
   std::vector<ftxui::Element> cells = ScrollBarCells(total_, offset_, visible_);
@@ -140,8 +142,8 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
     lines.push_back(Line(std::move(row), width, bar, ftxui::text(" ")));
   }
   for (int i = 0; i < visible_; ++i) {
-    // Blank while the body fits: the column is reserved either way, but a bar
-    // is only drawn when there is something off screen to point at.
+    // Blank while the body fits. The column is reserved either way, but the bar
+    // is drawn only when something is off screen.
     bool bar_drawn = !cells.empty();
     ftxui::Element cell = bar_drawn ? std::move(cells[i]) : ftxui::text(" ");
     lines.push_back(Line(std::move(rows.body[offset_ + i]), width, bar,
@@ -161,14 +163,15 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
 
 ftxui::Element ScrollCard::Squeezed(ftxui::Element card, int width,
                                     int view_width, bool bar) const {
-  // The vertical bar's column rides with the rows, so it counts on both sides
-  // of the squeeze: what the card asks for, and what it is drawn in.
+  // The vertical bar's column moves with the rows, so it counts on both sides
+  // of the squeeze: in the width the card asks for and the width it is drawn
+  // in.
   int full = width + (bar ? 1 : 0);
   int shown = view_width + (bar ? 1 : 0);
   x_max_ = full - shown;
   x_offset_ = std::max(0, std::min(x_offset_, x_max_));
-  // A frame scrolls to CENTRE the point it is told to focus, so the point that
-  // puts the reader's column at the left edge is half a view to its right.
+  // A frame scrolls so the focus point is centred, so to put the reader's
+  // column at the left edge the focus point is half a view to its right.
   return card | ftxui::focusPosition(x_offset_ + (shown - 1) / 2, 0) |
          ftxui::hscroll_indicator | ftxui::xframe |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, shown);

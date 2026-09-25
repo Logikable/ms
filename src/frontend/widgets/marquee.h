@@ -1,15 +1,13 @@
-/* A name too long for the column it sits in, read a window at a time.
+/* Scrolls a name that is too long for its column.
  *
- * A row the player can select has a fixed width, and a name longer than that
- * has to lose its tail. Cutting it silently costs the player the one thing the
- * row is for; so the name is cut while the row sits there, and slides under
- * the column while the row is selected, which is when the player is asking
- * what it says.
+ * A selectable row has a fixed width, and a longer name has to be cut. Cutting
+ * it for good would hide what the row is for, so the name is cut while the row
+ * is idle and scrolls while the row is selected, which is when the player wants
+ * to read it.
  *
- * Nothing here holds state. The caller owns the clock -- how long the row has
- * been selected -- because the caller is what knows when the selection moved,
- * and because a pure function is the same function for a skill row, an
- * inventory row, or anything else that comes along.
+ * Nothing here holds state. The caller keeps the clock (how long the row has
+ * been selected), because the caller knows when the selection moved, and a pure
+ * function works the same for a skill row, an inventory row or anything else.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_MARQUEE_H_
 #define MS_SRC_FRONTEND_WIDGETS_MARQUEE_H_
@@ -19,38 +17,36 @@
 
 namespace ms {
 
-// How long each character of the slide is held, and what the game repaints at:
-// a step finer than the redraw cannot be seen, the window jumping two
-// characters instead of sliding. Shortening it speeds the redraw with it.
+// How long each scroll step lasts, and how often the game repaints. A step
+// shorter than the redraw can't be seen: the window would jump two characters
+// instead of scrolling. Shortening this also speeds up the redraw.
 constexpr std::chrono::milliseconds kMarqueeStep(150);
 
-// How long the name is held still at each end of the slide -- long enough to
-// read the head before it leaves and the tail once it arrives. Without the
-// pause at the head, the first characters would be gone within one step of the
-// row being selected.
+// How long the name stays still at each end, long enough to read the start
+// before it moves and the end once it arrives. Without the pause at the start,
+// the first characters would disappear one step after the row is selected.
 constexpr std::chrono::milliseconds kMarqueePause(1000);
 
-// `text` cut to `width` columns and padded if short. `elapsed` is how long the
-// row has been selected; zero returns the head of the name. A name that fits
-// never moves, so a column of them stays a column.
+// `text` cut to `width` columns, padded if short. `elapsed` is how long the row
+// has been selected, and zero returns the start of the name. A name that fits
+// never moves, so a column of them stays aligned.
 std::string ScrollingWindow(const std::string& text, int width,
                             std::chrono::steady_clock::duration elapsed);
 
-// How long the selection has sat where it is, for ScrollingWindow. A panel
-// rebuilding its rows every render cannot hook the keypress that moved the
-// cursor, so the move is noticed by WATCHING the index.
+// How long the selection has been on the same row, for ScrollingWindow. A panel
+// that rebuilds its rows every render can't hook the keypress that moved the
+// cursor, so it notices the move by watching the index.
 class SelectionClock {
  public:
-  // Once per render, with whatever identifies the selected row -- the index,
-  // or the index folded with its page so the same row elsewhere counts as a
-  // different one -- and whether it is drawn selected. An unfocused panel
-  // holds its clock at zero, so focus coming back starts the name over.
+  // Call once per render with a key for the selected row and whether it is
+  // drawn selected. The key is the index, or the index combined with its page
+  // so the same row on another page counts as different. An unfocused panel
+  // keeps its clock at zero, so the name starts over when focus returns.
   void Follow(int key, bool focused = true);
 
-  // Zero at the moment the selection arrived, growing from there, and zero
-  // for as long as the row is not selected. Pass it for the selected row and
-  // `duration::zero()` for the rest, which is what shows every other name
-  // from its head.
+  // Zero when the selection arrives, growing from there, and zero while the row
+  // isn't selected. Pass it for the selected row and `duration::zero()` for the
+  // rest, so every other name shows from its start.
   std::chrono::steady_clock::duration Elapsed() const;
 
  private:

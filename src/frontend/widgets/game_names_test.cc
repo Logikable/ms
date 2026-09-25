@@ -28,7 +28,8 @@ TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
   EXPECT_EQ(stat->GetFrom(stats), 7);
 }
 
-// HP is spelled max_hp on EquipStats; the join is by label, so it still lands.
+// HP is named max_hp on EquipStats. The lookup is by label, so it still finds
+// it.
 TEST(DisplayStatForTest, FindsAFieldWithARenamedAccessor) {
   EquipStats stats;
   stats.set_max_hp(150);
@@ -50,13 +51,13 @@ TEST(FormatWeaponListTest, NamesOneWeaponAndJoinsSeveral) {
             "Dagger / Claw");
 }
 
-// Both hands of one weapon is how the data says "any sword".
+// The data lists both hands of one weapon to mean "any sword".
 TEST(FormatWeaponListTest, AWholePairCollapsesToItsBareName) {
   EXPECT_EQ(FormatWeaponList(
                 {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
                  EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE}),
             "Sword / Axe");
-  // The collapsed name lands where the first half was listed, not at the end.
+  // The collapsed name appears where the first half was listed, not at the end.
   EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_SPEAR,
                               EQUIP_TYPE_TWO_HANDED_BLUNT}),
             "Blunt / Spear");
@@ -79,7 +80,7 @@ TEST(TagForTest, EveryKindGetsAFourColumnTag) {
   EXPECT_EQ(std::string(TagFor(skill).text), "AA: ");
   skill.set_kind(SKILL_KIND_PASSIVE);
   EXPECT_EQ(std::string(TagFor(skill).text), "P:  ");
-  // A kind-less skill gets the blanks rather than a tag that would be wrong.
+  // A skill with no kind gets blanks rather than a wrong tag.
   skill.set_kind(SKILL_KIND_UNSPECIFIED);
   EXPECT_EQ(std::string(TagFor(skill).text), "    ");
 }
@@ -117,9 +118,9 @@ TEST(StatFieldNameTest, NamesTheFourAllocatableStats) {
   EXPECT_EQ(StatFieldName(STAT_FIELD_UNSPECIFIED), "");
 }
 
-// A skill kind added without a look at this reads as a passive, which is what
-// happened to the first auto-attack: it inspected as " Passive " and showed no
-// effects at any level.
+// A new skill kind that nobody checks here reads as a passive. That happened to
+// the first auto-attack, which inspected as " Passive " and showed no effects
+// at any level.
 TEST(IsActiveTest, EverythingButAPassiveIsActive) {
   Skill skill;
   skill.set_kind(SKILL_KIND_ATTACK);
@@ -131,9 +132,6 @@ TEST(IsActiveTest, EverythingButAPassiveIsActive) {
   skill.set_kind(SKILL_KIND_PASSIVE);
   EXPECT_FALSE(IsActive(skill));
 }
-
-// One key per stage: the tab arrives again at every advancement, and having
-// seen the first is not having seen the second.
 
 TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_PRIMARY_WEAPON), "Weapon");
@@ -158,14 +156,13 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_MEDAL), "Medal");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_HEART), "Heart");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
-  // A ring is a ring in all four of its slots: this is what an item is, not
-  // where it is worn.
+  // All four ring slots read "Ring": this names what the item is, not where it
+  // is worn.
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING_4), "Ring");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT_2), "Pendant");
 }
 
-// A slot added without a name here shows the player a blank column, which is
-// how the last one nearly shipped.
+// A new slot with no name here would show the player a blank column.
 TEST(FormatSlotTest, NoSlotIsLeftUnnamedOrTooWide) {
   for (int i = 1; i <= EquipSlot_MAX; ++i) {
     if (!EquipSlot_IsValid(i)) {
@@ -177,8 +174,8 @@ TEST(FormatSlotTest, NoSlotIsLeftUnnamedOrTooWide) {
   }
 }
 
-// A worn row says which of a family's slots it is, and leaves every slot with
-// only one alone -- a character wears one hat, and "Hat 1" says nothing.
+// A worn row says which slot of its family it is, but slots with no siblings
+// get no number. A character wears one hat, and "Hat 1" says nothing.
 TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING), "Ring 1");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING_4), "Ring 4");
@@ -186,12 +183,10 @@ TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT_2), "Pendant 2");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_HAT), "Hat");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_UNSPECIFIED), "");
-  // The longest of them still fits the column the row gives a slot.
+  // The longest one still fits the slot column.
   EXPECT_LE(FormatWornSlot(EQUIP_SLOT_PENDANT_2).size(), 10u);
 }
 
-// The whole point of balancing: a name that has to break should break near the
-// middle rather than leaving one word alone on the second line.
 // --- SkillsForAdvancement ---
 
 Skill PageSkill(const std::string& name, int order) {
@@ -210,9 +205,8 @@ std::vector<std::string> NamesOf(const std::vector<const Skill*>& page) {
   return names;
 }
 
-// A Vengeance form takes the row of the skill it replaces -- the same place in
-// the book -- and only while its switch is on. Off, it is not on the page at
-// all.
+// A Vengeance form takes the row of the skill it replaces, but only while its
+// toggle is on. With the toggle off it isn't on the page.
 TEST(SkillsForAdvancementTest, TheSwitchDecidesWhichFormIsListed) {
   Skill form = PageSkill("Angelic Wrath", 2);
   form.set_replaces_skill_name("Heal");
@@ -242,10 +236,10 @@ TEST(FormatEquipSetTest, NamesEverySet) {
 
 // --- Every enum value has a name ---
 //
-// Each of these name functions carries a static_assert on its enum's
-// ARRAYSIZE, which makes ADDING a value a compile error until someone looks.
-// It does not prove the value they added came away with a name, and an unnamed
-// one reads as a blank cell rather than as anything wrong. These do.
+// Each name function has a static_assert on its enum's ARRAYSIZE, so adding a
+// value fails to compile until someone looks. That doesn't prove the new value
+// got a name, and a missing name shows as a blank cell rather than an error.
+// These tests check it.
 
 TEST(GameNamesTest, EveryAbilityLineHasAName) {
   for (int i = AbilityLineType_MIN; i <= AbilityLineType_MAX; ++i) {
@@ -264,8 +258,8 @@ TEST(GameNamesTest, EveryPotentialLineHasBothNames) {
     }
     PotentialLineType type = static_cast<PotentialLineType>(i);
     EXPECT_FALSE(PotentialLineName(type).empty()) << PotentialLineType_Name(i);
-    // The short name is what a column cell holds, so a blank one is a blank
-    // cell in a list that otherwise lines up.
+    // The short name fills a column cell, so a blank one leaves a gap in a list
+    // that otherwise lines up.
     EXPECT_FALSE(PotentialLineShortName(type).empty())
         << PotentialLineType_Name(i);
   }
@@ -334,8 +328,8 @@ TEST(GameNamesTest, EveryCubeAndTrackHasAName) {
 
 // --- Inner Ability lines ---
 
-// Flat for a flat line, a percent sign for a percentage, and the two Max HP
-// lines told apart by the value rather than by the name.
+// Flat lines show a number, percentages a percent sign, and the two Max HP
+// lines differ by value rather than by name.
 TEST(AbilityLineTextTest, NamesAndValuesEveryKindOfLine) {
   AbilityLine line;
   line.set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
@@ -358,15 +352,15 @@ TEST(AbilityLineTextTest, NamesAndValuesEveryKindOfLine) {
   EXPECT_EQ(AbilityLineName(ABILITY_LINE_TYPE_UNSPECIFIED), "");
 }
 
-// A potential line reads its value off the item's level, and the flat lines,
-// the shares and the two cooldown lines each say it their own way.
+// A potential line's value depends on the item's level. Flat lines, percentage
+// lines and the two cooldown lines each format it differently.
 TEST(PotentialLineTextTest, NamesAndValuesEveryKindOfLine) {
   PotentialLine line;
   line.set_type(POTENTIAL_LINE_TYPE_LUK_PCT);
   line.set_rank(POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(PotentialLineName(line.type()), "LUK");
   EXPECT_EQ(PotentialLineValueText(line, 100), "+12%");
-  // The same line on a lesser item pays a lesser band.
+  // The same line on a lower-level item rolls a smaller value.
   EXPECT_EQ(PotentialLineValueText(line, 30), "+6%");
 
   line.set_type(POTENTIAL_LINE_TYPE_ALL_STATS);
@@ -386,8 +380,8 @@ TEST(PotentialLineTextTest, NamesAndValuesEveryKindOfLine) {
   EXPECT_EQ(PotentialLineName(POTENTIAL_LINE_TYPE_UNSPECIFIED), "");
 }
 
-// The column cell: value first, the name abbreviated, and every line held to
-// the one width so a list's columns line up under their header.
+// The column cell: value first, an abbreviated name, and every line within one
+// width so the columns line up under their header.
 TEST(PotentialLineTextTest, ShortensEveryNameThatOutgrowsAColumn) {
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT),
             "Crit DMG");
@@ -400,13 +394,13 @@ TEST(PotentialLineTextTest, ShortensEveryNameThatOutgrowsAColumn) {
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_MAX_HP), "HP");
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_ALL_STATS_PCT),
             "All Stat");
-  // A name that already fits a column is left as the card says it.
+  // A name that already fits a column is left as the card shows it.
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_ATTACK_PCT), "ATT");
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_DAMAGE_PCT), "Damage");
 }
 
-// A potential column with room for one effect and no more, which is what a
-// panel at its narrowest gives it.
+// A potential column with room for one effect, as a panel at its narrowest
+// gives it.
 constexpr int kOneEffect = 12;
 
 // One line of `type` at `rank`, as a potential the cell can read.
@@ -418,7 +412,7 @@ Potential OneLine(PotentialLineType type, PotentialRank rank) {
   return potential;
 }
 
-// A line of `type` added to `potential` at `rank`.
+// Adds a line of `type` at `rank` to `potential`.
 void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
   PotentialLine* line = potential.add_lines();
   line->set_type(type);
@@ -435,8 +429,8 @@ TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
                           150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
             "-2s CD      ");
 
-  // The widest total the game rolls fills the column exactly, and nothing is
-  // cut to reach it: three of the widest line still hold the width.
+  // The widest total the game rolls fills the column exactly, and three of the
+  // widest line still fit without cutting.
   Potential crit;
   for (int i = 0; i < kPotentialLines; ++i) {
     AddLine(crit, POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT,
@@ -458,35 +452,35 @@ TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
   }
 }
 
-// A column reports what the item grants, not what one of its lines says: two
-// lines of one stat are one figure.
+// A column shows what the item grants, not what each line says: two lines of
+// one stat show as one number.
 TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheStatItReports) {
   Potential potential;
   AddLine(potential, POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_RANK_LEGENDARY);
-  // A line of something else, which the total leaves alone.
+  // A line of something else, which doesn't change the total.
   AddLine(potential, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(potential, POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_RANK_UNIQUE);
   EXPECT_EQ(
       PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
       "21% INT     ");
 
-  // All Stat% grants the stat the character builds on, so it is folded into
-  // the same figure rather than named on its own.
+  // All Stat% grants the character's primary stat, so it is added into that
+  // number rather than listed separately.
   AddLine(potential, POTENTIAL_LINE_TYPE_ALL_STATS_PCT,
           POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(
       PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
       "30% INT     ");
 
-  // Ignored defence meets in reverse, as it does everywhere else: 15% and 30%
-  // together leave 59.5% of the defence standing.
+  // Ignored defence stacks multiplicatively, as it does everywhere else: 15%
+  // and 30% together leave 59.5% of the defence.
   Potential ied =
       OneLine(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
   AddLine(ied, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE);
   EXPECT_EQ(PotentialCell(ied, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
             "41% IED     ");
 
-  // Boss damage is stated at three sizes and adds up across all of them.
+  // Boss damage comes in three sizes, and all of them add up.
   Potential boss =
       OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
   AddLine(boss, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
@@ -495,8 +489,8 @@ TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheStatItReports) {
       "70% Boss    ");
 }
 
-// A column with room for one effect reports the one the character gets the
-// most out of rather than the one the item lists first.
+// A column with room for one effect shows the one worth most to the character,
+// not the one the item lists first.
 TEST(PotentialLineTextTest, CellReportsTheEffectWorthMost) {
   Potential potential;
   AddLine(potential, POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
@@ -506,8 +500,8 @@ TEST(PotentialLineTextTest, CellReportsTheEffectWorthMost) {
       PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
       "9% ATT      ");
 
-  // Boss damage and ignored defence are worth the same rung, so the one the
-  // item rolled more of is shown.
+  // Boss damage and ignored defence share a rank, so the one the item rolled
+  // more of is shown.
   Potential boss =
       OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
   AddLine(boss, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
@@ -520,11 +514,11 @@ TEST(PotentialLineTextTest, CellReportsTheEffectWorthMost) {
       "41% IED     ");
 }
 
-// Half of what a potential can roll is worth nothing to a given character,
-// and a column that reported it would say nothing but the item's rank.
+// Half of what a potential can roll is worthless to a given character, and a
+// column that showed it would only reveal the item's rank.
 TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
-  // A magician's damage reads magic attack; the weapon attack a wand carries
-  // never reaches it.
+  // A magician's damage uses magic attack, so the weapon attack on a wand
+  // doesn't count.
   Potential weapon =
       OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT, POTENTIAL_RANK_UNIQUE);
@@ -535,8 +529,8 @@ TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
       PotentialCell(weapon, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
       "9% MATT     ");
 
-  // The two stats the character neither builds on nor carries behind it, the
-  // flat lines and %HP are all left unsaid.
+  // The two stats the character doesn't use as primary or secondary, the flat
+  // lines and %HP are all left out.
   Potential armor =
       OneLine(POTENTIAL_LINE_TYPE_LUK_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(armor, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
@@ -548,15 +542,15 @@ TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
       PotentialCell(armor, 150, STAT_FIELD_LUK, STAT_FIELD_DEX, kOneEffect),
       "12% LUK     ");
 
-  // An item carrying no potential has nothing to be junk about.
+  // An item with no potential can't be junk.
   EXPECT_EQ(PotentialCell(Potential(), 150, STAT_FIELD_STR, STAT_FIELD_DEX,
                           kOneEffect),
             "-           ");
 }
 
-// The stat behind the primary is worth a quarter of it, which is worth
-// saying on an item that grants nothing else and worth nothing beside a line
-// that does.
+// The secondary stat is worth a quarter of the primary. That is worth showing
+// on an item that grants nothing else, and not worth showing beside a line that
+// does.
 TEST(PotentialLineTextTest, CellNamesTheSecondaryStatOnlyAsALastResort) {
   Potential armor =
       OneLine(POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_RANK_LEGENDARY);
@@ -564,34 +558,34 @@ TEST(PotentialLineTextTest, CellNamesTheSecondaryStatOnlyAsALastResort) {
   EXPECT_EQ(
       PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
       "12% DEX     ");
-  // Every line granting it is folded in, as the reported effects are.
+  // Every line granting it is summed, like the other effects.
   AddLine(armor, POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_RANK_UNIQUE);
   EXPECT_EQ(
       PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
       "21% DEX     ");
 
-  // One line the character does read, and the secondary drops off the row
-  // whatever the width -- a column wide enough for both still says only what
-  // the item is worth keeping for.
+  // Add one line the character uses, and the secondary disappears at any width.
+  // Even a column wide enough for both shows only what makes the item worth
+  // keeping.
   AddLine(armor, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
   EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 30),
             "30% Boss                      ");
 
-  // All Stat% grants the secondary too, but it is already folded into the
-  // primary's figure, so it is never said twice.
+  // All Stat% grants the secondary too, but it is already counted in the
+  // primary's number, so it isn't shown twice.
   Potential all =
       OneLine(POTENTIAL_LINE_TYPE_ALL_STATS_PCT, POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(PotentialCell(all, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 30),
             "9% STR                        ");
 
-  // A character with no branch has no stat behind them either.
+  // A character with no branch has no secondary stat either.
   EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_UNSPECIFIED,
                           STAT_FIELD_UNSPECIFIED, kOneEffect),
             "30% Boss    ");
 }
 
-// Given the room, the column goes on down the order: the effects worth most
-// to this character first, and each one whole or not at all.
+// With enough room, the column lists more effects in rank order, each one whole
+// or not at all.
 TEST(PotentialLineTextTest, WideColumnListsEveryEffectThatFits) {
   Potential potential =
       OneLine(POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
@@ -601,16 +595,16 @@ TEST(PotentialLineTextTest, WideColumnListsEveryEffectThatFits) {
             "12% ATT, 30% Boss, 12% STR    ");
   EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 20),
             "12% ATT, 30% Boss   ");
-  // One column short of the third effect, so the third effect stays off.
+  // One column too narrow for the third effect, so it is left out.
   EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 25),
             "12% ATT, 30% Boss        ");
 
-  // What this character does not read is skipped over rather than taking a
-  // place: a magician reads neither the weapon attack nor the STR.
+  // Effects this character doesn't use are skipped rather than taking a place:
+  // a magician uses neither weapon attack nor STR.
   EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, 30),
             "30% Boss                      ");
 
-  // An empty column says nothing at all.
+  // A zero-width column shows nothing.
   EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 0),
             "");
 }
@@ -634,11 +628,11 @@ Skill Node(const std::string& name, VNodeKind kind, JobAdvancement book,
   return skill;
 }
 
-// The matrix is one page in four blocks, running from the node fewest
-// characters have to the node everybody does: the job's own actives, the
-// boosts under them, the line's own, and the commons at the foot. Each block
-// keeps its own numbering, which is all `skill_order` can say -- the blocks
-// sit in different books, so nothing in the data orders one against the next.
+// The matrix is one page in four blocks, from the rarest nodes to the most
+// common: the job's own actives, the boosts under them, the line's own nodes,
+// and the common nodes at the bottom. Each block keeps its own `skill_order`
+// numbering. The blocks come from different books, so the data can't order one
+// against another.
 TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
   std::map<std::string, Skill> catalog = {
       {"lift",
@@ -665,8 +659,7 @@ TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
                                 "Erda Fountain", "Rope Lift"}));
 }
 
-// The page draws a rule where one block ends and the next begins, so the four
-// read apart rather than as one long list.
+// The page draws a rule between blocks, so the four read as separate lists.
 TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
   std::map<std::string, Skill> catalog = {
       {"erda",
@@ -686,8 +679,8 @@ TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
       VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V);
   EXPECT_EQ(VNodeSectionBreaks(nodes), (std::vector<int>{1, 3, 4}));
 
-  // A page missing a block reports no rule where it would have gone -- a job
-  // with nothing of its own opens on the commons and needs none at all.
+  // A page missing a block gets no rule for it. A job with no nodes of its own
+  // starts with the common nodes and needs no rules at all.
   std::map<std::string, Skill> commons_only = {
       {"erda",
        Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
@@ -699,8 +692,8 @@ TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
           .empty());
 }
 
-// An archetype node is listed by every 5th job of its line and by no other, so
-// a magician's matrix has no Weapon Aura in it however many warriors do.
+// Only 5th jobs of an archetype node's line list it, so a magician's matrix
+// never has Weapon Aura.
 TEST(VNodesForTest, AnotherLinesArchetypeNodeIsNotOnThePage) {
   std::map<std::string, Skill> catalog = {
       {"erda",
@@ -714,8 +707,8 @@ TEST(VNodesForTest, AnotherLinesArchetypeNodeIsNotOnThePage) {
             (std::vector<std::string>{"Weapon Aura", "Erda Fountain"}));
 }
 
-// A job with no nodes of its own written yet still has a matrix: the commons
-// alone fill it.
+// A job with no nodes of its own written yet still has a matrix of common
+// nodes.
 TEST(VNodesForTest, AJobWithNoNodesOfItsOwnStillHoldsTheCommons) {
   std::map<std::string, Skill> catalog = {
       {"erda",
@@ -726,8 +719,8 @@ TEST(VNodesForTest, AJobWithNoNodesOfItsOwnStillHoldsTheCommons) {
             (std::vector<std::string>{"Erda Fountain"}));
 }
 
-// A chip must not change width as a preset is put in use, or the row shuffles
-// sideways under the cursor.
+// A chip must not change width when a preset is put in use, or the row shifts
+// under the cursor.
 TEST(PresetSlotLabelTest, TheMarkKeepsItsColumnEitherWay) {
   const std::string idle =
       PresetSlotLabel(StatPreset::kFirst, /*autoswap=*/false,
@@ -743,8 +736,8 @@ TEST(PresetSlotLabelTest, TheMarkKeepsItsColumnEitherWay) {
             "3  ");
 }
 
-// With the autoswap on the two it reads are named for what they are for, the
-// third keeps its number, and none of them carries a mark.
+// With the autoswap on, the two presets it uses are named for their use, the
+// third keeps its number, and none has a mark.
 TEST(PresetSlotLabelTest, TheAutoswapNamesTheTwoItReads) {
   EXPECT_EQ(PresetSlotName(StatPreset::kFirst, /*autoswap=*/true), "Farm");
   EXPECT_EQ(PresetSlotName(StatPreset::kSecond, /*autoswap=*/true), "Boss");

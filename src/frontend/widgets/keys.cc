@@ -12,8 +12,8 @@
 namespace ms {
 namespace {
 
-// Overrides nothing but Focusable(). ComponentBase's own OnRender and OnEvent
-// already forward to a lone child, so everything else passes straight through.
+// Overrides only Focusable(). ComponentBase's own OnRender and OnEvent already
+// forward to a single child, so everything else passes through.
 class AlwaysFocusableComponent : public ftxui::ComponentBase {
  public:
   explicit AlwaysFocusableComponent(ftxui::Component child) {
@@ -31,10 +31,10 @@ int StepCursor(int current, int delta, int stops) {
   if (stops <= 0) {
     return 0;
   }
-  // Modulo twice, because C++ gives a negative remainder a negative sign: the
-  // first % may land below zero, and adding stops before the second brings it
-  // back into the ring. Written for any delta rather than just the one step
-  // every caller passes, so a caller that ever wants two is not a special case.
+  // Modulo twice, because in C++ a negative number's remainder is negative. The
+  // first % may give a value below zero, and adding `stops` before the second
+  // brings it back into range. It works for any delta, not only the single step
+  // every caller passes today.
   return ((current + delta) % stops + stops) % stops;
 }
 
@@ -52,8 +52,8 @@ TabStop StepTabRing(const std::vector<int>& tabs, TabStop from, int delta) {
     }
     at = static_cast<int>(it - tabs.begin());
   }
-  // The door is the stop past the last tab, so the whole bar is one ring of
-  // tabs.size() + 1 and StepCursor walks it.
+  // The door is the stop after the last tab, so the whole bar is one ring of
+  // tabs.size() + 1 stops that StepCursor walks.
   int next = StepCursor(at, delta, door + 1);
   return next == door ? TabStop{from.tab, true} : TabStop{tabs[next], false};
 }
@@ -64,10 +64,9 @@ ftxui::Component AlwaysFocusable(ftxui::Component child) {
 
 ftxui::Component WrappingList(ftxui::Component list, int& selected,
                               std::function<int()> count) {
-  // Held as a pointer rather than a captured reference: the lambda outlives
-  // this call by the life of the component, and a reference captured into it
-  // would be one more thing to reason about than an address that cannot itself
-  // be rebound.
+  // A pointer rather than a captured reference, because the lambda lives as
+  // long as the component, well past this call. A pointer is simpler to reason
+  // about.
   int* cursor = &selected;
   return ftxui::CatchEvent(
       std::move(list), [cursor, count = std::move(count)](ftxui::Event event) {
@@ -78,10 +77,10 @@ ftxui::Component WrappingList(ftxui::Component list, int& selected,
         }
         int stops = count();
         if (stops <= 0) {
-          // Swallowed rather than passed down. An ftxui::Menu with no entries
-          // still moves its index on an arrow, which leaves the cursor
-          // pointing at row -1 of a list that has no rows -- and the panels
-          // above read that index to decide what the player is looking at.
+          // Consumed instead of passed down. An ftxui::Menu with no entries
+          // still moves its index on an arrow, which leaves the cursor at row
+          // -1 of an empty list, and the panels above read that index to decide
+          // what the player is looking at.
           return true;
         }
         if (up && *cursor <= 0) {
@@ -92,7 +91,7 @@ ftxui::Component WrappingList(ftxui::Component list, int& selected,
           *cursor = StepCursor(stops - 1, 1, stops);
           return true;
         }
-        // A step through the middle, which is the menu's own business.
+        // A step within the list, which the menu handles itself.
         return false;
       });
 }
