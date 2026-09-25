@@ -1,9 +1,9 @@
-# GMS: 174+5x% ten times on 15 enemies every 30 seconds, and 5+floor(x/2)%
-# critical rate while it is in the air. Both ends are GMS's own, stretched
-# over 20 levels instead of 30.
+# GMS: 174+5x% ten times on 15 enemies every 30 seconds, plus 5+floor(x/2)%
+# critical rate while it is in the air. Both ends are GMS's, stretched over 20
+# levels instead of 30.
 #
-# The critical rate rides this swing and hands nothing to the next one, which
-# is what GMS states on the skill rather than under a passive heading.
+# The critical rate applies to this swing only and doesn't carry over, as GMS
+# states on the skill itself rather than under a passive heading.
 name: "Genesis"
 description:
   "A holy ray of light shines down from the sky, dealing tremendous holy "

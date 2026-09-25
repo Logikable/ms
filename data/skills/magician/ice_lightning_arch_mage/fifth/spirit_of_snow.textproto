@@ -1,25 +1,24 @@
-# The I/L's third job node: a spirit summoned for thirty seconds that calls
-# down El Nath's blizzard every three, twelve times over ten enemies.
+# The I/L's third class node: a spirit summoned for thirty seconds that brings
+# down El Nath's blizzard every three seconds, twelve times on ten enemies.
 #
-# A buff with a pulse rather than a summon of its own, which is what a summon
-# on a cooldown IS here: Elquines and Thunder Sphere stand for good and want no
-# duration, and this one is up for a quarter of its wait. Darkness Aura is the
+# A buff with a pulse instead of its own summon, which is what a summon on a
+# cooldown is here: Elquines and Thunder Sphere are permanent and need no
+# duration, and this one is up a quarter of its cooldown. Darkness Aura has the
 # same shape.
 #
-# Three seconds is GMS's `x`, the one number in its common block the readout
-# never spends. The animation cannot settle it -- attack1 runs 810ms and
-# Phoenix's 1170ms ships at 1.71s, so the frames have never decided a summon's
-# cadence here -- and the band does: ten pulses is 205,800% against a 120s
-# wait, 1,715%/s where Bolt Barrage is 2,580%/s, while the 810ms reading is
-# 761,460%, far outside the band.
+# Three seconds is GMS's `x`, the one number in its common block the tooltip
+# never uses. The animation can't decide it (attack1 runs 810ms, and Phoenix's
+# 1170ms animation ships at 1.71s, so animations have never set a summon's
+# timing here), but the balance range can: ten pulses is 205,800% on a 120s
+# cooldown, 1,715%/s against Bolt Barrage's 2,580%/s, while the 810ms reading
+# would be 761,460%, far outside the range.
 #
-# Ten enemies is GMS's own. The rule works out 51 from the spirit's 1200x700
-# box and floors nothing, as it never lifts.
+# Ten enemies is GMS's own. The rule gives 51 from the spirit's 1200x700 box,
+# and it only lowers a cap, never raises one.
 #
-# GMS gives 3 Freeze Stacks "when attacking 1 enemy" and the ordinary 1 over a
-# crowd, which is a bossing bonus written into the skill rather than anything
-# ice does -- so it states both rather than taking the stack per line the
-# element would otherwise buy.
+# GMS gives 3 Freeze Stacks "when attacking 1 enemy" and the usual 1 on a crowd.
+# That is a bossing bonus written into the skill, not something ice does, so the
+# skill states both instead of the one stack per line the element would give.
 name: "Spirit of Snow"
 description:
   "Summon the devastating frosts of the El Nath Mountains. They freeze what "

@@ -1,14 +1,14 @@
-# A cast the Cleric spends a swing on when they drop below a quarter of their
-# HP -- see fight.h. Not a swing they choose between: the fight reaches for it
-# on need and for nothing else.
+# The Cleric casts this, using a swing, when they drop below a quarter of their
+# HP (see kHealBelowFraction in fight.cc). It is not a swing to choose; the
+# fight only uses it when needed.
 #
-# GMS restores 15% a level over 20 levels, which is 300% at max. That figure
-# is written for a party, and against one player it clamps to a full heal from
-# level 4 up -- six levels that buy nothing. 10% a level over 10 instead, so
-# the ladder ends exactly at a full pool and every point on it moves.
+# GMS restores 15% a level over 20 levels, 300% at max. That figure is meant for
+# a party; for one player it is a full heal from level 4 up, so the last levels
+# buy nothing. Here it is 10% a level over 10, so the ladder ends at a full heal
+# and every point counts.
 #
-# The party it is shared with, the undead it hurts and the cooldown the party
-# shortens are all still absent, as is the cooldown itself.
+# Still missing: sharing with the party, damage to the undead, the party
+# cooldown reduction, and the cooldown itself.
 name: "Heal"
 description: "Restores your HP."
 kind: SKILL_KIND_ACTIVE

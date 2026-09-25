@@ -1,24 +1,24 @@
-# The F/P's second job node, and the branch's other half: DoT Punisher pays for
-# the poison already laid, this one lays a nuke and waits to set it off.
+# The F/P's second class node, and the branch's other half: DoT Punisher pays
+# off the poison already laid, and this one sets up a nuke and then detonates
+# it.
 #
-# Fifteen clouds ride out in a ring, and GMS is explicit that an enemy takes
-# only one of them -- so the cast itself is a plain wide swing rather than a
-# scattered one, twelve lines on each of the fifteen it can find. The reach is
-# the cloud count: sixteen enemies and the sixteenth is untouched.
+# Fifteen clouds spread out in a ring, and GMS says each enemy takes only one,
+# so the cast is a plain wide swing, not a scattered one: twelve lines on each
+# of up to fifteen enemies. The reach is the cloud count, so a sixteenth enemy
+# is untouched.
 #
-# The detonation is where the damage is, and it is not a key of its own. GMS
-# leaves the clouds standing and lets Mist Eruption set them off, so it is a
-# magazine spent by that press: one charge, gone with the clouds whether or not
-# it was used, and the swing costs the player nothing beyond the button they
-# were pressing anyway. Fifteen bursts spread over twelve enemies, no enemy
-# taking more than the three GMS allows -- so a lone boss takes three of the
-# fifteen and the rest find nothing.
+# The detonation is where the damage is, and it has no key of its own. GMS
+# leaves the clouds up and lets Mist Eruption set them off, so it is a magazine
+# used by that press: one charge, gone with the clouds whether used or not,
+# costing nothing beyond the button the player was pressing anyway. Fifteen
+# bursts spread over twelve enemies, no more than GMS's three on any one, so a
+# lone boss takes three of the fifteen and the rest hit nothing.
 #
-# GMS's "1 sec. or more after" is not modelled and cannot bind: Poison Nova's
-# own 660ms plus Mist Eruption's wait is always longer than the second.
+# GMS's "1 sec. or more after" isn't modelled and can't matter: Poison Nova's
+# own 660ms plus Mist Eruption's cooldown is always longer than a second.
 #
-# The clouds' own lifetime is unpublished. Ten seconds is the burn they lay,
-# which is the same thing said the other way -- the cloud IS the poison.
+# The clouds' lifetime isn't published. Ten seconds is the length of the burn
+# they lay, which is the same thing, since the cloud IS the poison.
 name: "Poison Nova"
 description:
   "Releases a poisonous cloud that spreads in all directions, striking "

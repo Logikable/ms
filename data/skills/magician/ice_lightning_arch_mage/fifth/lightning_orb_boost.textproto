@@ -1,4 +1,4 @@
-# The held sphere alone: a node aimed at a hyper.
+# Just the held sphere: a node targeting a hyper.
 name: "Lightning Orb Boost"
 description: "Strengthens Lightning Orb."
 kind: SKILL_KIND_PASSIVE

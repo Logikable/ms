@@ -1,13 +1,13 @@
-# GMS's own figures: 75+5x% fourteen times on ONE enemy, and 3+floor(x/6)% of
-# the pool back with every cast. The bossing swing, and the only one in the
-# book that hits a single target.
+# GMS's own figures: 75+5x% fourteen times on ONE enemy, and 3+floor(x/6)% of HP
+# back with every cast. The bossing swing, and the book's only single-target
+# one.
 #
-# The heal is GMS's party heal, and pays the party the same share it pays the
-# Bishop. Theirs rides this swing alone -- a Bishop mobbing with Big Bang
-# recovers nothing, see SkillEffect.hp_recover_pct -- but an ally's is folded
-# in as a passive, so it lands on their own swings rather than on the casts
-# they cannot see. Nothing in a boss fight hits the player, so it pays only
-# once the party can farm together.
+# The heal is GMS's party heal and gives the party the same share it gives the
+# Bishop. The Bishop's comes only with this swing (a Bishop mobbing with Big
+# Bang recovers nothing; see SkillEffect.hp_recover_pct), but an ally's is a
+# passive, so it lands on their own swings instead of casts they can't see.
+# Nothing in a boss fight hits the player, so it only matters when the party
+# farms together.
 name: "Angel Ray"
 description:
   "Attack with a holy sword, dealing tremendous holy damage. Restores party "

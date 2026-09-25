@@ -1,5 +1,5 @@
-# GMS's figures exactly: 10+2x% critical rate and 3+x% critical damage. The
-# I/L mage buys the same rate and two points more damage.
+# GMS's exact figures: 10+2x% critical rate and 3+x% critical damage. The I/L
+# mage gets the same rate and two points more damage.
 name: "Magic Critical"
 description: "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE

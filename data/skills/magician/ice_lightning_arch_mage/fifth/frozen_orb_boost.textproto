@@ -1,6 +1,6 @@
-# The thrown orb and the shower that recharges beside it. Blizzard takes the
-# critical rate rather than the enemy, which is GMS's call and a sound one: it
-# already reaches fifteen, and its Final Attack collects the rate too.
+# The thrown orb and the shower that recharges beside it. Blizzard gets critical
+# rate instead of more enemies, as GMS decided, and sensibly: it already hits
+# fifteen, and its Final Attack also gets the rate.
 name: "Frozen Orb Boost"
 description: "Strengthens Frozen Orb and Blizzard."
 kind: SKILL_KIND_PASSIVE

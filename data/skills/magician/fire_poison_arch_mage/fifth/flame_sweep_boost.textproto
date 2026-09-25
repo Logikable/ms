@@ -1,4 +1,4 @@
-# The swing the class lives on takes the page alone, as GMS gives it.
+# The class's main swing gets the page alone, as in GMS.
 name: "Flame Sweep Boost"
 description: "Strengthens Flame Sweep."
 kind: SKILL_KIND_PASSIVE

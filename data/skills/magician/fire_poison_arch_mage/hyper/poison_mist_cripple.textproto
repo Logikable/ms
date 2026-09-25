@@ -1,6 +1,6 @@
-# Points on the tick rather than a share of the damage: GMS's client adds 20 to
-# the mist's own dot figure, the way its Extra Strike adds one to an attack
-# count. 240% a second becomes 260%, and 320% beside Mist Eruption's sixty.
+# Points on the tick, not a share of the damage: GMS's client adds 20 to the
+# mist's own dot value, the way its Extra Strike adds one to an attack count.
+# 240% a second becomes 260%, and 320% with Mist Eruption's sixty.
 name: "Poison Mist - Cripple"
 description: "Increases Poison Mist's damage over time."
 kind: SKILL_KIND_PASSIVE

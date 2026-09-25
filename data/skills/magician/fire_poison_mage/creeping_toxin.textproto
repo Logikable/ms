@@ -1,13 +1,13 @@
-# The pool ticks for 120+6x%, and fire cast into it detonates it for 158+3x%
-# four times. GMS masters this at 14, where those come to 204% and 200%; the
-# same ends over 20 levels step a clean 4% and 2%.
+# The pool ticks for 120+6x%, and a fire spell cast into it detonates it for
+# 158+3x% four times. GMS maxes this at 14, where those are 204% and 200%; the
+# same tops over 20 levels step by an even 4% and 2%.
 #
-# Nothing here casts one skill into another, so the detonation is on a count
-# instead: every fourth tick is the explosion rather than the pool. That is an
-# empowered form with no skill named -- the one it upgrades is itself.
+# Nothing here casts one skill into another, so the detonation is counted
+# instead: every fourth tick is the explosion instead of the pool. That is an
+# empowered form with no skill named, because the one it upgrades is itself.
 #
-# The normal-enemy bonus is stated once for the whole skill, so both halves
-# carry it.
+# The normal-enemy bonus is stated once for the whole skill, so both halves get
+# it.
 name: "Creeping Toxin"
 description:
   "Conjures a poison-attribute totem, which spreads a toxic pool. The pool is "

@@ -1,16 +1,15 @@
-# The one node that grants nothing on its own. What it pays is a multiplier on
-# Maple Warrior -- GMS's "increases stat bonuses as Maple Warrior by 400%",
-# where the hundred at the bottom of that number is the identity and not a
-# gain, so 15% of pure stat becomes 60% rather than 75%. The share here is
-# what is added to that hundred: 10% a level, 300% at master.
+# The one node that gives nothing by itself. It multiplies Maple Warrior: GMS's
+# "increases stat bonuses as Maple Warrior by 400%" counts the base hundred, so
+# 15% of pure stat becomes 60%, not 75%. The value here is what is added to that
+# hundred: 10% a level, 300% at max.
 #
-# GMS bars a character without Maple Warrior from casting it. Nothing has to
-# check: four times nothing is nothing, and every book in the game carries
-# Maple Warrior anyway.
+# GMS won't let a character without Maple Warrior cast it. Nothing needs to
+# check here: four times nothing is nothing, and every book has Maple Warrior
+# anyway.
 #
-# Damage is GMS's 5 + floor(x/2)%, which ends on 20%. Held to that and given a
-# clean half a point a level, so only where it starts moves -- the same trade
-# Decent Holy Symbol makes.
+# Damage is GMS's 5 + floor(x/2)%, ending at 20%. It keeps that top with a
+# simple half a point a level, so only the start moves, as Decent Holy Symbol
+# does.
 name: "Maple World Goddess's Blessing"
 description:
   "The Maple World Goddess's Blessing increases all stats and damage. Can "

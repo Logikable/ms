@@ -1,5 +1,4 @@
-# Two more attacks blocked, on top of the fifteen the shell already stops.
-# GMS's own figure.
+# Two more attacks blocked, on top of the shell's fifteen. GMS's own figure.
 name: "Holy Magic Shell - Extra Guard"
 description: "Increases Holy Magic Shell's guard count."
 kind: SKILL_KIND_PASSIVE

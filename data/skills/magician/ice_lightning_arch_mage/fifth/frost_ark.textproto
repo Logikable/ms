@@ -1,20 +1,19 @@
-# The I/L's first job node: a structure that shocks what stands in front of the
-# character every time lightning strikes it, for twenty seconds.
+# The I/L's first class node: a structure that shocks whatever is in front of
+# the character each time lightning strikes it, for twenty seconds.
 #
-# A Final Attack rather than a clock, which is what GMS's ark is -- nothing but
-# the lightning moves it. Split Shot is the same shape, and the reach is stated
-# the same way: the shock carries its own mobCount of 15 and its own 480x625
-# box, so behind Chain Lightning, a swing that reaches six, it still reaches
-# fifteen.
+# A Final Attack, not a clock, which is what GMS's ark is: only lightning
+# triggers it. Split Shot has the same shape, and the reach works the same way:
+# the shock has its own mobCount of 15 and its own 480x625 box, so even after
+# Chain Lightning, which hits six, it hits fifteen.
 #
-# Which lightning is the group rather than a list of names. GMS names Parabolic
-# Bolt, Thunder Sphere and Cryo Shock, and this game has only the second -- as
-# an orb on its own clock, which is what follows_own_clock is for. Read as the
-# element it follows that orb, Chain Lightning, Thunder Bolt and Lightning Orb,
-# which is what "struck by lightning" means in this book.
+# Which lightning counts is set by group, not a list of names. GMS names
+# Parabolic Bolt, Thunder Sphere and Cryo Shock, and this game only has the
+# second, as an orb on its own clock, which is what follows_own_clock is for.
+# Read as the element, it follows that orb, Chain Lightning, Thunder Bolt and
+# Lightning Orb, which is what "struck by lightning" means in this book.
 #
-# The 0.1s reactivation cooldown is not built: nothing here comes round faster
-# than 0.24s at the speed cap, so it never binds.
+# The 0.1s reactivation cooldown isn't built: nothing here repeats faster than
+# 0.24s at the speed cap, so it would never matter.
 name: "Frost Ark"
 description:
   "Manifest the very essence of ice and lightning into a magical structure. "

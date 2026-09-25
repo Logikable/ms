@@ -1,5 +1,5 @@
-# The two roomwide swings, both on long waits and both at the critical tier:
-# neither has anywhere left to widen to.
+# The two screen-wide swings, both on long cooldowns and both at the critical
+# tier: they can't reach any wider.
 name: "Genesis Boost"
 description: "Strengthens Genesis and Heaven's Door."
 kind: SKILL_KIND_PASSIVE

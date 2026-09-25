@@ -1,9 +1,9 @@
-# The mobbing swing: four strikes on ten enemies, hitting anything that is not
-# a boss for half again.
+# The mobbing swing: four strikes on ten enemies, doing half as much again to
+# anything that isn't a boss.
 #
-# GMS climbs 300+6x% over 30 levels. Twenty levels here keep GMS's step and
-# its ceiling, so the ladder starts at what GMS reaches at 11 rather than at
-# its own level 1 -- a skill this central is not worth 306% for a decade.
+# GMS climbs 300+6x% over 30 levels. Twenty levels here keep GMS's step and top,
+# so the ladder starts where GMS is at level 11 instead of its level 1; a skill
+# this central shouldn't sit near 306% for ten levels.
 name: "Big Bang"
 description: "Holy power spreads out, culminating in a holy explosion."
 kind: SKILL_KIND_ATTACK

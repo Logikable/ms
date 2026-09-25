@@ -1,11 +1,10 @@
-# GMS names the same five conditions Storm Magic does, and pays 5+x% against
-# an enemy under any of them. The F/P has the other of the two this game keeps:
-# a burn. So it collects on whatever Poison Breath, Poison Mist, Flame Sweep or
-# Ifrit has left alight -- which is nearly everything the class fights, and is
-# meant to be.
+# GMS lists the same five conditions as Storm Magic and gives 5+x% against an
+# enemy with any of them. The F/P's is a burn, so it pays on whatever Poison
+# Breath, Poison Mist, Flame Sweep or Ifrit has set burning, which is nearly
+# everything the class fights, as intended.
 #
 # GMS's other half is dropped: it lengthens every burn by 50+5x%, and a burn
-# already outlasts the swing that relights it, so nothing here would change.
+# already lasts longer than it takes to relight it, so nothing would change.
 name: "Burning Magic"
 description:
   "Increases your Final Damage against enemies taking continuous damage."

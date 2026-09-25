@@ -1,6 +1,6 @@
-# Five seconds onto the shell and nothing onto the wait below it, which is the
-# same bargain Buff Duration strikes. The two meet: this lands first, and the
-# share is taken of the whole.
+# Five seconds added to the shell and nothing to its cooldown, the same deal as
+# Buff Duration. The two combine: this is added first, and Buff Duration applies
+# to the total.
 name: "Holy Magic Shell - Persist"
 description: "Increases the duration of Holy Magic Shell."
 kind: SKILL_KIND_PASSIVE

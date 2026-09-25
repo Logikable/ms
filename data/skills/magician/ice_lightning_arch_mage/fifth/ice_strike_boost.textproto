@@ -1,7 +1,6 @@
-# GMS pairs Ice Strike with Frost Ward, which this book does not have, so the
-# page goes to the magician's opening swing instead -- the only attack in the
-# line still unclaimed, at the better rate a first-job skill needs to be worth
-# a node.
+# GMS pairs Ice Strike with Frost Ward, which this book doesn't have, so the
+# page goes to the magician's first swing instead: the only attack in the line
+# not yet taken, at the better rate a 1st job skill needs to be worth a node.
 name: "Ice Strike Boost"
 description: "Strengthens Ice Strike and Energy Bolt."
 kind: SKILL_KIND_PASSIVE

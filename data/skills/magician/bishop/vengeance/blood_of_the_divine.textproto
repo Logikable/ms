@@ -1,7 +1,7 @@
-# Holy Water's Vengeance form: the chalice the party drank from, drunk by the
-# Bishop instead. Ten seconds of final damage on a two-minute wait, which is
-# GMS's own -- and its ten levels buy nothing, exactly as GMS writes it. It is
-# levelled by levelling Holy Water regardless.
+# Holy Water's Vengeance form: the Bishop drinks the chalice instead of the
+# party. Ten seconds of final damage on a two-minute cooldown, as in GMS, and
+# its ten levels change nothing, just as GMS writes it. It levels with Holy
+# Water either way.
 name: "Blood of the Divine"
 description:
   "Enhance your power by conjuring a spell with your own hallowed blood."

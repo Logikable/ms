@@ -1,18 +1,18 @@
 # GMS's own numbers throughout. The client says 10 attacks and "Number of
-# Explosions: 2" -- a cast sets off two mists at once, so an enemy caught by
-# both takes the ten hits twice. Twenty lines of 95+x%.
+# Explosions: 2": a cast sets off two mists at once, so an enemy caught in both
+# takes the ten hits twice. Twenty lines of 95+x%.
 #
-# The final damage is GMS's too: it pays +20% for two explosions, climbing to
-# +125% for five. Nothing here places a mist, so the count cannot vary and the
-# skill keeps the figure its own pair of explosions earns. It rides this swing
-# alone, the way an attack's ignored defence does.
+# The final damage is also GMS's: +20% for two explosions, up to +125% for five.
+# Nothing here places mists, so the count can't change and the skill keeps the
+# value for its own two explosions. It applies to this swing only, like an
+# attack's Ignore DEF.
 #
-# The defence it ignores climbs with the skill, as GMS's 10+x% does, and ends
-# where GMS ends.
+# The Ignore DEF climbs with the skill, like GMS's 10+x%, and ends where GMS's
+# does.
 #
-# The passive raises Poison Mist for good. What it lifts is the mist itself --
-# the mark the cast leaves rather than the cast -- so it is points on the tick:
-# 240% a second becomes 300% with this maxed.
+# The passive permanently raises Poison Mist. It boosts the mist itself (the
+# mark the cast leaves, not the cast), so it is points on the tick: 240% a
+# second becomes 300% when this is maxed.
 name: "Mist Eruption"
 description:
   "Permanently increases Poison Mist's continuous damage. Upon using the "

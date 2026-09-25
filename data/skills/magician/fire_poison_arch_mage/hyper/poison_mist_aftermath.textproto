@@ -1,7 +1,6 @@
-# GMS's flat six seconds. Its mist burns for six, so the hyper doubles it;
-# here the mist is a burn of twenty-one seconds already, so six is worth less
-# -- the ladders parted when the fog became a mark. GMS's own number stands
-# rather than one invented to keep the share.
+# GMS's flat six seconds. GMS's mist burns for six, so there the hyper doubles
+# it; here the mist is already a 21-second burn, so six is worth less. GMS's
+# number is kept instead of inventing one to keep the same share.
 name: "Poison Mist - Aftermath"
 description: "Increases the duration of Poison Mist's damage over time."
 kind: SKILL_KIND_PASSIVE

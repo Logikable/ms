@@ -1,10 +1,10 @@
-# A party buff on a timer in GMS, at 5+x attack, 5+x magic attack and 30x
-# DEF. Nothing runs out here, so it simply stands -- over the Cleric and over
-# everybody beside them, which is who GMS casts it on.
+# A timed party buff in GMS: 5+x attack, 5+x magic attack and 30x DEF. Nothing
+# runs out here, so it is always up, on the Cleric and everyone with them, who
+# are the ones GMS casts it on.
 #
-# This is the Cleric's whole magic attack: they have no Meditation, so where
-# the other wizards end on +30 this ends on +15. The attack is granted as well
-# because GMS grants it, though a magician swings on the other number.
+# This is all the Cleric's magic attack: they have no Meditation, so where the
+# other magicians end at +30 this ends at +15. It also gives attack because GMS
+# does, though magicians attack with the other number.
 name: "Bless"
 description:
   "Increases the Attack Power, Magic ATT, and Defense of you and nearby party "

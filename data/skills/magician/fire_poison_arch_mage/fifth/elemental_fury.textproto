@@ -1,32 +1,30 @@
-# The F/P's third job node: Ifrit goes up in a rage for three seconds and
-# strikes every 0.6 of one, six lines over twelve enemies.
+# The F/P's third class node: Ifrit rages for three seconds and strikes every
+# 0.6 seconds, six lines on twelve enemies.
 #
-# 600ms is GMS's `x`, the one number in its common block the readout never
-# spends -- the same place Spirit of Snow's cadence was found. What settles it
-# is that `t`, the 0.6 seconds each active Fervent Drain adds, is the SAME
-# number: a stack buys exactly one more strike, and the window runs 3 to 6
-# seconds as five strikes run to ten.
+# 600ms is GMS's `x`, the one number in its common block the tooltip never uses,
+# which is also where Spirit of Snow's timing was found. What confirms it is
+# that `t`, the 0.6 seconds added per active Fervent Drain, is the SAME number:
+# each stack buys exactly one more strike, and the window runs 3 to 6 seconds as
+# five strikes become ten.
 #
-# "Active Fervent Drain" is burns alight capped at five, which is the count
-# that skill reads for its own credit -- so this is the same board state seen
-# from the other side. On a boss the F/P sits at two to four of them most of
-# the time: Flame Sweep and Ifrit always, DoT Punisher and Poison Nova only
-# through part of their 25-second cycles. The window is really variable here,
-# not a cap dressed up as one.
+# "Active Fervent Drain" means burns up, capped at five, the same count that
+# skill reads for itself. On a boss the F/P usually has two to four: Flame Sweep
+# and Ifrit always, DoT Punisher and Poison Nova for part of their 25-second
+# cycles. So the window really varies here; it is not a cap in disguise.
 #
-# Small against its siblings on purpose -- 26,400% at the top of its range
-# against Poison Nova's 66,000%, and GMS wrote it that way. It is filler beside
-# the branch's two big buttons, and the numbers are all its own.
+# Weak next to its siblings on purpose: 26,400% at most against Poison Nova's
+# 66,000%, as GMS wrote it. It is filler beside the branch's two big buttons,
+# and its numbers are all its own.
 #
-# Twelve enemies stands: the client gives this skill no hitbox at all, which is
-# the case where the stated cap is the reach.
+# Twelve enemies stands: the client gives this skill no hitbox, so the stated
+# cap is the reach.
 #
-# The 480ms cast masonym gives it is not what it costs: a buff is raised from
-# a sequence, which paces every one of them at 120ms alike.
+# masonym's 480ms cast isn't what it costs: buffs are cast from a sequence,
+# which paces them all at 120ms.
 #
-# GMS's "only when Ifrit is summoned" is the required skill. A summon here is
-# permanent once learned, so the condition never binds -- but a book that has
-# not paid for Ifrit has not paid for this.
+# GMS's "only when Ifrit is summoned" is the required skill. Summons here are
+# permanent once learned, so the condition always holds, but a book that hasn't
+# paid for Ifrit can't have this.
 name: "Elemental Fury"
 description:
   "Unleash the fury of flame in the form of an enraged spirit. Can only be "

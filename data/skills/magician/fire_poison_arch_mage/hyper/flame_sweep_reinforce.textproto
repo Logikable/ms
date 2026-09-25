@@ -1,5 +1,5 @@
-# GMS excludes the explosion HEXA Flame Sweep's ember leaves. There is no HEXA
-# here and no ember, so the exception has nothing to except.
+# GMS excludes the explosion from HEXA Flame Sweep's ember. There is no HEXA or
+# ember here, so the exclusion has nothing to exclude.
 name: "Flame Sweep - Reinforce"
 description: "Increases the damage of Flame Sweep."
 kind: SKILL_KIND_PASSIVE

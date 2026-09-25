@@ -1,38 +1,38 @@
-# The I/L's fourth job node, and the branch's single-target nuke: an orb that
-# rides one enemy and shocks it thirty times over ten seconds, 871% eight lines
-# a shock at master, with a current arcing off each shock for 513% four more.
+# The I/L's fourth class node and the branch's single-target nuke: an orb that
+# rides one enemy and shocks it thirty times over ten seconds, 871% for eight
+# lines per shock at max, with a current arcing off each shock for 513% on four
+# more.
 #
-# GMS's wording is the worst in the book and none of it survives reading
-# literally. "Stunned #attackCount times" is eight LINES of one shock, not
-# eight shocks; the current is not periodic and not a burn -- it fires once per
-# shock, four lines at once. What the client actually holds: 30 shocks (`x`) on
-# a 330ms beat (`subTime`, and the shock's own hit animation runs 360ms, so the
-# shocks land back to back), each 391+16x over `mobCount 1`, and a separate
-# invisible skill for the current at 243+9x, `attackCount 4`, `mobCount 2`.
-# `time 40000` is the orb's forty seconds to live, which only a barrage that
-# stops to hop between kills ever reaches.
+# GMS's wording is the worst in the book, and none of it works read literally.
+# "Stunned #attackCount times" means eight LINES of one shock, not eight shocks.
+# The current isn't periodic and isn't a burn: it fires once per shock, four
+# lines at once. What the client actually holds: 30 shocks (`x`) on a 330ms beat
+# (`subTime`; the shock's hit animation runs 360ms, so shocks land back to
+# back), each 391+16x on `mobCount 1`, and a separate invisible skill for the
+# current at 243+9x, `attackCount 4`, `mobCount 2`. `time 40000` is the orb's
+# forty-second lifetime, which only matters if the barrage pauses to hop between
+# kills.
 #
-# The orb hops between enemies while they still stand, which nothing here has a
-# position to do -- so it pounds the front of the queue and moves on when that
-# one falls. On a boss, which is what the skill is for, the two are the same:
-# the orb rides it for all thirty, which is what KMS values the skill for.
+# The orb hops between enemies while any are standing, which needs positions
+# this game doesn't have, so it hits the front of the queue and moves on when
+# that one dies. On a boss, which the skill is for, it is the same: the orb
+# stays on it for all thirty, which is what KMS values the skill for.
 #
-# The stun is the third status this game keeps on a monster. Nothing here has a
-# schedule to be knocked off, so what it buys is that the enemy is AFFLICTED --
-# which Storm Magic asks about -- and that other lightning then takes 12% more,
-# which GMS states and excludes this skill from by name. A boss is never
-# stunned, so on the fight it was built for only the 12% is left.
+# The stun is one of the three statuses this game tracks on monsters. Nothing
+# here has a schedule to interrupt, so what it gives is that the enemy is
+# AFFLICTED, which Storm Magic checks, and that other lightning then does 12%
+# more, as GMS states, excluding this skill by name. Bosses are never stunned,
+# so in the fight it was built for only the 12% remains.
 #
-# The four seconds are CHOSEN: GMS states no stun duration anywhere in the
-# common block, and a missing number there is the client hardcoding one. Each
-# shock leaves its own and the thirty come 330ms apart, so the mark stands for
-# the whole barrage and four seconds past it whatever the number is -- what it
-# really decides is how long the rest of the book collects the 12% afterwards.
+# The four seconds are OUR choice: GMS states no stun duration in the common
+# block, and a missing number there means the client hardcodes one. Each shock
+# applies its own, and the thirty come 330ms apart, so the mark lasts the whole
+# barrage and four seconds after, whatever the number. It really only decides
+# how long the rest of the book gets the 12% afterwards.
 #
-# The 3.4s refunded per shock that never fired is a MAP mechanic, not a boss
-# one. Against a boss the orb spends all thirty and hands nothing back; on a
-# map it kills what it rides and the barrage outlives the crowd, so the shocks
-# past the last body come straight off the next cast's wait.
+# The 3.4s refunded per unused shock matters on MAPS, not bosses. Against a boss
+# the orb uses all thirty and refunds nothing; on a map it kills what it rides
+# and outlasts the crowd, so the leftover shocks come off the next cooldown.
 name: "Jupiter Thunder"
 description:
   "Launch orbs full of the thunder god's power directly at your enemies. "

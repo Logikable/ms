@@ -1,9 +1,9 @@
 # GMS's own figures: 245+8x% twice over 20 levels, on eight enemies. 870ms is
-# the animation's own, from the frame data -- a long wind-up for the hardest
-# swing the branch has.
+# the animation's own, from the frame data: a long wind-up for the branch's
+# hardest swing.
 #
-# The fire tag is load-bearing. Ignite is the wizard's Final Attack and follows
-# fire swings only, so without it Ignite would stop paying at the advancement.
+# The fire tag matters. Ignite is the magician's Final Attack and only follows
+# fire swings, so without the tag Ignite would stop working at this job.
 name: "Explosion"
 description: "Creates a fire-attribute explosion near you that hits nearby enemies."
 kind: SKILL_KIND_ATTACK

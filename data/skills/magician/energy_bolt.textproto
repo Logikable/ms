@@ -1,8 +1,8 @@
-# The magician's opening attack, and a weak one: four bolts of 18+3x% come to
-# 84% against a single target at first, under the bare poke, and reach 312% at
-# max. It still wins from the first point on a crowded map, because it hits
-# four; the poke only takes over on the last mob standing. Faithful to GMS,
-# where a magician's damage arrives with the second job.
+# The magician's first attack, and a weak one: four bolts of 18+3x% make 84% on
+# a single target at first, less than the basic attack, and 312% at max. It
+# still wins from the first point on a crowded map, because it hits four; the
+# basic attack only wins on the last mob. True to GMS, where a magician's damage
+# comes with 2nd job.
 name: "Energy Bolt"
 description:
   "Fire a condensed energy bolt that explodes on contact with an enemy."

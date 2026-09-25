@@ -1,10 +1,10 @@
 # GMS's own: 670% eight times on 15 enemies, once a minute. The delay is ours,
-# as Megiddo Flame's is -- 660ms is what every other cast in this book takes.
+# like Megiddo Flame's: 660ms is what every other cast in this book takes.
 #
-# GMS also hands the party a buff that saves them from one killing blow, on a
-# ten-minute lockout of its own. Dropped: nothing here can survive a hit it
-# was not going to survive, and what would read it is a boss that kills the
-# player outright. That boss is what it waits for.
+# GMS also gives the party a buff that saves them from one killing blow, with
+# its own ten-minute cooldown. Dropped: nothing here survives a hit it wasn't
+# going to survive, and it would only matter against a boss that kills the
+# player outright, which doesn't exist yet.
 name: "Heaven's Door"
 description: "Knocks on the door to the heavens to punish enemies."
 kind: SKILL_KIND_ATTACK

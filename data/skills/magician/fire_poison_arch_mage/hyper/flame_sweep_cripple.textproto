@@ -1,4 +1,4 @@
-# Points on the tick, as Poison Mist's Cripple is: 240% a second becomes 260%.
+# Points on the tick, like Poison Mist's Cripple: 240% a second becomes 260%.
 name: "Flame Sweep - Cripple"
 description: "Increases Flame Sweep's damage over time."
 kind: SKILL_KIND_PASSIVE

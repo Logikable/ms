@@ -1,9 +1,8 @@
-# One of the four nodes at the foot of the V page: a skill the game has no use
-# for any more -- there is no platform to climb, no town to open a door to,
-# nowhere to blink and no fountain to walk up to -- kept because a matrix
-# without them would be tidier and worse. All four carry GMS's own passive,
-# which is the whole of what they do here, and GMS does not make them equal.
-# All four say so in the same words.
+# One of the four nodes at the bottom of the V page: skills this game has no use
+# for (no platform to climb, no town to open a door to, nowhere to blink, no
+# fountain to walk to). They are kept because a matrix without them would be
+# tidier but worse. Each has GMS's own passive, which is all it does here, and
+# GMS doesn't make them equal.
 name: "Rope Lift"
 description:
   "Fires a grappling hook to a platform above you. Nobody here remembers what "

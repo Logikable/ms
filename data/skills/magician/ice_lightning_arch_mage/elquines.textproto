@@ -1,14 +1,13 @@
-# The summon, and the book's mastery in one. Three strikes on three enemies
-# every three seconds -- 3030ms in the client, and the same clock Ifrit and
-# Bahamut run on.
+# The summon and the book's mastery in one. Three strikes on three enemies every
+# three seconds: 3030ms in the client, the same clock as Ifrit and Bahamut.
 #
-# It freezes what it touches, which GMS says in as many words and which is what
-# keeps a boss frozen the whole fight: three seconds between pulses against
-# eight seconds of ice. GMS states no duration for it, so it takes the family's.
+# It freezes what it hits, as GMS says outright, which keeps a boss frozen all
+# fight: three seconds between pulses against eight seconds of ice. GMS states
+# no duration for it, so it uses the family's.
 #
-# Its 70% mastery over the magician's own 25% reaches 95%, which is where
-# every 4th job mastery lands. Spell Mastery keeps its page and stops paying:
-# a character holds the better of two masteries, never their sum.
+# Its 70% mastery plus the magician's own 25% makes 95%, where every 4th job
+# mastery ends. Spell Mastery keeps its page but stops counting: a character
+# uses the better of two masteries, never their sum.
 name: "Elquines"
 description:
   "Summon Elquines. Elquines can attack multiple enemies at once. Attacks "

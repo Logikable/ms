@@ -1,10 +1,10 @@
-# GMS's third here is Teleport Mastery, which this game has no notion of, so
-# the page goes to the magician's opening swing instead -- the only attack in
-# the line still unclaimed, at the better rate a first-job skill needs to be
-# worth a node. The same trade the I/L's Ice Strike node makes.
+# GMS's third skill here is Teleport Mastery, which this game doesn't have, so
+# the page goes to the magician's first swing instead: the only attack in the
+# line not yet taken, at the better rate a 1st job skill needs to be worth a
+# node. The I/L's Ice Strike node makes the same trade.
 #
-# Poison Mist's fog is a burn the swing leaves, and every lever this hands the
-# swing rides into it.
+# Poison Mist's fog is a burn the swing leaves, and every lever this gives the
+# swing carries into it.
 name: "Explosion Boost"
 description: "Strengthens Explosion, Poison Mist, and Energy Bolt."
 kind: SKILL_KIND_PASSIVE

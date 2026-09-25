@@ -1,6 +1,6 @@
-# The pool, the sky and the pillar. GMS states one boost for the whole of
-# Creeping Toxin, and its every fourth tick is an empowered form here, so both
-# halves are reached -- otherwise a quarter of the totem's output takes nothing.
+# The pool, the sky and the pillar. GMS has one boost for all of Creeping Toxin,
+# and every fourth tick is an empowered form here, so both are covered;
+# otherwise a quarter of the totem's damage would get nothing.
 name: "Creeping Toxin Boost"
 description: "Strengthens Creeping Toxin, Meteor Shower, and Megiddo Flame."
 kind: SKILL_KIND_PASSIVE

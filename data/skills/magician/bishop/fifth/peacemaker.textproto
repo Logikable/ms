@@ -1,35 +1,32 @@
-# The Bishop's third job node: an orb hurled forward, striking as it drifts,
-# then bursting into a light that hits wider and hands the party a buff.
+# The Bishop's third class node: an orb thrown forward that hits as it drifts,
+# then bursts into a light that hits wider and gives the party a buff.
 #
-# GMS's readout carries TWO sixes and they are different things. `mobCount` is
-# the six enemies a beat reaches; the "Max Contact Count: 6" beside it is a
-# separate budget, and the sentence after it says only the recovery spends one.
-# So the contacts cap how many party members the orb can heal, never how often
-# it strikes.
+# GMS's tooltip has TWO sixes, and they mean different things. `mobCount` is the
+# six enemies each beat reaches. The "Max Contact Count: 6" beside it is a
+# separate budget, and the next sentence says only the healing uses it. So
+# contacts limit how many party members the orb heals, not how often it hits.
 #
-# How often it strikes is published nowhere. The beat is GMS's `attackDelay`,
-# 350ms; the count is the community DPM calculator's three, and the orb's own
-# speed works out the same -- 600 pixels at `v 12`, six times slower than the
-# F/P's projectiles, keeps a 220-pixel body over a boss for about three beats.
+# How often it hits isn't published. The beat is GMS's `attackDelay`, 350ms. The
+# count of three is the community DPM calculator's, and the orb's speed agrees:
+# 600 pixels at `v 12`, six times slower than the F/P's projectiles, keeps a
+# 220-pixel orb over a boss for about three beats.
 #
 # The buff is FINAL damage: Holy Light is its own skill, 400021077, and states
-# it as `indieDamR`. Twelve seconds against a ten-second wait means the Bishop
-# holds it permanently, which is the point of the skill -- namu has a Bishop
-# pressing this every ten seconds as the backbone of the cycle.
+# it as `indieDamR`. Twelve seconds on a ten-second cooldown means the Bishop
+# keeps it up permanently, which is the point; namu has a Bishop casting this
+# every ten seconds as the core of the rotation.
 #
-# The orb and the light both land when the cast ends. GMS flies the orb out
-# over three quarters of a second first, and nothing here has anywhere for it
-# to fly.
+# The orb and the light both land when the cast ends. GMS first flies the orb
+# out over three quarters of a second, and nothing here has room to fly.
 #
-# The three beats fall TOGETHER rather than on their own clock: a swing told
-# apart by `cast_interval_ms` re-lands the whole of itself on every beat, and
-# the whole of this one is the light as well as the orb. Telling them apart
-# would burst the light three times. Over the 700ms they would have spanned
-# the map does not move anyway.
+# The three beats land TOGETHER instead of on their own clock. A swing split by
+# `cast_interval_ms` repeats all of itself on every beat, and this swing
+# includes the light, so splitting would burst the light three times. The map
+# doesn't change in those 700ms anyway.
 #
-# Dropped: the 350 MP, untracked; the recast that dismisses an orb already out,
-# moot on a ten-second wait; and the immunity to attack reflection, which
-# nothing here has.
+# Dropped: the 350 MP (not tracked), the recast that dismisses an orb already
+# out (pointless on a ten-second cooldown), and immunity to attack reflection,
+# which nothing here has.
 name: "Peacemaker"
 description:
   "Hurl the embodiment of divine power directly at your enemies. Upon contact "

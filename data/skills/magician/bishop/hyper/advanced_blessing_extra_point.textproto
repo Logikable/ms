@@ -1,6 +1,5 @@
-# A thousand onto each pool, for the party as well as the caster -- flat, the
-# way a worn item grants one, since it is the same number at every level of the
-# skill it is named for.
+# A thousand added to HP and MP, for the party as well as the caster. Flat, like
+# an item's, since it is the same at every level of the skill it names.
 name: "Advanced Blessing - Extra Point"
 description:
   "Increases the Max HP and Max MP Advanced Blessing grants you and your "

@@ -1,6 +1,6 @@
-# The party's, as GMS pays it, less the halving for standing away from the
-# caster. It moves how often a kill drops anything at all rather than what a
-# drop is worth -- see SkillEffect.item_drop_pct.
+# For the party, as in GMS, without the halving for standing away from the
+# caster. It changes how often a kill drops anything, not what a drop is worth
+# (see SkillEffect.item_drop_pct).
 name: "Holy Symbol - Item Drop"
 description:
   "Increases the drop rate of you and your party members when using Holy "

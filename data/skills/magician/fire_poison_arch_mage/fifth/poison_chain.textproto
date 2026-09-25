@@ -1,39 +1,37 @@
-# The F/P's fourth job node, and the last of them. A lash poisons two enemies,
-# and what the poison does is explode: every two seconds, five lines, harder
-# each time than the last.
+# The F/P's fourth and last class node. A lash poisons two enemies, and the
+# poison explodes every two seconds for five lines, harder each time.
 #
-# The accumulation is the skill. GMS's poison builds on anything that survives
-# an explosion, and every helping is worth 60 percentage points of the next
-# one, five deep -- so a boss walks 330% to 630% over six explosions and stays
-# there. That is what `skill_pct_per_repeat` was built for: the count of
-# helpings and the count of explosions are the same number seen from either
-# side, because a boss survives all of them.
+# The build-up is the skill. GMS's poison builds on anything that survives an
+# explosion: each helping adds 60 percentage points to the next, five deep, so a
+# boss goes from 330% to 630% over six explosions and stays there. That is what
+# `skill_pct_per_repeat` was built for: on a boss the helpings and the
+# explosions are the same count, because it survives them all.
 #
-# The two caps decide the damage, not the clock. GMS allows nine explosions on
-# one enemy and seventeen across every enemy, and the poison lasts up to twenty
-# seconds -- so the count runs out first and the interval only says how the
-# nine are spread. Nine at two seconds fill eighteen of the twenty.
+# The two caps set the damage, not the clock. GMS allows nine explosions per
+# enemy and seventeen across all enemies, and the poison lasts up to twenty
+# seconds, so the count runs out first and the interval only spreads the nine.
+# Nine at two seconds fill eighteen of the twenty.
 #
 # GMS publishes no interval: the client, the wiki and namu all say only
-# "periodically", and the one number its common block never spends is the three
-# crystals a map can hold, not a beat. Two seconds is ours, and it is bounded
-# rather than picked -- above 20/9 of a second the nine-explosion cap would be
-# dead on a boss, which is the one place GMS wrote it for.
+# "periodically", and the one unused number in its common block is the three
+# crystals a map can hold, not a beat. Two seconds is ours, and it is limited,
+# not arbitrary: above 20/9 of a second the nine-explosion cap could never be
+# reached on a boss, which is exactly where GMS meant it to apply.
 #
-# The extra explosion GMS goes out on -- "all poison is removed, followed by an
-# additional explosion" -- is not a tick. It lands with the ninth, at the top
-# of the ramp, which is `final_repeat_strike`.
+# GMS's final explosion ("all poison is removed, followed by an additional
+# explosion") is not a tick. It lands with the ninth, at the top of the ramp;
+# that is `final_repeat_strike`.
 #
-# The crystal is dropped, and the spread with it. Both are how GMS moves the
-# poison off a mob that died, and the total is capped either way: two enemies
-# exploding nine times each is eighteen against GMS's seventeen. What is lost
-# is that a freshly infected mob starts its ramp again, so a crowd is worth
-# somewhat more here than in GMS. A boss, where this skill is measured, has
-# nothing to spread to at all.
+# The crystal is dropped, and the spreading with it. Both are how GMS moves the
+# poison off a dead mob, and the total is capped either way: two enemies
+# exploding nine times each is eighteen against GMS's seventeen. What is lost is
+# that a newly infected mob starts its ramp again, so a crowd is worth a bit
+# more here than in GMS. On a boss, where this skill matters, there is nothing
+# to spread to.
 #
-# This poison is NOT a burn. GMS says it plainly -- it does not activate
-# Elemental Drain -- so it is a pulse rather than a `dot`, and DoT Punisher's
-# orb count and Fervent Drain's final damage never see it.
+# This poison is NOT a burn. GMS says plainly it doesn't trigger Elemental
+# Drain, so it is a pulse, not a `dot`, and DoT Punisher's orb count and Fervent
+# Drain's final damage don't count it.
 name: "Poison Chain"
 description:
   "Unleash a fatal poison on a chain of enemies. Poisoned enemies "

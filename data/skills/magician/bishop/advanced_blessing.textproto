@@ -1,11 +1,11 @@
-# GMS climbs +10+x attack, +390+8x DEF and +250+25x to each pool over twenty
-# levels. Ten here, walking the top half of that ladder: GMS's level 11 to its
-# level 20, so the ceiling is GMS's own.
+# GMS climbs +10+x attack, +390+8x DEF and +250+25x to HP and MP over twenty
+# levels. Here it has ten, covering the top half of that ladder (GMS's level 11
+# to 20), so the maximum is GMS's own.
 #
-# It replaces Bless rather than stacking with it, which is what GMS means by
-# "can be stacked with other buff skills, excluding Bless". Every lever it
-# starts at clears what Bless ends at, and the replacement holds over the whole
-# party: a Cleric standing beside a Bishop stops casting.
+# It replaces Bless instead of stacking with it, which is what GMS means by "can
+# be stacked with other buff skills, excluding Bless". Every lever starts above
+# where Bless ends, and the replacement covers the whole party: a Cleric next to
+# a Bishop stops casting.
 name: "Advanced Blessing"
 description:
   "Greatly increases nearby party members' Attack Power, Magic ATT, DEF, Max "

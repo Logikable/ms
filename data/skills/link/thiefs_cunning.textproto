@@ -1,6 +1,6 @@
-# The thieves' link skill: a window opened by hitting something that is
-# already suffering. A character who inflicts nothing never opens one, which
-# is GMS's own bargain -- see Buff::needs_afflicted_target.
+# The thieves' link skill: a window opened by hitting something that already has
+# a status. A character who inflicts none never opens it, which is GMS's own
+# trade-off (see Buff.needs_afflicted_target).
 name: "Thief's Cunning"
 description:
   "Striking an enemy that is already suffering increases your damage for a "

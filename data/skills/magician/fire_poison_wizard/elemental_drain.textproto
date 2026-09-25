@@ -1,13 +1,11 @@
-# GMS counts the damage-over-time effects the character's own skills have
-# alight on the enemies in front of them and pays 3% final damage apiece, up to
-# five of them. The burns are real now, and the fight can count them, so it is
-# the count rather than the flat 15% it used to be.
+# GMS counts the damage-over-time effects the character's own skills have on the
+# enemies in front of them, and gives 3% final damage for each, up to five.
+# Burns are real and the fight can count them, so this uses the count.
 #
-# A count over the GROUP, which is what "within a certain range" means: eight
-# monsters carrying one burn each are eight. So it stands at its cap on a map
-# and pays only what the rotation keeps alight on a boss -- and at 2nd job,
-# where Poison Breath is the only thing that burns, hardly at all. GMS says so
-# in as many words.
+# The count is over the GROUP, which is what "within a certain range" means:
+# eight monsters with one burn each count as eight. So it is at its cap on a map
+# and only counts what the rotation keeps burning on a boss, and at 2nd job,
+# where only Poison Breath burns, it gives very little. GMS says so outright.
 name: "Elemental Drain"
 description:
   "Increases your Final Damage for each continuous damage effect your skills "
