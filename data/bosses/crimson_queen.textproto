@@ -1,12 +1,11 @@
 name: "Crimson Queen"
 difficulties {
-  # No Normal: Root Abyss is fought at Chaos or not at all.
+  # No Normal: Root Abyss is only fought on Chaos.
   name: "Chaos"
-  # One body alone in the arena, as Hilla, Magnus, Arkarium and Cygnus are.
+  # One body alone in the arena, like Hilla, Magnus, Arkarium and Cygnus.
   phases {
     bgm: "QueenPalace"
     spawns { mob: "chaos_crimson_queen" spots { x: 4 y: 4 } }
-    # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -16,15 +15,15 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # The same clock Cygnus is fought against, the other fight at the cap.
+  # The same time limit as Cygnus, the other level-200 fight.
   time_limit_seconds: 900
-  # The level cap. All four open together, on the day the character tops out.
+  # Level 200. All four Root Abyss bosses unlock together.
   unlock_level: 200
-  # Five Intense Power Crystals at what GMS prices this fight, divided by
-  # seven: GMS clears Root Abyss once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price for this fight, divided by seven,
+  # since GMS clears Root Abyss once a week and this game once a day.
   meso: 11550000
-  # No EXP for the clear. A character standing at the cap has nowhere to put
-  # it, and these four are fought for what they drop.
+  # No EXP for the clear. When the level cap was 200 a character here had
+  # nowhere to put it, and these four are fought for their drops.
   drops {
     item: "piece_of_anguish"
     per_kill: 1.0

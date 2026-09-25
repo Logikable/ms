@@ -1,12 +1,11 @@
 name: "Hilla"
 difficulties {
   name: "Normal"
-  # One phase, one monster: she stands alone in the middle of the arena with
-  # the player under her, and there is nothing else to kill.
+  # One phase, one monster: she stands alone in the middle of the arena with the
+  # player below her, and there is nothing else to kill.
   phases {
     bgm: "RedWitch"
     spawns { mob: "hilla" spots { x: 4 y: 4 } }
-    # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -18,11 +17,11 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
   unlock_level: 130
-  # What GMS pays as an Intense Power Crystal, the same drop nobody keeps that
-  # Zakum's meso stands in for: five of them at the price her level fetches.
+  # GMS pays this as Intense Power Crystals, a drop nobody keeps, like the meso
+  # that stands in for Zakum's: five of them at her level's price.
   meso: 4000000
-  # Paid for the clear, flat and untouched by any EXP bonus, as Zakum's and
-  # Horntail's are.
+  # Paid for the clear, flat and unaffected by EXP bonuses, like Zakum's and
+  # Horntail's.
   exp: 5820000
   drops {
     item: "hillas_soul_shard"
@@ -35,12 +34,11 @@ difficulties {
 }
 difficulties {
   name: "Hard"
-  # The same lone fight at the numbers GMS gives Hard, and the only body in the
-  # game standing behind 100% PDR.
+  # The same single fight at GMS's Hard numbers, and the only body in the game
+  # behind 100% PDR.
   phases {
     bgm: "RedWitch"
     spawns { mob: "hard_hilla" spots { x: 4 y: 4 } }
-    # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -50,21 +48,21 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twice what Normal allows, as every fight past the level-160 gate has.
+  # Twice what Normal allows, like every fight past the level-160 gate.
   time_limit_seconds: 600
   unlock_level: 190
-  # Five Intense Power Crystals at what her level fetches, as every boss's
-  # meso is -- divided by seven, because GMS prices hers as a week's clear and
-  # she is fought here once a day.
+  # Five Intense Power Crystals at her level's price, like every boss's meso,
+  # divided by seven because GMS prices hers as a weekly clear and here she is
+  # fought once a day.
   meso: 8050000
-  # Paid for the clear, flat and untouched by any EXP bonus.
+  # Paid for the clear, flat and unaffected by EXP bonuses.
   exp: 20400000
   drops {
     equip: "will_o_the_wisps"
     per_kill: 1.0
   }
-  # The same shard Normal drops: a soul belongs to the boss, not to the rung
-  # the player took her at.
+  # The same shard Normal drops: a soul belongs to the boss, not to the
+  # difficulty the player chose.
   drops {
     item: "hillas_soul_shard"
     per_kill: 1.0

@@ -1,19 +1,18 @@
 name: "Princess No"
 difficulties {
   name: "Normal"
-  # One body alone in the middle of her arena, as Hilla, Magnus, Arkarium and
-  # Cygnus are. The room around it is the difference: GMS hangs the Eight
-  # Trigrams over her head, so the floor is not the only place to stand.
+  # One body alone in the middle of her arena, like Hilla, Magnus, Arkarium and
+  # Cygnus. The room is what differs: GMS hangs the Eight Trigrams above her, so
+  # the floor isn't the only place to stand.
   phases {
     bgm: "Hieijan_nohime"
     spawns { mob: "princess_no" spots { x: 4 y: 4 } }
-    # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
-    # A ledge over each end of the floor, and a second pair over those a
+    # A ledge above each end of the floor, and a second pair above those one
     # column further in.
     player_spots { x: 0 y: 3 }
     player_spots { x: 8 y: 3 }
@@ -23,20 +22,20 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty minutes, which Chaos Vellum is the only other fight to get. She is
-  # 2.5x his body, and fifteen would be a clock nothing ever beats.
+  # Twenty minutes, which only Chaos Vellum also has. She has 2.5 times his HP,
+  # and fifteen minutes would be a limit nobody ever beats.
   time_limit_seconds: 1200
-  # The level cap, where everything from here to Seren opens.
+  # Level 200, where everything up to Seren unlocks.
   unlock_level: 200
-  # Five Intense Power Crystals at what GMS prices hers, divided by seven: GMS
-  # clears her once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price for her, divided by seven, since
+  # GMS clears her once a week and this game once a day.
   meso: 11550000
-  # Paid for the clear, flat and untouched by any EXP bonus. GMS's own figure,
-  # and well under Cygnus's for eight times the body: she is fought for the
-  # set, not for the climb.
+  # Paid for the clear, flat and unaffected by EXP bonuses. GMS's own figure,
+  # and well below Cygnus's for eight times the HP: she is fought for the set,
+  # not for levels.
   exp: 90000000
   # The whole Sengoku Treasure Set in one clear, as GMS drops it: three pieces
-  # filling three slots no other boss's set piece competes with.
+  # for three slots no other boss's set piece competes with.
   drops {
     equip: "kannas_treasure"
     per_kill: 1.0
@@ -53,8 +52,8 @@ difficulties {
     item: "princess_nos_soul_shard"
     per_kill: 1.0
   }
-  # Fifteen buys one of her secondaries, so a whole one is a fortnight of
-  # clears -- the same price the Root Abyss pieces ask for a Fafnir weapon.
+  # Fifteen buy one of her secondaries, so a whole one takes two weeks of
+  # clears, the same price the Root Abyss pieces ask for a Fafnir weapon.
   drops {
     item: "captivating_fragment"
     per_kill: 1.0

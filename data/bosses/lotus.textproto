@@ -1,9 +1,9 @@
 name: "Lotus"
 difficulties {
-  # No Easy: GMS does not have one.
+  # No Easy, since GMS has none.
   name: "Normal"
-  # He fights out of the machine first, hanging over the middle of the room
-  # while the floor under him stays clear.
+  # He fights from inside the machine first, hanging over the middle of the room
+  # while the floor below him stays clear.
   phases {
     bgm: "Suu1phase"
     spawns {
@@ -19,9 +19,9 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # Out of the machine and down on the floor, pacing the row over the player's
-  # heads a cell every ten seconds. The room gains the gallery he was hanging
-  # in.
+  # Out of the machine and down on the floor, moving along the row above the
+  # player's heads one cell every ten seconds. The room gains the gallery he was
+  # hanging in.
   phases {
     bgm: "Suu2phase"
     spawns {
@@ -34,14 +34,14 @@ difficulties {
     player_spots { x: 8 y: 5 }
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
-    # The gallery: three ledges where he hung in the phase before.
+    # The gallery: three ledges where he hung in the previous phase.
     player_spots { x: 2 y: 2 }
     player_spots { x: 4 y: 2 }
     player_spots { x: 6 y: 2 }
     arena_width: 9
     arena_height: 6
   }
-  # The same room and the same walk, a third again as much of him.
+  # The same room and the same movement, with a third more HP.
   phases {
     bgm: "Suu3phase"
     spawns {
@@ -61,21 +61,21 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty-five minutes, the longest clock in the game. It needs to be: this
-  # is 1.575T behind 300% PDR at level 210, three times the largest body
+  # Twenty-five minutes, the longest time limit in the game. It needs to be:
+  # this is 1.575T HP behind 300% PDR at level 210, three times the largest body
   # before it, and it is meant to be cleared by a party rather than alone.
   time_limit_seconds: 1500
-  # Ten past the cap: the Black Heaven fights are the first to ask for levels
-  # a character can only reach by farming past it.
+  # Level 210. The Black Heaven fights are the first with an unlock level above
+  # 200.
   unlock_level: 210
-  # Five Intense Power Crystals at what GMS prices this fight, divided by
-  # seven -- GMS clears Lotus once a week and this game once a day -- and
-  # rounded to the nearest 50k.
+  # Five Intense Power Crystals at GMS's price for this fight, divided by seven
+  # (GMS clears Lotus once a week and this game once a day), rounded to the
+  # nearest 50k.
   meso: 23200000
-  # No EXP: GMS states none on any of the three bodies, and a fight this far
-  # past the cap is fought for the coin, not the climb.
+  # No EXP: GMS lists none on any of the three bodies, and a fight this late is
+  # fought for the coin rather than levelling.
   exp: 0
-  # One coin per clear, which is what AbsoLab gear is bought with.
+  # One coin per clear, the currency for AbsoLab gear.
   drops {
     item: "absolab_coin"
     per_kill: 1.0
@@ -86,9 +86,8 @@ difficulties {
   }
 }
 difficulties {
-  # Written down, not built: 33.3T over the same three bodies, which is
-  # twenty-one times what Normal asks. No clock, gate or reward until the
-  # fight is.
+  # Defined but not built: 33.3T over the same three bodies, twenty-one times
+  # Normal. No time limit, unlock level or reward until the fight is built.
   name: "Hard"
   coming_soon: true
   phases {

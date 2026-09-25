@@ -1,9 +1,9 @@
 name: "Guardian Angel Slime"
 difficulties {
   name: "Normal"
-  # She wanders the row over the player's heads like Damien and Lotus, and
-  # every thirty seconds she leaves it: up to the gallery row and back down
-  # two thirds of a second later, onto the cell she left.
+  # She moves along the row above the player's heads like Damien and Lotus, and
+  # every thirty seconds she jumps up to the gallery row and comes back down two
+  # thirds of a second later, onto the cell she left.
   phases {
     bgm: "GuardianSlime-Battle"
     spawns {
@@ -24,22 +24,21 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty-five minutes, what Lotus and Damien have. GMS allows thirty, and
-  # the body is three times Lotus's -- but the clock is not what this fight is
-  # meant to be lost to.
+  # Twenty-five minutes, like Lotus and Damien. GMS allows thirty, and her HP is
+  # three times Lotus's, but this fight isn't meant to be lost to the timer.
   time_limit_seconds: 1500
-  # Her own level. GMS opens her at 210 beside the Black Heaven fights; ten
-  # levels further out is what says she is the rung above them.
+  # Her own level. GMS unlocks her at 210 alongside the Black Heaven fights; ten
+  # levels later shows she is the step above them.
   unlock_level: 220
-  # Five Intense Power Crystals at what GMS prices this fight, divided by
-  # seven -- GMS clears her once a week and this game once a day -- and
-  # rounded to the nearest 50k.
+  # Five Intense Power Crystals at GMS's price for this fight, divided by seven
+  # (GMS clears her once a week and this game once a day), rounded to the
+  # nearest 50k.
   meso: 33100000
-  # No EXP: GMS states none on her, as it does on Lotus.
+  # No EXP: GMS lists none for her, as with Lotus.
   exp: 0
-  # Half the clears, which is the only drop in the game that is not certain.
-  # GMS hands her ring out of a chest the party opens afterwards and rolls it
-  # there; the roll is what survives here, not the chest.
+  # Half the clears: the only boss drop that isn't guaranteed. GMS gives her
+  # ring from a chest the party opens afterwards and rolls it there; only the
+  # roll is kept here, not the chest.
   drops {
     equip: "guardian_angel_ring"
     per_kill: 0.5
@@ -50,8 +49,8 @@ difficulties {
   }
 }
 difficulties {
-  # Written down, not built: 90T, eighteen times what Normal asks, on a body
-  # GMS fights at level 250. No clock, gate or reward until the fight is.
+  # Defined but not built: 90T, eighteen times Normal, on a body GMS fights at
+  # level 250. No time limit, unlock level or reward until the fight is built.
   name: "Chaos"
   coming_soon: true
   phases {

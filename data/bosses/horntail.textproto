@@ -2,8 +2,8 @@ name: "Horntail"
 difficulties {
   name: "Normal"
   # Two heads fought one at a time before the dragon himself, as in GMS. Each
-  # stands against the edge its name says, at the top of the arena, with the
-  # player out at that same end of it rather than back in the middle.
+  # stands at the edge its name says, at the top of the arena, with the player
+  # at that same end rather than in the middle.
   phases {
     bgm: "CaveOfHontale"
     spawns { mob: "horntail_left_head" spots { x: 8 y: 0 } }
@@ -20,7 +20,7 @@ difficulties {
   }
   phases {
     spawns { mob: "horntail_right_head" spots { x: 0 y: 0 } }
-    # The same six, mirrored: this head stands in the other corner.
+    # The same six, mirrored, since this head is in the other corner.
     player_spots { x: 2 y: 0 }
     player_spots { x: 4 y: 0 }
     player_spots { x: 2 y: 4 }
@@ -30,9 +30,9 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # The whole dragon at once, laid out the way his sprite is: three heads over
-  # a pair of hands and the wings, the legs and the tail beneath them, and the
-  # player on the floor to the left of all of it.
+  # The whole dragon at once, laid out like his sprite: three heads above a pair
+  # of hands and the wings, with the legs and tail below them, and the player on
+  # the floor to the left.
   phases {
     bgm: "HonTale"
     spawns { mob: "horntail_head_a" spots { x: 2 y: 0 } }
@@ -43,8 +43,8 @@ difficulties {
     spawns { mob: "horntail_right_hand" spots { x: 6 y: 2 } }
     spawns { mob: "horntail_legs" spots { x: 4 y: 4 } }
     spawns { mob: "horntail_tails" spots { x: 6 y: 4 } }
-    # Down both edges of the arena, level with the heads, the hands and the
-    # legs: the dragon fills the middle, so the player goes around him.
+    # Down both edges of the arena, level with the heads, hands and legs: the
+    # dragon fills the middle, so the player goes around him.
     player_spots { x: 0 y: 4 }
     player_spots { x: 0 y: 0 }
     player_spots { x: 8 y: 0 }
@@ -55,16 +55,16 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twice what the other two allow, and still out of reach at the level he
-  # opens at: the field kills him in 10 to 29 minutes on the gear of the day.
-  # What the clock is for is the player who comes back twenty levels later.
+  # Twice what the other two allow, and still out of reach at his unlock level:
+  # the field kills him in 10 to 29 minutes with the gear available then. The
+  # time limit is for the player who comes back twenty levels later.
   time_limit_seconds: 600
   unlock_level: 150
-  # Five Intense Power Crystals at what his level fetches, as Zakum's and
-  # Hilla's meso is.
+  # Five Intense Power Crystals at his level's price, like Zakum's and Hilla's
+  # meso.
   meso: 5062500
-  # GMS pays the EXP for the clear and says no boost touches it, so it is
-  # here rather than on the eight bodies.
+  # GMS pays the EXP for the clear and says no bonus affects it, so it is here
+  # rather than on the eight bodies.
   exp: 4611597
   drops {
     item: "horntails_soul_shard"
@@ -83,8 +83,8 @@ difficulties {
     per_kill: 1.0
   }
 }
-# The same three phases at the numbers GMS gives Chaos: 26.6B across the
-# fight, every part behind 50% PDR.
+# The same three phases at GMS's Chaos numbers: 26.6B across the fight, every
+# part behind 50% PDR.
 difficulties {
   name: "Chaos"
   phases {
@@ -103,7 +103,7 @@ difficulties {
   }
   phases {
     spawns { mob: "chaos_horntail_right_head" spots { x: 0 y: 0 } }
-    # The same six, mirrored: this head stands in the other corner.
+    # The same six, mirrored, since this head is in the other corner.
     player_spots { x: 2 y: 0 }
     player_spots { x: 4 y: 0 }
     player_spots { x: 2 y: 4 }
@@ -123,8 +123,8 @@ difficulties {
     spawns { mob: "chaos_horntail_right_hand" spots { x: 6 y: 2 } }
     spawns { mob: "chaos_horntail_legs" spots { x: 4 y: 4 } }
     spawns { mob: "chaos_horntail_tails" spots { x: 6 y: 4 } }
-    # Down both edges of the arena, level with the heads, the hands and the
-    # legs: the dragon fills the middle, so the player goes around him.
+    # Down both edges of the arena, level with the heads, hands and legs: the
+    # dragon fills the middle, so the player goes around him.
     player_spots { x: 0 y: 4 }
     player_spots { x: 0 y: 0 }
     player_spots { x: 8 y: 0 }
@@ -135,19 +135,19 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # What every fight past the level-160 gate allows.
+  # The same as every fight past the level-160 gate.
   time_limit_seconds: 600
   unlock_level: 190
-  # Five Intense Power Crystals at what GMS prices Chaos Horntail's, as every
-  # boss's meso is. Well under Arkarium's and Hard Hilla's for far more HP:
-  # GMS's own number, kept.
+  # Five Intense Power Crystals at GMS's price for Chaos Horntail, like every
+  # boss's meso. Much less than Arkarium's and Hard Hilla's for far more HP, but
+  # that is GMS's own number and it is kept.
   meso: 6760000
-  # Paid for the clear, flat and untouched by any EXP bonus, as the other
-  # seven are. GMS pays this one the least of the late bosses for all its
-  # length; the clear is for the necklace and the shard.
+  # Paid for the clear, flat and unaffected by EXP bonuses, like the other
+  # seven. GMS pays this one the least of the late bosses despite its length;
+  # the clear is for the necklace and the shard.
   exp: 8473319
-  # What Normal drops, with the Chaos necklace in the plain one's place. The
-  # shard is the same: a soul belongs to the boss, not to the rung.
+  # Normal's drops, with the Chaos necklace instead of the plain one. The shard
+  # is the same, since a soul belongs to the boss, not the difficulty.
   drops {
     item: "horntails_soul_shard"
     per_kill: 1.0
