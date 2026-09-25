@@ -1,7 +1,7 @@
-# GMS grants the whole of this at once, and only while a Holy Power skill is
-# being used. Here it is permanent and bought a twentieth at a time, ending
-# exactly where GMS's one level does. Its HP recovery is left out, along with
-# the status resistance, which nothing in this game would resist.
+# GMS gives all of this at once, and only while a Holy Power skill is in use.
+# Here it is permanent and bought a twentieth at a time, ending exactly at GMS's
+# single level. The HP recovery is left out, and so is the status resistance,
+# since nothing in this game needs resisting.
 name: "Vessel of Light"
 description: "Amasses the power of light within you."
 kind: SKILL_KIND_PASSIVE

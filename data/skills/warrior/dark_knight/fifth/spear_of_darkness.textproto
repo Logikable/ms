@@ -1,21 +1,20 @@
-# The Dark Knight's first job node and the hardest-hitting single cast in the
-# game: nine spears of seven lines each, 55,125% at master. GMS's own numbers,
-# and against every Explorer V node in the client only a 6th job skill throws
-# more per second. It roughly doubles the class's sustained damage.
+# The Dark Knight's first class node and the hardest-hitting single cast in the
+# game: nine spears of seven lines each, 55,125% at max. GMS's own numbers, and
+# of every Explorer V node in the client, only a 6th job skill does more per
+# second. It roughly doubles the class's sustained damage.
 #
-# Nine casts rather than 63 lines, for the same reason Sword Illusion is twelve
-# and five: the ledger draws what GMS draws, and each spear rolls its own
-# mastery and criticals.
+# Nine casts instead of 63 lines, for the same reason Sword Illusion is twelve
+# and five: the log shows what GMS shows, and each spear rolls its own mastery
+# and criticals.
 #
-# The 660ms cast is FIXED. Every one of the six animation frames carries a
-# negative delay -- the client's mark for a frame attack speed does not
-# shorten -- where Dark Impale's is -180 then four scaled frames. So a Dark
-# Knight at the speed cap swings Dark Impale in 510ms and still stands still
-# for the whole 660 here.
+# The 660ms cast is FIXED. All six animation frames have a negative delay, the
+# client's mark for a frame attack speed doesn't shorten, where Dark Impale's
+# are -180 then four scaled frames. So a Dark Knight at the speed cap uses Dark
+# Impale in 510ms but still stands for the full 660 here.
 #
-# Dropped: the up-and-down aiming, which needs a screen this game does not
-# draw; immunity to attack reflection, which nothing inflicts; and the 10% cut
-# to %HP-ratio damage taken during the wind-up.
+# Dropped: aiming up and down, which needs a screen this game doesn't draw;
+# immunity to attack reflection, which nothing inflicts; and the 10% cut to %HP
+# damage taken during the wind-up.
 name: "Spear of Darkness"
 description: "Hurls a spear of utter darkness at the enemy."
 kind: SKILL_KIND_ATTACK

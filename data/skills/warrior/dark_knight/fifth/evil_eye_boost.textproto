@@ -1,7 +1,7 @@
-# GMS names Evil Eye Shock here, but the shout a Dark Knight actually casts is
-# Revenge of the Evil Eye, two supersedes further on -- a boost keyed by a
-# superseded name reaches nothing. Kept GMS's own node name: no one skill here
-# is the head of the three.
+# GMS names Evil Eye Shock here, but the shout a Dark Knight actually uses is
+# Revenge of the Evil Eye, two supersedes later, and a boost keyed to a
+# superseded name reaches nothing. It keeps GMS's node name, since no single
+# skill here heads the three.
 name: "Evil Eye Boost"
 description:
   "Strengthens Evil Eye of Domination, Revenge of the Evil Eye and Radiant "

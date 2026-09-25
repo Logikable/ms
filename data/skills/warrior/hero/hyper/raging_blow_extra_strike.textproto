@@ -1,4 +1,4 @@
-# The strike lands on the swing's own half rather than on the two certain
+# The strike goes on the normal half of the swing, not the two guaranteed
 # criticals: GMS adds an ordinary attack, so Raging Blow becomes three strikes
 # and then the pair that always crit.
 name: "Raging Blow - Extra Strike"

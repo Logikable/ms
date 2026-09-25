@@ -1,15 +1,14 @@
-# GMS states the whole of the Final Attack here rather than a delta over the
-# Fighter's -- 45 + ceil(L/2)% for 110 + 2L%, three times -- so this supersedes
-# it rather than stacking on it. The three strikes are told apart, each rolling
-# its own crit and mastery.
+# GMS states the whole Final Attack here, not an increase over the Fighter's (45
+# + ceil(L/2)% for 110 + 2L%, three times), so this supersedes it instead of
+# stacking. The three strikes are separate, each rolling its own crit and
+# mastery.
 #
-# The weapons it demands are the Fighter's, so the pair lapse together: a Hero
-# holding something neither will fire off keeps neither.
+# It needs the Fighter's weapons, so both stop together: a Hero holding a weapon
+# neither fires with gets neither.
 #
-# The extra hit lands on ONE of the enemies the swing reached, not on each
-# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
-# and its readout names the target it picks -- "attacks the boss with the
-# highest HP first".
+# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# Attack has no mobCount or hitbox of its own, and its text names its target:
+# "attacks the boss with the highest HP first".
 name: "Advanced Final Attack"
 description:
   "Permanently increases Attack Power. Greatly increases activation rate and "

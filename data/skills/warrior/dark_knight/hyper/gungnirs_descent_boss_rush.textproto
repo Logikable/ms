@@ -1,5 +1,5 @@
-# Boss damage rides this one swing and follows the character nowhere, which is
-# how GMS states every skill-bound share of it.
+# Boss damage for this one swing only, not the character, which is how GMS
+# states every skill-bound share of it.
 name: "Gungnir's Descent - Boss Rush"
 description:
   "Damage increases when attacking Boss Monsters with Gungnir's Descent."

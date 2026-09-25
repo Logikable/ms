@@ -1,9 +1,9 @@
-# GMS climbs ceil(L/4)% per orb, a staircase base + per_level cannot walk.
-# Straightened to a quarter of a percent a level, which ends where the
-# staircase does: 5% an orb, 25% with the ring full.
+# GMS climbs ceil(L/4)% per orb, a staircase base + per_level can't follow.
+# Straightened to a quarter of a percent a level, which ends where the staircase
+# does: 5% an orb, 25% with all orbs.
 #
-# The orbs are Combo Attack's and stay Combo Attack's -- this skill prices them
-# and does not count them, so raising the count later is one edit.
+# The orbs belong to Combo Attack: this skill sets their value but not their
+# count, so raising the count later is one edit.
 name: "Combo Synergy"
 description: "Increases Final Damage for each Combo Orb."
 kind: SKILL_KIND_PASSIVE

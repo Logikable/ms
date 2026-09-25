@@ -1,11 +1,10 @@
-# GMS enhances this while the combo ring is full, and this game takes the ring
-# as full everywhere else -- so what ships is the enhanced version and only
-# that: 267 + 4L% four times, of which the final two always crit.
+# GMS strengthens this while the orbs are full, and this game assumes full orbs
+# everywhere, so only the strengthened version ships: 267 + 4L% four times, the
+# last two always critical.
 #
-# Those two are a second hit of the same swing rather than a lever over it.
-# They carry the same multiplier as the other two, so the whole of the
-# difference between the halves is the certainty -- which is what makes them
-# worth telling apart at all.
+# Those two are a second hit of the same swing, not a lever on top of it. They
+# use the same multiplier as the other two, so the only difference between the
+# halves is the guaranteed crit, which is why they are kept separate.
 name: "Raging Blow"
 description:
   "Instantly slash several times to slice multiple enemies in front of you. "

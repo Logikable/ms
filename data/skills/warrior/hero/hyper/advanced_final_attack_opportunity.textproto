@@ -1,7 +1,6 @@
-# Advanced Final Attack reaches 60% at master level, so this walks it to 75%.
-# The one lever a boost carries that never reaches a swing -- what it raises is
-# how often the extra hit lands, which belongs to the source rather than to the
-# attack that set it off.
+# Advanced Final Attack reaches 60% at max level, so this takes it to 75%. A
+# boost lever that never reaches a swing: it raises how often the extra hit
+# lands, which belongs to the source, not the attack that triggered it.
 name: "Advanced Final Attack - Opportunity"
 description:
   "Increases the activation chance of Advanced Final Attack."

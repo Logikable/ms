@@ -1,7 +1,6 @@
-# GMS shortens the wait by defeating enemies after a revival. This game has no
-# window to count kills in, so the hyper simply pays the seconds -- 150 off a
-# pact that walks 1103 down to 900, which is a sixth of the wait at master
-# level.
+# GMS shortens the cooldown for kills after a revival. This game has no window
+# to count kills in, so the hyper just gives the seconds: 150 off a pact that
+# goes from 1103 down to 900, a sixth of the cooldown at max level.
 name: "Final Pact - Reduce Cooldown"
 description: "Reduces the cooldown for reusing Final Pact."
 kind: SKILL_KIND_PASSIVE

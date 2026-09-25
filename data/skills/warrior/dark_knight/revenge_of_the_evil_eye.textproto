@@ -1,18 +1,17 @@
-# Three attacks out of one row in the book. The Evil Eye counterattacks as the
-# player swings -- once every 5 seconds, which for a character who never stops
-# attacking is simply its own clock -- and Evil Eye Shock III lands a volley
-# every 10 seconds with four auras of darkness behind it.
+# Three attacks from one row in the book. The Evil Eye counterattacks as the
+# player attacks, once every 5 seconds, which for a character who never stops
+# attacking is just its own clock. Evil Eye Shock III fires a volley every 10
+# seconds, followed by four auras of darkness.
 #
 # Shock III is the top of the one shout, so this supersedes Evil Eye Shock II,
 # which already supersedes the first. GMS states it as a permanent damage
-# increase to Evil Eye Shock, and the clock it takes over shortens from 12
-# seconds to 10.
+# increase to Evil Eye Shock, and its clock shortens from 12 seconds to 10.
 #
-# The auras reach 3 enemies where the volley reaches 10, so they cannot be one
+# The auras reach 3 enemies where the volley reaches 10, so they can't be one
 # attack: four auras of five strikes are 20 lines on the three.
 #
-# The aura heal is restated for the reason Evil Eye Shock II restates it: this
-# supersedes that, and the eye heals whatever it is shouting.
+# The aura heal is restated for the same reason as in Evil Eye Shock II: this
+# supersedes that, and the eye heals whatever shout it is using.
 name: "Revenge of the Evil Eye"
 description:
   "An Evil Eye counterattacks the enemy. Your deepened connection with the "

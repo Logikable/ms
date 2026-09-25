@@ -1,10 +1,10 @@
-# GMS's own 50 + 2L% of the caster's Max HP, added to each of the twelve
-# lines. It lands after the damage chain -- nothing multiplies it -- so it
-# is worth a great deal to a Dark Knight whose damage is still small and
-# very little to one whose pool has stopped keeping up with it.
+# GMS's own 50 + 2L% of the caster's Max HP, added to each of the twelve lines.
+# It is added after the damage calculation, so nothing multiplies it: it is
+# worth a lot to a Dark Knight whose damage is still low and very little to one
+# whose HP no longer keeps up.
 #
-# 660ms is the animation's own, from the frame data: the same as Dark Impale,
-# which is what leaves the two attacks to be told apart by their reach.
+# 660ms is the animation's own, from the frame data: the same as Dark Impale, so
+# the two attacks differ only in reach.
 name: "Gungnir's Descent"
 description:
   "Throw a mythical spear to deal fatal damage. You deal higher damage with "

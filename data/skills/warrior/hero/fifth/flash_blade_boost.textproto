@@ -1,6 +1,6 @@
-# GMS pairs Flash Blade with Leap Attack and Rush, neither of which this game
-# has. What is left is the 5% a level Flash Blade already had -- master is
-# +300% final damage, which is the bargain GMS strikes for a dash.
+# GMS pairs Flash Blade with Leap Attack and Rush, which this game doesn't have.
+# What is left is Flash Blade's 5% a level: +300% final damage at max, GMS's
+# price for a dash.
 name: "Flash Blade Boost"
 description: "Strengthens Flash Blade."
 kind: SKILL_KIND_PASSIVE

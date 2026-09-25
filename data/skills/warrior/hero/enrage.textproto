@@ -1,7 +1,6 @@
-# A plain passive in modern GMS. The combo orb it used to spend and the
-# max-enemy penalty it used to carry both went years ago; what is left is the
-# two levers, at 10 + floor(L/2)% and 10 + floor(L/3)%, walked as lines to the
-# same 25% and 20%.
+# A plain passive in modern GMS. The combo orb it used to use and its old
+# max-enemy penalty were removed years ago; what is left is two levers, at 10 +
+# floor(L/2)% and 10 + floor(L/3)%, straightened to the same 25% and 20%.
 name: "Enrage"
 description:
   "Focuses your rage into your combo orbs to deal powerful damage to enemies."

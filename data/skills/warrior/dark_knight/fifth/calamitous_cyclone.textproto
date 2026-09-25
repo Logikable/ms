@@ -1,25 +1,24 @@
-# The Dark Knight's fourth job node, a swing the player HOLDS rather than
-# presses: the spear turns into a dark storm for four
-# seconds and the release throws eight shockwaves out of it.
+# The Dark Knight's fourth class node, a swing the player HOLDS instead of
+# pressing: the spear becomes a dark storm for four seconds, and releasing
+# throws eight shockwaves out of it.
 #
 # One skill, not two, and the fight decides how long to hold it. A map mob dies
-# to the shockwave alone, so the hold is let go at its floor and the cast is
-# almost all release; a boss never does, so it is held out to all 26 pulses.
-# That is Channel's own rule -- see CombatSim::ChannelPulses -- and it lands
-# GMS's mobbing and bossing readings without either being written down.
+# to the shockwave alone, so the hold is released at its minimum and the cast is
+# almost all release; a boss never does, so it is held for all 26 pulses. That
+# is Channel's own rule (see CombatSim::ChannelPulses), and it matches GMS's
+# mobbing and bossing use without writing either down.
 #
-# The 870ms floor is the 150ms wind-up and the 720ms release, which one pulse
-# fits inside. Every frame of both is positive, so the floor takes the attack
-# speed stage; the 140ms pulse clock is the skill's own, as a held swing's
-# always is.
+# The 870ms minimum is the 150ms wind-up plus the 720ms release, which fits one
+# pulse. All their frames are positive, so the minimum is scaled by attack
+# speed; the 140ms pulse clock is the skill's own, as a held swing's always is.
 #
-# GMS heals 1% of the pool for every one of the 26 attacks and 10% for every
-# one of the 120 final attacks -- 1,226% of the pool, which is a full heal and
-# is meant to be. Both are stated as GMS states them rather than folded flat,
-# so anything that ever cuts healing cuts the right number.
+# GMS heals 1% of HP for each of the 26 attacks and 10% for each of the 120
+# final attacks: 1,226% of HP, a full heal, on purpose. Both are stated as GMS
+# states them instead of merged, so anything that ever reduces healing reduces
+# the right number.
 #
-# Dropped: the knockback and status immunity while it winds up, and the
-# shockwave ignoring attack reflection -- nothing here inflicts either.
+# Dropped: the knockback and status immunity during the wind-up, and the
+# shockwave ignoring attack reflection; nothing here inflicts either.
 name: "Calamitous Cyclone"
 description:
   "Swings a spear so fast it creates a dark storm and devastates the area in "

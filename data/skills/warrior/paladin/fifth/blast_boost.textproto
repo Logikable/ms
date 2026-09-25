@@ -1,8 +1,7 @@
-# GMS names two boosts over one swing here -- Blast's own, and Divine
-# Judgment's for the Divine Brand it detonates. Divine Judgment is not a swing
-# in this game but Blast's empowered form, so both land on Blast and the reach
-# on each says which of the two it is: the enemy is the swing's, the critical
-# rate the brand's.
+# GMS gives two boosts on one swing here: Blast's own, and Divine Judgment's for
+# the Divine Brand it detonates. Divine Judgment isn't a swing here but Blast's
+# empowered form, so both go on Blast, and each one's reach tier shows which it
+# is: the extra enemy is the swing's, the critical rate the brand's.
 name: "Blast Boost"
 description: "Strengthens Blast and the Divine Brand it detonates."
 kind: SKILL_KIND_PASSIVE

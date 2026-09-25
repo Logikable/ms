@@ -1,6 +1,6 @@
-# 20% boss damage against the full ring, summed with what the character's gear
-# and passives already pay -- boss damage is a share of the same damage
-# wherever it comes from.
+# 20% boss damage with full orbs, added to what the character's gear and
+# passives give: boss damage is the same kind of damage % wherever it comes
+# from.
 name: "Advanced Combo Attack - Boss Rush"
 description:
   "Damage increases when attacking Boss Monster for each combo."

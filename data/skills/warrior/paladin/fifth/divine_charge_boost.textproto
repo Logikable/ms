@@ -1,5 +1,5 @@
-# Divine Mark takes a critical rate at 20 where the hammer one tier down takes
-# an enemy: GMS's own split, and the mark already reaches ten.
+# Divine Mark gets critical rate at 20 where the hammer one tier down gets an
+# extra enemy: GMS's own split, and the mark already reaches ten.
 name: "Divine Charge Boost"
 description: "Strengthens Divine Charge and Divine Mark."
 kind: SKILL_KIND_PASSIVE

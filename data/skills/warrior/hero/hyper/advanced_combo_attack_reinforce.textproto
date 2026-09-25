@@ -1,6 +1,6 @@
-# The ring is ten orbs at master level, so this is 20% final damage -- and it
-# meets Advanced Combo's own the way two per-orb bargains always do, as one
-# source folded against one ring.
+# There are ten orbs at max level, so this is 20% final damage, and it combines
+# with Advanced Combo's own the way two per-orb bonuses always do: as one source
+# applied to one orb count.
 name: "Advanced Combo Attack - Reinforce"
 description:
   "Final Damage increased for each additional Combo Orb."

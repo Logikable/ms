@@ -1,11 +1,11 @@
-# GMS calls this one Opportunity and pays a 20% chance of charging two orbs at
-# once. The ring is taken as full everywhere in this game, so that grant would
-# be worth nothing at all -- and rather than ship a row that does nothing and
-# says something else, it is renamed for the DEF it hands out instead.
+# GMS calls this Opportunity: a 20% chance of charging two orbs at once. Orbs
+# are always full in this game, so that would be worth nothing, and rather than
+# ship a row that does nothing while claiming something, it is renamed for the
+# DEF it gives instead.
 #
-# Which is also worth nothing, deliberately: DEF stops paying at a share of the
-# attacking monster's own attack, and a Hero has passed that cap on their stats
-# alone. See SkillEffect.def_pct, dead by the same design.
+# That DEF is also worth nothing, on purpose: DEF stops paying at a share of the
+# attacking monster's attack, and a Hero passes that cap on their stats alone.
+# See SkillEffect.def_pct, useless by the same design.
 name: "Advanced Combo Attack - Barricade"
 description:
   "DEF increased for each additional Combo Orb."

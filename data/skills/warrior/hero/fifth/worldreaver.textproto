@@ -1,12 +1,11 @@
-# One swing that cuts the screen in half. GMS makes the Hero invulnerable for
-# the whole of it, which is the point of the skill in a boss fight -- nothing
-# here threatens a character on a timetable they could dodge, so only the
-# damage is built.
+# One swing that cuts the screen in half. GMS makes the Hero invulnerable
+# throughout, which is the point in a boss fight; nothing here threatens a
+# character on a timetable they could dodge, so only the damage is built.
 #
-# The cast is 1.68 seconds: seven animation frames, and 1.14 seconds of that
-# is the wind-up before the first hit lands. It scales with attack speed like
-# any other swing, so a Hero at stage 7 stands still for 1.38 seconds -- about
-# two and a half Raging Blows, once every 25 seconds.
+# The cast is 1.68 seconds: seven animation frames, 1.14 seconds of it wind-up
+# before the first hit. It scales with attack speed like any swing, so a Hero at
+# stage 7 stands still for 1.38 seconds, about two and a half Raging Blows, once
+# every 25 seconds.
 name: "Worldreaver"
 description: "Unleashes a brutal slash."
 kind: SKILL_KIND_ATTACK

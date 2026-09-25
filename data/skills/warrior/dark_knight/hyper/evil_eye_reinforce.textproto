@@ -1,12 +1,11 @@
-# GMS writes this "Damage: +150%", which is the %Damage stat rather than points
-# on a multiplier -- so it sums with what the character's gear and passives
-# already pay, and only these five swings collect it.
+# GMS writes this "Damage: +150%", the %Damage stat, not points on a multiplier,
+# so it adds to what the character's gear and passives give, and only these five
+# swings get it.
 #
-# Five boosts because the eye shouts under five names across the line, and a
-# boost names one skill each. Revenge of the Evil Eye covers its own halves:
-# Shock III and the Dark Auras share their parent's display name. Radiant Evil
-# is a 5th job skill nothing reaches yet -- the boost simply never resolves
-# until something does.
+# Five boosts because the eye's shout has five names across the line, and a
+# boost names one skill. Revenge of the Evil Eye covers its own halves: Shock
+# III and the Dark Auras share their parent's display name. Radiant Evil is the
+# Dark Knight's V node, bought from the matrix.
 name: "Evil Eye - Reinforce"
 description:
   "Increases damage for Evil Eye of Domination, Evil Eye Shock, Revenge of "

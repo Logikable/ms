@@ -1,5 +1,5 @@
-# Final Attack takes a critical rate at 20 where the swing takes an enemy: its
-# strike already reaches only the one enemy the direct hit found.
+# Final Attack gets critical rate at 20 where the swing gets an extra enemy: its
+# strike only reaches the one enemy the direct hit found.
 name: "Nightshade Explosion Boost"
 description: "Strengthens Nightshade Explosion and Final Attack."
 kind: SKILL_KIND_PASSIVE

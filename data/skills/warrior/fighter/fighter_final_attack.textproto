@@ -1,11 +1,10 @@
-# Chance is 2*L%; damage is a single hit of (100 + 5*floor(L/2))%, a staircase
-# base + per_level*(L-1) cannot climb. The even step below ends a hair under
-# the top of it and is never more than 2.5% out on the way.
+# Chance is 2*L%; damage is one hit of (100 + 5*floor(L/2))%, a staircase that
+# base + per_level*(L-1) can't follow. Rounding down to the even level ends just
+# under the top and is never more than 2.5% off along the way.
 #
-# The extra hit lands on ONE of the enemies the swing reached, not on each
-# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
-# and its readout names the target it picks -- "attacks the boss with the
-# highest HP first".
+# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# Attack has no mobCount or hitbox of its own, and its text names its target:
+# "attacks the boss with the highest HP first".
 name: "Final Attack"
 description: "Chance to deliver an additional hit after a direct attack skill."
 kind: SKILL_KIND_PASSIVE

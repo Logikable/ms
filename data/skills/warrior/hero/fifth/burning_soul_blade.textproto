@@ -1,20 +1,20 @@
-# The Hero's first job node. GMS summons one sword in one of two forms, chosen
-# at the cast: a mobile one that follows the character for 20 seconds, and a
-# stationary one planted for 120 -- which, on a 120-second cooldown, is a sword
+# The Hero's first class node. GMS summons one sword in one of two forms, picked
+# when cast: a mobile one that follows the character for 20 seconds, or a
+# stationary one placed for 120, which on a 120-second cooldown means a sword
 # that is always out.
 #
-# GMS took the swap key away in KMS 1.2.404, so the form is settled when the
-# sword goes up. There is nothing here for a player to press: the fight prices
-# the two against the fight in front of it and raises whichever pays more. A
-# map never ends, so the stationary sword's rate wins there; a boss that will
-# not survive another cycle cannot collect on it, and the mobile sword wins.
+# GMS removed the swap key in KMS 1.2.404, so the form is fixed when the sword
+# goes up. There is nothing for the player to press here: the fight compares the
+# two against the current fight and picks whichever pays more. A map never ends,
+# so the stationary sword wins there; a boss that won't survive another cycle
+# can't pay it off, so the mobile sword wins.
 #
 # The 0.81-second clock is nine frames of the sword's own 90ms animation. GMS
-# stated one second for both forms until KMS 1.2.407 cut the mobile form's
-# interval by about 18% and took a third off both forms' damage.
+# used one second for both forms until KMS 1.2.407 cut the mobile form's
+# interval by about 18% and a third off both forms' damage.
 #
-# GMS fires the sword off the character's own attacking rather than on a bare
-# clock. The fight is always attacking, so the two come to the same thing.
+# GMS fires the sword as the character attacks, not on a plain clock. The fight
+# is always attacking, so it comes to the same thing.
 name: "Burning Soul Blade"
 description:
   "Conjures a burning soul blade to fight at your side. Unaffected by "

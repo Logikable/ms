@@ -1,10 +1,9 @@
-# Two hits of 60+x% apiece, told apart rather than folded: each rolls its own
-# crit and its own mastery. See SkillEffect::final_attack_lines.
+# Two hits of 60+x% each, kept separate instead of merged: each rolls its own
+# crit and mastery. See SkillEffect.final_attack_lines.
 #
-# The extra hit lands on ONE of the enemies the swing reached, not on each
-# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
-# and its readout names the target it picks -- "attacks the boss with the
-# highest HP first".
+# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# Attack has no mobCount or hitbox of its own, and its text names its target:
+# "attacks the boss with the highest HP first".
 name: "Final Attack"
 description:
   "Chance to deal an additional hit after landing a direct attack skill."

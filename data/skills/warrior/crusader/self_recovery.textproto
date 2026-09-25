@@ -1,12 +1,10 @@
-# GMS's own shape and its own ten levels: a share of the pool on a clock of
-# its own, ending at 4% of it every 4 seconds. It rode the swing until the
-# Priest's Holy Fountain built a clock to hang it on -- which paid a Crusader
-# swinging at 0.6s more than three times what GMS pays them.
+# GMS's own shape and ten levels: a share of HP on its own clock, ending at 4%
+# every 4 seconds.
 #
-# GMS climbs both halves in a staircase (ceil(L/4)+1 percent every 9 -
-# floor(L/2) seconds) that base + per_level cannot walk. Straightened to a
-# fifth of a percent and half a second a level, which lands on GMS's master
-# exactly and starts a little over its first rung.
+# GMS climbs both halves in steps (ceil(L/4)+1 percent every 9 - floor(L/2)
+# seconds), which base + per_level can't follow. Straightened to a fifth of a
+# percent and half a second a level, which lands exactly on GMS's max and starts
+# a little above its first step.
 name: "Self Recovery"
 description: "Regularly recovers some HP, even in combat."
 kind: SKILL_KIND_PASSIVE

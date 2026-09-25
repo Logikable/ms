@@ -1,13 +1,12 @@
-# The two swings a Hero grows out of, and GMS pays the one they leave behind
-# sooner the better rate: 3% a level to Intrepid Slash against Brandish's 2%.
-# Their level-20 tiers differ too, and only the client's formulas say so:
-# Brandish's node carries `cr`, Intrepid Slash's `targetPlus_5th`. The node's
-# own description line says "Max Targets" for both and is wrong -- a tier with
-# no formula behind it is one the client cannot pay.
+# The two swings a Hero grows out of; GMS gives the one left behind earlier the
+# better rate: 3% a level for Intrepid Slash against Brandish's 2%. Their
+# level-20 tiers differ too, which only the client's formulas show: Brandish's
+# node has `cr`, Intrepid Slash's `targetPlus_5th`. The node's own description
+# says "Max Targets" for both and is wrong: a tier with no formula behind it is
+# one the client can't pay.
 #
-# Named for its head skill alone, as every node lifting more than one is: the
-# word "Boost" is what says the row is a node, and the description below is
-# where the rest of what it lifts is named.
+# Named for its main skill only, like every node that boosts more than one:
+# "Boost" marks the row as a node, and the description names the rest.
 name: "Brandish Boost"
 description: "Strengthens Brandish and Intrepid Slash."
 kind: SKILL_KIND_PASSIVE

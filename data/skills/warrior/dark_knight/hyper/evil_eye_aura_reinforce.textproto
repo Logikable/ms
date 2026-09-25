@@ -1,7 +1,7 @@
-# The eye's own aura pours a flat 24 HP every 24 seconds, which is a rounding
-# error against a 4th job pool -- and is the whole reason this exists. The
-# share stands BESIDE that pulse rather than replacing it: two fountains are
-# two pulses here, and what the flat one adds at this level is nothing.
+# The eye's own aura heals a flat 24 HP every 24 seconds, nothing against a 4th
+# job HP bar, which is the whole reason this exists. The share sits BESIDE that
+# pulse instead of replacing it: two fountains are two pulses here, and the flat
+# one adds nothing at this level.
 name: "Evil Eye - Aura Reinforce"
 description: "Increases the amount healed by the Evil Eye."
 kind: SKILL_KIND_PASSIVE

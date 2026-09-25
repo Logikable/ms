@@ -1,7 +1,6 @@
-# The orbs are taken as full: GMS builds them up over 40% of your swings, and
-# a fight paid out in expected damage has nowhere to put a counter. Stated per
-# orb rather than as the +10 it comes to, because a later skill raises the
-# count and nothing else.
+# The orbs are assumed full: GMS builds them up over 40% of your swings, and a
+# fight paid in expected damage has no place for a counter. Stated per orb
+# instead of as the +10 total, because a later skill raises only the count.
 name: "Combo Attack"
 description: "Grants a chance to add each attack to the Combo Orb."
 kind: SKILL_KIND_PASSIVE

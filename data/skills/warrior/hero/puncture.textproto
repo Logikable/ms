@@ -1,18 +1,17 @@
-# The wound rides the ENEMY, as GMS's does: the swing leaves a burn, and every
-# swing after it lands harder on whatever is still burning. So both halves wait
-# on a monster the Hero has actually punctured, rather than on a window over
-# the character.
+# The wound is on the ENEMY, as in GMS: the swing leaves a burn, and every later
+# swing hits harder on whatever is still burning. So both halves depend on a
+# monster the Hero has actually punctured, not on a window on the character.
 #
-# The burn is rolled -- 40 + 2L% on each enemy the swing reached, which is
-# certain at master level and only better above it. A boss takes it every time;
-# a room takes it on some of what the sweep caught.
+# The burn is rolled: 40 + 2L% on each enemy the swing reached, certain at max
+# level and only better above it. A boss always gets it; in a room, some of the
+# enemies hit get it.
 #
-# So the swing itself is one a Hero rarely spends: the chooser goes back for it
-# as the burn nears its end and swings Raging Blow the rest of the time, which
-# is the shape GMS has -- puncture, then hold.
+# So the Hero rarely uses this swing: the chooser comes back to it as the burn
+# is running out and uses Raging Blow the rest of the time, which matches GMS:
+# puncture, then keep attacking.
 #
-# The party's share is the same bargain read off the ally: GMS pays them
-# ceil(L/3)% where the Hero takes 10 + ceil(L/2)% -- 10% against 25% at master.
+# The party's share works the same way from the ally's side: GMS gives them
+# ceil(L/3)% where the Hero gets 10 + ceil(L/2)%, 10% against 25% at max.
 name: "Puncture"
 description:
   "Pour your swordsman's spirit into a forward-downward strike, leaving a "

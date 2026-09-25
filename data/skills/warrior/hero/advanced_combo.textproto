@@ -1,16 +1,15 @@
-# GMS caps this at 30 and ends at 10% final damage an orb, ten orbs and 70%
-# mastery. Scaled to 20 levels to exactly those three -- this is the job's
-# mastery skill, and 20 is what the book has room for. Mastery climbs 51% to
-# 70%, the ladder every 4th job mastery skill takes.
+# GMS maxes this at 30 with 10% final damage an orb, ten orbs and 70% mastery.
+# Scaled to 20 levels ending at exactly those three: it is the job's mastery
+# skill, and 20 is what the book has room for. Mastery climbs from 51% to 70%,
+# like every 4th job mastery skill.
 #
-# The orb rate is 5/19 written out: five orbs bought over the nineteen steps
-# above level 1, so the tenth lands on the master level and the two levels
-# Combat Orders reaches past it buy no eleventh.
+# The orb rate is written as 5/19: five orbs over the nineteen levels after
+# level 1, so the tenth arrives at max level and the two extra levels from
+# Combat Orders don't buy an eleventh.
 #
-# It supersedes Combo Synergy, whose whole grant is the per-orb final damage
-# this one restates. It does NOT supersede Combo Attack -- the ring is taken at
-# its largest rather than summed, so the Fighter's 2 ATT an orb goes on being
-# paid, now against ten of them.
+# It supersedes Combo Synergy, whose only grant is the per-orb final damage this
+# restates. It does NOT supersede Combo Attack: the largest orb count is used,
+# not the sum, so the Fighter's 2 ATT per orb keeps paying, now for ten orbs.
 name: "Advanced Combo"
 description:
   "Increases the Final Damage dealt per Combo Orb and enables you to gain "
