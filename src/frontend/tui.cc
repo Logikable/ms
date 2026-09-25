@@ -58,7 +58,7 @@
 namespace ms {
 namespace {
 
-// Every kill the step recorded, whatever stood on the map.
+// Every kill recorded in the step, across all mobs on the map.
 int64_t TotalKills(const CombatSim& sim) {
   int64_t total = 0;
   for (int64_t kills : sim.view().kills_this_step) {
@@ -67,9 +67,9 @@ int64_t TotalKills(const CombatSim& sim) {
   return total;
 }
 
-// Raised by a signal asking the game to close. A handler may do almost nothing
-// safely, so it does exactly one thing and the loop leaves through the
-// ordinary path on its next tick, saving on the way.
+// Set by a signal asking the game to close. A signal handler can do very little
+// safely, so it only sets this, and the loop exits normally on its next tick,
+// saving on the way.
 volatile std::sig_atomic_t g_leaving = 0;
 
 extern "C" void NoteLeaving(int) {
@@ -80,13 +80,13 @@ void HandleClosingSignals() {
   std::signal(SIGINT, NoteLeaving);
   std::signal(SIGTERM, NoteLeaving);
 #ifdef SIGHUP
-  // The terminal window's X, on the platforms that have it.
+  // Closing the terminal window, on platforms that have it.
   std::signal(SIGHUP, NoteLeaving);
 #endif
 }
 
-// The host and port in `server`, which is "host:port". Nothing for an empty
-// one, or for a port that is not a number.
+// The session for `server`, which is "host:port". Null for an empty string or a
+// port that isn't a number.
 std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
   size_t colon = server.rfind(':');
   if (colon == std::string::npos) {
@@ -99,8 +99,8 @@ std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
   return std::make_unique<MultiplayerSession>(server.substr(0, colon), port);
 }
 
-// `text` as centred rows, one per line. A notice is one line nearly always;
-// a version mismatch is the case that puts the numbers under the wording.
+// `text` as centred rows, one per line. A notice is nearly always one line; a
+// version mismatch adds the version numbers under the message.
 std::vector<ftxui::Element> CenteredRows(const std::string& text) {
   std::vector<ftxui::Element> rows;
   size_t start = 0;
@@ -115,9 +115,9 @@ std::vector<ftxui::Element> CenteredRows(const std::string& text) {
   return rows;
 }
 
-// What the player holds over what they have put up, one line each and lined
-// up in one column. PriceBlock's shape, but neither line is a price: an offer
-// cannot be unaffordable.
+// What the player holds above what they have offered, one line each, aligned in
+// one column. The same layout as PriceBlock, but neither line is a price, since
+// an offer can't be unaffordable.
 ftxui::Element OfferBlock(const std::string& held, const std::string& offered) {
   constexpr int kLabelWidth = 8;  // "Offering"
   const int width = std::max(TextColumns(held), TextColumns(offered));
@@ -179,9 +179,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
                                  keybinds_panel_,       options_panel_,
                                  jukebox_panel_},
                   analysis_, keys_, panel_focus_, multiplayer_.get()) {
-  // Both inspect panels read the character, not just the item: a piece of a
-  // set is described beside the set it belongs to, and which of its tiers are
-  // being paid depends on what is worn.
+  // Both inspect panels read the character, not just the item: a set piece is
+  // shown with its set, and which tiers are active depends on what is worn.
   inspect_panel_.UseCharacter(state.character);
   preview_inspect_panel_.UseCharacter(state.character);
   player_item_panel_.UseCharacter(player_inspect_panel_.character());
@@ -199,8 +198,8 @@ void Tui::BuildComponents() {
     controller_.OpenApAllocate(field);
   };
   char_actions.all_stats = [this]() {
-    // The screen opens on whichever allocation the panel behind it is showing,
-    // so one Enter never changes the numbers.
+    // The screen opens on the allocation the panel behind it is showing, so
+    // pressing Enter never changes the numbers.
     all_stats_panel_.SetPreset(char_panel_.SelectedActivity());
     controller_.OpenAllStats();
   };
@@ -259,24 +258,24 @@ ftxui::Component Tui::MakeRoot(ftxui::ScreenInteractive& screen) {
         if (event.is_mouse()) {
           return true;
         }
-        // Ctrl+C leaves by the same door as the quit dialog, so it saves the
-        // same way. Taken as an event rather than left to the signal handler
-        // because ftxui installs its own for SIGINT once the loop is running.
+        // Ctrl+C exits the same way as the quit dialog, so it saves the same
+        // way. It is handled as an event, not by the signal handler, because
+        // ftxui installs its own SIGINT handler once the loop runs.
         if (event == ftxui::Event::CtrlC) {
           screen.Exit();
           return true;
         }
         bool handled = OnEvent(event);
-        // The controller can decide the game is over but not end it: the loop
-        // is here. Checked after every event rather than only the ones it
-        // consumed, so there is no key that can set the flag and not be seen.
+        // The controller can decide the game is over, but only the loop here
+        // can end it. This is checked after every event, not only the ones it
+        // handled, so no key can set the flag without it being seen.
         if (controller_.quit_requested()) {
           screen.Exit();
         }
         return handled;
       });
-  // Outside everything, so the whole tree -- ftxui's own menus included --
-  // hears the game's keys rather than the terminal's.
+  // Outermost, so the whole tree (ftxui's own menus included) receives the
+  // game's key events rather than the terminal's.
   return TranslateKeys(handler, keys_,
                        [this]() { return controller_.capturing_key(); });
 }
@@ -290,15 +289,15 @@ void Tui::Run() {
   HandleClosingSignals();
   ftxui::Component root = MakeRoot(screen);
 
-  // Drive the idle game: wake periodically, advance combat on the loop thread
-  // (so state mutation stays single-threaded), and redraw.
+  // Runs the idle game: wake periodically, advance combat on the loop thread
+  // (so game state is only changed on one thread), and redraw.
   std::atomic<bool> running = true;
   std::thread ticker([this, &screen, &running]() {
     while (running) {
-      // The repaint period, set by the fastest thing on screen that moves: a
-      // sliding name out here, a charging swing in a boss fight. Everything
-      // runs on ELAPSED TIME rather than tick count, so waking more often
-      // costs only the wakeups.
+      // The repaint interval, set by the fastest-moving thing on screen: a
+      // scrolling name normally, a charging swing in a boss fight. Everything
+      // runs on elapsed time rather than tick count, so waking more often only
+      // costs the wakeups.
       std::this_thread::sleep_for(in_boss_fight_ ? kBossFightStep
                                                  : kMarqueeStep);
       screen.Post([this, &screen]() {
@@ -310,9 +309,8 @@ void Tui::Run() {
         } else {
           save_policy_.AutosaveIfDue(state_, now);
         }
-        // Posted here rather than acted on in the handler: this runs on the
-        // loop thread, where ending the loop and writing a file are both
-        // things it is safe to do.
+        // Handled here rather than in the signal handler: this runs on the loop
+        // thread, where ending the loop and writing a file are both safe.
         if (g_leaving != 0) {
           screen.Exit();
         }
@@ -324,21 +322,21 @@ void Tui::Run() {
   screen.Loop(root);
   running = false;
   ticker.join();
-  // Before the save, so that an account the server issued this session is in
-  // the file the player comes back to.
+  // Before saving, so an account the server issued this session is in the saved
+  // file.
   if (multiplayer_ != nullptr) {
     multiplayer_->Advance(state_);
     multiplayer_->Stop();
   }
-  // Every way out of the loop ends here -- the quit dialog, Ctrl+C, a closed
-  // window -- so this is the one place the last save has to be written.
+  // Every way out of the loop ends here (the quit dialog, Ctrl+C, a closed
+  // window), so this is the one place the final save needs to happen.
   save_policy_.Save(state_, std::chrono::steady_clock::now());
 }
 
 ftxui::Element Tui::RenderFrame() {
-  // Set every frame rather than when a celebration starts, so the panels go
-  // out on their own and nothing has to remember to put them back. The ability
-  // rank up rides the same gold, going out on the next key.
+  // Set every frame rather than when a celebration starts, so the panels turn
+  // off by themselves and nothing has to remember to reset them. The ability
+  // rank-up uses the same gold and clears on the next key.
   char_panel_.SetHighlighted(celebration_.Lights(kCharPanel) ||
                              controller_.ability_rank_up());
   equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
@@ -347,23 +345,23 @@ ftxui::Element Tui::RenderFrame() {
   inventory_panel_.SetExpanded(controller_.expanded_panel() == kInventoryPanel);
 
   ftxui::Element frame = RenderScreen();
-  // Under the dialogs and the card: the corner is news, and whatever the
-  // player has been asked to answer outranks it.
+  // Under the dialogs and the card: the notification is news, and a question
+  // the player has to answer matters more.
   if (controller_.notification().visible()) {
     frame = BottomRight(std::move(frame), controller_.notification().Render());
   }
   if (controller_.party_notice_prompt().open()) {
-    // Over whatever the player is looking at: the server does not wait for
-    // them to be on the party screen before removing them from a party.
+    // Over whatever the player is looking at: the server doesn't wait for them
+    // to be on the party screen before removing them from a party.
     frame = Overlay(std::move(frame), PartyNoticeDialog());
   }
   if (!celebration_.card_visible()) {
     return frame;
   }
-  // Over whatever the player is looking at, shop and map select included: one
-  // shown only on the main screen would miss the player who wandered off.
-  // An overlay shrinks to its content, which is why the card sets its own
-  // floor rather than being sized by its longest line.
+  // Over whatever the player is looking at, including the shop and map select:
+  // a card shown only on the main screen would miss a player who is elsewhere.
+  // An overlay shrinks to its content, so the card sets its own minimum width
+  // instead of sizing to its longest line.
   return Overlay(std::move(frame), celebration_.Render());
 }
 
@@ -385,9 +383,9 @@ ftxui::Element Tui::SkillLearnDialog() {
   const Skill& skill = controller_.skill_learn_skill();
   std::vector<ftxui::Element> rows = {CenteredRow(skill.name()),
                                       ThemedSeparator()};
-  // A node is bought with a PRICE rather than a point apiece, so it says what
-  // the levels come to and what the pool holds. An SP skill needs neither: its
-  // page carries the pool, and the cost is the amount.
+  // A node costs a price rather than one point per level, so the dialog shows
+  // the total cost and what the pool has. An SP skill needs neither: its page
+  // shows the pool, and the cost equals the amount.
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     const int64_t held = state_.character.v_points();
     const int64_t cost =
@@ -418,8 +416,8 @@ ftxui::Element Tui::TradeAmountDialog() {
 
 ftxui::Element Tui::BankAmountDialog() {
   const bool meso = controller_.bank_currency() == BankCurrency::kMeso;
-  // Which way it is going is the half the cursor is in, and the question says
-  // so: the same dialog asks the opposite thing from the other half.
+  // The direction is set by which half the cursor is in, and the question says
+  // so, since the same dialog asks the opposite from the other half.
   const bool to_bank = bank_panel_.zone() == BankZone::kBag;
   return ThemedWindow(
       meso ? " Meso " : " Spell Traces ",
@@ -433,7 +431,7 @@ ftxui::Element Tui::BankAmountDialog() {
 
 ftxui::Element Tui::RenderBankInspect() {
   const EquipTabItem* item = bank_panel_.selected_equip();
-  // Two overloads of SetItem, so this cannot fold into one ternary.
+  // SetItem has two overloads, so this can't be one ternary.
   if (item == nullptr) {
     const StackableItem* stack = bank_panel_.selected_stack();
     inspect_panel_.SetItem(stack == nullptr ? nullptr : &stack->prototype());
@@ -453,9 +451,9 @@ ftxui::Element Tui::TradeItemAmountDialog() {
   if (index < 0 || index >= static_cast<int>(stacks.size())) {
     return ftxui::text("");
   }
-  // Held is the WHOLE stack, however much of it is already on the table: what
-  // a player owns is not changed by having offered it, and [MAX] has to reach
-  // all of it.
+  // Held is the whole stack, however much is already offered: offering
+  // something doesn't change what the player owns, and [MAX] must reach all of
+  // it.
   return ThemedWindow(
       " " + stacks[index].name() + " ",
       ftxui::vbox({
@@ -467,8 +465,8 @@ ftxui::Element Tui::TradeItemAmountDialog() {
 }
 
 ftxui::Element Tui::TradeConfirmDialog() {
-  // The player who answered first waits on the other, and may still take it
-  // back: their button says so rather than going away.
+  // The player who accepted first waits for the other and can still take it
+  // back, so their button says so instead of disappearing.
   const bool waiting = controller_.trade_waiting();
   ConfirmFocus focus = controller_.trade_prompt().focus();
   ftxui::Element buttons =
@@ -480,13 +478,13 @@ ftxui::Element Tui::TradeConfirmDialog() {
 
 ftxui::Element Tui::RenderTradeInspect() {
   const EquipTabItem* item = controller_.trade_inspect_equip();
-  // Two overloads of SetItem, so this cannot fold into one ternary.
+  // SetItem has two overloads, so this can't be one ternary.
   if (item == nullptr) {
     inspect_panel_.SetItem(controller_.trade_inspect_stack());
   } else {
     inspect_panel_.SetItem(item);
-    // Weighed against what the reader has on: what an item on the table is
-    // worth to them is the first thing either side wants to know.
+    // Compared against what the viewer is wearing, since that is the first
+    // thing either side wants to know about an offered item.
     inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(item));
   }
@@ -509,14 +507,14 @@ ftxui::Element Tui::JobAdvanceDialog() {
 }
 
 ftxui::Element Tui::HyperResetDialog() {
-  // Titleless, like the quit dialog: the question is the whole dialog.
+  // No title, like the quit dialog: the question is the whole dialog.
   return DialogWindow("", {CenteredRow(controller_.hyper_reset_question())},
                       controller_.hyper_reset_prompt().Render());
 }
 
 ftxui::Element Tui::VMatrixResetDialog() {
-  // Titleless, like the Hyper question it stands beside. The matrix is one
-  // thing rather than an allocation apiece, so the question names no preset.
+  // No title, like the Hyper question. The matrix is shared rather than one per
+  // preset, so the question names no preset.
   return DialogWindow("", {CenteredRow("Reset V Matrix?")},
                       controller_.v_matrix_reset_prompt().Render());
 }
@@ -541,8 +539,8 @@ ftxui::Element Tui::PresetMoveDialog() {
 
 ftxui::Element Tui::AbilityRerollDialog() {
   // AccentSeparator, not ftxui::separator: a dialog's content is drawn white,
-  // so a plain rule inside the body comes out white against the theme-blue one
-  // DialogWindow draws over the buttons.
+  // so a plain line in the body would be white next to the theme-blue line
+  // DialogWindow draws above the buttons.
   std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?"),
                                       AccentSeparator(kTheme)};
   for (const AbilityLine& line : controller_.ability_reroll_lines()) {
@@ -558,7 +556,7 @@ ftxui::Element Tui::BuffBuyDialog() {
   const ConsumableInfo* info = ConsumableInfoFor(controller_.buff_type());
   const bool affordable = controller_.buff_buy_affordable();
   // Three short rows rather than one long one: the buff's name is what the
-  // player is deciding about, and the price is what they are weighing.
+  // player is deciding on, and the price is what they are weighing.
   return DialogWindow(
       "",
       {
@@ -572,14 +570,14 @@ ftxui::Element Tui::BuffBuyDialog() {
 }
 
 ftxui::Element Tui::QuitDialog() {
-  // Titleless: the question is the whole dialog, and a " Quit Game " chip over
+  // No title: the question is the whole dialog, and a " Quit Game " title over
   // a "Quit Game?" row would ask it twice.
   return DialogWindow("", {CenteredRow("Quit Game?")},
                       controller_.quit_prompt().Render());
 }
 
 ftxui::Element Tui::RenderMenuBox() {
-  // The exp bar, which the corner menu sits one row above.
+  // The EXP bar, which the corner menu sits one row above.
   constexpr int kExpBarRows = 1;
   return ftxui::dbox({
       RenderMain(),
@@ -593,14 +591,14 @@ ftxui::Element Tui::RenderMenuBox() {
 }
 
 ftxui::Element Tui::PartyConfirmDialog() {
-  // Titleless, like the quit dialog: the question is the whole dialog.
+  // No title, like the quit dialog: the question is the whole dialog.
   return DialogWindow("", {CenteredRow(controller_.party_prompt_question())},
                       controller_.party_prompt().Render());
 }
 
 ftxui::Element Tui::PartyNoticeDialog() {
-  // Red when the server would not do something or the connection has gone,
-  // theme blue for a party that changed under the player.
+  // Red when the server refused something or the connection dropped; theme blue
+  // when the party changed around the player.
   ftxui::Color accent = controller_.party_notice_is_refusal() ? kRed : kTheme;
   return DialogWindow("", CenteredRows(controller_.party_notice()),
                       controller_.party_notice_prompt().Render("Close"),
@@ -608,8 +606,8 @@ ftxui::Element Tui::PartyNoticeDialog() {
 }
 
 ftxui::Element Tui::RenderParty() {
-  // kPartyMenu draws the same thing: the menu is anchored to a row of the
-  // list, so the panel puts it up itself.
+  // kPartyMenu draws the same thing: the menu is anchored to a row of the list,
+  // so the panel draws it.
   ftxui::Element screen = Centred(party_select_panel_.Render());
   if (controller_.screen() != kPartyConfirm) {
     return screen;
@@ -618,9 +616,9 @@ ftxui::Element Tui::RenderParty() {
 }
 
 ftxui::Element Tui::RenderPlayerInspect() {
-  // The item gets a screen of its own, the way the player's own items do: the
-  // sheet it came off is a screen already, and a card over it was two screens
-  // to read at once.
+  // The item gets its own screen, as the player's own items do. The sheet it
+  // came from is already a screen, and a card on top of it meant reading two
+  // screens at once.
   if (controller_.screen() == kPlayerItemInspect) {
     player_item_panel_.SetItem(player_inspect_panel_.selected_item());
     player_item_panel_.SetComparison(controller_.comparison_slots());
@@ -632,16 +630,16 @@ ftxui::Element Tui::RenderPlayerInspect() {
   if (controller_.screen() == kPlayerAllStats) {
     return Centred(player_inspect_panel_.RenderAllStats());
   }
-  // The whole terminal, the way the main view takes it: this screen is the
-  // member's own panels, and they lay out at the widths the player's do.
+  // The whole terminal, like the main view: this screen shows the member's own
+  // panels, laid out at the same widths as the player's.
   return player_inspect_panel_.Render(ftxui::Terminal::Size().dimy,
                                       ftxui::Terminal::Size().dimx);
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
-  // Titleless, like the quit dialog: the question is the whole dialog.
-  // "Practice" rather than "Fight" is the last place to catch a switch left
-  // on: this run would pay nothing.
+  // No title, like the quit dialog: the question is the whole dialog.
+  // "Practice" instead of "Fight" is the last chance to notice the practice
+  // switch is on, since this run would pay nothing.
   std::string verb =
       controller_.boss_prompt_practice() ? "Practice " : "Fight ";
   return DialogWindow(
@@ -650,9 +648,9 @@ ftxui::Element Tui::BossConfirmDialog() {
 }
 
 ftxui::Element Tui::NoticeDialog() {
-  // Red when the player is the reason -- nothing to swing with, an item that
-  // will take no more hammers -- and theme blue when it is only a clock. The
-  // button is the caller's word: a result reads on, a notice closes.
+  // Red when the player is the reason (no weapon, an item that can't take more
+  // hammers), and theme blue when it is only a timer. The caller chooses the
+  // button's label: a result says to continue, a notice says to close.
   bool refused = controller_.notice_is_refusal();
   ftxui::Elements rows;
   for (const std::string& line : controller_.notice_lines()) {
@@ -677,8 +675,8 @@ ftxui::Element Tui::BossAbortDialog() {
       controller_.boss_abort_prompt().Render());
 }
 
-// What stands over the arena, if anything: the leave prompt, or whatever the
-// fight ended on. Null while the fight is still being fought.
+// What is shown over the arena, if anything: the leave prompt, or the fight's
+// result. Null while the fight is in progress.
 ftxui::Element Tui::BossFightOverlay() {
   switch (controller_.screen()) {
     case kBossAbort:
@@ -705,8 +703,8 @@ ftxui::Element Tui::RenderBossFight() {
   if (run == nullptr) {
     return Centred(boss_select_panel_.Render());
   }
-  // Whatever the fight ended on stands over the arena, so the player sees the
-  // fight they just finished rather than the list they are going back to.
+  // The fight's result is shown over the arena, so the player sees the fight
+  // they just finished rather than the list they are returning to.
   ftxui::Element fight = BossFightPanel(*run, state_.account.buff_indicators());
   ftxui::Element overlay = BossFightOverlay();
   if (overlay == nullptr) {
@@ -730,8 +728,8 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   if (proto == nullptr) {
     return Centred(shop_panel_.Render());
   }
-  // Rebuilt from the state the sale kept, which is what buying it back would
-  // hand over. A trace is inspected as a trace, for the same reason.
+  // Rebuilt from the state saved with the sale, which is what buying it back
+  // would give. A trace is shown as a trace for the same reason.
   if (entry.equip().trace()) {
     EquipTrace trace(*proto, entry.equip());
     inspect_panel_.SetItem(&trace);
@@ -749,14 +747,14 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
 ftxui::Element Tui::RenderShopInspect() {
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
-  // A buy-back row is an item the player owned, so what it inspects is that
-  // item -- stars, scrolls and all -- and not a fresh one off the shelf.
+  // A buy-back row is an item the player owned, so the inspect shows that item,
+  // stars and scrolls included, not a fresh one from the shop.
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
   if (entry != nullptr) {
     return RenderBuyBackInspect(*entry);
   }
-  // A stackable has no instance to build and nothing to preview: the panel
-  // reads the prototype straight, as the bag's Etc tab does.
+  // A stackable has no instance to build and no preview: the panel reads the
+  // prototype directly, as the bag's Etc tab does.
   const ItemPrototype* stackable = shop_panel_.selected_stackable();
   if (stackable != nullptr) {
     inspect_panel_.SetItem(stackable);
@@ -766,8 +764,8 @@ ftxui::Element Tui::RenderShopInspect() {
   if (proto == nullptr) {
     return Centred(shop_panel_.Render());
   }
-  // A pristine copy of what the shop would hand over -- no scrolls spent, no
-  // stars. Built here because nothing owns a shop item until it is bought.
+  // A clean copy of what the shop would give, with no scrolls or stars. Built
+  // here because nothing owns a shop item until it is bought.
   EquipInstance preview(*proto);
   inspect_panel_.SetItem(&preview);
   inspect_panel_.SetComparison(controller_.comparison_slots());
@@ -775,12 +773,12 @@ ftxui::Element Tui::RenderShopInspect() {
   return Centred(inspect_panel_.Render());
 }
 
-// The job's book on the left and whichever skill the cursor is on to the
-// right, previewed at both ends of its levels: the player has spent no points
-// on it and has none to spend, so "one more point" would say nothing.
+// The job's book on the left and the selected skill on the right, shown at its
+// first and last levels: the player hasn't spent points on it and has none to
+// spend, so "one more point" would say nothing.
 ftxui::Element Tui::RenderJobInspect() {
-  // One size for the whole book: the card holds it whichever skill the cursor
-  // is on, so the screen does not shift under the reader.
+  // One size for the whole book: the card keeps that size whichever skill is
+  // selected, so the screen doesn't shift as the cursor moves.
   int rows = ftxui::Terminal::Size().dimy;
   PreviewCardSize card =
       LargestPreviewCard(job_inspect_panel_.Skills(),
@@ -788,8 +786,8 @@ ftxui::Element Tui::RenderJobInspect() {
   skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0, 0,
                                 SkillInspectPanel::kPreview);
   skill_inspect_panel_.SetWidthBounds(card.columns, card.columns);
-  // The card scrolls past the terminal rather than standing off the end of
-  // it, and the floor the book is held to comes down with it.
+  // The card scrolls instead of running off the terminal, and the book's
+  // minimum height shrinks with it.
   skill_inspect_panel_.SetMaxRows(rows);
   return Centred(JobInspectScreen(job_inspect_panel_.Render(),
                                   skill_inspect_panel_.Render(),
@@ -804,8 +802,8 @@ ftxui::Element Tui::RenderTraceRecover() {
                                        : nullptr);
   int rows = ftxui::Terminal::Size().dimy;
   preview_inspect_panel_.SetMaxRows(rows);
-  // The right card shares its column with the chip row above it and the
-  // confirm bar below, so it gets what those two leave.
+  // The right card shares its column with the tab row above and the confirm bar
+  // below, so it gets the rows those leave.
   inspect_panel_.SetMaxRows(rows - kRecoverTabRows -
                             ConfirmPrompt::kWindowHeight);
   bool right = controller_.right_card_focused();
@@ -818,8 +816,8 @@ ftxui::Element Tui::RenderTraceRecover() {
       {preview_inspect_panel_.RenderItemOnly(!right), std::move(right_col)});
 }
 
-// The item as it stands, the panel, and the item one star on. At max stars
-// there is no after: the panel says so, and a second card would say it twice.
+// The item as it is, the panel, and the item with one more star. At max stars
+// there is no "after": the panel says so, and a second card would repeat it.
 ftxui::Element Tui::RenderStarForce() {
   const EquipInstance* item = controller_.star_force_item();
   star_force_before_.reset();
@@ -833,15 +831,15 @@ ftxui::Element Tui::RenderStarForce() {
     }
   }
   // The panel reads the cached copy rather than the bag's item, so the result
-  // screen below can draw the same panel after the item is destroyed.
+  // screen can draw the same panel after the item is destroyed.
   star_force_panel_.SetItem(
       star_force_before_.has_value() ? &*star_force_before_ : nullptr,
       state_.character.meso());
   return StarForceColumns();
 }
 
-// The result window over the cards the attempt was made on. The item may be
-// gone by now, which is why the columns come from the cache.
+// The result window over the cards from the attempt. The item may be gone by
+// now, which is why the columns come from the cache.
 ftxui::Element Tui::RenderStarForceResult() {
   ftxui::Element result =
       star_force_panel_.RenderResult(controller_.star_force_result());
@@ -858,8 +856,8 @@ ftxui::Element Tui::StarForceColumns() {
   bool two_cards = star_force_after_.has_value();
   inspect_panel_.SetItem(&*star_force_before_);
   inspect_panel_.SetMaxRows(rows);
-  // The three shoulder to shoulder is what is being compared. They hold one
-  // item a star apart, so each is titled for its side of the attempt.
+  // The three side by side are what is being compared. They show one item a
+  // star apart, so each is titled for its side of the attempt.
   ftxui::Elements cards;
   cards.push_back(
       inspect_panel_.RenderItemOnly(two_cards && !right, " Before "));
@@ -872,9 +870,9 @@ ftxui::Element Tui::StarForceColumns() {
   return SideBySide(std::move(cards));
 }
 
-// The shelf and the item's card shoulder to shoulder, two columns of about a
-// width. An open question is centred over BOTH: it is asked about the cube on
-// the left and the lines on the right at once.
+// The cube shelf and the item's card side by side, in two columns of similar
+// width. An open confirmation is centred over both, since it is about the cube
+// on the left and the lines on the right.
 ftxui::Element Tui::RenderCubing() {
   const EquipInstance* item = controller_.cube_item();
   cube_panel_.SetItem(item, state_.character.meso());
@@ -893,15 +891,15 @@ ftxui::Element Tui::RenderCubing() {
 }
 
 ftxui::Element Tui::RenderInspect() {
-  // One screen, two kinds of item: the panel takes whichever the cursor was on
-  // and frames both the same way.
-  // Two overloads of SetItem, so this cannot fold into one ternary.
+  // One screen for two kinds of item: the panel shows whichever the cursor was
+  // on and frames both the same way. SetItem has two overloads, so this can't
+  // be one ternary.
   if (controller_.screen() == kItemInspect) {
     inspect_panel_.SetItem(controller_.item_inspect_item());
   } else {
     inspect_panel_.SetItem(controller_.inspect_item());
-    // Nothing stackable is worn, so only an equip is ever weighed against
-    // what the player has on.
+    // Stackables are never worn, so only an equip is compared against what the
+    // player has on.
     inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.inspect_delta());
   }
@@ -935,8 +933,8 @@ ftxui::Element Tui::RenderMultiSell() {
 
 ftxui::Element Tui::RenderScreen() {
   switch (controller_.screen()) {
-    // Dialogs float over the main view, so what they are about stays visible
-    // behind them.
+    // Dialogs are drawn over the main view, so what they are about stays
+    // visible behind them.
     case kApAlloc:
       return OverMain(ApAllocDialog());
     case kSkillLearn:
@@ -944,9 +942,9 @@ ftxui::Element Tui::RenderScreen() {
     case kJobAdvance:
       return OverMain(JobAdvanceDialog());
     case kQuit:
-      // Over whatever it was asked from. The character select is the one
-      // screen that is not the main view, and dropping the player into a
-      // game behind the question would be answering it for them.
+      // Over the screen it was opened from. The character select is the only
+      // one that isn't the main view, and showing a game behind the question
+      // would answer it for the player.
       if (controller_.quit_return() == kCharacterSelect) {
         return Overlay(Centred(controller_.character_select_panel().Render()),
                        QuitDialog());
@@ -967,11 +965,12 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.symbol_combine_panel().Render());
     case kHammer:
       return OverMain(controller_.hammer_panel().Render());
-    // The dialog is the panel's own, so the screen it belongs to is one state.
+    // The dialog belongs to the panel, so the screen and its dialog are one
+    // state.
     case kMultiSell:
       return RenderMultiSell();
-    // kMapMenu draws the same thing: the menu is anchored to a row of the
-    // list, so the panel puts it up itself.
+    // kMapMenu draws the same thing: the menu is anchored to a row of the list,
+    // so the panel draws it.
     case kMapSelect:
     case kMapMenu:
       return Centred(map_select_panel_.Render());
@@ -987,8 +986,8 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return Centred(keybinds_panel_.Render());
-    // kCharacterMenu draws the same thing: the menu is anchored to a row of
-    // the list, so the panel puts it up itself.
+    // kCharacterMenu draws the same thing: the menu is anchored to a row of the
+    // list, so the panel draws it.
     case kCharacterSelect:
     case kCharacterMenu:
       return Centred(controller_.character_select_panel().Render());
@@ -1005,8 +1004,8 @@ ftxui::Element Tui::RenderScreen() {
       return Centred(jukebox_panel_.Render());
     case kTrade:
     case kTradeMenu:
-      // The menu is anchored to a row of one of the windows, so the panel puts
-      // it up itself.
+      // The menu is anchored to a row of one of the windows, so the panel draws
+      // it.
       return Centred(trade_panel_.Render());
     case kTradeAmount:
       return Overlay(Centred(trade_panel_.Render()), TradeAmountDialog());
@@ -1022,22 +1021,21 @@ ftxui::Element Tui::RenderScreen() {
       return RenderTradeInspect();
     case kBank:
     case kBankMenu:
-      // The menu is anchored to a row of one of the halves, so the panel puts
-      // it up itself.
+      // The menu is anchored to a row of one of the halves, so the panel draws
+      // it.
       return Centred(bank_panel_.Render());
     case kBankAmount:
       return Overlay(Centred(bank_panel_.Render()), BankAmountDialog());
     case kBankInspect:
       return RenderBankInspect();
-    // kLinkSkillMenu draws the same thing: the menu is anchored to a row of
-    // the screen, so the panel puts it up itself.
+    // kLinkSkillMenu draws the same thing: the menu is anchored to a row of the
+    // screen, so the panel draws it.
     case kLinkSkills:
     case kLinkSkillMenu:
       return Centred(link_skill_panel_.Render());
     case kPlayerList:
     case kPlayerMenu:
-      // The menu is anchored to a row of the list, so the panel puts it up
-      // itself.
+      // The menu is anchored to a row of the list, so the panel draws it.
       return Centred(player_list_panel_.Render());
     case kPartySelect:
     case kPartyMenu:
@@ -1057,16 +1055,16 @@ ftxui::Element Tui::RenderScreen() {
       return Centred(controller_.boss_analysis_panel().Render());
     case kBossConfirm:
       return Overlay(Centred(boss_select_panel_.Render()), BossConfirmDialog());
-    // Over the arena for a fight that ran out of clock, and over the list for
-    // a notice raised instead of a fight -- no weapon, or a daily already
-    // taken. Which one it is shows in whether a run is still held.
+    // Over the arena for a fight that ran out of time, and over the list for a
+    // notice shown instead of a fight (no weapon, or a daily already done).
+    // Whether a run is still held tells which.
     case kBossNotice:
       if (controller_.boss_run() != nullptr) {
         return RenderBossFight();
       }
       return Overlay(Centred(boss_select_panel_.Render()), NoticeDialog());
     // kShopMenu draws the same thing: the menu is anchored to a row of the
-    // list, so the panel puts it up itself.
+    // list, so the panel draws it.
     case kShop:
     case kShopMenu:
       return Centred(shop_panel_.Render());
@@ -1119,23 +1117,24 @@ ftxui::Element Tui::RenderScreen() {
     case kScrollSelect:
     case kScrollResult:
       return RenderScroll();
-    // The main view and everything drawn ON it: the corner menus, the panels'
-    // own popups. A screen with no case of its own lands here SILENTLY, which
-    // reads as a screen that never opened -- add the case with the screen.
+    // The main view and everything drawn on it: the corner menus and the
+    // panels' own popups. A screen with no case of its own ends up here without
+    // any error, which looks like a screen that never opened, so add its case
+    // along with the screen.
     default:
       return RenderMain();
   }
 }
 
-// The menu the open screen floats over the layout. Every one is anchored a row
-// ABOVE its cursor's row, so the highlighted entry lands beside what it acts
-// on -- what a menu is about is the one thing it must not cover.
+// The menu the open screen shows over the layout. Every menu is anchored one
+// row above its cursor's row, so the highlighted entry sits beside what it acts
+// on; a menu must never cover what it is about.
 ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
   if (controller_.screen() == kSkillMenu) {
-    // Past the widest a skill name is drawn, so it covers the level column as
-    // the bag's menu covers an item's stats. Held inside the character panel,
-    // whose column narrows with the terminal; a narrow panel takes a name's
-    // tail instead of spilling over the bag.
+    // Past the widest skill name, so it covers the level column the way the
+    // bag's menu covers an item's stats. It stays inside the character panel,
+    // whose column narrows with the terminal; a narrow panel covers the end of
+    // a name instead of spilling over the bag.
     constexpr int kSkillMenuCol = 38;
     const ItemMenu& menu = controller_.skill_menu();
     int col = std::max(0, std::min(kSkillMenuCol, widths.left - menu.Width()));
@@ -1143,8 +1142,8 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
         menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1), col));
   }
   if (controller_.screen() == kPresetMenu) {
-    // Past the last chip rather than over them, so the row the menu is about
-    // stays readable behind it. Held inside the panel, as the others are.
+    // Past the last tab rather than over them, so the row the menu is about
+    // stays readable behind it. It stays inside the panel, like the others.
     constexpr int kPresetMenuCol = 14;
     const ItemMenu& menu = controller_.preset_menu();
     int col = std::max(0, std::min(kPresetMenuCol, widths.left - menu.Width()));
@@ -1156,9 +1155,8 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
         std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol));
   }
   if (controller_.screen() == kBuffMenu) {
-    // Past the widest a buff name is drawn, so the menu covers the columns
-    // after it rather than the name. Held inside the panel, as the skill menu
-    // is.
+    // Past the widest buff name, so the menu covers the columns after it rather
+    // than the name. It stays inside the panel, like the skill menu.
     constexpr int kBuffMenuCol = 26;
     const ItemMenu& menu = controller_.buff_menu();
     int col = std::max(0, std::min(kBuffMenuCol, widths.left - menu.Width()));
@@ -1168,23 +1166,23 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
   if (controller_.screen() != kItemMenu) {
     return nullptr;
   }
-  // The row is asked of the panel rather than counted up from the header rows
-  // above it: the old arithmetic added a fixed offset to the selected index,
-  // which stops being the row on screen the moment the bag scrolls.
+  // The row comes from the panel rather than being counted from the header
+  // rows, because an offset added to the selected index stops matching the
+  // screen row as soon as the bag scrolls.
   bool on_equip = panel_focus_ == kEquipPanel;
   int cursor_row =
       on_equip ? equip_panel_.cursor_row() : inventory_panel_.cursor_row();
   ItemMenu& menu = on_equip                        ? equip_panel_.menu()
                    : inventory_panel_.on_tab_bar() ? inventory_panel_.tab_menu()
                                                    : inventory_panel_.menu();
-  // Past the panel border, cursor, name and slot columns and separators, so
-  // the menu covers stats rather than item names. An EXPANDED panel is asked
-  // where its own columns end and hangs at its own left border.
+  // Past the panel border, cursor, name and slot columns and separators, so the
+  // menu covers stats rather than item names. An expanded panel reports where
+  // its own columns end and the menu hangs from its own left border.
   int left = controller_.expanded_panel() != kNoPanel ? 0 : widths.left;
   int col;
   if (!on_equip && inventory_panel_.on_tab_bar()) {
-    // A tab menu is about the whole tab rather than one row's stats, so it
-    // hangs under the bar at the panel's left, clear of nothing.
+    // A tab menu is about the whole tab, not one row's stats, so it hangs under
+    // the tab bar at the panel's left edge.
     col = left + 3;
   } else if (controller_.expanded_panel() != kNoPanel) {
     col =
@@ -1195,9 +1193,9 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
   return Floating(menu.Render(std::max(0, cursor_row - 1), col));
 }
 
-// A panel opened up to the whole terminal. It stands in for the main view
-// rather than being a screen of its own, so the item menu floats over it and
-// every dialog the panel raises keeps working untouched.
+// A panel expanded to the whole terminal. It replaces the main view rather than
+// being its own screen, so the item menu still appears over it and every dialog
+// the panel opens works unchanged.
 ftxui::Element Tui::RenderExpandedPanel() {
   int columns = ftxui::Terminal::Size().dimx;
   ftxui::Element body;
@@ -1208,8 +1206,8 @@ ftxui::Element Tui::RenderExpandedPanel() {
     inventory_panel_.SetWidth(columns);
     body = inventory_component_->Render();
   }
-  // No left column in front of it, so the menu hangs at the panel's own
-  // columns -- see OpenMenu.
+  // No left column in front of it, so the menu hangs from the panel's own
+  // columns; see OpenMenu.
   ftxui::Element menu = OpenMenu(MainWidths{/*left=*/0, /*right=*/0});
   if (menu == nullptr) {
     return body;
@@ -1221,14 +1219,15 @@ ftxui::Element Tui::RenderMain() {
   if (controller_.expanded_panel() != kNoPanel) {
     return RenderExpandedPanel();
   }
-  // The character and combat panels share the left column, combat pinned to
-  // its foot. Without a budget the character panel takes what it wants and the
-  // mob bars fall off a short terminal. One row goes to the exp bar.
+  // The character and combat panels share the left column, with combat pinned
+  // to the bottom. Without a height limit, the character panel takes what it
+  // wants and the mob bars fall off a short terminal. One row is for the EXP
+  // bar.
   int rows = ftxui::Terminal::Size().dimy - 1 - combat_panel_.Height();
   char_panel_.SetMaxRows(rows);
-  // Both columns follow the terminal's width, and the panels are told theirs
-  // before they draw: a panel sizes itself to its column, never the column to
-  // whatever the panel is displaying.
+  // Both columns follow the terminal's width, and each panel is told its width
+  // before drawing: a panel sizes itself to its column, never the other way
+  // round.
   MainWidths widths =
       ComputeMainWidths(ftxui::Terminal::Size().dimx,
                         controller_.PanelVisible(kEquipPanel) ||
@@ -1237,9 +1236,9 @@ ftxui::Element Tui::RenderMain() {
   combat_panel_.SetWidth(widths.left);
   equip_panel_.SetWidth(widths.right);
   inventory_panel_.SetWidth(widths.right);
-  // A panel the character has not unlocked is not drawn at all, and the layout
-  // closes up around it. Rendering is skipped rather than hidden afterwards:
-  // an undrawn panel has nothing to say about a game it is not part of yet.
+  // A panel the character hasn't unlocked isn't drawn at all, and the layout
+  // closes up around it. It is skipped rather than drawn and hidden, since it
+  // has nothing to show yet.
   ftxui::Element equipped = nullptr;
   if (controller_.PanelVisible(kEquipPanel)) {
     equipped = equip_component_->Render();
@@ -1248,8 +1247,8 @@ ftxui::Element Tui::RenderMain() {
   if (controller_.PanelVisible(kInventoryPanel)) {
     inventory = inventory_component_->Render();
   }
-  // The corner holds the tip or the menu, never both: the menu arrives at the
-  // level the tip retires at.
+  // The corner shows the tip or the menu, never both: the menu unlocks at the
+  // level the tip goes away.
   ftxui::Element corner = nullptr;
   if (HotkeysTipVisible(state_.character, state_.account)) {
     corner = HotkeysPanel();
@@ -1260,8 +1259,8 @@ ftxui::Element Tui::RenderMain() {
       MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
                  std::move(equipped), std::move(inventory), std::move(corner),
                  ExpBar(state_.character.proto()));
-  // Floated so a menu opened near the foot of a panel hangs off it rather than
-  // being cut off at the edge of the terminal.
+  // Drawn as an overlay so a menu opened near the bottom of a panel hangs over
+  // the edge instead of being cut off at the terminal's edge.
   ftxui::Element menu = OpenMenu(widths);
   if (menu == nullptr) {
     return layout;
@@ -1273,20 +1272,20 @@ void Tui::Tick() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed = now - last_combat_update_;
   last_combat_update_ = now;
-  // Every tick, rather than only at save time: the total then stays true
-  // between saves, which is what anything wanting to show it will read.
+  // Updated every tick, not only when saving, so the total is always current
+  // for anything that shows it.
   state_.playtime_seconds += elapsed.count();
-  // Ahead of the fight, so a run steps against what the server has just said
-  // rather than a tick's worth of stale roster -- and so a fight the party
-  // has begun opens its screen on the tick it arrives.
+  // Before the fight, so the run uses the server's latest party roster rather
+  // than a tick-old one, and a fight the party has started opens on the tick it
+  // arrives.
   if (multiplayer_ != nullptr) {
     multiplayer_->Advance(state_);
   }
   controller_.AdvanceParty();
-  // The map farms only while the player is on it: EXP from a fight they cannot
-  // see is strange to owe, a purse draining under a trade offer is a trade
-  // nobody agreed to, and kills paid out on the character select would belong
-  // to nobody. The analysis stops with the farming.
+  // The map only farms while the player is on it. EXP from a fight they can't
+  // see would be odd, meso draining during a trade would change a deal nobody
+  // agreed to, and kills on the character select would belong to nobody. The
+  // analysis stops along with farming.
   if (controller_.in_boss_fight()) {
     controller_.AdvanceBossRun(elapsed.count());
   } else if (!controller_.OnTradeScreen() && !controller_.OnCharacterSelect()) {
@@ -1300,34 +1299,34 @@ void Tui::Tick() {
     sample.exp = tally.exp;
     analysis_.Advance(sample);
   }
-  // Ticked down before the new level is noticed, so a level-up landing on this
-  // tick gets its full four seconds rather than one tick's worth less.
+  // Counted down before checking for a new level, so a level-up on this tick
+  // gets its full four seconds rather than one tick less.
   celebration_.Advance(elapsed.count());
   controller_.AdvanceNotification(elapsed.count());
   celebration_.Visit(FocusedPanel());
   NoticeProgress();
-  // LAST, so dying wins the card over anything else this tick turned up. A
-  // level earned on the way down is still a level and its gold is still lit,
-  // but what the player needs told is where they now are.
+  // Last, so dying takes priority over anything else found this tick. A level
+  // earned before dying still counts and its gold stays lit, but the player
+  // needs to be told where they are now.
   if (combat_sim_.view().died_this_step) {
     celebration_.BeginDeath();
   }
   UpdateMusic();
-  // Last of all, so the beat the ticker sleeps next is the one this tick left
-  // the player on.
+  // Last of all, so the ticker's next sleep uses the step for where this tick
+  // left the player.
   in_boss_fight_ = controller_.in_boss_fight();
 }
 
 void Tui::StartPlayingCharacter() {
-  // The fight holds the last character's HP, their buffs and the roster they
-  // were part way through, none of which belongs to whoever just arrived.
+  // The fight holds the previous character's HP, buffs and party roster, none
+  // of which belongs to the new character.
   combat_sim_ = CombatSim();
-  // Seeded from the newcomer, so being handed a level 210 character is not a
-  // climb of 209 levels.
+  // Reset from the new character, so switching to a level 210 character isn't
+  // treated as a climb of 209 levels.
   progress_watcher_ = ProgressWatcher(state_.character.proto());
   celebration_ = Celebration();
-  // A measurement is of one character farming one map; it cannot be carried
-  // over to somebody else.
+  // A measurement is of one character farming one map, so it can't carry over
+  // to another character.
   analysis_ = BattleAnalysis();
   last_combat_update_ = std::chrono::steady_clock::now();
 }
@@ -1344,9 +1343,9 @@ void Tui::UpdateMusic() {
   if (!music_player_.ready()) {
     return;
   }
-  // A boss owns the screen and the volume with it; the map underneath is not
-  // where the player is. The volume is the fight's whatever is playing over
-  // it -- a jukebox track at a boss is still a boss fight.
+  // A boss fight takes over the screen and the volume; the map underneath isn't
+  // where the player is. The volume follows the fight whatever is playing, so a
+  // jukebox track during a boss is still at boss volume.
   music_player_.SetVolume(controller_.boss_run() != nullptr
                               ? state_.account.boss_bgm_volume()
                               : state_.account.map_bgm_volume());
@@ -1361,9 +1360,9 @@ Panel Tui::FocusedPanel() const {
 }
 
 void Tui::NoticeProgress() {
-  // A level earned from a boss waits for the player to walk out: the card
-  // would otherwise cover the clear card it was earned from. The watcher is
-  // not asked, so the level is still there on the way out.
+  // A level earned from a boss waits until the player leaves: otherwise its
+  // card would cover the clear card. The watcher isn't checked, so the level is
+  // still there to notice on the way out.
   if (controller_.in_boss_fight()) {
     return;
   }
@@ -1384,34 +1383,34 @@ void Tui::NoticeProgress() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  // A player who has looked is done with it. The key still does what it
-  // normally does -- dismissing the card is a side effect, not a swallowed key
-  // -- and Custom is the ticker's redraw rather than somebody looking.
+  // A player who has looked at the card is done with it. The key still does its
+  // normal job, since dismissing the card is a side effect rather than
+  // consuming the key. Custom is the ticker's redraw event, not the player.
   if (celebration_.card_visible() && event != ftxui::Event::Custom) {
     celebration_.Dismiss();
   }
-  // The gold box needs a key as well as its four seconds, and the ticker's
-  // redraw is not the player pressing one.
+  // The notification needs a key press as well as its four seconds, and the
+  // ticker's redraw isn't a key press.
   if (event != ftxui::Event::Custom) {
     controller_.TouchNotification();
   }
-  // The All Stats screen's Farm/Boss row is the panel's own, and the panel
-  // lives here rather than on the controller. Everything it does not take --
-  // the keys that close the screen -- carries on as usual.
+  // The All Stats screen's Farm/Boss row belongs to the panel, which lives here
+  // rather than on the controller. Keys it doesn't handle, such as the ones
+  // that close the screen, work as usual.
   if (controller_.screen() == kAllStats && all_stats_panel_.OnEvent(event)) {
     return true;
   }
   bool handled = controller_.OnEvent(event);
-  // Before NoticeProgress, which would otherwise read the newcomer's level
-  // against the last character's and raise a card for the difference.
+  // Before NoticeProgress, which would otherwise compare the new character's
+  // level against the previous character's and raise a card for the difference.
   if (controller_.TakeCharacterSwitch()) {
     StartPlayingCharacter();
   }
-  // After the event rather than before it: the key that just landed may be the
-  // Tab that walked the player onto a panel waiting to be visited, and its gold
-  // should be gone in the frame this event draws rather than the one after.
+  // After the event, not before: the key may be the Tab that moved the player
+  // onto a panel waiting to be visited, and its gold should clear in the frame
+  // this event draws, not the next one.
   celebration_.Visit(FocusedPanel());
-  // Advancement happens here rather than in the tick.
+  // Advancement happens during events rather than ticks.
   NoticeProgress();
   return handled;
 }

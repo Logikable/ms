@@ -1,10 +1,9 @@
-/* TuiController owns the screen-state machine for the TUI. It handles
- * keyboard events and drives transitions between screens. Tui holds a
- * TuiController and delegates event handling; tests can construct
- * TuiController directly without the ftxui event loop.
+/* TuiController owns the TUI's screen-state machine. It handles keyboard events
+ * and moves between screens. Tui holds a TuiController and passes events to it;
+ * tests can construct a TuiController directly without the ftxui event loop.
  *
- * panel_focus is owned by the caller and shared with the panel components
- * so Container::Tab can read it; TuiController mutates it on Tab.
+ * The caller owns panel_focus and shares it with the panel components so
+ * Container::Tab can read it; TuiController changes it on Tab.
  */
 #ifndef MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
@@ -73,16 +72,16 @@
 
 namespace ms {
 
-// What a party question is asking about, so answering Yes knows what to do.
+// What a party confirmation is about, so answering Yes knows what to do.
 enum class PartyAsk { kNone, kKick, kPromote, kLeave };
 
-// An absence shorter than this raises no card. A player who restarted the game
-// a minute after closing it does not need to be told what that minute paid.
+// An absence shorter than this shows no card. A player who restarts a minute
+// after closing the game doesn't need to hear what that minute paid.
 inline constexpr double kOfflineNoticeSeconds = 60.0;
 
-// Every panel the controller drives, in one piece. A struct of references
-// rather than 25 constructor parameters, which had to be written out three
-// times in the same order. `Tui` owns the panels; this must not outlive it.
+// Every panel the controller drives, bundled together. A struct of references
+// instead of 25 constructor parameters written out three times in the same
+// order. `Tui` owns the panels; this must not outlive it.
 struct Screens {
   CharacterPanel& char_panel;
   EquippedPanel& equip_panel;
@@ -123,154 +122,155 @@ struct Screens {
 
 class TuiController {
  public:
-  // panel_focus is a reference shared with panel components and
-  // Container::Tab; the controller mutates it as focus changes.
+  // panel_focus is a reference shared with the panel components and
+  // Container::Tab; the controller changes it as focus moves.
   TuiController(GameState& state, Screens screens, BattleAnalysis& analysis,
                 KeyMap& keys, int& panel_focus,
                 MultiplayerSession* multiplayer = nullptr);
 
-  // The [Expand]/[Close] button on `panel`. An expanded panel is the MAIN
-  // VIEW rather than a screen of its own, so menus and dialogs float over it
-  // unchanged. Pressing it elsewhere moves the expansion there.
+  // The [Expand]/[Close] button on `panel`. An expanded panel replaces the main
+  // view rather than being its own screen, so menus and dialogs still appear
+  // over it. Pressing it on another panel moves the expansion there.
   void ToggleExpanded(int panel);
-  // The panel opened up over the whole screen, or kNoPanel.
+  // The panel expanded to the whole screen, or kNoPanel.
   int expanded_panel() const {
     return expanded_panel_;
   }
 
-  // Open the equip or bag context menu. Called from MakeComponent callbacks.
+  // Opens the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
-  // Enter in the bag: the context menu on an item, or the shop when the Shop
-  // tab is the one showing.
+  // Enter in the bag: the context menu for an item, or the shop when the Shop
+  // tab is showing.
   void OpenInventoryMenu();
-  // Float the AP-allocation amount entry over the main view, seeded to spend up
-  // to all available AP on `field` (defaulting to the max).
+  // Shows the AP amount entry over the main view, set to spend up to all
+  // available AP on `field` (the maximum by default).
   void OpenApAllocate(StatField field);
-  // Floats the skill-learning amount entry, seeded to the most points `skill`
-  // can still take.
+  // Shows the skill-learning amount entry, set to the most points `skill` can
+  // still take.
   void OpenSkillLearn(const Skill& skill);
-  // The menu Enter on a skill's name raises. The middle entry is offered only
-  // by a toggle skill, and dims until it is bought.
+  // The menu opened by Enter on a skill's name. The middle entry is only shown
+  // for a toggle skill, and is dimmed until the skill is learned.
   void OpenSkillMenu(const Skill& skill);
-  // Open the skill's inspect screen. Copies the skill, as the learn dialog
-  // does, so nothing downstream depends on the catalog outliving the screen.
+  // Opens the skill's inspect screen. It copies the skill, as the learn dialog
+  // does, so nothing depends on the catalog outliving the screen.
   void OpenSkillInspect(const Skill& skill);
-  // Every stat the character has, on a screen of its own.
+  // Every stat the character has, on its own screen.
   void OpenAllStats();
-  // Enter on the Link Skills row of the beginner's page: the screen opens on
-  // the preset the character is playing.
+  // Enter on the Link Skills row of the beginner page. The screen opens on the
+  // preset the character is using.
   void OpenLinkSkills();
 
-  // The four screens the Inspect panel raises. They are the player's own
-  // cards over somebody else's numbers, so they read from the member being
-  // inspected and close back onto the screen that raised them.
+  // The four screens the Inspect panel opens. They are the player's own cards
+  // showing someone else's numbers, so they read from the inspected member and
+  // close back to the screen that opened them.
   void OpenPlayerSkillInspect(const Skill& skill);
   void OpenPlayerHyperStatInspect(HyperStatField field);
   void OpenPlayerAllStats();
   void OpenPlayerItemInspect();
-  // Spends a point on `field` and gives the last one back. No dialog on
-  // either: the row's [-] is the way out of a [+].
+  // Spends a point on `field`, or refunds the last one. Neither has a dialog:
+  // the row's [-] undoes a [+].
   void RaiseHyperStat(HyperStatField field, StatPreset preset);
   void LowerHyperStat(HyperStatField field, StatPreset preset);
-  // The one question left on the tab: emptying an allocation whole.
+  // The tab's only confirmation: resetting a whole allocation.
   void OpenHyperReset(StatPreset preset);
 
-  // The same question for the V Matrix: every node back to nothing, every
-  // point back in the pool.
+  // The same confirmation for the V Matrix: every node reset and every point
+  // refunded.
   void OpenVMatrixReset();
   const ConfirmPrompt& v_matrix_reset_prompt() const {
     return v_matrix_reset_prompt_;
   }
 
-  // Holds or frees the Inner Ability line at `index` of `preset`, whichever it
-  // is not now. No screen: the row's own lock says what happened.
+  // Locks or unlocks the Inner Ability line at `index` of `preset`. No screen:
+  // the row's lock icon shows the result.
   void ToggleAbilityLock(int index, StatPreset preset);
-  // Asks before rerolling `preset`, which is where the honor is spent.
+  // Asks before rerolling `preset`, since that spends honor.
   void OpenAbilityReroll(StatPreset preset);
 
-  // Flips `type`. No screen and no question: the row's switch says what
-  // happened, and nothing is spent until the buff procs.
+  // Turns `type` on or off. No screen and no confirmation: the row's switch
+  // shows the result, and nothing is spent until the buff is used.
   void ToggleConsumable(ConsumableType type);
-  // Float the buff's context menu over the main view: read it, buy it outright,
-  // or walk away.
+  // Shows the buff's context menu over the main view: read it, buy it
+  // permanently, or close.
   void OpenBuffMenu(ConsumableType type);
-  // Asks before buying `type` outright, opening on Cancel: it costs hundreds
-  // of millions. A short purse still opens the question, price in red and
-  // [Confirm] greyed, rather than leaving the player guessing at it.
+  // Asks before buying `type` permanently, starting on Cancel because it costs
+  // hundreds of millions. If the character can't afford it, the dialog still
+  // opens with the price in red and [Confirm] greyed out, so the player can see
+  // the price.
   void OpenBuffBuy(ConsumableType type);
-  // The buff every one of the three is about.
+  // The buff all three are about.
   ConsumableType buff_type() const {
     return buff_type_;
   }
-  // The buff menu, for the overlay Tui floats beside the buff's row.
+  // The buff menu, for the overlay Tui shows beside the buff's row.
   const ItemMenu& buff_menu() const {
     return buff_menu_;
   }
   const ConfirmPrompt& buff_buy_prompt() const {
     return buff_buy_prompt_;
   }
-  // Whether the purse covers what the open question asks. The dialog greys
-  // [Confirm] with it, and the buy is held to the same check.
+  // Whether the character can afford what the open dialog asks. The dialog
+  // greys out [Confirm] based on this, and the purchase uses the same check.
   bool buff_buy_affordable() const;
-  // What the permanent price is, for the dialog to state.
+  // The permanent price, for the dialog to show.
   int64_t buff_buy_price() const;
 
-  // The card Enter on a stat's name opens. Never gated: a stat the character
-  // is too low for is the one they most want to read about.
+  // The card opened by Enter on a stat's name. It is never gated: a stat the
+  // character is too low for is the one they most want to read about.
   void OpenHyperStatInspect(HyperStatField field, StatPreset preset);
   HyperStatField hyper_inspect_field() const {
     return hyper_field_;
   }
-  // Read live rather than captured, for the reason skill_inspect_level() is:
-  // a point spent and the stat inspected again shows the level it is at.
+  // Read live rather than stored, like skill_inspect_level(): spending a point
+  // and inspecting again shows the new level.
   int hyper_inspect_level() const;
   int hyper_inspect_max_level() const;
   const ConfirmPrompt& hyper_reset_prompt() const {
     return hyper_reset_prompt_;
   }
-  // What the reset dialog asks, which names the allocation being emptied.
+  // The reset dialog's question, which names the allocation being reset.
   std::string hyper_reset_question() const;
 
   const ConfirmPrompt& ability_reroll_prompt() const {
     return ability_reroll_prompt_;
   }
-  // The lines the open question would throw away: everything the allocation is
-  // not holding, which is all the dialog lists.
+  // The lines the open confirmation would replace: every line that isn't
+  // locked, which is all the dialog lists.
   std::vector<AbilityLine> ability_reroll_lines() const;
-  // Whether the last reroll carried the ability up a rank, which lights the
-  // panel gold. True until the player's next key.
+  // Whether the last reroll raised the ability's rank, which lights the panel
+  // gold. True until the player's next key.
   bool ability_rank_up() const {
     return ability_rank_up_;
   }
-  // Floats the job's context menu. Enter in the Advance tab lands HERE rather
-  // than on the confirmation: a job should be readable before it is chosen.
+  // Shows the job's context menu. Enter in the Advance tab opens this rather
+  // than the confirmation, so a job can be read before it is chosen.
   void OpenJobMenu(Job job);
 
-  // Enter on the preset row: the menu that puts a preset in use or moves one.
-  // `slot` is the chip the cursor was on, which every entry acts on.
+  // Enter on the preset row: the menu to use or move a preset. `slot` is the
+  // preset the cursor was on, which every entry acts on.
   void OpenPresetMenu(PresetKind kind, StatPreset slot);
-  // Float the job-advancement confirmation over the main view. The prompt opens
-  // on Cancel: the choice cannot be taken back.
+  // Shows the job advancement confirmation over the main view. It starts on
+  // Cancel, since the choice can't be undone.
   void OpenJobAdvance(Job job);
-  // Open the map selection screen, on the map being farmed.
+  // Opens the map selection screen on the current map.
   void OpenMapSelect();
-  // Enter on an entry of the corner menu. Boss opens the boss screen and
-  // clears the entry's gold; Settings opens its box over the corner.
+  // Enter on a corner menu entry. Boss opens the boss screen and clears the
+  // entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
 
-  // Keeps the party screen and its fight in step with the connection: the
-  // lobby as it stands, whatever the server has said, the fight screen the
-  // moment the party is let in, and the way out if the connection goes. Every
-  // tick, before the fight is stepped.
+  // Keeps the party screen and its fight in sync with the connection: the
+  // current lobby, any server messages, the fight screen as soon as the party
+  // enters, and the exit if the connection drops. Runs every tick, before the
+  // fight is advanced.
   void AdvanceParty();
 
-  // Runs the gold box's clock down, and records that the player has pressed a
-  // key. Both belong to Tui: it owns the frame clock and sees every key.
+  // Runs the notification's clock down, and records that the player pressed a
+  // key. Both come from Tui, which owns the frame clock and sees every key.
   void AdvanceNotification(double elapsed_seconds);
   void TouchNotification();
 
-  // The word from the server, floated over whatever is on screen: a refusal
-  // (drawn red), news of the party, or the connection going away.
+  // The server's message, shown over whatever is on screen: a refusal (in red),
+  // party news, or a lost connection.
   const ContinuePrompt& party_notice_prompt() const {
     return party_notice_prompt_;
   }
@@ -280,36 +280,36 @@ class TuiController {
   bool party_notice_is_refusal() const {
     return party_notice_is_refusal_;
   }
-  // The item the trade screen's card is drawn from, one of which is null.
+  // The item the trade screen's card is drawn from. One of the two is null.
   const EquipTabItem* trade_inspect_equip() const {
     return trade_inspect_equip_.get();
   }
   const ItemPrototype* trade_inspect_stack() const {
     return trade_inspect_stack_;
   }
-  // The place in the bag of the stack the trade's amount overlay is putting
-  // up, or -1 while it is not open on one.
+  // The bag index of the stack the trade's amount overlay is offering, or -1
+  // while it isn't open on one.
   int trade_stack() const {
     return trade_stack_;
   }
-  // Whether this player has confirmed and is waiting on the other.
+  // Whether this player has confirmed and is waiting for the other.
   bool trade_waiting() const;
-  // Whether the player is anywhere on the trade screen. The map is not farmed
-  // while they are: an offer whose purse drained under it, or a drop landing
-  // between an acceptance and the exchange, is a trade nobody agreed to.
+  // Whether the player is anywhere on the trade screen. The map isn't farmed
+  // meanwhile: meso draining from an offer, or a drop arriving between
+  // accepting and the exchange, would change a trade nobody agreed to.
   bool OnTradeScreen() const;
-  // Whether something happened that must not wait for the autosave clock: a
-  // trade going through, which is the one point where value crosses from one
-  // save file into another. Cleared by the taking.
+  // Whether something happened that should be saved now rather than on the
+  // autosave timer: a completed trade, the one moment value moves from one save
+  // file to another. Reading it clears it.
   bool TakeSaveRequest();
-  // The finalize dialog's cursor, for the row it draws.
+  // The final confirmation's cursor, for the row it draws.
   const ConfirmPrompt& trade_prompt() const {
     return trade_prompt_;
   }
   const ConfirmPrompt& trade_leave_prompt() const {
     return trade_leave_prompt_;
   }
-  // Which currency the trade overlay is putting up, and how much.
+  // Which currency the trade overlay is offering, and how much.
   TradeCurrency trade_currency() const {
     return trade_currency_;
   }
@@ -323,11 +323,11 @@ class TuiController {
   const AmountSelector& bank_selector() const {
     return bank_selector_;
   }
-  // The gold box in the corner, which outlives whatever screen raised it.
+  // The notification in the corner, which outlasts the screen that raised it.
   const NotificationBox& notification() const {
     return notification_;
   }
-  // The question a party action asks before it is taken, and what it asks.
+  // The confirmation a party action shows before it happens, and its question.
   const ConfirmPrompt& party_prompt() const {
     return party_prompt_;
   }
@@ -335,13 +335,13 @@ class TuiController {
     return party_prompt_question_;
   }
 
-  // True while a key must reach the game AS PRESSED rather than as the action
-  // it is bound to -- a keybind slot or a text field waiting. Every action's
+  // True while a key must reach the game as pressed rather than as its bound
+  // action: a keybind slot or a text field is waiting for input. Every action's
   // first key is locked, so Enter, Escape and the arrows still work.
   bool capturing_key() const;
 
   // The stat the pending AP allocation targets, and its amount selector, for
-  // the dialog Tui floats over the main view.
+  // the dialog Tui shows over the main view.
   StatField ap_alloc_field() const {
     return ap_field_;
   }
@@ -349,7 +349,7 @@ class TuiController {
     return ap_selector_;
   }
   // The skill the pending learn targets, and its amount selector, for the
-  // dialog Tui floats over the main view.
+  // dialog Tui shows over the main view.
   const Skill& skill_learn_skill() const {
     return skill_learn_;
   }
@@ -357,7 +357,7 @@ class TuiController {
     return sp_selector_;
   }
 
-  // The skill menu, for the overlay Tui floats beside the skill's row, and the
+  // The skill menu, for the overlay Tui shows beside the skill's row, and the
   // skill it was opened on.
   const ItemMenu& skill_menu() const {
     return skill_menu_;
@@ -366,16 +366,16 @@ class TuiController {
     return skill_menu_skill_;
   }
 
-  // What kSkillInspect draws: the skill, the level points were spent to, and
-  // the levels the book lends.
+  // What kSkillInspect draws: the skill, the level bought with points, and the
+  // extra levels the book grants.
   const Skill& skill_inspect_skill() const {
     return skill_inspect_;
   }
   int skill_inspect_level() const;
   int skill_inspect_bonus() const;
 
-  // What the pending advancement's dialog draws. The stage is the one ABOVE
-  // where the character stands, an advancement being offered from below.
+  // What the pending advancement's dialog draws. The stage is the one above the
+  // character's current stage, since the advancement is into it.
   Job job_advance_job() const {
     return job_advance_;
   }
@@ -386,13 +386,13 @@ class TuiController {
     return job_advance_prompt_;
   }
 
-  // The job menu, for the overlay Tui floats beside the job's row.
+  // The job menu, for the overlay Tui shows beside the job's row.
   const ItemMenu& job_menu() const {
     return job_menu_;
   }
 
-  // The preset menu, floated beside its row, and what the Move popup behind it
-  // needs. kNumStatPresets is the Cancel button under them.
+  // The preset menu, shown beside its row, and what the Move popup behind it
+  // needs. kNumStatPresets is the Cancel button below them.
   const ItemMenu& preset_menu() const {
     return preset_menu_;
   }
@@ -406,93 +406,92 @@ class TuiController {
     return preset_move_row_;
   }
 
-  // The Level Up and Combine dialogs for an Arcane Symbol. Owned rather than
-  // handed in: neither carries game state, only what Reset was told.
-  // The character select and the question Delete asks on it, for the
-  // renderer: both are the controller's own, as the dailies card is.
+  // The character select and its Delete confirmation, for the renderer. Both
+  // belong to the controller, like the dailies card.
   const CharacterSelectPanel& character_select_panel() const {
     return character_select_panel_;
   }
   const ConfirmPrompt& character_delete_prompt() const {
     return character_delete_prompt_;
   }
-  // The screen the quit dialog was raised over, which cancelling goes back
-  // to and which stays drawn behind it.
+  // The screen the quit dialog was opened over, which Cancel returns to and
+  // which stays drawn behind it.
   Screen quit_return() const {
     return quit_return_;
   }
-  // Whether the character select is up, which is farming's other stop: the
-  // player is choosing who to be, and a map cannot be fought by somebody who
-  // may be about to be swapped out.
+  // Whether the character select is open, which is the other time farming
+  // stops: the player is choosing a character, and a map can't be fought by a
+  // character who may be about to be swapped out.
   bool OnCharacterSelect() const {
     return screen_ == kCharacterSelect || screen_ == kCharacterMenu ||
            screen_ == kCharacterDelete;
   }
-  // Whether a character has just been put into play, taken by the asking.
-  // Tui owns the fight and the watcher, and both belong to whoever is being
-  // played -- see Tui::StartPlayingCharacter.
+  // Whether a character has just been put into play. Reading it clears it. Tui
+  // owns the fight and the watcher, and both belong to the character being
+  // played; see Tui::StartPlayingCharacter.
   bool TakeCharacterSwitch();
 
   const DailiesPanel& dailies_panel() const {
     return dailies_panel_;
   }
+  // The Level Up and Combine dialogs for an Arcane Symbol. The controller owns
+  // them because neither holds game state, only what Reset set.
   const SymbolLevelPanel& symbol_level_panel() const {
     return symbol_level_panel_;
   }
   const SymbolCombinePanel& symbol_combine_panel() const {
     return symbol_combine_panel_;
   }
-  // The golden hammer's question, owned for the same reason.
+  // The golden hammer's confirmation, owned for the same reason.
   const HammerPanel& hammer_panel() const {
     return hammer_panel_;
   }
 
-  // The prompt on the quit dialog, for the same reason.
+  // The quit dialog's prompt, for the same reason.
   const ConfirmPrompt& quit_prompt() const {
     return quit_prompt_;
   }
 
-  // The prompt asking whether to take the highlighted boss fight, and what it
-  // is asking about.
+  // The prompt asking whether to start the highlighted boss fight, and what it
+  // asks about.
   const ConfirmPrompt& boss_prompt() const {
     return boss_prompt_;
   }
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
-  // Whether the fight being asked about would be taken as practice. Snapshot
-  // with the title, so the question cannot change under the player.
+  // Whether the fight being asked about would be practice. Stored with the
+  // title, so the question can't change under the player.
   bool boss_prompt_practice() const {
     return boss_prompt_practice_;
   }
-  // The one button every one-button screen is dismissed by -- a scroll or star
-  // force result, and the notice that a fight is still on its reset.
+  // The single button that dismisses every one-button screen: a scroll or star
+  // force result, or the notice that a fight hasn't reset.
   const ContinuePrompt& notice_prompt() const {
     return notice_prompt_;
   }
-  // What that button says: "Continue" for a result the player reads on
-  // through, "Close" for a notice that is the end of it.
+  // The button's label: "Continue" for a result, "Close" for a notice.
   const std::string& notice_button() const {
     return notice_button_;
   }
-  // What the notice says, a line at a time, and whether it is a refusal --
-  // which is drawn in red, the colour of a reason the player fell short of.
+  // The notice's text, one line at a time, and whether it is a refusal, which
+  // is drawn in red.
   const std::vector<std::string>& notice_lines() const {
     return notice_lines_;
   }
   bool notice_is_refusal() const {
     return notice_is_refusal_;
   }
-  // The fight in progress, or null when the player is not in one.
+  // The fight in progress, or null when the player isn't in one.
   const BossRun* boss_run() const {
     return boss_run_.get();
   }
-  // The prompt asking whether to walk out of a fight.
+  // The prompt asking whether to leave a fight.
   const ConfirmPrompt& boss_abort_prompt() const {
     return boss_abort_prompt_;
   }
-  // The clear card: what was beaten, what it paid, and the button. Held here
-  // rather than read off the run, which is gone by the time it is up.
+  // The clear card: what was beaten, what it paid, and the button. Stored here
+  // because the run is gone by the time the card is shown.
   const std::string& boss_clear_title() const {
     return boss_clear_title_;
   }
@@ -513,41 +512,40 @@ class TuiController {
     return boss_analysis_panel_;
   }
   // What the player earned while the game was closed, and the button that
-  // dismisses the card showing it.
+  // dismisses its card.
   const OfflineReport& offline_report() const {
     return offline_report_;
   }
   const ContinuePrompt& offline_prompt() const {
     return offline_prompt_;
   }
-  // Raises that card at launch, before the player has touched anything: they
-  // should see what they were paid before they see the game. A report not
-  // worth a card raises nothing.
+  // Shows that card at launch, before the player does anything, so they see
+  // what they earned before the game. A report not worth a card shows nothing.
   void OpenOfflineReport(OfflineReport report);
 
-  // Steps the fight, records a clear, and takes the screen back once the
-  // closing beat is up. Nothing while the leave prompt is up: the clock must
-  // not run out while the player is deciding.
+  // Advances the fight, records a clear, and returns to the previous screen
+  // once the ending pause is over. Does nothing while the leave prompt is up,
+  // so the clock can't run out while the player decides.
   void AdvanceBossRun(double elapsed_seconds);
-  // Takes what walking into a fight costs in potions. Called by both doors
-  // into a boss run -- the solo one and the party's.
-  // Throws the switch at `option` on the boss screen's options row.
+  // Toggles the switch at `option` in the boss screen's options row.
   void ToggleBossOption(int option);
+  // Charges the potion cost of entering a fight. Both ways into a boss run
+  // call it: solo and party.
   void ChargeBossEntry();
-  // True while a fight owns the screen, which is when the map should not be
-  // farmed: the player is somewhere else.
+  // True while a fight is on screen, when the map shouldn't be farmed because
+  // the player is somewhere else.
   bool in_boss_fight() const {
     return boss_run_ != nullptr;
   }
 
-  // True once the quit dialog is confirmed. The controller does not own the
-  // ftxui screen, so it raises this and leaves the leaving to Tui.
+  // True once the quit dialog is confirmed. The controller doesn't own the
+  // ftxui screen, so it sets this and Tui does the quitting.
   bool quit_requested() const {
     return quit_requested_;
   }
 
-  // On a screen with a card beside something else, which the arrows reach. Tab
-  // moves between them and the holder lights its title.
+  // On a screen with a card beside something else, which the arrows can reach.
+  // Tab switches between them, and the focused one lights its title.
   bool right_card_focused() const {
     return right_card_focused_;
   }
@@ -558,8 +556,8 @@ class TuiController {
   Screen screen() const {
     return screen_;
   }
-  // What the Multi-Sell screen has marked. The screen owns the basket; this is
-  // how a caller reads it without reaching through to the panel.
+  // What the Multi-Sell screen has selected. The screen owns the selection;
+  // this lets a caller read it without going through the panel.
   const SaleBasket& multi_sell_basket() const {
     return multi_sell_panel_.basket();
   }
@@ -572,75 +570,76 @@ class TuiController {
   const TraceRecoveryResult& trace_recovery_result() const {
     return trace_recovery_result_;
   }
-  // Returns the item being scrolled while in kScrollSelect or kScrollResult,
-  // or nullptr otherwise.
+  // Returns the item being scrolled while in kScrollSelect or kScrollResult, or
+  // nullptr otherwise.
   const EquipInstance* scroll_item() const;
-  // The gear preset every comparison on an item's card reads: the open Gear
-  // tab, which is also where Equip would put the item. With the autoswap off
-  // that tab opens on the preset in use, so by default this is what the
-  // character has on.
+  // The gear preset every comparison on an item card uses: the open Gear tab,
+  // which is also where Equip would put the item. With autoswap off that tab
+  // opens on the preset in use, so by default this is what the character is
+  // wearing.
   StatPreset ComparisonPreset() const;
   // What the player already wears in the slot the inspected item would fill,
-  // for the card drawn beside it. nullptr when there is nothing to compare.
+  // for the card beside it. nullptr when there is nothing to compare.
   const EquipTabItem* inspect_comparison() const;
   const EquipTabItem* player_item_comparison() const;
   const EquipInstance* WornForComparison(const EquipPrototype& proto) const;
-  // Every slot the open inspect screen's item could go into and what the
-  // player wears in each, for the Equipped card and its tab bar. One slot for
-  // everything but a ring or a pendant; empty on a screen weighing nothing.
+  // Every slot the open inspect screen's item could go in and what the player
+  // wears in each, for the Equipped card and its tab bar. One slot for
+  // everything except rings and pendants; empty on a screen with nothing to
+  // compare.
   InspectPanel::ComparisonSlots comparison_slots() const;
-  // What putting `item` on would do to the player's combat power, for the
-  // figure on its card. Empty when there is nothing to say: a slot this
-  // character cannot fill, or an item already worn in ComparisonPreset().
-  // `fallback` is the slot to price it into until the Equipped card's bar is
-  // touched; unset asks SlotToFill, which is where Equip would put it.
+  // How equipping `item` would change the player's combat power, for the number
+  // on its card. Empty when there is nothing to show: a slot this character
+  // can't fill, or an item already worn in ComparisonPreset(). `fallback` is
+  // the slot to compare against until the Equipped card's tab bar is used; if
+  // unset, SlotToFill picks, matching Equip.
   std::optional<int> CombatPowerDelta(
       const EquipTabItem* item,
       std::optional<EquipSlot> fallback = std::nullopt) const;
-  // The same for whichever item each screen has on it.
+  // The same for whichever item each screen shows.
   std::optional<int> inspect_delta() const;
   std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;
-  // The stack being inspected in kItemInspect, as a PROTOTYPE: what is on
-  // screen is what the item is, not how many are held.
+  // The stack inspected in kItemInspect, as a prototype: the screen shows what
+  // the item is, not how many are held.
   const ItemPrototype* item_inspect_item() const;
   // Returns the item being star forced while in kStarForce, or nullptr
-  // otherwise. Do not call in kStarForceResult (item may be destroyed).
+  // otherwise. Don't call in kStarForceResult (the item may be destroyed).
   const EquipInstance* star_force_item() const;
-  // The item the cubing screen is working on, live rather than cached: a cube
-  // destroys nothing, so the lines the screen draws are the item's own.
+  // The item the cubing screen is working on, read live rather than cached: a
+  // cube destroys nothing, so the screen draws the item's own lines.
   const EquipInstance* cube_item() const;
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
-  // Whether `panel` is on screen for this character: the equipped panel and
-  // the bag are handed over as they level, the other two are there from the
-  // first frame. Asked by the layout AND by Tab, so the two cannot disagree.
+  // Whether `panel` is shown for this character. The equipped panel and the bag
+  // unlock as they level; the other two are there from the start. Both the
+  // layout and Tab use this, so they can't disagree.
   bool PanelVisible(int panel) const;
 
  private:
-  // Moves focus off a panel that is not on screen. The game opens focused on
-  // the equipped panel, which a level 1 character does not have yet.
+  // Moves focus off a panel that isn't shown. The game starts focused on the
+  // equipped panel, which a level 1 character doesn't have yet.
   void EnsureFocusIsVisible();
 
-  // Where the item under the cursor of the focused panel lives. The one place
-  // that reads panel_focus_ to answer that question.
+  // Where the item under the focused panel's cursor is. The only place that
+  // reads panel_focus_ to answer that.
   ItemRef SelectedItem() const;
 
   bool OnMainViewEvent(ftxui::Event event);
   bool OnItemMenuEvent(ftxui::Event event);
 
-  // The three families of screen an item menu opens, each seeding the panel it
-  // hands the screen to. A seed that finds the item cannot take the screen
-  // returns the one it opened instead.
+  // The three kinds of screen an item menu opens, each preparing the panel for
+  // the screen. If the item can't use that screen, it returns the screen it
+  // opened instead.
   Screen SeedUpgradeScreen(Screen next);
   Screen SeedSaleScreen(Screen next);
   Screen SeedSymbolScreen(Screen next);
-  // The keys every screen made of inspect cards takes, `back` being where it
-  // leaves for. One handler because they are one screen to the player, reached
-  // from the bag, the shelf or another player's sheet.
+  // The keys every screen made of inspect cards handles, with `back` as the
+  // screen to return to. One handler, because to the player they are one
+  // screen, opened from the bag, the shop, or another player's sheet.
   bool OnCardEvent(ftxui::Event event, InspectPanel& panel, Screen back);
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
@@ -661,16 +660,16 @@ class TuiController {
   bool OnCharacterSelectEvent(ftxui::Event event);
   bool OnCharacterMenuEvent(ftxui::Event event);
   bool OnCharacterDeleteEvent(ftxui::Event event);
-  // What the character menu's entry under the cursor does.
+  // Does what the character menu's selected entry does.
   void TakeCharacterMenuEntry();
-  // Back into the game with whoever is now in play. The save goes out either
-  // way; a `switched` character also starts the panels where a session starts
-  // and has Tui build the fight again, which a resume must not do.
+  // Returns to the game with whoever is now in play. The game saves either way.
+  // If `switched`, it also resets the panels as at session start and has Tui
+  // rebuild the fight, which resuming must not do.
   void LeaveCharacterSelect(bool switched);
-  // Somebody else is in play: Tui is told, and any party is left.
+  // Another character is now in play: Tui is told, and any party is left.
   void SwitchedCharacter();
-  // Raises the quit dialog over whatever screen is up, which is how both
-  // Escape and the character select's Quit button ask.
+  // Shows the quit dialog over the current screen. Both Escape and the
+  // character select's Quit button use this.
   void OpenQuit();
   bool OnStarForceEvent(ftxui::Event event);
   bool OnCubeEvent(ftxui::Event event);
@@ -701,117 +700,114 @@ class TuiController {
   bool OnPartyMenuEvent(ftxui::Event event);
   bool OnPlayerInspectEvent(ftxui::Event event);
   bool OnPlayerAllStatsEvent(ftxui::Event event);
-  // Whoever the open skill or Hyper Stat card is about -- see
+  // The character the open skill or Hyper Stat card is about; see
   // card_from_inspect_.
   const CharacterInstance& card_character() const;
   bool OnPlayerItemInspectEvent(ftxui::Event event);
   bool OnPartyConfirmEvent(ftxui::Event event);
-  // Opens the inspect screen on the member playing under `account_id`. Does
-  // nothing for a member who has gone since the menu was raised.
-  // Opens the party screen and the Players screen, each after checking that
-  // there is a connection to draw.
-  // Closes whichever of the two the player is on, back to the box that
+  // Closes whichever of the two the player is on, returning to the box that
   // opened it.
   void LeaveMultiplayerScreen();
+  // Open the party screen and the Players screen, each after checking there
+  // is a connection to show.
   void OpenPartySelect();
   void OpenPlayerList();
-  // Whether the connection is up. Raises the notice, and asks for a fresh
-  // attempt, when it is not.
+  // Whether the connection is up. If it isn't, shows the notice and requests a
+  // reconnect.
   bool Connected();
-  // Opens the Inspect screen on a party member, whose sheet the party state
-  // already carries.
+  // Opens the Inspect screen on a party member, whose sheet is already in the
+  // party state.
   void OpenPlayerInspect(const std::string& account_id);
   // Asks `account_id` to trade, from either menu. The trade screen opens when
-  // the server answers, so nothing here says where the player goes next.
+  // the server answers, so nothing here changes the screen.
   void AskToTrade(const std::string& account_id);
-  // Puts a trade that went through into the bag: what was put up leaves, what
-  // the other side put up arrives, and the screen closes back to the list.
+  // Applies a completed trade to the bag: what was offered leaves, what the
+  // other side offered arrives, and the screen returns to the list.
   void ApplyCompletedTrade(const TradeOffer& received);
-  // Raises the finalize dialog on the second acceptance and takes it down
-  // when either is withdrawn.
+  // Shows the final confirmation when both have accepted, and removes it when
+  // either withdraws.
   void AdvanceTradeConfirm(const TradeState& trade);
-  // Opens and closes the trade screen as the server's trade comes and goes. A
-  // trade that ends under the player takes them back where they opened it
-  // from.
+  // Opens and closes the trade screen as the server's trade starts and ends. A
+  // trade that ends while the player is on it returns them to where they opened
+  // it.
   void AdvanceTrade(const MultiplayerSnapshot& lobby);
-  // Raises the amount overlay on the currency the cursor is on.
+  // Shows the amount overlay for the currency under the cursor.
   void OpenTradeAmount();
-  // Puts up what that overlay was left on.
+  // Offers the amount the overlay was set to.
   void PutUpTradeAmount();
-  // Tells the server what is on this player's side of the table, whole.
+  // Sends the server this player's whole side of the trade.
   void SendTradeOffer();
-  // Enter on a row of any of the three windows.
+  // Enter on a row in any of the three windows.
   void OpenTradeMenu();
-  // Enter on the bag's Bank tab, which opens the screen on the bag's Equip
-  // tab with both halves' cursors reset.
+  // Enter on the bag's Bank tab, which opens the screen on the bag's Equip tab
+  // with both halves' cursors reset.
   void OpenBank();
-  // Enter on the Accept button, which is a toggle. Accepting is refused with
-  // a notice when the bag could not hold what is on their side of the table:
-  // the one moment the question can be asked, since a table that changes
-  // under an acceptance takes it back with it.
+  // Enter on the Accept button, which toggles. Accepting is refused with a
+  // notice if the bag can't hold what the other side offers. This is the only
+  // moment to check, since any change to the offers withdraws an acceptance.
   void ToggleTradeAccept();
-  // Offer on a bag row: an equip goes up as it stands, a stack through the
-  // amount overlay. Refused with a notice once the table holds its eight.
+  // Offer on a bag row: an equip is offered as is, and a stack through the
+  // amount overlay. Refused with a notice once eight items are offered.
   void OfferFromBag();
   void OpenTradeItemAmount(int stack);
   void PutUpTradeItemAmount();
-  // Inspect on a row of any window. Theirs is built from the wire: nothing in
-  // this client's bag is the item they are holding up.
+  // Inspect on a row in any window. The other side's items are built from
+  // network data, since nothing in this client's bag is their item.
   void OpenTradeInspect();
-  // Walks out, which ends the trade for both.
+  // Leaves the trade, which ends it for both.
   void LeaveTrade();
-  // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
-  // A player off the roster is not in any party, so their sheet has to be
-  // fetched before there is anything to draw.
+  // Requests `account_id`'s sheet and opens the Inspect screen once it arrives.
+  // A player from the roster isn't in any party, so their sheet must be fetched
+  // before there is anything to draw.
   void WatchForInspect(const std::string& account_id);
-  // Whether the player the Players list is waiting on has arrived, and the
-  // screen it opens. Nothing while no watch is pending.
+  // Checks whether the player the Players list is waiting for has arrived, and
+  // opens their screen. Does nothing while no request is pending.
   void AdvanceWatch(const MultiplayerSnapshot& lobby);
-  // Stops the watch the Players list started, if there is one.
+  // Cancels the Players list's pending request, if any.
   void StopWatching();
-  // Keeps the inspect screen on what the lobby last said, and turns the
-  // player out of it when the member they are reading leaves.
+  // Keeps the inspect screen in sync with the lobby, and closes it if the
+  // inspected member leaves.
   void RefreshPlayerInspect(const MultiplayerSnapshot& lobby);
-  // Does what the cursor is on, which is either an ask sent straight to the
-  // server or a question raised first.
+  // Does the selected action, either sending it straight to the server or
+  // asking for confirmation first.
   void TakePartyAction(PartyAction action);
-  // Raises `question` over the party screen; PartyConfirmed() is what a Yes
-  // runs.
+  // Shows `question` over the party screen; PartyConfirmed() runs on Yes.
   void AskAboutParty(PartyAsk ask, const std::string& question);
   void PartyConfirmed();
-  // Floats `message` over whatever is on screen. A refusal is drawn in red.
+  // Shows `message` over the current screen. A refusal is drawn in red.
   void RaisePartyNotice(const std::string& message, bool refusal);
-  // Takes what the server has said about the party's fight and stands the
-  // player in one that has just begun.
+  // Reads what the server says about the party's fight, and puts the player in
+  // one that has just started.
   void AdvancePartyFight(const MultiplayerSnapshot& lobby);
-  // Opens the fight screen on the fight the party has been let into. Whatever
-  // the player was doing, they are in it now.
+  // Opens the fight screen on the fight the party has entered. Whatever the
+  // player was doing, they are in the fight now.
   void OpenPartyFight(const MultiplayerSnapshot& lobby);
-  // Rebuilds the party into the GameState, so what their skills hold over this
-  // character is folded into its stats. See GameState::party.
+  // Copies the party into the GameState, so their skills' effects on this
+  // character are included in its stats. See GameState::party.
   void SeatParty(const MultiplayerSnapshot& lobby);
-  // Whether the fight on screen is the party's rather than one taken alone.
+  // Whether the fight on screen is the party's rather than a solo one.
   bool in_party_fight() const;
-  // Lets go of the finished run, and of the fight behind it.
+  // Releases the finished run and the fight behind it.
   void DropBossRun();
-  // The lobby as it stands, or nothing at all for a game played alone.
+  // The current lobby, or an empty one for single-player.
   MultiplayerSnapshot Lobby() const;
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
   bool OnBossNoticeEvent(ftxui::Event event);
-  // Raises a one-button screen with its prompt open, so every screen dismissed
-  // by [Continue] is opened the one way.
+  // Shows a one-button screen with its prompt ready, so every screen dismissed
+  // by [Continue] is opened the same way.
   void OpenNotice(Screen screen);
-  // The same for a screen that is nothing but a message: `lines` is what it
-  // says, a refusal is drawn in red, and `button` is what the one button says.
+  // The same for a screen that is only a message: `lines` is the text, a
+  // refusal is drawn in red, and `button` is the button's label.
   void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal,
                   const std::string& button);
-  // A one-sentence notice split to read evenly. USE THIS for any notice naming
-  // something: a short name and a long remainder read lopsided otherwise.
+  // A one-sentence notice split into evenly sized lines. Use this for any
+  // notice that names something; otherwise a short name and a long remainder
+  // look lopsided.
   void OpenSentenceNotice(Screen screen, const std::string& sentence,
                           bool refusal, const std::string& button);
-  // Enter on the menu's Dailies entry: the claim, or the notice that today's
-  // has been taken already.
+  // Enter on the menu's Dailies entry: the claim, or a notice that today's is
+  // already claimed.
   void OpenDailies();
   bool OnDailiesEvent(ftxui::Event event);
   bool OnDailiesNoticeEvent(ftxui::Event event);
@@ -820,86 +816,86 @@ class TuiController {
   bool OnBossClearEvent(ftxui::Event event);
   bool OnBossAnalysisEvent(ftxui::Event event);
   bool OnOfflineEvent(ftxui::Event event);
-  // Drops the finished run and goes back to the fight list. What every panel a
-  // fight ends on is dismissed by.
+  // Releases the finished run and returns to the fight list. Every panel a
+  // fight ends on is dismissed with this.
   void LeaveBossRun();
   bool OnMenuBoxEvent(ftxui::Event event);
-  // Enter on a row of the open box: whatever that entry of that box leads to.
+  // Enter on a row of the open box: opens whatever that entry leads to.
   void OpenBoxEntry();
-  // Start and Stop toggle the tool; View raises its overlay.
+  // Start and Stop toggle the tool; View shows its overlay.
   void OpenAnalysisEntry(AnalysisEntry entry);
   bool OnAnalysisEvent(ftxui::Event event);
   bool OnKeybindsEvent(ftxui::Event event);
   bool OnOptionsEvent(ftxui::Event event);
   bool OnJukeboxEvent(ftxui::Event event);
-  // Puts the captured key in the waiting slot, or says why it could not.
-  // Ignores what is not a key, so the slot goes on waiting.
+  // Puts the captured key in the waiting slot, or says why it couldn't. Ignores
+  // events that aren't keys, so the slot keeps waiting.
   void TakeCapturedKey(const ftxui::Event& key);
   // Leaves the Keybinds screen for the box it was opened from.
   void LeaveKeybinds();
   void LeaveOptions();
   void LeaveJukebox();
-  // The bank screen: the bag over the account's storage, the menu a row
-  // raises, the amount a balance asks for, and the card Inspect opens.
+  // The bank screen: the bag above the account's storage, the menu a row opens,
+  // the amount dialog for a balance, and the card Inspect opens.
   bool OnBankEvent(ftxui::Event event);
   bool OnBankMenuEvent(ftxui::Event event);
   bool OnBankAmountEvent(ftxui::Event event);
-  // Raises "Inventory full." or "Bank full." where there was no room.
+  // Shows "Inventory full." or "Bank full." if there was no room.
   void MoveInBank();
   void OpenBankAmount();
 
-  // The Link Skills screen and the menus its rows raise. The preset menu is
-  // the Hyper tab's, so Move is answered by the same dialog.
+  // The Link Skills screen and the menus its rows open. The preset menu is the
+  // Hyper tab's, so Move uses the same dialog.
   bool OnLinkSkillsEvent(ftxui::Event event);
   bool OnLinkSkillMenuEvent(ftxui::Event event);
 
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
-  // Puts every inspect card back at its top, with the left half of the screen
-  // holding the arrows. Called as each such screen opens.
+  // Scrolls every inspect card back to the top, with the left half of the
+  // screen taking the arrows. Called as each such screen opens.
   void OpenInspectCards();
-  // The equip the open inspect screen is weighing against the player's own
-  // gear, and the slot its Equipped card shows until the arrows move it --
-  // where Equip would put it, or, on a member's sheet, the slot they wear it
-  // in. A null prototype is a screen weighing nothing.
+  // The equip the open inspect screen compares against the player's gear, and
+  // the slot its Equipped card shows until the arrows move it: where Equip
+  // would put it, or, on a member's sheet, the slot they wear it in. A null
+  // prototype means nothing to compare.
   struct ComparisonSubject {
     const EquipPrototype* proto = nullptr;
     EquipSlot fallback = EQUIP_SLOT_UNSPECIFIED;
   };
   ComparisonSubject InspectSubject() const;
-  // The shelf item or buy-back row the shop's inspect screen is showing.
+  // The shop item or buy-back row the shop's inspect screen is showing.
   const EquipPrototype* ShopInspectProto() const;
-  // The slot of `proto`'s family the Equipped card is on: the one the arrows
-  // were left on, or `fallback` while they have not been touched.
+  // The slot of `proto`'s family the Equipped card shows: the one the arrows
+  // were left on, or `fallback` if they haven't been used.
   EquipSlot ComparisonSlot(const EquipPrototype& proto,
                            EquipSlot fallback) const;
-  // Walks the Equipped card's tab bar `step` chips, wrapping as every bar in
-  // the game does. False for an item with one slot, and then the arrows go
-  // back to scrolling the card sideways.
+  // Moves the Equipped card's tab bar by `step`, wrapping like every tab bar.
+  // Returns false for an item with one slot, and the arrows then scroll the
+  // card sideways instead.
   bool StepComparisonSlot(int step);
   bool OnShopBuyEvent(ftxui::Event event);
-  // Seeds the buy dialog for a row of the buy-back shelf, which is priced and
-  // bounded by the sale rather than by what the shop stocks.
+  // Sets up the buy dialog for a buy-back row, which is priced and limited by
+  // the sale rather than by the shop's stock.
   void OpenBuyBackDialog(const BuyBackEntry& entry);
   // Spends what a confirmed buy dialog agreed to, on whichever shelf it was
   // opened over.
   void BuyWhatTheDialogAgreedTo();
 
   GameState& state_;
-  // Held only so focus arriving here can clear the Advance tab's gold; the
-  // panel drives itself otherwise.
+  // Kept so focus arriving here can clear the Advance tab's gold; otherwise the
+  // panel runs itself.
   CharacterPanel& char_panel_;
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
-  // The item card, and the preview beside it on kTraceRecover and kStarForce.
-  // Held so the arrows can scroll whichever is being read.
-  // Which slot of the inspected ring's family its Equipped card is showing,
-  // as an index into the family. Unset until the arrows touch the bar, which
-  // is what lets the card open on the slot Equip would fill. Cleared whenever
-  // an inspect screen opens; one member because one is open at a time.
+  // Which slot of the inspected ring's family the Equipped card shows, as an
+  // index into the family. Unset until the arrows move the tab bar, which lets
+  // the card open on the slot Equip would fill. Cleared whenever an inspect
+  // screen opens; one member is enough, since only one is open at a time.
   std::optional<int> compare_slot_;
+  // The item card, and the preview beside it on kTraceRecover and
+  // kStarForce. Kept so the arrows can scroll whichever is being read.
   InspectPanel& inspect_panel_;
   InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;
@@ -916,21 +912,20 @@ class TuiController {
   TradePanel& trade_panel_;
   PlayerInspectPanel& player_inspect_panel_;
   InspectPanel& player_item_panel_;
-  // The member the inspect screen is reading, so the lobby's next word about
-  // them lands on it.
+  // The member the inspect screen is showing, so the lobby's next update about
+  // them is applied to it.
   std::string inspect_account_;
-  // Which list the open Inspect screen was reached from, which is where
-  // Escape puts the player back.
+  // Which list the open Inspect screen came from, which Escape returns to.
   bool inspect_from_players_ = false;
-  // The player the Players list has asked the server for and is waiting on.
-  // Empty once their sheet has landed, or once they have gone.
+  // The player the Players list has requested from the server and is waiting
+  // for. Empty once their sheet has arrived, or once they have left.
   std::string inspect_pending_;
-  // Whether the open skill or Hyper Stat card is reading a party member
-  // rather than the player. The card is the same either way; whose levels it
-  // states is not, and neither is the screen it closes onto.
+  // Whether the open skill or Hyper Stat card shows a party member rather than
+  // the player. The card is the same either way, but whose levels it shows and
+  // which screen it returns to differ.
   bool card_from_inspect_ = false;
-  // The screen the skill card closes onto for the player's own character: the
-  // main view, or the Link Skills screen that raised it.
+  // The screen the skill card returns to for the player's own character: the
+  // main view, or the Link Skills screen that opened it.
   Screen skill_card_return_ = kMain;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
@@ -939,31 +934,31 @@ class TuiController {
   KeybindsPanel& keybinds_panel_;
   OptionsPanel& options_panel_;
   JukeboxPanel& jukebox_panel_;
-  // The measurement the Analysis entry starts and stops. Owned by the session,
-  // not by the controller: it outlives every screen it is read from.
+  // The measurement the Analysis entry starts and stops. The session owns it,
+  // not the controller, since it outlives every screen that reads it.
   BattleAnalysis& analysis_;
   KeyMap& keys_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
   BankPanel& bank_panel_;
   LinkSkillPanel& link_skill_panel_;
-  // Catalog key of the item the buy dialog is open on, so the purchase reads
+  // Catalog key of the item the buy dialog is open on, so the purchase looks up
   // the prototype rather than trusting a pointer to outlive the screen.
   std::string buy_item_;
-  // The shelf row the buy dialog was opened on, so a cursor that moved under
-  // it cannot buy back a different sale.
+  // The shelf row the buy dialog was opened on, so moving the cursor can't buy
+  // back a different sale.
   int buy_back_row_ = 0;
   int& panel_focus_;
   Screen screen_ = kMain;
-  // The item the open modal was opened on, settled once when the player picks
-  // it. ONE ref for every modal, one being open at a time; each accessor below
-  // gates on screen_, which says whose it is.
+  // The item the open modal is about, set once when the player picks it. One
+  // ref serves every modal since only one is open at a time; each accessor
+  // below checks screen_ to see whose it is.
   ItemRef subject_;
-  // The bag row the open modal is about: recovery and the equip sale are
-  // bag-only. One row, for the reason subject_ is one ref.
+  // The bag row the open modal is about; recovery and selling equips only work
+  // in the bag. One row, for the same reason as subject_.
   int bag_row_ = 0;
-  // See right_card_focused(). False on every screen that opens, so the arrows
-  // start on the list or the card the player came in reading.
+  // See right_card_focused(). False when any screen opens, so the arrows start
+  // on the list or card the player was reading.
   bool right_card_focused_ = false;
   // See expanded_panel().
   int expanded_panel_ = kNoPanel;
@@ -975,61 +970,61 @@ class TuiController {
   Skill skill_learn_;
   AmountSelector sp_selector_;
   Skill skill_inspect_;
-  // Rebuilt on every open: the middle entry is a verb that reads Activate or
-  // Deactivate by which way the switch is currently thrown.
+  // Rebuilt every time the menu opens: the middle entry reads Activate or
+  // Deactivate depending on the switch's current state.
   Skill skill_menu_skill_;
   ItemMenu skill_menu_{{"Inspect", "Activate", "Close"}};
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
-  // What the preset menu and its Move popup are about. Held rather than read
-  // back off the panel, so a swap lands on the preset the menu named.
+  // What the preset menu and its Move popup are about. Stored rather than read
+  // back from the panel, so a swap applies to the preset the menu named.
   PresetKind preset_kind_ = PresetKind::kHyperStats;
   StatPreset preset_slot_ = StatPreset::kFirst;
   ItemMenu preset_menu_{{"Use", "Move", "Close"}};
-  // The screen the Move popup closes onto, for the same reason.
+  // The screen the Move popup returns to, stored for the same reason.
   Screen preset_return_ = kMain;
   // The Move popup's cursor: a preset, or kNumStatPresets for Cancel.
   int preset_move_row_ = 0;
-  // The buff the menu, the card and the question are all about. Held so the
-  // answer lands on the buff the question named, whatever the cursor did.
+  // The buff the menu, card and confirmation are about. Stored so the answer
+  // applies to the buff the question named, wherever the cursor went.
   ConsumableType buff_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
   ItemMenu buff_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt buff_buy_prompt_;
   DailiesPanel dailies_panel_;
   CharacterSelectPanel character_select_panel_;
   ConfirmPrompt character_delete_prompt_;
-  // The slot the open Delete question is about, taken when it opens: the
-  // cursor is free to be somewhere else by the time it is answered.
+  // The slot the open Delete confirmation is about, stored when it opens, since
+  // the cursor may have moved by the time it is answered.
   int character_delete_slot_ = -1;
-  // True from a switch until Tui has taken it.
+  // True from a switch until Tui reads it.
   bool character_switched_ = false;
-  // The screen the quit dialog was raised over, which cancelling goes back
-  // to. The character select is the one screen it can be asked from that is
-  // not the main view.
+  // The screen the quit dialog was opened over, which Cancel returns to. The
+  // character select is the only screen other than the main view it can be
+  // opened from.
   Screen quit_return_ = kMain;
   SymbolLevelPanel symbol_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;
   ConfirmPrompt v_matrix_reset_prompt_;
-  // What the open Hyper Stat question is about. Held rather than read back off
-  // the panel, so the answer lands on the stat the question named.
+  // The Hyper Stat the open confirmation is about. Stored rather than read back
+  // from the panel, so the answer applies to the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
   StatPreset hyper_preset_ = StatPreset::kFirst;
   ConfirmPrompt ability_reroll_prompt_;
-  // And which allocation the open Inner Ability question is about, kept apart
-  // from the Hyper one above so neither answer can land on the other's.
+  // The allocation the open Inner Ability confirmation is about, kept separate
+  // from the Hyper one above so neither answer can apply to the other.
   StatPreset ability_preset_ = StatPreset::kFirst;
-  // See ability_rank_up(). Put out by OnEvent before it dispatches, so the
-  // reroll that sets it keeps it and the key after it does not.
+  // See ability_rank_up(). OnEvent clears it before dispatching, so the reroll
+  // that sets it keeps it and the key after clears it.
   bool ability_rank_up_ = false;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
-  // The worn symbol the two symbol dialogs are asking about. Held so the
-  // answer acts on what was asked, whatever the cursor did in the meantime.
+  // The worn symbol the two symbol dialogs are about. Stored so the answer
+  // applies to it, wherever the cursor went meanwhile.
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
-  // The boss confirmation and the fight it asks about. The title is held, so
-  // the dialog cannot change its question under the player.
+  // The boss confirmation and the fight it asks about. The title is stored so
+  // the dialog's question can't change under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
   bool boss_prompt_practice_ = false;
@@ -1038,68 +1033,70 @@ class TuiController {
   bool notice_is_refusal_ = false;
   std::string notice_button_;
   ConfirmPrompt boss_abort_prompt_;
-  // The connection, or null for a game played alone.
+  // The connection, or null for single-player.
   MultiplayerSession* multiplayer_ = nullptr;
-  // The pending party action and who it is about, held so a cursor that moved
-  // under the question cannot answer a different one.
+  // The pending party action and who it is about, stored so a cursor that moved
+  // can't answer a different question.
   PartyAsk party_ask_ = PartyAsk::kNone;
   std::string party_target_;
   ConfirmPrompt party_prompt_;
   std::string party_prompt_question_;
   NotificationBox notification_;
-  // The last gold box raised, so one arriving is raised once rather than on
-  // every frame after it.
+  // The last notification shown, so a new one is shown once rather than every
+  // frame.
   int64_t notification_seen_ = 0;
   AmountSelector trade_selector_;
-  // The finalize dialog. Which side is waiting is the trade's to say, so this
-  // holds only the cursor.
+  // The final confirmation. The trade state says which side is waiting, so this
+  // only holds the cursor.
   ConfirmPrompt trade_prompt_;
-  // And the one asked before walking out, which ends the trade for both. Its
-  // own rather than the finalize dialog's: two questions, two cursors.
+  // The confirmation before leaving, which ends the trade for both. It has its
+  // own prompt, separate from the final confirmation's: two questions, two
+  // cursors.
   ConfirmPrompt trade_leave_prompt_;
-  // Which currency the amount overlay is putting up, taken when it opens: the
-  // cursor is free to be somewhere else by the time it is answered. The stack
-  // overlay takes the place in the bag for the same reason.
+  // Which currency the amount overlay is offering, stored when it opens, since
+  // the cursor may have moved by the time it is answered. The stack overlay
+  // stores the bag index for the same reason.
   TradeCurrency trade_currency_ = TradeCurrency::kMeso;
   int trade_stack_ = -1;
-  // The bank's own amount overlay, and which balance it is moving. Taken when
-  // it opens, for the reason the trade's is.
+  // The bank's amount overlay, and which balance it moves. Stored when it
+  // opens, for the same reason as the trade's.
   AmountSelector bank_selector_;
   BankCurrency bank_currency_ = BankCurrency::kMeso;
-  // What the trade screen is inspecting. Built rather than pointed at: their
-  // half of the table is not in any bag this client holds, and one path for
-  // both sides is one path to keep right.
+  // What the trade screen is inspecting. Built rather than pointed at: the
+  // other side's items aren't in any bag this client has, and one path for both
+  // sides is easier to keep right.
   std::unique_ptr<EquipTabItem> trade_inspect_equip_;
   const ItemPrototype* trade_inspect_stack_ = nullptr;
-  // The screen the trade was opened from, which walking out closes back to.
+  // The screen the trade was opened from, which leaving returns to.
   Screen trade_return_ = kPlayerList;
-  // The trade this player walked out of, so a state still in flight does not
-  // stand the screen back up.
+  // The trade this player left, so a late state update doesn't reopen the
+  // screen.
   std::string left_trade_id_;
   ContinuePrompt party_notice_prompt_;
   std::string party_notice_;
   bool party_notice_is_refusal_ = false;
-  // The serial of the last notice raised, so one is shown once.
+  // The serial of the last notice shown, so each is shown once.
   int64_t party_notice_seen_ = 0;
-  // The last trade payment this client has put in the bag, so one is never
-  // applied twice.
+  // The last trade payment this client added to the bag, so none is applied
+  // twice.
   int64_t trade_paid_seen_ = 0;
   bool save_wanted_ = false;
-  // What the clear card reads from, kept for as long as it is up.
+  // What the offline card shows, and its button.
   OfflineReport offline_report_;
   ContinuePrompt offline_prompt_;
+  // What the clear card shows, kept while it is up.
   std::string boss_clear_title_;
   BossReward boss_clear_reward_;
   double boss_clear_seconds_ = 0.0;
   ContinuePrompt boss_clear_prompt_;
   bool boss_clear_on_analysis_ = false;
   BossAnalysisPanel boss_analysis_panel_;
-  // The fight in progress and the catalog entry it is against, so a clear is
-  // recorded under the names the reset clock reads.
+  // The fight in progress and its catalog entry, so a clear is recorded under
+  // the names the reset clock reads.
   std::unique_ptr<BossRun> boss_run_;
   std::string boss_run_key_;
   std::string boss_run_difficulty_;
-  // The party's fight, which the run follows. Null for a game played alone.
+  // The party's fight, which the run follows. Null for single-player.
   std::unique_ptr<PartyFightAuthority> party_fight_;
   bool quit_requested_ = false;
   ScrollResult scroll_result_;

@@ -41,8 +41,8 @@
 namespace ms {
 namespace {
 
-// What Accept answers when the bag could not hold their side. Wrapped by the
-// notice itself, which is what puts it over several lines.
+// The reply to Accept when the bag can't hold the other side's offer. The
+// notice wraps it onto several lines.
 constexpr char kBagTooFullMessage[] =
     "Your inventory is too full to accept this trade.";
 
@@ -50,8 +50,8 @@ constexpr char kBagTooFullMessage[] =
 
 namespace {
 
-// Columns a notice's sentence is wrapped to. Wide enough that the longest of
-// them takes two lines, narrow enough that neither line is a stub.
+// Width a notice's sentence is wrapped to: wide enough that the longest takes
+// two lines, narrow enough that neither line is tiny.
 constexpr int kNoticeWidth = 34;
 
 }  // namespace
@@ -96,9 +96,8 @@ TuiController::TuiController(GameState& state, Screens screens,
       character_select_panel_(state),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
-  // The Inspect screen's own panels answer Enter with these. Wired here
-  // rather than by whoever built the screens: every one of them is a screen
-  // this controller opens.
+  // The Inspect screen's panels call these on Enter. They are connected here
+  // because every one of those screens is opened by this controller.
   PlayerInspectActions inspect_actions;
   inspect_actions.item = [this]() { OpenPlayerItemInspect(); };
   inspect_actions.skill = [this](const Skill& skill) {
@@ -116,8 +115,8 @@ TuiController::TuiController(GameState& state, Screens screens,
   }
 }
 
-// Every screen that shows an inspect card opens it at the top, with the left
-// half of the screen holding the arrows.
+// Every screen with an inspect card opens it scrolled to the top, with the left
+// half of the screen taking the arrows.
 void TuiController::OpenInspectCards() {
   inspect_panel_.Reset();
   compare_slot_.reset();
@@ -144,7 +143,7 @@ void TuiController::OpenInventoryMenu() {
     return;
   }
   screen_ = kItemMenu;
-  // Enter on a tab asks about the tab; Enter on a row asks about the item.
+  // Enter on a tab opens the tab's menu; Enter on a row opens the item's.
   if (inventory_panel_.on_tab_bar()) {
     inventory_panel_.OpenTabMenu();
   } else {
@@ -173,9 +172,9 @@ void TuiController::OpenSkillMenu(const Skill& skill) {
                 "Close"});
   skill_menu_.Reset();
   if (!skill.toggle()) {
-    // Hidden rather than dim: every other skill in the book is one there is
-    // nothing to switch about, and a greyed row on all of them would advertise
-    // something that is not coming.
+    // Hidden rather than dimmed: no other skill in the book has anything to
+    // toggle, and a greyed entry on all of them would suggest something that
+    // isn't coming.
     skill_menu_.Hide(kSkillMenuToggle);
   } else if (state_.character.skill_level(skill) <= 0) {
     skill_menu_.Disable(kSkillMenuToggle);
@@ -191,20 +190,20 @@ void TuiController::OpenSkillInspect(const Skill& skill) {
   screen_ = kSkillInspect;
 }
 
-// Whoever the open card is about: the player, or the party member behind the
+// The character the open card is about: the player, or the party member on the
 // Inspect screen.
 const CharacterInstance& TuiController::card_character() const {
   return card_from_inspect_ ? player_inspect_panel_.character()
                             : state_.character;
 }
 
-// Read LIVE rather than captured, so a point spent and then inspected again
-// shows the level it is at. The learned level: what the card makes of the lent
-// ones is its own business.
+// Read live rather than stored, so spending a point and inspecting again shows
+// the new level. This is the learned level; the card decides how to show the
+// extra granted levels.
 int TuiController::skill_inspect_level() const {
   if (skill_inspect_.link_line() != JOB_UNSPECIFIED) {
-    // What the ACCOUNT has climbed on that line, so a skill read before it is
-    // carried states the level it would arrive at rather than 0.
+    // The account's progress on that line, so a skill viewed before it is
+    // equipped shows the level it would have rather than 0.
     return card_character().LinkSkillLevelOffered(skill_inspect_);
   }
   return card_character().skill_level(skill_inspect_);
@@ -244,22 +243,22 @@ int TuiController::hyper_inspect_max_level() const {
 
 void TuiController::OpenHyperReset(StatPreset preset) {
   hyper_preset_ = preset;
-  // Opens on Cancel: the points come back, but the allocation they were spent
-  // on does not, and it is fourteen rows of work.
+  // Starts on Cancel: the points are refunded, but the allocation isn't
+  // restored, and it is fourteen rows of work.
   hyper_reset_prompt_.Open(/*cancel_selected=*/true);
   screen_ = kHyperReset;
 }
 
 void TuiController::OpenVMatrixReset() {
-  // Opens on Cancel, as the Hyper question does: the points come back, but the
-  // matrix they were spent on is a great deal more work than fourteen rows.
+  // Starts on Cancel, like the Hyper question: the points are refunded, but
+  // rebuilding a matrix is much more work than fourteen rows.
   v_matrix_reset_prompt_.Open(/*cancel_selected=*/true);
   screen_ = kVMatrixReset;
 }
 
 std::string TuiController::hyper_reset_question() const {
-  // The chip's own name, so the question names what the row does. No mark:
-  // which preset is in use is not what is being reset.
+  // Uses the tab's own name, so the question says what the row does. No in-use
+  // mark, since which preset is in use isn't what is being reset.
   return "Reset " +
          PresetSlotName(hyper_preset_, state_.character.autoswap_presets()) +
          " Hyper Stats?";
@@ -276,8 +275,8 @@ void TuiController::ToggleAbilityLock(int index, StatPreset preset) {
 
 void TuiController::OpenAbilityReroll(StatPreset preset) {
   ability_preset_ = preset;
-  // Opens on Confirm: a player rerolling is rerolling repeatedly, and every
-  // one of them costs the same honor whatever comes back.
+  // Starts on Confirm: a player rerolling usually rerolls many times, and each
+  // costs the same honor whatever comes out.
   ability_reroll_prompt_.Open();
   screen_ = kAbilityReroll;
 }
@@ -300,13 +299,13 @@ void TuiController::ToggleConsumable(ConsumableType type) {
 void TuiController::OpenBuffMenu(ConsumableType type) {
   buff_type_ = type;
   buff_menu_.Reset();
-  // The switch reads as what pressing it does, so the entry is named for the
-  // state it would leave the buff in rather than for the state it is in.
+  // The switch is labelled with what pressing it does, i.e. the state it would
+  // put the buff in, not its current state.
   buff_menu_.SetLabel(kBuffMenuToggle, state_.character.ConsumableActive(type)
                                            ? "Disable"
                                            : "Enable");
-  // A buff already bought has nothing left to buy. The entry stays on the menu
-  // greyed rather than gone: its absence would be the surprise.
+  // A buff already bought can't be bought again. The entry stays on the menu,
+  // greyed out, since a missing entry would be more surprising.
   if (state_.character.ConsumableOwned(type)) {
     buff_menu_.Disable(kBuffMenuBuyPerm);
   }
@@ -315,8 +314,8 @@ void TuiController::OpenBuffMenu(ConsumableType type) {
 
 void TuiController::OpenBuffBuy(ConsumableType type) {
   buff_type_ = type;
-  // Opens on Cancel: buying a buff outright costs hundreds of millions, and
-  // Enter alone must not be able to make it.
+  // Starts on Cancel: buying a buff permanently costs hundreds of millions, so
+  // Enter alone must not buy it.
   buff_buy_prompt_.Open(/*cancel_selected=*/true);
   screen_ = kBuffBuy;
 }
@@ -341,9 +340,9 @@ void TuiController::OpenPresetMenu(PresetKind kind, StatPreset slot) {
   preset_slot_ = slot;
   preset_return_ = kMain;
   preset_menu_.Reset();
-  // Nothing to put in use while the autoswap is picking, and nothing to do to
-  // the one already in use. The entry stays visible either way: its absence
-  // would be the surprise.
+  // Use does nothing while autoswap is choosing, or on the preset already in
+  // use. The entry stays visible either way, since a missing entry would be
+  // more surprising.
   if (state_.character.autoswap_presets() ||
       state_.character.SlotInUse(kind) == slot) {
     preset_menu_.Disable(kPresetMenuUse);
@@ -372,8 +371,8 @@ bool TuiController::OnPresetMenuEvent(ftxui::Event event) {
       state_.character.SetSlotInUse(preset_kind_, preset_slot_);
       break;
     case kPresetMenuMove:
-      // Opens on the preset the menu was raised on, which is the one a swap
-      // with itself does nothing to.
+      // Starts on the preset the menu was opened on, since swapping it with
+      // itself does nothing.
       preset_move_row_ = IndexOf(preset_slot_);
       screen_ = kPresetMove;
       return true;
@@ -386,7 +385,7 @@ bool TuiController::OnPresetMenuEvent(ftxui::Event event) {
 
 bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    // Cancel is the stop past the last preset, and the ring comes round.
+    // Cancel comes after the last preset, and the cursor wraps around.
     preset_move_row_ =
         StepCursor(preset_move_row_, event == ftxui::Event::ArrowUp ? -1 : 1,
                    kNumStatPresets + 1);
@@ -409,8 +408,8 @@ bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
 
 void TuiController::OpenJobAdvance(Job job) {
   job_advance_ = job;
-  // Opens on Cancel: an advancement cannot be undone, so Enter alone must not
-  // be able to pick a job the player was only reading.
+  // Starts on Cancel: an advancement can't be undone, so Enter alone must not
+  // pick a job the player was only reading about.
   job_advance_prompt_.Open(/*cancel_selected=*/true);
   screen_ = kJobAdvance;
 }
@@ -433,20 +432,20 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
     return;
   }
   if (entry == MenuEntry::kCharacters) {
-    // The fight stops the moment this opens -- see OnCharacterSelect -- and
-    // resumes on Escape or a Play.
+    // The fight stops as soon as this opens (see OnCharacterSelect) and resumes
+    // on Escape or Play.
     character_select_panel_.Reset();
     screen_ = kCharacterSelect;
     return;
   }
   if (entry != MenuEntry::kBoss) {
-    // The box opens with the cursor still on the entry below it, which is what
-    // the player presses Up to leave.
+    // The box opens with the cursor still on the entry below it, which the
+    // player presses Up to leave.
     menu_panel_.OpenBox(entry);
     screen_ = kMenuBox;
     return;
   }
-  // Opening the screen is what the gold was leading to, so it stops here.
+  // Opening the screen is what the gold was pointing to, so it clears here.
   state_.account.MarkSeen(MenuPanel::boss_seen_key());
   screen_ = kBossSelect;
   boss_select_panel_.Reset();
@@ -457,14 +456,14 @@ bool TuiController::Connected() {
   if (lobby.state == ConnectionState::kConnected) {
     return true;
   }
-  // Ask for a fresh attempt on the way out. Whatever turned the connection
-  // away may be gone -- a server since deployed is the common one -- and
-  // finding out should not cost the player a restart.
+  // Request a reconnect on the way out. Whatever blocked the connection may be
+  // fixed (usually a server redeploy), and finding out shouldn't require
+  // restarting the game.
   if (multiplayer_ != nullptr) {
     multiplayer_->client().Reconnect();
   }
-  // The notice stands over the main view rather than over the box that raised
-  // it: closing it should land the player somewhere real.
+  // The notice is shown over the main view rather than the box that opened it,
+  // so closing it takes the player somewhere real.
   menu_panel_.CloseBox();
   screen_ = kMain;
   RaisePartyNotice(
@@ -474,10 +473,10 @@ bool TuiController::Connected() {
 }
 
 void TuiController::LeaveMultiplayerScreen() {
-  // Back to the box it was opened from, which is still standing where the
-  // player left it -- the way Keybinds and Options close. Landing on the main
-  // view instead leaves the box open with the cursor inside it, and the menu
-  // row draws no cursor while that holds.
+  // Back to the box it was opened from, which is still open where the player
+  // left it, the same way Keybinds and Options close. Going to the main view
+  // instead would leave the box open with the cursor inside it, and the menu
+  // row draws no cursor while that is the case.
   screen_ = kMenuBox;
 }
 
@@ -533,11 +532,8 @@ const EquipInstance* TuiController::scroll_item() const {
   return subject_.GetInstance(state_.character);
 }
 
-// What the reader's own gear has in the slot `proto` would fill, or nullptr
-// when that slot is empty. A second copy of a ring already worn compares
-// against the worn one, which is what Equip would swap it for. Against the
-// preset the Equipped panel is showing: that is the gear the player is looking
-// at, and the one Equip would displace.
+// The preset the Equipped panel is showing: the gear the player is looking at,
+// and the gear Equip would replace.
 StatPreset TuiController::ComparisonPreset() const {
   return equip_panel_.gear_preset();
 }
@@ -578,8 +574,8 @@ InspectPanel::ComparisonSlots TuiController::comparison_slots() const {
   return slots;
 }
 
-// The shelf item or buy-back row kShopInspect is showing, as a prototype. A
-// stackable is worn in no slot at all and answers nullptr.
+// The shop item or buy-back row kShopInspect is showing, as a prototype. A
+// stackable has no slot and returns nullptr.
 const EquipPrototype* TuiController::ShopInspectProto() const {
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
   if (entry == nullptr) {
@@ -594,8 +590,8 @@ const EquipPrototype* TuiController::ShopInspectProto() const {
 TuiController::ComparisonSubject TuiController::InspectSubject() const {
   const EquipTabItem* item = nullptr;
   switch (screen_) {
-    // An item already on the character is the comparison, so it weighs
-    // against nothing and its card has no bar.
+    // An item already worn is itself the comparison, so it is compared against
+    // nothing and its card has no tab bar.
     case kInspect:
       item = subject_.equipped() ? nullptr : inspect_item();
       break;
@@ -612,9 +608,8 @@ TuiController::ComparisonSubject TuiController::InspectSubject() const {
     case kTradeInspect:
       item = trade_inspect_equip();
       break;
-    // The member's own slot, not the one Equip would fill: the reader is
-    // asking what they wear in the same place, and their gear is not going
-    // anywhere.
+    // The member's own slot, not the one Equip would fill: the viewer wants to
+    // know what they wear in the same slot, and the member's gear isn't moving.
     case kPlayerItemInspect: {
       const EquipInstance* theirs = player_inspect_panel_.selected_item();
       if (theirs == nullptr) {
@@ -659,18 +654,18 @@ std::optional<int> TuiController::CombatPowerDelta(
     return std::nullopt;
   }
   const StatPreset gear = ComparisonPreset();
-  // The slot the Equipped card is showing, so the figure prices the swap the
-  // card is describing -- which for a ring is whichever of the four the bar
-  // is on.
+  // The slot the Equipped card is showing, so the number prices the swap the
+  // card describes. For a ring, that is whichever of the four the tab bar is
+  // on.
   const EquipSlot slot = ComparisonSlot(
       item->prototype(),
       fallback.value_or(state_.character.SlotToFill(item->prototype(), gear)));
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return std::nullopt;
   }
-  // The activity the preset stands for, so the Boss tab prices a piece by
-  // what it is worth against a boss. The third preset is nobody's activity
-  // and reads as the first does.
+  // The activity the preset stands for, so the Boss tab values a piece by what
+  // it is worth against a boss. The third preset belongs to no activity and is
+  // treated like the first.
   const Activity activity =
       gear == StatPreset::kSecond ? Activity::kBossing : Activity::kFarming;
   const int now =
@@ -682,8 +677,8 @@ std::optional<int> TuiController::CombatPowerDelta(
 }
 
 std::optional<int> TuiController::inspect_delta() const {
-  // An item already on the character would replace itself, and a stackable is
-  // worn by nobody. Neither has a figure to give.
+  // An item already worn would replace itself, and a stackable is never worn.
+  // Neither has a number to show.
   if (subject_.equipped()) {
     return std::nullopt;
   }
@@ -691,15 +686,17 @@ std::optional<int> TuiController::inspect_delta() const {
 }
 
 std::optional<int> TuiController::player_item_delta() const {
-  // Priced into the slot THEY wear it in, which is the slot this screen's
-  // card opens on -- see player_item_comparison.
+  // Priced into the slot the member wears it in, which is the slot this
+  // screen's card opens on; see player_item_comparison.
   return CombatPowerDelta(player_inspect_panel_.selected_item(),
                           player_inspect_panel_.selected_slot());
 }
 
+// A second copy of a worn ring compares against the worn one, which is what
+// Equip would swap it for.
 const EquipTabItem* TuiController::inspect_comparison() const {
-  // An item already on the character is the comparison, so there is nothing
-  // to compare it with.
+  // An item already worn is itself the comparison, so there is nothing to
+  // compare it with.
   if (subject_.equipped()) {
     return nullptr;
   }
@@ -710,9 +707,9 @@ const EquipTabItem* TuiController::inspect_comparison() const {
   return WornForComparison(item->prototype());
 }
 
-// The reader's own item in the slot the member's cursor is on. By slot rather
-// than by what it would displace: their gear is not going anywhere, and the
-// question a reader is asking of it is what they wear in the same place.
+// The viewer's own item in the slot the member's cursor is on. By slot rather
+// than by what it would replace: the member's gear isn't moving, and the viewer
+// wants to know what they wear in the same slot.
 const EquipTabItem* TuiController::player_item_comparison() const {
   const EquipInstance* theirs = player_inspect_panel_.selected_item();
   EquipSlot slot = player_inspect_panel_.selected_slot();
@@ -723,19 +720,19 @@ const EquipTabItem* TuiController::player_item_comparison() const {
                                  ComparisonSlot(theirs->prototype(), slot));
 }
 
-// Keys on the main view, once every screen above it has had its say. A back
-// key here means leaving the game, there being nothing left to back out of.
+// Keys on the main view, after every screen above it has had a chance. Back
+// here means leaving the game, since there is nothing left to back out of.
 bool TuiController::OnMainViewEvent(ftxui::Event event) {
-  // An open name field owns every key it can be handed: Escape leaves the
-  // field rather than the game, and Tab must not carry focus off a panel
-  // mid-edit. This only declines them so the panel gets them.
+  // An open name field takes every key it can: Escape closes the field rather
+  // than the game, and Tab must not move focus off a panel mid-edit. This only
+  // declines the keys so the panel receives them.
   if (char_panel_.editing_username()) {
     return false;
   }
   if (IsBack(event)) {
     if (expanded_panel_ != kNoPanel) {
-      // An expanded panel fills the screen, so Escape closes it rather than
-      // the game -- the same key [Close] is, one view at a time.
+      // An expanded panel fills the screen, so Escape closes it rather than the
+      // game, like [Close], one view at a time.
       expanded_panel_ = kNoPanel;
       return true;
     }
@@ -746,19 +743,20 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
     return false;
   }
   if (expanded_panel_ != kNoPanel) {
-    // Nothing to walk to: the other panels are not drawn.
+    // Nowhere to move to: the other panels aren't drawn.
     return true;
   }
-  // Round the panels to the next one on screen; the character panel always is,
-  // so this always lands. Backwards steps kNumPanels - 1 rather than -1, so
-  // the modulo never sees a negative and both directions are one path.
+  // Move to the next panel on screen, wrapping around. The character panel is
+  // always on screen, so this always lands. Backwards adds kNumPanels - 1
+  // rather than subtracting 1, so the modulo never sees a negative and both
+  // directions share one path.
   int step = event == ftxui::Event::Tab ? 1 : kNumPanels - 1;
   do {
     panel_focus_ = (panel_focus_ + step) % kNumPanels;
   } while (!PanelVisible(panel_focus_));
-  // Arriving on a panel is reading whatever tab was left open on it. Without
-  // this, a gold tab the player is already standing on could only be cleared
-  // by arrowing off it and back.
+  // Arriving on a panel counts as viewing whichever tab was left open on it.
+  // Without this, a gold tab the player is already on could only be cleared by
+  // moving off it and back.
   if (panel_focus_ == kInventoryPanel) {
     inventory_panel_.MarkActiveTabSeen();
   }
@@ -769,19 +767,19 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnEvent(ftxui::Event event) {
-  // A panel can go out from under the cursor: the game starts focused on the
-  // equipped panel, which a level 1 character has not unlocked. Settled before
-  // dispatch so a key never reaches a panel that is not drawn.
+  // A panel can disappear from under the cursor: the game starts focused on the
+  // equipped panel, which a level 1 character hasn't unlocked. This is fixed
+  // before dispatch, so no key reaches a panel that isn't drawn.
   EnsureFocusIsVisible();
-  // A rank up is gold until the player's next act, counted here. Cleared
-  // BEFORE dispatch, so the keypress that rolls the rank sets it back on its
-  // way through. Custom is the ticker's redraw and is nobody acting.
+  // A rank-up stays gold until the player's next action, counted here. It is
+  // cleared before dispatch, so the key that raises the rank sets it again on
+  // its way through. Custom is the ticker's redraw, not a player action.
   if (event != ftxui::Event::Custom) {
     ability_rank_up_ = false;
     cube_panel_.SetRankUp(false);
   }
-  // The notice floats over whatever is on screen, so it takes keys before the
-  // screen under it gets a look.
+  // The notice is drawn over whatever is on screen, so it gets keys before the
+  // screen under it.
   if (party_notice_prompt_.open()) {
     party_notice_prompt_.OnEvent(event);
     return true;
@@ -789,7 +787,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
   switch (screen_) {
     case kItemMenu:
       return OnItemMenuEvent(event);
-    // Both are one screen to the player: anything at all closes it.
+    // Both are one screen to the player: any key closes it.
     case kInspect:
     case kItemInspect:
       return OnInspectEvent(event);
@@ -803,7 +801,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSkillLearnEvent(event);
     case kSkillMenu:
       return OnSkillMenuEvent(event);
-    // Screens with nothing to do but read them, so they close the same way.
+    // Read-only screens, so they close the same way.
     case kSkillInspect:
     case kAllStats:
     case kHyperStatInspect:
@@ -978,8 +976,8 @@ Screen TuiController::SeedUpgradeScreen(Screen next) {
       next != kHammer) {
     return next;
   }
-  // All four are about the item under the cursor, settled here so nothing
-  // downstream asks which panel had focus.
+  // All four act on the item under the cursor. It is resolved here so nothing
+  // later needs to check which panel had focus.
   subject_ = SelectedItem();
   if (next == kScrollSelect) {
     OpenInspectCards();
@@ -1009,8 +1007,8 @@ Screen TuiController::SeedSaleScreen(Screen next) {
   if (next == kSellEquip) {
     bag_row_ = inventory_panel_.selected();
     const EquipTabItem& item = state_.character.inventory()[bag_row_];
-    // A trace pays nothing whatever its prototype says, so the dialog is told
-    // what the sale will really hand over rather than what the item cost.
+    // A trace sells for nothing whatever its prototype says, so the dialog is
+    // told what the sale will really pay rather than the item's price.
     bool is_trace =
         state_.character.inventory().equip_instance(bag_row_) == nullptr;
     int price = is_trace ? 0 : SellPrice(item.prototype());
@@ -1025,7 +1023,7 @@ Screen TuiController::SeedSaleScreen(Screen next) {
   if (next == kSell) {
     sell_index_ = inventory_panel_.selected_stack();
     if (sell_index_ < 0) {
-      return kMain;  // the row went out from under the menu
+      return kMain;  // the row disappeared from under the menu
     }
     const StackableItem& stack = state_.character.stackables()[sell_index_];
     sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
@@ -1044,8 +1042,8 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
                               state_.character.meso());
   }
   if (next == kSymbolCombine) {
-    // Keyed off the spare's own slot: what it can be fed to is the symbol of
-    // its area, whichever bag row the cursor happened to be on.
+    // Uses the spare's own slot: it can only be fed to the symbol of its area,
+    // whichever bag row the cursor was on.
     symbol_slot_ = state_.character.inventory()[inventory_panel_.selected()]
                        .prototype()
                        .equip_slot();
@@ -1082,11 +1080,10 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   return true;
 }
 
-// Reading is all there is to do on any of the inspect screens, so either of
-// Confirm and Cancel leaves for `back`. The arrows move whichever card holds
-// them -- sideways too, for a card squeezed narrower than its rows -- and Tab
-// hands them to the next card along, whenever there is one. Everything else
-// is swallowed: these are modal screens.
+// Inspect screens are read-only, so Confirm and Cancel both return to `back`.
+// The arrows scroll whichever card has focus (sideways too, for a card narrower
+// than its rows), and Tab moves focus to the next card if there is one.
+// Everything else is swallowed, since these are modal screens.
 bool TuiController::OnCardEvent(ftxui::Event event, InspectPanel& panel,
                                 Screen back) {
   if (event == ftxui::Event::ArrowUp) {
@@ -1099,9 +1096,9 @@ bool TuiController::OnCardEvent(ftxui::Event event, InspectPanel& panel,
   }
   if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
     int step = event == ftxui::Event::ArrowRight ? 1 : -1;
-    // The Equipped card's tab bar first, when the item has a family of slots
-    // to walk. Nothing else on that card moves sideways -- only the set card
-    // is ever squeezed -- so the two cannot want the same key.
+    // The Equipped card's tab bar comes first, for an item with a family of
+    // slots. Nothing else on that card scrolls sideways (only the set card is
+    // ever squeezed), so the two never need the same key.
     if (panel.focused_card() != InspectPanel::kEquippedCard ||
         !StepComparisonSlot(step)) {
       panel.ScrollXBy(step);
@@ -1124,8 +1121,8 @@ bool TuiController::OnInspectEvent(ftxui::Event event) {
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   bool busy = scroll_panel_.IsConfirming() || scroll_panel_.IsMenuOpen();
-  // The item card takes the arrows in turn with the scroll list. Held back
-  // while a dialog is up: the keys are its own until it closes.
+  // The item card and the scroll list take turns with the arrows. Not while a
+  // dialog is up, since the keys belong to it until it closes.
   if (!busy && IsSwitchPanel(event)) {
     right_card_focused_ = !right_card_focused_;
     return true;
@@ -1147,14 +1144,14 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   }
   ConfirmChoice choice = scroll_panel_.OnEvent(event);
   if (scroll_panel_.TakePinToggled()) {
-    // The panel reads the pin but never writes it: the record is the
-    // character's and rides the save.
+    // The panel reads the pin but never writes it: the record belongs to the
+    // character and is saved with it.
     state_.character.ToggleScrollPin(scroll_panel_.PinKeyOfSelected());
     scroll_panel_.Resort();
   }
   if (scroll_panel_.TakeScrollChosen()) {
-    // Asked before the confirm window opens, so a scroll with nowhere to go
-    // says so rather than asking the player to pay first.
+    // Checked before the confirm window opens, so a scroll with no valid target
+    // says so instead of asking the player to pay first.
     const EquipInstance* item = scroll_item();
     const Scroll& scroll = scroll_panel_.selected_scroll();
     int remaining = item->equip_state().remaining_upgrade_slots();
@@ -1178,9 +1175,9 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     const EquipInstance* item = subject_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
-    // Paid for before it is used, and only used if it was paid for. The panel
-    // will not confirm what the player cannot afford, so this refusing is a
-    // second line rather than the first.
+    // Paid for before it is used, and only used if paid for. The panel won't
+    // confirm what the player can't afford, so this is a second check rather
+    // than the first.
     if (!state_.character.SpendItem(kSpellTraceName,
                                     scroll_panel_.CostOfSelected())) {
       return true;
@@ -1245,8 +1242,8 @@ bool TuiController::OnSkillMenuEvent(ftxui::Event event) {
       OpenSkillInspect(skill_menu_skill_);
       break;
     case kSkillMenuToggle:
-      // The switch is thrown and the menu closes: what it changed is the book
-      // behind it, which the player wants to see.
+      // The switch flips and the menu closes, since the player wants to see the
+      // change in the book behind it.
       state_.character.ToggleSkill(skill_menu_skill_);
       screen_ = kMain;
       break;
@@ -1257,9 +1254,8 @@ bool TuiController::OnSkillMenuEvent(ftxui::Event event) {
   return true;
 }
 
-// Reading is all there is to do here, so either key leaves -- the same way the
-// item inspect screen closes. Shared with the All Stats screen, which has no
-// card to scroll.
+// Read-only, so either key leaves, the same way the item inspect screen closes.
+// The All Stats screen uses this too, since it has no card to scroll.
 bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
   if (screen_ == kSkillInspect) {
     if (event == ftxui::Event::ArrowUp) {
@@ -1272,17 +1268,17 @@ bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
     }
   }
   if (IsBack(event) || IsForward(event)) {
-    // Back onto whichever screen raised the card: the player's own panels, the
-    // Link Skills screen, or the Inspect screen, which raises the same two
-    // over a member's numbers.
+    // Back to the screen that opened the card: the player's own panels, the
+    // Link Skills screen, or the Inspect screen, which opens the same two cards
+    // for a member.
     screen_ = card_from_inspect_ ? kPlayerInspect : skill_card_return_;
   }
   return true;
 }
 
 void TuiController::OpenQuit() {
-  // Opened on Cancel: leaving is not what an accidental Escape means, and a
-  // stray Enter behind one should not end the session.
+  // Starts on Cancel: an accidental Escape doesn't mean the player wants to
+  // quit, and a stray Enter after it shouldn't end the session.
   quit_prompt_.Open(/*cancel_selected=*/true);
   quit_return_ = OnCharacterSelect() ? kCharacterSelect : kMain;
   screen_ = kQuit;
@@ -1291,14 +1287,14 @@ void TuiController::OpenQuit() {
 bool TuiController::OnQuitEvent(ftxui::Event event) {
   ConfirmChoice choice = quit_prompt_.OnEvent(event);
   if (choice == ConfirmChoice::kConfirmed) {
-    // Only raised, never acted on here. Tui owns the ftxui screen and is the
-    // only thing that can end its loop.
+    // Only sets the flag. Tui owns the ftxui screen and is the only thing that
+    // can end its loop.
     quit_requested_ = true;
     screen_ = kMain;
   } else if (choice == ConfirmChoice::kCancelled) {
-    // Back where it was asked. The character select has no other way out, so
-    // cancelling there must not drop the player into a game they have not
-    // chosen a character for.
+    // Back to where it was opened. The character select has no other way out,
+    // so cancelling there must not put the player into a game without choosing
+    // a character.
     screen_ = quit_return_;
   }
   return true;
@@ -1306,8 +1302,8 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
 
 void TuiController::SwitchedCharacter() {
   character_switched_ = true;
-  // The party took in the last character, sheet and all; whoever arrived has
-  // not asked to join it.
+  // The party included the previous character's sheet, and the new character
+  // hasn't asked to join it.
   if (multiplayer_ != nullptr && !Lobby().party.id().empty()) {
     multiplayer_->client().LeaveParty();
   }
@@ -1329,8 +1325,8 @@ bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
     return true;
   }
   if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
-    // The buttons along their row, the card's Farm/Boss chips everywhere
-    // else; each of the two ignores the other's place.
+    // Left and Right move along the button row, or between the card's Farm/Boss
+    // tabs everywhere else; each ignores the other's row.
     int delta = event == ftxui::Event::ArrowLeft ? -1 : 1;
     character_select_panel_.MoveButton(delta);
     character_select_panel_.SwitchActivity(delta);
@@ -1353,12 +1349,12 @@ bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    // Back to whoever was being played: a resume, as Play on their row is.
-    // Quitting has its own button.
+    // Back to the current character: a resume, like Play on their row. Quitting
+    // has its own button.
     LeaveCharacterSelect(/*switched=*/false);
     return true;
   }
-  // Swallow everything else: this is a modal screen.
+  // Swallow everything else, since this is a modal screen.
   return true;
 }
 
@@ -1387,22 +1383,22 @@ void TuiController::TakeCharacterMenuEntry() {
   int slot = character_select_panel_.selected_slot();
   switch (character_select_panel_.menu_selected()) {
     case kCharacterMenuPlay:
-      // On the character already in play this is a resume, and the fight
-      // they left going is still theirs.
+      // On the character already in play this resumes, and their running fight
+      // is still theirs.
       LeaveCharacterSelect(PlayCharacter(state_, slot));
       return;
     case kCharacterMenuSetOffline:
       SetOfflineCharacter(state_, slot);
-      // Straight back to the list, where the check has moved: nothing about
-      // it needs confirming, and seeing it move is the answer.
+      // Straight back to the list, where the check mark has moved: nothing
+      // needs confirming, and seeing it move is the feedback.
       character_select_panel_.Refresh();
       screen_ = kCharacterSelect;
       save_wanted_ = true;
       return;
     case kCharacterMenuDelete:
       character_delete_slot_ = slot;
-      // The menu goes away behind the question: what is being asked about is
-      // the row, and the entry that asked has been pressed.
+      // The menu closes behind the question, since the question is about the
+      // row and the entry has already been pressed.
       character_select_panel_.CloseMenu();
       character_delete_prompt_.Open(/*cancel_selected=*/true);
       screen_ = kCharacterDelete;
@@ -1421,9 +1417,9 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed &&
       DeleteCharacter(state_, character_delete_slot_)) {
-    // Deleting whoever was being played put somebody else in, so the fight
-    // and the watcher are told either way -- and the save goes out now, so
-    // an autosave cannot bring the row back.
+    // Deleting the current character put someone else in play, so the fight and
+    // watcher are told either way. The save happens now, so an autosave can't
+    // bring the row back.
     SwitchedCharacter();
   }
   character_delete_slot_ = -1;
@@ -1436,8 +1432,8 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
 void TuiController::LeaveCharacterSelect(bool switched) {
   if (switched) {
     SwitchedCharacter();
-    // Whoever arrived is standing on their own map with their own panels, so
-    // the cursor starts where a session starts.
+    // The new character is on their own map with their own panels, so the
+    // cursor starts where a session starts.
     panel_focus_ = kEquipPanel;
   }
   save_wanted_ = true;
@@ -1463,8 +1459,8 @@ bool TuiController::OnBuffMenuEvent(ftxui::Event event) {
   }
   switch (buff_menu_.selected()) {
     case kBuffMenuToggle:
-      // Nothing to confirm and nothing to spend, so the switch takes effect on
-      // the keypress and the menu closes behind it.
+      // Nothing to confirm or spend, so the switch takes effect on the key
+      // press and the menu closes behind it.
       ToggleConsumable(buff_type_);
       screen_ = kMain;
       break;
@@ -1483,9 +1479,9 @@ bool TuiController::OnBuffMenuEvent(ftxui::Event event) {
   return true;
 }
 
-// Nothing to point at, only text to read, and the card is short enough that
-// nothing scrolls. Back returns to the menu it was opened from, as the job
-// card does: the decision is one keypress away there.
+// Nothing to select, only text to read, and the card is short enough not to
+// scroll. Back returns to the menu it was opened from, as the job card does, so
+// the decision is one key press away.
 bool TuiController::OnBuffInfoEvent(ftxui::Event event) {
   if (IsBack(event)) {
     screen_ = kBuffMenu;
@@ -1536,9 +1532,9 @@ bool TuiController::OnJobMenuEvent(ftxui::Event event) {
   return true;
 }
 
-// Read-only, so Up and Down are the whole of it. Back returns to the menu the
-// screen was opened from rather than to the main view: the player came here to
-// decide, and the decision is one keypress away on the menu.
+// Read-only, so only Up and Down do anything. Back returns to the menu the
+// screen was opened from rather than the main view, since the player came to
+// decide and the decision is one key press away on the menu.
 bool TuiController::OnJobInspectEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     job_inspect_panel_.MoveCursor(-1);
@@ -1579,9 +1575,9 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     return true;
   }
   const EquipInstance* item = star_force_item();
-  // The item as it stands on the left, the item one star on to the right.
-  // Tab picks which of the two the up and down arrows scroll; left and right
-  // stay the button row's, so the two never argue over a key.
+  // The item as it is on the left, with one more star on the right. Tab picks
+  // which one the up and down arrows scroll; left and right stay with the
+  // button row, so the two never compete for a key.
   bool has_after = item->stars() < item->max_stars();
   if (!busy && has_after && IsSwitchPanel(event)) {
     right_card_focused_ = !right_card_focused_;
@@ -1624,17 +1620,17 @@ const EquipInstance* TuiController::cube_item() const {
 }
 
 bool TuiController::OnCubeEvent(ftxui::Event event) {
-  // Told before it is asked: the panel greys its own Confirm off the purse,
-  // and what the purse holds is not something a keypress should have to wait
-  // for the next render to learn.
+  // Given the meso before any key is handled: the panel greys its own Confirm
+  // based on the meso, and a key press shouldn't have to wait for the next
+  // render to know it.
   cube_panel_.SetItem(cube_item(), state_.character.meso());
   bool busy = cube_panel_.IsConfirming();
   if (IsBack(event) && !busy) {
     screen_ = kMain;
     return true;
   }
-  // Tab hands the arrows to the card beside the shelf, as the star force
-  // screen does: a Legendary potential is more rows than a small terminal has.
+  // Tab moves the arrows to the card beside the shelf, as on the star force
+  // screen: a Legendary potential has more rows than a small terminal.
   if (!busy && IsSwitchPanel(event)) {
     right_card_focused_ = !right_card_focused_;
     return true;
@@ -1650,12 +1646,13 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
     return true;
   }
   if (cube_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
-    // The window stays up over the item it just rerolled, which is the whole
-    // point of it: the player watches the lines change and presses again.
+    // The window stays up over the item it just rerolled, which is the point:
+    // the player watches the lines change and presses again.
     const PotentialRank before = cube_item()->potential().rank();
     CubeItem(state_.character, subject_, cube_panel_.selected_cube());
-    // The first cube into a bare item always hands over a Rare potential, so
-    // it is a grant rather than a rank up and the window stays steel blue.
+    // The first cube on an item without potential always gives a Rare
+    // potential, so it is a grant rather than a rank-up and the window stays
+    // steel blue.
     cube_panel_.SetRankUp(before != POTENTIAL_RANK_UNSPECIFIED &&
                           cube_item()->potential().rank() > before);
   }
@@ -1691,9 +1688,8 @@ const EquipTabItem* TuiController::trace_recover_item() const {
 
 bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
   bool busy = trace_recover_panel_.IsConfirming();
-  // Two cards, and the chips between them answer to Left and Right. Tab picks
-  // which card the arrows scroll; the recovered item's is where the reader
-  // starts.
+  // Two cards, with the tabs between them using Left and Right. Tab picks which
+  // card the arrows scroll, starting on the recovered item's.
   if (!busy && IsSwitchPanel(event)) {
     right_card_focused_ = !right_card_focused_;
     return true;
@@ -1739,8 +1735,8 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     map_select_panel_.MoveCursor(1);
     return true;
   }
-  // Left and Right belong to the chip bar. The panel holds that rule, so it
-  // stays true of every caller rather than of this one handler.
+  // Left and Right belong to the tab bar. The panel enforces that rule, so it
+  // holds for every caller, not just this handler.
   if (event == ftxui::Event::ArrowLeft) {
     map_select_panel_.ChangePage(-1);
     return true;
@@ -1750,8 +1746,8 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    // The menu decides what happens to the map: going there is one of three
-    // things the player might want with it.
+    // The menu decides what to do with the map, since going there is one of
+    // three things the player might want.
     map_select_panel_.OpenMenu();
     if (map_select_panel_.menu_open()) {
       screen_ = kMapMenu;
@@ -1762,15 +1758,15 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     screen_ = kMain;
     return true;
   }
-  // Swallow everything else: this is a modal screen.
+  // Swallow everything else, since this is a modal screen.
   return true;
 }
 
 bool TuiController::OnMapMenuEvent(ftxui::Event event) {
   Screen next = map_select_panel_.OnMenuEvent(event);
   if (next == kMain) {
-    // Move. Travel is free, so the highlighted map is always a legal
-    // destination, and the fight restarts on its own once it sees the new one.
+    // Move. Travel is free, so the selected map is always a valid destination,
+    // and the fight restarts itself once it sees the new map.
     std::string map = map_select_panel_.selected_map();
     if (!map.empty()) {
       state_.current_map = map;
@@ -1791,20 +1787,20 @@ bool TuiController::OnMobInspectEvent(ftxui::Event event) {
     mob_inspect_panel_.MoveCursor(1);
     return true;
   }
-  // Back to the list it was opened from, so a player reading round a band's
-  // mobs is not sent home between each one.
+  // Back to the list it was opened from, so a player browsing a band's mobs
+  // isn't sent back to the main view after each one.
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMapSelect;
     return true;
   }
-  // Swallow everything else: this is a modal screen.
+  // Swallow everything else, since this is a modal screen.
   return true;
 }
 
 namespace {
 
-// Whether `account_id` is still on the roster. A player who has gone leaves
-// nothing to read.
+// Whether `account_id` is still on the roster. A player who has left has
+// nothing to show.
 bool IsOnline(const MultiplayerSnapshot& lobby, const std::string& account_id) {
   for (const PlayerInfo& player : lobby.online.players()) {
     if (player.account_id() == account_id) {
@@ -1822,10 +1818,10 @@ MultiplayerSnapshot TuiController::Lobby() const {
 }
 
 void TuiController::RaisePartyNotice(const std::string& message, bool refusal) {
-  // Wrapped here rather than by the server: how wide a dialog is is the
-  // client's business, and a sentence written plainly used to stretch one as
-  // far as it ran. A break the message made itself is kept, each side of it
-  // wrapped on its own.
+  // Wrapped here rather than by the server, since dialog width is the client's
+  // concern, and an unwrapped sentence used to stretch the dialog as far as it
+  // went. Line breaks in the message are kept, and each part is wrapped
+  // separately.
   party_notice_.clear();
   for (std::size_t at = 0; at <= message.size();) {
     std::size_t end = message.find('\n', at);
@@ -1847,9 +1843,8 @@ void TuiController::AdvanceParty() {
   MultiplayerSnapshot lobby = Lobby();
   party_select_panel_.SetSnapshot(lobby);
   player_list_panel_.SetSnapshot(lobby);
-  // The connection going away turns the player out of the multiplayer
-  // screens: there is no lobby left to show them, and Close should land them
-  // somewhere real.
+  // Losing the connection closes the multiplayer screens: there is no lobby
+  // left to show, and Close should take the player somewhere real.
   bool on_lobby_screen =
       screen_ == kPartySelect || screen_ == kPartyMenu ||
       screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
@@ -1899,8 +1894,8 @@ void TuiController::AdvancePartyFight(const MultiplayerSnapshot& lobby) {
     return;
   }
   if (lobby.state != ConnectionState::kConnected) {
-    // Nothing more is coming, and a fight nobody can hear the end of is not
-    // one to keep watching. Whoever is left fights on without them.
+    // Nothing more will arrive, and there is no point watching a fight whose
+    // end won't be heard. The rest of the party fights on without them.
     if (boss_run_ != nullptr && in_party_fight()) {
       boss_run_->Abort();
     }
@@ -1918,9 +1913,9 @@ void TuiController::SeatParty(const MultiplayerSnapshot& lobby) {
     if (member.player().account_id() == lobby.account_id) {
       continue;
     }
-    // A sheet names its items rather than describing them, so it is rebuilt
-    // against this build's catalogs -- the same way the inspect screen reads
-    // one, and the same way a save is loaded.
+    // A sheet lists items by name rather than describing them, so it is rebuilt
+    // against this build's catalogs, the same way the inspect screen reads one
+    // and a save is loaded.
     CharacterInstance ally(state_.rng, Character());
     ally.RestoreFrom(member.player().sheet(), state_.equips, state_.items);
     ally.set_autoswap_presets(member.player().autoswap_presets());
@@ -1935,22 +1930,22 @@ void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   int index = party_fight_->difficulty_index();
   if (it == state_.bosses.end() || index < 0 ||
       index >= it->second.difficulties_size()) {
-    // A fight this build does not hold. Nothing can be drawn for it.
+    // A fight this build doesn't have, so nothing can be drawn for it.
     party_fight_->Forget();
     return;
   }
   boss_run_key_ = party_fight_->boss_key();
   boss_run_difficulty_ = it->second.difficulties(index).name();
-  // Before the run: it works the character's damage out once, and the party
-  // is part of what the character is worth for as long as the fight lasts.
+  // Before the run, which calculates the character's damage once, and the party
+  // is part of the character's stats for the whole fight.
   SeatParty(lobby);
   ChargeBossEntry();
   boss_run_ =
       std::make_unique<BossRun>(boss_run_key_, it->second, index,
                                 party_fight_.get(), party_fight_->practice());
-  // Whatever they were doing, they are in a fight now. The Menu box goes too:
-  // the way out lands on the main view, whose row hides its cursor while a box
-  // holds one.
+  // Whatever they were doing, they are in a fight now. The Menu box closes too:
+  // leaving the fight goes to the main view, whose menu row hides its cursor
+  // while a box is open.
   menu_panel_.CloseBox();
   party_select_panel_.CloseMenu();
   party_prompt_.Close();
@@ -1963,8 +1958,8 @@ bool TuiController::in_party_fight() const {
 
 void TuiController::DropBossRun() {
   boss_run_.reset();
-  // The party's skills reach this character for the fight and no longer: what
-  // they farm afterwards, they farm alone.
+  // The party's skills apply to this character only for the fight; afterwards
+  // they farm alone.
   state_.party.clear();
   if (party_fight_ != nullptr) {
     party_fight_->Forget();
@@ -1976,8 +1971,8 @@ void TuiController::RefreshPlayerInspect(const MultiplayerSnapshot& lobby) {
     return;
   }
   if (inspect_from_players_) {
-    // The roster first: the sheet they last sent is still on hand, so a
-    // screen that read it would go on drawing somebody who has gone.
+    // Check the roster first: their last sheet is still here, so a screen
+    // reading it would keep showing someone who has left.
     if (!IsOnline(lobby, inspect_account_)) {
       StopWatching();
       screen_ = kPlayerList;
@@ -1990,13 +1985,13 @@ void TuiController::RefreshPlayerInspect(const MultiplayerSnapshot& lobby) {
   }
   for (const PartyMember& member : lobby.party.members()) {
     if (member.player().account_id() == inspect_account_) {
-      // Redrawn from what has just arrived, so a member levelling or
-      // re-gearing while they are being read shows it.
+      // Redrawn from the latest data, so a member who levels or changes gear
+      // while being viewed shows it.
       player_inspect_panel_.SetPlayer(member.player());
       return;
     }
   }
-  // They left, or were turned out. There is nothing left to read.
+  // They left or were kicked, so there is nothing left to show.
   screen_ = kPartySelect;
 }
 
@@ -2188,8 +2183,8 @@ void TuiController::AdvanceWatch(const MultiplayerSnapshot& lobby) {
     screen_ = kPlayerInspect;
     return;
   }
-  // Gone before their sheet arrived. The player is left on the list rather
-  // than shown an empty sheet.
+  // They left before their sheet arrived. The player stays on the list rather
+  // than seeing an empty sheet.
   if (!IsOnline(lobby, inspect_pending_)) {
     StopWatching();
   }
@@ -2210,8 +2205,8 @@ void TuiController::OpenPlayerInspect(const std::string& account_id) {
       member = &in_party;
     }
   }
-  // Gone between the menu opening and Enter. Nothing to read, so the player
-  // is left where they were rather than shown an empty sheet.
+  // They left between the menu opening and Enter. Nothing to show, so the
+  // player stays where they were rather than seeing an empty sheet.
   if (member == nullptr) {
     return;
   }
@@ -2226,16 +2221,16 @@ void TuiController::AskToTrade(const std::string& account_id) {
   if (multiplayer_ == nullptr || account_id.empty()) {
     return;
   }
-  // Where the screen closes back to, taken now: it is the list the player
-  // pressed Trade on, and by the time the server answers they are on it.
+  // Where the screen returns to, recorded now: it is the list the player
+  // pressed Trade on, and they are still on it when the server answers.
   trade_return_ = screen_ == kPartySelect ? kPartySelect : kPlayerList;
   multiplayer_->client().RequestTrade(account_id);
 }
 
 void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
   trade_panel_.SetTrade(lobby.trade);
-  // Before anything else about the trade: the payment is what says it ended,
-  // and the empty state under it would otherwise read as a walk-out.
+  // Before anything else about the trade: the payment shows it completed, and
+  // the empty state after it would otherwise look like the other side left.
   if (lobby.trade_serial != trade_paid_seen_) {
     trade_paid_seen_ = lobby.trade_serial;
     ApplyCompletedTrade(lobby.trade_received);
@@ -2251,8 +2246,8 @@ void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
     }
     return;
   }
-  // A trade this player has already walked out of: the server has not caught
-  // up, and standing the screen back up would trap them on it.
+  // A trade this player already left: the server hasn't caught up yet, and
+  // reopening the screen would trap them on it.
   if (open) {
     AdvanceTradeConfirm(lobby.trade);
     return;
@@ -2265,8 +2260,8 @@ void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
 }
 
 void TuiController::ApplyCompletedTrade(const TradeOffer& received) {
-  // Taken before a thing moves: what was put up is named by where it sits in
-  // the bag, and the first removal makes that untrue.
+  // Recorded before anything moves: offered items are identified by their bag
+  // position, which the first removal changes.
   const OwnTradeOffer& mine = trade_panel_.own();
   ApplyTrade(state_.character, state_.equips, state_.items, mine.equips,
              mine.ToWire(state_.character), received);
@@ -2291,12 +2286,12 @@ bool TuiController::trade_waiting() const {
 }
 
 void TuiController::AdvanceTradeConfirm(const TradeState& trade) {
-  // The dialog is the STATE's, not a keypress's: it opens on the second
-  // acceptance, whichever side gives it, and goes the moment either is taken
-  // back.
+  // The dialog follows the trade state, not a key press: it opens when both
+  // sides have accepted, whichever accepts second, and closes as soon as either
+  // withdraws.
   const bool both = trade.mine_accepted() && trade.theirs_accepted();
-  // Not over the question about walking out: that one is the player's to
-  // answer, and its answer may be what ends the trade anyway.
+  // Not over the leave confirmation: the player must answer that one, and the
+  // answer may end the trade anyway.
   if (screen_ == kTradeLeave) {
     return;
   }
@@ -2313,8 +2308,8 @@ void TuiController::AdvanceTradeConfirm(const TradeState& trade) {
 }
 
 void TuiController::OpenTradeAmount() {
-  // Opens on what is already on the table, with a button for none of it: a
-  // player changing their mind is taking something back as often as adding.
+  // Starts on the amount already offered, with a button for none: a player
+  // changing their mind removes things as often as adding them.
   trade_currency_ = trade_panel_.cursor().currency;
   trade_selector_.Reset(trade_panel_.held(trade_currency_),
                         trade_panel_.offered(trade_currency_));
@@ -2338,8 +2333,8 @@ void TuiController::SendTradeOffer() {
   if (multiplayer_ == nullptr) {
     return;
   }
-  // The whole offer every time: two changes in flight at once cannot then add
-  // up to a table nobody laid.
+  // The whole offer every time, so two changes in flight can't combine into an
+  // offer nobody made.
   multiplayer_->client().SetTradeOffer(
       trade_panel_.own().ToWire(state_.character));
 }
@@ -2388,13 +2383,13 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    // Asked rather than done: Escape is one key away from everywhere, and
-    // walking out ends the trade for both of them.
+    // Asks rather than leaving immediately: Escape is one key away from
+    // everywhere, and leaving ends the trade for both players.
     trade_leave_prompt_.Open();
     screen_ = kTradeLeave;
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
-  // redraw arrives as an event too.
+  // redraw also arrives as an event.
   return true;
 }
 
@@ -2437,8 +2432,8 @@ void TuiController::OpenTradeItemAmount(int stack) {
     return;
   }
   trade_stack_ = stack;
-  // The whole stack is what [MAX] reaches, however much of it is already on
-  // the table: what a player owns is not changed by having offered it.
+  // [MAX] reaches the whole stack, however much is already offered: offering
+  // something doesn't change what the player owns.
   trade_selector_.Reset(stacks[stack].count(),
                         trade_panel_.stack_offered(stack));
   screen_ = kTradeItemAmount;
@@ -2453,8 +2448,8 @@ void TuiController::OpenTradeInspect() {
   TradeCursor cursor = trade_panel_.cursor();
   trade_inspect_equip_.reset();
   trade_inspect_stack_ = nullptr;
-  // The item is COPIED out rather than pointed at: one of the three places it
-  // can come from is a snapshot taken by value.
+  // The item is copied rather than pointed to, because one of the three places
+  // it can come from is a snapshot held by value.
   Equip equip;
   bool is_equip = false;
   std::string stack_name;
@@ -2551,8 +2546,8 @@ bool TuiController::OnTradeConfirmEvent(ftxui::Event event) {
   if (multiplayer_ != nullptr) {
     multiplayer_->client().ConfirmTrade(choice == ConfirmChoice::kConfirmed);
   }
-  // Up either way: what takes it down is the answer coming back -- the trade
-  // going through, or the acceptance this cancel just cleared.
+  // Stays open either way: it closes when the answer comes back, either the
+  // trade completing or the acceptance this cancel just cleared.
   trade_prompt_.Open(/*cancel_selected=*/choice == ConfirmChoice::kConfirmed);
   return true;
 }
@@ -2642,7 +2637,7 @@ bool TuiController::OnBankEvent(ftxui::Event event) {
     screen_ = kMain;
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
-  // redraw arrives as an event too.
+  // redraw also arrives as an event.
   return true;
 }
 
@@ -2675,7 +2670,7 @@ bool TuiController::OnLinkSkillsEvent(ftxui::Event event) {
     screen_ = kMain;
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
-  // redraw arrives as an event too.
+  // redraw also arrives as an event.
   return true;
 }
 
@@ -2700,7 +2695,7 @@ bool TuiController::OnLinkSkillMenuEvent(ftxui::Event event) {
     if (chosen == kPresetMenuUse) {
       state_.character.SetSlotInUse(PresetKind::kLinkSkills, slot);
     } else if (chosen == kPresetMenuMove) {
-      // The Hyper tab's own popup, which closes back onto this screen.
+      // The Hyper tab's own popup, which returns to this screen.
       preset_kind_ = PresetKind::kLinkSkills;
       preset_slot_ = slot;
       preset_return_ = kLinkSkills;
@@ -2716,8 +2711,8 @@ bool TuiController::OnLinkSkillMenuEvent(ftxui::Event event) {
   switch (chosen) {
     case LinkMenuChoice::kInspect:
       if (skill != nullptr) {
-        // The card reads the level the account climbed to, whether or not
-        // this character is carrying the skill yet.
+        // The card shows the level the account has reached, whether or not this
+        // character has the skill equipped yet.
         skill_inspect_ = *skill;
         card_from_inspect_ = false;
         skill_card_return_ = kLinkSkills;
@@ -2812,8 +2807,8 @@ void TuiController::OpenPlayerSkillInspect(const Skill& skill) {
 
 void TuiController::OpenPlayerHyperStatInspect(HyperStatField field) {
   hyper_field_ = field;
-  // The allocation their Character panel is reading, so the card and the row
-  // behind it never state different levels.
+  // The allocation their Character panel shows, so the card and the row behind
+  // it always show the same level.
   hyper_preset_ = player_inspect_panel_.preset() == Activity::kBossing
                       ? StatPreset::kSecond
                       : StatPreset::kFirst;
@@ -2827,8 +2822,8 @@ void TuiController::OpenPlayerAllStats() {
 }
 
 void TuiController::OpenPlayerItemInspect() {
-  // The card reads the item off the panel's cursor, so there is no pointer
-  // held across a tick that may rebuild the member.
+  // The card reads the item from the panel's cursor, so no pointer is held
+  // across a tick that may rebuild the member.
   if (player_inspect_panel_.selected_item() != nullptr) {
     player_item_panel_.Reset();
     compare_slot_.reset();
@@ -2838,8 +2833,8 @@ void TuiController::OpenPlayerItemInspect() {
 
 bool TuiController::OnPlayerInspectEvent(ftxui::Event event) {
   if (IsBack(event)) {
-    // An expanded panel is the whole screen, so Escape closes that first --
-    // the same key [Close] is, one view at a time.
+    // An expanded panel fills the screen, so Escape closes it first, like
+    // [Close], one view at a time.
     if (player_inspect_panel_.expanded()) {
       player_inspect_panel_.CloseExpanded();
       return true;
@@ -2857,14 +2852,14 @@ bool TuiController::OnPlayerInspectEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnPlayerAllStatsEvent(ftxui::Event event) {
-  // Left/Right belong to the member's Farm/Boss row, and only while they have
-  // one; the panel says so.
+  // Left and Right belong to the member's Farm/Boss row, if they have one; the
+  // panel decides.
   if (player_inspect_panel_.OnAllStatsEvent(event)) {
     return true;
   }
-  // Only a key that MEANS leaving closes it. Anything else is swallowed --
-  // the ticker's redraw arrives as an event too, and a screen that closed on
-  // whatever it did not recognise was gone by the next frame.
+  // Only a key that means leaving closes it. Everything else is swallowed: the
+  // ticker's redraw also arrives as an event, and a screen that closed on any
+  // unrecognised event was gone by the next frame.
   if (IsBack(event) || IsForward(event)) {
     screen_ = kPlayerInspect;
   }
@@ -2923,9 +2918,9 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     bool led_by_somebody_else =
         !lobby.party.id().empty() &&
         lobby.party.leader_account_id() != lobby.account_id;
-    // Five ways a fight is not offered, each saying WHY rather than doing
-    // nothing. Whose party it is leads, being about the player rather than the
-    // fight they picked.
+    // Five reasons a fight can't be started, each explaining why rather than
+    // doing nothing. Party leadership is checked first, since it is about the
+    // player rather than the chosen fight.
     if (led_by_somebody_else) {
       OpenNotice(kBossNotice, {"You are not the leader."}, /*refusal=*/true,
                  "Close");
@@ -2947,8 +2942,8 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
               ? "this week"
               : "today";
-      // Named without the difficulty: a clear of any rung closes them all, so
-      // the rung on the cursor may not be the one that was taken.
+      // Named without the difficulty: clearing any difficulty locks them all,
+      // so the one under the cursor may not be the one cleared.
       OpenSentenceNotice(
           kBossNotice,
           state_.bosses.at(boss_select_panel_.selected_boss()).name() +
@@ -2986,9 +2981,9 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
   }
   boss_run_difficulty_ = difficulty->name();
   if (party_fight_ != nullptr && Lobby().party.members_size() >= 2) {
-    // A party fights it together: the server checks every member, keeps the
-    // one roster they all hit, and stands them all in the arena. Alone, or in
-    // a party of one, it is the run below and no network at all.
+    // A party fights together: the server checks every member, keeps one mob
+    // roster for all of them, and puts them all in the arena. Alone, or in a
+    // party of one, it is the local run below with no network involved.
     multiplayer_->client().StartFight(boss_run_key_,
                                       boss_select_panel_.selected_difficulty(),
                                       PARTY_MODE_SHARED, state_.boss_options);
@@ -3004,33 +2999,33 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
 }
 
 void TuiController::ToggleBossOption(int option) {
-  // One switch on the row today. The index is taken rather than assumed, so a
-  // second lands here and nowhere else.
+  // Only one option on the row so far. The index is checked rather than
+  // assumed, so a second option doesn't trigger this one.
   if (option == 0) {
     state_.boss_options.set_practice(!state_.boss_options.practice());
   }
 }
 
 void TuiController::ChargeBossEntry() {
-  // Charged on the way in, whether or not the fight is won: the potion is
-  // drunk before the doors open. A party charges every member who has it on,
-  // each on their own client and out of their own purse.
+  // Charged on entry, whether or not the fight is won, since the potion is
+  // drunk before the fight starts. In a party, each member who has it on is
+  // charged on their own client from their own meso.
   state_.character.ChargeConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION, 1);
 }
 
 bool TuiController::OnBossNoticeEvent(ftxui::Event event) {
   if (notice_prompt_.OnEvent(event)) {
-    // The run is null for a notice raised instead of a fight -- no weapon, or
-    // a daily already taken -- and holds a finished one for a fight that ran
-    // out of clock.
+    // The run is null for a notice shown instead of a fight (no weapon, or a
+    // daily already done), and holds a finished run for a fight that ran out of
+    // time.
     LeaveBossRun();
   }
   return true;
 }
 
 void TuiController::OpenNotice(Screen screen) {
-  // The word a one-button result is dismissed by. A notice that is the end of
-  // it says so instead -- see the overload below.
+  // The label for a one-button result's button. A notice that ends the flow
+  // says "Close" instead; see the overload below.
   notice_button_ = "Continue";
   notice_prompt_.Open();
   screen_ = screen;
@@ -3061,8 +3056,9 @@ void TuiController::OpenDailies() {
   std::vector<const EquipPrototype*> claimable =
       ClaimableSymbols(state_.character, state_.equips);
   if (claimable.empty()) {
-    // Nothing to offer: a character who has never held a symbol. Said here
-    // rather than at the confirm, where the claim's own refusal is a full bag.
+    // Nothing to claim: the character has never had a symbol. It is reported
+    // here rather than at the confirmation, where the claim's own refusal is a
+    // full bag.
     OpenNotice(kDailiesNotice, {"You have no dailies to claim."},
                /*refusal=*/false, "Close");
     return;
@@ -3083,8 +3079,8 @@ bool TuiController::OnDailiesEvent(ftxui::Event event) {
   if (choice == ConfirmChoice::kConfirmed &&
       !ClaimDailies(state_.character, state_.equips,
                     static_cast<int64_t>(std::time(nullptr)))) {
-    // The one way a claim the player was offered does not happen: the bag
-    // filled up. Taking half of it would cost them the rest until tomorrow.
+    // The only way an offered claim fails is a full bag. Taking only part would
+    // lose the rest until tomorrow.
     OpenNotice(kDailiesNotice, {"Not enough room in your bag."},
                /*refusal=*/true, "Close");
     return true;
@@ -3106,8 +3102,8 @@ bool TuiController::OnBossFightEvent(ftxui::Event event) {
     screen_ = kBossAbort;
     return true;
   }
-  // The arrows walk the player between the phase's spots. The swing is not
-  // theirs to aim: what they choose is where to stand.
+  // The arrows move the player between the phase's positions. The player
+  // doesn't aim the attack; they choose where to stand.
   if (boss_run_ != nullptr) {
     if (event == ftxui::Event::ArrowLeft) {
       boss_run_->MovePlayer(-1, 0);
@@ -3119,7 +3115,7 @@ bool TuiController::OnBossFightEvent(ftxui::Event event) {
       boss_run_->MovePlayer(0, 1);
     }
   }
-  // Everything else is swallowed: the fight plays itself out.
+  // Everything else is swallowed: the fight runs by itself.
   return true;
 }
 
@@ -3127,8 +3123,8 @@ bool TuiController::OnBossAbortEvent(ftxui::Event event) {
   ConfirmChoice choice = boss_abort_prompt_.OnEvent(event);
   if (choice == ConfirmChoice::kConfirmed && boss_run_ != nullptr) {
     if (in_party_fight()) {
-      // Walked out of the party's fight, which goes on without them: they
-      // deal no more damage and are paid nothing.
+      // Left the party's fight, which continues without them: they deal no more
+      // damage and get no rewards.
       party_fight_->Leave();
     }
     boss_run_->Abort();
@@ -3140,15 +3136,15 @@ bool TuiController::OnBossAbortEvent(ftxui::Event event) {
 }
 
 void TuiController::AdvanceBossRun(double elapsed_seconds) {
-  // Only the fight screen runs the clock. The leave prompt stops it while the
-  // player decides, and so does whatever the fight ended on -- the run is kept
-  // until they press the button, so the arena stays behind the panel.
+  // Only the fight screen runs the clock. The leave prompt pauses it while the
+  // player decides, and so does the fight's result panel: the run is kept until
+  // the player presses the button, so the arena stays behind the panel.
   if (boss_run_ == nullptr) {
     return;
   }
-  // Only the fight screen runs the clock, and the leave prompt stops it -- but
-  // not in a party's fight, where the others are still swinging and a question
-  // this player is answering must not cost them.
+  // Only the fight screen runs the clock, and the leave prompt pauses it,
+  // except in a party fight, where the others are still attacking and this
+  // player's decision must not slow them down.
   if (screen_ != kBossFight && !(screen_ == kBossAbort && in_party_fight())) {
     return;
   }
@@ -3157,15 +3153,15 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     return;
   }
   if (boss_run_->won()) {
-    // A practice clear spends nothing: the fight is not written down, so the
-    // reset clock never hears about it.
+    // A practice clear costs nothing: the fight isn't recorded, so the reset
+    // clock never sees it.
     if (!boss_run_->practice()) {
       state_.character.RecordBossClear(
           boss_run_key_, boss_run_difficulty_,
           static_cast<int64_t>(std::time(nullptr)));
     }
-    // Copied off the run rather than read back through it: the card is still
-    // up when the run goes.
+    // Copied from the run rather than read through it, since the card is still
+    // up after the run is gone.
     boss_clear_title_ = boss_run_->title();
     boss_clear_reward_ = boss_run_->reward();
     boss_clear_seconds_ = boss_run_->clear_seconds();
@@ -3178,8 +3174,8 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false, "Continue");
     return;
   }
-  // Nothing to dismiss on the way out of an abort: the player asked to leave,
-  // and telling them they left is not news.
+  // Nothing to show when leaving after an abort: the player asked to leave, and
+  // telling them they left isn't news.
   DropBossRun();
   screen_ = kBossSelect;
 }
@@ -3200,7 +3196,8 @@ bool TuiController::OnOfflineEvent(ftxui::Event event) {
   return true;
 }
 
-// Escape leaves from either button: backing out of the card is Continue.
+// Escape works from either button: backing out of the card is the same as
+// Continue.
 bool TuiController::OnBossClearEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
     boss_clear_on_analysis_ = event == ftxui::Event::ArrowRight;
@@ -3220,7 +3217,7 @@ bool TuiController::OnBossClearEvent(ftxui::Event event) {
   return true;
 }
 
-// Back to the card it came from, the cursor still on [Analysis].
+// Back to the card it came from, with the cursor still on [Analysis].
 bool TuiController::OnBossAnalysisEvent(ftxui::Event event) {
   if (IsBack(event)) {
     screen_ = kBossClear;
@@ -3235,8 +3232,8 @@ void TuiController::LeaveBossRun() {
   screen_ = kBossSelect;
 }
 
-// The box a menu entry raised. Modal, like every other menu that stands over
-// the main view: nothing behind it hears a key while it is up.
+// The box a menu entry opened. It is modal, like every other menu over the main
+// view: nothing behind it receives keys while it is open.
 bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     menu_panel_.MoveBoxCursor(1);
@@ -3251,8 +3248,8 @@ bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
     screen_ = kMain;
     return true;
   }
-  // Left and Right still belong to the menu row underneath. Walking off the
-  // entry the box hangs from puts the box away with it.
+  // Left and Right still belong to the menu row underneath. Moving off the
+  // entry the box belongs to closes the box.
   bool sideways =
       event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight;
   if (sideways && menu_panel_.box_cursor() < 0) {
@@ -3273,8 +3270,8 @@ bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
 
 void TuiController::OpenBoxEntry() {
   switch (menu_panel_.box_entry()) {
-    // It opens a screen straight from the menu, so there is nothing here to
-    // open.
+    // It opens a screen directly from the menu, so there is nothing to open
+    // here.
     case MenuEntry::kBoss:
       return;
     case MenuEntry::kMultiplayer:
@@ -3314,8 +3311,8 @@ void TuiController::OpenAnalysisEntry(AnalysisEntry entry) {
     screen_ = kAnalysis;
     return;
   }
-  // The box stays open on Start and Stop: the entry it was pressed on has
-  // just become the other one, and the player can read that where they are.
+  // The box stays open on Start and Stop: the entry just changed to the other
+  // one, and the player can see that where they are.
   if (analysis_.stops_on_press()) {
     analysis_.Stop();
   } else {
@@ -3324,8 +3321,8 @@ void TuiController::OpenAnalysisEntry(AnalysisEntry entry) {
 }
 
 void TuiController::LeaveKeybinds() {
-  // Back to the box it was opened from, which is still standing where the
-  // player left it.
+  // Back to the box it was opened from, which is still open where the player
+  // left it.
   screen_ = kMenuBox;
 }
 
@@ -3337,9 +3334,9 @@ void TuiController::LeaveJukebox() {
   screen_ = kMenuBox;
 }
 
-// The music the screen starts keeps playing behind it, so there is nothing to
-// confirm here either: Escape is the whole door, and an open mode box spends
-// it first.
+// Music started on this screen keeps playing after it closes, so there is
+// nothing to confirm: Escape is the only way out, and it closes an open mode
+// box first.
 bool TuiController::OnJukeboxEvent(ftxui::Event event) {
   if (IsSwitchPanel(event)) {
     jukebox_panel_.SwitchHalf();
@@ -3371,8 +3368,8 @@ bool TuiController::OnJukeboxEvent(ftxui::Event event) {
   return true;
 }
 
-// Every switch takes effect where it is thrown, so there is nothing to
-// confirm and nothing to undo: Escape and Close are the same door.
+// Every switch takes effect immediately, so there is nothing to confirm or
+// undo: Escape and Close do the same thing.
 bool TuiController::OnOptionsEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     options_panel_.MoveRow(-1);
@@ -3382,8 +3379,8 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
     options_panel_.MoveRow(1);
     return true;
   }
-  // A volume moves under Left and Right. Holding one repeats, which is the
-  // terminal's own key repeat rather than anything counted here.
+  // Left and Right change a volume. Holding one repeats, using the terminal's
+  // own key repeat rather than anything counted here.
   if (event == ftxui::Event::ArrowLeft) {
     options_panel_.Adjust(-1);
     return true;
@@ -3398,7 +3395,7 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
       return true;
     }
     options_panel_.Toggle();
-    // The Autoswap switch is among them, and the character reads it.
+    // The Autoswap switch is one of them, and the character reads it.
     state_.MirrorAccount();
     return true;
   }
@@ -3409,8 +3406,8 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
   return true;
 }
 
-// The Battle Analysis overlay reads the tool and does nothing to it, so any
-// key that means "back" is all it answers to.
+// The Battle Analysis overlay only reads the tool, so the only keys it handles
+// are ones that mean "back".
 bool TuiController::OnAnalysisEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMenuBox;
@@ -3419,8 +3416,8 @@ bool TuiController::OnAnalysisEvent(ftxui::Event event) {
 }
 
 void TuiController::TakeCapturedKey(const ftxui::Event& key) {
-  // The ticker posts a redraw several times a second, and a mouse can move
-  // over the terminal. Neither is somebody pressing a key.
+  // The ticker sends a redraw event several times a second, and a mouse can
+  // move over the terminal. Neither is a key press.
   if (key == ftxui::Event::Custom || key.is_mouse() ||
       key.is_cursor_position() || key.is_cursor_shape()) {
     return;
@@ -3472,8 +3469,8 @@ bool TuiController::OnKeybindsEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    // Escape clears the key under the cursor. With nothing there to clear --
-    // an empty slot, or the Close button -- it is the way out instead.
+    // Escape clears the key under the cursor. If there is nothing to clear (an
+    // empty slot, or the Close button), Escape leaves instead.
     KeyAction action = keybinds_panel_.selected_action();
     int slot = keybinds_panel_.selected_slot();
     if (keybinds_panel_.on_close() || keys_.Label(action, slot).empty()) {
@@ -3499,7 +3496,7 @@ bool TuiController::OnShopEvent(ftxui::Event event) {
     return true;
   }
   shop_panel_.OnEvent(event);
-  // Swallow everything else: this is a modal screen.
+  // Swallow everything else, since this is a modal screen.
   return true;
 }
 
@@ -3519,8 +3516,8 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
     }
     if (item != nullptr) {
       buy_item_ = item->name();
-      // Priced in whatever the shelf it came off asks for: the token it names,
-      // or meso when it names none.
+      // Priced in whatever the shelf it came from uses: the token it names, or
+      // meso if it names none.
       const ItemPrototype* token = shop_panel_.selected_token();
       int64_t balance = token == nullptr ? state_.character.meso()
                                          : state_.character.CountItem(*token);
@@ -3544,20 +3541,20 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
 }
 
 // Back to the shop rather than the bag: inspecting is how a player decides
-// whether to buy, so the list is where they were going next either way.
+// whether to buy, so the list is where they were going next anyway.
 bool TuiController::OnShopInspectEvent(ftxui::Event event) {
   return OnCardEvent(event, inspect_panel_, kShop);
 }
 
-// The shelf holds one row per sale, so the amount a row offers is the whole
-// of that sale and an equip is always the one item. Priced at what the sale
-// paid, which is the only price the row has.
+// The shelf has one row per sale, so a row offers exactly that sale's amount,
+// and an equip row is always one item. It is priced at what the sale paid,
+// which is the only price the row has.
 void TuiController::OpenBuyBackDialog(const BuyBackEntry& entry) {
   buy_back_row_ = shop_panel_.selected_row();
   if (entry.has_equip()) {
     buy_item_ = entry.equip().equip_name();
-    // One item, so one is also the ceiling: the row IS the sale, and there is
-    // no second copy of it behind the first.
+    // One item, so the maximum is also one: the row is the sale, and there is
+    // no second copy behind it.
     buy_panel_.Reset(buy_item_, static_cast<int>(entry.unit_price()),
                      state_.character.meso(),
                      std::min(1, state_.character.inventory().room()),
@@ -3573,9 +3570,9 @@ void TuiController::OpenBuyBackDialog(const BuyBackEntry& entry) {
       proto == nullptr ? 0 : state_.character.CountItem(*proto));
 }
 
-// Everything the confirmed dialog buys, whichever shelf it was opened on. The
-// selection is RE-READ and checked against what the dialog was opened on, so a
-// cursor that moved underneath cannot buy something never chosen.
+// Buys what the confirmed dialog agreed to, on whichever shelf it was opened
+// on. The selection is read again and checked against what the dialog was
+// opened on, so a cursor that moved can't buy something never chosen.
 void TuiController::BuyWhatTheDialogAgreedTo() {
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
   if (entry != nullptr) {
@@ -3603,12 +3600,12 @@ void TuiController::BuyWhatTheDialogAgreedTo() {
 
 bool TuiController::OnShopBuyEvent(ftxui::Event event) {
   ConfirmChoice buy_choice = buy_panel_.OnEvent(event);
-  // Taken once: both of these answer true only on the frame the player
-  // pressed, and asking twice throws the answer away.
+  // Read once: both return true only on the frame the player pressed, and
+  // reading twice would lose the answer.
   if (buy_choice == ConfirmChoice::kConfirmed) {
     BuyWhatTheDialogAgreedTo();
-    // Back to the shop rather than the bag: a player buying one thing is
-    // usually buying two.
+    // Back to the shop rather than the bag: a player buying one thing often
+    // buys another.
     screen_ = kShop;
   } else if (buy_choice == ConfirmChoice::kCancelled) {
     screen_ = kShop;
