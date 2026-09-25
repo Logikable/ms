@@ -257,17 +257,16 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
   }
 }
 
-// The account's climb opens them, and the character's own first job is what
-// gives them a line to read one against.
-TEST_F(ProgressionTest, LinkSkillsWaitForTheAccountAndForAJob) {
+// The trail lights the first time the account reaches the top rung, for
+// whoever is being played.
+TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsTopRung) {
   EXPECT_EQ(UnlockLevel(Feature::kLinkSkills), kLinkSkillsLevel);
   account_.RecordProgress(kLinkSkillsLevel, 4);
 
-  EXPECT_FALSE(Unlocked(Feature::kLinkSkills, MakeCharacter(1), account_))
-      << "a Beginner has no line of their own";
+  EXPECT_TRUE(Unlocked(Feature::kLinkSkills, MakeCharacter(1), account_))
+      << "a Beginner has the row too";
   EXPECT_TRUE(Unlocked(Feature::kLinkSkills, MakeAdvanced(10, JOB_SWORDMAN, 1),
-                       account_))
-      << "their first job opens it, whatever level they are";
+                       account_));
 
   AccountInstance fresh;
   EXPECT_FALSE(

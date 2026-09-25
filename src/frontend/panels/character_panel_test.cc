@@ -882,7 +882,10 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
             std::string::npos)
       << "there is nowhere to the right to go";
 
-  // Down reaches the skill rather than wrapping to the name.
+  // Down reaches the rows rather than wrapping to the name: the Link Skills
+  // row, then the skill.
+  EXPECT_NE(RenderComponent(comp).find("Link Skills"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(inspected, "Blessing of the Fairy");
@@ -3629,8 +3632,8 @@ std::map<std::string, Skill> BeginnerBook() {
   return {{"blessing_of_the_fairy", fairy}};
 }
 
-// A Hero on an account that has paid the last rung. The row is the account's
-// to open, so the level on the character is beside the point.
+// A second-job Fighter: a book of their own, so the tab opens on page I and
+// the beginner's page is one step left.
 CharacterInstance MakeLinkedHero(std::mt19937& rng) {
   Character proto;
   proto.set_level(30);
@@ -3650,18 +3653,11 @@ ftxui::Component OnBeginnerPage(CharacterPanel& panel) {
   return comp;
 }
 
-// It stands under the beginner's book, carries no tag and no level, and is
-// there only once the account has opened the system.
-TEST_F(CharacterPanelTest, TheLinkSkillsRowArrivesWithTheAccountsClimb) {
+// It stands over the beginner's book, carries no tag and no level, and is
+// there from the start -- only the trail waits for the account's climb.
+TEST_F(CharacterPanelTest, TheLinkSkillsRowLeadsTheBeginnersPage) {
   CharacterInstance c = MakeLinkedHero(rng_);
   panel_focus_ = kCharPanel;
-  CharacterPanel before(c, account_, panel_focus_, BeginnerBook());
-  before.SetWidth(kLeftColumnMax);
-  EXPECT_EQ(
-      ScreenText(RenderToScreen(OnBeginnerPage(before))).find("Link Skills"),
-      std::string::npos);
-
-  account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
   CharacterPanel panel(c, account_, panel_focus_, BeginnerBook());
   panel.SetWidth(kLeftColumnMax);
   std::string rendered = ScreenText(RenderToScreen(OnBeginnerPage(panel)));

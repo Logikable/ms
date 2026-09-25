@@ -1632,7 +1632,7 @@ CharacterInstance::link_skills(StatPreset slot) const {
 
 bool CharacterInstance::HoldsLinkSkill(const Skill& skill,
                                        Activity activity) const {
-  if (skill.link_line() == JOB_UNSPECIFIED || !link_skills_unlocked()) {
+  if (skill.link_line() == JOB_UNSPECIFIED || link_skills_off_) {
     return false;
   }
   // Their own line's is theirs whatever they have equipped, and takes none of
@@ -1653,9 +1653,12 @@ int CharacterInstance::LinkSkillLevelOffered(const Skill& skill) const {
   if (skill.link_line() == JOB_UNSPECIFIED) {
     return 0;
   }
-  return std::min(SkillMaxLevel(skill),
-                  link_tally_.With(character_.job(), character_.level())
-                      .LevelFor(skill.link_line()));
+  int level = link_tally_.With(character_.job(), character_.level())
+                  .LevelFor(skill.link_line());
+  if (BranchOf(skill.link_line()) == BranchOf(character_.job())) {
+    level = std::max(level, 1);
+  }
+  return std::min(SkillMaxLevel(skill), level);
 }
 
 bool CharacterInstance::EquipLinkSkill(const std::string& name,

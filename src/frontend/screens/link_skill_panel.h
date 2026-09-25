@@ -44,7 +44,7 @@ struct LinkCursor {
     kPreset,
     kSkill,
     // The window under the cursor has nothing to stand on: an empty preset,
-    // or a character whose own line hands them nothing yet.
+    // or a Beginner, who has no line of their own.
     kNothing,
   };
   Kind kind = Kind::kNothing;

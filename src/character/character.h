@@ -501,8 +501,7 @@ class CharacterInstance {
       StatPreset slot = StatPreset::kFirst) const;
   // Whether this character carries `skill` while doing `activity`: their own
   // line's, or one equipped in the preset that activity reads. False for
-  // anything that is not a link skill, and for every one of them until the
-  // account has opened them.
+  // anything that is not a link skill.
   bool HoldsLinkSkill(const Skill& skill,
                       Activity activity = Activity::kFarming) const;
   // What `skill` stands at for this character, 0 for one they do not hold.
@@ -511,7 +510,8 @@ class CharacterInstance {
   int LinkSkillLevel(const Skill& skill,
                      Activity activity = Activity::kFarming) const;
   // The level `skill` would stand at once carried, whatever this character
-  // has equipped: what the screen offering it has to show.
+  // has equipped: what the screen offering it has to show. Their own line's
+  // is at least 1 from level 1; another line's waits for its first rung.
   int LinkSkillLevelOffered(const Skill& skill) const;
   // Puts `name` into `slot`, or takes it off. Equipping refuses a full preset
   // and one already on; both refuse a name that is not a link skill, which is
@@ -565,13 +565,11 @@ class CharacterInstance {
   bool inner_ability_unlocked() const {
     return character_.level() >= kInnerAbilityUnlockLevel;
   }
-  // Whether the ACCOUNT has opened the link skills. Read off the same
-  // watermark Blessing of the Fairy is, so a character who reaches the level
-  // themselves opens it the moment they do rather than at the next save.
-  bool link_skills_unlocked() const {
-    return !link_skills_off_ && account_max_level() >= kLinkSkillsLevel;
+  // Whether the link skills are shut off -- see set_link_skills_off().
+  bool link_skills_off() const {
+    return link_skills_off_;
   }
-  // Shuts them off outright, level or no level. For a SIM, which measures a
+  // Shuts them off outright, own line and all. For a SIM, which measures a
   // character standing alone: the balance numbers were taken before link
   // skills existed and have not been re-taken against them. See
   // TestOptions::link_skills.

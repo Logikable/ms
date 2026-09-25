@@ -893,8 +893,7 @@ bool CharacterPanel::ShowsVReset() const {
 
 bool CharacterPanel::ShowsLinkRow() const {
   return !read_only_ && ActiveTab() == kTabSkills &&
-         IsBeginnerPage(SelectedSkillPage()) &&
-         Unlocked(Feature::kLinkSkills, character_, account_);
+         IsBeginnerPage(SelectedSkillPage());
 }
 
 int CharacterPanel::SkillIndexFor(int row) const {

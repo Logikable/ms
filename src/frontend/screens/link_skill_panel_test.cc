@@ -203,11 +203,9 @@ TEST_F(LinkSkillPanelTest, ALevelZeroSkillIsNotListed) {
   ASSERT_TRUE(hero().EquipLinkSkill("Empirical Knowledge", StatPreset::kFirst));
   std::string text = Text();
   EXPECT_EQ(text.find("Thief's Cunning"), std::string::npos);
-  EXPECT_EQ(text.find("Invincible Belief"), std::string::npos);
-  EXPECT_NE(text.find("(not yet earned)"), std::string::npos);
+  EXPECT_NE(text.find("Invincible Belief"), std::string::npos)
+      << "their own line's is theirs at 1 before any rung";
   EXPECT_NE(text.find("Empirical Knowledge"), std::string::npos);
-  EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kNothing)
-      << "the top window has no row to stand on";
   ToEnabledRows();
   EXPECT_EQ(panel_->cursor().skill->name(), "Empirical Knowledge");
   panel_->MoveRow(1);
