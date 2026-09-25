@@ -1,11 +1,10 @@
-/* What the player is fighting: the map's mobs, how hard each is hit, and how
- * fast the swings and respawns come.
+/* What the player is fighting: the map's mobs, how much damage each takes, and
+ * how often attacks and respawns happen.
  *
- * ComputeCombatParams() reads that off a GameState once into a plain
- * CombatParams, and the fight steps from those alone (see fight.h), so it
- * cannot quietly disagree with the encounter it is playing out. Every
- * duration is in game-scaled seconds -- real ones stretched by the
- * character's GameSpeedFactor.
+ * ComputeCombatParams() reads this from a GameState once into a plain
+ * CombatParams, and the fight runs only from that (see fight.h), so the two
+ * can't disagree. All durations are in game-scaled seconds: real seconds
+ * stretched by the character's GameSpeedFactor.
  */
 #ifndef MS_SRC_COMBAT_ENCOUNTER_H_
 #define MS_SRC_COMBAT_ENCOUNTER_H_
@@ -25,351 +24,341 @@
 
 namespace ms {
 
-// One targetable mob type. `mob` is the source of truth for name, HP, EXP and
-// drops; GameState owns it and it outlives the step.
+// One mob type that can be targeted. `mob` is the source of truth for name, HP,
+// EXP and drops; GameState owns it and it outlives the step.
 struct CombatType {
   const Mob* mob = nullptr;
-  int simultaneous = 0;  // how many spawn at once: SpawnCount
-  // Where each stands in a boss arena; empty on a map. Carried rather than
-  // read back off the phase: a spawn whose mob the catalog lacks never
-  // becomes a type, so an index would slide every later part one cell over.
+  int simultaneous = 0;  // how many spawn at once (SpawnCount)
+  // Where each mob stands in a boss arena; empty on a map. Stored here rather
+  // than read from the phase: a spawn whose mob isn't in the catalog never
+  // becomes a type, so indexing into the phase would shift every later type by
+  // one.
   std::vector<ArenaSpot> spots;
-  // How one wanders its arena. Unset for everything that stands still.
+  // How it moves around the arena. Unset for mobs that stand still.
   ArenaWalk walk;
-  // Expected damage one hit does to the player, already through their DEF.
-  // Per type, every member of one hitting alike.
+  // Expected damage of one hit to the player, after their DEF. Every mob of one
+  // type hits the same.
   double damage_to_player = 0.0;
-  // The same once SCARRED, which weakens its attack. Equal to the line above
-  // for every character who scars nothing.
+  // The same while the mob is scarred, which weakens its attack. Equal to
+  // damage_to_player for characters without a scar effect.
   double damage_to_player_scarred = 0.0;
 };
 
-// One block of lines inside a swing. A swing is one of these plus one per
-// extra hit the skill lands; the parts differ in line count and crit rate, so
-// each rolls on its own.
+// One group of lines within an attack. An attack is one group plus one per
+// extra hit the skill adds. Groups differ in line count and crit chance, so
+// each rolls separately.
 struct HitGroup {
-  std::vector<double> damage;  // per target type, parallel to CombatParams
+  std::vector<double>
+      damage;  // per target type, parallel to CombatParams::types
   SwingRolls rolls;
 };
 
-// A swing that is HELD. The damage is in the swing's own groups -- the first
-// is one pulse, the rest the strike it ends on -- since a hold is that pulse
-// over and over; a hold that GROWS carries its second pulse here instead.
-// `pulses` is 0 for every attack that is simply swung. See Channel.
+// A held (channeled) attack. The attack's own groups hold the damage: the first
+// is one pulse, the rest are the final strike. A hold that grows stores its
+// stronger pulse here instead. `pulses` is 0 for normal attacks. See Channel.
 struct ChannelHold {
   int pulses = 0;
-  // The fewest a cast is committed to: what fits inside min_seconds.
+  // Minimum pulses per cast: as many as fit in min_seconds.
   int min_pulses = 0;
   double pulse_seconds = 0.0;
   double finish_seconds = 0.0;
   double min_seconds = 0.0;
-  // Share of the pool ONE pulse puts back, so letting go early recovers
-  // less. The closing strike pays its own, in AttackOption::hp_recover_pct.
+  // Fraction of max HP restored per pulse, so releasing early heals less. The
+  // final strike's heal is in AttackOption::hp_recover_pct.
   double hp_recover_pct = 0.0;
-  // Share of every hit the player takes that the hold cancels while it runs.
+  // Fraction of incoming damage blocked while holding.
   double damage_taken_pct = 0.0;
-  // Pulses beaten at the opening strength before it grows. 0 for a hold that
-  // beats the same throughout.
+  // Pulses at starting strength before the hold grows. 0 if it never grows.
   int small_pulses = 0;
-  // One pulse once the hold has grown; empty for a hold that never does.
+  // One pulse after the hold has grown; empty if it never grows.
   HitGroup grown;
-  // A hold bought out of a bank rather than a cooldown: one charge every
-  // `charge_seconds`, `max_charges` at once, `pulses_per_charge` bought by
-  // each. 0 for a hold paced by a cooldown. See Channel.
+  // For holds paid for with charges instead of a cooldown: one charge every
+  // `charge_seconds`, up to `max_charges`, each buying `pulses_per_charge`
+  // pulses. 0 for holds on a cooldown. See Channel.
   double charge_seconds = 0.0;
   int max_charges = 0;
   int pulses_per_charge = 0;
 };
 
-// One burn a swing leaves: a tick's worth per type, the clock it burns on and
-// how it takes hold. One per source that marks what the swing hits.
+// One burn (damage over time) an attack applies: damage per tick for each type,
+// its timing, and how it's applied. One per source.
 struct DotApplication {
   std::vector<double> damage;  // per target type, one tick's worth
   SwingRolls rolls;
   double interval_seconds = 0.0;
   double duration_seconds = 0.0;
-  // Chance it takes hold on each enemy reached; 1 for a burn simply left.
+  // Chance to apply on each enemy hit; 1 for burns that always apply.
   double chance = 1.0;
-  // Helpings one monster can carry at once, each ticking for the whole damage.
+  // How many copies one monster can have at once, each dealing full damage.
   int max_stacks = 1;
-  // An index into the slots every mob carries, so two burns do not overwrite
-  // each other. Assigned per SOURCE, and numbered alike in every buffed set,
-  // so a held slot means the same thing however the buffs come and go.
+  // Index into each mob's burn slots, so two burns don't overwrite each other.
+  // Assigned per source and numbered the same in every buff combination, so a
+  // slot means the same thing as buffs come and go.
   int slot = -1;
-  // Whether the CHARACTER carries it rather than the attack stating it: the
-  // poison on a rogue's claw rides their own swings and nothing else.
+  // Whether the character applies it (rather than the attack): a rogue's claw
+  // poison applies on their own attacks only.
   bool carried = false;
-  // The skill a damage breakdown files its ticks under: the one carrying the
-  // poison, or the swing that left the burn.
+  // The skill this burn's damage is credited to in the breakdown: the poison's
+  // source skill, or the attack that applied the burn.
   std::string credit;
 };
 
-// One Final Attack: a chance, rolled per enemy the swing reached, of one more
-// hit on that enemy. `count` is above 1 only for a source riding the LINES --
-// the meso a Chief Bandit knocks loose is rolled once per line.
+// One Final Attack: a chance, rolled per enemy hit, of one extra hit on that
+// enemy. `count` is above 1 only for sources that roll per line, like the meso
+// Chief Bandit knocks loose.
 struct FinalAttackRoll {
   double chance = 0.0;
   int count = 1;
   std::vector<double> damage;  // per target type, one hit's worth
   SwingRolls rolls;            // how that hit itself varies
-  // Whether it survives on an attack the character does not swing. See
+  // Whether it still applies to attacks the character doesn't use directly. See
   // Skill.follows_own_clock.
   bool follows_own_clock = false;
-  // Enemies reached where it rolls once for the whole swing; 0 for one that
-  // follows the swing onto each enemy.
+  // For sources that roll once per attack, the number of enemies it hits; 0 if
+  // it rolls per enemy.
   int max_enemies = 0;
-  // The skill a damage breakdown files its hits under.
+  // The skill its damage is credited to in the breakdown.
   std::string credit;
 };
 
-// One chance a swing has to land harder on one enemy, and what firing it
-// hands back. Rolled once for the whole swing -- see the Proc message.
+// A chance for an attack to deal extra damage to one enemy, and what it heals
+// when it triggers. Rolled once per attack; see the Proc message.
 struct ProcRoll {
   double chance = 0.0;
-  double damage_pct = 0.0;  // share added to what that one enemy takes
+  double damage_pct = 0.0;  // extra damage to that one enemy
   double hp_recover_pct = 0.0;
 };
 
-// One thing the character could spend a swing on: the bare poke, a learned
-// attack skill, or a cast that does something else with the swing entirely.
-// Which one is best depends on how many mobs are actually in front of the
-// player, so the choice is made per swing by the fight rather than fixed here
-// -- a wide skill that does less per target wins on a crowd and loses on the
-// last mob standing.
+// One thing the character could spend an attack on: a basic attack, an attack
+// skill, or a cast that does something else entirely. Which is best depends on
+// how many mobs are in range, so the fight chooses each time: a wide skill that
+// does less per target wins against a crowd and loses against the last mob.
 struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
-  // The skill a damage breakdown files this under. The name, except on a form
-  // taking another skill's place and a load: those belong to the skill they
-  // stand in for, and to the one that loaded them.
+  // The skill this is credited to in the breakdown. Usually the name, but a
+  // form replacing another skill, or a stored charge, is credited to the skill
+  // it stands in for or that stored it.
   std::string credit = "Attack";
-  int max_enemies = 1;  // front-of-queue mobs one swing reaches
-  // Strikes one swing of it lands on one enemy. Read by the things that count
-  // hits rather than swings -- a buff charged by landing them, and the Freeze
-  // Stacks an elemental swing leaves or spends.
+  int max_enemies = 1;  // mobs at the front of the queue one attack reaches
+  // Hits per enemy per attack. Used by things that count hits rather than
+  // attacks, like buffs charged by landed hits and Freeze Stacks.
   int lines = 1;
-  // What the swing gains per enemy already gone through, compounding: the
-  // k'th reached takes (1 + this)^k. 0 for a swing that hits alike.
+  // Bonus per enemy already pierced, compounding: the k'th enemy takes (1 +
+  // this)^k. 0 for attacks without pierce scaling.
   double pierce_gain_pct = 0.0;
   // Expected damage per target, parallel to CombatParams::types.
   std::vector<double> damage_per_hit;
-  // The same swing in the blocks that roll, summing to damage_per_hit. Empty
-  // lands the average itself, which an attack built by hand wants.
+  // The same damage split into groups that roll, summing to damage_per_hit. If
+  // empty, the average is dealt directly, which hand-built test attacks want.
   std::vector<HitGroup> groups;
-  // Seconds one swing takes. Per attack, the delay belonging to the skill: a
-  // slower animation is what a harder-hitting skill pays. 0 for an attack on
-  // its own clock.
+  // Seconds per attack, from the skill's own delay: slower animations are the
+  // price of harder-hitting skills. 0 for attacks on their own timer.
   double swing_seconds = 0.0;
-  // Seconds between casts, for an attack on its own clock.
+  // Seconds between casts, for attacks on their own timer.
   double interval_seconds = 0.0;
-  // Landed swings between casts, for an attack clocked by attacking. An
-  // attack carries one of the three clocks, never two.
+  // Landed attacks between casts, for attacks triggered by attacking. An attack
+  // has only one of these three triggers.
   int attacks_per_cast = 0;
-  // Enemies defeated between casts, for an attack clocked by the dying.
+  // Kills between casts, for attacks triggered by kills.
   int kills_per_cast = 0;
-  // What one landed swing counts toward the field above. 1 ordinarily, less
-  // for a swing landing several times a second.
+  // How much one landed attack counts toward attacks_per_cast. Usually 1; less
+  // for attacks that land several times a second.
   double count_weight = 1.0;
-  // Seconds it cannot be swung for after it lands.
+  // Cooldown after it lands, in seconds.
   double cooldown_seconds = 0.0;
-  // Swings a raising of the loading buff pays for, spent one per landing. 0
-  // for an attack no buff loads. See Magazine.
+  // Uses granted each time the loading buff is raised, one spent per landing. 0
+  // if no buff loads it. See Magazine.
   int charges = 0;
-  // The swing whose press spends this one, for a load that is no button of
-  // its own: Poison Nova's clouds go off on Mist Eruption. An option carrying
-  // an index here is never CHOSEN; -1 is every attack the fight may pick.
+  // For a stored attack with no button of its own: the attack that fires it
+  // (e.g. Poison Nova's clouds go off with Mist Eruption). The fight never
+  // chooses an option with this set; -1 means it can be chosen normally.
   int spent_by_attack = -1;
-  // The load this swing sets off while a charge stands, and where that
-  // charge is counted. Shared for the reason `empowered` is.
+  // The stored attack this one fires while a charge is available, and where
+  // those charges are counted. Shared for the same reason as `empowered`.
   std::shared_ptr<const AttackOption> loaded;
   int loaded_attack = -1;
-  // Charges one press spends, and strikes landed for them; a press finding
-  // fewer left spends what is there. 1 for a load spent one at a time.
+  // Charges spent per use, and hits dealt for them; if fewer are left, it
+  // spends what remains. 1 for charges spent one at a time.
   int charges_per_swing = 1;
-  // The clock a charge comes back on with no buff behind it, and the bank it
-  // fills to. It runs only while the bank is under that, so a load in hand is
-  // never topped up.
+  // Recharge time for a charge when no buff provides them, and the maximum
+  // charges. Recharges only while below the maximum.
   double recharge_seconds = 0.0;
   int recharge_max = 0;
-  // The opening hit, per target type. It lands on the HEALTHIEST mobs the
-  // swing reached, a hit this big being worth least where it overkills.
+  // The opening hit, per target type. It lands on the healthiest mobs in range,
+  // since a hit this big wastes the least there.
   std::vector<double> lead_damage;
-  // How many of them it lands on. 1 for the Rogue's shape, which strikes one
-  // and spreads.
+  // How many enemies it hits. 1 for the rogue version, which hits one and
+  // spreads.
   int lead_enemies = 1;
-  // Its own, since it lands on its own line count rather than the swing's.
+  // The opening hit's own rolls, since its line count differs from the
+  // attack's.
   SwingRolls lead_rolls;
-  // Strikes scattered over the enemies reached, spreading before they double
-  // up. 0 for a swing landing on each once. See Skill::scatter.
+  // Hits spread across the enemies in range, one each before any enemy takes a
+  // second. 0 for attacks that hit each enemy once. See Skill::scatter.
   int scatter_hits = 0;
-  // What a repeat strike keeps on an enemy the same cast already reached
-  // (0.45 == GMS's "Final Damage -55%").
+  // Damage kept by a repeat hit on an enemy the same cast already hit (0.45
+  // means GMS's "Final Damage -55%").
   double scatter_repeat_kept = 1.0;
-  // Strikes thrown on top of scatter_hits per burn stack alight, capped at
-  // scatter_max_hits. 0 for a swing whose count is fixed.
+  // Extra hits added per burn on the targets, capped at scatter_max_hits. 0 for
+  // a fixed hit count.
   double scatter_hits_per_dot = 0.0;
   int scatter_max_hits = 0;
-  // Strikes any one enemy may take; what does not fit is LOST. 0 lets them
-  // pile as deep as the count allows. See Scatter.
+  // Maximum hits on any one enemy; extra hits are lost. 0 means no limit. See
+  // Scatter.
   int scatter_max_hits_per_enemy = 0;
-  // Final Attack damage per type, landing on every mob the swing reached and
-  // rolled for each. A skill on its own clock keeps only the sources that say
-  // they follow one.
+  // Final Attack damage per type, rolled for each mob hit. Skills on their own
+  // timer keep only sources marked as following them.
   std::vector<double> final_attack_damage;
-  // The same per source, as what actually rolls. Empty lands the average.
+  // The same per source, for rolling. If empty, the average is dealt.
   std::vector<FinalAttackRoll> final_attack_rolls;
-  // The pair above for the sources rolling ONCE for the whole swing, onto a
-  // crowd of their own. Kept apart because the damage is added in a different
-  // place: once per swing here, once per enemy there.
+  // The same two for sources that roll once per attack and hit their own set of
+  // enemies. Kept separate because the damage is added once per attack here,
+  // rather than once per enemy.
   std::vector<double> per_swing_final_attack_damage;
   std::vector<FinalAttackRoll> per_swing_final_attack_rolls;
-  // Enemies that bank lands on: 1 for Blizzard, ten for Split Shot behind a
-  // swing that reached one. Never 0 where the bank holds anything.
+  // Enemies those per-attack sources hit: 1 for Blizzard, ten for Split Shot
+  // after an attack that hit one. Never 0 when the lists above aren't empty.
   int per_swing_final_attack_enemies = 1;
-  // The half of the swing reaching its own crowd rather than the swing's:
-  // its damage per type, what rolls it, and how many it finds. See SwingHit.
+  // The part of the attack that hits its own, wider set of enemies: damage per
+  // type, its rolls, and how many it hits. See SwingHit.
   std::vector<double> wide_hit_damage;
   std::vector<HitGroup> wide_hit_groups;
   int wide_hit_enemies = 0;
-  // The burns this swing leaves on the enemies it reaches.
+  // Burns this attack applies to the enemies it hits.
   std::vector<DotApplication> dots;
-  // Share of the pool this option puts back INSTEAD of dealing damage. One
-  // carrying it deals none, and the fight picks it by need rather than by
-  // rate -- see CombatSim::HealToCast.
+  // Fraction of max HP this option heals instead of dealing damage. It deals no
+  // damage, and the fight picks it when HP is low rather than by damage; see
+  // CombatSim::HealToCast.
   double heal_fraction = 0.0;
-  // Share of the pool a landed strike puts back, on top of what the
-  // character's passives recover. Costs no swing, unlike heal_fraction: the
-  // damage still goes out.
+  // Fraction of max HP restored per landed hit, on top of passive recovery.
+  // Unlike heal_fraction, the attack still deals its damage.
   double hp_recover_pct = 0.0;
-  // The bigger swing taking the PLACE of every empowered_every'th swing, and
-  // how often that is. Shared rather than owned: an AttackOption is copied
-  // freely and the form never changes.
+  // The bigger attack that replaces every empowered_every'th attack, and how
+  // often. Shared rather than owned, since AttackOption is copied freely and
+  // the form never changes.
   std::shared_ptr<const AttackOption> empowered;
   int empowered_every = 0;
-  // Whether the count runs per ENEMY rather than per swing. Set, nothing is
-  // replaced: the swing marks each mob, and the form lands on top of the
-  // ordinary strike for whichever came due.
+  // Whether the count is per enemy rather than per attack. If set, nothing is
+  // replaced: each attack marks the mob, and the empowered form lands on top of
+  // the normal hit for whichever mobs reach the count.
   bool brands_enemies = false;
-  // The second attack this swing sets off, on the wait its own
-  // cooldown_seconds states. Shared for the reason `empowered` is.
+  // A second attack this one triggers, with its own cooldown_seconds. Shared
+  // for the same reason as `empowered`.
   std::shared_ptr<const AttackOption> side;
-  // One more line of this same strike, for a rain that grows with the crowd
-  // the character's swing reaches: `lines_per_extra_enemy` per enemy past the
-  // first, capped at `max_extra_lines`. A LINE rather than a multiplier
-  // because each rolls its own mastery and crit.
+  // An extra line of this attack that scales with the crowd the character hits:
+  // `lines_per_extra_enemy` per enemy past the first, up to `max_extra_lines`.
+  // Extra lines rather than a multiplier, since each rolls its own mastery and
+  // crit.
   std::shared_ptr<const AttackOption> extra_line;
   int lines_per_extra_enemy = 0;
   int max_extra_lines = 0;
-  // Chances to land harder on one enemy reached. Stripped from anything on a
-  // clock of its own: what GMS rolls is the character attacking.
+  // Chances to deal extra damage to one enemy. Removed from anything on its own
+  // timer, since GMS only rolls them for the character's own attacks.
   std::vector<ProcRoll> procs;
-  // What this swing does with the Freeze Stacks: ice leaves `freeze_build`,
-  // lightning spends one per line and takes `freeze_fd_per_stack` of final
-  // damage for each it went in holding.
+  // How this attack uses Freeze Stacks: ice attacks add `freeze_build`,
+  // lightning attacks spend one per line and gain `freeze_fd_per_stack` final
+  // damage for each stack held beforehand.
   int freeze_build = 0;
-  // Stacks left instead when it reaches exactly ONE enemy; 0 keeps the count
-  // above however few it finds.
+  // Stacks added instead when it hits exactly one enemy; 0 keeps freeze_build.
   int freeze_build_alone = 0;
   bool freeze_spends = false;
-  // Lines landed per stack spent; 1 for most lightning swings.
+  // Lines dealt per stack spent; 1 for most lightning attacks.
   int freeze_lines_per_spend = 1;
   double freeze_fd_per_stack = 0.0;
-  // What one HELD stack adds through Freezing Crush's critical damage.
-  // Linear in the stacks: what a stack adds is crit damage, not damage.
+  // Crit damage added per held stack through Freezing Crush.
   double freeze_crit_gain = 0.0;
-  // The magic attack Glacial Fury pays per stack, which only ICE collects.
+  // Magic attack per stack from Glacial Fury. Only ice attacks get it.
   double freeze_matt_gain = 0.0;
-  // Seconds this swing leaves the enemies it reached frozen; 0 for a swing
-  // that freezes nothing, Frozen Orb included. A summon carries it like any
-  // other swing -- Elquines freezes what it touches.
+  // Seconds this attack freezes the enemies it hits; 0 if it doesn't freeze
+  // (including Frozen Orb). Summons can freeze too: Elquines freezes what it
+  // hits.
   double freeze_seconds = 0.0;
-  // The stun this swing leaves: the seconds it stands and the final damage
-  // it hands the swings that collect. See Skill.stun.
+  // The stun this attack applies: its duration, and the final damage other
+  // attacks get against stunned enemies. See Skill.stun.
   double stun_seconds = 0.0;
   double stun_lift_pct = 0.0;
-  // Odds the stun takes hold on each enemy reached.
+  // Chance the stun applies to each enemy hit.
   double stun_chance = 1.0;
-  // Whether THIS swing collects a stun somebody else left: it carries the
-  // tag the stunning skill lifts, and is not that skill.
+  // Whether this attack gets the stun bonus from another skill's stun: it has
+  // the tag that skill boosts, and isn't that skill.
   bool collects_stun_lift = false;
-  // The mark this swing leaves, and what the line spending it takes. See
-  // Skill.mark.
+  // The mark this attack applies, and the bonus for the line that consumes it.
+  // See Skill.mark.
   double mark_seconds = 0.0;
   double mark_lift_pct = 0.0;
-  // Whether THIS swing can spend a mark: it carries the tag the marking
-  // skill names.
+  // Whether this attack can consume a mark: it has the tag the marking skill
+  // names.
   bool collects_mark_lift = false;
-  // Seconds off this swing's next cast per strike that found nothing.
+  // Seconds taken off this attack's next cooldown for each hit that found no
+  // target.
   double cooldown_refund_seconds = 0.0;
-  // The wound this swing leaves on the healthiest enemy reached: how deep,
-  // how deep one can go, and how long it stands. See Wound.
+  // The wound this attack applies to the healthiest enemy hit: stacks per hit,
+  // maximum stacks, and duration. See Wound.
   int wound_stacks = 0;
   int wound_max_stacks = 0;
   double wound_seconds = 0.0;
-  // The heavier form landed INSTEAD while a wound stands at full depth.
-  // Shared for the reason `empowered` is.
+  // The heavier form used instead while a wound is at max stacks. Shared for
+  // the same reason as `empowered`.
   std::shared_ptr<const AttackOption> wound_form;
-  // Shatter's: what one held stack adds against each mob type. Per type
-  // because the defence ignored is that mob's own, and worth nothing where it
-  // is already cancelled.
+  // Shatter: ignore defense added per held stack, per mob type. Per type
+  // because it depends on each mob's defense, and is worthless where defense is
+  // already fully ignored.
   std::vector<double> freeze_ied_gain;
-  // Each line has `scar_chance` of scarring the mob for `scar_seconds`, and
-  // a line landing on a scarred mob takes `scar_fd`. The chance and the
-  // seconds belong to the character's own swings alone -- a summon and a
-  // Final Attack scar nothing -- where the final damage rides anything.
+  // Each line has `scar_chance` to scar the mob for `scar_seconds`, and lines
+  // on a scarred mob gain `scar_fd`. Only the character's own attacks can scar
+  // (summons and Final Attacks can't), but any damage gets the final damage.
   double scar_chance = 0.0;
   double scar_seconds = 0.0;
   double scar_fd = 0.0;
-  // What the condition the enemy is ALREADY in adds. The first is taken
-  // whole on a monster under any status the fight keeps, with nothing extra
-  // for a second; the rest are final damage per burn alight on the group, up
-  // to `dot_count_cap`.
+  // Bonuses for the enemy's current status. fd_when_afflicted applies in full
+  // to a monster with any status the fight tracks, with no extra for a second.
+  // The rest is final damage per burn on the group, up to `dot_count_cap`.
   double fd_when_afflicted = 0.0;
   double fd_per_dot = 0.0;
   int dot_count_cap = 0;
-  // Which buff must stand for this to fire, or -1 for a clock running on its
-  // own: what ticks is the aura, so it ticks only where one was raised.
-  // Off-clock attacks only -- a swing is chosen rather than fired.
+  // Which buff must be active for this to fire, or -1 if it runs on its own.
+  // For auras, which only tick while raised. Only for attacks on their own
+  // timer; normal attacks are chosen, not fired.
   int needs_buff = -1;
-  // Which FORM of that buff must stand, or -1 for a buff with one form: both
-  // Burning Soul Blade's swords sit in the list and only the raised one
-  // fires. Read only where needs_buff is set.
+  // Which form of that buff must be active, or -1 for single-form buffs. Both
+  // of Burning Soul Blade's swords are listed and only the active one fires.
+  // Only used when needs_buff is set.
   int needs_buff_stance = -1;
-  // Whether `needs_buff` reads the other way round: this fires only while
-  // that buff is DOWN, as Inhuman Speed's afterimage does.
+  // Reverses `needs_buff`: this fires only while that buff is down, like
+  // Inhuman Speed's afterimage.
   bool silent_while_buff = false;
-  // A buff that puts THIS summon out while it stands, or -1. The opposite
-  // sense to the pair above: another skill's buff dismisses this summon,
-  // rather than this one waiting on its own. See Buff::silences_skill_name.
+  // A buff that dismisses this summon while active, or -1. The opposite of the
+  // fields above: another skill's buff stops this one. See
+  // Buff::silences_skill_name.
   int silenced_by_buff = -1;
-  // Strikes one due tick fires, each landing in full on its own.
+  // Hits per tick, each dealing full damage.
   int strikes_per_pulse = 1;
-  // The same for a SWING whose strikes are told apart in time rather than
-  // folded into one landing. Each is struck on its own, so the dead are
-  // cleared between them. See Skill.cast_interval_ms.
+  // Hits per attack for attacks whose hits are spaced out in time rather than
+  // landing together. Each is resolved separately, so dead mobs are cleared
+  // between them. See Skill.cast_interval_ms.
   int strikes_in_sequence = 1;
-  // Seconds between those strikes; 0 says they fall together.
+  // Seconds between those hits; 0 if they land together.
   double cast_interval_seconds = 0.0;
-  // Ticks one raising of the gating buff is worth, after which this falls
-  // silent until the buff comes round. See BuffPulse.max_pulses.
+  // Ticks per raise of the required buff; it then stops until the buff is
+  // raised again. See BuffPulse.max_pulses.
   int max_pulses = 0;
-  // The stronger forms this clock walks through as it repeats: the first is
-  // what its second firing lands, the last is where it pins. Shared for the
-  // reason `empowered` is. See BuffPulse.skill_pct_per_repeat.
+  // Stronger forms this timer steps through as it repeats: the first is used on
+  // its second firing, and the last is used from then on. Shared for the same
+  // reason as `empowered`. See BuffPulse.skill_pct_per_repeat.
   std::vector<std::shared_ptr<const AttackOption>> repeats;
-  // One more strike at the last of those forms as `max_pulses` runs out.
+  // One more hit at the last form when `max_pulses` runs out.
   bool final_repeat_strike = false;
-  // The strike this clock goes out on, of a shape all its own -- its
+  // The finishing strike this timer ends with, with its own shape; its
   // `strikes_per_pulse` is how many land together. See BuffPulse.
   std::shared_ptr<const AttackOption> final_strike;
-  // The hold this swing is. damage_per_hit above is a FULL hold, so an
-  // attack weighed without asking is weighed at holding it to the end.
+  // Hold details if this is a held attack. damage_per_hit above is a full hold,
+  // so code comparing attacks assumes the hold runs to the end.
   ChannelHold channel;
 };
 
-// What one attack came to over a run, parallel to the list it was built from.
-// One tally rather than a vector apiece: the four move together, and the last
-// two are HALVES of the first rather than additions to it -- a Final Attack
-// and a burn are already inside `damage`.
+// One attack's totals over a run, parallel to the list it came from. The last
+// two are parts of `damage`, not additions to it: Final Attack and burn damage
+// are already included.
 struct AttackTally {
   double damage = 0.0;
   int swings = 0;
@@ -377,249 +366,240 @@ struct AttackTally {
   double burn_damage = 0.0;
 };
 
-// Seconds a hold of `pulses` takes, never shorter than min_seconds.
+// Seconds a hold of `pulses` takes, at least min_seconds.
 double HoldSeconds(const ChannelHold& hold, int pulses);
 
-// The form a clock lands on its `pulses`'th firing: itself first, then one
-// step up the ramp per repeat, pinned at the last.
+// The form a timer uses on its `pulses`'th firing: itself first, then one step
+// up per repeat, staying at the last.
 const AttackOption& RepeatForm(const AttackOption& attack, int pulses);
 
-// Everything the character can attack with under one set of buffs. The same
-// attacks in the same order in every set -- only the damage differs -- so a
-// held index stays good however the buffs come and go.
+// Everything the character can attack with under one buff combination. Same
+// attacks in the same order in every combination (only damage differs), so a
+// saved index stays valid as buffs change.
 struct AttackSet {
   std::vector<AttackOption> attacks;
   std::vector<AttackOption> auto_attacks;
   std::vector<AttackOption> triggered_attacks;
-  // Freeze Stacks holdable under these buffs: Glacial Fury deepens the pile
-  // only while it stands.
+  // Max Freeze Stacks under these buffs: Glacial Fury raises it while active.
   int freeze_cap = 0;
 };
 
-// What one combination of buffs needs to have its attack set built, kept so a
-// window is built the first time the fight asks rather than all up front.
-// Borrowed, not owned, as CombatType::mob is.
+// What's needed to build the attack set for a buff combination, kept so each
+// set is built on first use rather than all up front. Not owned, like
+// CombatType::mob.
 struct BuffedSetSource {
   const GameState* state = nullptr;
   const EquipPrototype* weapon = nullptr;
-  // The character's own buffs, in CombatParams::buffs order, so bit i of a
-  // mask is skill i.
+  // The character's own buffs in CombatParams::buffs order, so bit i of a mask
+  // is skill i.
   std::vector<const Skill*> buff_skills;
-  // The party's, taking the bits above those: bit buff_skills.size() + j is
-  // ally_buffs[j]. One mask with the character's own, an ally's blessing
-  // changing a swing exactly as their own buff does. Held as BuffUps because
-  // each carries its caster's INT and the party's size, worked out once.
+  // Party buffs, using the bits after the character's own: bit
+  // buff_skills.size() + j is ally_buffs[j]. Sharing one mask means an ally's
+  // buff changes an attack exactly like the character's own. Stored as BuffUps
+  // because each carries its caster's INT and the party size.
   std::vector<BuffUp> ally_buffs;
   double speed_factor = 1.0;
   Activity preset = Activity::kFarming;
-  // Whether a window's reach is halved on the way out, as a boss fight does
-  // to every list.
+  // Whether to halve reach when building, as boss fights do for every list.
   bool halve_reach = false;
 };
 
-// One form a buff can be raised in, priced against the fight at each cast.
-// See Buff.stance.
+// One form a buff can be raised in; the fight picks one at each cast. See
+// Buff.stance.
 struct StanceOption {
   double duration_seconds = 0.0;
-  // Its pulse's clock, and where that pulse sits in AttackSet::auto_attacks.
-  // Read by index rather than copied: a table is built per buff window and
-  // the option keeps its index in every one.
+  // Its pulse timer, and the pulse's index in AttackSet::auto_attacks. Stored
+  // as an index because a table is built per buff combination and the index is
+  // the same in all of them.
   double pulse_interval_seconds = 0.0;
   int pulse_attack = -1;
 };
 
-// A buff the character puts up for a while, on a wait of its own. What it
-// GRANTS is not here: it is folded into the buffed attack sets, a lever like
-// ignored defence being unappliable to a damage number already worked out.
+// A timed buff the character raises, with its own cooldown. Its bonuses aren't
+// here: they're built into the buffed attack sets, since effects like ignore
+// defense can't be applied to an already-computed damage number.
 struct BuffOption {
   std::string name;
   // All game-scaled, like every other duration here.
   double duration_seconds = 0.0;
   double cooldown_seconds = 0.0;
-  // Seconds a landed swing takes off the wait for the next cast.
+  // Seconds each landed attack takes off this buff's cooldown.
   double cooldown_reduction_seconds = 0.0;
-  // Share of every hit this buff cancels while it stands. Multiplies with
-  // what the character already cancels, as every reduction does.
+  // Fraction of incoming damage blocked while active. Multiplies with the
+  // character's other reductions, like all reductions.
   double damage_taken_pct = 0.0;
-  // Share of the pool the cast puts back at once (1.00 == all of it).
+  // Fraction of max HP healed on cast (1.00 means full).
   double heal_fraction = 0.0;
-  // Hits it cancels outright, after which it falls whatever is left of its
-  // clock. 0 for a buff that is not a shell. See Shield.
+  // Hits it blocks outright, after which it ends regardless of remaining time.
+  // 0 if it isn't a shield. See Shield.
   int shield_hits = 0;
-  // Share off a hit the shell cannot block -- a boss's -- taken instead of
-  // blocking it. Read only where shield_hits is set.
+  // Damage reduction against hits the shield can't block (boss hits), used
+  // instead of blocking. Only used when shield_hits is set.
   double boss_damage_taken_pct = 0.0;
-  // Seconds raising this costs, taken off the swing being charged. NOT
-  // scaled by attack speed: a booster hurries a swing, not an arm-raise.
+  // Cast time, taken from the attack being charged. Not affected by attack
+  // speed: boosters speed up attacks, not casting.
   double cast_seconds = 0.0;
-  // Lines to land before this goes up, instead of a wait in seconds.
+  // Lines to land before this activates, instead of a cooldown.
   int charge_lines = 0;
-  // The chance one LANDED SWING raises this, instead of a clock coming round
-  // -- 1.0 for one raised by every swing that meets its condition. 0 for a
-  // buff raised on a wait or laid by a named attack, which is every other
-  // one. See Buff::raise_chance.
+  // Chance each landed attack raises this, instead of a timer: 1.0 for buffs
+  // raised by every qualifying attack. 0 for buffs on a cooldown or applied by
+  // a named attack. See Buff::raise_chance.
   double raise_chance = 0.0;
-  // Whether that swing has to land on an afflicted enemy. Read only where
+  // Whether the attack must hit an enemy with a status. Only used when
   // raise_chance is set.
   bool needs_afflicted_target = false;
-  // The swing this buff LOADS, or -1. Its charges are handed back whole each
-  // raising and gone the moment it lapses. See AttackOption::charges.
+  // The attack this buff loads, or -1. Its charges refill each time the buff is
+  // raised and disappear when it ends. See AttackOption::charges.
   int magazine_attack = -1;
-  // The swing that lays this buff, or -1 for one raised on its own wait: a
-  // buff hanging off an ATTACK is inseparable from the swing delivering it,
-  // so the fight spends a swing to put it up. Always -1 for a party buff,
-  // which an ally's cast lays where this fight cannot see it.
+  // The attack that applies this buff, or -1 if it's raised on its own
+  // cooldown. A buff attached to an attack can't be separated from it, so
+  // raising it costs an attack. Always -1 for party buffs, which an ally casts
+  // outside this fight.
   int laid_by_attack = -1;
-  // Whether the swing laying it is already under it: false for Darkness
-  // Aura, true for a buff GMS grants "upon use".
+  // Whether the attack applying it already benefits from it: false for Darkness
+  // Aura, true for buffs GMS grants "upon use".
   bool raised_on_cast = false;
-  // Whether only the WOUND FORM of that swing raises it, as GMS grants
-  // Trickblade's invulnerability for the slashes and not the spread.
+  // Whether only the wound form of that attack raises it, as GMS grants
+  // Trickblade's invulnerability for the slashes but not the spread.
   bool needs_wound_form = false;
-  // Seconds added to the window per burn alight on the group, up to
-  // dot_count_cap, read at the raise rather than baked in.
+  // Seconds added per burn on the group, up to dot_count_cap, read when raised.
   double duration_seconds_per_dot = 0.0;
   int dot_count_cap = 0;
-  // Seconds this buff GRANTS of every duty_interval_seconds it stands. The
-  // buff never flickers -- its pulse, shell and magazine run through the gap
-  // -- only what it hands the character. See Buff::duty_seconds.
+  // Seconds of each duty_interval_seconds that the buff's bonuses apply. The
+  // buff itself stays up (its pulse, shield and charges keep going); only the
+  // bonuses switch on and off. See Buff::duty_seconds.
   double duty_seconds = 0.0;
   double duty_interval_seconds = 0.0;
-  // The forms it can be raised in, chosen between at each cast. Where filled,
-  // duration_seconds above is the LONGEST of them; what stands is the chosen
-  // stance's own length.
+  // Forms it can be raised in, chosen at each cast. If set, duration_seconds is
+  // the longest of them, and the actual duration is the chosen form's.
   std::vector<StanceOption> stances;
 };
 
 // A snapshot of the current encounter's combat parameters.
 struct CombatParams {
-  bool active = false;  // false when not farming (no map/weapon/mobs)
-  // What these params describe: a map's name, or one phase of a boss fight.
-  // The fight watches it, so a phase turning over rebuilds the roster exactly
-  // as walking to another map does.
+  bool active = false;  // false when not farming (no map, weapon or mobs)
+  // What these params describe: a map name, or one phase of a boss fight. The
+  // fight watches it, so a new phase rebuilds the mobs just like moving to
+  // another map.
   std::string encounter;
-  // Time between full-roster respawn beats; 0 for an encounter that never
-  // refills.
+  // Time between respawns; 0 if the encounter never refills.
   double respawn_seconds = 0.0;
-  // Time between mob hits on the player; 0 where nothing hits back.
+  // Time between mob hits on the player; 0 if nothing hits back.
   double hit_seconds = 0.0;
-  int max_player_hp = 0;  // what a full heal fills the player back to
-  // Watched for the level-up fill, which cannot be read off max_player_hp: a
-  // skill point, a scroll or a swapped hat widens the pool too.
+  int max_player_hp = 0;  // max HP, which a full heal restores
+  // Watched to refill HP on level up. max_player_hp can't be used for that,
+  // since skill points, scrolls or gear changes also raise it.
   int player_level = 0;
-  // Share of the pool returned on every beat, cleared map or not. What lets
-  // a map be survived by outlasting it.
+  // Fraction of max HP restored at every respawn, whether or not the map was
+  // cleared. This is what lets a player survive a map by outlasting it.
   double beat_heal_fraction = 0.0;
-  // Share of every hit that goes back into the mob that landed it.
+  // Fraction of each hit reflected back to the mob that dealt it.
   double damage_reflect_pct = 0.0;
-  // Share of the pool a landed swing puts back. Costs no swing, so it stacks
-  // with the beat heal, and pays nothing on an empty map.
+  // Fraction of max HP restored per landed attack. Costs nothing, so it stacks
+  // with the respawn heal, but heals nothing on an empty map.
   double hp_recover_pct = 0.0;
-  // Extra EXP per kill, as a share of the mob's worth. Read by
-  // AwardCombatRewards rather than by the fight.
+  // Extra EXP per kill, as a fraction of the mob's EXP. Used by
+  // AwardCombatRewards, not the fight.
   double exp_pct = 0.0;
-  // Share added to the meso a kill yields, already capped -- see MesoBonus.
+  // Bonus to meso per kill, already capped. See MesoBonus.
   double meso_pct = 0.0;
-  // What multiplies that meso afterwards, uncapped.
+  // Multiplier on meso after the bonus, uncapped.
   double meso_final_mult = 1.0;
-  // Share added to how often a kill drops anything. Read by
-  // AwardCombatRewards: it raises the CHANCE of a drop, not its size.
+  // Bonus to drop chance. Used by AwardCombatRewards; it raises the chance of a
+  // drop, not its size.
   double item_drop_pct = 0.0;
-  // The rate a boss's drops roll at: the DROP preset's, not the fight's,
-  // there being no moment to change gear before they fall. Unread outside a
-  // boss fight, a map's drops being the fight's own. See kDropPreset.
+  // Drop rate for boss drops: the Drop preset's rate, not the fight's, since
+  // there's no chance to swap gear before they drop. Only used in boss fights;
+  // map drops use the fight's rate. See kDropPreset.
   double drop_roll_item_drop_pct = 0.0;
-  // Whether a kill here can pay a V Point. Arcane River monsters are the only
-  // ones that do, so this is the map's Arcane Force requirement asked as a
-  // yes or no.
+  // Whether kills here can drop V Points: only Arcane River and Grandis maps,
+  // which are the maps with a force requirement.
   bool pays_v_points = false;
-  // The fountains the character carries, each on its own clock whether or not
-  // they are swinging.
+  // The character's HP regen effects, each on its own timer whether or not they
+  // are attacking.
   std::vector<RegenPulse> regen_pulses;
-  // Seconds between revivals: the hit that would have killed the player
-  // fills the pool instead, and the wait starts over.
+  // Seconds between revives: a hit that would kill the player fully heals them
+  // instead, and the cooldown restarts.
   double revive_cooldown_seconds = 0.0;
-  // The heal that fires on its own when the player is nearly dead. Its window
-  // and its wait are game-scaled, like every other duration here; the share
-  // is per GMS second, so a stretched window pours the same total.
+  // The automatic heal when the player is nearly dead. Its window and cooldown
+  // are game-scaled like other durations; the heal rate is per GMS second, so a
+  // stretched window heals the same total.
   EmergencyHeal emergency_heal;
-  // Distinct burns the character can leave, and so the slots a monster
-  // needs.
+  // Number of distinct burns the character can apply, and so the burn slots
+  // each monster needs.
   int dot_count = 0;
-  // Freeze Stacks holdable at once; 0 switches the mechanism off.
+  // Max Freeze Stacks at once; 0 disables the mechanic.
   int freeze_cap = 0;
-  // Whether a swing picks the healthiest of the roster rather than the front
-  // of the queue. On for a boss, whose parts differ in HP and none of which
-  // respawns: a narrow swing spends itself on what would outlast the fight.
-  // Off on a map, refilled on the beat.
+  // Whether attacks target the healthiest mob rather than the front of the
+  // queue. On for bosses, whose parts have different HP and never respawn, so a
+  // single-target attack shouldn't be wasted on parts that die anyway. Off on
+  // maps, which refill every respawn.
   bool focus_healthiest = false;
-  // Whether to record every line landed, for a caller drawing the damage as
-  // numbers. The boss screen asks; the map and the sims do not.
+  // Whether to record every damage line, for callers that draw damage numbers.
+  // The boss screen does; maps and sims don't.
   bool record_damage_lines = false;
-  // Whether the fight is MEASURED rather than played: the monsters never
-  // fall, every roll lands its mean, and the horizon is infinite. See
-  // MeasureFight.
+  // Whether the fight is measured rather than played: monsters never die, every
+  // roll is average, and it runs indefinitely. See MeasureFight.
   bool measuring = false;
   std::vector<CombatType> types;  // in map order
-  // Every attack available, the bare poke first. Never empty while active.
+  // Every available attack, basic attack first. Never empty while active.
   std::vector<AttackOption> attacks;
-  // Attacks on their own clock beside whatever is being swung. Not
-  // candidates for the swing: they simply also happen.
+  // Attacks on their own timer that run alongside normal attacks. The fight
+  // never chooses them; they just happen.
   std::vector<AttackOption> auto_attacks;
-  // The same, clocked by swings landed or enemies defeated rather than by
-  // seconds. A cast of one counts toward no swing count -- what is paid for
-  // is the player's own attacking -- but what it kills does count.
+  // The same, but triggered by landed attacks or kills rather than time. Their
+  // casts don't count toward any attack count (only the player's own attacks
+  // do), but their kills count.
   std::vector<AttackOption> triggered_attacks;
-  // Expected damage a second, off the lists above with no buff standing. A
-  // rough figure, used only until enough fight has run to measure a rate of
-  // its own. See CombatSim::SecondsLeft.
+  // Rough expected damage per second from the lists above with no buffs. Only
+  // used until the fight has run long enough to measure its own rate. See
+  // CombatSim::SecondsLeft.
   double reference_dps = 0.0;
-  // The timed buffs this character can put up. The fight runs their clocks
-  // and asks for the matching attacks.
+  // Timed buffs the character can raise. The fight runs their timers and looks
+  // up the matching attacks.
   std::vector<BuffOption> buffs;
-  // One entry per combination of those buffs the fight has actually stood in,
-  // keyed by the mask of which are up -- the lists above are the set for
-  // none.
+  // One entry per buff combination the fight has actually reached, keyed by the
+  // mask of active buffs. The lists above are the set with no buffs.
   //
-  // An entry is built the first time the fight asks, off buffed_source, and
-  // most never are: the combinations DOUBLE per buff while the ones a fight
-  // reaches do not, which is why this is a map and not a table of every
-  // mask. Mutable for that reason, which makes the readers below unsafe on
-  // one CombatParams from two threads. A sim gives each worker its own.
+  // Entries are built on first use from buffed_source, and most never are:
+  // combinations double with each buff, but the ones a fight reaches don't. So
+  // this is a map, not a full table. It's mutable for that reason, which makes
+  // the readers below unsafe to call from two threads on one CombatParams; sims
+  // give each worker its own copy.
   mutable std::map<int, AttackSet> buffed;
-  // What those slots are built from. Empty for a hand-built params, where
-  // every slot is filled up front.
+  // What those entries are built from. Empty for hand-built params, which fill
+  // every entry up front.
   BuffedSetSource buffed_source;
-  // The window `mask` names, built on first ask. Null out of range.
+  // The attack set for `mask`, built on first use. Null if out of range.
   const AttackSet* Window(int mask) const;
-  // The three lists as they stand with `mask`'s buffs up. Out of range reads
-  // as none, so a fight a step behind what was learned swings unbuffed rather
-  // than off the end.
+  // The three lists with `mask`'s buffs active. Out of range returns the
+  // unbuffed lists, so a fight one step behind attacks unbuffed instead of
+  // reading past the end.
   const std::vector<AttackOption>& Attacks(int mask) const;
   const std::vector<AttackOption>& AutoAttacks(int mask) const;
   const std::vector<AttackOption>& TriggeredAttacks(int mask) const;
-  // The Freeze Stack cap with `mask`'s buffs up.
+  // Max Freeze Stacks with `mask`'s buffs active.
   int FreezeCap(int mask) const;
 };
 
-// The weapon the character is holding, or null. A fight needs one, so a
-// screen offering a fight asks this first.
+// The character's equipped weapon, or null. A fight needs one, so screens that
+// offer a fight check this first.
 const EquipPrototype* EquippedWeapon(const GameState& state,
                                      Activity activity = Activity::kFarming);
 
-// Reads `state`'s map and character into a CombatParams. active is false with
-// no map, no equipped weapon or no loaded mobs.
+// Reads `state`'s map and character into a CombatParams. `active` is false if
+// there's no map, weapon or loaded mobs.
 CombatParams ComputeCombatParams(const GameState& state);
 
 // The same for one phase of a boss difficulty. Nothing respawns or hits back,
-// and the fight runs in real time rather than at the pacing band's stretch: a
-// boss is watched, not left alone.
+// and the fight runs in real time rather than stretched by game speed, since
+// the player watches bosses rather than idling.
 CombatParams ComputeBossParams(const GameState& state,
                                const std::string& boss_key,
                                const BossDifficulty& difficulty, int phase);
 
-// What CombatParams::encounter holds for one boss phase. Distinct per phase,
-// which is what rebuilds the roster when one turns over, and from map names.
+// The CombatParams::encounter value for one boss phase. Unique per phase, which
+// makes a new phase rebuild the mobs, and distinct from map names.
 std::string BossEncounterKey(const std::string& boss,
                              const std::string& difficulty, int phase);
 

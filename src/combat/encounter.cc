@@ -31,17 +31,17 @@
 namespace ms {
 namespace {
 
-// How often the engaged mob hits back, before pacing stretches it. The one
-// number we chose about damage taken; the rest is the GMS formula. Only the
-// one mob swings, or a crowded beginner map would outdo a sparse high-level
-// one.
+// How often the front mob hits the player, before game-speed scaling. This is
+// the one damage-taken number we chose; the rest is the GMS formula. Only the
+// front mob attacks, or a crowded beginner map would be deadlier than a sparse
+// high-level one.
 constexpr double kMobHitIntervalSeconds = 1.5;
 
-// The other half of that knob: a map whose mobs take less than this between
-// beats can be held indefinitely, so it can be survived by enduring it.
+// The other half of that setting: a map whose mobs deal less than this between
+// respawns can be held forever, so players can survive it by outlasting it.
 constexpr double kBeatHealFraction = 0.10;
 
-// For a cast that deals no damage, which sets nothing off.
+// For casts that deal no damage and so trigger nothing.
 void ClearFinalAttacks(AttackOption& attack) {
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
@@ -50,9 +50,10 @@ void ClearFinalAttacks(AttackOption& attack) {
   attack.per_swing_final_attack_enemies = 1;
 }
 
-// Drops the Final Attacks only a swing sets off and re-adds the banks off what
-// survived. A filter rather than a wipe: Frost Ark's shock is struck by the orb
-// as readily as by the bolts -- see Skill.follows_own_clock.
+// Removes Final Attacks that only the character's own attacks trigger, and
+// recomputes the totals from what remains. A filter rather than a wipe, because
+// some (like Frost Ark's shock) trigger from the orb as well as the bolts. See
+// Skill.follows_own_clock.
 void KeepOwnClockFinalAttacks(AttackOption& attack) {
   std::vector<double>* banks[] = {&attack.final_attack_damage,
                                   &attack.per_swing_final_attack_damage};
@@ -71,8 +72,8 @@ void KeepOwnClockFinalAttacks(AttackOption& attack) {
       banks[i]->clear();
       continue;
     }
-    // The bank is the sum of what each source is worth, so what is left of it
-    // is that sum over the rolls that stayed.
+    // Each total is the sum of its sources' values, so recompute it from the
+    // rolls that remain.
     std::fill(banks[i]->begin(), banks[i]->end(), 0.0);
     for (const FinalAttackRoll& roll : *lists[i]) {
       for (std::size_t t = 0; t < banks[i]->size(); ++t) {
@@ -80,23 +81,23 @@ void KeepOwnClockFinalAttacks(AttackOption& attack) {
       }
     }
   }
-  // The widest of the sources that stayed, exactly as AddFinalAttacks took it.
+  // The widest remaining source, as AddFinalAttacks computes it.
   for (const FinalAttackRoll& roll : attack.per_swing_final_attack_rolls) {
     attack.per_swing_final_attack_enemies =
         std::max(attack.per_swing_final_attack_enemies, roll.max_enemies);
   }
 }
 
-// Strips what rides the character's own swing -- its recovery, Final Attacks,
-// carried poison and side strike. Anything on a clock of its own sets none of
-// them off. A burn the SKILL states stays: Ifrit's flames burn what they touch
-// whoever is swinging.
+// Removes what only the character's own attacks trigger: HP recovery, Final
+// Attacks, carried poison, and side strikes. Nothing on its own timer triggers
+// them. Burns the skill itself lists stay: Ifrit's flames burn whatever they
+// touch.
 void ClearSwingRiders(AttackOption& attack) {
   attack.hp_recover_pct = 0.0;
   attack.side = nullptr;
   attack.procs.clear();
-  // A summon leaves ice but never SPENDS the pile: GMS's lightning orb
-  // attacks without consuming freezing stacks.
+  // Summons add ice but never spend stacks: in GMS, the lightning orb doesn't
+  // consume freezing stacks.
   attack.freeze_spends = false;
   attack.freeze_fd_per_stack = 0.0;
   KeepOwnClockFinalAttacks(attack);
@@ -106,7 +107,7 @@ void ClearSwingRiders(AttackOption& attack) {
       attack.dots.end());
 }
 
-// Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
+// Whether `skill` has `tag`. Null (the basic attack) has none.
 bool HasTag(const Skill* skill, SkillTag tag) {
   if (skill == nullptr) {
     return false;
@@ -119,8 +120,8 @@ bool HasTag(const Skill* skill, SkillTag tag) {
   return false;
 }
 
-// What throws a meso is the character swinging, so a pulse on its own clock
-// carries none however the passive reads.
+// Only the character's own attacks throw meso, so pulses on their own timer
+// never do.
 void StripMesoDrops(DerivedStats& derived) {
   std::vector<FinalAttackSource> kept;
   for (const FinalAttackSource& source : derived.final_attacks) {
@@ -131,15 +132,15 @@ void StripMesoDrops(DerivedStats& derived) {
   derived.final_attacks = std::move(kept);
 }
 
-// What one burn is worth per mob type, off the stat line its swing was priced
-// off but on its own multiplier and strikes: a burn is what the swing left
-// behind, not the swing. `boost` is what the book aims at the burn by name;
-// only its multiplier and clock are read, the rest riding in with `offense`.
+// One burn's damage per mob type. It uses the attack's stats but its own
+// multiplier and hits: a burn is what the attack leaves behind, not the attack.
+// `boost` is the job book's bonus to this burn by name; only its multiplier and
+// duration are used here, the rest is already in `offense`.
 DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
                        const std::vector<CombatType>& types,
                        double speed_factor, const SkillBonus* boost) {
-  // A stack ladder walked in thirds or sixths lands a hair under the whole
-  // number it climbs to, and a burn that stacks 2.9999 times stacks twice.
+  // A stack count that rises by thirds or sixths lands just under the whole
+  // number, and 2.9999 stacks would floor to 2.
   constexpr double kStackEpsilon = 1e-9;
   OffenseStats burn = offense;
   SkillEffect burns = EffectAt(dot.base(), dot.per_level(), level);
@@ -148,8 +149,7 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   burn.normal_skill_pct = burns.normal_skill_pct();
   burn.normal_pct += burns.normal_pct();
   burn.lines = std::max(1, dot.lines());
-  // A shadow copies the swing it was cast beside, not the mark that swing left
-  // burning after it.
+  // Shadows copy the attack, not the burn it leaves.
   burn.mirror_lines = 0;
   DotApplication application;
   for (const CombatType& type : types) {
@@ -162,8 +162,8 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
        (boost != nullptr ? boost->dot_duration_seconds : 0.0)) *
       speed_factor;
   double chance = dot.chance() + dot.chance_per_level() * (level - 1);
-  // Nothing said is certainty, which is what a burn a swing simply leaves
-  // wants. Only a poison the character carries is rolled for.
+  // No chance given means certain, which is what a burn an attack always leaves
+  // needs. Only character-carried poisons roll.
   application.chance = chance > 0.0 ? std::min(1.0, chance) : 1.0;
   application.max_stacks =
       std::max(1, static_cast<int>(dot.max_stacks() +
@@ -172,11 +172,11 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   return application;
 }
 
-// Ice leaves a stack per line, lightning spends one per line, and both take
-// the critical damage a held stack grants: a frozen enemy is frozen whichever
-// element hits it. That crit damage becomes the share it adds to the swing's
-// MEAN, the only shape the fight can multiply by -- crit rolls per line and
-// its bonus is normalised away.
+// Ice adds a stack per line, lightning spends one per line, and both gain the
+// crit damage held stacks grant, since a frozen enemy is frozen whatever hits
+// it. That crit damage is converted to a share of the attack's average damage,
+// the only form the fight can multiply by: crit rolls per line and its bonus is
+// normalized out.
 void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
                      const OffenseStats& offense,
                      const std::vector<CombatType>& types,
@@ -195,16 +195,17 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
     }
   }
   if (HasTag(skill, SKILL_TAG_ICE)) {
-    // A stack per line is what the element buys. A skill stating a count of
-    // its own replaces that outright, both halves of it -- see FreezeBuild.
+    // By default an ice skill adds one stack per line. A skill that lists its
+    // own count replaces that entirely; see FreezeBuild.
     if (skill->has_freeze_build()) {
       attack.freeze_build = skill->freeze_build().crowd();
       attack.freeze_build_alone = skill->freeze_build().alone();
     } else {
       attack.freeze_build = attack.lines;
     }
-    // Glacial Fury's magic attack as a share of the swing: damage is linear
-    // in the attack behind it, and a share is what the fight can multiply.
+    // Glacial Fury's magic attack as a share of the attack's damage, since
+    // damage scales linearly with attack and a share is what the fight can
+    // multiply by.
     if (offense.attack > 0) {
       attack.freeze_matt_gain =
           derived.freeze.matt_per_stack / static_cast<double>(offense.attack);
@@ -218,8 +219,8 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   }
 }
 
-// One strike of a SwingHit: its own multiplier, lines and critical rate over
-// what the character brought. A group of its own, so it rolls separately.
+// One strike of a SwingHit, with its own multiplier, lines and crit chance on
+// top of the character's stats. A separate group, so it rolls separately.
 HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
                        int level, const std::vector<CombatType>& types,
                        int& lines) {
@@ -229,13 +230,13 @@ HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
   extra.normal_skill_pct = lands.normal_skill_pct();
   extra.normal_pct += lands.normal_pct();
   extra.crit_rate += lands.crit_rate();
-  // Multiplied into what the character and the swing already bring, the way
-  // two final damage sources always meet -- see SwingHit.
+  // Multiplied with the character's and attack's final damage, like all final
+  // damage sources. See SwingHit.
   extra.final_dmg_pct =
       (1.0 + extra.final_dmg_pct) * (1.0 + lands.final_dmg_pct()) - 1.0;
   extra.lines = std::max(1, hit.lines());
-  // The shadow copies it as it copies the rest of the swing. Reset because
-  // the line count just changed under it. See SwingHit.skips_mirror.
+  // The shadow copies it like the rest of the attack. Reset because the line
+  // count just changed. See SwingHit.skips_mirror.
   bool shadowed = !hit.skips_mirror() && offense.mirror_lines > 0;
   extra.mirror_lines = shadowed ? extra.lines : 0;
   HitGroup group;
@@ -247,16 +248,16 @@ HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
   return group;
 }
 
-// A second hit the same swing lands, priced on its own and summed in. The
-// group it leaves is what makes it roll separately -- see SwingHit.
+// An extra hit within the same attack, priced separately and added in. Its own
+// group makes it roll separately; see SwingHit.
 void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
                  const std::vector<CombatType>& types, AttackOption& attack) {
   SkillEffect lands = EffectAt(hit.base(), hit.per_level(), level);
   int lines = 0;
   HitGroup group = SwingHitGroup(hit, offense, level, types, lines);
   int casts = SwingHitCasts(hit);
-  // Banked apart, as a Final Attack with its own reach is: it lands on
-  // enemies the swing never touched.
+  // Kept separate, like a Final Attack with its own reach, since it hits
+  // enemies the attack didn't.
   if (hit.max_enemies() > 0) {
     if (attack.wide_hit_damage.empty()) {
       attack.wide_hit_damage.assign(types.size(), 0.0);
@@ -267,8 +268,8 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
     for (int i = 0; i < casts; ++i) {
       attack.wide_hit_groups.push_back(group);
     }
-    // The widest of them, as the Final Attack bank takes it: they land on the
-    // one swing, so the crowd is the furthest any of them reaches.
+    // The widest of them, like the Final Attack total: they belong to one
+    // attack, so its reach is the furthest any of them goes.
     attack.wide_hit_enemies =
         std::max(attack.wide_hit_enemies, hit.max_enemies());
     attack.hp_recover_pct += lands.hp_recover_pct() * lines * casts;
@@ -277,22 +278,21 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   for (std::size_t i = 0; i < types.size() && i < group.damage.size(); ++i) {
     attack.damage_per_hit[i] += group.damage[i] * casts;
   }
-  // Landed once per strike, as the swing's own is: Sword Illusion sets off
-  // five explosions and each of them rolls for itself.
+  // One group per strike, like the attack's own: Sword Illusion triggers five
+  // explosions and each rolls separately.
   for (int i = 0; i < casts; ++i) {
     attack.groups.push_back(group);
   }
-  // A recovery a HIT states is paid per LINE of it -- GMS's "for every final
-  // attack that lands" -- unlike the swing's own, stated against the cast.
+  // HP recovery on a hit is paid per line (GMS's "for every final attack that
+  // lands"), unlike the attack's own, which is per cast.
   attack.hp_recover_pct += lands.hp_recover_pct() * lines * casts;
 }
 
-// What has been priced already is ONE pulse, so the closing strike is added
-// beside it and the swing restated as a full hold. A hold that GROWS beats at
-// two strengths, so that restatement sums two runs; the grown pulse is kept on
-// the hold, out of the groups, which read everywhere as "the first is a pulse,
-// the rest are the finish". The pulse clock is not scaled by attack speed, for
-// the reason a key-down swing's is not: the rate belongs to the skill.
+// The damage so far is one pulse, so add the finishing strike and restate the
+// attack as a full hold. A hold that grows has two pulse strengths, so the
+// total sums both; the grown pulse is stored on the hold, not in the groups,
+// which are always read as "first is a pulse, the rest are the finish". Attack
+// speed doesn't change the pulse rate, since it belongs to the skill.
 void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
                 const std::vector<CombatType>& types, double speed_factor,
                 AttackOption& attack) {
@@ -301,12 +301,12 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
     return;
   }
   std::vector<double> pulse = attack.damage_per_hit;
-  // The swing's own recovery is ONE pulse's, exactly as its damage is, so it
-  // moves to the hold before the finish adds its own on top.
+  // The attack's own HP recovery is one pulse's, like its damage, so move it to
+  // the hold before the finish adds its own.
   double pulse_recover = attack.hp_recover_pct;
   attack.hp_recover_pct = 0.0;
-  // A hold that ends by letting go leaves no strike, and pricing an empty one
-  // would leave a group floored at a point of damage per enemy.
+  // Some holds end without a strike; pricing an empty one would add a group
+  // that deals a floor of 1 damage per enemy.
   if (channel.has_finish()) {
     AddSwingHit(channel.finish(), offense, level, types, attack);
   }
@@ -317,13 +317,13 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   hold.finish_seconds = channel.finish_delay_ms() / 1000.0 * speed_factor;
   hold.min_seconds = attack.swing_seconds;
   hold.damage_taken_pct = channel.damage_taken_pct();
-  // Game-scaled like every other clock here: the bank fills in the same
-  // stretched seconds the pulses fall in.
+  // Game-scaled like every other timer here: charges refill in the same
+  // stretched seconds that pulses use.
   hold.charge_seconds = channel.charge_seconds() * speed_factor;
   hold.max_charges = channel.max_charges();
   hold.pulses_per_charge = channel.pulses_per_charge();
-  // The pulses fitting inside the floor: the fewest a cast can be let go
-  // after. At least one, or the swing would be its finish alone.
+  // The pulses that fit within the minimum hold time: the fewest a cast can be
+  // released after. At least one, or the attack would be only the finish.
   hold.min_pulses =
       std::clamp(static_cast<int>((hold.min_seconds - hold.finish_seconds) /
                                   hold.pulse_seconds),
@@ -345,10 +345,10 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   attack.swing_seconds = HoldSeconds(hold, hold.pulses);
 }
 
-// The clocks and conditions a skill puts on its own swing. A key-down skill
-// fires at its own rate however fast the weapon swings, so it is handed the
-// stage the formula is the identity at. The game's pacing still stretches
-// every clock here: that is the game running slower than GMS, not the weapon.
+// The timing and conditions a skill puts on its attack. A key-down skill fires
+// at its own rate regardless of weapon speed, so it uses the neutral stage.
+// Game speed still stretches every timer here, since that's the game running
+// slower than GMS, not the weapon.
 void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
                     int attack_speed, double speed_factor,
                     AttackOption& attack) {
@@ -363,8 +363,8 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
   if (skill->base_delay_ms() > 0) {
     delay_ms = skill->base_delay_ms();
   }
-  // An attack GMS lets the player throw mid-swing plays no cast action, so the
-  // animation the file records is not what it costs. See Skill.waives_cast.
+  // Attacks GMS lets the player use mid-attack play no cast animation, so the
+  // recorded animation time isn't their cost. See Skill.waives_cast.
   if (skill->waives_cast()) {
     delay_ms = kWaivedCastMs;
   }
@@ -376,35 +376,33 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
       ReducedCooldown(CooldownAt(*skill, level),
                       derived.cooldown_reduction_seconds) *
       speed_factor;
-  // Game-scaled with the wait it comes off, or a barrage on a cleared map
-  // would hand back more of the band than it ever cost.
+  // Game-scaled like the cooldown it reduces; otherwise a barrage on a cleared
+  // map would refund more time than the cooldown was.
   attack.cooldown_refund_seconds =
       skill->cooldown_refund_seconds() * speed_factor;
-  // Game-scaled, so a freeze covers the same span of the fight it covers in
-  // GMS.
+  // Game-scaled, so a freeze covers the same share of the fight as in GMS.
   attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
-  // Game-scaled like the ice beside it, for the same reason: what a stun
-  // covers is the same span of the fight it covers in GMS.
+  // Game-scaled like freeze, for the same reason.
   attack.stun_seconds = skill->stun().duration_seconds() * speed_factor;
   attack.stun_lift_pct = skill->stun().final_dmg_pct();
   if (skill->stun().chance() > 0.0) {
     attack.stun_chance = skill->stun().chance();
   }
-  // A swing collects a stun's lift where it carries the tag and is not the
-  // skill that left it -- GMS excludes Jupiter Thunder from its own shock.
+  // An attack gets the stun bonus if it has the tag and isn't the skill that
+  // stunned: GMS excludes Jupiter Thunder from its own shock.
   attack.collects_stun_lift =
       derived.stun_lift.lifted_tag != SKILL_TAG_UNSPECIFIED &&
       HasTag(skill, derived.stun_lift.lifted_tag) &&
       skill->name() != derived.stun_lift.from_skill;
-  // The mark beside it. Nothing excludes the skill that left one: the angel
-  // carries no element, so the tag keeps it off its own mark anyway.
+  // Marks work the same way. The marking skill isn't excluded, but the angel
+  // has no element, so the tag already keeps it off its own mark.
   attack.mark_seconds = skill->mark().duration_seconds() * speed_factor;
   attack.mark_lift_pct = skill->mark().final_dmg_pct();
   attack.collects_mark_lift =
       derived.mark_lift.lifted_tag != SKILL_TAG_UNSPECIFIED &&
       HasTag(skill, derived.mark_lift.lifted_tag);
-  // Both ride anything that lands on the mob, a summon's pulse included: the
-  // mob is in that state whatever is hitting it.
+  // These apply to anything that hits the mob, summon pulses included, since
+  // the mob's status doesn't depend on what hits it.
   attack.scar_fd = derived.scar.final_dmg_pct;
   attack.fd_when_afflicted = derived.condition.final_dmg_pct_when_afflicted;
   attack.fd_per_dot = derived.condition.final_dmg_pct_per_dot;
@@ -414,16 +412,17 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
   if (skill->kind() != SKILL_KIND_ATTACK) {
     return;
   }
-  // The scar and the recovery are the SWING's, kept off anything on a clock
-  // of its own: GMS scars with the sword being swung. See WithoutSwingLevers.
+  // Scarring and HP recovery come from the character's own attacks only, not
+  // anything on its own timer: in GMS, the sword being swung scars. See
+  // WithoutSwingLevers.
   attack.scar_chance = derived.scar.chance;
   attack.scar_seconds = derived.scar.seconds * speed_factor;
   attack.hp_recover_pct = granted.hp_recover_pct();
 }
 
-// The harder opening hit some swings land before spreading -- GMS's "strikes
-// one, then detonates in place". Same character and weapon on the skill's
-// other multiplier; only the target count differs, which is the fight's.
+// The stronger opening hit some attacks land before spreading (GMS's "strikes
+// one, then detonates in place"). Same character and weapon with the skill's
+// other multiplier; only the target count differs, which the fight handles.
 void AddLeadHit(const Skill& skill, const OffenseStats& offense, int level,
                 const std::vector<CombatType>& types, AttackOption& attack) {
   if (skill.base().lead_pct() <= 0.0) {
@@ -433,8 +432,8 @@ void AddLeadHit(const Skill& skill, const OffenseStats& offense, int level,
   lead.skill_pct =
       skill.base().lead_pct() + skill.per_level().lead_pct() * (level - 1);
   lead.lines = std::max(1, skill.lead_lines());
-  // The shadow copies the opening hit as it copies every other line. Reset
-  // because lead.lines just changed under it.
+  // The shadow copies the opening hit like every other line. Reset because
+  // lead.lines just changed.
   lead.mirror_lines = offense.mirror_lines > 0 ? lead.lines : 0;
   for (const CombatType& type : types) {
     attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
@@ -443,14 +442,13 @@ void AddLeadHit(const Skill& skill, const OffenseStats& offense, int level,
   attack.lead_enemies = std::max(1, skill.lead_enemies());
 }
 
-// Marks on what the swing reached rather than part of the strike, so they are
-// priced here and paid on their own clock. What one is worth is settled now
-// and carried for its whole life, which is why a burn lit under a buff keeps
-// the buffed number.
+// Burns mark what the attack hit rather than being part of the hit, so they are
+// priced here and deal damage on their own timer. Their damage is fixed when
+// applied, so a burn applied under a buff keeps the buffed value.
 //
-// The character's own come first and in their own order, so every swing writes
-// one poison to one slot. They are priced off the bare `follow` for the reason
-// a Final Attack is: the poison is on the claw, not in the skill.
+// The character's own burns come first, in their own order, so every attack
+// writes the same poison to the same slot. They use the plain `follow` stats,
+// like Final Attacks: the poison is on the claw, not in the skill.
 void AddBurns(const Skill* skill, const DerivedStats& derived,
               const OffenseStats& offense, const OffenseStats& follow,
               int level, const std::vector<CombatType>& types,
@@ -464,8 +462,8 @@ void AddBurns(const Skill* skill, const DerivedStats& derived,
   if (skill == nullptr || skill->dot().interval_seconds() <= 0.0) {
     return;
   }
-  // By the name being swung rather than the parent's, so a form that ever
-  // states a burn of its own reads what was filed under its own name.
+  // Look up by the attack's own name rather than its parent's, so a form with
+  // its own burn gets bonuses filed under its name.
   std::map<std::string, SkillBonus>::const_iterator boost =
       derived.skill_bonus.find(skill->name());
   attack.dots.push_back(
@@ -474,46 +472,44 @@ void AddBurns(const Skill* skill, const DerivedStats& derived,
   attack.dots.back().credit = skill->name();
 }
 
-// Final Attack rides the swing, not the skill: a plain hit worth its own
-// percent, priced off the bare `follow` and taking neither the skill's
-// multiplier nor its lines. A source naming a tag follows only the swings
-// carrying it, and each surviving source keeps its own entry, rolling alone.
-//
-// A source rolling per line rolls `swing_lines` times -- four lines knock four
-// mesos loose. The shadow's copies are not the character's lines.
-// The follow-on line aimed at one source. Taken from `carried` each time
-// round, or the last source carrying any of it would hand it to the next.
+// The stats for one Final Attack source. Built fresh from `carried` each time
+// so one source's bonuses don't leak into the next.
 OffenseStats FollowFor(const OffenseStats& carried,
                        const FinalAttackSource& source) {
   OffenseStats follow = carried;
-  // Boss damage of its own, on top of the character's: Blood Money brands the
-  // coins, not the Shadower.
+  // The source's own boss damage, on top of the character's: Blood Money boosts
+  // the coins, not the Shadower.
   follow.boss_pct = carried.boss_pct + source.boss_pct;
   follow.damage_pct = carried.damage_pct + source.damage_bonus_pct;
-  // Ignored defence MEETS the character's rather than adding, as two sources
-  // of it always do.
+  // Ignore defense combines multiplicatively with the character's, as always.
   follow.ied = CombineIgnoredDefense(carried.ied, source.ied);
   follow.crit_rate = carried.crit_rate + source.crit_rate;
   follow.final_dmg_pct =
       (1.0 + carried.final_dmg_pct) * (1.0 + source.final_dmg_pct) - 1.0;
   follow.skill_pct = source.damage_pct;
-  // Points against anything that is not a boss, on the source's own
-  // multiplier.
+  // Skill damage against non-bosses, on the source's own multiplier.
   follow.normal_skill_pct = source.normal_skill_pct;
-  // Its own strikes, not the swing's: a Night Lord's mark throws three stars
-  // behind a four-star swing, and each of the three rolls on its own.
+  // Its own hit count, not the attack's: a Night Lord's mark throws three stars
+  // after a four-star attack, and each of the three rolls separately.
   follow.lines = source.lines;
   return follow;
 }
 
+// Final Attacks come from the attack, not the skill: a plain hit at its own
+// percent, priced from the plain `follow` stats without the skill's
+// multiplier or lines. A source that names a tag follows only attacks with
+// that tag, and each source keeps its own entry and rolls separately.
+//
+// A per-line source rolls `swing_lines` times: four lines knock four mesos
+// loose. Shadow copies don't count as the character's lines.
 void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                      OffenseStats follow, int level, int swing_lines,
                      const std::vector<CombatType>& types,
                      AttackOption& attack) {
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.per_swing_final_attack_damage.assign(types.size(), 0.0);
-  // What this swing keeps of the two chances: shaking a coin loose, and
-  // setting the extra hit off. See SkillEffect.meso_drop_cut and
+  // How much of each chance this attack keeps: knocking meso loose, and
+  // triggering the extra hit. See SkillEffect.meso_drop_cut and
   // final_attack_chance_cut.
   double meso_kept = 1.0;
   double follow_kept = 1.0;
@@ -525,7 +521,7 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                    skill->per_level().final_attack_chance_cut() * (level - 1);
     follow_kept = std::max(0.0, follow_kept);
   }
-  // The character's own line, before a source adds to any of it.
+  // The character's stats before any source adds to them.
   const OffenseStats carried = follow;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
@@ -533,8 +529,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
       continue;
     }
     FinalAttackRoll roll;
-    // The cut the swing states rides every source, and the coin's own rides
-    // the one source that is a coin.
+    // The attack's reduction applies to every source; the meso reduction
+    // applies only to the meso source.
     roll.chance = source.chance * follow_kept;
     if (source.per_line) {
       roll.chance *= meso_kept;
@@ -545,8 +541,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     roll.max_enemies = source.max_enemies;
     roll.credit = source.credit;
     roll.rolls = RollsFor(follow);
-    // A source with a reach of its own is banked apart: what the swing is
-    // worth has to add it over that reach rather than over the swing's.
+    // A source with its own reach is totaled separately, since its value is
+    // added over its own reach rather than the attack's.
     std::vector<double>& bank = source.max_enemies > 0
                                     ? attack.per_swing_final_attack_damage
                                     : attack.final_attack_damage;
@@ -555,8 +551,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
       bank[i] += roll.damage.back() * roll.chance * roll.count;
     }
     if (source.max_enemies > 0) {
-      // The widest of the sources banked together: they roll on the one swing,
-      // so the crowd they land on is the furthest any of them reaches.
+      // The widest of the per-attack sources: they roll on the same attack, so
+      // their reach is the furthest any of them goes.
       attack.per_swing_final_attack_enemies =
           std::max(attack.per_swing_final_attack_enemies, source.max_enemies);
       attack.per_swing_final_attack_rolls.push_back(std::move(roll));
@@ -572,19 +568,18 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
   }
 }
 
-// The strike this swing sets off on a wait of its own, priced as a swing in
-// its own right. It is not the character's swing, so nothing rides it.
+// The strike this attack triggers on its own cooldown, priced as a separate
+// attack. It isn't the character's attack, so nothing is triggered by it.
 void AddSideStrike(const Character& proto, const EquipStats& equipped,
                    EquipType weapon, const Skill& skill, int level,
                    const std::vector<CombatType>& types,
                    const DerivedStats& derived, double speed_factor,
                    AttackOption& attack) {
   const SideStrike& side = skill.side_strike();
-  // Off the character's stat line, twice over. What a boost aimed at this
-  // skill by NAME belongs to the swing -- GMS's Showdown - Reinforce leaves
-  // the shuriken alone -- and the SKILL is not passed either, so its own
-  // levers stop at the swing too. What the strike is worth is what it
-  // states.
+  // Uses the character's stats without skill-specific bonuses. Bonuses aimed at
+  // this skill by name belong to the attack (GMS's Showdown - Reinforce doesn't
+  // boost the shuriken), and the skill itself isn't passed, so its own effects
+  // stay on the attack too. The strike deals only what it lists.
   PassiveOffense unaimed = PassiveOffenseFor(derived);
   unaimed.skill_bonus.erase(skill.name());
   OffenseStats stats =
@@ -612,8 +607,8 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   for (const CombatType& type : types) {
     once.push_back(ExpectedAttackDamage(stats, *type.mob));
   }
-  // Landed once per strike, as an extra hit's are: Mighty Mjolnir leaves a
-  // shockwave on every enemy the hammer tracks down, and each rolls for itself.
+  // One group per strike, like extra hits: Mighty Mjolnir leaves a shockwave on
+  // every enemy the hammer hits, and each rolls separately.
   int casts = std::max(1, side.casts());
   for (double damage : once) {
     strike.damage_per_hit.push_back(damage * casts);
@@ -624,17 +619,15 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   attack.side = std::make_shared<const AttackOption>(std::move(strike));
 }
 
-// One attack's damage against every mob type. `skill` is null for the bare
-// poke, a plain 100% swing on one target. `equipped` is what the character
-// wears plus what their passives grant: the chain cannot tell the two apart.
-// Turns the one priced strike into the swing the skill actually throws: the
-// pool damage every line pays, how many times it lands, and how it scatters.
+// Turns the single priced strike into the attack the skill actually makes: HP-
+// based damage added to every line, how many times it lands, and how it
+// scatters.
 void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
                   const OffenseStats& offense, double speed_factor,
                   AttackOption& attack) {
   if (skill != nullptr) {
-    // Damage off the character's own pool lands AFTER the chain, so no
-    // multiplier reaches it. Every line pays it, as GMS pays it per attack.
+    // Damage based on the character's max HP is added after the formula, so no
+    // multiplier affects it. Every line gets it, as GMS applies it per attack.
     double pool = (skill->base().max_hp_damage_pct() +
                    skill->per_level().max_hp_damage_pct() * (level - 1)) *
                   derived.max_hp * SkillLinesAt(*skill, level);
@@ -642,11 +635,11 @@ void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
       damage += pool;
     }
   }
-  // What has been priced is ONE strike. A skill slashing several times lands
-  // it again for each, every one rolling its own mastery and criticals.
+  // The damage so far is one strike. A skill that slashes several times lands
+  // it again for each, each rolling its own mastery and crits.
   int casts = skill != nullptr ? SkillCasts(*skill) : 1;
-  // Strikes told apart in time stay ONE here: the fight lands it again per
-  // bolt, clearing the dead between. See Skill.cast_interval_ms.
+  // Strikes spaced out in time stay as one here; the fight lands it again per
+  // bolt, clearing dead mobs in between. See Skill.cast_interval_ms.
   bool in_sequence = skill != nullptr && skill->cast_interval_ms() > 0;
   HitGroup strike{attack.damage_per_hit, RollsFor(offense)};
   for (int i = 0; i < (in_sequence ? 1 : casts); ++i) {
@@ -661,14 +654,14 @@ void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
     return;
   }
   attack.strikes_in_sequence = in_sequence ? std::max(1, casts) : 1;
-  // Game-scaled like every other clock: the pacing band stretches the beat
-  // between the bolts exactly as far as it stretches the swing behind them.
+  // Game-scaled like every other timer: game speed stretches the gap between
+  // bolts as much as the attack itself.
   attack.cast_interval_seconds =
       in_sequence ? skill->cast_interval_ms() / 1000.0 * speed_factor : 0.0;
   attack.pierce_gain_pct = skill->pierce_gain_pct();
   attack.lines = SkillLinesAt(*skill, level) * (in_sequence ? 1 : casts);
-  // The same swing throughout; how many land where is the fight's business,
-  // as the opening hit's target count is.
+  // The attack's shape stays fixed; how many hits land where is up to the
+  // fight, like the opening hit's target count.
   attack.scatter_hits = skill->scatter().hits();
   attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
   attack.scatter_hits_per_dot = skill->scatter().hits_per_dot();
@@ -676,6 +669,9 @@ void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
   attack.scatter_max_hits_per_enemy = skill->scatter().max_hits_per_enemy();
 }
 
+// One attack's damage against every mob type. `skill` is null for the basic
+// attack, a plain 100% hit on one target. `equipped` is the character's gear
+// plus what passives grant; the formula can't tell them apart.
 AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        EquipType weapon, const Skill* skill, int level,
                        const std::vector<CombatType>& types,
@@ -697,30 +693,31 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   AddFreezeStacks(skill, derived, offense, types, attack);
   if (skill != nullptr) {
     AddLeadHit(*skill, offense, level, types, attack);
-    // Two hits at once -- the hammer and the brand it leaves exploding --
-    // differing only in multiplier, so each is priced alone and summed.
+    // Two hits at once (like the hammer and its brand exploding), differing
+    // only in multiplier, so each is priced separately and summed.
     for (const SwingHit& hit : skill->extra_hit()) {
       AddSwingHit(hit, offense, level, types, attack);
     }
-    // Hits another skill hands this one by name, priced as its own and
-    // already read at the granting level -- see SkillBoost::extra_hit.
+    // Hits another skill adds to this one by name, priced separately and
+    // already evaluated at the granting skill's level. See
+    // SkillBoost::extra_hit.
     std::map<std::string, SkillBonus>::const_iterator aimed =
         derived.skill_bonus.find(skill->name());
     if (aimed != derived.skill_bonus.end()) {
       for (const SwingHit& hit : aimed->second.extra_hit) {
         AddSwingHit(hit, offense, level, types, attack);
       }
-      // The wound another skill hands this one by name. Assassinate and Sonic
-      // Blow say nothing about it; Trickblade names them -- see Wound.
+      // A wound another skill adds to this one by name. Assassinate and Sonic
+      // Blow don't mention it; Trickblade names them. See Wound.
       attack.wound_stacks = aimed->second.wound_stacks;
       attack.wound_max_stacks = aimed->second.wound_max_stacks;
       attack.wound_seconds = aimed->second.wound_seconds * speed_factor;
     }
     AddChannel(*skill, offense, level, types, speed_factor, attack);
   }
-  // The bare stat line everything the swing sets off is priced from: no
-  // skill, so no multiplier and no lines, and no shadow -- it mimics the
-  // swing, not what the swing set off.
+  // The plain stats everything triggered by the attack is priced from: no
+  // skill, so no multiplier or lines, and no shadow, which copies the attack
+  // but not what it triggers.
   OffenseStats follow =
       OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
                       equipped, weapon, nullptr, 0, PassiveOffenseFor(derived));
@@ -735,13 +732,14 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   return attack;
 }
 
-// The mob types `spawns` puts in front of the player, each with what one of
-// its hits costs them. Types the mob catalog does not know are skipped.
+// Adds the mob types `spawns` puts in front of the player, each with the damage
+// one of its hits deals. Types not in the mob catalog are skipped.
 void AddTypes(const GameState& state,
               const google::protobuf::RepeatedPtrField<Spawn>& spawns,
               const DefenseStats& defense, double scar_enemy_attack_pct,
               CombatParams& params) {
-  // The same defence against a weaker mob. Barriers sum, as always.
+  // The same defense against a scarred (weakened) mob. Weakening effects add
+  // up.
   DefenseStats scarred = defense;
   scarred.enemy_attack_pct =
       std::min(1.0, scarred.enemy_attack_pct + scar_enemy_attack_pct);
@@ -762,8 +760,8 @@ void AddTypes(const GameState& state,
   }
 }
 
-// Whether a swing can be spent on this skill: an attack, or a cast with a
-// lever behind it. One with nothing we model would take the slot and do
+// Whether an attack can be spent on this skill: it deals damage, or it's a cast
+// with an effect we model. Anything else would use up the attack and do
 // nothing.
 bool Castable(const Skill& skill) {
   if (DealsDamage(skill.kind())) {
@@ -772,30 +770,30 @@ bool Castable(const Skill& skill) {
   return skill.kind() == SKILL_KIND_ACTIVE && skill.base().heal_pct() > 0.0;
 }
 
-// Whether the character has this skill at all. Says nothing about swinging
-// it: a passive carrying an own-clock half is not swingable and still fights.
-// Castable then decides whether a swing is also on offer.
+// Whether the character has this skill at all. This doesn't mean it can be used
+// as an attack: a passive with an auto-firing part still contributes to the
+// fight. Castable decides whether it's also offered as an attack.
 bool Available(const GameState& state, const Skill& skill,
                const std::set<std::string>& superseded, Activity activity) {
-  // A replaced skill stops offering its swing with its levers: Piercing
-  // Arrow II states the whole of the one it takes over.
+  // A replaced skill is no longer offered: Piercing Arrow II fully replaces the
+  // one it upgrades.
   if (superseded.count(skill.name()) > 0) {
     return false;
   }
-  // Learned levels are keyed by display name, which branches share, so ask
-  // whose book this is. HoldsSkillFrom, not HasAdvancement, or a V node would
-  // never be swingable: a common node's advancement is nobody's.
+  // Learned levels are keyed by display name, which branches share, so check
+  // which job's book this is. Use HoldsSkillFrom, not HasAdvancement, or V
+  // nodes would never be usable, since common nodes belong to no advancement.
   if (!state.character.HoldsSkillFrom(skill, activity)) {
     return false;
   }
-  // A skill the gear in hand cannot swing is no option. The bare poke always
-  // is, so the character is never left with nothing.
+  // Skip skills the current weapon can't use. The basic attack is always
+  // available, so the character is never left with nothing.
   return SkillGearMet(state.character, skill, activity);
 }
 
-// The element belongs to the SKILL, not to who swung it: Spirit of Snow's
-// blizzard is ice whoever called it down, and leaves the same freeze. The
-// parent's other tags come with it and mean nothing to a strike like this.
+// The element belongs to the skill, not the caster: Spirit of Snow's blizzard
+// is ice whoever summoned it, and freezes the same way. The parent's other tags
+// are copied too, but don't matter for a strike like this.
 void CarryElement(const Skill& skill, Skill& built) {
   *built.mutable_tags() = skill.tags();
   built.set_freeze_seconds(skill.freeze_seconds());
@@ -811,8 +809,8 @@ void CarryElement(const Skill& skill, Skill& built) {
   built.set_freeze_lines_per_spend(skill.freeze_lines_per_spend());
 }
 
-// An own-clock half as a skill in its own right, so the same damage chain
-// builds it. It keeps the parent's name: to the player it is one skill.
+// An auto-firing part of a skill as a skill of its own, so the same damage code
+// builds it. It keeps the parent's name, since to the player it is one skill.
 Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   Skill built;
   built.set_name(skill.name());
@@ -825,8 +823,8 @@ Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   return built;
 }
 
-// The wound a skill's buff bleeds, as a skill in its own right. It reaches
-// what the swing reached, being the mark that swing left.
+// The damage a skill's buff deals over time, as a skill of its own. It hits the
+// same enemies as the attack, since it's the mark the attack left.
 Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   Skill built;
   built.set_name(skill.name());
@@ -840,7 +838,8 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   return built;
 }
 
-// How often a pulse fires: its own clock, or the swing of the skill it rides.
+// How often a pulse fires: its own interval, or the attack speed of the skill
+// it's attached to.
 double PulseIntervalSeconds(const BuffPulse& pulse,
                             const std::map<std::string, Skill>& skills,
                             int attack_speed, double speed_factor) {
@@ -860,12 +859,10 @@ double PulseIntervalSeconds(const BuffPulse& pulse,
   return 0.0;
 }
 
-// The bleeding half of one buff or of one form of it: an attack on the buff's
-// clock, gated on that buff -- and that form -- standing.
-// The turret's parting shot as a skill of its own. It keeps the pulse's
-// levers and swaps in its own damage, being the same turret: GMS writes the
-// scroll's boss damage once. What the burst states for itself wins, as
-// merging one proto3 message over another does.
+// The turret's final shot as a skill of its own. It keeps the pulse's bonuses
+// and uses its own damage, since it's the same turret (GMS lists the scroll's
+// boss damage once). Values the burst lists override, like merging one proto3
+// message into another.
 Skill FinalStrikeSkill(const Skill& bleed, const SwingHit& burst) {
   Skill goes_out = bleed;
   goes_out.mutable_base()->clear_skill_pct();
@@ -879,6 +876,8 @@ Skill FinalStrikeSkill(const Skill& bleed, const SwingHit& burst) {
   return goes_out;
 }
 
+// The damage-dealing part of a buff, or of one of its forms: an attack on the
+// buff's timer that fires only while that buff (and form) is active.
 void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill,
                   const BuffPulse& pulse, int stance, int level,
@@ -891,8 +890,8 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   if (interval <= 0.0) {
     return;
   }
-  // Everything here fires on the buff's clock rather than being swung, so
-  // nothing that rides a swing rides any of it.
+  // Everything here fires on the buff's timer rather than being an attack, so
+  // nothing that triggers on attacks applies.
   auto own_clock = [&](const Skill& built) {
     AttackOption attack =
         AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
@@ -904,15 +903,15 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   Skill bleed = BuffPulseSkill(skill, pulse);
   AttackOption wound = own_clock(bleed);
   wound.interval_seconds = interval;
-  // Put back after ClearSwingRiders took the swing's away: Darkness Aura
-  // states its heal against the AURA's attack, so it is paid per pulse.
+  // Restore the HP recovery ClearSwingRiders removed: Darkness Aura's heal is
+  // on the aura's own attack, so it's paid per pulse.
   wound.hp_recover_pct =
       EffectAt(pulse.base(), pulse.per_level(), level).hp_recover_pct();
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;
-  // The ramp an accumulating poison walks: one form per helping, each the
-  // whole strike again, so each rolls its own mastery and criticals.
+  // The escalating forms of a stacking poison: one per stack, each the full
+  // strike, so each rolls its own mastery and crits.
   double step = pulse.skill_pct_per_repeat() +
                 pulse.skill_pct_per_repeat_per_level() * (level - 1);
   for (int repeat = 1; repeat <= pulse.max_repeats() && step > 0.0; ++repeat) {
@@ -923,8 +922,8 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
         std::make_shared<const AttackOption>(own_clock(stronger)));
   }
   wound.final_repeat_strike = pulse.final_repeat_strike();
-  // One more of the rain's own lines, built as a strike of exactly one so
-  // the fight lands as many as the swing earned, each rolling for itself.
+  // One extra line of the rain, built as a single-line strike so the fight can
+  // land as many as the attack earned, each rolling separately.
   if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {
     Skill one = bleed;
     one.set_lines(1);
@@ -932,8 +931,8 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
     wound.lines_per_extra_enemy = pulse.lines_per_extra_enemy();
     wound.max_extra_lines = pulse.max_extra_lines();
   }
-  // The strike the turret goes out on: the scroll bursts as it leaves. WITH
-  // the last tick, not an interval after -- by then its window is down.
+  // The turret's final strike as the scroll bursts. It lands with the last
+  // tick, not an interval later, since by then the buff has ended.
   if (pulse.has_final_strike()) {
     const SwingHit& burst = pulse.final_strike();
     AttackOption last = own_clock(FinalStrikeSkill(bleed, burst));
@@ -941,9 +940,9 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
     wound.final_strike = std::make_shared<const AttackOption>(std::move(last));
   }
   set.auto_attacks.push_back(std::move(wound));
-  // The stars a tick throws whatever the crowd is: their own attack rather
-  // than lines on the volley beside them, the volley being worth what the
-  // crowd is where these are worth the same on a lone boss.
+  // Stars each tick throws regardless of crowd size. A separate attack rather
+  // than extra lines on the volley, since the volley scales with the crowd
+  // while these are worth the same against a lone boss.
   if (pulse.fixed_strikes().hits() > 0) {
     Skill fixed = bleed;
     fixed.set_lines(1);
@@ -956,8 +955,8 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   }
 }
 
-// Adds every own-clock half of a skill that has any, beside the swing it
-// already is. Nothing for the skills that have none, which is most of them.
+// Adds any auto-firing parts of a skill alongside its normal attack. Most
+// skills have none.
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill, int level,
                   const DerivedStats& derived,
@@ -969,17 +968,17 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
       continue;
     }
     Skill built = AutoModeSkill(skill, mode);
-    // The stage is not read: what this builds is paced by its own interval, and
-    // nothing firing on its own clock answers to how fast the weapon swings.
+    // Attack speed doesn't apply: this fires on its own interval, which weapon
+    // speed doesn't affect.
     AttackOption attack =
         AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
                   kUnscaledAttackSpeedStage, speed_factor);
-    attack.swing_seconds = 0.0;  // not swung, so never charged
-    ClearSwingRiders(attack);    // what rides a swing needs one
+    attack.swing_seconds = 0.0;  // not an attack, so never charged
+    ClearSwingRiders(attack);    // swing-triggered effects don't apply
     attack.strikes_per_pulse = std::max(1, mode.casts());
     attack.silent_while_buff = mode.silent_while_buff_stands();
-    // Clocked by the character's swings rather than by seconds passed, which
-    // is the list the fight credits a landed swing to.
+    // Triggered by the character's attacks rather than by time, so it goes in
+    // the list the fight credits landed attacks to.
     if (mode.attacks_per_cast() > 0) {
       attack.attacks_per_cast = mode.attacks_per_cast();
       set.triggered_attacks.push_back(std::move(attack));
@@ -990,8 +989,8 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   }
   AddBuffPulse(proto, equipped, weapon_type, skill, skill.buff().pulse(), -1,
                level, derived, skills, attack_speed, speed_factor, types, set);
-  // A buff with forms bleeds once per form. Both sit in the list and only the
-  // one the cast raised fires, which is what needs_buff_stance gates.
+  // A buff with forms has one pulse per form. All are listed, and only the form
+  // the cast raised fires, which needs_buff_stance controls.
   for (int i = 0; i < skill.buff().stance_size(); ++i) {
     AddBuffPulse(proto, equipped, weapon_type, skill,
                  skill.buff().stance(i).pulse(), i, level, derived, skills,
@@ -999,40 +998,38 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   }
 }
 
-// What the rest of the book hands one skill: strikes, reach, its clock, and
-// the share off the wait between its casts.
+// What the rest of the job book gives one skill: extra lines, reach, trigger
+// rate, and cooldown reduction.
 struct SkillBoosts {
   int lines = 0;
-  // Strikes on each of its second hits rather than on the swing itself -- the
-  // opening hit and every extra hit, which are priced apart from its lines.
+  // Extra lines on each of its additional hits (the opening hit and every extra
+  // hit), which are priced separately from its main lines.
   int extra_hit_lines = 0;
   int max_enemies = 0;
   int attacks_per_cast = 0;
-  // What is LEFT of the wait, so two cuts combine in reverse the way two
-  // sources of ignored defence do. 1.0 is a skill nothing hurries.
+  // The fraction of the cooldown left, so two reductions combine
+  // multiplicatively like ignore defense. 1.0 means no reduction.
   double cooldown_left = 1.0;
-  // What the book adds to the BUFF a skill stands as: seconds on its clock,
-  // hits on its shell, and the share it takes off a hit it cannot block.
+  // What the book adds to the skill's buff: duration, shield hits, and damage
+  // reduction against hits the shield can't block.
   double buff_duration_seconds = 0.0;
   double shield_hits = 0.0;
   double shield_boss_damage_taken_pct = 0.0;
 };
 
-// Every such grant, summed and keyed by the skill it names. Gathered once:
-// the granting skill may be listed after the one it strengthens, and every
-// attack is built with the whole of it already in.
+// Every such bonus, summed and keyed by the skill it targets. Collected up
+// front because the granting skill may come after the one it boosts, and every
+// attack is built with all bonuses already applied.
 std::map<std::string, SkillBoosts> BoostsByTarget(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus,
     Activity activity = Activity::kFarming) {
-  // The nudge SkillLinesAt takes, for the same reason: a rate written as a
-  // decimal lands a hair under the level it is meant to buy.
   std::map<std::string, SkillBoosts> by_target;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // Learned levels are keyed by display name, which branches share, so
-    // only the character's own book grants anything. Asked of the character
-    // rather than the advancement: a V node belongs to no book.
+    // Learned levels are keyed by display name, which branches share, so only
+    // the character's own book grants anything. Asks the character, not the
+    // advancement, since V nodes belong to no book.
     if (!character.HoldsSkillFrom(skill, activity)) {
       continue;
     }
@@ -1041,15 +1038,15 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
       continue;
     }
     for (const SkillBoost& boost : skill.boost()) {
-      // A gift the granting skill has not grown into yet -- the enemy a boost
-      // node's Lv20 tier adds, before the node reaches 20.
+      // Skip bonuses the granting skill hasn't reached yet, like the extra
+      // enemy a boost node's Lv20 tier adds.
       if (learned < boost.min_level()) {
         continue;
       }
       int enemies = boost.max_enemies() +
                     WholeValue(boost.max_enemies_per_level() * (learned - 1));
-      // The form swings under a name of its own, so a grant reaching it is
-      // filed there -- see BoostTargetNames.
+      // Empowered forms use their own name, so bonuses that reach them are
+      // filed there. See BoostTargetNames.
       for (const std::string& name : BoostTargetNames(boost)) {
         SkillBoosts& into = by_target[name];
         into.lines += boost.lines();
@@ -1060,7 +1057,7 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
         into.shield_hits += boost.shield_hits();
         into.shield_boss_damage_taken_pct +=
             boost.shield_boss_damage_taken_pct();
-        // The clock replaces rather than sums, so the faster of two stands.
+        // Trigger rates replace rather than add, so the faster one wins.
         if (boost.attacks_per_cast() > 0 &&
             (into.attacks_per_cast == 0 ||
              boost.attacks_per_cast() < into.attacks_per_cast)) {
@@ -1072,10 +1069,9 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
   return by_target;
 }
 
-// `skill` with what the book grants it folded in. The line ladder is cashed
-// in at `level` on the way, so a granted strike lands on top of the ones the
-// skill bought rather than being climbed past twice. An empowered form comes
-// here under its own name.
+// `skill` with the job book's bonuses applied. Its per-level line count is
+// resolved at `level` first, so granted lines are added on top rather than
+// scaled again. Empowered forms come through here under their own name.
 const Skill& Boosted(const Skill& skill, int level,
                      const std::map<std::string, SkillBoosts>& boosts,
                      Skill& scratch) {
@@ -1089,8 +1085,8 @@ const Skill& Boosted(const Skill& skill, int level,
   scratch.clear_lines_per_level();
   scratch.set_max_enemies(std::max(1, skill.max_enemies()) +
                           it->second.max_enemies);
-  // The hits landed beside the swing, each gaining its own strike: the opening
-  // hit only where there is one, since lead_lines says nothing without it.
+  // Additional hits each gain the extra lines too. The opening hit only counts
+  // if the skill has one, since lead_lines means nothing without it.
   if (it->second.extra_hit_lines > 0) {
     if (skill.base().lead_pct() > 0.0) {
       scratch.set_lead_lines(std::max(1, skill.lead_lines()) +
@@ -1103,8 +1099,8 @@ const Skill& Boosted(const Skill& skill, int level,
   if (it->second.attacks_per_cast > 0) {
     scratch.set_attacks_per_cast(it->second.attacks_per_cast);
   }
-  // The whole ladder, so the wait is cut by the same share however far the
-  // skill is taught -- and CooldownAt reads the copy without knowing.
+  // Scale the whole per-level cooldown so the reduction is the same share at
+  // every level; CooldownAt then reads the scaled copy normally.
   if (it->second.cooldown_left < 1.0) {
     scratch.set_cooldown_seconds(skill.cooldown_seconds() *
                                  it->second.cooldown_left);
@@ -1114,8 +1110,8 @@ const Skill& Boosted(const Skill& skill, int level,
   return scratch;
 }
 
-// Files a form or a load under the skill it belongs to, with the burns it
-// lights itself. What the character carries stays with its own skill.
+// Credits a form or stored attack to the skill it belongs to, along with the
+// burns it applies. Burns the character carries keep their own skill.
 void CreditTo(const std::string& skill, AttackOption& attack) {
   attack.credit = skill;
   for (DotApplication& dot : attack.dots) {
@@ -1125,32 +1121,31 @@ void CreditTo(const std::string& skill, AttackOption& attack) {
   }
 }
 
-// An empowered form as a skill in its own right. It takes a NAME of its own,
-// unlike an own-clock half: it is a different swing, and must not pick up the
-// permanent bonus its parent hands the ordinary one. See SkillBoost::reach.
+// An empowered form as a skill of its own. Unlike an auto-firing part, it gets
+// its own name: it's a different attack and must not get the permanent bonus
+// its parent gives the normal one. See SkillBoost::reach.
 Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
                      const std::string& target, SkillKind kind, int reach) {
   Skill form;
   form.set_name(EmpoweredSkillName(target));
-  // The kind of the attack it stands in for, not of the skill granting it --
-  // the grant is often a passive, and what stands in for a pulse is a pulse.
+  // Uses the kind of the attack it replaces, not the granting skill's: the
+  // grant is often a passive, and a form replacing a pulse is itself a pulse.
   form.set_kind(kind);
   *form.mutable_base() = upgrade.base();
   *form.mutable_per_level() = upgrade.per_level();
-  // A form that says nothing about its reach goes as far as the attack it
-  // stands in for: Mist Eruption sets off the mist exactly where the mist is.
+  // A form with no reach of its own reaches as far as the attack it replaces:
+  // Mist Eruption triggers the mist exactly where the mist is.
   form.set_max_enemies(upgrade.max_enemies() > 0 ? upgrade.max_enemies()
                                                  : reach);
   form.set_lines(upgrade.lines());
   *form.mutable_extra_hit() = upgrade.extra_hit();
-  // The form is the same arrow, further upgraded: it gains as it travels the
-  // same way, over the further enemies it reaches.
+  // The form is the same arrow, upgraded, so it gets the same pierce bonus.
   form.set_pierce_gain_pct(skill.pierce_gain_pct());
   return form;
 }
 
-// A wound's heavier form: its own multiplier, reach and strikes, under a name
-// of its own so the ledger and the plate can tell the presses apart.
+// A wound's heavier form: its own multiplier, reach and hits, with its own name
+// so the damage log and display can tell the attacks apart.
 Skill WoundFormSkill(const Skill& skill, const WoundForm& form) {
   Skill built;
   built.set_name(form.label().empty() ? skill.name() : form.label());
@@ -1166,9 +1161,9 @@ Skill WoundFormSkill(const Skill& skill, const WoundForm& form) {
   return built;
 }
 
-// The form the fight lands in place of the ordinary press while a wound
-// stands at full depth. Built here rather than in a second pass, unlike an
-// empowered form: it always belongs to the skill stating it.
+// Attaches the form the fight uses instead of the normal attack while a wound
+// is at max stacks. Built here directly, unlike empowered forms, since it
+// always belongs to the skill that lists it.
 void AttachWoundForm(const Character& proto, const EquipStats& equipped,
                      EquipType weapon_type, const Skill& skill, int learned,
                      const DerivedStats& derived, int attack_speed,
@@ -1187,8 +1182,8 @@ void AttachWoundForm(const Character& proto, const EquipStats& equipped,
 }
 
 // Attaches `skill`'s empowered form to every attack it upgrades. The form
-// takes the attack's place, so it inherits its pacing: an animation for a
-// swing, and nothing for a summon, paced by the clock it replaced.
+// replaces the attack, so it keeps its timing: an animation for an attack, and
+// none for a summon, which keeps the timer it replaced.
 void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                          EquipType weapon_type, const Skill& skill,
                          const EmpoweredForm& upgrade, int learned,
@@ -1197,7 +1192,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                          const std::vector<CombatType>& types, SkillKind kind,
                          const std::map<std::string, SkillBoosts>& boosts,
                          std::vector<AttackOption>& into) {
-  // Naming no attack, it upgrades the one its own skill already is.
+  // If no target is named, it upgrades its own skill's attack.
   const std::string& target =
       upgrade.skill_name().empty() ? skill.name() : upgrade.skill_name();
   for (AttackOption& attack : into) {
@@ -1206,8 +1201,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     }
     Skill form =
         EmpoweredSkill(skill, upgrade, attack.name, kind, attack.max_enemies);
-    // What the book grants the form under its own name, which is what a boost
-    // following the skill into it was filed under.
+    // Apply the book's bonuses filed under the form's own name.
     Skill boosted;
     const Skill& swung = Boosted(form, learned, boosts, boosted);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
@@ -1215,8 +1209,8 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                   learned, types, derived, attack_speed, speed_factor));
     swing->swing_seconds = attack.swing_seconds;
     CreditTo(attack.credit, *swing);
-    // Final Attack follows the character's swing, and a summon's pulse is not
-    // one -- so a form standing in for a pulse must not carry one either.
+    // Final Attacks follow the character's attacks, and a summon pulse isn't
+    // one, so a form replacing a pulse can't have them either.
     if (attack.interval_seconds > 0.0) {
       ClearSwingRiders(*swing);
     }
@@ -1226,8 +1220,8 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
   }
 }
 
-// A second pass, once every attack is built: the skill carrying a form may
-// name its target by display name, before that target is reached.
+// A second pass after every attack is built, since a skill's form may target
+// another skill by name before that skill is built.
 void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        EquipType weapon_type, const DerivedStats& derived,
                        int attack_speed, double speed_factor,
@@ -1242,8 +1236,8 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
     if (learned <= 0) {
       continue;
     }
-    // A form standing in for a pulse is a pulse: no shadow and no mesos, for
-    // the reason AddAttacks gives.
+    // A form replacing a pulse is a pulse: no shadow and no meso, for the
+    // reason given in AddAttacks.
     DerivedStats off_clock = derived;
     off_clock.mirror_line_pct = 0.0;
     StripMesoDrops(off_clock);
@@ -1261,9 +1255,8 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
   }
 }
 
-// The attack a buff loads, as a skill in its own right. It takes the
-// magazine's label for a name: the fight finds the swing by it, and a boost
-// aimed at it is filed under it.
+// The attack a buff loads, as a skill of its own. Named after the magazine's
+// label, which the fight uses to find it and bonuses are filed under.
 Skill MagazineSkill(const Skill& skill, const Magazine& magazine) {
   Skill loaded;
   loaded.set_name(magazine.label());
@@ -1275,22 +1268,22 @@ Skill MagazineSkill(const Skill& skill, const Magazine& magazine) {
   *loaded.mutable_scatter() = magazine.scatter();
   *loaded.mutable_base() = magazine.base();
   *loaded.mutable_per_level() = magazine.per_level();
-  // The weapons and the group belong to the skill that loads it: one press of
-  // the same button, so what sets a Final Attack off is the same mark.
+  // Weapon requirements and tags come from the skill that loads it: it's one
+  // press of the same button, so the same things trigger Final Attacks.
   *loaded.mutable_required_equip_type() = skill.required_equip_type();
   *loaded.mutable_tags() = skill.tags();
   return loaded;
 }
 
-// Hangs a load on every swing that spends it, and says whether anybody does.
-// `at` is where its charges are counted however many swings press it: one
-// bank, not one per button.
+// Attaches a stored attack to every attack that fires it, and returns whether
+// any does. `at` is where its charges are counted: one shared pool, however
+// many attacks use it.
 bool HangLoad(const Magazine& magazine, AttackOption& load, AttackSet& set) {
   int at = static_cast<int>(set.attacks.size());
-  // From 1: the bare poke is no skill and spends nothing -- and charged with
-  // a load it would be what the fight reached for through a burst.
+  // Start at 1: the basic attack isn't a skill and doesn't fire stored attacks.
+  // If it did, the fight would pick it just to burn through them.
   for (int i = 1; i < at; ++i) {
-    // Another skill's load is not a swing either.
+    // Another skill's stored attack isn't a regular attack either.
     if (set.attacks[i].charges > 0) {
       continue;
     }
@@ -1299,8 +1292,8 @@ bool HangLoad(const Magazine& magazine, AttackOption& load, AttackSet& set) {
       continue;
     }
     load.spent_by_attack = i;
-    // It rides that press rather than costing one of its own, so it is worth
-    // exactly what the swing carrying it is worth in time.
+    // It fires as part of that attack rather than costing its own, so it takes
+    // exactly the attack's time.
     load.swing_seconds = set.attacks[i].swing_seconds;
     set.attacks[i].loaded = std::make_shared<AttackOption>(load);
     set.attacks[i].loaded_attack = at;
@@ -1308,8 +1301,8 @@ bool HangLoad(const Magazine& magazine, AttackOption& load, AttackSet& set) {
   return load.spent_by_attack >= 0;
 }
 
-// One swing per learned buff that loads one. Its own pass: the skill carrying
-// a magazine is a buff, which AddAttacks is done with before it builds one.
+// Adds one attack for each learned buff that loads one. A separate pass because
+// the skill with the magazine is a buff, which AddAttacks has already skipped.
 void AddMagazines(const GameState& state, const DerivedStats& derived,
                   EquipType weapon_type, int attack_speed, double speed_factor,
                   const std::vector<CombatType>& types, AttackSet& set) {
@@ -1336,16 +1329,16 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
     attack.charges_per_swing = std::max(1, magazine.charges_per_swing());
     attack.recharge_seconds = magazine.recharge_seconds();
     attack.recharge_max = magazine.recharge_max();
-    // A load nothing else spends is a button in its own right. One a swing
-    // spends stays on the list, where its charges are counted, but is hung on
-    // the presses spending it and taken out of the choice.
+    // A stored attack nothing else fires is its own button. One that another
+    // attack fires stays in the list, where its charges are counted, but is
+    // attached to the attacks that fire it and never chosen directly.
     if (magazine.spent_by_skill_name().empty() &&
         !magazine.spent_by_every_swing()) {
       set.attacks.push_back(std::move(attack));
       continue;
     }
-    // Nobody holds a skill that would spend it, and an option left on the
-    // list is one the fight would choose for itself.
+    // Nobody has a skill that fires it, and leaving it in the list would let
+    // the fight choose it directly.
     if (!HangLoad(magazine, attack, set)) {
       continue;
     }
@@ -1353,12 +1346,9 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
   }
 }
 
-// Every attack the character could swing, the bare poke first. Skills firing
-// on their own clock go to auto_attacks instead. Passives apply to whichever
-// attack is chosen, so the resolved `derived` is handed to each.
-// Strips the damage off a cast. With no multiplier to apply the chain built
-// the bare poke's, which a cast must not land -- and a cast that deals no
-// damage strikes nothing, so nothing follows it however it is clocked.
+// Removes a cast's damage. With no multiplier, the formula priced it as a basic
+// attack, which a cast must not deal; and a cast that deals no damage hits
+// nothing, so nothing triggers from it.
 void MakeCastHarmless(AttackOption& attack) {
   std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(), 0.0);
   attack.groups.clear();
@@ -1367,20 +1357,20 @@ void MakeCastHarmless(AttackOption& attack) {
   ClearFinalAttacks(attack);
 }
 
-// Files a skill that runs on a clock of its own, under whatever that clock
-// counts: swings landed, enemies defeated, or seconds passed.
+// Files a skill that runs on its own timer under what the timer counts: landed
+// attacks, kills, or seconds.
 void FileAutoAttack(const Skill& swung, double speed_factor,
                     AttackOption& attack, AttackSet& set) {
-  attack.swing_seconds = 0.0;  // not swung, so never charged
-  ClearSwingRiders(attack);    // what rides a swing needs one
+  attack.swing_seconds = 0.0;  // not an attack, so never charged
+  ClearSwingRiders(attack);    // swing-triggered effects don't apply
   if (swung.attacks_per_cast() > 0 || swung.kills_per_cast() > 0) {
     attack.attacks_per_cast = swung.attacks_per_cast();
     attack.kills_per_cast = swung.kills_per_cast();
     set.triggered_attacks.push_back(std::move(attack));
     return;
   }
-  // A skill with no clock at all would fire every step, so naming neither is
-  // taken as "does not fire" rather than "fires constantly".
+  // A skill with no interval would fire every step, so naming neither is read
+  // as "never fires" rather than "fires constantly".
   if (swung.cast_interval_seconds() <= 0.0) {
     return;
   }
@@ -1388,13 +1378,16 @@ void FileAutoAttack(const Skill& swung, double speed_factor,
   set.auto_attacks.push_back(std::move(attack));
 }
 
+// Every attack the character could use, basic attack first. Skills on their
+// own timer go to auto_attacks instead. Passives apply to whichever attack is
+// chosen, so each gets the full `derived`.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 EquipType weapon_type, int attack_speed, double speed_factor,
                 const std::vector<CombatType>& types, AttackSet& set) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
-  // A skill on its own clock is not the character's swing: no shadow copies
-  // it and it knocks no mesos loose, as AttackFor strips its Final Attack.
+  // A skill on its own timer isn't the character's attack: no shadow copies it
+  // and it throws no meso, just as AttackFor removes its Final Attacks.
   DerivedStats off_clock = derived;
   off_clock.mirror_line_pct = 0.0;
   StripMesoDrops(off_clock);
@@ -1413,19 +1406,19 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
         !Available(state, skill, superseded, derived.activity)) {
       continue;
     }
-    // Strikes and reach another skill in the book grants this one, folded in
-    // before anything is built so the whole chain below sees one skill.
+    // Apply lines and reach other skills grant this one before building
+    // anything, so everything below sees one skill.
     Skill boosted;
     const Skill& swung = Boosted(skill, learned, boosts, boosted);
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  state.skills, attack_speed, speed_factor, types, set);
-    // A skill no swing can be spent on is done here; its own-clock halves
-    // are already in, which is all an aura contributes.
+    // Skills that can't be used as an attack stop here. Their auto-firing parts
+    // were already added, which is all an aura does.
     if (!Castable(swung)) {
       continue;
     }
-    // Everything below reads `swung`, never `skill`, or a boost that moved
-    // the clock would be dropped.
+    // Everything below uses `swung`, not `skill`, or a bonus that changed the
+    // trigger would be lost.
     AttackOption attack =
         AttackFor(proto, total_stats, weapon_type, &swung, learned, types,
                   swung.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
@@ -1434,8 +1427,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       MakeCastHarmless(attack);
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
-      // What this swing counts toward the skills clocked by swings landed.
-      // Unset is one, which is what an ordinary swing is worth.
+      // How much this attack counts toward skills triggered by landed attacks.
+      // Unset means 1, a normal attack.
       if (swung.hits_per_attack_count() > 1) {
         attack.count_weight = 1.0 / swung.hits_per_attack_count();
       }
@@ -1448,9 +1441,9 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   }
 }
 
-// The stage the character's swings are paced at: their job and weapon's, plus
-// what their passives add, held to the soft cap and then past it where
-// allowed. Per attack set, a buff being one of the things adding.
+// The character's attack speed stage: job and weapon, plus passives, capped at
+// the soft cap and then beyond it where allowed. Computed per attack set, since
+// buffs can add to it.
 int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
                         const DerivedStats& derived) {
   return AttackSpeedStage(BaseAttackSpeedStage(state.character.proto().job(),
@@ -1459,19 +1452,19 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
                           derived.uncapped_attack_speed_bonus);
 }
 
-// Hands each burn a slot of its own, so two never write over each other.
-// `shared` is how many the CHARACTER carries rather than any one swing.
-// Numbered by attack order, the same in every buffed set, so a held slot means
-// the same thing however the buffs come and go. Every kind of attack is
-// numbered: one with no slot is one the fight silently drops.
+// Gives each burn its own slot so two never overwrite each other. `shared` is
+// how many the character carries, rather than any one attack. Numbered in
+// attack order, the same in every buff combination, so a slot always means the
+// same burn. Every kind of attack is numbered; one without a slot would be
+// silently dropped by the fight.
 void NumberDots(AttackSet& set, int shared) {
   int next = shared;
   std::vector<std::vector<AttackOption>*> lists = {
       &set.attacks, &set.auto_attacks, &set.triggered_attacks};
   for (std::vector<AttackOption>* list : lists) {
     for (AttackOption& attack : *list) {
-      // A carried burn is the same burn wherever applied from, so it keeps
-      // the slot its place among the character's gives it.
+      // A carried burn is the same burn wherever it's applied from, so it keeps
+      // its slot among the character's burns.
       int carried = 0;
       for (DotApplication& burn : attack.dots) {
         burn.slot = burn.carried ? carried++ : next++;
@@ -1480,8 +1473,8 @@ void NumberDots(AttackSet& set, int shared) {
   }
 }
 
-// Slots a monster needs for every burn this character can leave. Every list is
-// walked: a summon's burn marks a monster as a swing's does.
+// Burn slots each monster needs for every burn this character can apply. Checks
+// every list, since summons can apply burns too.
 int DotSlotsNeeded(const CombatParams& params) {
   int slots = 0;
   const std::vector<const std::vector<AttackOption>*> lists = {
@@ -1496,8 +1489,8 @@ int DotSlotsNeeded(const CombatParams& params) {
   return slots;
 }
 
-// Everything the character can attack with, at one particular set of stats --
-// theirs alone, or theirs with some buff up.
+// Everything the character can attack with under one set of stats: their own,
+// or with some buffs active.
 AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
                          const EquipPrototype& weapon, double speed_factor,
                          const std::vector<CombatType>& types) {
@@ -1515,8 +1508,8 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
   return set;
 }
 
-// Where `name`'s swing sits, or -1. Answered off the unbuffed set, which is
-// in the same order as every buffed one.
+// The index of `name`'s attack, or -1. Uses the unbuffed set, which has the
+// same order as every buffed one.
 int AttackNamed(const std::vector<AttackOption>& attacks,
                 const std::string& name) {
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -1527,8 +1520,8 @@ int AttackNamed(const std::vector<AttackOption>& attacks,
   return -1;
 }
 
-// How many of the party raise `skill`, the character among them. What a
-// party-shared buff divides its wait by -- see Buff::party_shared.
+// How many party members, including the character, have `skill`. Party-shared
+// buffs divide their cooldown by this; see Buff::party_shared.
 int PartyHolders(const CharacterInstance& character,
                  absl::Span<const CharacterInstance> party,
                  const Skill& skill) {
@@ -1541,45 +1534,44 @@ int PartyHolders(const CharacterInstance& character,
   return holders;
 }
 
-// Buff Duration reaches every buff but a V node's: GMS marks all of them
-// notIncBuffDuration, a rule about the whole matrix, which is why it is asked
-// of v_node rather than written into each file. The base in constants.h is
-// added HERE rather than to the stat line, so the matrix stands outside it
-// too.
+// Buff Duration applies to every buff except V nodes: GMS marks all of those
+// notIncBuffDuration, so we check v_node rather than marking each file. The
+// base from constants.h is added here rather than to the stats, so V nodes skip
+// it too.
 double BuffDurationFor(const Skill& skill, double buff_duration_pct) {
   return skill.v_node() == V_NODE_KIND_UNSPECIFIED
              ? kBaseBuffDuration + buff_duration_pct
              : 0.0;
 }
 
-// One buff's clock and shell once the book has had its say. The seconds a
-// hyper adds land BEFORE Buff Duration takes its share: one buff, one length
-// however many sources wrote it.
+// One buff's duration and shield after job book bonuses. Seconds from Hyper
+// skills are added before Buff Duration scales the total, since it's one
+// duration no matter how many sources add to it.
 BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
                         double buff_duration_pct, double speed_factor,
                         int stage) {
   BuffOption option;
-  // Buff Duration lengthens the buff and not the wait below it, which is why
-  // a percentage that grants nothing on its own is worth having.
+  // Buff Duration lengthens the buff, not its cooldown, which is why it's worth
+  // having even though it grants nothing itself.
   option.duration_seconds = (buff.duration_seconds() +
                              buff.duration_seconds_per_level() * (level - 1) +
                              boost.buff_duration_seconds) *
                             (1.0 + buff_duration_pct) * speed_factor;
-  // One stage of a shedding buff: the first falls a stage-interval in, the
-  // last stands the whole length. Clamped, so a buff shorter than its stages
-  // sheds what it can and takes the rest down with it.
+  // One stage of a buff that fades in stages: the first ends one stage interval
+  // in, the last lasts the full duration. Clamped, so a buff shorter than its
+  // stages ends the rest with it.
   if (buff.stages() > 1) {
     option.duration_seconds =
         std::min(option.duration_seconds,
                  buff.stage_interval_seconds() * (stage + 1) * speed_factor);
   }
-  // The same rule the length above is under, since it is the same length: what
-  // the burns add is seconds of window, not a lever of its own.
+  // Same scaling as the duration above, since it's the same duration: burns add
+  // seconds, not a separate effect.
   option.duration_seconds_per_dot = buff.duration_seconds_per_dot() *
                                     (1.0 + buff_duration_pct) * speed_factor;
   option.dot_count_cap = buff.dot_count_cap();
-  // Game-scaled like every other clock here: the angel re-grants on the
-  // stretched second, as it strikes on one.
+  // Game-scaled like every other timer here: the angel re-grants on stretched
+  // seconds, just as it attacks on them.
   option.duty_seconds = buff.duty_seconds() * speed_factor;
   option.duty_interval_seconds = buff.duty_interval_seconds() * speed_factor;
   if (buff.has_shield()) {
@@ -1590,9 +1582,9 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
   return option;
 }
 
-// The character's buffs with a shedding one written out per stage. Each entry
-// grants one stage's levers on one stage's clock, so the mask indexing the
-// damage tables says how many stages still stand.
+// The character's buffs, with each stage of a staged buff listed separately.
+// Each entry grants one stage's effects on one stage's timer, so the damage
+// table's mask shows how many stages are still up.
 std::vector<const Skill*> StagedBuffSkills(
     const std::vector<const Skill*>& raised) {
   std::vector<const Skill*> staged;
@@ -1602,10 +1594,10 @@ std::vector<const Skill*> StagedBuffSkills(
   return staged;
 }
 
-// The forms a buff can be raised in, and its own length where it has any: the
-// LONGEST of them, so a caller asking how long it runs has an answer. Buff
-// Duration is NOT applied -- every buff with forms is a V node, which
-// BuffDurationFor exempts anyway.
+// Adds the forms a buff can be raised in, and sets its duration to the longest
+// of them so callers asking how long it lasts get an answer. Buff Duration
+// isn't applied: every buff with forms is a V node, which BuffDurationFor
+// exempts anyway.
 void AddStances(const Buff& buff, int level, double speed_factor,
                 BuffOption& option) {
   for (const Stance& stance : buff.stance()) {
@@ -1622,23 +1614,23 @@ void AddStances(const Buff& buff, int level, double speed_factor,
   }
 }
 
-// How the buff goes up, and what that costs the fight: a press of its own, a
-// roll on a swing, or laid by the attack it hangs off.
+// How the buff is raised and what it costs the fight: its own key press, a
+// chance on each attack, or applied by the attack it's attached to.
 void SetHowRaised(const Skill& skill, int level, int stage, double speed_factor,
                   const std::vector<AttackOption>& attacks,
                   BuffOption& option) {
   const Buff& buff = skill.buff();
-  // What raising it costs. A buff a swing lays is paid for by that swing, so
-  // it is charged nothing here -- see BuffOption::cast_seconds.
+  // The cost of raising it. A buff applied by an attack is paid for by that
+  // attack, so it costs nothing here; see BuffOption::cast_seconds.
   option.cast_seconds = skill.base_delay_ms() / 1000.0 * speed_factor;
-  // The stages of one shedding buff go up on the one cast, so only the first
-  // of them is charged for it.
+  // All stages of a staged buff go up in one cast, so only the first is
+  // charged.
   if (stage > 0) {
     option.cast_seconds = 0.0;
   }
-  // A buff a swing ROLLS for is not pressed at all, so it costs no cast and
-  // waits on no clock. One naming an afflicted target with no chance of its
-  // own is raised by every swing that finds one.
+  // A buff raised by a chance on attacks is never pressed, so it has no cast
+  // time or cooldown. One that requires a target with a status but lists no
+  // chance is raised by every qualifying attack.
   option.needs_afflicted_target = buff.needs_afflicted_target();
   if (buff.raise_chance() > 0.0 || buff.raise_chance_per_level() > 0.0) {
     option.raise_chance = std::clamp(
@@ -1650,8 +1642,8 @@ void SetHowRaised(const Skill& skill, int level, int stage, double speed_factor,
   if (option.raise_chance > 0.0) {
     option.cast_seconds = 0.0;
   }
-  // A buff hanging off an ATTACK is laid by that swing rather than raised
-  // on a wait, unless it states a press of its own.
+  // A buff attached to an attack is applied by that attack rather than raised
+  // on a cooldown, unless it lists its own cast time.
   if (skill.kind() == SKILL_KIND_ATTACK) {
     if (buff.own_cast_delay_ms() > 0) {
       option.cast_seconds = buff.own_cast_delay_ms() / 1000.0 * speed_factor;
@@ -1664,8 +1656,8 @@ void SetHowRaised(const Skill& skill, int level, int stage, double speed_factor,
   }
 }
 
-// What the fight needs to run each buff's clock, at the level it is learned.
-// The levers are not here: those are folded into the tables below.
+// Adds what the fight needs to run each buff's timer at its learned level. The
+// buffs' effects aren't here; they're built into the damage tables.
 void AddBuffs(const GameState& state,
               const std::vector<const Skill*>& buff_skills, double speed_factor,
               const DerivedStats& derived, CombatParams& params) {
@@ -1683,9 +1675,9 @@ void AddBuffs(const GameState& state,
     previous = skill;
     int level = EffectiveSkillLevel(character, *skill, bonus, derived.activity);
     const Buff& buff = skill->buff();
-    // Which shed-stage this window is. A STACK's windows are alike -- each is
-    // gathered on its own roll and lives out the whole length -- so only a
-    // shedding buff numbers its copies.
+    // Which stage this entry is. Stacking buffs' entries are identical (each is
+    // gained by its own roll and lasts the full duration), so only staged buffs
+    // number their copies.
     int stage = buff.stages() > 0 ? copy : 0;
     BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
                                      BuffDurationFor(*skill, buff_duration_pct),
@@ -1696,8 +1688,8 @@ void AddBuffs(const GameState& state,
         ReducedCooldown(CooldownAt(*skill, level),
                         derived.cooldown_reduction_seconds) *
         speed_factor;
-    // A party takes turns raising a shared buff, so it comes round as often
-    // as the party between them can cast it.
+    // Party members take turns casting a shared buff, so it comes back as often
+    // as the party can cast it between them.
     if (buff.party_shared()) {
       option.cooldown_seconds /= PartyHolders(character, party, *skill);
     }
@@ -1705,13 +1697,13 @@ void AddBuffs(const GameState& state,
     option.damage_taken_pct = held.damage_taken_pct();
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
-    // Lines rather than seconds, so the pacing band leaves it alone: what it
-    // counts is already stretched.
+    // Counted in lines rather than seconds, so game speed doesn't apply: the
+    // lines are already stretched.
     option.charge_lines = buff.charge_lines();
     option.heal_fraction = held.heal_pct();
     SetHowRaised(*skill, level, stage, speed_factor, params.attacks, option);
-    // The swing this buff loads, found by the magazine's own label -- the name
-    // AddMagazines built it under.
+    // The attack this buff loads, found by the magazine's label, which is the
+    // name AddMagazines built it under.
     if (buff.magazine().charges() > 0) {
       option.magazine_attack =
           AttackNamed(params.attacks, buff.magazine().label());
@@ -1720,29 +1712,29 @@ void AddBuffs(const GameState& state,
   }
 }
 
-// The party's buffs over this character, on their casters' clocks and at
-// their levels, appended so one mask covers both. Somebody else's cast lays
-// them, so they cost this character no swing.
+// Adds party members' buffs on this character, using their casters' timers and
+// levels, after the character's own so one mask covers both. Another player
+// casts them, so they cost this character no attack.
 //
-// A caster's Buff Duration and INT reach their half and the party's alike: one
-// cloud, one clock, however many stand in it. Worked out here, with the party
-// in hand, rather than inside the fold. See BuffUp.
+// A caster's Buff Duration and INT apply equally to their own portion and the
+// party's: one cast, one duration. Worked out here, where the party is
+// available. See BuffUp.
 std::vector<BuffUp> AddAllyBuffs(const GameState& state, double speed_factor,
                                  int budget, CombatParams& params) {
   std::vector<BuffUp> raised;
-  // Everybody in the zone, the caster included -- there being no positions
-  // here, nobody is ever standing out of it. See AllyIntLever.
+  // Everyone in the area, caster included. There are no positions here, so
+  // nobody is ever out of range. See AllyIntLever.
   int party_size = static_cast<int>(state.party.size()) + 1;
   for (const AllyGrant& grant : AllyBuffsFor(
            state.character, state.skills, absl::MakeConstSpan(state.party))) {
-    // The character's own book is served first: a party buff dropped is one
-    // less blessing, while an own buff dropped is a hole in their rotation.
+    // The character's own buffs take priority: dropping a party buff loses one
+    // bonus, while dropping their own leaves a hole in their rotation.
     if (static_cast<int>(raised.size()) >= budget) {
       break;
     }
     const Buff& buff = grant.skill->buff();
-    // The CASTER's book, not the reader's: one cast stands the same length
-    // over everybody under it.
+    // Use the caster's book, not the reader's: one cast lasts the same for
+    // everyone.
     double buff_duration_pct = BuffDurationPctFor(*grant.caster, state.skills);
     std::map<std::string, SkillBoosts> boosts =
         BoostsByTarget(*grant.caster, state.skills,
@@ -1753,7 +1745,7 @@ std::vector<BuffUp> AddAllyBuffs(const GameState& state, double speed_factor,
     option.name = grant.skill->name();
     option.cooldown_seconds =
         CooldownAt(*grant.skill, grant.level) * speed_factor;
-    // A shell that is not the party's shelters its caster and nobody else.
+    // A shield that isn't a party shield protects only its caster.
     if (!buff.shield().party()) {
       option.shield_hits = 0.0;
     }
@@ -1769,8 +1761,8 @@ std::vector<BuffUp> AddAllyBuffs(const GameState& state, double speed_factor,
   return raised;
 }
 
-// Whether a buff ticks damage at all, through its own pulse or through one of
-// its forms'.
+// Whether a buff deals damage at all, through its own pulse or one of its
+// forms'.
 bool Bleeds(const Buff& buff) {
   if (Pulses(buff.pulse())) {
     return true;
@@ -1783,9 +1775,9 @@ bool Bleeds(const Buff& buff) {
   return false;
 }
 
-// Points each bleeding buff's pulse at the buff it belongs to. Run over the
-// base set AND every buffed one, or the tag would come and go with the buffs.
-// Matched by name, a pulse keeping its parent skill's name.
+// Links each damage-dealing buff's pulse to its buff. Runs on the base set and
+// every buffed set, or the link would appear and disappear with the buffs.
+// Matched by name, since a pulse keeps its parent skill's name.
 void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
                         const std::vector<const Skill*>& buff_skills,
                         std::vector<AttackOption>& casts) {
@@ -1802,8 +1794,8 @@ void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
   }
 }
 
-// Points each silenced half at the buff that silences it, by the same name
-// match: a half firing only while its buff is down must know which buff.
+// Links each silenced auto-attack to the buff that silences it, also by name:
+// something that fires only while its buff is down needs to know which buff.
 void TagBuffSilencedCasts(const std::vector<BuffOption>& buffs,
                           std::vector<AttackOption>& casts) {
   for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
@@ -1815,8 +1807,8 @@ void TagBuffSilencedCasts(const std::vector<BuffOption>& buffs,
   }
 }
 
-// Points each dismissed summon at the buff dismissing it. The name is the
-// SILENCING buff's to state: what it puts out is its own business.
+// Links each dismissible summon to the buff that dismisses it. The silencing
+// buff names what it dismisses.
 void TagBuffSilencedSummons(const std::vector<BuffOption>& buffs,
                             const std::vector<const Skill*>& buff_skills,
                             std::vector<AttackOption>& casts) {
@@ -1833,9 +1825,9 @@ void TagBuffSilencedSummons(const std::vector<BuffOption>& buffs,
   }
 }
 
-// Points each form at the pulse it bleeds through, so the fight prices them
-// against each other without hunting the list. Over the base set alone: an
-// index taken here is good in every buffed one.
+// Links each buff form to its pulse, so the fight can compare them without
+// searching. Only on the base set; the indices are the same in every buffed
+// set.
 void PointStancesAtPulses(const std::vector<AttackOption>& casts,
                           std::vector<BuffOption>& buffs) {
   for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
@@ -1851,9 +1843,9 @@ void PointStancesAtPulses(const std::vector<AttackOption>& casts,
   }
 }
 
-// Expected damage a second with no buff standing: the hardest swing on offer
-// plus everything on its own clock, against the first mob type. A rough figure
-// by design, standing in only until the fight has a measured rate -- see
+// Expected damage per second with no buffs: the strongest attack plus
+// everything on its own timer, against the first mob type. Intentionally rough;
+// only used until the fight has measured its own rate. See
 // CombatSim::SecondsLeft.
 double ReferenceDps(const CombatParams& params) {
   double best_swing = 0.0;
@@ -1866,8 +1858,8 @@ double ReferenceDps(const CombatParams& params) {
         std::max(best_swing, attack.damage_per_hit[0] / attack.swing_seconds);
   }
   for (const AttackOption& cast : params.auto_attacks) {
-    // A pulse waiting on a buff is not firing yet, and counting it would have
-    // the fight expect damage nothing is dealing.
+    // A pulse waiting on a buff isn't firing yet; counting it would make the
+    // fight expect damage that isn't happening.
     if (cast.interval_seconds <= 0.0 || cast.needs_buff >= 0 ||
         cast.damage_per_hit.empty()) {
       continue;
@@ -1877,8 +1869,8 @@ double ReferenceDps(const CombatParams& params) {
   return best_swing + own_clocks;
 }
 
-// A slot per combination of buffs, indexed as CombatParams::Attacks reads
-// them. Left empty, and filled by BuildBuffedSet on first ask.
+// Records what's needed to build each buff combination's attack set, indexed as
+// CombatParams::Attacks reads them. BuildBuffedSet builds them on first use.
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const std::vector<BuffUp>& ally_buffs,
@@ -1894,21 +1886,21 @@ void AddBuffedSets(const GameState& state,
   params.buffed_source.ally_buffs = ally_buffs;
   params.buffed_source.speed_factor = speed_factor;
   params.buffed_source.preset = preset;
-  // Nothing is built here: params.buffs is what bounds the masks, and each
-  // one is built the first time the fight stands in it.
+  // Nothing is built here: params.buffs limits the masks, and each set is built
+  // the first time the fight reaches it.
 }
 
-// Halves how far a swing reaches, rounding up. A boss stands its parts a room
-// apart, so a sweep gathering eight monsters off a map gathers nothing like
-// eight of those. Rounded up, so a skill still reaches what it was aimed at.
+// Halves how many enemies an attack reaches, rounding up. Boss parts stand far
+// apart, so an attack that gathers eight mobs on a map reaches far fewer boss
+// parts. Rounded up so a skill still hits what it's aimed at.
 void HalveReach(std::vector<AttackOption>& attacks) {
   for (AttackOption& attack : attacks) {
     attack.max_enemies = (std::max(1, attack.max_enemies) + 1) / 2;
   }
 }
 
-// One combination's attack set, off what AddBuffedSets kept. Every pass the
-// base set went through runs here too: the windows must be the same shape.
+// Builds one buff combination's attack set from what AddBuffedSets stored. Runs
+// every pass the base set went through, so all sets have the same shape.
 AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   const BuffedSetSource& source = params.buffed_source;
   int own = static_cast<int>(source.buff_skills.size());
@@ -1918,8 +1910,8 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
       up.push_back(BuffUp{source.buff_skills[i]});
     }
   }
-  // The party's take the bits above the character's own, and carry the caster
-  // their half is read at the level of.
+  // Party buffs use the bits after the character's own, and carry the caster
+  // whose level their portion is read at.
   for (int i = 0; i < static_cast<int>(source.ally_buffs.size()); ++i) {
     if ((mask & (1 << (own + i))) != 0) {
       up.push_back(source.ally_buffs[i]);
@@ -1956,8 +1948,8 @@ const AttackOption& RepeatForm(const AttackOption& attack, int pulses) {
   return *attack.repeats[step - 1];
 }
 
-// The window `mask` names, built on first ask. Null for a mask no combination
-// reaches, which the readers below answer with the unbuffed lists.
+// The attack set for `mask`, built on first use. Null for masks no combination
+// reaches, which the readers below treat as unbuffed.
 const AttackSet* CombatParams::Window(int mask) const {
   if (mask <= 0) {
     return nullptr;
@@ -1966,8 +1958,8 @@ const AttackSet* CombatParams::Window(int mask) const {
   if (slot != buffed.end()) {
     return &slot->second;
   }
-  // A params built by hand has no source to build from: what it was handed is
-  // all it has, and any other mask reads as no buffs at all.
+  // Hand-built params have no source to build from, so any other mask reads as
+  // no buffs.
   if (buffed_source.state == nullptr || mask >= (1 << buffs.size())) {
     return nullptr;
   }
@@ -1997,8 +1989,7 @@ int CombatParams::FreezeCap(int mask) const {
 
 namespace {
 
-// What the character brings to being hit, which is the same whichever mob is
-// hitting them.
+// The character's defensive stats, which are the same whichever mob hits them.
 DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
   DefenseStats defense;
   defense.level = state.character.proto().level();
@@ -2011,9 +2002,9 @@ DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
   return defense;
 }
 
-// What does not depend on what is in front of the character: their pool, what
-// their passives pay, and the clocks the band stretches. The two intervals are
-// the caller's -- a boss fight runs off neither.
+// Sets everything that doesn't depend on the enemies: HP, passive bonuses, and
+// timers that game speed stretches. The caller sets the respawn and hit
+// intervals, since boss fights use neither.
 void AddPacing(const GameState& state, const DerivedStats& derived,
                double speed_factor, CombatParams& params) {
   params.max_player_hp = derived.max_hp;
@@ -2025,8 +2016,8 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   params.meso_pct = MesoBonus(derived);
   params.meso_final_mult = derived.meso_final_mult;
   params.item_drop_pct = derived.item_drop_pct;
-  // The band stretches the interval between pulses, the way it stretches every
-  // other clock in the fight. The helping each one pours is untouched.
+  // Game speed stretches the time between pulses like every other timer. The
+  // amount each heals is unchanged.
   params.regen_pulses.clear();
   for (const RegenPulse& pulse : derived.regen_pulses) {
     params.regen_pulses.push_back(
@@ -2034,8 +2025,8 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   }
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;
-  // The window stretches with the band and the share per second does not, so
-  // one firing pours what its skill says however slowly the band runs.
+  // The window stretches with game speed but the heal per second doesn't, so
+  // one activation heals what the skill says regardless of game speed.
   params.emergency_heal = derived.emergency_heal;
   params.emergency_heal.pct /= speed_factor;
   params.emergency_heal.seconds *= speed_factor;
@@ -2043,10 +2034,9 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   params.freeze_cap = derived.freeze.cap;
 }
 
-// Every attack the character can swing at the types in `params`: as they
-// stand, then one table per combination of buffs. What being hit costs is read
-// off the UNBUFFED stats -- nothing buffs a pool, and the buff that softens a
-// hit takes its share off the hit itself.
+// Every attack the character can use against `params`' mob types: unbuffed,
+// then one table per buff combination. Damage taken uses the unbuffed stats: no
+// buff raises max HP, and damage-reducing buffs apply to the hit itself.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 const EquipPrototype& weapon, double speed_factor,
                 Activity preset, CombatParams& params) {
@@ -2074,8 +2064,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   params.reference_dps = ReferenceDps(params);
 }
 
-// Every list a swing can be picked from: a buffed table reaches as far as the
-// unbuffed one. The windows are not built yet, so they are marked.
+// Halves reach on every attack list. Buffed tables must match the unbuffed one,
+// but they aren't built yet, so they're flagged to halve when built.
 void HalveBossReach(CombatParams& params) {
   HalveReach(params.attacks);
   HalveReach(params.auto_attacks);
@@ -2083,8 +2073,8 @@ void HalveBossReach(CombatParams& params) {
   params.buffed_source.halve_reach = true;
 }
 
-// How long the map takes to put its monsters back up, before the pacing band
-// stretches it. The Wild Totem halves it, which is the whole of what it does.
+// Time for the map to respawn its monsters, before game speed. The Wild Totem
+// halves it; that's all it does.
 double RespawnIntervalFor(const CharacterInstance& character) {
   return character.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM)
              ? kWildTotemRespawnSeconds
@@ -2118,17 +2108,17 @@ CombatParams ComputeCombatParams(const GameState& state) {
 
   DerivedStats derived =
       DerivedStatsFor(state.character, state.skills, {}, state.party);
-  // What the map's force requirement does to both sides. Written onto
-  // derived, the one struct every builder below carries: the requirement is
-  // the map's and neither side alone can answer it.
+  // The effect of the map's force requirement on both sides. Stored on derived,
+  // which every builder below uses, since the requirement belongs to the map
+  // and neither side alone can compute it.
   ForceFactors force = MapForceFor(map_it->second, state.character).factors;
   derived.force_damage_factor = force.damage_dealt;
   derived.force_taken_factor = force.damage_taken;
-  // V Points fall in Arcane River and Grandis, and the force the map asks for
-  // is what says it is one of them.
+  // V Points drop in Arcane River and Grandis, which are the maps with a force
+  // requirement.
   params.pays_v_points = AsksForForce(map_it->second);
-  // The pace the whole encounter runs at, and the only thing here that asks
-  // the character's level directly: the game stretches out as they climb.
+  // The game speed for the whole encounter, and the only place here that uses
+  // the character's level directly: the game slows down as they level.
   double speed_factor = GameSpeedFactor(state.character.proto().level());
   params.respawn_seconds = RespawnIntervalFor(state.character) * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
@@ -2143,8 +2133,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   return params;
 }
 
-// The rate the boss's drops roll at: the same character read again in the
-// gear they set aside for it, and only where the two presets differ.
+// The drop rate for boss drops: the character's stats recomputed with the gear
+// in their Drop preset, only if it differs from what they're wearing.
 double DropRollRate(const GameState& state, const DerivedStats& bossing) {
   const CharacterInstance& character = state.character;
   const StatPreset worn =
@@ -2171,12 +2161,12 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
 
-  // A boss fight is what the bossing allocation is for.
+  // Boss fights use the bossing stat allocation.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
                                          state.party, Activity::kBossing);
-  // A boss fight runs in real time whatever the level: the band stretches an
-  // idle map so it can be left alone, and a watched fight wants neither the
-  // stretch nor a beat. Both intervals stay 0.
+  // Boss fights run in real time at every level. Game speed stretches idle maps
+  // so the player can leave them running; a watched fight needs neither that
+  // nor respawns. Both intervals stay 0.
   AddPacing(state, derived, 1.0, params);
   AddTypes(state, difficulty.phases(phase).spawns(), DefenseFor(state, derived),
            derived.scar.enemy_attack_pct, params);
@@ -2186,9 +2176,9 @@ CombatParams ComputeBossParams(const GameState& state,
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
   params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);
-  // A boss's parts are hit hardest-first: see CombatParams::focus_healthiest.
+  // Attack the healthiest boss part first; see CombatParams::focus_healthiest.
   params.focus_healthiest = true;
-  // The boss screen draws every line as a number, which the map does not.
+  // The boss screen draws every damage line as a number; maps don't.
   params.record_damage_lines = true;
   params.active = true;
   return params;

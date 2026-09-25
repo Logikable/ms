@@ -110,8 +110,8 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
         tally.honor += honor;
       }
       // V Points count as a drop, so drop rate raises them. Only Arcane River
-      // mobs drop them. A character without the 5th job advancement still banks
-      // them.
+      // and Grandis mobs drop them. A character without the 5th job
+      // advancement still banks them.
       if (params.pays_v_points) {
         int64_t points =
             RollMobVPoints(kills[i], params.item_drop_pct, state.rng);
