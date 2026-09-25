@@ -25,7 +25,7 @@ Skill CommonNode(const std::string& name) {
   return skill;
 }
 
-// A 5th job with two common nodes in reach and `v_points` to spend on them.
+// A 5th job character with two common nodes available and `v_points` to spend.
 std::unique_ptr<GameState> FifthJob(int64_t v_points) {
   auto state = std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
@@ -42,8 +42,9 @@ std::unique_ptr<GameState> FifthJob(int64_t v_points) {
   return state;
 }
 
-// Blink is worth twice what Rope Lift is a level, so a plan from nothing buys
-// Blink alone. Seven for a node's first level, four for each after.
+// Blink is worth twice as much as Rope Lift per level, so a plan from scratch
+// buys only Blink. A node's first level costs seven points, each later level
+// four.
 TEST(SpendVMatrixTest, AReplanRefundsAndAnUnreplannedPlanStands) {
   auto rate_of = [](GameState& state) {
     return state.character.skill_level(state.skills.at("rope_lift")) +
@@ -56,8 +57,8 @@ TEST(SpendVMatrixTest, AReplanRefundsAndAnUnreplannedPlanStands) {
   EXPECT_EQ(fresh->character.skill_level(fresh->skills.at("rope_lift")), 0);
   EXPECT_EQ(fresh->character.skill_level(fresh->skills.at("blink")), 4);
 
-  // Kept standing: Rope Lift's level stays, and the fifteen left buy three
-  // of Blink.
+  // Without a replan, Rope Lift keeps its level and the remaining fifteen
+  // points buy three levels of Blink.
   std::unique_ptr<GameState> kept = FifthJob(22);
   ASSERT_TRUE(kept->character.LearnSkill(kept->skills.at("rope_lift")));
   SpendVMatrix(*kept, rate_of, /*replan=*/false);

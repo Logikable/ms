@@ -1,18 +1,15 @@
-/* What an Inner Ability goal costs in honor.
+/* ability_sim: what an Inner Ability goal costs in honor.
  *
- * Two questions, and the sim answers both. The first is exact arithmetic: a
- * rank-up is a coin with a known face, so the honor it takes to climb the
- * ladder is the price of a reset over the chance one pays off. The second is
- * not, because the lines are rolled without replacement and what a reset costs
- * depends on what is being held through it -- so the goal is played out.
+ * It answers two questions. The first is exact: a rank-up is a coin flip with
+ * known odds, so the honor to climb the ranks is the reset price divided by the
+ * chance of success. The second isn't, because lines are rolled without
+ * replacement and a reset's cost depends on which lines are locked, so the goal
+ * is played out.
  *
- * Which lines to hold is the whole of the strategy, and the order matters more
- * than it looks: a reset holding two lines costs twice one holding none, so
- * the line left to the expensive end should be the likeliest of the three.
- * Both orders are played and printed side by side.
- *
- * Not a test. Tests pin behaviour that must not change; this prints numbers to
- * look at while deciding what the behaviour should be.
+ * Which lines to lock is the whole strategy, and the order matters more than it
+ * looks. A reset with two locked lines costs twice one with none, so the line
+ * left for the expensive end should be the likeliest of the three. Both orders
+ * are played and printed side by side.
  *
  *   bazelisk run //analysis:ability_sim
  *   bazelisk run //analysis:ability_sim -- --goal=boss_damage:unique
@@ -51,8 +48,8 @@ struct Want {
   AbilityRank rank;
 };
 
-// The enum name with its prefix taken off and lowered, which is how the flag
-// spells a type: ABILITY_LINE_TYPE_ATTACK_SPEED reads as attack_speed.
+// The enum name without its prefix, in lower case, as the flag spells it:
+// ABILITY_LINE_TYPE_ATTACK_SPEED becomes attack_speed.
 std::string ShortName(AbilityLineType type) {
   return absl::AsciiStrToLower(AbilityLineType_Name(type).substr(
       std::string("ABILITY_LINE_TYPE_").size()));
@@ -112,24 +109,23 @@ bool GoalMet(const AbilityPreset& preset, const std::vector<Want>& goal) {
   return true;
 }
 
-// Which of the two ways of playing the goal a run follows. Both hold every
-// line they are allowed to, up to the two a reset takes; they disagree about
-// whether the top line is one of them.
+// Which of two strategies a run follows. Both lock every wanted line, up to the
+// two a reset allows; they differ on whether the top line may be one of them.
 enum class Style {
-  // Hold whatever the goal asked for, the top line included. The last line
-  // still being chased is then one of the two below it, which are the
-  // unlikeliest to land.
+  // Lock whatever the goal asked for, including the top line. The last line
+  // still being chased is then one of the two below it, which are the least
+  // likely to land.
   kHoldAny,
-  // Never hold the top line, so it is the one still being rolled once both
-  // lines below it are held. Costlier per reset at the end, but the top line
-  // is the likeliest of the three to come up.
+  // Never lock the top line, so it's the one still rolling once both lines
+  // below are locked. Each reset costs more at the end, but the top line is the
+  // likeliest of the three to come up.
   kHoldLower,
 };
 
-// Whether holding the top line would shut the goal out. Only the top line ever
-// carries the ability's own rank, so a line the goal wants at that rank has
-// nowhere else to go -- and a held top line at that rank is never rolled
-// again. Holding anything else up there would strand it.
+// Whether locking the top line would block the goal. Only the top line has the
+// ability's own rank, so a wanted line at that rank can only go there, and a
+// locked top line at that rank is never rerolled. Locking anything else there
+// would block it for good.
 bool TopSlotIsSpokenFor(const AbilityPreset& preset,
                         const std::vector<Want>& goal) {
   for (const Want& want : goal) {
@@ -140,7 +136,7 @@ bool TopSlotIsSpokenFor(const AbilityPreset& preset,
   return false;
 }
 
-// Whether the line in `slot` is worth holding through the next reset.
+// Whether the line in `slot` should be locked for the next reset.
 bool WorthHolding(const AbilityPreset& preset, int slot,
                   const std::vector<Want>& goal, Style style) {
   const AbilityLine& line = preset.lines(slot);
@@ -148,8 +144,8 @@ bool WorthHolding(const AbilityPreset& preset, int slot,
     if (style == Style::kHoldLower) {
       return false;
     }
-    // The one line the goal wants at the ability's rank may hold the top slot.
-    // Nothing else may, or it would sit there unrolled forever.
+    // Only the goal's line at the ability's rank may be locked in the top slot.
+    // Anything else would sit there unrolled forever.
     if (TopSlotIsSpokenFor(preset, goal)) {
       for (const Want& want : goal) {
         if (want.rank == preset.rank() && Meets(line, want)) {
@@ -167,7 +163,7 @@ bool WorthHolding(const AbilityPreset& preset, int slot,
   return false;
 }
 
-// Holds every line worth holding, up to the two a reset allows.
+// Locks every wanted line, up to the two a reset allows.
 void HoldWantedLines(AbilityPreset& preset, const std::vector<Want>& goal,
                      Style style) {
   for (int i = 0; i < preset.lines_size(); ++i) {
@@ -180,7 +176,7 @@ void HoldWantedLines(AbilityPreset& preset, const std::vector<Want>& goal,
   }
 }
 
-// Honor one run spends reaching `goal`, or -1 for a run that gave up.
+// Honor one run spends reaching `goal`, or -1 if it gave up.
 int64_t RunToGoal(const std::vector<Want>& goal, Style style, int64_t cap,
                   std::mt19937& rng, int64_t& resets) {
   AbilityPreset preset = DefaultAbilityPreset();
@@ -234,8 +230,8 @@ Summary Play(const std::vector<Want>& goal, Style style, int trials,
   return summary;
 }
 
-// The ladder is a coin per reset, so what it takes to climb is arithmetic
-// rather than something to play out.
+// Each rank-up is a coin flip, so the cost to climb is computed directly rather
+// than played out.
 void PrintRankLadder() {
   printf("Climbing the ranks, with nothing held\n\n");
   printf("  %-10s %8s %8s %10s %14s %14s\n", "From", "Cost", "Chance", "Resets",

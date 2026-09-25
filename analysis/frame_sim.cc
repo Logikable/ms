@@ -1,13 +1,12 @@
-/* What one frame of the game costs.
+/* frame_sim: what one frame of the game costs.
  *
- * The loop the player sits in does two things sixty times a second: it steps
- * the fight, and it draws the screen. This times each part of that on a
- * character at the ceiling, on the map they would be farming, so the numbers
- * are the worst the game asks for rather than a level 1's.
+ * The game loop does two things each tick: it steps the fight and draws the
+ * screen. This times each part for a max-level character on the map they'd be
+ * farming, so the numbers are the worst case rather than a level 1's.
  *
- * Read the microseconds against the tick the game actually redraws on, which
- * is the marquee's step -- the ticker wakes on it, steps the fight and posts a
- * redraw, and nothing in the loop runs faster than that.
+ * Compare the microseconds against the tick the game actually redraws on, the
+ * marquee step. The ticker wakes on it, steps the fight and posts a redraw, and
+ * nothing in the loop runs faster.
  */
 #include <chrono>
 #include <cstdio>
@@ -42,12 +41,12 @@ ABSL_FLAG(int, height, 50, "terminal rows to draw into");
 namespace ms {
 namespace {
 
-// The budget one tick has, which every number below is read against.
+// Time budget for one tick, which every number below is compared against.
 const double kTickBudgetUs =
     std::chrono::duration<double, std::micro>(kMarqueeStep).count();
 const double kTickSeconds = std::chrono::duration<double>(kMarqueeStep).count();
 
-// What one call of `job` costs, in microseconds, over `reps` of them.
+// Average cost of one call of `job`, in microseconds, over `reps` calls.
 double Cost(int reps, const std::function<void()>& job) {
   std::chrono::steady_clock::time_point began =
       std::chrono::steady_clock::now();
@@ -60,7 +59,8 @@ double Cost(int reps, const std::function<void()>& job) {
          reps;
 }
 
-// The same, printed against the tick, and returned so the caller can total it.
+// Same as Cost, printed against the tick and returned so the caller can total
+// it.
 double Time(const char* label, int reps, const std::function<void()>& job) {
   double each = Cost(reps, job);
   std::printf("  %-34s %10.2f us   %6.2f%% of a tick\n", label, each,
@@ -68,27 +68,27 @@ double Time(const char* label, int reps, const std::function<void()>& job) {
   return each;
 }
 
-// Draws `element` into a screen of the flag's size, which is what the terminal
-// makes the panels do every frame.
+// Draws `element` into a screen of the flag's size, as the terminal does for
+// every panel each frame.
 void Draw(const ftxui::Element& element) {
   ftxui::Screen screen(absl::GetFlag(FLAGS_width), absl::GetFlag(FLAGS_height));
   ftxui::Render(screen, element);
 }
 
-// The character the numbers are taken on: a Hero at the ceiling, standing on
-// the map //analysis:progression_sim leaves them farming.
+// The character measured: a max-level Hero on the map
+// //analysis:progression_sim leaves them farming.
 std::unique_ptr<GameState> MaxState(const Catalogs& catalogs) {
   TestOptions test;
   test.job = JOB_ADVANCEMENT_HERO;
-  // As every other sim's ceiling stands -- see NewMaxState.
+  // Matches every other sim's max character; see NewMaxState.
   test.link_skills = false;
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       catalogs.equips, catalogs.scrolls, catalogs.items, catalogs.mobs,
       catalogs.maps, catalogs.skills, GameMode::kMax, test, /*seed=*/1,
       catalogs.sets);
   state->bosses = catalogs.bosses;
-  // The hardest map the game ships, which is where a character at the ceiling
-  // is standing: the panels and the fight both cost more the more is on it.
+  // The hardest map the game ships, where a max-level character farms. Both the
+  // panels and the fight cost more with more on the map.
   std::vector<std::string> grounds = HuntingGrounds(catalogs);
   if (!grounds.empty()) {
     state->current_map = grounds.back();
@@ -119,8 +119,8 @@ void Run() {
   CombatSim sim;
   double tick = Time("CombatSim::Advance (one tick)", reps,
                      [&sim, &params] { sim.Advance(params, kTickSeconds); });
-  // Params are rebuilt with every step: AdvanceCombat's two-argument form,
-  // which is the one the TUI's ticker calls, computes them each time.
+  // Params are rebuilt every step: the two-argument AdvanceCombat, which the
+  // TUI's ticker calls, computes them each time.
   tick += params_cost;
 
   std::printf("\nThe screen\n");
@@ -141,8 +141,8 @@ void Run() {
   tick += Time("CombatPanel", reps,
                [&combat_panel] { Draw(combat_panel.Render()); });
 
-  // The main view steps the fight once and draws all four panels, so the tick
-  // it costs is the sum of the rows above.
+  // The main view steps the fight once and draws all four panels, so its tick
+  // costs the sum of the rows above.
   std::printf("\n  %-34s %10.2f us   %6.2f%% of a tick\n",
               "The whole main-view tick", tick, 100.0 * tick / kTickBudgetUs);
   std::printf("\n");

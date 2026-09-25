@@ -70,9 +70,8 @@ void WearNew(GameState& state, const EquipPrototype& proto) {
   state.character.Equip(0);
 }
 
-// Levels, and spends the AP: a percentage line is worth a share of a stat
-// pool, so a character who never allocated has nothing for one to take a
-// share OF.
+// Levels up and spends the AP. A percentage line is worth a share of a stat, so
+// a character who never allocated would have nothing for it to scale.
 void LevelTo(GameState& state, int level) {
   while (state.character.proto().level() < level) {
     state.character.LevelUp();
@@ -81,8 +80,8 @@ void LevelTo(GameState& state, int level) {
   }
 }
 
-// A swing in the book, without which the yardstick has no strand and every
-// candidate prices at nothing -- see yardstick_test.
+// Learns an attack skill. Without one the yardstick has no strand and every
+// candidate is worth zero (see yardstick_test).
 void LearnASwing(GameState& state) {
   while (state.character.proto().job_stage() < 1) {
     if (state.character.CanAdvanceJob()) {
@@ -110,9 +109,9 @@ Potential Rolled(PotentialRank rank, PotentialLineType type) {
 
 // --- Replaceable ---
 //
-// What this decides is how much of a cube's gain the shopper keeps: cubing
-// gear you will outgrow is discounted to a quarter. Getting it wrong either
-// way misprices every cube into that slot.
+// This decides how much of a cube's gain the shopper counts: cubing gear you'll
+// outgrow is discounted to a quarter. Getting it wrong either way misprices
+// every cube on that slot.
 
 TEST(ReplaceableTest, ABetterPieceTheCharacterCanAlreadyWear) {
   std::unique_ptr<GameState> state =
@@ -132,8 +131,8 @@ TEST(ReplaceableTest, NotOneTheirLevelHasNotReached) {
   EXPECT_FALSE(Replaceable(*state, EQUIP_SLOT_HAT));
 }
 
-// Which weapon a branch swings is a measurement rather than a level, so a
-// Lv140 sword is no replacement for a Lv120 axe.
+// A branch's weapon type is chosen by measurement, not level, so a Lv140 sword
+// doesn't replace a Lv120 axe.
 TEST(ReplaceableTest, OnlyALongerLadderOfTheSameWeaponType) {
   std::unique_ptr<GameState> state =
       Shopper({{"axe", Weapon("Axe", 30, EQUIP_TYPE_ONE_HANDED_AXE)},
@@ -168,7 +167,7 @@ class CubePlanTest : public ::testing::Test {
     basis_ = CubeBasisFor(*state_, yard_);
   }
 
-  // The hat's own potential, which every roll is judged against.
+  // Sets the hat's current potential, which every roll is judged against.
   void Wearing(const Potential& potential) {
     EquipInstance* hat = nullptr;
     for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
@@ -187,10 +186,10 @@ class CubePlanTest : public ::testing::Test {
   CubeIncome income_;
 };
 
-// Both sides at the same rank throughout, so what is being read is the
-// keep-better rule and not the rank rule below it. A PERCENT line, because
-// the flat ones are Rare-only by design -- a flat STR line at Epic is worth
-// nothing and the comparison would be between two zeroes.
+// Both sides stay at the same rank, so this tests the keep-better rule and not
+// the rank rule below. It uses a percent line because flat lines are Rare-only
+// by design: a flat STR line at Epic is worth nothing, and the comparison would
+// be between two zeroes.
 TEST_F(CubePlanTest, ARollWorthMoreIsTaken) {
   Potential bare;
   bare.set_rank(POTENTIAL_RANK_EPIC);
@@ -209,13 +208,13 @@ TEST_F(CubePlanTest, ARollWorthLessIsDeclined) {
   EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT, bare, income_));
 }
 
-// The rule the shopper broke once: under a defence wall every roll is worth
-// nothing, both sides being on the 1-damage floor, so an accept rule reading
-// damage alone throws away the rank-up the run was bought for. It cost 2,484
-// cubes and none kept. A rank is taken where the damage does not move.
+// A rule the shopper once broke: under a defence wall every roll is worth
+// nothing, since both sides deal the 1-damage floor, so accepting on damage
+// alone throws away the rank-up the run was bought for. That cost 2,484 cubes
+// with none kept. A higher rank is taken even when damage doesn't change.
 TEST_F(CubePlanTest, ARankIsTakenEvenWhereTheDamageDoesNotMove) {
-  // Two potentials of different rank carrying no line at all: nothing either
-  // way to move the damage chain.
+  // Two potentials of different rank with no lines, so neither changes the
+  // damage.
   Potential held;
   held.set_rank(POTENTIAL_RANK_EPIC);
   Potential up;
@@ -250,8 +249,8 @@ TEST_F(CubePlanTest, PricesARunIntoASlotThatTakesPotential) {
   EXPECT_GT(program.cost, 0);
 }
 
-// The run has to be priced per meso against everything else on the shelf, so
-// what it costs must follow what it buys.
+// A run is compared per meso against everything else on the shelf, so its cost
+// must match the cubes it buys.
 TEST_F(CubePlanTest, TheCostIsTheCubesItMeansToBuy) {
   Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
   std::mt19937 rng(1234);

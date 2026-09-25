@@ -1,10 +1,10 @@
-/* Gearing a character the way a player does, and the swing measurement the
- * choice rests on. Shared by the sims that play a character forward.
+/* Gears a character the way a player does, and measures the attacks that choice
+ * depends on. Shared by the sims that play a character forward.
  *
- * A player does not read a table to learn what to hold: they try the weapons
- * their job can hold and keep the one that hits hardest. Outfit does the same,
- * which is why no list of jobs appears here -- a branch added tomorrow is
- * geared correctly the day it exists.
+ * A player doesn't look up what weapon to use: they try the weapons their job
+ * can hold and keep the one that hits hardest. Outfit does the same, so this
+ * file has no list of jobs and a new branch is geared correctly as soon as it
+ * exists.
  */
 #ifndef MS_ANALYSIS_SIM_GEAR_H_
 #define MS_ANALYSIS_SIM_GEAR_H_
@@ -22,80 +22,78 @@
 
 namespace ms {
 
-// The name of the character's weapon, "-" for empty hands.
+// Name of the character's weapon, or "-" if empty-handed.
 std::string HeldWeaponName(const CharacterInstance& character);
 
-// Puts the bag's copy of `name` on, if the character can wear it. Found by
-// name rather than by index because equipping shuffles the bag: what is
-// displaced goes back into it.
+// Equips the bag's copy of `name` if the character can wear it. Found by name
+// rather than index because equipping reorders the bag: the displaced item goes
+// back into it.
 bool EquipByName(CharacterInstance& character, const std::string& name);
 
-// Buys and wears the best gear the character can hold: the weapon, its
-// ammunition, their branch's off-hand and the shop's accessories, both shelves
-// included.
+// Buys and wears the best gear the character can use: the weapon, its
+// ammunition, the branch's off-hand, and the shop's accessories from both
+// shelves.
 //
-// Which weapon comes out of a MEASUREMENT rather than a list, and is asked
-// afresh every time because the answer moves as the book fills. `budget`
-// weighs the price against the purse: a sim measuring the climb wants it,
-// since affording the weapon is part of what it measures.
+// The weapon is chosen by measurement, not from a list, and re-measured each
+// time because the answer changes as the book fills. `budget` weighs price
+// against the character's meso. A sim measuring the climb wants that, since
+// affording the weapon is part of what it measures.
 void Outfit(GameState& state, bool budget,
             EquipType settled = EQUIP_TYPE_UNSPECIFIED);
 
-// The weapon type the character would settle on with their whole book behind
-// them, measured on a copy.
+// The weapon type the character would settle on with their whole book bought,
+// measured on a copy.
 //
-// The weapon and the book are each worth what the other is, so one has to be
-// settled first -- and a book spent point by point cannot do it: every point
-// goes to what is already in hand, so a Paladin who picks up a polearm never
-// buys Blast. This asks what the branch is FOR, which a player knows before
-// spending anything.
+// The weapon and the book each decide the other's value, so one must be settled
+// first. Spending the book point by point can't do it: every point goes to
+// skills for the weapon already in hand, so a Paladin who picks up a polearm
+// never buys Blast. This asks what the branch is built for, which a player
+// knows before spending anything.
 EquipType SettledWeaponType(GameState& state, bool budget);
 
-// Outfit with the choice already made: the top rung of `type` the character
-// can hold, what it draws from, their branch's off-hand, and the accessories
-// the shop sells beside it. For a sim that settles the weapon elsewhere --
-// measuring it needs a book, and a book is not always bought by the time the
-// weapon has to be in hand.
+// Outfit with the weapon type already chosen: the best `type` the character can
+// hold, its ammunition, the branch's off-hand, and the shop's accessories. For
+// a sim that chooses the weapon elsewhere, since measuring it needs a book and
+// the book isn't always bought by the time the weapon is needed.
 void OutfitWeapon(GameState& state, EquipType type);
 
-// Whether the character has reached the map that hands `proto` over. A symbol
-// is not a drop off a ladder: one waits at each Arcane River checkpoint, so a
-// character standing at 200 has the first of the six and none of the rest.
-// True for everything that is not a symbol.
+// Whether the character has reached the map that gives out `proto`. A symbol
+// isn't a regular drop: one waits at each Arcane River area, so a character at
+// 200 has the first of the six and none of the rest. True for anything that
+// isn't a symbol.
 bool ReachedSymbolArea(const CharacterInstance& character,
                        const EquipPrototype& proto);
 
-// Feeds every worn Arcane Symbol the spares the bag holds, and says how many
-// it absorbed. A spare nothing takes sits there for good, so this runs at
-// every look for the ROOM as much as the rung. Raising the level is paid in
-// meso, which GearShopper ranks against a star.
+// Feeds each worn Arcane Symbol the spare copies in the bag, and returns how
+// many it absorbed. A spare that nothing absorbs stays in the bag for good, so
+// this runs at every look to free bag space as well as to level symbols.
+// Leveling up costs meso, which GearShopper ranks against a star.
 int CollectSymbols(CharacterInstance& character);
 
-// Wears the best of every slot the shop does not stock -- what a player who
-// had cleared everything would stand in. A family takes as many distinct
-// pieces as it holds. `skip` names catalog keys to leave off, for a sim asking
-// whether a fight can be won without what only that fight pays.
+// Wears the best item for every slot the shop doesn't stock, as a player who
+// had cleared everything would. An item family provides as many distinct pieces
+// as it has. `skip` names catalog keys to leave off, for a sim asking whether a
+// fight can be won without the gear only that fight drops.
 void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 
-// Wears the best of what the BAG holds, in the slots the shop does not stock.
-// A piece goes on when its slot is empty or it outranks what is in it, so a
-// second copy never displaces the scrolls and stars on the first. The drop
-// half of Outfit: that one shops, this one opens the bag.
+// Wears the best items from the bag in the slots the shop doesn't stock. A
+// piece goes on when its slot is empty or it outranks what is there, so a
+// second copy never replaces a first that has scrolls and stars. This is the
+// drop half of Outfit: Outfit shops, this opens the bag.
 void WearBestFromBag(CharacterInstance& character);
 
-// Puts everything worn at its ceiling: every slot filled with the scroll that
-// MEASURES best, and stars to the item's maximum. Nothing is rolled and
-// nothing is paid for -- a sim asking what a build can reach wants the
-// ceiling, not one draw from it.
+// Maxes out everything worn: every slot gets the scroll that measures best, and
+// stars go to the item's maximum. Nothing is rolled or paid for, since a sim
+// asking what a build can reach wants the ceiling, not one random outcome.
 //
-// `star_cap` holds every item below its own maximum, for a ceiling a player
-// would stop at: past 15 an attempt can destroy the item, and a piece one boss
-// drops has no second copy.
+// `star_cap` stops every item below its own maximum, for a ceiling a player
+// would actually stop at. Past 15 stars an attempt can destroy the item, and a
+// piece from one boss has no second copy.
 void FullyUpgrade(GameState& state, int star_cap = kMaxStarForce);
 
-// Which scroll each worn slot wants: the one the character measures best in
-// when it fills every slot, out of those succeeding `success_rate` of the
-// time. Restores the character, so asking wears and buys nothing.
+// The scroll each worn slot should use: the one that measures best when applied
+// to every slot, among those with at least `success_rate` success. Restores the
+// character, so it wears and buys nothing.
 std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate);
 

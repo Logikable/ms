@@ -18,9 +18,9 @@
 namespace ms {
 namespace {
 
-// The monster a character with no fight to aim at is ranked against: one of
-// their own level, with no defence and no boss flag. Nothing they buy is
-// wasted against it -- the point is only that damage still orders the shelf.
+// The monster a character with no target fight is ranked against: one of their
+// own level, with no defence and no boss flag. The point is only that damage
+// still orders the shelf.
 Mob StandIn(int level) {
   Mob mob;
   mob.set_name("Yardstick");
@@ -28,8 +28,8 @@ Mob StandIn(int level) {
   return mob;
 }
 
-// The body of `difficulty`'s objective phase: the part the fight is decided
-// against, and so the part a purchase should be judged on.
+// The body of `difficulty`'s objective phase: the part that decides the fight,
+// and so the part purchases should be judged on.
 Mob ObjectiveBody(const GameState& state, const BossDifficulty& difficulty) {
   int phase = BossObjectivePhase(state.mobs, difficulty);
   const Mob* toughest = nullptr;
@@ -47,10 +47,9 @@ Mob ObjectiveBody(const GameState& state, const BossDifficulty& difficulty) {
                              : *toughest;
 }
 
-// The params of the fight the plan is aimed at, and how many bodies stand in
-// it. The BOSS's where there is a fight to aim at, not the map's: a boss reads
-// the bossing preset, halves reach, and is picked a different swing than a
-// crowd.
+// Combat params for the target fight, and how many enemies are in it. Uses the
+// boss when there is a target fight, not the map, since a boss uses the bossing
+// preset, halves reach, and gets a different attack choice than a crowd.
 CombatParams AimedParams(const GameState& state, int* enemies) {
   std::pair<std::string, int> fight;
   CombatParams params;
@@ -74,11 +73,10 @@ CombatParams AimedParams(const GameState& state, int* enemies) {
   return params;
 }
 
-// How long the fight is played out for, in the stretched clock MeasureFight
-// counts in. Wide enough to hold the slowest cycle in the character's book
-// twice over: a window shorter than a cooldown sees the skill either always up
-// or never, and the whole point of playing the fight is to find out which
-// share of it each swing really had.
+// How long to play the fight, in the stretched clock MeasureFight uses. Long
+// enough to hold the slowest cooldown in the character's book twice. A window
+// shorter than a cooldown sees the skill as always up or never up, and the
+// point of playing the fight is to measure each attack's real share.
 double ProfileWindow(const GameState& state) {
   constexpr double kFloorSeconds = 30.0;
   double cycle = 0.0;
@@ -91,8 +89,8 @@ double ProfileWindow(const GameState& state) {
          GameSpeedFactor(state.character.proto().level());
 }
 
-// The catalog entry an AttackOption came from, by the name it carries: what
-// the damage chain wants is the skill's own data, which the option has spent.
+// Catalog entry for an AttackOption, found by name. The damage chain needs the
+// skill's own data, which the option no longer carries.
 const Skill* SkillNamed(const GameState& state, const std::string& name) {
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (entry.second.name() == name) {
@@ -102,21 +100,20 @@ const Skill* SkillNamed(const GameState& state, const std::string& name) {
   return nullptr;
 }
 
-// The least of the fight a swing must account for to be carried as a strand of
-// its own. Every candidate is scored through every strand, a cost paid
-// thousands of times a pass, and a swing worth a hundredth of the fight cannot
-// reorder anything. What is dropped falls into the proportional credit the
-// own-clock damage takes.
+// Smallest share of the fight's damage an attack needs to get its own strand.
+// Every candidate is scored through every strand, thousands of times a pass,
+// and an attack worth one percent can't change the ranking. Dropped attacks are
+// folded into the proportional credit given to own-clock damage.
 constexpr double kStrandFloor = 0.01;
 
-// Everything the character really does to `target`, and how often. Each
-// strand's rate is SOLVED rather than counted -- what the played fight saw the
-// swing land, over what the closed form says one landing is worth -- which is
-// what carries the clock into a form a candidate can be re-scored through.
+// Everything the character actually does to `target`, and how often. Each
+// strand's rate is solved rather than counted: the damage the attack dealt in
+// the played fight divided by what the closed form says one landing is worth.
+// That is what carries the timing into a form candidates can be scored through.
 //
-// What runs on a clock of its own is credited across the strands in
-// proportion: it scales with the character rather than any one swing, so
-// crediting it to the main attack would flatter that attack.
+// Damage on its own clock (summons, periodic effects) is credited across the
+// strands in proportion. It scales with the character rather than any one
+// attack, so crediting it all to the main attack would overrate that attack.
 std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   int enemies = 1;
   CombatParams params = AimedParams(state, &enemies);
@@ -160,7 +157,7 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   if (swung <= 0.0) {
     return strands;
   }
-  // The own-clock share, spread over what was swung.
+  // Spread the own-clock and dropped damage across the strands.
   double all = played.damage / swung;
   for (Strand& strand : strands) {
     strand.per_second *= all;
@@ -168,7 +165,7 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   return strands;
 }
 
-// What a held yardstick is re-taken on: the kit, and what it is aimed at.
+// What a held yardstick is recomputed on: the kit and the target.
 std::string KitKey(const GameState& state) {
   std::string key;
   const Character& proto = state.character.proto();

@@ -20,10 +20,9 @@ void ParallelFor(int count, const std::function<void(int)>& body) {
     }
     return;
   }
-  // Indices are taken one at a time rather than sliced up front, because the
-  // bodies are not the same size -- one branch climbs for two simulated days
-  // and another for one, and a thread handed the slow half would be alone by
-  // the end of it.
+  // Hand out indices one at a time instead of slicing up front, because bodies
+  // vary in size. One branch may climb for two simulated days and another for
+  // one, and a thread given the slow half would finish alone.
   std::atomic<int> next(0);
   std::vector<std::thread> pool;
   pool.reserve(threads);

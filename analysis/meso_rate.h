@@ -1,14 +1,14 @@
-/* What a second of play pays, which is the currency every plan here ranks in.
+/* Meso earned per second of play, the unit every plan here ranks in.
  *
- * Damage is not a separate question. A faster kill is another kill's worth of
- * meso, so a rate measured in meso already carries it -- and it carries the
- * half a damage rate cannot see, the drop and meso levers, which fill the
- * purse without moving a swing. That is why nothing here measures damage.
+ * Damage doesn't need a separate measure. A faster kill means another kill's
+ * meso, so a meso rate already includes damage. It also includes what a damage
+ * rate misses: the drop and meso levers, which add income without changing
+ * damage. That's why nothing here measures damage directly.
  *
- * Two channels, not one. The meso a mob drops is a 60% chance that drop rate
- * raises to certain and no further, so a rate read off it alone saturates at
- * +66.7%. The Etc the player sells off the same kill has no such ceiling. A
- * plan weighing a drop line against a star has to see both.
+ * There are two channels. A mob's meso drop is a 60% chance that drop rate
+ * raises to certain and no further, so a rate based on it alone caps at +66.7%.
+ * Etc items sold from the same kill have no such cap. A plan comparing a drop
+ * line against a star needs to see both.
  */
 #ifndef MS_ANALYSIS_MESO_RATE_H_
 #define MS_ANALYSIS_MESO_RATE_H_
@@ -26,42 +26,41 @@
 
 namespace ms {
 
-// What one kill pays, drops already valued: the meso drop, whose chance caps
-// at certain, plus everything else, whose rate does not. `drops` is
-// //analysis:drop_value's answer. The character's %meso is LEFT OUT, it
-// multiplying every mob alike.
+// Returns what one kill pays, with drops already valued: the meso drop, whose
+// chance caps at 100%, plus everything else, whose rate doesn't cap. `drops`
+// comes from //analysis:drop_value. The character's %meso is left out, since it
+// multiplies every mob equally.
 double MesoPerKill(const Mob& mob, double drops, double item_drop_pct);
 
-// The monsters in front of the character and how fast they fall, with
-// everything the catalogs had to answer already resolved -- so a plan can keep
-// a rate between looks. Parallel to CombatParams::types, a boss body included,
-// so a kill rate measured against those needs no reindexing. A boss pays
-// nothing here, paying out of its own table.
+// The mobs the character is fighting and how fast they die, with all catalog
+// lookups resolved so a plan can keep the rate between looks. Parallel to
+// CombatParams::types, including a boss body, so a kill rate measured against
+// those needs no reindexing. A boss pays nothing here, since it pays from its
+// own reward table.
 struct Crowd {
   std::vector<Mob> mobs;
-  // Parallel to `mobs`: what one kill's drops are worth, and how many fall a
-  // second.
+  // Parallel to `mobs`: what one kill's drops are worth, and kills per second.
   std::vector<double> drops;
   std::vector<double> kills_per_second;
 
-  // The same crowd killed at a different rate. What the Wild Totem question
-  // needs, which is one crowd measured twice.
+  // Returns the same crowd killed at a different rate. Used to measure one
+  // crowd twice, as the Wild Totem comparison does.
   Crowd At(absl::Span<const double> rate) const;
 };
 
-// `basis` is what the drops are valued against -- see DropBasisFor. Resolved
-// here and kept, so a plan reading the rate many times over one look pays for
-// the catalogs once.
+// `basis` is what drops are valued against (see DropBasisFor). Resolving it
+// once here lets a plan read the rate many times while paying for catalog
+// lookups once.
 Crowd CrowdFor(const GameState& state, const DropBasis& basis,
                const CombatParams& params,
                absl::Span<const double> kills_per_second);
 
-// Meso a second `crowd` pays under one set of levers.
+// Meso per second `crowd` pays under one set of levers.
 double MesoPerSecond(const Crowd& crowd, double meso_pct, double meso_mult,
                      double item_drop_pct);
 
-// The same rate for the character as they stand, reading their three levers
-// off their own sheet. What every caller with a GameState in hand wants.
+// Same as MesoPerSecond, reading the three levers from the character's own
+// sheet.
 double MesoPerSecondFor(const GameState& state, const Crowd& crowd);
 
 }  // namespace ms

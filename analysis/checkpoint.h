@@ -1,16 +1,14 @@
-/* Where a sim's checkpoints live, and the stamp that keeps them honest.
+/* Where a sim's checkpoints live, and the stamp that keeps them valid.
  *
- * A checkpoint is a shortcut, and a shortcut that outlives what it was cut
- * through is worse than no shortcut at all: a run that resumes a climb taken
- * before the change being measured answers the wrong question and says
- * nothing about it. So a file is only ever read back by the binary that wrote
- * it. Every textproto the game ships is compiled INTO that binary, so its own
- * identity covers the data as well as the code -- change a mob's HP and the
- * relink invalidates every checkpoint there is.
+ * A checkpoint from before the change being measured would silently answer the
+ * wrong question. So a file is only read back by the binary that wrote it.
+ * Every shipped textproto is compiled into that binary, so its identity covers
+ * the data as well as the code: changing a mob's HP invalidates every
+ * checkpoint.
  *
- * They are kept under the system temp directory rather than in the tree, and
- * the whole directory is emptied the moment its stamp stops matching, so a
- * stale one is never left lying around to be picked up by hand.
+ * Checkpoints live under the system temp directory, not the tree. The whole
+ * directory is emptied as soon as its stamp stops matching, so a stale file is
+ * never left around to be picked up by hand.
  */
 #ifndef MS_ANALYSIS_CHECKPOINT_H_
 #define MS_ANALYSIS_CHECKPOINT_H_
@@ -21,24 +19,23 @@
 
 namespace ms {
 
-// What the running binary is, as a string a file can be compared against.
-// Empty if it cannot be told, which turns checkpointing off rather than
-// guessing.
+// Identifies the running binary as a string a file can be compared against.
+// Empty if it can't be determined, which turns checkpointing off.
 std::string CheckpointStamp();
 
-// The directory `sim`'s checkpoints belong in, made if it is not there and
-// emptied if what is in it was written by another build. Returns the path, or
-// empty if it cannot be had -- in which case the run simply climbs.
+// Returns the directory for `sim`'s checkpoints, creating it if missing and
+// emptying it if another build wrote its contents. Returns empty if the
+// directory can't be made, in which case the run climbs from scratch.
 std::string PrepareCheckpointDir(const std::string& sim,
                                  const std::string& stamp);
 
-// Reads the checkpoint `dir` holds for `key`, or returns false for one that is
-// not there, will not parse, or was not written by this build.
+// Reads the checkpoint in `dir` for `key`. Returns false if it's missing, won't
+// parse, or was written by another build.
 bool ReadCheckpoint(const std::string& dir, const std::string& key,
                     const std::string& stamp, SimCheckpoint* out);
 
-// Writes `saved` as `key`. Failing to write is not fatal: the run has the
-// answer either way, and only the next one loses anything.
+// Writes `saved` as `key`. A failed write isn't fatal: this run has its answer
+// either way, and only the next run loses anything.
 void WriteCheckpoint(const std::string& dir, const std::string& key,
                      const SimCheckpoint& saved);
 

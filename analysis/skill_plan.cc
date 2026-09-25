@@ -15,20 +15,19 @@
 namespace ms {
 namespace {
 
-// How deep a requirement chain is followed before the plan is given up on.
-// Nothing in the books stacks four deep; the limit is only there so a cycle
-// in the data cannot hang a sim.
+// How deep a requirement chain is followed before the plan gives up. No book
+// goes four deep; the limit only stops a cycle in the data from hanging a sim.
 constexpr int kMaxRequirementDepth = 4;
 
-// Whether `skill` is bought out of the V Point pool rather than the SP book.
+// Whether `skill` is bought with V Points rather than SP.
 bool IsNode(const Skill& skill) {
   return skill.v_node() != V_NODE_KIND_UNSPECIFIED;
 }
 
-// The climbs worth pricing a node at, as levels above where it stands. The
-// ladder's own band edges, read off the step costs rather than restated here,
-// plus the whole of what the pool could pay for -- which is what reaches a
-// perk sitting above the nearest edge.
+// Level increases worth pricing a node at, relative to its current level. These
+// are the ladder's own band edges, read from the step costs rather than
+// restated here, plus the most the pool could pay for, which reaches a perk
+// above the nearest edge.
 std::vector<int> NodeRungs(const CharacterInstance& character,
                            const Skill& skill) {
   std::vector<int> rungs;
@@ -47,37 +46,38 @@ std::vector<int> NodeRungs(const CharacterInstance& character,
   return rungs;
 }
 
-// One skill's best climb, as it was last priced. `score` on an unpriced offer
-// is what it was worth before the last purchase -- an upper bound on what it
-// is worth now, since a next level never pays more than the last did, which is
-// what lets the search skip pricing everything plainly behind.
+// One skill's best purchase, as last priced. For an unpriced offer, `score` is
+// its value before the last purchase. That is an upper bound on its value now,
+// since a further level never pays more than the previous one did, and it lets
+// the search skip pricing offers that are clearly behind.
 struct Offer {
   const Skill* skill = nullptr;
   int levels = 0;
   double score = std::numeric_limits<double>::max();
-  double rate = 0.0;  // what the character would be taking off the fight
+  double rate = 0.0;  // the character's damage rate after the purchase
   bool measured = false;
 };
 
-// Prices every climb `offer` could make and keeps the best per point. Pricing
-// is where the whole cost of an allocation is: one call plays a fight.
+// Prices every purchase `offer` could make and keeps the best per point.
+// Pricing is where all the cost of an allocation goes: each call plays a fight.
 using PriceOffer = std::function<void(GameState&, double held, Offer*)>;
 
-// Makes the purchase an offer names, once the search has settled on it.
+// Makes the purchase an offer describes, once the search has chosen it.
 using TakeOffer = std::function<void(GameState&, const Offer&)>;
 
-// The greedy both pools share: the best value per point, over and over, until
-// nothing left to buy pays.
+// The greedy loop both pools share: buy the best value per point, repeatedly,
+// until nothing left pays.
 //
-// LAZY, which is the only reason either allocation is affordable -- pricing an
-// offer plays a fight and a book holds five hundred skills. A stale score is
-// kept as an upper bound and only the leader re-priced: what it drops behind
-// is already fresh, and what it stays ahead of cannot overtake it.
+// It's lazy, which is the only reason either allocation is affordable: pricing
+// an offer plays a fight, and the catalog holds hundreds of skills. A stale
+// score is kept as an upper bound and only the leader is re-priced. Offers it
+// drops behind are already fresh, and offers it stays ahead of can't overtake
+// it.
 //
-// The bound holds while a purchase makes the rest worth LESS, the usual shape.
-// Where one makes another worth MORE the order can be seated wrongly -- the
-// trade made on purpose, an exact sweep being an order of magnitude dearer
-// than the precision anything here decides at.
+// The bound holds while each purchase makes the others worth less, which is the
+// usual case. When one purchase makes another worth more, the order can come
+// out wrong. That tradeoff is deliberate: an exact sweep would cost ten times
+// as much, for precision no decision here needs.
 void SpendGreedily(GameState& state, const SkillRate& rate,
                    std::vector<Offer>& offers, const PriceOffer& price,
                    const TakeOffer& take) {
@@ -89,7 +89,7 @@ void SpendGreedily(GameState& state, const SkillRate& rate,
     if (best == offers.end() || (best->measured && best->score <= 0.0)) {
       return;
     }
-    // The leader has not been priced since the last purchase, so its score is
+    // The leader hasn't been priced since the last purchase, so its score is
     // only the bound. Price it and look again.
     if (!best->measured) {
       price(state, held, &*best);
@@ -103,7 +103,7 @@ void SpendGreedily(GameState& state, const SkillRate& rate,
   }
 }
 
-// Prices every climb a node could make, per V Point.
+// Prices every level increase a node could make, per V Point.
 void PriceNode(GameState& state, double held, const SkillRate& rate,
                Offer* offer) {
   Character before = state.character.ToProto();
@@ -126,10 +126,9 @@ void PriceNode(GameState& state, double held, const SkillRate& rate,
   }
 }
 
-// Prices a book skill, per SP. One level and the whole skill: a skill meant to
-// replace the one being swung is worth nothing at its first level and
-// everything at its last, and a chooser offered only the first would never buy
-// it.
+// Prices a book skill per SP, at one level and at max level. A skill meant to
+// replace the current attack is worth nothing at level 1 and everything at max,
+// so a chooser only offered level 1 would never buy it.
 void PriceSkill(GameState& state,
                 const std::map<std::string, const Skill*>& named, double held,
                 const SkillRate& rate, Offer* offer) {
@@ -147,13 +146,13 @@ void PriceSkill(GameState& state,
         offer->rate = measured;
         offer->levels = levels;
       }
-      // Only what was bought needs putting back. A skill the book cannot sell
-      // -- maxed, unaffordable, its requirement out of reach -- left the
-      // character untouched.
+      // Only a successful purchase needs undoing. A skill the book couldn't
+      // sell (maxed, unaffordable, or with an unreachable requirement) left the
+      // character unchanged.
       state.character.RestoreFrom(before, state.equips, state.items);
     }
     if (offer->skill->max_level() <= 1) {
-      break;  // both tries are the same one
+      break;  // both tries would be the same
     }
   }
 }
@@ -183,9 +182,8 @@ int BuyDeep(GameState& state, const Skill& skill,
   return spent;
 }
 
-// The switches this character could throw, by name. What decides whether the
-// last answer still stands: a roster that has not moved cannot have changed
-// which way the answer falls.
+// The toggle skills this character has, by name. If this roster hasn't changed,
+// the last decision still stands.
 std::string ToggleRoster(const GameState& state) {
   std::string roster;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
@@ -216,7 +214,7 @@ void SpendBook(GameState& state, const SkillRate& rate) {
   std::map<std::string, const Skill*> named = SkillsByName(state);
   std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    // The matrix has its own pool and its own allocator.
+    // The V Matrix has its own pool and its own allocator.
     if (!IsNode(entry.second)) {
       offers.push_back({&entry.second});
     }
@@ -235,10 +233,10 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
                           ToggleChoice* choice) {
   std::string roster = ToggleRoster(state);
   if (choice != nullptr && choice->roster == roster) {
-    // The switches they settled on are still thrown -- the character carries
-    // them -- so this is the same allocation, once instead of twice. A
-    // character with no switches at all lands here on the first look, which is
-    // right: there is nothing to try both ways round.
+    // The toggles settled on last time are still on (the character keeps them),
+    // so this is the same allocation, run once instead of twice. A character
+    // with no toggles lands here on the first look, which is right: there's
+    // nothing to try both ways.
     SpendBook(state, rate);
     return;
   }
@@ -269,10 +267,10 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
   state.character.RestoreFrom(off_book, state.equips, state.items);
 }
 
-// Empties the matrix back into the pool. GMS charges nothing to reset one and
-// refunds every point, which is what lets this be a PLAN rather than a running
-// total: called again on a character the gear has since changed, it re-decides
-// from nothing instead of adding to a ranking taken against somebody weaker.
+// Empties the matrix back into the pool. GMS resets a node for free and refunds
+// every point, so this can be a fresh plan rather than an addition: called
+// again after gear changes, it decides from scratch instead of building on a
+// ranking made for a weaker character.
 void RefundMatrix(GameState& state) {
   Character proto = state.character.ToProto();
   int64_t refund = 0;

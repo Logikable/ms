@@ -17,14 +17,14 @@
 namespace ms {
 namespace {
 
-// The step the fight is played at. Coarser than the sixty frames a second the
-// screen runs, because a sim takes a fight thousands of times: a swing's own
-// delay is most of a second, so twenty steps of it still lands every one where
-// it falls. Measured drift against 1/60 is at most two seconds on a two-minute
+// Time step for simulated fights. Coarser than the screen's 60 frames a second,
+// because a sim runs a fight thousands of times. An attack's delay is most of a
+// second, so twenty steps per second still lands each attack close to where it
+// falls. Measured drift against 1/60 is at most two seconds on a two-minute
 // kill.
 constexpr double kStepSeconds = 1.0 / 20.0;
 
-// What a phase is holding, over every monster standing in it.
+// Total HP of every monster in a phase.
 int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
                 const BossPhase& phase) {
   int64_t hp = 0;
@@ -37,23 +37,23 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
   return hp;
 }
 
-// How long a loser stays. Nobody watches a boss they have taken three percent
-// off run its clock out, and a sim that sits through it spends most of its
-// time there -- so once what stands says the fight cannot be finished inside
-// the limit they walk out. Not asked before kFirstLook, so an opening phase
-// spent walking between spots is not mistaken for a rout.
+// When a losing player gives up. Nobody watches a boss they've taken three
+// percent off until time runs out, and a sim that waits spends most of its time
+// there. So once progress shows the fight can't be finished within the limit,
+// they leave. Not checked before kFirstLook, so an opening spent moving between
+// spots isn't mistaken for a rout.
 constexpr double kGiveUpFactor = 1.5;
 constexpr double kFirstLook = 120.0;
 
-// What is still standing, over what the fight opened with. Phases the run
-// never reached count whole.
+// Fraction of the fight's starting HP still left. Unreached phases count in
+// full.
 double LeftStanding(const BossRun& run) {
   int phases = std::max(1, run.phase_count());
   return (phases - run.phase() + run.phase_hp_fraction()) / phases;
 }
 
-// Whether the fight is already lost: what has fallen in `elapsed` says the
-// rest cannot fall inside `clock`.
+// Whether the fight is already lost: progress in `elapsed` says the rest can't
+// be finished within `clock`.
 bool WalkedOut(const BossRun& run, double elapsed, double clock) {
   if (elapsed < kFirstLook) {
     return false;

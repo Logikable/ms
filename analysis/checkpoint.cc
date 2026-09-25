@@ -15,7 +15,7 @@
 namespace ms {
 namespace {
 
-// The file inside the directory that says which build filled it.
+// File in the checkpoint directory that records which build filled it.
 constexpr char kStampFile[] = "stamp";
 
 std::string ReadWholeFile(const std::filesystem::path& path) {
@@ -59,8 +59,7 @@ std::string PrepareCheckpointDir(const std::string& sim,
     return "";
   }
   if (ReadWholeFile(dir / kStampFile) != stamp) {
-    // Another build's, and there is no telling what in it moved. Emptied
-    // rather than left to be picked over.
+    // Written by another build, so anything in it may be stale. Empty it.
     for (const std::filesystem::directory_entry& entry :
          std::filesystem::directory_iterator(dir, failed)) {
       std::filesystem::remove_all(entry.path(), failed);
@@ -79,8 +78,8 @@ bool ReadCheckpoint(const std::string& dir, const std::string& key,
   if (bytes.empty() || !out->ParseFromString(bytes)) {
     return false;
   }
-  // Belt as well as braces: the directory is emptied on a stamp that does not
-  // match, and a file that somehow outlived that is still refused.
+  // Also check each file's own stamp, in case one survived the directory being
+  // emptied.
   return out->stamp() == stamp;
 }
 

@@ -19,14 +19,14 @@
 namespace ms {
 namespace {
 
-// How far a permanent unlock has to clear its own price before it is worth
-// the purse it takes. Twice over rather than once: the meso would otherwise
-// have gone on gear, and a buff that only breaks even by the last day of the
-// run is not worth taking a star off the weapon for.
+// How much a permanent unlock's savings must exceed its price before buying.
+// Twice rather than once, because the meso could have gone on gear instead, and
+// a buff that only breaks even on the run's last day isn't worth a star off the
+// weapon.
 constexpr double kBuyMargin = 2.0;
 
-// What switching the Wealth Acquisition Potion on adds to that. Switched back
-// before returning: this is a question, not a move.
+// Meso per second gained by switching the Wealth Acquisition Potion on.
+// Switched back before returning, so this only measures.
 double WealthPotionGain(GameState& state, const BuffYield& yield) {
   CharacterInstance& character = state.character;
   bool was =
@@ -38,10 +38,10 @@ double WealthPotionGain(GameState& state, const BuffYield& yield) {
   return was ? standing - flipped : flipped - standing;
 }
 
-// And what planting the totem adds: the kills it buys, valued at whatever the
-// character's %meso and drop rate are worth. The EXP and the drops those kills
-// also pay are gravy the decision does not need -- the rent clears on the meso
-// alone or it does not clear at all.
+// Meso per second gained by placing the totem: the extra kills, valued at the
+// character's %meso and drop rate. The EXP and other drops from those kills
+// aren't needed for the decision: the rent pays for itself in meso alone or not
+// at all.
 double WildTotemGain(GameState& state, const BuffYield& yield) {
   if (yield.kills_with_totem.empty()) {
     return 0.0;
@@ -50,9 +50,9 @@ double WildTotemGain(GameState& state, const BuffYield& yield) {
          MesoPerSecondFor(state, yield.crowd.At(yield.kills_without_totem));
 }
 
-// Whether the Extreme Green Potion would actually buy the character a stage.
-// False for one already at the fastest the formula models, and for one
-// holding nothing to swing.
+// Whether the Extreme Green Potion would actually raise the character's attack
+// speed stage. False for a character already at the fastest stage the formula
+// models, or holding no weapon.
 bool RaisesTheStage(GameState& state) {
   const EquipPrototype* weapon = EquippedWeapon(state);
   if (weapon == nullptr) {
@@ -66,21 +66,22 @@ bool RaisesTheStage(GameState& state) {
          AttackSpeedStage(base, derived.attack_speed_bonus, 0);
 }
 
-// Switches `type` to `on`, which is a no-op when it is already there.
+// Switches `type` to `on`. Does nothing if it's already there.
 void SetBuff(CharacterInstance& character, ConsumableType type, bool on) {
   if (character.ConsumableActive(type) != on) {
     character.ToggleConsumable(type);
   }
 }
 
-// Whether the rent left to pay clears the permanent price with room to spare.
+// Whether the remaining rent exceeds the permanent price by the required
+// margin.
 bool WorthBuying(double rent_per_second, double seconds_left,
                  int64_t permanent_price) {
   return rent_per_second * seconds_left > kBuyMargin * permanent_price;
 }
 
-// Buys `info` outright if the mode allows it, the purse covers it, and -- in
-// kAuto -- the rent left to pay is worth more than the price.
+// Buys `info` outright if the mode allows it, the character can afford it, and
+// (in kAuto) the remaining rent is worth more than the price.
 void BuyIfWorthIt(GameState& state, const BuffPolicy& policy,
                   const ConsumableInfo& info, double rent_per_second,
                   BuffSpend* spend) {
@@ -99,21 +100,20 @@ void BuyIfWorthIt(GameState& state, const BuffPolicy& policy,
 
 }  // namespace
 
-// Whether `info` goes on, and what its rent is worth against. Each buff is a
-// different question, so each answers its own.
+// Whether `info` should be switched on. Each buff is decided differently.
 bool WorthSwitchingOn(GameState& state, const BuffYield& yield,
                       const ConsumableInfo& info) {
   switch (info.type) {
     case CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION:
-      // The map decides: a potion that drinks more than the crowd pays is one
-      // the player puts away until they are somewhere worth drinking it.
+      // The map decides: a potion that costs more than the mobs pay stays off
+      // until the player is somewhere worth using it.
       return WealthPotionGain(state, yield) > info.price;
     case CONSUMABLE_TYPE_WILD_TOTEM:
       return WildTotemGain(state, yield) > info.price;
     default:
-      // A stage of attack speed against a million meso, in a fight whose clear
-      // is worth many times that: it goes on whenever it is worth a stage at
-      // all, and it is worth nothing to a character already at the ceiling.
+      // One attack speed stage for a million meso, in a fight whose clear is
+      // worth many times that. It goes on whenever it raises the stage, and is
+      // worth nothing to a character already at the cap.
       return RaisesTheStage(state);
   }
 }
@@ -134,8 +134,8 @@ void PlanBuffs(GameState& state, const BuffPolicy& policy,
     if (!character.ConsumableActive(info.type)) {
       continue;
     }
-    // What the rent comes to a second, which for a buff charged at a boss door
-    // is its price over how often the player walks through one.
+    // Rent per second. For a buff charged per boss entry, that's its price
+    // times the entry rate.
     double rent = info.per_second ? info.price
                                   : info.price * policy.boss_entries_per_second;
     BuyIfWorthIt(state, policy, info, rent, spend);

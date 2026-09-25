@@ -38,17 +38,17 @@ EquipStats Minus(const EquipStats& a, const EquipStats& b) {
   return d;
 }
 
-// The character's combat power with `stats` in place of what they wear. The
-// closed form, as GearShopper uses it: ranking a drop is a question about the
-// stat block, and a played swing would cost one per drop per look.
+// Damage against the yardstick with `stats` in place of what the character
+// wears. Uses the closed form, as GearShopper does, since ranking a drop only
+// depends on the stats, and a played fight per drop per look would cost too
+// much.
 double PowerWith(const GameState& state, const DropBasis& basis,
                  const EquipStats& stats) {
   return WorthOf(state, basis.yard, stats, PassiveOffenseFor(basis.derived));
 }
 
-// Damage turned into the meso it would otherwise cost. Nothing at all when no
-// rate has been handed over, which keeps a caller without a shopper exactly
-// where it was before any of this existed.
+// Converts a damage gain to the meso it would otherwise cost. Zero when no rate
+// was given, so a caller without a shopper gets zero for unsellable drops.
 double AsMeso(const DropBasis& basis, double gain) {
   if (gain <= 0.0 || basis.power_per_meso <= 0.0) {
     return 0.0;
@@ -56,24 +56,24 @@ double AsMeso(const DropBasis& basis, double gain) {
   return gain / basis.power_per_meso;
 }
 
-// What the item worn in `slot` contributes, which is what a replacement has to
-// beat. Nothing for a slot standing empty.
+// Stats of the item worn in `slot`, which a replacement has to beat. Empty for
+// an empty slot.
 EquipStats WornIn(const GameState& state, EquipSlot slot) {
   WornGear::const_iterator it = state.character.equipped().find(slot);
   return it == state.character.equipped().end() ? EquipStats()
                                                 : it->second->stats();
 }
 
-// What one duplicate of a worn symbol is worth. A duplicate is one EXP of the
-// rung and the rung charges meso on top, so it is worth the rung's gain LESS
-// its price, spread over the duplicates it takes.
+// Value of one duplicate of a worn symbol. A duplicate is one EXP toward the
+// next symbol level, which also costs meso. So it's worth the level's gain
+// minus its price, divided by the duplicates it takes.
 double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
                             const EquipInstance& worn) {
   const ms::Equip& state_of = worn.equip_state();
   int level = SymbolLevel(state_of);
   int needed = SymbolExpToNextLevel(level);
   if (needed <= 0) {
-    return 0.0;  // topped out; another copy buys nothing
+    return 0.0;  // maxed out; another copy adds nothing
   }
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
@@ -94,10 +94,10 @@ DropBasis DropBasisFor(const GameState& state, double power_per_meso,
   basis.yard = held.For(state);
   basis.power = PowerWith(state, basis, basis.worn);
   basis.power_per_meso = power_per_meso;
-  // One pass over the shelf rather than one per token asked about: what a
-  // token buys does not move while a rate is being read. Priced off the basis
-  // as far as it is built, which is everything but the tokens themselves --
-  // nothing on the shelf is bought with a token bought with a token.
+  // Scan the shelf once rather than once per token, since what a token buys
+  // doesn't change while a rate is read. Values use the basis as built so far,
+  // which is everything but the tokens. That is enough, since nothing on the
+  // shelf is bought with a token that is itself bought with tokens.
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
@@ -118,18 +118,18 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
     return 0.0;
   }
   if (IsArcaneSymbol(proto)) {
-    // A second copy of a symbol already worn is a duplicate, which is a rung
-    // rather than a piece of gear. A first copy falls through and is priced as
-    // one, since that is what it is.
+    // A second copy of a worn symbol is a duplicate that feeds the symbol's
+    // level, not a piece of gear. A first copy falls through and is valued as
+    // gear.
     WornGear::const_iterator worn =
         state.character.equipped().find(proto.equip_slot());
     if (worn != state.character.equipped().end()) {
       return SymbolDuplicateValue(state, basis, *worn->second);
     }
   }
-  // What wearing it would add over what is in the slot already. A piece no
-  // better than what is worn scores nothing, which is right: wearing it is the
-  // only thing a drop is for.
+  // What wearing it would add over the item in the slot. A piece no better than
+  // the worn one scores zero, which is right: wearing it is the only use of a
+  // gear drop.
   EquipStats added =
       Minus(EquipInstance(proto).stats(), WornIn(state, proto.equip_slot()));
   double gain = PowerWith(state, basis, Plus(basis.worn, added)) - basis.power;

@@ -1,23 +1,21 @@
-/* What a cube into one worn piece is worth, priced the way the shopper prices
- * a scroll or a star: expected combat power for the meso it takes.
+/* Values a cube on one worn piece the way the shopper values a scroll or a
+ * star: expected combat power for the meso it costs.
  *
- * There is no goal here and no order of pieces. A player who cubes their
- * weapon before their belt does it because the weapon's lines are worth more,
- * and that is a comparison rather than a rule -- so this answers what one cube
- * is expected to add and lets GearShopper rank it against everything else on
- * the shelf.
+ * There is no goal or order of pieces here. A player who cubes their weapon
+ * before their belt does so because the weapon's lines are worth more. That is
+ * a comparison, not a rule, so this computes what one cube is expected to add
+ * and lets GearShopper rank it against everything else.
  *
- * The value is marginal and keep-better: a cube is worth what the reroll beats
- * the item's own lines by, averaged over draws, and never less than nothing.
- * That prices the rank ladder correctly for all that it looks like it needs a
- * plan -- one cube at Unique is worth 2.4% of what Legendary adds, and the
- * forty-two-cube climb to Legendary is worth the same per cube, because the
- * ladder is geometric. Where it undervalues is a goal naming two particular
- * lines, which is the -3s hat and the meso-and-drop accessory; both are meant
- * to lose.
+ * The value is marginal and keep-better: a cube is worth how much the reroll
+ * beats the item's current lines, averaged over draws, and never less than
+ * zero. That values the rank ladder correctly even though it looks like it
+ * needs a plan, because the ladder is geometric: each cube on the way to
+ * Legendary is worth the same. It undervalues goals that need two specific
+ * lines, such as the -3s hat and the meso-and-drop accessory; both are meant to
+ * lose.
  *
- * A %meso or %drop line pays income rather than power, so it is weighed over
- * what is left of the run instead -- see CubeIncome.
+ * A %meso or %drop line earns income rather than power, so it is valued over
+ * the rest of the run instead (see CubeIncome).
  */
 #ifndef MS_ANALYSIS_CUBE_PLAN_H_
 #define MS_ANALYSIS_CUBE_PLAN_H_
@@ -34,85 +32,83 @@
 
 namespace ms {
 
-// Draws taken to price one cube. Enough that a line worth having is not missed
-// by a slot's worth of unlucky rolls, few enough that a look stays cheap.
+// Draws used to value one cube. Enough that a good line isn't missed through a
+// slot's worth of bad luck, few enough to keep a look cheap.
 inline constexpr int kCubeSamples = 64;
 
-// What is left of an item the shopper may yet replace, as a share. The user's
-// call: cubing gear you will outgrow is still worth something, since it is
-// what carries you to the gear that replaces it, but it is not worth what
-// cubing a piece you will keep is worth.
+// Weight given to an item the shopper may replace later. The user's call:
+// cubing gear you'll outgrow is still worth something, since it carries you to
+// the replacement, but less than cubing a piece you'll keep.
 inline constexpr int kReplaceableNumerator = 1;
 inline constexpr int kReplaceableDenominator = 4;
 
-// What the run still has ahead of it and what it is earning, which is the
-// whole of what a %meso or %drop line is worth.
+// Time left in the run and the current income, which together decide what a
+// %meso or %drop line is worth.
 struct CubeIncome {
   double seconds_left = 0.0;
-  // Meso a second the character would earn at `meso_bonus` (MesoBonus's own
-  // answer, both caps already taken) and `drop_pct`. Empty for a caller with
-  // no encounter in hand, which values the income lines at nothing.
+  // Meso per second the character would earn at `meso_bonus` (MesoBonus's
+  // result, both caps applied) and `drop_pct`. Empty for a caller with no
+  // encounter, which values income lines at zero.
   std::function<double(double meso_bonus, double drop_pct)> rate;
-  // What a meso buys in combat power elsewhere on the shelf. Only the ORDER
-  // depends on this: a line pays for itself when its income over the horizon
-  // beats the cube's price, and that test needs no rate at all. So a stale one
-  // misranks and never misdecides.
+  // Combat power a meso buys elsewhere on the shelf. Only the ranking depends
+  // on this: a line pays for itself when its income over the horizon beats the
+  // cube's price, which needs no rate. So a stale value can misrank but never
+  // misdecide.
   double power_per_meso = 0.0;
 };
 
-// The character as they stand, which every cube is priced against. Working one
-// out costs a rebuild, so the shopper takes it once a round.
+// The character as they are now, which every cube is valued against. Computing
+// it needs a rebuild, so the shopper does it once per round.
 struct CubeBasis {
   DerivedStats derived;
-  // Everything worn plus everything granted, before any percentage is folded
-  // in -- the sum TotalEquipStats folds, not its answer. A potential moves
-  // %ATT, so the fold has to be redone per candidate.
+  // Stats from everything worn plus everything granted, before percentages are
+  // applied: the sum TotalEquipStats folds, not its result. A potential can
+  // change %ATT, so the fold is redone per candidate.
   EquipStats raw;
-  // The fight the lines are judged against. What an ignored-defence line is
-  // worth is a fact about that FIGHT, not the character, and it moves by a
-  // factor of three between Cygnus and Lotus -- so the monster is carried
-  // rather than a number standing for it. See //analysis:yardstick.
+  // The fight lines are judged against. An ignored-defence line's value depends
+  // on the fight, not the character, and changes threefold between Cygnus and
+  // Lotus, so the monster itself is carried. See //analysis:yardstick.
   Yardstick yard;
 };
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard);
 
-// A run of cubes into one slot, and what it is expected to leave behind. A
-// PROGRAM rather than a single cube: a character short of a boss's defence
-// wall gains nothing from any one roll but has a real chance over sixty, so
-// priced one at a time the slot that most needs cubing never gets one.
+// A run of cubes on one slot, and what it's expected to leave. It's priced as a
+// run rather than a single cube because a character below a boss's defence wall
+// gains nothing from any one roll but has a real chance over dozens. Priced one
+// at a time, the slot that most needs cubing would never get one.
 struct CubeProgram {
-  int cubes = 0;      // how many the run buys
-  double gain = 0.0;  // what the best roll of the run is expected to add
-  int64_t cost = 0;   // what the run costs altogether
+  int cubes = 0;      // cubes in the run
+  double gain = 0.0;  // expected gain of the run's best roll
+  int64_t cost = 0;   // total cost of the run
 
   bool worth() const {
     return cubes > 0 && gain > 0.0 && cost > 0;
   }
 };
 
-// The run into `slot` that pays best per meso, out of a ladder of lengths. The
-// whole ladder comes off ONE sample: what a run of N leaves is the best of N
-// draws, and the chance the best of N is the i-th of a sorted sample is
-// (i/m)^N - ((i-1)/m)^N -- so sixty cubes cost no more to price than one.
+// The run on `slot` with the best value per meso, out of a ladder of lengths.
+// The whole ladder comes from one sample: a run of N leaves the best of N
+// draws, and the chance that the best of N is the i-th of a sorted sample of m
+// is (i/m)^N - ((i-1)/m)^N. So a long run costs no more to price than one cube.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             EquipSlot slot, const CubeIncome& income,
                             std::mt19937& rng);
 
-// Whether `rolled` beats what `slot` already holds -- the same comparison
-// BestCubeProgram averages over, asked once of a roll in hand. A cube is paid
-// either way, so this decides only what the item ends up wearing.
+// Whether `rolled` beats what `slot` already has: the same comparison
+// BestCubeProgram averages, applied to one actual roll. The cube is paid for
+// either way, so this only decides which lines the item keeps.
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
                  const Potential& rolled, const CubeIncome& income);
 
 // Whether the shopper is likely to replace what `slot` holds: a higher-level
-// piece the character can already wear AND pay for. A weapon must match the
-// type in hand, a Lv140 sword being no replacement for a Lv120 axe.
+// piece the character can already wear and afford. A weapon must match the type
+// in hand, since a Lv140 sword doesn't replace a Lv120 axe.
 //
-// LISTED is not REACHABLE: a tier priced in a token counts only once one is in
-// the bag, so a character locked out of the fight that drops it cubes what
-// they hold. The gain is discounted rather than refused, meso spent cubing
-// still buying the climb toward the replacement.
+// Listed is not reachable: a tier priced in tokens counts only once a token is
+// in the bag, so a character locked out of the fight that drops them cubes what
+// they have. The gain is discounted rather than refused, because meso spent
+// cubing still helps the climb toward the replacement.
 bool Replaceable(const GameState& state, EquipSlot slot);
 
 }  // namespace ms

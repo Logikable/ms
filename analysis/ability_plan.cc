@@ -14,11 +14,11 @@
 namespace ms {
 namespace {
 
-// The one line the chase is for: the type worth the most at `rank`.
+// The line type worth the most at `rank`: the one line the chase aims for.
 //
-// Only the top slot ever carries the ability's own rank -- lines two and three
-// roll a rank below it -- so this is the single best line the preset will ever
-// hold, and everything else on the sheet is filler.
+// Only the top slot carries the ability's own rank (lines two and three roll a
+// rank below), so this is the best line the preset can ever hold. Everything
+// else is filler.
 AbilityLineType BestTypeAt(const AbilityWorth& worth, AbilityRank rank) {
   AbilityLineType best = ABILITY_LINE_TYPE_UNSPECIFIED;
   double most = 0.0;
@@ -32,22 +32,21 @@ AbilityLineType BestTypeAt(const AbilityWorth& worth, AbilityRank rank) {
   return best;
 }
 
-// Whether the top line is the one being chased, at the rank that makes it
-// worth chasing.
+// Whether the top line is the target type, at the preset's own rank.
 bool GoalLanded(const AbilityPreset& preset, const AbilityWorth& worth) {
   return preset.lines_size() > 0 && preset.lines(0).rank() == preset.rank() &&
          preset.lines(0).type() == BestTypeAt(worth, preset.rank());
 }
 
-// The slots worth holding through a reset, best first. A line worth nothing is
-// never held: that slot is better spent rolling for one that is.
+// Slots worth locking through a reroll, best first. A line worth nothing is
+// never locked, since its slot is better spent rolling for something useful.
 std::vector<int> BestSlots(const AbilityPreset& preset,
                            const AbilityWorth& worth) {
   std::vector<std::pair<double, int>> ranked;
   for (int i = 0; i < preset.lines_size(); ++i) {
     double value = worth.Of(preset.lines(i));
     if (value > 0.0) {
-      ranked.push_back({-value, i});  // negated, so a sort puts the best first
+      ranked.push_back({-value, i});  // negated so sorting puts the best first
     }
   }
   std::sort(ranked.begin(), ranked.end());
@@ -59,10 +58,10 @@ std::vector<int> BestSlots(const AbilityPreset& preset,
   return slots;
 }
 
-// Whether this preset is done: the rank climbed, the chased line on top, and
-// nothing under it dead weight. The last clause is what stops a finished
-// preset being rolled to pieces -- two lines can be held and three rolled, so
-// one is always live, and the last roll leaves whatever it gave.
+// Whether this preset is finished: rank reached, target line on top, and no
+// dead weight below it. The last check stops a finished preset from being
+// rerolled away. Only two lines can be locked, so one always rolls, and the
+// last roll leaves whatever it gave.
 bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
              const AbilityWorth& worth) {
   if (preset.rank() < climb_to || !GoalLanded(preset, worth)) {
@@ -76,14 +75,14 @@ bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
   return true;
 }
 
-// What to hold through the next reset. FREES every line first: a third lock is
-// refused, so a swap the other way round would keep the line it meant to drop.
+// Sets which lines to lock for the next reroll. Unlocks every line first, since
+// a third lock is refused and swapping in the other order would keep the line
+// meant to be dropped.
 //
-// Nothing while the rank is being climbed -- a lock buys nothing against a
-// rank and makes every roll dearer -- and nothing while the chased line is not
-// yet on top, since a held top line is never rerolled and holding the wrong
-// one there strands the chase. Once it lands it is held, best filler with
-// it.
+// Locks nothing while climbing ranks, since a lock doesn't help reach a rank
+// and makes every roll cost more. Also locks nothing until the target line is
+// on top, because a locked top line is never rerolled and locking the wrong one
+// ends the chase. Once it lands, it's locked along with the best filler.
 void HoldForChase(CharacterInstance& character, StatPreset preset,
                   AbilityRank climb_to, const AbilityWorth& worth) {
   const AbilityPreset lines = character.ability(preset);
@@ -93,9 +92,8 @@ void HoldForChase(CharacterInstance& character, StatPreset preset,
   if (lines.rank() < climb_to || !GoalLanded(lines, worth)) {
     return;
   }
-  // The goal is on top and safe there -- a held top line already at the
-  // ability's rank is never rerolled. Hold the best filler with it and let the
-  // last slot keep rolling.
+  // The target is on top, and a locked top line at the ability's rank is never
+  // rerolled. Lock the best filler with it and let the last slot keep rolling.
   for (int slot : BestSlots(lines, worth)) {
     character.LockAbilityLine(slot, true, preset);
   }
@@ -105,13 +103,13 @@ void HoldForChase(CharacterInstance& character, StatPreset preset,
 
 AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
                                  const AbilityRate& rate) {
-  // ToProto, not proto(): the live containers hold the character's items, and
-  // the backing message they were taken out of has none of them.
+  // Use ToProto, not proto(). The live containers hold the character's items,
+  // and the backing message has none of them.
   const Character before = state.character.ToProto();
   Character trial = before;
   AbilityPreset& setup = PresetOf(*trial.mutable_inner_ability(), preset);
 
-  // Holding nothing, which is what every line below is read against.
+  // Baseline with no lines, which every line below is measured against.
   setup.Clear();
   state.character.RestoreFrom(trial, state.equips, state.items);
   const double bare = rate(state);
@@ -122,10 +120,10 @@ AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
       const AbilityLineType type = static_cast<AbilityLineType>(t);
       const AbilityRank rank = static_cast<AbilityRank>(r);
       if (AbilityTypeWeight(type, rank) <= 0) {
-        continue;  // a pairing the roll never hands over
+        continue;  // a combination the roll never produces
       }
       setup.Clear();
-      setup.set_rank(rank);  // the top line always carries the ability's rank
+      setup.set_rank(rank);  // the top line always has the ability's rank
       AbilityLine& line = *setup.add_lines();
       line.set_type(type);
       line.set_rank(rank);
@@ -144,7 +142,7 @@ int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
     HoldForChase(state.character, preset, climb_to, worth);
     const int64_t cost = state.character.ability_reset_cost(preset);
     if (!state.character.ResetAbility(preset)) {
-      return spent;  // the pool is short, or the panel is not open to them yet
+      return spent;  // not enough honor, or the panel isn't unlocked yet
     }
     spent += cost;
   }

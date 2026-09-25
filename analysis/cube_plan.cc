@@ -26,16 +26,16 @@ const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
   return it == state.character.equipped().end() ? nullptr : it->second;
 }
 
-// TotalEquipStats' own fold, redone here because the percentage is what moves
-// between two candidates: a potential grants %ATT, and the fold scales the
-// weapon in the character's hand along with everything else.
+// TotalEquipStats' own attack fold, redone here because the percentage differs
+// between candidates: a potential grants %ATT, and the fold scales the weapon's
+// attack along with everything else.
 int FoldAttack(int flat, double pct) {
   return static_cast<int>(std::floor(flat * (1.0 + pct) + 1e-9));
 }
 
-// `combined` with `part`'s share taken back out, undoing the reverse combine
-// two sources of ignored defence meet by. 1 where the part cancels everything,
-// which leaves nothing for the rest to say.
+// Removes `part`'s share from `combined`, undoing the reverse-multiplicative
+// combine that ignored-defence sources use. Returns 1 when the part already
+// ignores everything.
 double WithoutIgnoredDefense(double combined, double part) {
   if (part >= 1.0) {
     return 1.0;
@@ -43,9 +43,9 @@ double WithoutIgnoredDefense(double combined, double part) {
   return 1.0 - (1.0 - combined) / (1.0 - part);
 }
 
-// The potentials on everything worn but `slot`. What a cube rolls goes on top
-// of this, so the sum over the other pieces is taken once per slot rather than
-// once per draw.
+// Potential totals from everything worn except `slot`. A cube's roll is added
+// on top, so the other pieces are summed once per slot rather than once per
+// draw.
 PotentialTotals PotentialsBut(const CharacterInstance& character,
                               EquipSlot slot) {
   PotentialTotals totals;
@@ -60,11 +60,10 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
   return totals;
 }
 
-// What the character wears and grants with `totals` in place of the potentials
-// worn. The two halves the yardstick's door asks for rather than a folded
-// OffenseStats: folding one here is how a cube came to be measured WITHOUT the
-// swing while a star was measured with it, though BuyBest sorts them
-// together.
+// Stats the character wears and is granted with `totals` in place of the worn
+// potentials. Returns the two halves WorthOf takes, not a folded OffenseStats.
+// Folding one here once measured cubes without the attack while stars were
+// measured with it, even though BuyBest sorts them together.
 void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
                PassiveOffense* out_passives) {
@@ -97,10 +96,9 @@ void StatsWith(const GameState& state, const CubeBasis& basis,
   *out_passives = passives;
 }
 
-// What a character carrying `totals` hits a boss for, in the units the scroll
-// and star offers are ranked in: their own combat power, times what an
-// ignored-defence line moves against what they already ignore. So a cube and
-// a star are compared in one currency.
+// Damage a character with `totals` deals against the yardstick, in the same
+// units scroll and star offers are ranked in. So a cube and a star compare
+// directly.
 double PowerOf(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals) {
   EquipStats stats;
@@ -109,9 +107,9 @@ double PowerOf(const GameState& state, const CubeBasis& basis,
   return WorthOf(state, basis.yard, stats, passives);
 }
 
-// What swapping the worn potentials for `totals` is worth in income, priced in
-// the same combat power the rest of the shelf is: a %meso or %drop line pays a
-// rate, and what a rate is worth is how long there is left to earn it.
+// Income value of swapping the worn potentials for `totals`, in the same combat
+// power units as the rest of the shelf. A %meso or %drop line earns a rate, and
+// a rate is worth as much as the time left to earn it.
 double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
                   const PotentialTotals& totals, const CubeIncome& income) {
   if (!income.rate || income.seconds_left <= 0.0 ||
@@ -135,11 +133,10 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
   CubeBasis basis;
-  // The BOSSING preset, because that is the fight this whole valuation is
-  // aimed at. Read in the farming preset -- DerivedStatsFor's silent default --
-  // the hyper stats and Inner Ability behind the character's ignored defence
-  // were somebody else's, and a character over the defence wall priced their
-  // cubes as one standing under it, which is to say at nothing.
+  // Use the bossing preset, because the target fight is what this valuation
+  // aims at. DerivedStatsFor defaults to the farming preset, which read the
+  // wrong hyper stats and Inner Ability for ignored defence. A character over
+  // the defence wall then valued cubes as if under it, at nothing.
   basis.derived = DerivedStatsFor(state.character, state.skills, {}, {},
                                   Activity::kBossing);
   const EquipStats sources[] = {state.character.equip_stats(),
@@ -151,10 +148,9 @@ CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
 
 namespace {
 
-// What taking `rolled` in place of what `slot` holds would be worth: power and
-// income together, in the one currency the shelf is ranked in. `others` and
-// `standing` are the two halves of the comparison that do not move between
-// draws, so they are worked out once by the caller.
+// Value of `rolled` replacing what `slot` holds: power plus income, in the
+// shelf's single currency. `others` and `standing` don't change between draws,
+// so the caller computes them once.
 double GainOf(const GameState& state, const CubeBasis& basis, int level,
               const PotentialTotals& others, const PotentialTotals& now,
               double standing, const Potential& rolled,
@@ -165,14 +161,13 @@ double GainOf(const GameState& state, const CubeBasis& basis, int level,
          IncomeGain(basis, now, totals, income);
 }
 
-// How long a run of cubes the shopper will consider. One is what it always
-// offered; the rest are there so a line that needs a rank the item has not
-// reached is priced at what reaching it costs rather than written off on the
-// first roll.
+// Run lengths the shopper considers. A single cube is the usual offer; longer
+// runs make a line that needs a higher rank get valued at the cost of reaching
+// it, rather than written off on the first roll.
 constexpr int kCubeProgramLengths[] = {1, 4, 16, 64};
 
-// Runs played out per slot. Few, because a run is the dear part of this file:
-// every cube in one has to be valued to decide whether it is kept.
+// Runs played per slot. Few, because runs are the expensive part: every cube in
+// one has to be valued to decide whether to keep it.
 constexpr int kCubeRuns = 4;
 
 constexpr int kCubeProgramLengthCount =
@@ -182,8 +177,8 @@ constexpr int kCubeProgramLengthCount =
 
 namespace {
 
-// Everything a cube into one slot is priced against, settled once for the
-// slot rather than re-read per draw.
+// Everything a cube on one slot is valued against, computed once per slot
+// rather than per draw.
 struct CubePricing {
   int level = 0;
   PotentialGroup group{};
@@ -192,8 +187,8 @@ struct CubePricing {
   double standing = 0.0;
 };
 
-// What one cube into the slot is expected to add, averaged over draws and
-// never less than nothing.
+// Expected gain of one cube on the slot, averaged over draws and never below
+// zero.
 double MarginalGain(const GameState& state, const CubeBasis& basis,
                     const CubePricing& pricing, const Potential& current,
                     const CubeIncome& income, std::mt19937& rng) {
@@ -208,10 +203,11 @@ double MarginalGain(const GameState& state, const CubeBasis& basis,
   return total / kCubeSamples;
 }
 
-// What runs of each length leave behind, summed over kCubeRuns. Runs are
-// PLAYED OUT rather than rolls counted, because a cube rolls against what the
-// last one left: keeping a better roll can carry the item up a rank, and the
-// line that clears a defence wall is one only a higher rank offers.
+// Total gain left by runs of each length, summed over kCubeRuns. Runs are
+// played out rather than rolls counted independently, because each cube rolls
+// against what the last one left. Keeping a better roll can raise the item's
+// rank, and the line that clears a defence wall may only exist at a higher
+// rank. Counting independent rolls would never see that.
 std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
                                  const CubePricing& pricing,
                                  const Potential& current,
@@ -227,13 +223,13 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
           CubePotential(held, CubeType::kRed, pricing.group, rng);
       double gain = GainOf(state, basis, pricing.level, pricing.others,
                            pricing.now, pricing.standing, rolled, income);
-      // Keep-better, GMS's own offer: a roll worse than what the item holds is
-      // declined, and the cube bought the chance.
+      // Keep-better, as GMS offers: a roll worse than the item's current lines
+      // is declined, and the cube only bought the chance.
       //
-      // A RANK is taken even where the damage does not move. Under a defence
-      // wall every roll is worth nothing, both sides being on the 1-damage
-      // floor, so a run judged on damage alone never climbs a rank and never
-      // reaches the line that clears the wall.
+      // A higher rank is kept even when damage doesn't change. Under a defence
+      // wall every roll is worth nothing, since both sides deal the 1-damage
+      // floor, so a run judged on damage alone would never climb a rank or
+      // reach the line that clears the wall.
       if (gain > best_gain ||
           (gain >= best_gain && rolled.rank() > held.rank())) {
         best_gain = gain;
@@ -271,10 +267,10 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
 
-  // One cube first, and usually last. A longer run only ever beats a single
-  // cube per meso when the single cube is worth NOTHING -- which is what a
-  // defence wall does and nothing else does -- so the expensive part below is
-  // skipped wherever the marginal roll already pays.
+  // Try one cube first; usually that decides it. A longer run only beats a
+  // single cube per meso when the single cube is worth nothing, which only
+  // happens under a defence wall. So the expensive part below is skipped
+  // whenever one roll already pays.
   double marginal =
       MarginalGain(state, basis, pricing, current, income, rng) * share;
   if (marginal > 0.0) {
@@ -284,11 +280,8 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
     return best;
   }
 
-  // Runs played out rather than rolls counted, because a cube rolls against
-  // what the LAST one left: keeping a better roll can carry the item up a rank,
-  // and the line that clears a defence wall is one only a higher rank offers.
-  // A run of sixty priced as sixty independent rolls never sees that, which is
-  // why it is worth the cost of playing them.
+  // Play out runs; see PlayCubeRuns for why they can't be counted
+  // independently.
   std::vector<double> reached =
       PlayCubeRuns(state, basis, pricing, current, income, rng);
 
@@ -298,9 +291,9 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
     if (expected <= 0.0) {
       continue;
     }
-    // Cross-multiplied rather than divided, and the empty run loses to
-    // anything: with a cost of zero it would otherwise tie every length and
-    // keep them all out.
+    // Compare by cross-multiplying rather than dividing. The empty starting run
+    // must lose to anything: with zero cost it would otherwise tie every length
+    // and block them all.
     if (best.cubes > 0 && expected * best.cost <= best.gain * cost) {
       continue;  // no better per meso than the run already chosen
     }
@@ -327,20 +320,21 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
   if (gain > 0.0) {
     return true;
   }
-  // A rank where the damage did not move, on the same terms BestCubeProgram
-  // priced the run: under a defence wall every roll is worth nothing, and an
-  // accept rule reading damage alone would throw away the rank-up the run was
-  // bought for. The two have to agree or the shopper pays for a program it
-  // then declines -- which it did, 2,484 cubes and none kept.
+  // Accept a higher rank even when damage didn't change, on the same terms
+  // BestCubeProgram used to price the run. Under a defence wall every roll is
+  // worth nothing, and a rule reading damage alone would throw away the rank-up
+  // the run was bought for. The two must agree, or the shopper pays for a
+  // program and then declines every result; that once happened with 2,484
+  // cubes.
   return gain >= 0.0 &&
          rolled.rank() > item->equip_state().main_potential().rank();
 }
 
-// Whether the character could ever pay for `proto`, as against whether the
-// catalog lists it. A tier priced in a token is only a prospect once one of
-// that token has dropped: the AbsoLab weapon costs coins Damien and Lotus
-// alone hand out, so to a character who cannot clear them it is not the next
-// weapon -- it is scenery, and the piece in their hand is the one they keep.
+// Whether the character could ever buy `proto`, as opposed to whether the
+// catalog lists it. A tier priced in tokens only counts once one of the tokens
+// has dropped. The AbsoLab weapon costs coins only Damien and Lotus give, so to
+// a character who can't clear them it isn't the next weapon, and they keep the
+// one in hand.
 bool WithinReach(const GameState& state, const EquipPrototype& proto) {
   if (proto.token_price() <= 0) {
     return true;
@@ -369,9 +363,8 @@ bool Replaceable(const GameState& state, EquipSlot slot) {
         proto.required_level() > reached) {
       continue;
     }
-    // Which weapon a branch swings is a measurement rather than a level, so
-    // only a longer ladder of the same type replaces one -- see
-    // SettledWeaponType.
+    // A branch's weapon type is chosen by measurement, not level, so only a
+    // higher-level weapon of the same type replaces one. See SettledWeaponType.
     if (type != EQUIP_TYPE_UNSPECIFIED && proto.equip_type() != type) {
       continue;
     }

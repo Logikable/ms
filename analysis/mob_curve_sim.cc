@@ -1,26 +1,23 @@
-/* The shape of the mob ladder: what every mob costs to kill and pays for it,
- * and what that comes to on each map once spawn counts are taken in.
+/* mob_curve_sim: the shape of the mob ladder. Prints what each mob costs to
+ * kill and pays, and what that comes to on each map once spawn counts are
+ * included.
  *
- * Two tables. The first walks the mobs in level order and prints, beside each,
- * how fast HP, EXP and attack grew per level since the mob below it. A ladder
- * that follows a curve holds those steady; a mob that is off the curve shows
- * as a spike and is paid for by a dip on whichever mob comes next. Attack has
- * its own curve, and it can be out of step with the other two -- what a mob
- * costs to kill and what it does to the player on the way are set separately.
+ * There are two tables. The first lists mobs in level order with how fast HP,
+ * EXP and attack grew per level since the mob below. A ladder that follows a
+ * curve keeps those steady; a mob off the curve shows as a spike, followed by a
+ * dip on the next mob. Attack has its own curve and can be out of step with the
+ * other two, since how hard a mob is to kill and how hard it hits are set
+ * separately.
  *
- * That table comes in three, because three ladders run through the same levels
- * and none of them is on the others' curve: the overworld, Arcane River, and
- * the bosses. Comparing across them prints arithmetic that means nothing --
- * Black Heaven against the river beside it reads as a 65% drop in HP per level
- * and is nothing of the sort.
+ * That table is printed four times, because four ladders span the same levels
+ * without sharing a curve: the overworld, Arcane River, Grandis, and the
+ * bosses. Comparing across them is meaningless. Black Heaven next to the river
+ * would read as a 65% drop in HP per level, which it isn't.
  *
- * The second weights each map by its spawn counts, which is what a player
+ * The second table weights each map by its spawn counts, which is what a player
  * actually meets, and carries the counts through to a kill rate. EXP/HP is the
- * column to read: spawn count caps kills per second, so a map with twice the
- * HP at its level pays about half the EXP per second.
- *
- * Not a test. Tests pin behaviour that must not change; this prints numbers to
- * look at while deciding what the behaviour should be.
+ * column to read: spawn count caps kills per second, so a map with twice the HP
+ * at its level pays about half the EXP per second.
  *
  *   bazelisk run //analysis:mob_curve_sim
  *   bazelisk run //analysis:mob_curve_sim -- --maps=false
@@ -48,7 +45,7 @@ ABSL_FLAG(bool, maps, true, "Print the per-map table.");
 namespace ms {
 namespace {
 
-// One map, with its spawn counts already folded in.
+// One map, with its spawn counts already applied.
 struct MapRow {
   std::string name;
   double level = 0.0;
@@ -58,9 +55,9 @@ struct MapRow {
   int spawns = 0;
 };
 
-// The compound per-level growth from `from` to `to` across `levels` levels,
-// as a multiplier. Reported rather than the plain ratio so mobs spaced one
-// level apart and mobs spaced six apart can be compared in the same column.
+// Compound per-level growth from `from` to `to` over `levels` levels, as a
+// multiplier. Used instead of the plain ratio so mobs one level apart and six
+// levels apart compare in the same column.
 double GrowthPerLevel(double from, double to, int levels) {
   if (from <= 0.0 || to <= 0.0 || levels <= 0) {
     return 0.0;
@@ -79,10 +76,10 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
   return ladder;
 }
 
-// The mobs standing on maps asking for a force, by data file stem: Arcane
-// Force for the river, Sacred Power for Grandis. The map is what says so --
-// Tenebris drops no symbol of its own, and the level does not say so either:
-// Black Heaven runs to 219 and asks for no force at all.
+// Mobs on maps that require a force, by data file stem: Arcane Force for the
+// river, Sacred Power for Grandis. Only the map says so. Tenebris drops no
+// symbol of its own, and level doesn't tell either: Black Heaven runs to 219
+// and requires no force.
 std::set<std::string> MobsAskedFor(const std::map<std::string, MapData>& maps,
                                    int (MapData::*force)() const) {
   std::set<std::string> asked;
@@ -111,8 +108,8 @@ void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
     printf("%-22s %4d %11lld %7lld %6d %8.3f", mob.name().c_str(), mob.level(),
            static_cast<long long>(mob.max_hp()),
            static_cast<long long>(mob.exp()), mob.attack(), exp_per_hp);
-    // Nothing to grow from on the first row, and nothing to grow across
-    // between two mobs sharing a level -- the mushrooms do.
+    // Nothing to grow from on the first row, or between two mobs of the same
+    // level (the mushrooms share one).
     int steps = i == 0 ? 0 : mob.level() - ladder[i - 1].level();
     if (steps <= 0) {
       printf(" %8s %8s %8s\n", "--", "--", "--");
@@ -149,15 +146,15 @@ void PrintMobs(const std::map<std::string, Mob>& mobs,
   PrintLadder("the overworld ladder", MobsByLevel(overworld));
   PrintLadder("Arcane River", MobsByLevel(river));
   PrintLadder("Grandis", MobsByLevel(grandis));
-  // The bosses share no curve with each other either -- each is its own fight
-  // at its own gate -- so their growth columns say nothing. They are here for
-  // the HP and attack a boss carries at its level.
+  // Bosses don't share a curve with each other either, since each is its own
+  // fight at its own unlock level, so their growth columns mean nothing.
+  // They're listed for the HP and attack each boss has at its level.
   PrintLadder("the bosses", MobsByLevel(bosses));
 }
 
-// A map's mobs averaged by spawn count: two of a thing and four of another is
-// not the same encounter as one of each, and the counts are the dial the maps
-// are tuned on.
+// Averages a map's mobs by spawn count. Two of one mob and four of another
+// isn't the same encounter as one of each, and spawn counts are how maps are
+// tuned.
 MapRow WeightMap(const MapData& map, const std::map<std::string, Mob>& mobs) {
   MapRow row;
   row.name = map.name();
@@ -186,7 +183,7 @@ void PrintMaps(const std::map<std::string, MapData>& maps,
   std::vector<MapRow> rows;
   for (const std::pair<const std::string, MapData>& entry : maps) {
     MapRow row = WeightMap(entry.second, mobs);
-    // A town has no mobs to average. Nothing here has anything to say about it.
+    // A town has no mobs to average.
     if (row.spawns > 0) {
       rows.push_back(row);
     }

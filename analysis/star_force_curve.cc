@@ -13,10 +13,10 @@ namespace {
 
 typedef std::vector<std::vector<double>> Matrix;
 
-// Solves `a` x = `b` by Gaussian elimination with partial pivoting, both by
-// value because the elimination consumes them. One row per star and never
-// larger than thirty. Empty for a singular system, which would be a star with
-// no way out of it.
+// Solves `a` x = `b` by Gaussian elimination with partial pivoting. Both are
+// taken by value because elimination modifies them. There is one row per star,
+// so never more than thirty. Returns empty for a singular system, which would
+// mean a star with no way out.
 std::vector<double> Solve(Matrix a, std::vector<double> b) {
   int n = static_cast<int>(b.size());
   for (int column = 0; column < n; ++column) {
@@ -53,13 +53,13 @@ std::vector<double> Solve(Matrix a, std::vector<double> b) {
   return x;
 }
 
-// The cost of reaching the target from each star below it. Standing at s, an
-// attempt is paid for and the player is then at s + 1, back at whatever a
-// recovery hands out, or still at s:
+// Expected cost of reaching the target from each star below it. At star s, the
+// player pays for an attempt and then is at s + 1, at whatever star a recovery
+// gives back, or still at s:
 //
 //   E[s] = cost(s) + p_success E[s+1] + p_destroy E[recovery] + p_fail E[s]
 //
-// which is the row below once the E[s] terms are gathered on the left.
+// Moving the E[s] terms to the left gives each row below.
 std::vector<double> Expectations(int target, const std::vector<double>& cost) {
   Matrix a(target, std::vector<double>(target, 0.0));
   for (int stars = 0; stars < target; ++stars) {

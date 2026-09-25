@@ -1,21 +1,20 @@
-/* What a drop is worth to the purse, in the meso everything else is priced in.
+/* Values drops in meso, the currency everything else is priced in.
  *
- * Most of what falls in the late game sells for nothing -- a token, a soul
- * shard, a symbol duplicate, a piece of boss gear. A rate that reads the
- * counter's price prices all of them at zero, so a character carrying +100%
- * item drop rate measures no better than one carrying none, and nothing the
- * rate feeds will ever buy a drop line.
+ * Most late-game drops sell for nothing: tokens, soul shards, symbol
+ * duplicates, boss gear. Valued at their shop price, they're all worth zero, so
+ * +100% item drop rate would measure no better than none, and no plan would
+ * ever buy a drop line.
  *
- * What they are really worth is what the purse would otherwise spend to buy
- * the same combat power, and the shopper already knows that rate: the best
- * combat power per meso on its own shelf. Run backwards it turns power into
- * meso, which is what puts a drop and a star in the same currency.
+ * Their real worth is what the character would otherwise spend to buy the same
+ * combat power. The gear shopper already knows that rate: the best combat power
+ * per meso on its shelf. Inverted, it turns power into meso, which puts a drop
+ * and a star in the same currency.
  *
- * Every case here has one shape -- what the drop ADVANCES toward, less what
- * finishing it still costs, spread over how many of it that takes. A gear drop
- * takes one of itself and costs nothing more. A token takes as many as the
- * shelf asks. A symbol duplicate takes the whole rung's worth, and the rung
- * charges meso on top.
+ * Every case has one shape: the value of what the drop leads to, minus what
+ * finishing it still costs, divided by how many drops that takes. A gear drop
+ * takes one and costs nothing more. A token takes as many as the shelf asks. A
+ * symbol duplicate takes a whole level's worth, and the level-up charges meso
+ * too.
  */
 #ifndef MS_ANALYSIS_DROP_VALUE_H_
 #define MS_ANALYSIS_DROP_VALUE_H_
@@ -32,47 +31,45 @@
 
 namespace ms {
 
-// What the character as they stand is measured against, worked out once and
-// handed to every drop: rebuilding it per drop would cost a pass over the gear
-// for each one.
+// What drops are measured against for the character as they are now. Computed
+// once and shared by every drop, since rebuilding it per drop would scan the
+// gear each time.
 struct DropBasis {
   DerivedStats derived;
-  // Everything worn plus everything granted, before any percentage is folded
-  // in -- what TotalEquipStats sums, not what it answers.
+  // Stats from everything worn plus everything granted, before percentages are
+  // applied. This is what TotalEquipStats sums, not its result.
   EquipStats worn;
-  // The fight a drop is judged against, and what the character takes off it as
-  // they stand. See //analysis:yardstick.
+  // The fight a drop is judged against, and the character's current damage
+  // there. See //analysis:yardstick.
   Yardstick yard;
   double power = 0.0;
-  // Damage a meso buys elsewhere, off GearShopper's best offer. Zero
-  // prices every drop that does not sell at nothing, which is what a caller
-  // with no shopper in hand gets.
+  // Damage per meso from GearShopper's best offer. Zero values every drop that
+  // doesn't sell as nothing, which is what a caller without a shopper gets.
   double power_per_meso = 0.0;
-  // What one of each token is worth, by the catalog key the shelf names it by.
-  // Worked out once because it takes a pass over every equip the shop stocks,
-  // and a rate is asked for far more often than the gear moves.
+  // Value of one of each token, keyed by the catalog key the shelf uses.
+  // Computed once because it scans every equip the shop stocks, and rates are
+  // read far more often than gear changes.
   std::map<std::string, double> tokens;
 };
 
 DropBasis DropBasisFor(const GameState& state, double power_per_meso,
                        HeldYardstick& held);
 
-// What one copy of `proto` is worth. A piece the character would not wear --
-// one their job or level shuts them out of, or one no better than what is
-// already in the slot -- is worth nothing, since wearing it is the only thing
-// a drop is for.
+// Value of one copy of `proto`. A piece the character wouldn't wear (blocked by
+// job or level, or no better than what's in the slot) is worth nothing, since
+// wearing it is the only use of a gear drop.
 double EquipDropValue(const GameState& state, const DropBasis& basis,
                       const EquipPrototype& proto);
 
-// What one copy of the item filed under `key` is worth: the counter's price
-// where it has one, and otherwise what it advances toward. A token is worth
-// the best piece its shelf sells divided by the tokens that piece asks for.
+// Value of one copy of the item under `key`: its shop price if it has one,
+// otherwise the value of what it leads to. A token is worth the best piece its
+// shelf sells divided by that piece's token price.
 double ItemDropValue(const DropBasis& basis, const std::string& key,
                      const ItemPrototype& proto);
 
-// What everything one kill of `mob` drops is worth, before drop rate lifts it.
-// The meso the mob drops is NOT in it -- that channel has a cap of its own and
-// is counted separately. See //analysis:meso_rate.
+// Value of everything one kill of `mob` drops, before drop rate. The mob's meso
+// isn't included; that channel has its own cap and is counted separately (see
+// //analysis:meso_rate).
 double DropsPerKill(const GameState& state, const DropBasis& basis,
                     const Mob& mob);
 

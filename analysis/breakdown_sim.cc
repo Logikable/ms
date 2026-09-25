@@ -1,10 +1,10 @@
-/* breakdown_sim: the table a boss fight ends on, for every branch.
+/* breakdown_sim: the end-of-fight damage breakdown, for every branch.
  *
- * Seeds each branch's ceiling character at --level, fights --fight as Practice
- * for up to --seconds, and prints the damage breakdown the fight screen will
- * show: a row per skill, its share, casts, lines and damage per line. For
- * reading which skills a branch's damage actually comes from, and for checking
- * that every row names a skill the player would recognise.
+ * Seeds each branch's max character at --level, fights --fight in Practice mode
+ * for up to --seconds, and prints the damage breakdown the fight screen shows:
+ * a row per skill with its share, casts, lines and damage per line. Use it to
+ * see where a branch's damage comes from, and to check that every row names a
+ * skill a player would recognise.
  *
  *   bazelisk run //analysis:breakdown_sim -- --level=230 --fight=lotus
  */

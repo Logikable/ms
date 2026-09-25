@@ -127,16 +127,16 @@ std::vector<Job> PathTo(Job branch) {
 
 int StageOf(Job branch) {
   std::vector<Job> path = PathTo(branch);
-  // A job that appears on its own path but not at the end of it is a rung
-  // rather than a branch: AdvancementForJobStage answers for the whole line,
-  // so a Swordman asked for stage 4 gives whatever that line ends in.
+  // A job on its path but not at the end of it is a step, not a branch.
+  // AdvancementForJobStage answers for the whole line, so a Swordman asked for
+  // stage 4 gives whatever that line ends in.
   if (path.empty() || path.back() != branch) {
     return 0;
   }
-  // Where it is REACHED, not how long the path is. A line with a 5th job of
-  // its own names the same branch twice -- the Dark Knight is both the 4th
-  // rung and the 5th -- and counting the whole path would file that branch
-  // under a stage no level in the game has reached.
+  // Count the stage where the branch is first reached, not the path length. A
+  // line with its own 5th job names the same branch twice (Dark Knight is both
+  // the 4th and 5th step), and counting the whole path would file it under a
+  // stage no level reaches.
   for (int stage = 0; stage < static_cast<int>(path.size()); ++stage) {
     if (path[stage] == branch) {
       return stage + 1;
@@ -166,9 +166,8 @@ std::vector<Job> BranchesAt(int level) {
       deepest = stage;
     }
   }
-  // Down from there to the deepest stage the game actually ships, so a level
-  // past the 5th job's own -- 200, where every hyper is bought -- measures the
-  // 4th jobs rather than the nobody who has advanced past them.
+  // Step down to the deepest stage that actually has branches. So a level past
+  // the 5th job's (200, where every hyper is bought) measures the 4th jobs.
   for (; deepest > 0; --deepest) {
     std::vector<Job> branches;
     for (Job job : EveryBranch()) {
@@ -209,9 +208,9 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
       while (character.LearnSkill(entry.second)) {
       }
-      // A switch bought is a switch thrown: what Righteously Indignant is for
-      // is standing on, and a book spent to the last point would not have
-      // bought it otherwise.
+      // Turn on any toggle skill that was bought. Righteously Indignant is only
+      // useful switched on, and a fully spent book wouldn't have bought it
+      // otherwise.
       if (entry.second.toggle() &&
           !character.SkillToggledOn(entry.second.name())) {
         character.ToggleSkill(entry.second);

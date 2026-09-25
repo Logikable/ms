@@ -28,9 +28,9 @@ Catalogs LoadCatalogs() {
 
 GameState NewState(const Catalogs& catalogs, unsigned int seed) {
   TestOptions options;
-  // A sim models a player who uses what the game offers, and the plans it runs
-  // build one allocation for the map and one for the boss. The game itself
-  // ships the switch off -- see Options.autoswap_presets.
+  // A sim models a player who uses what the game offers, and its plans build
+  // one allocation for the map and one for the boss. The game itself ships this
+  // off (see Options.autoswap_presets).
   options.autoswap_presets = true;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
@@ -43,8 +43,8 @@ GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
   options.job = advancement;
   options.level = level;
   options.autoswap_presets = true;
-  // Not yet: every balance number in here was taken before the link skills
-  // existed, and none of them has been re-taken against a full account. See
+  // Off for now: every balance number here was measured before link skills
+  // existed, and none has been re-measured with a full account. See
   // TestOptions::link_skills.
   options.link_skills = false;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
@@ -56,7 +56,7 @@ std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
   std::vector<std::pair<double, std::string>> sorted;
   for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {
     if (entry.second.spawns().empty()) {
-      continue;  // a town, with nothing on it to kill or be killed by
+      continue;  // a town, with nothing to fight
     }
     sorted.push_back({MapLevel(catalogs.mobs, entry.second), entry.first});
   }

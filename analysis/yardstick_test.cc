@@ -26,7 +26,8 @@ EquipPrototype Sword(AttackSpeed speed, int attack,
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(speed);
-  // Both halves, so the swing lands whatever job the starting character is.
+  // Set both attack and magic attack, so the attack lands whatever the starting
+  // job.
   sword.mutable_base_stats()->set_attack(attack);
   sword.mutable_base_stats()->set_magic_attack(attack);
   return sword;
@@ -43,13 +44,12 @@ Skill SlashBlast() {
   return slash;
 }
 
-// A character standing on a field of snails with a sword in hand and one
-// swing in their book: enough of a fight that a yardstick has something to
-// measure.
+// A character on a field of snails with a sword and one attack skill: enough of
+// a fight for a yardstick to measure.
 //
-// The skill is not decoration. A strand is looked up by NAME in the catalog,
-// so the bare poke every character has carries none -- a character with an
-// empty book has an empty yardstick and ranks every candidate equal.
+// The skill matters. Strands are looked up by name in the catalog, so the basic
+// attack every character has produces none. A character with an empty book has
+// an empty yardstick and ranks every candidate equal.
 std::unique_ptr<GameState> ArmedOnAField(
     AttackSpeed speed = ATTACK_SPEED_AVERAGE, int attack = 100) {
   Skill slash = SlashBlast();
@@ -79,8 +79,8 @@ std::unique_ptr<GameState> ArmedOnAField(
 
 // --- YardstickFor ---
 
-// The fallback: a character below the first boss has no fight to aim at, and
-// still has to rank gear by damage rather than by nothing.
+// A character below the first boss has no fight to aim at, and must still rank
+// gear by damage.
 TEST(YardstickForTest, StandsInAMonsterOfTheirOwnLevel) {
   std::unique_ptr<GameState> state = ArmedOnAField();
   state->character.LevelUp();
@@ -89,7 +89,7 @@ TEST(YardstickForTest, StandsInAMonsterOfTheirOwnLevel) {
   Yardstick yard = YardstickFor(*state);
   EXPECT_EQ(yard.target.level(), state->character.proto().level());
   EXPECT_FALSE(yard.target.boss());
-  // Nothing bought is wasted against it: no defence to be ignored.
+  // No defence, so nothing bought is wasted against it.
   EXPECT_EQ(yard.target.pdr(), 0);
 }
 
@@ -104,8 +104,8 @@ TEST(YardstickForTest, CarriesTheSwingsTheFightReallyLands) {
   }
 }
 
-// The rate is SOLVED off the played fight, so a weapon swung twice as often
-// has to come back at a higher rate for the same swing.
+// The rate is solved from the played fight, so a weapon that attacks twice as
+// often must give the same skill a higher rate.
 TEST(YardstickForTest, AFasterWeaponLandsTheSameSwingMoreOften) {
   std::unique_ptr<GameState> slow = ArmedOnAField(ATTACK_SPEED_SLOWER);
   std::unique_ptr<GameState> fast = ArmedOnAField(ATTACK_SPEED_FASTEST_3);
@@ -135,8 +135,8 @@ TEST(WorthOfTest, RisesWithTheAttackItIsHanded) {
   EXPECT_GT(WorthOf(*state, yard, better, passives), before);
 }
 
-// A character with no attack at all ranks every candidate equal, which is
-// correct: nothing they buy changes a damage they cannot deal.
+// A character with no attack ranks every candidate equal, which is correct:
+// nothing they buy changes damage they can't deal.
 TEST(WorthOfTest, IsNothingWithoutAStrand) {
   std::unique_ptr<GameState> state = ArmedOnAField();
   DerivedStats derived = DerivedStatsFor(state->character, state->skills);
@@ -150,11 +150,10 @@ TEST(WorthOfTest, IsNothingWithoutAStrand) {
 
 // --- HeldYardstick ---
 //
-// The whole point of holding one is that it is NOT re-taken per purchase, so
-// a kit change the key misses serves a stale yardstick to every candidate for
-// the rest of the pass -- and the numbers stay plausible while being about a
-// character who is no longer there. Each of these moves one thing the key
-// claims to watch.
+// A held yardstick is deliberately not recomputed per purchase. So a kit change
+// the key misses serves a stale yardstick for the rest of the pass, with
+// plausible numbers about a character who no longer exists. Each test changes
+// one thing the key claims to watch.
 
 TEST(HeldYardstickTest, RetakesWhenTheCharacterLevels) {
   std::unique_ptr<GameState> state = ArmedOnAField();
@@ -171,8 +170,8 @@ TEST(HeldYardstickTest, RetakesWhenTheWeaponChanges) {
   ASSERT_FALSE(held.For(*state).strands.empty());
   double before = held.For(*state).strands.front().per_second;
 
-  // A different prototype, as a real swap is: the key names what is worn, so
-  // two items sharing a name are one kit to it.
+  // Use a different prototype, as a real swap would. The key lists worn item
+  // names, so two items with the same name look like the same kit.
   state->character.PickUp(std::make_unique<EquipInstance>(
       Sword(ATTACK_SPEED_FASTEST_3, 100, "Quick Sword")));
   state->character.Equip(0);
@@ -186,7 +185,7 @@ TEST(HeldYardstickTest, HoldsWhatItTookWhileTheKitStands) {
   int level = first.target.level();
   std::size_t strands = first.strands.size();
 
-  // Meso is not the kit, so it must not cost a fight to re-play.
+  // Meso isn't part of the kit, so gaining it must not trigger a new fight.
   state->character.AddMeso(1'000'000);
   const Yardstick& again = held.For(*state);
   EXPECT_EQ(again.target.level(), level);

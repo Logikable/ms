@@ -10,9 +10,8 @@ namespace ms {
 
 HyperWorth MeasureHyperWorth(GameState& state, StatPreset preset,
                              const MeasuredHyperRate& rate) {
-  // ToProto, not proto(): the live containers hold the character's items, and
-  // the backing message they were taken out of has none of them. See
-  // MeasureAbilityWorth, which was written the other way round once.
+  // Use ToProto, not proto(). The live containers hold the character's items,
+  // and the backing message has none of them.
   Character before = state.character.ToProto();
   HyperWorth worth = MeasureHyperWorth(
       state.character, preset,

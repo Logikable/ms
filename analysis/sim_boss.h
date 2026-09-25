@@ -1,9 +1,9 @@
-/* Driving a boss fight from a sim: the fight the screen runs, stepped to the
- * end with nobody watching.
+/* Runs a boss fight from a sim: the same fight the screen runs, stepped to the
+ * end without display.
  *
- * Shared by the sims that put a character in front of a boss -- one asking
- * whether a build can win at all, another asking what a daily clear pays --
- * so both meet the fight the same way.
+ * Shared by sims that put a character in front of a boss (one asks whether a
+ * build can win, another what a daily clear pays), so both run the fight the
+ * same way.
  */
 #ifndef MS_ANALYSIS_SIM_BOSS_H_
 #define MS_ANALYSIS_SIM_BOSS_H_
@@ -21,65 +21,64 @@
 
 namespace ms {
 
-// What one run of a fight came to.
+// Result of one fight attempt.
 struct BossOutcome {
   bool won = false;
-  // Seconds the attempt took, won or lost. A loss is not always the whole of
-  // the clock: a player walks out of a fight that is plainly going nowhere.
+  // Seconds the attempt took, won or lost. A loss may end before time runs out,
+  // since a player leaves a fight that is clearly going nowhere.
   double seconds = 0.0;
-  // What was still standing when the clock ran out, over what the fight
-  // opened with. 0 for a clear. Phases the run never reached count whole, so a
-  // build that died on the first of three reads 1.0 rather than the fraction
-  // of the one it could see -- how CLOSE a loss was is the question, and a
-  // near miss is worth another go where a rout is not.
+  // Fraction of the fight's starting HP still left when it ended; 0 for a
+  // clear. Unreached phases count in full, so a build that died in the first of
+  // three phases reads near 1.0. The point is how close a loss was, since a
+  // near miss is worth retrying and a rout isn't.
   double left = 0.0;
 };
 
-// Fights `difficulty_index` of `boss_key` and reports it, paying whatever the
-// clear was worth. The same BossRun the screen steps, on the fight's own
-// clock, and left once the fight is plainly lost. Reads the boss out of
+// Fights `difficulty_index` of `boss_key` and returns the outcome, collecting
+// the clear's rewards. Uses the same BossRun the screen steps, on the fight's
+// own clock, and gives up once the fight is clearly lost. Reads the boss from
 // `state`, so the caller must have filled state.bosses.
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
                       int difficulty_index);
 
-// Everything `difficulty` is holding, over all its phases.
+// Total HP of `difficulty` across all its phases.
 int64_t BossTotalHp(const std::map<std::string, Mob>& mobs,
                     const BossDifficulty& difficulty);
 
-// The stiffest defence anything in the fight stands behind, which is what
-// every Ignore DEF lever in the books is worth against it.
+// Highest defence of anything in the fight, which is what every Ignore DEF
+// lever is measured against.
 int BossPdr(const std::map<std::string, Mob>& mobs,
             const BossDifficulty& difficulty);
 
-// What the difficulty pays, as catalog keys. Left off a character measuring
-// the fight: it cannot be beaten in gear only it hands out.
+// Catalog keys of what the difficulty drops. Leave these off a character used
+// to measure the fight, since it can't need gear that only the fight gives out.
 std::set<std::string> BossOwnDrops(const BossDifficulty& difficulty);
 
-// The phase a book is spent to beat: the one holding the most HP. A fight is
-// decided against its heaviest phase, and Zakum's arms are not it.
+// The phase with the most HP, which skill spending aims to beat. A fight is
+// decided by its heaviest phase, not by Zakum's arms.
 int BossObjectivePhase(const std::map<std::string, Mob>& mobs,
                        const BossDifficulty& difficulty);
 
-// The index of the difficulty called `name`, or 0 for an empty name. -1 when
-// the boss has no such difficulty.
+// Index of the difficulty called `name`, or 0 for an empty name. -1 if the boss
+// has no such difficulty.
 int BossDifficultyIndex(const Boss& boss, const std::string& name);
 
-// The fights open to `level`, by boss key and difficulty, lowest unlock
-// first. Only the difficulties the game has actually built: one marked coming
-// soon is a shell with nothing in it but HP.
+// Fights open at `level`, as boss key and difficulty, lowest unlock first. Only
+// difficulties the game has built: one marked coming soon is an empty shell
+// with only HP.
 std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
                                                         int level);
 
-// The fight every plan is aimed at: the stiffest one open to the character,
-// or the next one to open before any are. A player spends points, and cubes,
-// on the boss they are about to meet rather than on the one they beat last
-// month. False when the catalog holds no fight they could ever reach.
+// The fight every plan aims at: the hardest one open to the character, or the
+// next to open if none are. A player spends points and cubes on the boss ahead,
+// not the one they beat last month. Returns false if the catalog has no fight
+// they could ever reach.
 bool AimedFight(const GameState& state, std::pair<std::string, int>* fight);
 
-// The defence that fight stands behind, as a fraction; 0 with no fight to aim
-// at, which prices an ignored-defence lever at nothing. It makes the
-// requirement a function of the LADDER rather than a number somebody keeps --
-// Lotus's 300% asks three times what Cygnus's 100% does.
+// Defence of the aimed fight, as a fraction; 0 with no fight, which values
+// ignored-defence levers at nothing. This ties the requirement to the boss
+// ladder rather than a hand-kept number: Lotus's 300% demands three times what
+// Cygnus's 100% does.
 double AimedDefence(const GameState& state);
 
 }  // namespace ms
