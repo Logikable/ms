@@ -1,8 +1,7 @@
 """Pulls the game's music out of the client's Sound.wz.
 
-Every BGM MapleStory has ever played is in the installed client as an MP3 --
-1134 of them -- so nothing needs downloading or transcoding for the jukebox to
-play it.
+The installed client holds 1134 BGM tracks, already MP3, so nothing needs
+downloading or transcoding for the jukebox.
 
     python3 tools/wz/bgm.py imgs                    # the 93 Bgm*.img files
     python3 tools/wz/bgm.py ls BgmUI                # one file's tracks
@@ -10,9 +9,9 @@ play it.
     python3 tools/wz/bgm.py get Bgm02/AboveTheTreetops out.mp3
     python3 tools/wz/bgm.py map "Right Around Lith Harbor"
 
-`map` answers the question that actually comes up: which track does GMS play
-there. It reads the name from String.wz and the track from the map's own
-`info/bgm`, so a pick is never a guess.
+`map` answers the usual question: which track GMS plays on a map. It reads the
+name from String.wz and the track from the map's own `info/bgm`, so a pick is
+never a guess.
 """
 import argparse
 import glob
@@ -31,8 +30,8 @@ STRINGS = CLIENT + '/String/String_000.wz'
 class SoundReader(wz.ImgReader):
     """An ImgReader that remembers where each sound blob sits.
 
-    `wz.ImgReader` skips a `Sound_DX8` because nothing else wants one. The
-    audio is what we are here for, so record the span instead.
+    `wz.ImgReader` skips `Sound_DX8` blobs because nothing else needs them.
+    Here the audio is the point, so record each blob's span instead.
     """
 
     def __init__(self, *args, **kwargs):
@@ -69,10 +68,10 @@ def containers(pattern):
 def tracks_in(pack, img):
     """{track name: (start, end)} for one img already found in `pack`.
 
-    A name keeps its whole path, because BgmMultiTrack hangs several tracks
-    off one boss -- `BossGuardianSlime/GuardianSlime:Battle` beside
-    `.../Wave`. Keyed on the top level alone they overwrite each other and the
-    last one silently wins.
+    A name keeps its whole path, because BgmMultiTrack nests several tracks
+    under one boss (`BossGuardianSlime/GuardianSlime:Battle` next to
+    `.../Wave`). Keyed on the top level alone, they would overwrite each other
+    and the last would silently win.
     """
     _, _, off = pack.entries[img]
     r = SoundReader(pack.d, off, None, off)
@@ -94,8 +93,8 @@ def read_sound(img):
 def carve(data, span):
     """The MP3 inside a sound blob, found by its first frame sync.
 
-    A blob opens with a WAVEFORMATEX header whose length varies. Scanning for
-    the sync skips it without having to parse it.
+    A blob starts with a WAVEFORMATEX header of varying length. Scanning for
+    the sync skips it without parsing it.
     """
     blob = data[span[0]:span[1]]
     m = re.search(rb'ID3|\xff[\xe0-\xff]', blob)

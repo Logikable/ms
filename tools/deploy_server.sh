@@ -4,15 +4,15 @@
 #
 #   tools/deploy_server.sh
 #
-# The server is drained before it is replaced: it stops taking connections
-# and sends every player away with a maintenance notice, so a fight running
-# at the time is cut short. The binary is statically linked, so the box's glibc
-# need not match the machine that built it.
+# The server is drained before it's replaced: it stops taking connections and
+# disconnects every player with a maintenance notice, so any running fight is
+# cut short. The binary is statically linked, so the box's glibc needn't match
+# the build machine's.
 #
-# The deploy is not finished until a client built from this tree can get in.
-# A server left behind by a skipped deploy turns every client away with
-# "This version of the game cannot play with others", and the only place that
-# shows is the server's own log -- so the check runs here, every time.
+# The deploy isn't finished until a client built from this tree can connect. An
+# out-of-date server rejects every client with "This version of the game cannot
+# play with others", which only shows in the server's own log, so the check
+# runs here every time.
 set -euo pipefail
 
 HOST=${MS_SERVER_HOST:-68.42.95.210}
@@ -23,16 +23,16 @@ SSH="ssh -p $SSH_PORT $REMOTE"
 
 cd "$(dirname "$0")/.."
 bazelisk build //server:ms_server_static //server:probe_static
-# The static binaries land in a configuration of their own, so their paths
-# come from Bazel rather than from bazel-bin.
+# The static binaries are built in their own configuration, so their paths
+# come from Bazel rather than bazel-bin.
 SERVER_BIN=$(bazelisk cquery --output=files //server:ms_server_static \
   2>/dev/null | tail -1)
 PROBE_BIN=$(bazelisk cquery --output=files //server:probe_static \
   2>/dev/null | tail -1)
 
 echo "Sending the server to $REMOTE"
-# Without lingering the service stops when the last login session ends, which
-# means the deploy that started it also ends it.
+# Without lingering, the service stops when the last login session ends, so
+# the deploy's own SSH session ending would stop it.
 $SSH 'mkdir -p ~/ms ~/ms/logs ~/.config/systemd/user && loginctl enable-linger'
 scp -q -P "$SSH_PORT" "$SERVER_BIN" "$REMOTE:ms/ms_server.new"
 scp -q -P "$SSH_PORT" "$PROBE_BIN" "$REMOTE:ms/probe.new"
@@ -49,8 +49,8 @@ $SSH 'set -e
   sleep 1
   systemctl --user is-active ms-server'
 
-# Built for this machine rather than the box: the question is whether the
-# server accepts the client this tree produces, so it has to be asked by one.
+# Built for this machine rather than the box: the check is whether the server
+# accepts a client built from this tree, so it must be one.
 bazelisk build //server:probe
 echo "Asking the server whether this build can play"
 if ! bazelisk run -- //server:probe --action=check --host="$HOST" \

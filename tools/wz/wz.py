@@ -238,9 +238,9 @@ class ImgReader(Reader):
         if name == 'UOL':
             self.u8()
             return '@' + self.string_block()
-        # Sound_DX8, RawData and whatever else a pack carries: a blob whose
-        # own length the caller already has. Nothing here reads one, and a
-        # skill image that carries one still has to parse past it.
+        # Sound_DX8, RawData and other blobs whose length the caller already
+        # knows. Nothing here reads them, but a skill image containing one
+        # still has to be parsed past it.
         self.p = end
         return '<%s>' % name
 

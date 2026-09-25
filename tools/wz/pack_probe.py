@@ -14,8 +14,8 @@ It reports the four things that pin the format down:
   pool        whether the string `Property` is anywhere in the pack, which is
               what a body's back-references cite and never resolve to
 
-This is the harness for the next attempt: **decrypt a header, drop it in, and
-coverage is what says whether it worked.** See README.md for what is known.
+It was the test harness while the format was being cracked; ms_pack.py now
+decrypts packs. See README.md for the format.
 """
 import argparse
 import collections
@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from wz import ImgReader
 
 CLIENT = '/mnt/c/Nexon/Games/maplestory/appdata'
-# The offsets a pack's bodies cite for these names. They are the classic img
+# Offsets a pack's bodies cite for these names. They follow the classic img
 # header layout, and nothing in a pack resolves them.
 TYPES = {1: 'Property', 44: 'Canvas', 70: 'Shape2D#Vector2D',
          201: 'common', 222: 'maxLevel', 372: 'UOL', 382: 'Shape2D#Convex2D'}

@@ -7,9 +7,9 @@ give a hit count GMS never mentions, is a modelling error this catches.
 
   python3 tools/wz/audit_skills.py [--verbose]
 
-It reads tools/wz/string_cache.json, so build_cache.py has to have run. The
-per-level VALUES still come from the wiki -- they live in Data/Packs/*.ms,
-which nothing here can read yet.
+It reads tools/wz/string_cache.json.gz, which build_cache.py writes. It checks
+which levers a skill has, not their values; audit_values.py compares the
+per-level numbers.
 """
 import argparse
 import collections
@@ -24,24 +24,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 CACHE = os.path.join(HERE, 'string_cache.json.gz')
 
-# A GMS tooltip placeholder, and the proto fields that model what it states.
-# Only placeholders that name one lever unambiguously are listed. `#x`, `#y`
-# and the flat ATT/MATT pair are whatever a given skill needs, so a skill that
-# states them says nothing about which lever it means.
+# Skill kinds a LEVERS row applies to. ANY applies to every kind.
 ATTACK = {'SKILL_KIND_ATTACK'}
 TIMED = {'SKILL_KIND_ACTIVE'}
 ANY = None
 
-# A GMS tooltip placeholder, the proto fields modelling what it states, and the
-# skill kinds the comparison means anything for.
+# A GMS tooltip placeholder, the proto fields that model what it states, and
+# the skill kinds the comparison applies to.
 #
 # Only placeholders naming one lever unambiguously are listed: `#x`, `#y` and
-# the flat ATT/MATT pair are whatever a given skill needs.
+# the flat ATT/MATT pair mean whatever a given skill needs.
 #
-# The kinds matter because this engine folds a buff a player keeps up forever
-# into a passive with no clock -- so GMS stating `#time` or `#cooltime` on one
-# is the design working, not a gap. Only a skill modelled with a clock of its
-# own is worth comparing against GMS's.
+# The kinds matter because this engine turns a buff a player would keep up
+# forever into a passive with no timer. So GMS stating `#time` or `#cooltime`
+# on one is the design working, not a gap. Only skills modelled with their own
+# timer are worth comparing.
 LEVERS = [
     ('mobCount', ['max_enemies'], ATTACK),
     ('attackCount', ['lines'], ATTACK),
@@ -56,16 +53,16 @@ LEVERS = [
     ('criticaldamage', ['crit_dmg'], ANY),
 ]
 
-# GMS writes plenty of levers as a bare `#x`/`#y` rather than by name -- Sharp
-# Eyes states its critical rate as `#x`. A tooltip carrying one of these could
-# be stating any lever, so it is no evidence that a lever we model is absent.
+# GMS writes many levers as a bare `#x`/`#y` rather than by name; Sharp Eyes
+# states its critical rate as `#x`. A tooltip with one of these could mean any
+# lever, so it's no evidence that a lever we model is missing.
 VAGUE = {'x', 'y', 'z', 'u', 'v', 'w', 'q', 's', 'c'}
 
 # A GMS skill id is <branch><job><n>: 3120005 is the archer branch, the Bow
-# Master's job, its fifth skill. Every other class shares these names -- the
-# Wind Archer's Bow Mastery is 13100025 and grants Final Damage the Hunter's
-# 3100000 does not -- so an audit that matches on name alone silently compares
-# a skill against a different class's. This is what scopes it to Explorers.
+# Master's job, its fifth skill. Other classes reuse these names (the Wind
+# Archer's Bow Mastery is 13100025 and grants Final Damage the Hunter's 3100000
+# doesn't), so matching on name alone would silently compare against another
+# class's skill. This scopes the audit to Explorers.
 JOB_PREFIX = {
     'JOB_ADVANCEMENT_COMMON': '000',
     'JOB_ADVANCEMENT_SWORDMAN': '100',
@@ -104,15 +101,15 @@ JOB_PREFIX = {
     'JOB_ADVANCEMENT_SHADOWER': '422',
 }
 
-# Fifth-job skills sit in an id space of their own: 400 then a two-digit
-# branch, so Weapon Aura is 400011000 and Guided Arrow 400031000. A V node
-# names no job_advancement -- it belongs to a whole line, or to everyone -- so
-# the branch its file sits under is what says which pool to look in.
+# Fifth-job skills have their own id space: 400 then a two-digit branch, so
+# Weapon Aura is 400011000 and Guided Arrow 400031000. A V node names no
+# job_advancement (it belongs to a whole line, or to everyone), so the folder
+# its file is in says which pool to search.
 V_PREFIX = {'common': '40000', 'shared': '40000', 'warrior': '40001',
             'magician': '40002', 'bowman': '40003', 'thief': '40004'}
 
-# Skills whose GMS name this repo deliberately does not use. Each is a design
-# decision recorded where it was made, not a name to go fix.
+# Skills whose GMS name this repo deliberately doesn't use. Each is a design
+# decision recorded where it was made, not a name to fix.
 KNOWN_RENAMES = {
     'Advanced Combo Attack - Barricade': 'GMS calls it Barricade Mastery',
     'Elemental Adaptation': 'GMS qualifies it "(Fire, Poison)" / "(Ice, Lightning)"',
@@ -130,8 +127,8 @@ KNOWN_RENAMES = {
 def our_skills():
     """Every shipped skill: path -> (name, text, the id prefixes it may take).
 
-    Keyed by PATH, not name: three books each hold a Final Attack and a Weapon
-    Mastery of their own, and keying by name reads one and drops the rest.
+    Keyed by path, not name: three books each have their own Final Attack and
+    Weapon Mastery, and keying by name would keep one and drop the rest.
     """
     out = {}
     pattern = os.path.join(ROOT, 'data', 'skills', '**', '*.textproto')
@@ -141,13 +138,12 @@ def our_skills():
         if not m:
             continue
         rel = os.path.relpath(path, ROOT)
-        # A V node's pool and a job's book both hold a skill called Quad Star,
-        # and the 5th job's id sorts first -- so a skill takes the ONE space it
-        # belongs to, never both.
+        # A V node pool and a job's book both have a skill called Quad Star,
+        # and the 5th job's id sorts first. So a skill searches only the one
+        # id space it belongs to, never both.
         if re.search(r'^v_node:', text, re.M):
-            # A node's own line, and the all-class pool beside it: GMS files
-            # the archetype nodes every warrior shares under 40000, not under
-            # the branch that gets them.
+            # The node's own line, plus the shared pool: GMS files the nodes
+            # every warrior shares under 40000, not under each branch.
             branch = rel.split(os.sep)[2] if rel.count(os.sep) > 2 else ''
             prefixes = {V_PREFIX['common']}
             if branch in V_PREFIX:
@@ -162,8 +158,8 @@ def our_skills():
 def gms_skills(cache):
     """Named GMS skills: name -> [(id, entry)], Explorer ids only.
 
-    Every id is kept, not the richest. Which one a shipped skill means is the
-    caller's to say, from the job its placement names.
+    Every id is kept, not just the richest. The caller decides which one a
+    shipped skill means, from the job its placement names.
     """
     out = collections.defaultdict(list)
     for sid, entry in cache['Skill.img'].items():
@@ -178,9 +174,9 @@ def gms_skills(cache):
 
 
 def candidates(entries, prefixes):
-    """Every entry whose id sits in one of this skill's jobs. GMS reuses a
-    name across a job's own book and its passive half -- Blizzard is a swing
-    and a Final Attack, both 222x -- so the caller picks between these."""
+    """Every entry whose id is in one of this skill's jobs. GMS reuses a name
+    for a job's attack and its passive half (Blizzard is both an attack and a
+    Final Attack, both 222x), so the caller picks between these."""
     if not prefixes:
         return []
     out = []
@@ -192,7 +188,7 @@ def candidates(entries, prefixes):
 
 
 def pick(entries, prefixes):
-    """The entry whose id sits in one of this skill's jobs, if any does."""
+    """The entry whose id is in one of this skill's jobs, if any."""
     found = candidates(entries, prefixes)
     return found[0] if found else None
 
@@ -200,8 +196,8 @@ def pick(entries, prefixes):
 def placeholders(entry):
     """The `#field` names a skill's tooltip states.
 
-    Only `h`. A skill's `ph` is the pre-revamp readout GMS still ships beside
-    it, and reading both credits a skill with levers the live one dropped.
+    Only `h`. A skill's `ph` is the pre-revamp readout GMS still ships, and
+    reading both would credit a skill with levers the live version dropped.
     """
     return set(re.findall(r'#([a-zA-Z][a-zA-Z0-9]*)', str(entry.get('h', ''))))
 
@@ -217,7 +213,7 @@ def skill_kind(text):
 
 
 def has_field(text, field):
-    """Whether a field is set anywhere -- `base { skill_pct: 1.2 }` counts."""
+    """Whether a field is set anywhere; `base { skill_pct: 1.2 }` counts."""
     return re.search(r'(?:^|[{\s])%s:' % re.escape(field), text, re.M) is not None
 
 

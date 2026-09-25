@@ -4,12 +4,12 @@
     python3 tools/wz/ms_pack.py extract Skill 400011073.img out.img
 
 A pack is a name-keyed archive whose header, entry table and first kilobyte of
-every image are ChaCha20 stream cipher. Every key comes from the pack's own
-file name and a salt written in the clear at the front, so nothing here needs
-a key out of the client.
+every image are encrypted with ChaCha20. Every key is derived from the pack's
+file name and a salt stored unencrypted at the front, so no key from the client
+is needed.
 
-Version 4 (ChaCha20) is what the live client ships. Version 2 (Snow2) is not
-read here.
+The live client ships version 4 (ChaCha20). Version 2 (Snow2) isn't
+supported.
 """
 
 import os
@@ -34,8 +34,8 @@ def _rotl(v, n):
 
 
 class ChaCha20:
-    """The client's ChaCha20, keystream and all -- state[12] is reachable
-    because the pack reader rewinds it between blocks."""
+    """The client's ChaCha20. state[12] is exposed because the pack reader
+    rewinds it between blocks."""
 
     def __init__(self, key, nonce, counter):
         assert len(key) == 32 and len(nonce) == 12
@@ -104,9 +104,9 @@ class Entry:
 
 
 class Reader:
-    """The entry table's own reader: 64 bytes at a time, and the block counter
-    goes back to zero every time a read lands on the boundary. Odd, and the
-    client does it, so the table only decodes if this does too."""
+    """The entry table's reader: 64 bytes at a time, resetting the block
+    counter to zero whenever a read ends on the boundary. Odd, but the client
+    does it, so the table only decodes if this does too."""
 
     def __init__(self, data, key):
         self.data = data
@@ -143,7 +143,7 @@ class Reader:
 
 
 def _key(name_with_salt, entry_key):
-    """The pack's two keys, both spelled out of its own name and salt."""
+    """The pack's two keys, both derived from its name and salt."""
     key = bytearray(32)
     n = len(name_with_salt)
     for i in range(32):
@@ -213,8 +213,8 @@ class Pack:
                 Entry(name, checksum, flags, start, size, size_aligned, key))
         data_start = (self.entry_start + reader.pos - (BLOCK - reader.offset)
                       + PAGE - 1) & ~(PAGE - 1)
-        # The reader runs a whole block ahead of what it handed out, so where
-        # the table really ended is where it read to, less what it held back.
+        # The reader runs a whole block ahead of what it returned, so the table
+        # really ended where it read to, minus what it buffered.
         for entry in entries:
             entry.start = data_start + entry.start * PAGE
         self.data_start = data_start
@@ -250,7 +250,7 @@ class Pack:
 
     def image(self, entry):
         """One entry's WZ image, decrypted. Only its first kilobyte is
-        enciphered; the rest is plain in the file."""
+        encrypted; the rest is stored as plaintext."""
         raw = bytearray(self.data[entry.start:entry.start + entry.size])
         key, nonce, counter = self._img_key(entry)
         head = min(len(raw), 1024)
@@ -271,10 +271,9 @@ _OPEN = {}
 
 
 def opened(path):
-    """The Pack for one file, read once. Opening one costs the whole file plus
-    a ChaCha20 pass over its entry table, and a sweep asks for every skill in
-    turn -- so a caller looking up a thousand ids must not pay that a thousand
-    times."""
+    """The Pack for one file, opened once and cached. Opening reads the whole
+    file and decrypts its entry table, and a sweep looks up every skill in
+    turn, so a thousand lookups shouldn't pay that a thousand times."""
     pack = _OPEN.get(path)
     if pack is None:
         pack = _OPEN[path] = Pack(path)
@@ -292,8 +291,8 @@ def find(stem, name):
 
 
 def skill_common(skill_id):
-    """One skill's `common` block, straight out of the client: every per-level
-    formula GMS computes its readout from. `x` is the level."""
+    """One skill's `common` block from the client: every per-level formula GMS
+    computes its readout from. `x` is the level."""
     import wz
 
     for width in (3, 4, 5, 6):

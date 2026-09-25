@@ -8,9 +8,9 @@ import sys
 
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Stable, gitignored symlink to the output base's external/ tree. The execroot
-# (bazel-ms/external) only holds the repos Bazel happened to symlink there, so it
-# is missing repos like ftxui; the output base holds the complete set. main()
-# points this at $(bazel info output_base)/external.
+# (bazel-ms/external) only has the repos Bazel happened to link there and misses
+# some, like ftxui; the output base has them all. main() points this at
+# $(bazel info output_base)/external.
 EXTERNAL = os.path.join(WORKSPACE, "bazel-external")
 TARGETS = ["//src/...", "//analysis/..."]
 

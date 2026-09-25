@@ -22,13 +22,13 @@ _URL = "https://github.com/mstorsjo/llvm-mingw/releases/download/{version}/{arch
 _SHA256 = "534b92e067b22a6b4441f48ae9240a3341b17825d04d577eab0cf85c44b4deda"
 
 # The tool paths below are relative to this BUILD file, which is why the
-# toolchain is declared inside the archive's own repository. The include
-# directories cannot be: Bazel reads those as exec-root paths, so they are
-# baked in absolute at fetch time.
+# toolchain is declared inside the archive's own repository. Include directories
+# can't be relative: Bazel reads them as exec-root paths, so they're written as
+# absolute paths at fetch time.
 #
-# A repository made by a module extension carries no repo mapping of its own,
-# so every label in the generated file is resolved here -- where the mapping is
-# this module's -- and written out canonical.
+# A repository made by a module extension has no repo mapping of its own, so
+# every label in the generated file is resolved here, using this module's
+# mapping, and written out in canonical form.
 _CC_DEFS = str(Label("@rules_cc//cc:defs.bzl"))
 _CC_TOOLCHAIN_CONFIG = str(
     Label("@rules_cc//cc/private/toolchain:unix_cc_toolchain_config.bzl"),
@@ -55,8 +55,8 @@ filegroup(
     ),
 )
 
-# The resource compiler, named on its own so a genrule can run it. It finds
-# libLLVM at $ORIGIN/../lib, so the rest of the archive has to ride along.
+# The resource compiler, named separately so a genrule can run it. It loads
+# libLLVM from $ORIGIN/../lib, so the rest of the archive must come with it.
 filegroup(
     name = "windres",
     srcs = ["bin/x86_64-w64-mingw32-windres"],
@@ -78,12 +78,12 @@ cc_toolchain_config(
     compile_flags = [
         "-fcolor-diagnostics",
         "-fno-omit-frame-pointer",
-        # Windows 10. FTXUI asks the console for its virtual-terminal modes,
-        # which the older headers do not declare.
+        # Windows 10. FTXUI queries the console's virtual-terminal modes,
+        # which older headers don't declare.
         "-D_WIN32_WINNT=0x0A00",
-        # The wide-character Win32 API. FTXUI refuses to build without it --
-        # the console it draws to speaks UTF-16, and the game's box drawing
-        # and stars are not ASCII.
+        # The wide-character Win32 API. FTXUI won't build without it: the
+        # console uses UTF-16, and the game's box drawing and stars aren't
+        # ASCII.
         "-DUNICODE",
         "-D_UNICODE",
     ],
@@ -95,8 +95,8 @@ cc_toolchain_config(
     host_system_name = "local",
     link_flags = [
         "-fuse-ld=lld",
-        # One file to hand over: the player downloads a zip, unpacks it, and
-        # there is nothing beside the executable that it needs.
+        # A single file to ship: the player downloads a zip, unpacks it, and
+        # the executable needs nothing beside it.
         "-static",
     ],
     link_libs = ["-lc++"],

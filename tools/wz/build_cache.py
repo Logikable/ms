@@ -1,17 +1,17 @@
 """Builds the local cache of the GMS client's String.wz text.
 
-The client is the freshest source for a skill's name, description and `h`
-readout -- the line that says which `#field` each number lives in. Parsing the
-WZ on every lookup costs seconds, so this writes one JSON file that every
-later query reads instead.
+The client is the most current source for a skill's name, description and `h`
+readout (the line saying which `#field` holds each number). Parsing the WZ on
+every lookup takes seconds, so this writes one JSON file for later queries to
+read instead.
 
   python3 tools/wz/build_cache.py [--client DIR] [--out FILE]
 
-It is gzipped: 19 MB of JSON, 3 MB on disk, and json.load reads it back in
+It's gzipped: 19 MB of JSON, 3 MB on disk, and json.load reads it back in
 under a second.
 
-Per-level formulas do NOT live here. They are packed into Data/Packs/*.ms,
-which is a format this repo cannot yet read -- see tools/wz/README.md.
+Per-level formulas aren't cached here. They're in Data/Packs/*.ms, which
+ms_pack.py reads; see tools/wz/README.md.
 """
 import argparse
 import gzip
@@ -25,8 +25,8 @@ from wz import Wz, read_img
 CLIENT = '/mnt/c/Nexon/Games/maplestory/appdata'
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'string_cache.json.gz')
 
-# The String.wz imgs worth caching. Skill.img is the one the audit reads; the
-# rest are cheap and answer the next question without a rebuild.
+# The String.wz imgs worth caching. The audit reads Skill.img; the rest are
+# cheap and save a rebuild for the next question.
 IMGS = ['Skill.img', 'Eqp.img', 'Consume.img', 'Etc.img', 'Ins.img', 'Cash.img',
         'Map.img', 'Mob.img', 'MonsterBook.img', 'Npc.img']
 

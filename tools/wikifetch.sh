@@ -1,21 +1,21 @@
 #!/bin/sh
-# Fetches a research page from a wiki that turns plain scripted requests away.
+# Fetches a research page from a wiki that rejects plain scripted requests.
 #
 #     tools/wikifetch.sh <url>            # prints the page to stdout
 #
 # What each source wants, measured 2026-09-05:
 #
-#   maplestorywiki.net  The PAGE is Cloudflare-challenged again; no header here
-#                       beats it. Its API still answers plain curl, at
-#                       /api.php -- NOT /w/api.php. Fetch articles that way.
-#   namu.wiki           A browser User-Agent with no client hints is refused;
-#                       one sec-ch-ua header is enough to be let in. Both
-#                       namu.wiki and en.namu.wiki serve the Korean article.
-#   strategywiki.org    A Cloudflare JS challenge no header beats. Read it
-#                       through web.archive.org instead.
+#   maplestorywiki.net  Pages are behind a Cloudflare challenge no header
+#                       here gets past. The API still answers plain curl at
+#                       /api.php (not /w/api.php); fetch articles that way.
+#   namu.wiki           A browser User-Agent without client hints is refused;
+#                       one sec-ch-ua header is enough. Both namu.wiki and
+#                       en.namu.wiki serve the Korean article.
+#   strategywiki.org    A Cloudflare JS challenge no header gets past. Read
+#                       it through web.archive.org instead.
 #
-# A source that answers 403 has not necessarily walled the door for good --
-# re-measure before believing an old note here, this one included.
+# A source that returns 403 may not block requests for good. Re-check before
+# trusting an old note here, this one included.
 set -eu
 
 if [ $# -ne 1 ]; then

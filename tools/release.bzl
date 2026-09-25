@@ -12,8 +12,8 @@ def _release_transition_impl(settings, attr):
         features.append("fully_static_link")
     return {
         "//command_line_option:compilation_mode": "opt",
-        # .bazelrc's -O1 is for the default build; left in, it would come
-        # after opt's -O2 and win.
+        # .bazelrc's -O1 is for the default build. Left in, it would come
+        # after opt's -O2 and override it.
         "//command_line_option:copt": [
             c
             for c in settings["//command_line_option:copt"]
@@ -38,8 +38,8 @@ _release_transition = transition(
 )
 
 def _release_binary_impl(ctx):
-    # The executable alone: a cc_binary's default files carry runfiles symlinks
-    # and .params along with it, and none of that belongs in a zip.
+    # Only the executable: a cc_binary's default files include runfiles
+    # symlinks and .params files, none of which belong in a zip.
     return [DefaultInfo(files = depset([ctx.executable.binary]))]
 
 release_binary = rule(

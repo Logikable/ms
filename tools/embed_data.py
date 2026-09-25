@@ -1,12 +1,12 @@
 """Compiles the game's textproto data files into a C++ table.
 
-The shipped game has no data directory beside it: every .textproto under
-data/ is built into the binary, so the executable on its own is the whole
-game and there is no layout a player can break by moving it.
+The shipped game has no data directory: every .textproto under data/ is built
+into the binary, so the executable alone is the whole game and a player can't
+break it by moving files.
 
-One group per data directory, each becoming one accessor returning a map
-keyed by filename stem -- the same key LoadTextProtoDir gives a directory,
-so the two are interchangeable to a caller.
+Each data directory is one group, which becomes one accessor returning a map
+keyed by filename stem. That's the same key LoadTextProtoDir uses, so callers
+can use either interchangeably.
 """
 
 import argparse
@@ -17,8 +17,9 @@ import sys
 def escape(text):
     """Returns `text` as C string literal bodies, one per line of input.
 
-    Non-ASCII bytes go out as three-digit octal rather than hex: a hex escape
-    has no length limit, so a following hex digit would silently join it.
+    Non-ASCII bytes are written as three-digit octal rather than hex. A hex
+    escape has no length limit, so a following hex digit would silently join
+    it.
     """
     out = []
     for line in text.split("\n"):

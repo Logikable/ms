@@ -1,18 +1,18 @@
-"""Audits every shipped skill's NUMBERS against the client's own formulas.
+"""Audits every shipped skill's numbers against the client's own formulas.
 
-Its sibling audit_skills.py compares which levers a tooltip names; this one
-compares what they are worth. The client states each as a formula in the
-skill's `common` block -- `damage = 190+7*x`, `x` being the level -- so a
-shipped ladder can be checked at both ends: level 1 and master.
+audit_skills.py compares which levers a tooltip names; this compares their
+values. The client states each as a formula in the skill's `common` block
+(`damage = 190+7*x`, with `x` the level), so a shipped ladder can be checked at
+both ends: level 1 and master.
 
   python3 tools/wz/audit_values.py [--verbose] [--skill NAME]
 
-Reads Data/Packs/*.ms through ms_pack.py, and resolves which GMS id a shipped
-skill means with audit_skills.py's own job scoping -- a name alone would
+Reads Data/Packs/*.ms through ms_pack.py, and uses audit_skills.py's job
+scoping to decide which GMS id a shipped skill means; a name alone could
 compare a Hero's skill against a Cygnus Knight's.
 
-A row here is a LEAD, not a defect. This game departs from GMS on purpose in
-places, and every departure is written down where it was made.
+A row here is a lead, not a defect. This game departs from GMS on purpose in
+places, and every departure is documented where it was made.
 """
 import argparse
 import collections
@@ -26,11 +26,11 @@ import audit_skills as skills_audit
 import ms_pack
 import wz
 
-# What to compare: the client's `common` key, how to read the same number off
+# What to compare: the client's `common` key, how to read the same number from
 # a shipped skill, and how close counts as agreement.
 #
-# Only compared where BOTH sides state it. A skill modelling no cooldown when
-# GMS gives one is audit_skills.py's finding, not this one's.
+# Only compared where both sides state it. A skill with no cooldown where GMS
+# gives one is audit_skills.py's finding, not this one's.
 COMPARISONS = [
     ('damage', 'skill_pct', 0.5),
     ('attackCount', 'lines', 0.01),
@@ -40,11 +40,11 @@ COMPARISONS = [
 ]
 
 
-# Where this game deliberately says something else, and why. Every one is
-# argued in the textproto that makes it -- this table is only what keeps them
-# out of the way, so a NEW disagreement is visible the moment it appears.
+# Where this game deliberately differs, and why. Each is argued in its own
+# textproto; this table only keeps them out of the report, so a new
+# disagreement stands out as soon as it appears.
 #
-# A row is (skill, field). Add one only after reading the file's own comment
+# A row is (skill, field). Add one only after reading the textproto's comment
 # and agreeing with it.
 DEPARTURES = {
     ('Arrow Illusion', 'max_enemies'): 'reach rule: 6 off its hitbox',
@@ -127,7 +127,7 @@ def _value(token):
 
 def formula(expr, level):
     """A client formula at one level. `d()` floors, `u()` ceilings, `x` is the
-    level. None for anything else -- a few carry text this cannot read."""
+    level. None if unreadable; a few formulas contain text this can't parse."""
     if isinstance(expr, (int, float)):
         return float(expr)
     text = str(expr).strip()
@@ -159,8 +159,8 @@ def ours_at(skill, key, level):
         if 'lines' not in skill and 'lines_per_level' not in skill:
             return None
         total = skill.get('lines', 0) + skill.get('lines_per_level', 0) * (level - 1)
-        # A second hit of the same swing is more of GMS's own attack count --
-        # Raging Blow's four are two and two here.
+        # A second hit of the same attack counts toward GMS's attack count:
+        # Raging Blow's four hits are two plus two here.
         extra = skill.get('extra_hit', [])
         for hit in extra if isinstance(extra, list) else [extra]:
             total += hit.get('lines', 0)
@@ -187,8 +187,8 @@ def ours_at(skill, key, level):
 def client_commons(wanted):
     """Every `common` block asked for, one image read apiece.
 
-    `wanted` is path -> [ids]; the answer is path -> [(id, common)], because
-    GMS reuses a name across a job's own book and its passive half.
+    `wanted` is path -> [ids]; the result is path -> [(id, common)], because
+    GMS reuses a name for a job's attack and its passive half.
     """
     by_image = collections.defaultdict(list)
     for path, ids in wanted.items():
@@ -211,9 +211,9 @@ def client_commons(wanted):
 
 def compare(skill, common):
     """One shipped skill against one client entry: the rows that disagree, and
-    how many agreed. Master against master and level 1 against level 1 -- a
-    book here is rescaled to the levels it has room for, so the two ladders
-    meet at their ends and nowhere in between."""
+    how many agreed. Compares master against master and level 1 against level
+    1, since a book here is rescaled to the levels it has room for, so the two
+    ladders only meet at their ends."""
     master = skill.get('max_level', 1)
     client_master = common.get('maxLevel', master)
     rows, agreed = [], 0
@@ -254,9 +254,9 @@ def audit(only=None):
         name, text, _ = ours[path]
         skill = parse_textproto(text)
         read += 1
-        # GMS gives a swing and its passive half the same name -- Blizzard is
-        # both -- so every id in this skill's own job is tried and the one it
-        # answers to best is the one it is held to.
+        # GMS gives an attack and its passive half the same name (Blizzard is
+        # both), so every id in this skill's job is tried and the best match is
+        # used.
         best = None
         for sid, common in commons[path]:
             disagreed, agreed = compare(skill, common)

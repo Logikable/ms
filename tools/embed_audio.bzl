@@ -57,8 +57,8 @@ def embedded_audio(name, hdr, tracks, empty_src, audio_off, **kwargs):
         table_out = name + "_table.cc",
     )
 
-    # The .mp3 files are inputs to the COMPILE, not the generator: .incbin
-    # reads them when the assembler runs, so they have to be staged beside it.
+    # The .mp3 files are inputs to the compile, not the generator: .incbin
+    # reads them when the assembler runs, so they must be staged for it.
     cc_library(
         name = name,
         srcs = select({

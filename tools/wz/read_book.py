@@ -1,10 +1,10 @@
 """Prints one book beside the GMS readout, for reading a skill at a time.
 
-The two audits compare a skill against the client mechanically. This does not
-compare anything -- it lays our file's shape next to what GMS's tooltip says,
-so a person can read the pair and see a mechanism we folded that a lever now
-expresses. That is the only way to find the shapes a placeholder sweep cannot
-name: a Scatter, a Magazine, a Stance, a hold.
+The two audits compare a skill against the client mechanically. This compares
+nothing: it shows our file's shape next to GMS's tooltip, so a person can read
+the pair and spot a mechanism we simplified that a lever can now express. That
+is the only way to find shapes no placeholder names: a Scatter, a Magazine, a
+Stance, a hold.
 
     python3 tools/wz/read_book.py HERO            # one job's own book
     python3 tools/wz/read_book.py HERO --common   # and its per-level formulas
@@ -12,8 +12,8 @@ name: a Scatter, a Magazine, a Stance, a hold.
     python3 tools/wz/read_book.py --jobs          # the names it takes
 
 A job selects on `placement`, so a shared skill shows up under every book
-naming it. `fifth/` and `shared/` are left out of a job's own read -- they are
-books of their own -- and `--all` puts them back.
+naming it. `fifth/` and `shared/` are left out of a job's read, since they're
+books of their own; `--all` includes them.
 """
 import argparse
 import re
@@ -22,8 +22,8 @@ import sys
 import audit_skills as A
 import ms_pack
 
-# The levers worth seeing at a glance: everything that says what SHAPE a skill
-# is, rather than what it is worth. A block name here is a mechanism.
+# Levers worth seeing at a glance: those that say what shape a skill has,
+# rather than what it's worth. A block name here is a mechanism.
 BLOCKS = re.compile(r'^(\w+) \{', re.M)
 
 
@@ -43,7 +43,7 @@ def ours(job, path, keep_all):
 
 
 def our_shape(text):
-    """The one line saying what our file is: its kind and its sub-messages."""
+    """One line saying what our file is: its kind and its sub-messages."""
     blocks = sorted(set(BLOCKS.findall(text)) - {'placement'})
     return '%s  %s' % (A.skill_kind(text), ','.join(blocks) or '-')
 

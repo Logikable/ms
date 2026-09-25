@@ -31,7 +31,7 @@ _embedded_data = rule(
     implementation = _embedded_data_impl,
     attrs = {
         # Each data directory's filegroup, mapped to the name of the accessor
-        # function that will return its contents.
+        # function that returns its contents.
         "groups": attr.label_keyed_string_dict(allow_files = True),
         "header_out": attr.output(),
         "source_out": attr.output(),
