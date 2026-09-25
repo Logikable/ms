@@ -48,8 +48,7 @@ struct CombatType {
 // extra hit the skill adds. Groups differ in line count and crit chance, so
 // each rolls separately.
 struct HitGroup {
-  std::vector<double>
-      damage;  // per target type, parallel to CombatParams::types
+  std::vector<double> damage;  // parallel to CombatParams::types
   SwingRolls rolls;
 };
 
