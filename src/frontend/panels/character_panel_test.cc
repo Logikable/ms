@@ -867,7 +867,10 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
   std::map<std::string, Skill> catalog = TwoStageCatalog();
   catalog["blessing_of_the_fairy"] = MakeFairyBlessing();
   CharacterPanel panel(c, account_, panel_focus_, catalog);
-  ftxui::Component comp = panel.MakeComponent();
+  std::string inspected;
+  CharacterPanelActions actions;
+  actions.menu = [&](const Skill& s) { inspected = s.name(); };
+  ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> the page bar
   std::string rendered = RenderComponent(comp);
@@ -878,6 +881,11 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
   EXPECT_NE(RenderComponent(comp).find("Blessing of the Fairy"),
             std::string::npos)
       << "there is nowhere to the right to go";
+
+  // Down reaches the skill rather than wrapping to the name.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, "Blessing of the Fairy");
 }
 
 // --- the Hyper page ---

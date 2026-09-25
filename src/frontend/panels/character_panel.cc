@@ -369,11 +369,6 @@ int CharacterPanel::RingStops() const {
                                       character_.proto().job_stage() + 1)
                        .size());
   }
-  if (character_.proto().job_stage() == 0) {
-    // A Beginner's Skills tab has no advancement bar to stand on, let alone
-    // skills under it. The name and the bar, and nothing below them.
-    return 2;
-  }
   // The name, the tab bar, the advancement bar, a stop per row -- and the
   // [Reset] under the V page's nodes.
   return 3 + SkillRowCount() + (ShowsVReset() ? 1 : 0);
@@ -578,7 +573,8 @@ bool CharacterPanel::ShowsPresetBar() const {
 
 bool CharacterPanel::ShowsSecondTabRow() const {
   if (ActiveTab() == kTabSkills) {
-    return character_.proto().job_stage() > 0;
+    // Every character has the beginner's page, so every one has the bar.
+    return true;
   }
   return ShowsPresetBar();
 }
