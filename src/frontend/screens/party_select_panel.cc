@@ -18,19 +18,19 @@
 namespace ms {
 namespace {
 
-// Column widths of the party list. A name is capped at kMaxUsernameLength, so
-// the column is that plus the gap after it.
+// Column widths of the party list. A name is at most kMaxUsernameLength, so the
+// column is that plus the gap after it.
 constexpr int kLeaderWidth = kMaxUsernameLength + 2;
 constexpr int kCapacityWidth = 8;
 
-// Column widths of the member list. The job column takes the longest short
-// name, "I/L Arch Mage", and its gap.
+// Column widths of the member list. The job column fits the longest short name,
+// "I/L Arch Mage", plus its gap.
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kLevelWidth = 7;
 constexpr int kJobWidth = 15;
 
-// The window is one size whatever the lobby holds. A party made or broken
-// under the cursor would otherwise move the buttons out from under it.
+// The window is one size whatever the lobby holds. Otherwise a party forming or
+// breaking up would move the buttons out from under the cursor.
 constexpr int kContentWidth = 56;
 constexpr int kListRows = 8;
 
@@ -40,16 +40,15 @@ constexpr char kCursorAway[] = "  ";
 constexpr char kCrown[] = "♛ ";
 constexpr char kNoCrown[] = "  ";
 
-// The mark beside a member who has said they are ready, in the Ready column,
-// with the panel's column of clearance after it.
+// The mark beside a member who is ready, in the Ready column, followed by the
+// panel's blank column.
 ftxui::Element ReadyCell(bool ready) {
   return ftxui::text(ready ? "  ✓   " : "      ") | ftxui::color(kTheme);
 }
 
-// Marks the row the frame scrolls to, which is the one holding the cursor.
-// The cursor's row: the band behind it, and the mark the frame scrolls to.
-// A table row wide enough that the caret alone leaves the far cell unclaimed
-// -- see HighlightRow in chrome.h.
+// The cursor's row: the band behind it, and the mark the frame scrolls to. A
+// table row is wide enough that the caret alone would leave the far cell
+// unmarked (see HighlightRow in chrome.h).
 ftxui::Element Focused(ftxui::Element row, bool on_cursor) {
   row = HighlightRow(std::move(row), on_cursor);
   return on_cursor ? std::move(row) | ftxui::focus : std::move(row);
@@ -126,7 +125,7 @@ std::vector<PartyButton> PartySelectPanel::Buttons() const {
             {"Close", PartyAction::kClose}};
   }
   std::vector<PartyButton> buttons;
-  // The leader has no Ready of their own: leading is what says they are.
+  // The leader has no Ready button, since leading means they are ready.
   if (!is_leader()) {
     buttons.push_back(ready() ? PartyButton{"Unready", PartyAction::kUnready}
                               : PartyButton{"Ready", PartyAction::kReady});
@@ -145,8 +144,8 @@ bool PartySelectPanel::on_buttons() const {
 }
 
 void PartySelectPanel::MoveCursor(int delta) {
-  // The buttons are the last stop of the ring, so Down off the last row lands
-  // on them and Down again comes back to the top of the list.
+  // The buttons are the last stop in the ring, so Down from the last row lands
+  // on them and Down again wraps to the top of the list.
   cursor_ = StepCursor(Cursor(), delta, ListRows() + 1);
 }
 
@@ -167,8 +166,8 @@ PartyAction PartySelectPanel::Chosen() const {
   if (!in_party()) {
     return PartyAction::kJoin;
   }
-  // A member's row. Everyone may read whoever is on it; what else the menu
-  // offers is the leader's business, and OpenMenu decides that.
+  // A member's row. Anyone can inspect the member; OpenMenu decides what else
+  // the leader gets on the menu.
   return PartyAction::kMemberMenu;
 }
 
@@ -198,13 +197,13 @@ void PartySelectPanel::OpenMenu() {
   menu_open_ = true;
   menu_.Reset();
   if (selected_member() == snapshot_.account_id) {
-    // Trading yourself is not something the state is standing in the way of,
-    // so the entry is not there at all.
+    // Trading with yourself isn't blocked by the current state; it is never
+    // possible, so the entry is left out entirely.
     menu_.Hide(kPartyMenuTrade);
   }
   if (!is_leader()) {
-    // Hidden rather than dimmed: a member has not been handed these and never
-    // will be on this party, so a greyed row would advertise nothing.
+    // Hidden rather than dimmed: a member doesn't have these and never will in
+    // this party, so a grey row would advertise nothing.
     menu_.Hide(kPartyMenuKick);
     menu_.Hide(kPartyMenuPromote);
     return;
@@ -213,7 +212,7 @@ void PartySelectPanel::OpenMenu() {
     return;
   }
   // The leader's own row. Both actions stay visible and dimmed, so the menu
-  // reads the same wherever the leader raises it.
+  // looks the same wherever the leader opens it.
   menu_.Disable(kPartyMenuKick);
   menu_.Disable(kPartyMenuPromote);
 }
@@ -269,7 +268,7 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
     const PartyMember& member = snapshot_.party.members(i);
     const PlayerInfo& player = member.player();
     bool leader = player.account_id() == snapshot_.party.leader_account_id();
-    // The crown and the mark are their own cells so each can keep its colour.
+    // The crown and the mark are separate cells so each keeps its colour.
     std::string text = PadRight(player.name(), kNameWidth);
     text += PadRight(std::to_string(player.level()), kLevelWidth);
     text += PadRight(ShortJobName(JobForAdvancement(player.job())), kJobWidth);
@@ -294,8 +293,8 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
 
 ftxui::Element PartySelectPanel::RenderButtons() const {
   std::vector<PartyButton> buttons = Buttons();
-  // A column of clearance either side, since the button row is the widest
-  // thing here and would otherwise set a window with no margin inside it.
+  // A blank column on each side, since the button row is the widest thing here
+  // and would otherwise set a window with no inner margin.
   ftxui::Elements row;
   row.push_back(ftxui::text(" "));
   for (int i = 0; i < static_cast<int>(buttons.size()); ++i) {
@@ -309,9 +308,9 @@ ftxui::Element PartySelectPanel::RenderButtons() const {
 }
 
 int PartySelectPanel::MenuRow() const {
-  // +3 rows: the window's top border, the column header and its separator.
-  // One row back from there, so the entry standing highlighted lands beside
-  // the member rather than below them.
+  // +3 rows: the window's top border, the column header and its separator. One
+  // row back from there, so the highlighted menu entry sits beside the member
+  // rather than below.
   constexpr int kFirstMemberRow = 3;
   return kFirstMemberRow + Cursor() - 1;
 }
@@ -329,10 +328,10 @@ ftxui::Element PartySelectPanel::Render() const {
   if (!menu_open_) {
     return window;
   }
-  // Anchored inside the panel rather than on the terminal, because the screen
-  // is centred and so has no fixed place to measure from. The column clears
-  // the border, the crown and the name, so the menu covers the level rather
-  // than who it is about.
+  // Placed relative to the panel rather than the terminal, because the screen
+  // is centred and has no fixed position. The column clears the border, the
+  // crown and the name, so the menu covers the level rather than who it is
+  // about.
   constexpr int kMenuCol = 4 + kNameWidth;
   return ftxui::dbox({
       std::move(window),

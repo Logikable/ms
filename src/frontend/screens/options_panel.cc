@@ -32,7 +32,7 @@ Option OptionAt(int row) {
   return static_cast<Option>(row);
 }
 
-// `text` pushed right into `width` columns, with a gutter after it.
+// `text` right-aligned in `width` columns, with a gutter after it.
 std::string RightAligned(const std::string& text, int width) {
   std::string padded(std::max<int>(0, width - 1 - text.size()), ' ');
   return padded + text + " ";
@@ -113,7 +113,7 @@ void OptionsPanel::Adjust(int delta) {
   if (on_close() || !IsVolume(selected_option())) {
     return;
   }
-  // The account clamps, so a held key runs into the end and stays there.
+  // The account clamps, so a held key reaches the end and stays there.
   switch (selected_option()) {
     case Option::kMapBgmVolume:
       account_.SetMapBgmVolume(account_.map_bgm_volume() + delta);
@@ -139,9 +139,9 @@ ftxui::Element OptionsPanel::RenderBar(int volume) const {
 
 ftxui::Element OptionsPanel::RenderRow(Option option, int row) const {
   bool selected = row == row_ && !on_close();
-  // The NAME carries the cursor, not the whole row: the value beside it is
-  // what the keys change, and a bar cannot be inverted -- doing so swaps what
-  // is filled for what is not, which reads as the opposite volume.
+  // Only the name shows the cursor, not the whole row: the value beside it is
+  // what the keys change, and a bar can't be inverted, since inverting it swaps
+  // filled and empty and reads as the opposite volume.
   ftxui::Element name = ftxui::text(" " + OptionName(option)) |
                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kNameWidth);
   if (selected) {
@@ -162,7 +162,7 @@ ftxui::Element OptionsPanel::Render() const {
   for (int i = 0; i < kOptionCount; ++i) {
     rows.push_back(RenderRow(OptionAt(i), i));
   }
-  // The room the settings still to come will take.
+  // Space for the settings still to come.
   for (int i = kOptionCount; i < kListRows; ++i) {
     rows.push_back(ftxui::text(""));
   }

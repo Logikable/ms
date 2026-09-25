@@ -22,7 +22,7 @@ class OptionsPanelTest : public testing::Test {
     return screen.ToString();
   }
 
-  // Puts the cursor on `option`, which is its own row number.
+  // Puts the cursor on `option`, whose value is its row number.
   void SelectOption(Option option) {
     panel_.Reset();
     panel_.MoveRow(static_cast<int>(option));
@@ -37,7 +37,7 @@ TEST_F(OptionsPanelTest, ListsTheSettingsAndTheCloseButton) {
   EXPECT_NE(out.find("Options"), std::string::npos);
   EXPECT_NE(out.find("Panel Title Blink"), std::string::npos);
   EXPECT_NE(out.find("Close"), std::string::npos);
-  // The Option/State header is gone; the names alone say what the rows are.
+  // There is no Option/State header; the names alone say what the rows are.
   EXPECT_EQ(out.find("State"), std::string::npos);
 }
 
@@ -82,7 +82,7 @@ TEST_F(OptionsPanelTest, CursorWrapsThroughCloseAndBack) {
   EXPECT_TRUE(panel_.on_close());
   panel_.MoveRow(1);
   EXPECT_FALSE(panel_.on_close());
-  // Up from the first setting comes out on Close, the far end of the ring.
+  // Up from the first setting wraps to Close, at the other end of the ring.
   panel_.MoveRow(-1);
   EXPECT_TRUE(panel_.on_close());
 }
@@ -104,13 +104,13 @@ TEST_F(OptionsPanelTest, ResetPutsTheCursorBackOnTheFirstSetting) {
   EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);
 }
 
-// The list is drawn to a fixed height, so a setting arriving later does not
-// change the size of the panel the player has learned.
+// The list is drawn at a fixed height, so a setting added later doesn't change
+// the size of the panel the player knows.
 TEST_F(OptionsPanelTest, LeavesRoomForSettingsStillToCome) {
   ftxui::Element card = panel_.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
-  // Two borders, six list rows, the rule above the foot and Close.
+  // Two borders, six list rows, the rule above the bottom row, and Close.
   EXPECT_EQ(screen.dimy(), 10);
 }
 
@@ -123,7 +123,7 @@ class OptionsAudioTest : public OptionsPanelTest {
   }
 };
 
-// Where the music comes from is the Jukebox screen's, not a switch here.
+// The music source is chosen on the Jukebox screen, not with a switch here.
 TEST_F(OptionsAudioTest, NoJukeboxSwitch) {
   EXPECT_EQ(Render().find("Jukebox"), std::string::npos);
 }
@@ -148,7 +148,7 @@ TEST_F(OptionsAudioTest, ArrowsMoveOnlyTheVolumeSelected) {
   EXPECT_EQ(account_.map_bgm_volume(), kDefaultBgmVolume + 5);
 }
 
-// A held key runs into the end of the scale and stays there.
+// A held key reaches the end of the scale and stays there.
 TEST_F(OptionsAudioTest, VolumeStopsAtBothEnds) {
   SelectOption(Option::kMapBgmVolume);
   for (int i = 0; i < kMaxBgmVolume + 20; ++i) {

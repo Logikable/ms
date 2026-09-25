@@ -15,8 +15,8 @@ namespace ms {
 PlayerInspectPanel::PlayerInspectPanel(GameState& state)
     : state_(state),
       character_(state.rng, Character()),
-      // No account: this is somebody else's sheet, so the Farm/Boss row is
-      // gated on the level written on it.
+      // No account: this is someone else's sheet, so the Farm/Boss row is gated
+      // on the level on the sheet.
       stats_(character_, /*account=*/nullptr, state.skills) {
   BuildPanels();
 }
@@ -67,14 +67,14 @@ void PlayerInspectPanel::SetPlayer(const PlayerInfo& player) {
     Reset();
     return;
   }
-  // They changed under the cursor -- took off a hat, or a whole set. The
-  // panels hold where the cursor was and clamp it to what is left.
+  // The same member changed something, such as removing a hat or a whole set.
+  // The panels keep the cursor where it was and clamp it to what is left.
 }
 
 void PlayerInspectPanel::Reset() {
   expanded_ = false;
-  // On the Equipped list, which is what the reader came for. The same panel
-  // the main view opens focused.
+  // On the Equipped list, which is what the reader came for, the same panel the
+  // main view opens focused.
   focus_ = kEquipPanel;
   stats_.SetPreset(Activity::kFarming);
   BuildPanels();
@@ -98,16 +98,15 @@ EquipSlot PlayerInspectPanel::selected_slot() const {
 
 bool PlayerInspectPanel::OnEvent(const ftxui::Event& event) {
   if (IsSwitchPanel(event)) {
-    // Nothing to walk to while one panel is the whole screen, as on the main
-    // view.
+    // Nothing to move to while one panel fills the screen, as on the main view.
     if (!expanded_) {
       focus_ = focus_ == kCharPanel ? kEquipPanel : kCharPanel;
     }
     return true;
   }
-  // The components are driven by hand rather than through a container: two
-  // detached components both answer Focused(), so only the one holding the
-  // cursor is handed the key.
+  // The components are driven directly rather than through a container: two
+  // detached components both report Focused(), so only the one with the cursor
+  // gets the key.
   if (expanded_ || focus_ == kEquipPanel) {
     return equip_component_->OnEvent(event);
   }
@@ -133,9 +132,9 @@ ftxui::Element PlayerInspectPanel::Render(int rows, int columns) {
     equip_panel_->SetWidth(columns);
     return equip_component_->Render();
   }
-  // The main screen's own split, so a member's panels stand where the
-  // reader's do. The right column is always there: this screen is the two
-  // panels and nothing else.
+  // The main screen's own column split, so a member's panels are where the
+  // reader's are. The right column is always there, since this screen is only
+  // the two panels.
   MainWidths widths = ComputeMainWidths(columns, /*has_right_column=*/true);
   char_panel_->SetWidth(widths.left);
   // One row goes to the exp bar. Nothing else shares the column, so the
@@ -144,9 +143,9 @@ ftxui::Element PlayerInspectPanel::Render(int rows, int columns) {
   equip_panel_->SetWidth(widths.right);
   return ftxui::vbox({
       ftxui::hbox({
-          // Over a filler: an hbox hands its children the whole row, which
-          // would drag the Character panel's bottom border to the foot of the
-          // screen. The Equipped list grows into its column by itself.
+          // Above a filler: an hbox gives its children the whole row, which
+          // would stretch the Character panel's bottom border to the bottom of
+          // the screen. The Equipped list grows into its column on its own.
           ftxui::vbox({char_component_->Render(), ftxui::filler()}) |
               ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left),
           equip_component_->Render() | ftxui::flex,

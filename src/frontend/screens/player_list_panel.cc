@@ -15,13 +15,13 @@
 namespace ms {
 namespace {
 
-// Column widths. A name is capped at kMaxUsernameLength, so the column is
-// that plus the gap after it.
+// Column widths. A name is at most kMaxUsernameLength, so the column is that
+// plus the gap after it.
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kLevelWidth = 7;
 
-// The window is one size however many are online, so somebody arriving does
-// not move the button out from under the cursor.
+// The window is one size however many players are online, so a new arrival
+// doesn't move the button out from under the cursor.
 constexpr int kContentWidth = 34;
 constexpr int kListRows = 8;
 
@@ -67,9 +67,9 @@ int PlayerListPanel::menu_selected() const {
 }
 
 int PlayerListPanel::MenuRow() const {
-  // +3 rows: the window's top border, the column header and its separator.
-  // One row back from there, so the entry standing highlighted lands beside
-  // the player rather than below them.
+  // +3 rows: the window's top border, the column header and its separator. One
+  // row back from there, so the highlighted menu entry sits beside the player
+  // rather than below.
   constexpr int kFirstPlayerRow = 3;
   return kFirstPlayerRow + Cursor() - 1;
 }
@@ -135,10 +135,9 @@ ftxui::Element PlayerListPanel::Render() const {
   if (!menu_open_) {
     return window;
   }
-  // Anchored inside the panel rather than on the terminal, because the screen
-  // is centred and so has no fixed place to measure from. The column clears
-  // the border and the name, so the menu covers the level rather than who it
-  // is about.
+  // Placed relative to the panel rather than the terminal, because the screen
+  // is centred and has no fixed position. The column clears the border and the
+  // name, so the menu covers the level rather than who it is about.
   constexpr int kMenuCol = 2 + kNameWidth;
   return ftxui::dbox({
       std::move(window),

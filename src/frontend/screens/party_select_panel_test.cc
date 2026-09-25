@@ -34,7 +34,7 @@ void AddMember(Party* party, const PlayerInfo& player, bool ready = false) {
   member->set_ready(ready);
 }
 
-// A party of `count` led by "me", named Ariel, Bree and Cyd.
+// A party of `count` led by "me", with members named Ariel, Bree and Cyd.
 Party PartyOf(int count) {
   Party party;
   party.set_id("p1");
@@ -48,7 +48,7 @@ Party PartyOf(int count) {
   return party;
 }
 
-// A snapshot of a connected client playing under "me".
+// A snapshot of a connected client playing as "me".
 MultiplayerSnapshot Connected() {
   MultiplayerSnapshot snapshot;
   snapshot.state = ConnectionState::kConnected;
@@ -59,14 +59,14 @@ MultiplayerSnapshot Connected() {
 std::string Render(const PartySelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(20));
-  // Centred, as the Tui draws it: a window fills its box, and center is what
-  // holds it to its content.
+  // Centred, as the Tui draws it: a window fills its box, and center keeps it
+  // to its content.
   ftxui::Element element = ftxui::center(panel.Render());
   ftxui::Render(screen, element);
   return ScreenText(screen);
 }
 
-// The box of everything the panel drew, as width by height.
+// The size of everything the panel drew, as width by height.
 std::pair<int, int> BoxOf(const PartySelectPanel& panel) {
   std::string screen = Render(panel);
   int width = 0;
@@ -86,7 +86,7 @@ std::pair<int, int> BoxOf(const PartySelectPanel& panel) {
 
 class PartySelectPanelTest : public ::testing::Test {
  protected:
-  // Puts `snapshot` in front of the panel and starts the cursor at the top.
+  // Gives the panel `snapshot` and starts the cursor at the top.
   void Show(const MultiplayerSnapshot& snapshot) {
     panel_.SetSnapshot(snapshot);
     panel_.Reset();
@@ -140,7 +140,7 @@ TEST_F(PartySelectPanelTest, TheListAndTheButtonsAreOneRing) {
   *snapshot.parties.add_parties() = PartyOf(1);
   Show(snapshot);
 
-  // One party, then the buttons, then round to the party again.
+  // One party, then the buttons, then back to the party.
   EXPECT_EQ(panel_.Chosen(), PartyAction::kJoin);
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.Chosen(), PartyAction::kCreate);
@@ -156,14 +156,14 @@ TEST_F(PartySelectPanelTest, LeftAndRightBelongToTheButtons) {
   *snapshot.parties.add_parties() = PartyOf(1);
   Show(snapshot);
 
-  // Nothing to move between while the cursor is still in the list.
+  // Nothing to move between while the cursor is in the list.
   panel_.MoveButton(1);
   EXPECT_EQ(panel_.Chosen(), PartyAction::kJoin);
 
   panel_.MoveCursor(1);
   panel_.MoveButton(1);
   EXPECT_EQ(panel_.Chosen(), PartyAction::kClose);
-  // Clamped at the ends rather than wrapping: a button row has two sides.
+  // Stops at the ends instead of wrapping, since a button row has two ends.
   panel_.MoveButton(1);
   EXPECT_EQ(panel_.Chosen(), PartyAction::kClose);
   panel_.MoveButton(-5);
@@ -183,7 +183,7 @@ TEST_F(PartySelectPanelTest, ShowsWhoIsInTheParty) {
   EXPECT_NE(screen.find("Ariel"), std::string::npos);
   EXPECT_NE(screen.find("Dark Knight"), std::string::npos);
   EXPECT_NE(screen.find("139"), std::string::npos);
-  // A crown on the leader, and a mark on both: the leader by leading, the
+  // A crown on the leader, and a ready mark on both: the leader by leading, the
   // other by saying so.
   EXPECT_NE(screen.find("♛ Ariel"), std::string::npos);
   EXPECT_EQ(screen.find("♛ Bree"), std::string::npos);
@@ -200,7 +200,7 @@ TEST_F(PartySelectPanelTest, TheLeaderHasNoReadyButton) {
   std::string screen = Render(panel_);
   EXPECT_EQ(screen.find("[Ready]"), std::string::npos);
   EXPECT_NE(screen.find("[Leave Party]"), std::string::npos);
-  // Leading is what says they are ready.
+  // Leading means being ready.
   EXPECT_TRUE(panel_.ready());
 }
 
@@ -228,7 +228,7 @@ TEST_F(PartySelectPanelTest, AMemberIsOfferedInspectAndNothingElse) {
   snapshot.party.set_leader_account_id("two");
   Show(snapshot);
 
-  // Everyone may raise the menu on a member; what is on it is the question.
+  // Anyone can open the menu on a member; the question is what is on it.
   EXPECT_EQ(panel_.Chosen(), PartyAction::kMemberMenu);
   EXPECT_EQ(panel_.selected_member(), "me");
   panel_.MoveCursor(1);
@@ -240,11 +240,11 @@ TEST_F(PartySelectPanelTest, AMemberIsOfferedInspectAndNothingElse) {
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
   EXPECT_NE(screen.find("Trade"), std::string::npos);
-  // Hidden rather than dimmed: they are not this player's to take.
+  // Hidden rather than dimmed, since they aren't this player's actions to take.
   EXPECT_EQ(screen.find("Kick"), std::string::npos);
   EXPECT_EQ(screen.find("Promote"), std::string::npos);
 
-  // Three entries left, so Down reaches Close and Down again comes back.
+  // Three entries left, so Down reaches Close and Down again wraps back.
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuTrade);
   panel_.MoveMenuCursor(1);
@@ -265,7 +265,7 @@ TEST_F(PartySelectPanelTest, TheLeaderRaisesAMenuOnAMember) {
 
   panel_.OpenMenu();
   EXPECT_TRUE(panel_.menu_open());
-  // Inspect leads for the leader too: reading a member is what everyone does.
+  // Inspect comes first for the leader too, since everyone reads members.
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
@@ -289,13 +289,13 @@ TEST_F(PartySelectPanelTest, TheLeadersOwnRowOffersNeither) {
 
   ASSERT_EQ(panel_.selected_member(), "me");
   panel_.OpenMenu();
-  // The leader may still read themselves, so the cursor rests on Inspect and
-  // Down skips the two dimmed entries onto Close.
+  // The leader can still inspect themselves, so the cursor starts on Inspect
+  // and Down skips the two dimmed entries to Close.
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Kick"), std::string::npos);
   EXPECT_NE(screen.find("Promote"), std::string::npos);
-  // Nobody trades with themselves, so that entry is not there at all.
+  // Nobody trades with themselves, so that entry isn't there at all.
   EXPECT_EQ(screen.find("Trade"), std::string::npos);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
@@ -306,7 +306,7 @@ TEST_F(PartySelectPanelTest, TheWindowIsOneSizeInEveryState) {
   Show(snapshot);
   std::pair<int, int> empty = BoxOf(panel_);
 
-  // More parties than the list can show, so the frame scrolls rather than the
+  // More parties than the list can show, so the frame scrolls instead of the
   // window growing.
   for (int i = 0; i < 12; ++i) {
     snapshot.parties.add_parties()->set_id("p" + std::to_string(i));
@@ -325,14 +325,14 @@ TEST_F(PartySelectPanelTest, TheListShrinkingUnderTheCursorMovesIt) {
   MultiplayerSnapshot snapshot = Connected();
   snapshot.party = PartyOf(3);
   Show(snapshot);
-  // Down past all three members onto the buttons.
+  // Down past all three members to the buttons.
   for (int i = 0; i < 3; ++i) {
     panel_.MoveCursor(1);
   }
   ASSERT_EQ(panel_.Chosen(), PartyAction::kLeave);
 
-  // Two of them leave while the cursor is down there. Up has to reach the one
-  // member left rather than being swallowed by a cursor past the end.
+  // Two members leave while the cursor is on the buttons. Up must still reach
+  // the one member left instead of being wasted on a cursor past the end.
   snapshot.party = PartyOf(1);
   panel_.SetSnapshot(snapshot);
   EXPECT_EQ(panel_.Chosen(), PartyAction::kLeave);
@@ -341,8 +341,8 @@ TEST_F(PartySelectPanelTest, TheListShrinkingUnderTheCursorMovesIt) {
   EXPECT_EQ(panel_.selected_member(), "me");
 }
 
-// The list of parties and the members panel are two different screens out of
-// one Render, so both are asked.
+// The party list and the member list are two different views from one Render,
+// so both are checked.
 TEST_F(PartySelectPanelTest, NeitherScreenWeldsARowToItsRightBorder) {
   MultiplayerSnapshot snapshot = Connected();
   *snapshot.parties.add_parties() = PartyOf(2);

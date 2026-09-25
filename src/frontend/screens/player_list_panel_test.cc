@@ -15,8 +15,8 @@
 namespace ms {
 namespace {
 
-// A connected client playing under "me", with `count` players online: Ariel,
-// Bree and Cyd, in that order.
+// A connected client playing as "me", with `count` players online: Ariel, Bree
+// and Cyd, in that order.
 MultiplayerSnapshot Online(int count) {
   MultiplayerSnapshot snapshot;
   snapshot.state = ConnectionState::kConnected;
@@ -62,7 +62,7 @@ TEST_F(PlayerListPanelTest, RaisesAMenuOnAPlayer) {
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
   EXPECT_NE(screen.find("Trade"), std::string::npos);
 
-  // Three entries, so Down reaches Close and Down again comes back.
+  // Three entries, so Down reaches Close and Down again wraps back.
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPlayerMenuTrade);
   panel_.MoveMenuCursor(1);
@@ -81,8 +81,8 @@ TEST_F(PlayerListPanelTest, YourOwnRowDoesNotOfferTrade) {
 
   panel_.OpenMenu();
   std::string screen = Render(panel_);
-  // Reading yourself is fair enough; trading yourself is not a thing, so the
-  // entry is not there at all.
+  // Inspecting yourself is fine, but trading with yourself isn't possible, so
+  // that entry isn't there at all.
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
   EXPECT_EQ(screen.find("Trade"), std::string::npos);
   panel_.MoveMenuCursor(1);
@@ -108,7 +108,7 @@ TEST_F(PlayerListPanelTest, SaysSoWhenNobodyIsOnline) {
   Show(Online(0));
 
   EXPECT_NE(Render(panel_).find("empty"), std::string::npos);
-  // Close is the only stop left, so that is where the cursor is.
+  // Close is the only stop left, so the cursor is there.
   EXPECT_TRUE(panel_.on_close());
   EXPECT_EQ(panel_.selected_account(), "");
   EXPECT_EQ(panel_.selected_name(), "");
@@ -122,10 +122,10 @@ TEST_F(PlayerListPanelTest, WalksThePlayersAndThenClose) {
   EXPECT_EQ(panel_.selected_name(), "Bree");
   panel_.MoveCursor(2);
   EXPECT_TRUE(panel_.on_close());
-  // Close is the last stop of the ring, so Down again comes back to the top.
+  // Close is the last stop in the ring, so Down again wraps to the top.
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.selected_account(), "me");
-  // And Up off the top lands on Close.
+  // Up from the top lands on Close.
   panel_.MoveCursor(-1);
   EXPECT_TRUE(panel_.on_close());
 }
@@ -135,11 +135,11 @@ TEST_F(PlayerListPanelTest, HoldsTheCursorWhenThePlayerItWasOnLeaves) {
   panel_.MoveCursor(2);
   EXPECT_EQ(panel_.selected_name(), "Cyd");
 
-  // Two of them go while the cursor is on the last.
+  // Two players leave while the cursor is on the last one.
   panel_.SetSnapshot(Online(1));
   EXPECT_TRUE(panel_.on_close());
-  // The keypress still moves: a cursor left past the end would be spent
-  // folding back rather than stepping.
+  // The keypress still moves the cursor; a cursor past the end would waste it
+  // on getting back into range.
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.selected_name(), "Ariel");
 }

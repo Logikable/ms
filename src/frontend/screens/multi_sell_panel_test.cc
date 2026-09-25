@@ -39,7 +39,7 @@ class MultiSellTest : public PanelTest {
     c_.AddItem(proto, count);
   }
 
-  // A currency: counted in the purse rather than carried on the Etc tab.
+  // A currency, kept in the purse rather than on the Etc tab.
   void GiveCurrency(const std::string& name, ItemKind kind, int count) {
     ItemPrototype proto;
     proto.set_name(name);
@@ -64,8 +64,8 @@ class MultiSellTest : public PanelTest {
     return false;
   }
 
-  // The one screen row naming `item`, so a column can be read off the row it
-  // belongs to rather than off the screen at large.
+  // The screen row naming `item`, so a column can be read from its own row
+  // rather than from anywhere on screen.
   std::string RowFor(MultiSellPanel& panel, const std::string& item) {
     for (const std::string& row : ScreenRows(panel)) {
       if (row.find(item) != std::string::npos) {
@@ -75,7 +75,7 @@ class MultiSellTest : public PanelTest {
     return "";
   }
 
-  // The screen row the window's top border lands on.
+  // The screen row of the window's top border.
   int TopRow(MultiSellPanel& panel) {
     std::vector<std::string> rows = ScreenRows(panel);
     for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
@@ -103,14 +103,14 @@ TEST_F(MultiSellTest, OpensWithTheChosenRowMarked) {
   panel.Reset(kEquipTab, 1);
   EXPECT_EQ(panel.basket().equips, std::set<int>({1}));
   EXPECT_EQ(panel.Total(), 2000);
-  // The mark rides the row it was made on, and no other.
+  // The mark stays on the row it was made on, and no other.
   EXPECT_NE(RowFor(panel, "Axe").find("✓"), std::string::npos);
   EXPECT_EQ(RowFor(panel, "Sword").find("✓"), std::string::npos);
 }
 
-// The band under the cursor, which here has to cover the mark and the price as
-// well as the item's own cells: a band that stopped at the columns the bag
-// draws would cut the two this screen adds out of the row.
+// The band under the cursor has to cover the mark and the price as well as the
+// item's cells. A band that stopped at the bag's columns would leave out the
+// two this screen adds.
 TEST_F(MultiSellTest, TheBandUnderTheCursorCoversTheMarkAndThePrice) {
   GiveEquip("Sword", 1000);
   MultiSellPanel panel(c_, account_);
@@ -146,14 +146,14 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   GiveStack("Wild Boar Tooth", 7, 3);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
-  // Up to the tab bar, right to Etc, down onto the stack, mark it.
+  // Up to the tab bar, right to Etc, down onto the stack, and mark it.
   Press(panel, ftxui::Event::ArrowUp);
   Press(panel, ftxui::Event::ArrowRight);
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
   EXPECT_EQ(panel.Total(), 1000 + 3 * 7) << "the whole stack goes";
 
-  // The bar marks the tab the rows belong to, not the one at Etc's tab id.
+  // The bar highlights the tab the rows belong to, not the one at Etc's tab id.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(110),
                                                ftxui::Dimension::Fixed(40));
   ftxui::Render(screen, ftxui::center(panel.Render()));
@@ -168,7 +168,7 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   panel.Reset(kEquipTab, 0);
   int top = TopRow(panel);
   EXPECT_GE(top, 0);
-  // A tab with one row and a tab with none leave the box the size it was.
+  // A tab with one row and a tab with none leave the box the same size.
   Press(panel, ftxui::Event::ArrowUp);
   Press(panel, ftxui::Event::ArrowRight);
   EXPECT_EQ(TopRow(panel), top);
@@ -176,9 +176,9 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   EXPECT_EQ(TopRow(panel), top);
 }
 
-// The counter deals in what the bag's Etc tab lists, and the currencies are
-// not on it: they are a balance on the Token tab, and a balance is not for
-// sale. They take no row either, so the one drop is the whole list.
+// The shop buys what the bag's Etc tab lists, and currencies aren't on it: they
+// are a balance on the Token tab, and a balance can't be sold. They take no row
+// either, so the one drop is the whole list.
 TEST_F(MultiSellTest, TheCurrenciesAreNotOnTheShelf) {
   GiveCurrency("Spell Trace", ITEM_KIND_SPELL_TRACE, 60);
   GiveCurrency("Frozen Weapon Token", ITEM_KIND_TOKEN, 3);
@@ -211,16 +211,17 @@ TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
   GiveStack("Wild Boar Tooth", 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
-  // Right does nothing while a row holds the cursor: the tabs are the bar's.
+  // Right does nothing while the cursor is on a row, since the tabs belong to
+  // the bar.
   Press(panel, ftxui::Event::ArrowRight);
   EXPECT_TRUE(ScreenHas(panel, "Sword"));
-  // Down off the only row lands on the buttons, and Enter there opens the
+  // Down from the only row lands on the buttons, and Enter there opens the
   // dialog.
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
   EXPECT_TRUE(panel.confirming());
   Press(panel, ftxui::Event::Escape);
-  // Down again comes out on the bar, where Right does switch tabs.
+  // Down again wraps to the bar, where Right switches tabs.
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::ArrowRight);
   EXPECT_TRUE(ScreenHas(panel, "Wild Boar Tooth"));
@@ -242,11 +243,11 @@ TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
   panel.Reset(kEquipTab, 0);
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
-  // Escape backs out of the dialog without selling, and leaves the screen up.
+  // Escape backs out of the dialog without selling and leaves the screen open.
   EXPECT_EQ(Press(panel, ftxui::Event::Escape), ConfirmChoice::kPending);
   EXPECT_FALSE(panel.confirming());
-  // Enter on the button row opens it again, and Enter answers it: the cursor
-  // is already on Confirm.
+  // Enter on the button row opens it again, and Enter confirms, since the
+  // cursor is already on Confirm.
   Press(panel, ftxui::Event::Return);
   EXPECT_EQ(Press(panel, ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
@@ -272,9 +273,9 @@ TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
   GiveStack("Wild Boar Tooth", 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEtcTab, 0);
-  // The whole stack, on the row it belongs to.
+  // The whole stack's value, on its own row.
   EXPECT_NE(RowFor(panel, "Wild Boar Tooth").find("200"), std::string::npos);
-  // A row worth nothing says 0 rather than nothing at all.
+  // A row worth nothing shows 0 rather than nothing.
   EXPECT_NE(RowFor(panel, "Firewood").find("0"), std::string::npos);
 }
 
@@ -307,8 +308,8 @@ TEST_F(MultiSellTest, TheShelfReadsEquipThenEtcInBagOrder) {
   EXPECT_EQ(c_.buy_backs()[3].stack().name(), "Zzz Shell");
 }
 
-// The list and the confirm window measure themselves apart, so both have to
-// ask for the margin.
+// The list and the confirm window measure themselves separately, so both have
+// to request the margin.
 TEST_F(MultiSellTest, NeitherWindowWeldsARowToItsRightBorder) {
   GiveEquip("Fafnir Battle Cleaver", 1000000);
   GiveStack("Green Snail Shell", 7, 40);

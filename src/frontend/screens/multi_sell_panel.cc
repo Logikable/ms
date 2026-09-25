@@ -17,40 +17,40 @@
 namespace ms {
 namespace {
 
-// The tabs of the bag Multi-Sell shows. The shop is not one of them: this is
-// the counter, and the player is already standing at it.
+// The bag tabs Multi-Sell shows. The shop isn't one of them, since the player
+// is already at the shop counter.
 constexpr int kTabs[] = {kEquipTab, kEtcTab};
 
-// Room for any row index under one tab, so folding the tab and the row into
-// one name-clock key cannot make two different selections collide. The bag
-// holds its own copy of this, for the same reason.
+// Larger than any row index on one tab, so combining the tab and the row into
+// one name-clock key can't make two selections collide. The bag has its own
+// copy of this for the same reason.
 constexpr int kNameClockTabStride = 4096;
 
 // The mark column on the left, headed "Sell", and the price column on the
-// right. The equip list is the widest thing on the screen, so the window is
-// sized by it and every tab keeps the price under the same column.
+// right. The equip list is the widest thing on the screen, so it sets the
+// window's width and every tab keeps the price in the same column.
 constexpr int kMarkWidth = 6;
 constexpr int kPriceWidth = 11;
 constexpr int kEquipRowWidth = 82;
 // Both columns keep a space inside the border, as every panel does.
 constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth + 1;
 // The window is centred, so a box that shrank to a short tab's contents would
-// hang at a different height on every tab. It is held to one size instead, and
-// a tab with few rows leaves the space below them empty. All the smallest
-// terminal has, less the window's own two borders.
+// sit at a different height on every tab. It is held to one size instead, and a
+// tab with few rows leaves the space below empty. This is the smallest
+// terminal's height minus the window's two borders.
 constexpr int kContentHeight = kMinTerminalRows - 2;
 
-// The price cell: two columns of separator, the value right-aligned, and a
-// column of clearance inside the border. It sits at a fixed offset rather than
-// at the row's right edge -- the scrolling frame gives a row fewer columns
-// than the header beside it, so an edge is not a column two lists can share.
+// The price cell: a two-column separator, the right-aligned value, and a blank
+// column inside the border. It sits at a fixed offset rather than at the row's
+// right edge, because the scrolling frame gives a row fewer columns than the
+// header beside it, so the edge isn't a column two lists can share.
 ftxui::Element TailCell(const std::string& text) {
   return ftxui::text("  " + PadLeft(text, kPriceWidth) + " ");
 }
 
-// The stacks the Etc tab lists, as indices into `character`'s stacks -- all of
-// them. The currencies are not among them: they are counted in the purse, not
-// carried, and nothing there is for sale.
+// The stacks the Etc tab lists, as indices into `character`'s stacks: all of
+// them. Currencies aren't included, since they are kept in the purse rather
+// than carried, and none are for sale.
 std::vector<int> EtcRows(const CharacterInstance& character) {
   return AllRows(static_cast<int>(character.stackables().size()));
 }
@@ -74,7 +74,7 @@ int64_t RowSellValue(const CharacterInstance& character, int tab, int item) {
     if (item < 0 || item >= character.inventory().size()) {
       return 0;
     }
-    // A trace is the record of a destroyed item, not a copy of it, so it is
+    // A trace records a destroyed item rather than being a copy of it, so it is
     // worth what the record is worth.
     if (character.inventory().equip_instance(item) == nullptr) {
       return 0;
@@ -85,7 +85,7 @@ int64_t RowSellValue(const CharacterInstance& character, int tab, int item) {
   if (item < 0 || item >= static_cast<int>(stacks.size())) {
     return 0;
   }
-  // The whole stack goes, so the whole stack is what it is worth.
+  // The whole stack is sold, so the whole stack is its value.
   return static_cast<int64_t>(stacks[item].count()) *
          stacks[item].prototype().sell_price();
 }
@@ -131,7 +131,7 @@ void MultiSellPanel::Reset(int tab, int item) {
   if (active_tab_ == kEquipTab) {
     selected_ = std::max(0, item);
   } else {
-    // The caller names a stack; the cursor stands on the row that draws it.
+    // The caller names a stack, and the cursor goes to the row that shows it.
     std::vector<int> rows = EtcRows(character_);
     std::vector<int>::iterator it = std::find(rows.begin(), rows.end(), item);
     if (it != rows.end()) {
@@ -164,8 +164,8 @@ int MultiSellPanel::BasketKey(int row) const {
   return rows[row];
 }
 
-// Every row goes, whatever it is worth: a trace of a destroyed item pays
-// nothing, and marking it is how it leaves the bag.
+// Every row can be marked, whatever it is worth: a trace of a destroyed item
+// pays nothing, and selling it is how it leaves the bag.
 bool MultiSellPanel::Markable(int row) const {
   return row >= 0 && row < ListCount();
 }
@@ -206,17 +206,17 @@ void MultiSellPanel::MoveCursor(int delta) {
 }
 
 void MultiSellPanel::StepTab(int direction) {
-  // The bar holds the two tabs of kTabs and nothing between them -- the bag's
-  // Token tab is not here -- so a step walks that list rather than the enum.
+  // The bar has only the two tabs in kTabs (the bag's Token tab isn't here), so
+  // a step moves through that list rather than the enum.
   const int* here = std::find(std::begin(kTabs), std::end(kTabs), active_tab_);
   const int* next = here + direction;
   if (next < std::begin(kTabs) || next >= std::end(kTabs)) {
-    return;  // the ends of the bar are walls, as in the bag
+    return;  // the ends of the bar stop, as in the bag
   }
   active_tab_ = *next;
   selected_ = 0;
-  // A tab with nothing in it has no row to stand on, so the cursor waits on
-  // the bar until the player steps onto a tab that has.
+  // A tab with nothing in it has no row to select, so the cursor waits on the
+  // bar until the player moves to a tab with rows.
   if (zone_ == kZoneList && ListCount() == 0) {
     zone_ = kZoneTabs;
   }
@@ -227,8 +227,8 @@ int64_t MultiSellPanel::Total() const {
 }
 
 ConfirmChoice MultiSellPanel::OnEvent(ftxui::Event event) {
-  // The prompt's own Cancel closes the prompt and no more: the player is
-  // backing out of the question, not out of the screen.
+  // The dialog's own Cancel closes only the dialog: the player is backing out
+  // of the question, not the screen.
   if (confirm_.open()) {
     ConfirmChoice choice = confirm_.OnEvent(std::move(event));
     return choice == ConfirmChoice::kConfirmed ? choice
@@ -255,9 +255,8 @@ ConfirmChoice MultiSellPanel::OnEvent(ftxui::Event event) {
         return ConfirmChoice::kCancelled;
       }
       if (!basket_.empty()) {
-        // Confirm is where the cursor lands. The player marked every row in
-        // the basket themselves, so the dialog is a last look rather than a
-        // question they have not already answered.
+        // The cursor starts on Confirm. The player marked every item
+        // themselves, so the dialog is a last look rather than a new question.
         confirm_.Open();
       }
     }
@@ -275,8 +274,8 @@ ftxui::Element MultiSellPanel::PriceCell(int row) const {
   int64_t value = RowSellValue(character_, active_tab_, key);
   bool marked = basket_.For(active_tab_).count(key) > 0;
   ftxui::Element cell = TailCell(FormatWithCommas(value));
-  // Gold on a row that is going: the price column then adds up to the total in
-  // the header, and the marks and the money say the same thing.
+  // Gold on a row being sold, so the gold prices add up to the total in the
+  // header and the marks and the money agree.
   return marked ? std::move(cell) | ftxui::color(kGold) : std::move(cell);
 }
 
