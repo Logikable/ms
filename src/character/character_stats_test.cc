@@ -23,8 +23,8 @@
 namespace ms {
 namespace {
 
-// A level-`level` character with `hp` AP-allocated HP and enough 1st-job SP to
-// max anything the tests learn.
+// A level-`level` character with `hp` HP from AP and enough 1st-job SP to max
+// anything the tests learn.
 CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
                                 int mp = 0) {
   Character proto;
@@ -37,8 +37,8 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
   return CharacterInstance(rng, std::move(proto));
 }
 
-// Equips a hat-shaped item (no slot conflicts here -- the weapon slot is the
-// only one implemented) carrying `max_hp` and `def`.
+// Equips an armor item with `max_hp` and `def`. It uses the weapon slot, which
+// none of these tests needs for anything else.
 void EquipArmor(CharacterInstance& character, int max_hp, int def,
                 int max_mp = 0) {
   EquipPrototype armor;
@@ -51,8 +51,8 @@ void EquipArmor(CharacterInstance& character, int max_hp, int def,
   character.Equip(0);
 }
 
-// Puts a weapon of `type` in the character's hand, for the skills that ask
-// what they are being swung with.
+// Puts a weapon of `type` in the character's hand, for skills that check the
+// weapon.
 void EquipWeapon(CharacterInstance& character, EquipType type) {
   EquipPrototype weapon;
   weapon.set_name("Weapon");
@@ -62,7 +62,7 @@ void EquipWeapon(CharacterInstance& character, EquipType type) {
   character.Equip(character.inventory().size() - 1);
 }
 
-// A weapon with attack on it, so combat power has a number to move at all.
+// A weapon with attack, so combat power has something to change.
 void EquipAttackWeapon(CharacterInstance& character) {
   EquipPrototype weapon;
   weapon.set_name("Bow");
@@ -72,8 +72,8 @@ void EquipAttackWeapon(CharacterInstance& character) {
   character.Equip(character.inventory().size() - 1);
 }
 
-// A character holding the four primary stats outright. These tests care what
-// the character holds, not how many AP it took to get there.
+// A character with the four primary stats set directly. These tests care about
+// the stats, not how much AP it took.
 CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
                                     int int_, int luk) {
   Character proto;
@@ -89,7 +89,7 @@ CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A ring-shaped item carrying STR, for asking whether worn stats count.
+// A ring with STR, for checking whether worn stats count.
 void EquipStrRing(CharacterInstance& character, int str) {
   EquipPrototype ring;
   ring.set_name("Ring");
@@ -99,7 +99,7 @@ void EquipStrRing(CharacterInstance& character, int str) {
   character.Equip(0);
 }
 
-// Critical Shot: +2% crit rate a level.
+// Critical Shot: +2% crit rate per level.
 Skill CriticalShot() {
   Skill skill;
   skill.set_name("Critical Shot");
@@ -125,9 +125,9 @@ Skill MpBoost() {
   return skill;
 }
 
-// Nimble Body's shape -- +1 LUK a level -- filed under the warrior's book.
-// These tests are about how a lever folds, not about whose book it came from,
-// and a skill of another job is one this character cannot learn at all.
+// Shaped like Nimble Body (+1 LUK per level) but put in the warrior's book.
+// These tests are about how a lever combines, not whose book it is in, and this
+// character can't learn another job's skill.
 Skill NimbleBody() {
   Skill skill;
   skill.set_name("Nimble Body");
@@ -139,7 +139,7 @@ Skill NimbleBody() {
   return skill;
 }
 
-// Physical Training as the wiki states it: +6 STR and +6 DEX a level.
+// Physical Training as the wiki states it: +6 STR and +6 DEX per level.
 Skill PhysicalTraining() {
   Skill skill;
   skill.set_name("Physical Training");
@@ -165,8 +165,8 @@ Skill WeaponMastery() {
   return skill;
 }
 
-// Final Attack as the wiki states it for a Spearman: a 2*L% chance of an
-// extra hit worth 2 lines of (60+L)%.
+// Final Attack as the wiki states it for a Spearman: a 2*L% chance of an extra
+// hit of 2 lines at (60+L)%.
 Skill FinalAttack() {
   Skill skill;
   skill.set_name("Final Attack");
@@ -180,8 +180,8 @@ Skill FinalAttack() {
   return skill;
 }
 
-// Archery Mastery's shape: +1 attack speed stage, flat at every level. Filed
-// under the warrior's book for the reason Nimble Body is.
+// Shaped like Archery Mastery: +1 attack speed stage, flat at every level. Put
+// in the warrior's book for the same reason as Nimble Body.
 Skill ArcheryMastery() {
   Skill skill;
   skill.set_name("Archery Mastery");
@@ -204,8 +204,8 @@ Skill WarriorMastery() {
   return skill;
 }
 
-// Advanced Blessing, trimmed to the pools: an outright grant, the same at
-// level 1 of the character as at 140.
+// Advanced Blessing, trimmed to HP and MP: a flat grant, the same at character
+// level 1 as at 140.
 Skill AdvancedBlessing() {
   Skill skill;
   skill.set_name("Advanced Blessing");
@@ -235,9 +235,8 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
 }
 
-// With the autoswap on, the activity picks the gear as well as the
-// allocations: the boss preset's weapon is the one a boss fight is measured
-// with, and the farming preset never sees it.
+// With autoswap on, the activity picks the gear as well as the allocations. A
+// boss fight uses the boss preset's weapon, and farming never sees it.
 TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
   c.set_autoswap_presets(true);
@@ -253,8 +252,7 @@ TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {
   EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).max_hp, 950);
 }
 
-// Off, one preset answers for both: the switch is what hands the activity the
-// choice at all.
+// With autoswap off, one preset is used for both activities.
 TEST_F(DerivedStatsTest, WithTheAutoswapOffOnePresetAnswersForBoth) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
   EquipArmor(c, 100, 30);
@@ -270,9 +268,8 @@ TEST_F(DerivedStatsTest, WithTheAutoswapOffOnePresetAnswersForBoth) {
   EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).max_hp, 950);
 }
 
-// A V Matrix node grants what it states like any other passive: it belongs to
-// no book the character advanced through, so nothing is allowed to gate it on
-// one.
+// A V Matrix node grants what it states like any other passive. It belongs to
+// no advancement, so nothing may require one for it.
 TEST_F(DerivedStatsTest, ACommonNodeGrantsWhatItStates) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
   Skill rope;
@@ -298,9 +295,9 @@ TEST_F(DerivedStatsTest, ACommonNodeGrantsWhatItStates) {
       << "a point a level, to 30";
 }
 
-// A node whose ladder climbs every fifth level rather than every one, which is
-// what GMS's Decent nodes pay. The fraction is floored where it is read, so
-// the character sees whole points at the levels GMS steps on.
+// A node whose ladder rises every fifth level rather than every level, like
+// GMS's Decent nodes. The fraction is floored when read, so the character sees
+// whole points at the levels GMS raises it.
 TEST_F(DerivedStatsTest, AFractionalLadderStepsEveryFifthLevel) {
   Skill door;
   door.set_name("Decent Mystic Door");
@@ -330,8 +327,8 @@ TEST_F(DerivedStatsTest, AFractionalLadderStepsEveryFifthLevel) {
 
 // --- set bonuses ---
 
-// A four-piece set, tiered at three and four, with levers on both sides of the
-// pipeline: flat stats and attack, and a percentage over the HP pool.
+// A four-piece set with tiers at three and four pieces. Its levers include flat
+// stats, attack, and a percentage of the HP pool.
 std::map<std::string, EquipSet> FrozenSet() {
   const EquipSlot kSlots[] = {EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_HAT,
                               EQUIP_SLOT_CAPE};
@@ -351,8 +348,8 @@ std::map<std::string, EquipSet> FrozenSet() {
   four->set_pieces(4);
   four->mutable_effect()->set_attack(9);
   four->mutable_effect()->set_max_hp_pct(0.20);
-  // The fifth slot names a family rather than an item: a weapon belongs to one
-  // class, so the set cannot say which one.
+  // The fifth slot names a family rather than an item, since a weapon belongs
+  // to one class and the set can't say which.
   EquipSetMember* weapon = set.add_members();
   weapon->set_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   weapon->set_family("Frozen Weapon");
@@ -362,7 +359,7 @@ std::map<std::string, EquipSet> FrozenSet() {
   return {{"frozen", set}};
 }
 
-// Wears the `index`-th piece of the set, in the slot that piece belongs to.
+// Wears the `index`-th piece of the set, in that piece's slot.
 void WearFrozenPiece(CharacterInstance& character, int index) {
   const EquipSlot kSlots[] = {EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_HAT,
                               EQUIP_SLOT_CAPE};
@@ -410,8 +407,8 @@ TEST_F(DerivedStatsTest, TheTiersOfASetAddUp) {
   EXPECT_EQ(four.max_hp, 1200);
 }
 
-// Taking a piece off takes the tier with it -- the bonus follows what is worn,
-// not what was once worn.
+// Taking a piece off removes the tier: the bonus follows what is currently
+// worn.
 TEST_F(DerivedStatsTest, StrippingAPieceEndsTheTier) {
   CharacterInstance c = MakeCharacter(rng_, 15, 1000);
   c.UseEquipSets(FrozenSet());
@@ -424,9 +421,8 @@ TEST_F(DerivedStatsTest, StrippingAPieceEndsTheTier) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
 }
 
-// Any item of the family fills the slot the set names it by, and an item of no
-// family fills nothing -- which is what keeps an ordinary weapon out of a set
-// it was never part of.
+// Any item of the family fills the slot the set names that family for. An item
+// with no family fills nothing, which keeps an ordinary weapon out of a set.
 TEST_F(DerivedStatsTest, AFamilyPieceFillsTheSlotTheSetNamesIt) {
   CharacterInstance c = MakeCharacter(rng_, 15, 1000);
   c.UseEquipSets(FrozenSet());
@@ -450,8 +446,8 @@ TEST_F(DerivedStatsTest, AFamilyPieceFillsTheSlotTheSetNamesIt) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 25) << "5, 9 and 11";
 }
 
-// A slot a boss later drops an alternate for names both, and either fills it.
-// Never twice over: they share a slot, so only one can be on at a time.
+// A slot with an alternate from a boss drop lists both, and either fills it. It
+// never counts twice, since both use the same slot.
 TEST_F(DerivedStatsTest, AnAlternateFillsTheSlotItShares) {
   std::map<std::string, EquipSet> sets = FrozenSet();
   sets.at("frozen").mutable_members(2)->mutable_items()->add_name(
@@ -472,7 +468,7 @@ TEST_F(DerivedStatsTest, AnAlternateFillsTheSlotItShares) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
 }
 
-// Gear outside the set is gear outside the set, however much of it is worn.
+// Gear outside the set doesn't count toward it, however much is worn.
 TEST_F(DerivedStatsTest, OtherGearDoesNotCountTowardASet) {
   CharacterInstance c = MakeCharacter(rng_, 15, 1000);
   c.UseEquipSets(FrozenSet());
@@ -482,8 +478,8 @@ TEST_F(DerivedStatsTest, OtherGearDoesNotCountTowardASet) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.str(), 0);
 }
 
-// A character who was never told about the sets earns nothing from them, which
-// is what every test and sim that does not care about them relies on.
+// A character who was never given the set definitions gets no bonuses. Every
+// test and sim that ignores sets relies on this.
 TEST_F(DerivedStatsTest, NoCatalogNoBonus) {
   CharacterInstance c = MakeCharacter(rng_, 15, 1000);
   WearFrozen(c, 4);
@@ -497,8 +493,8 @@ TEST_F(DerivedStatsTest, PercentMpAppliesAfterEveryFlatSource) {
   std::map<std::string, Skill> skills = {{"mp_boost", boost}};
   ASSERT_TRUE(c.LearnSkill(boost, 20));
 
-  // Flat first: 50 allocated + (25 + 5*19) * 15 levels = 1850, then the
-  // skill's own +20% on the whole pile.
+  // Flat first: 50 allocated + (25 + 5*19) * 15 levels = 1850, then the skill's
+  // +20% on the total.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_mp, 2220);
 }
@@ -526,12 +522,13 @@ TEST_F(DerivedStatsTest, AWornPercentageLiftsBothPools) {
 
   std::map<std::string, Skill> skills;
   DerivedStats stats = DerivedStatsFor(c, skills);
-  // Over the flat HP the pendant also grants, not just the pool underneath it.
+  // The percentage also applies to the pendant's flat HP, not just the base
+  // pool.
   EXPECT_EQ(stats.max_hp, 330);
   EXPECT_EQ(stats.max_mp, 110);
 }
 
-// Both shares land on the one pile rather than compounding: 20% over 100 is
+// Both shares apply to the same total instead of compounding: 20% on 100 is
 // 120, not 121.
 TEST_F(DerivedStatsTest, AWornPercentageSumsWithAPassivesRatherThanStacking) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
@@ -569,8 +566,8 @@ TEST_F(DerivedStatsTest, IronBodyScalesWithItsLearnedLevel) {
   EXPECT_NEAR(stats.damage_taken_pct, 0.10, 1e-9);
 }
 
-// Freezing Crush, which is the whole mechanism: a cap, and what one stack of
-// it is worth.
+// Freezing Crush, the base of the mechanism: a cap, and what one stack is
+// worth.
 Skill FreezingCrush() {
   Skill skill;
   skill.set_name("Freezing Crush");
@@ -582,7 +579,7 @@ Skill FreezingCrush() {
   return skill;
 }
 
-// Glacial Fury: a buff that deepens somebody else's pile and pays for it.
+// Glacial Fury: a buff that raises another skill's cap and pays per stack.
 Skill GlacialFury() {
   Skill skill;
   skill.set_name("Glacial Fury");
@@ -614,8 +611,8 @@ TEST_F(DerivedStatsTest, GlacialFuryDeepensThePileWhileItStands) {
   EXPECT_EQ(standing.freeze.matt_per_stack, 5);
 }
 
-// The buff deepens a pile; it does not hand one over. A character who never
-// learned Freezing Crush holds no stacks for it to raise or to pay for.
+// The buff raises a cap but doesn't create one. A character who never learned
+// Freezing Crush has no stacks for it to raise or pay for.
 TEST_F(DerivedStatsTest, TheCapBonusGrantsNothingWithoutACap) {
   CharacterInstance c = MakeCharacter(rng_, 15, 0);
   Skill fury = GlacialFury();
@@ -628,7 +625,7 @@ TEST_F(DerivedStatsTest, TheCapBonusGrantsNothingWithoutACap) {
   EXPECT_EQ(stats.freeze.matt_per_stack, 0);
 }
 
-// Magic Guard as the data states it: 22% of a hit to MP, 7% more a level.
+// Magic Guard as the data states it: 22% of a hit to MP, plus 7% per level.
 Skill MagicGuard() {
   Skill skill;
   skill.set_name("Magic Guard");
@@ -660,13 +657,13 @@ TEST_F(DerivedStatsTest, TwoReductionsMultiplyRatherThanSum) {
   ASSERT_TRUE(c.LearnSkill(magic_guard, 10));
   ASSERT_TRUE(c.LearnSkill(iron_body, 20));
 
-  // 0.85 and 0.10 sum past nothing left to cancel; multiplied they leave
-  // 0.15 * 0.90 of the hit standing.
+  // 0.85 and 0.10 summed would cancel almost everything; multiplied, they leave
+  // 0.15 * 0.90 of the hit.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.damage_taken_pct, 1.0 - 0.15 * 0.90, 1e-9);
 }
 
-// Evasion Boost's shape: 12% dodge at level 1 climbing 2 points a level.
+// Shaped like Evasion Boost: 12% dodge at level 1, plus 2 points per level.
 Skill EvasionBoost() {
   Skill skill;
   skill.set_name("Evasion Boost");
@@ -684,8 +681,8 @@ TEST_F(DerivedStatsTest, DodgeClimbsWithItsLevelAndLeavesReductionAlone) {
   std::map<std::string, Skill> skills = {{"evasion_boost", boost}};
   ASSERT_TRUE(c.LearnSkill(boost, 10));
 
-  // Dodging is not reduction: it cancels whole hits rather than a share of
-  // one, and the two reach the fight down separate wires.
+  // Dodging isn't reduction: it cancels whole hits rather than part of each,
+  // and the fight receives them in separate fields.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.dodge_chance, 0.30, 1e-9);
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
@@ -701,13 +698,13 @@ TEST_F(DerivedStatsTest, TwoDodgesLeaveTheProductStanding) {
   ASSERT_TRUE(c.LearnSkill(first, 10));
   ASSERT_TRUE(c.LearnSkill(second, 10));
 
-  // 30% and 30% summed would be 60%; what actually gets through is 0.7 * 0.7.
+  // 30% and 30% summed would be 60%; what gets through is 0.7 * 0.7.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.dodge_chance, 1.0 - 0.70 * 0.70, 1e-9);
 }
 
-// Frailty Curse's shape: 11% off the monster's attack at level 1, climbing a
-// point a level.
+// Shaped like Frailty Curse: 11% off the monster's attack at level 1, plus a
+// point per level.
 Skill Barrier() {
   Skill skill;
   skill.set_name("Frailty Curse");
@@ -732,7 +729,7 @@ TEST_F(DerivedStatsTest, TwoBarriersSumAndStopAtBossesWithoutOneToOpenThem) {
   ASSERT_TRUE(c.LearnSkill(curse, 20));
   ASSERT_TRUE(c.LearnSkill(enhance, 1));
 
-  // Points on one number, so they sum where reduction and dodging combine.
+  // These are points on one number, so they add up, unlike reduction and dodge.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.enemy_attack_pct, 0.40, 1e-9);
   EXPECT_FALSE(stats.enemy_attack_reaches_boss);
@@ -782,11 +779,11 @@ TEST_F(DerivedStatsTest, PercentHpAppliesAfterEveryFlatSource) {
   ASSERT_TRUE(c.LearnSkill(blessing, 10));
 
   // Flat first: 50 allocated + 100 equipped + 6 * 15 per-level + a flat 750,
-  // then Iron Body's +10% on the whole pile. Applying the percent to any one
-  // source alone would land short.
+  // then Iron Body's +10% on the total. Applying the percentage to any one
+  // source would come out short.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_hp, 1089);
-  // The MP half of the same grant, with no percentage over it.
+  // The MP half of the same grant, with no percentage on it.
   EXPECT_EQ(stats.max_mp, 750);
 }
 
@@ -796,8 +793,8 @@ TEST_F(DerivedStatsTest, PercentHpSurvivesItsOwnAccumulation) {
   std::map<std::string, Skill> skills = {{"iron_body", iron_body}};
   ASSERT_TRUE(c.LearnSkill(iron_body, 16));
 
-  // 16 levels of +1% sums to a shade under 0.16 in floating point; flooring
-  // that raw would report 57 for what is plainly 50 * 1.16.
+  // 16 levels of +1% sum to slightly under 0.16 in floating point. Flooring
+  // that directly would give 57 for what is really 50 * 1.16.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_hp, 58);
 }
@@ -818,13 +815,13 @@ TEST_F(DerivedStatsTest, AttackSpeedBonusIsFlatRegardlessOfLevel) {
   std::map<std::string, Skill> skills = {{"archery_mastery", mastery}};
   ASSERT_TRUE(c.LearnSkill(mastery, 15));  // maxed
 
-  // The bonus is +1 at every level, so even a maxed skill adds a single stage.
+  // The bonus is +1 at every level, so even a maxed skill adds one stage.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.attack_speed_bonus, 1);
 }
 
-// A skill's stages go to one channel or the other, never both: the cap holds
-// what the weapon and the book come to, and only the second passes it.
+// A skill's stages go to one of two fields, never both. The capped field holds
+// the weapon and book stages, and only the other one can pass the cap.
 TEST_F(DerivedStatsTest, StagesThatPassTheCapAreCountedApart) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill mastery = ArcheryMastery();
@@ -867,9 +864,8 @@ TEST_F(DerivedStatsTest, SkillGrantedStrAndDexLandInTheStatLine) {
   EXPECT_EQ(stats.skill_stats.dex(), 30);
 }
 
-// A skill's STR is worth exactly as much base DEF as an AP-spent point, which
-// is the whole reason the base is computed off the totals rather than the
-// allocation.
+// STR from a skill gives as much base DEF as STR from AP. That is why base DEF
+// is computed from total stats rather than the allocation.
 TEST_F(DerivedStatsTest, SkillGrantedStrBuysBaseDefLikeAnyOtherStr) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill training = PhysicalTraining();
@@ -877,7 +873,7 @@ TEST_F(DerivedStatsTest, SkillGrantedStrBuysBaseDefLikeAnyOtherStr) {
   int bare = DerivedStatsFor(c, skills).def;
   ASSERT_TRUE(c.LearnSkill(training, 5));
 
-  // 30 STR at 1.5 DEF apiece and 30 DEX at 0.4.
+  // 30 STR at 1.5 DEF each and 30 DEX at 0.4.
   EXPECT_EQ(DerivedStatsFor(c, skills).def, bare + 45 + 12);
 }
 
@@ -890,8 +886,8 @@ TEST_F(DerivedStatsTest, WeaponMasteryReachesTheDerivedStats) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.50);  // 10 + 4*10 %
 }
 
-// Two masteries are not twice as steady a swing -- they are the better of the
-// two. Every other lever here sums.
+// Two masteries use the better one, not the sum. Every other lever here adds
+// up.
 TEST_F(DerivedStatsTest, MasteriesTakeTheBestRatherThanTheSum) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill mastery = WeaponMastery();
@@ -911,27 +907,26 @@ TEST_F(DerivedStatsTest, NoMasterySkillKeepsTheBaseline) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);
 }
 
-// The chance and the damage stay apart all the way through, because the fight
-// rolls the one and pays the other.
+// The chance and the damage stay separate throughout, because the fight rolls
+// one and pays the other.
 TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill final_attack = FinalAttack();
   std::map<std::string, Skill> skills = {{"final_attack", final_attack}};
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
 
-  // 40% of an extra hit worth 160%. It names no tag, so every swing sets it
-  // off -- which is what a Final Attack gated on the weapon in hand wants.
+  // A 40% chance of an extra hit worth 160%. It names no tag, so every swing
+  // triggers it, which suits a Final Attack gated on the weapon in hand.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
   EXPECT_NEAR(stats.final_attacks[0].chance, 0.40, 1e-9);
   EXPECT_NEAR(stats.final_attacks[0].damage_pct, 1.60, 1e-9);
   EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
-  // A source that says nothing about its strikes lands one, which is every
-  // source but the rogue's two marks.
+  // A source that doesn't state its hit count lands one hit.
   EXPECT_EQ(stats.final_attacks[0].lines, 1);
 
-  // Three stars for 160% apiece, where the line above is one for 160%. The
-  // damage stays per strike -- the count is what changed.
+  // Three hits at 160% each, where the line above is one at 160%. The damage
+  // stays per hit; only the count changed.
   final_attack.mutable_base()->set_final_attack_lines(3);
   skills["final_attack"] = final_attack;
   stats = DerivedStatsFor(c, skills);
@@ -940,9 +935,9 @@ TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   EXPECT_EQ(stats.final_attacks[0].lines, 3);
 }
 
-// A boost aimed at a passive reaches nothing it swings, because it swings
-// nothing -- but a passive carrying a Final Attack has that extra hit to
-// strengthen, and the Hero's two hypers aim at exactly it.
+// A boost aimed at a passive has no swing to apply to, but a passive with a
+// Final Attack has its extra hit to boost. The Hero's two hypers do exactly
+// this.
 TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
@@ -960,8 +955,9 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
   ASSERT_TRUE(c.LearnSkill(hyper, 1));
 
-  // 40% walks to 55%, and the extra hits alone collect the 10% damage. The
-  // multiplier is untouched: what the boost grants is not the skill's own.
+  // The chance goes from 40% to 55%, and only the extra hits get the 10%
+  // damage. The multiplier doesn't change, because the boost's damage is
+  // separate from the skill's own.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
   EXPECT_NEAR(stats.final_attacks[0].chance, 0.55, 1e-9);
@@ -970,10 +966,10 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
 }
 
-// A buff's boost is its skill's own boost on a clock: it reaches the named
-// skill only in the set built with that buff up. Storm of Arrows is what it
-// exists for -- GMS doubles Magic Arrow's chance under the storm alone, and
-// the doubling is allowed past certainty.
+// A buff's boost is the skill's boost while the buff is up: it reaches the
+// named skill only in stats built with that buff active. Storm of Arrows is the
+// reason it exists. GMS doubles Magic Arrow's chance only during the storm, and
+// the doubling may go past 100%.
 TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
@@ -1001,8 +997,8 @@ TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   EXPECT_NEAR(standing.final_attacks[0].chance, 0.80, 1e-9);
 }
 
-// The other damage a boost can hand a Final Attack: points on the strike's own
-// multiplier, which is GMS's "Night Lord's Mark Damage: +100% points".
+// The other damage a boost can give a Final Attack: points on the hit's own
+// multiplier, like GMS's "Night Lord's Mark Damage: +100% points".
 TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
@@ -1019,14 +1015,14 @@ TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
   ASSERT_TRUE(c.LearnSkill(hyper, 1));
 
-  // 160% becomes 260%, and every strike of the hit lands the whole of it.
+  // 160% becomes 260%, and every hit gets the full amount.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
   EXPECT_NEAR(stats.final_attacks[0].damage_pct, 2.60, 1e-9);
   EXPECT_NEAR(stats.final_attacks[0].damage_bonus_pct, 0.0, 1e-9);
 
-  // Blizzard's shape: a swing carrying a Final Attack of its own. The same
-  // points land on the swing, so the strike must not take them a second time.
+  // Shaped like Blizzard: a swing with its own Final Attack. The same points
+  // already apply to the swing, so the Final Attack must not get them again.
   Skill swung = final_attack;
   swung.set_kind(SKILL_KIND_ATTACK);
   swung.mutable_base()->set_skill_pct(2.00);
@@ -1035,9 +1031,9 @@ TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {
               1e-9);
 }
 
-// A lever can be handed over backwards. Hurricane - Split Attack pays a second
-// arrow for a quarter off what each one lands, and the fold that combines two
-// final damage sources has to carry the minus through rather than clamp it.
+// A boost can also be negative. Hurricane - Split Attack adds a second arrow
+// but cuts each one's damage by a quarter, and combining two final damage
+// sources must keep the negative instead of clamping it.
 TEST_F(DerivedStatsTest, ABoostCanTakeALeverAway) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill hyper;
@@ -1059,8 +1055,8 @@ TEST_F(DerivedStatsTest, ABoostCanTakeALeverAway) {
   EXPECT_NEAR(bonus->second.final_dmg_pct, -0.25, 1e-9);
 }
 
-// A boost naming a skill the character does not hold reaches nothing, and a
-// Final Attack nobody named keeps what it was written with.
+// A boost naming a skill the character doesn't have does nothing, and a Final
+// Attack no boost names keeps its original values.
 TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
@@ -1082,8 +1078,8 @@ TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {
   EXPECT_NEAR(stats.final_attacks[0].chance, 0.40, 1e-9);
 }
 
-// A burn on a PASSIVE follows the character onto every swing; one on the
-// attack that leaves it stays with that attack, where the swing is priced.
+// A burn on a passive applies to every swing the character makes. A burn on an
+// attack stays with that attack, where the swing is priced.
 TEST_F(DerivedStatsTest, OnlyAPassivesBurnFollowsTheCharacter) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill venom;
@@ -1114,9 +1110,9 @@ TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
   EXPECT_TRUE(DerivedStatsFor(c, skills).final_attacks.empty());
 }
 
-// Every Final Attack keeps its own entry, the Hunter's matching pair included:
-// two of them are two independent rolls, and one merged entry would have to
-// settle on a chance and a damage that neither source has.
+// Every Final Attack keeps its own entry, including the Hunter's matching pair.
+// They are two independent rolls, and one merged entry would need a chance and
+// damage that neither source has.
 TEST_F(DerivedStatsTest, EveryFinalAttackKeepsItsOwnEntry) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill first = FinalAttack();
@@ -1142,8 +1138,8 @@ TEST_F(DerivedStatsTest, EveryFinalAttackKeepsItsOwnEntry) {
   EXPECT_EQ(stats.final_attacks[2].required_tag, SKILL_TAG_UNSPECIFIED);
 }
 
-// Advanced Final Attack's shape: it states the WHOLE of the Final Attack it
-// replaces rather than a delta, so the pair must never both pay.
+// Shaped like Advanced Final Attack: it states all of the Final Attack it
+// replaces rather than a difference, so both must never count.
 Skill AdvancedFinalAttack() {
   Skill skill;
   skill.set_name("Advanced Final Attack");
@@ -1165,17 +1161,18 @@ TEST_F(DerivedStatsTest, AnAdvancedSkillStopsTheOneItSupersedes) {
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
   ASSERT_TRUE(c.LearnSkill(advanced, 1));
 
-  // 60% of 5.10 and nothing else: the Fighter's own is gone rather than
-  // joined by a second roll.
+  // 60% of 5.10 and nothing else: the Fighter's own Final Attack is gone rather
+  // than rolled a second time.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
   EXPECT_NEAR(stats.final_attacks[0].chance, 0.60, 1e-9);
   EXPECT_NEAR(stats.final_attacks[0].damage_pct, 5.10, 1e-9);
 }
 
-// Three ways a supersede does not take, each the same rule: a skill granting
-// nothing replaces nothing. Unlearned, another branch's book, or the gear it
-// demands missing -- and the skill it names goes on paying.
+// Three cases where a supersede doesn't apply, all from one rule: a skill that
+// grants nothing replaces nothing. The superseding skill is unlearned, in
+// another branch's book, or missing its gear, and the skill it names keeps
+// working.
 TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
   Skill final_attack = FinalAttack();
   Skill advanced = AdvancedFinalAttack();
@@ -1189,9 +1186,9 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
     if (which != 0) {
       ASSERT_TRUE(c.LearnSkill(advanced, 1));
     }
-    // Learned under this character's own book, then handed to the catalog as
-    // another branch's -- the only way to hold a level in a book you do not
-    // have, and what a shared display name really does.
+    // Learned in this character's own book, then put in the catalog as another
+    // branch's. That is the only way to have a level in a book you don't hold,
+    // and it is what a shared display name really does.
     Skill theirs = advanced;
     if (which == 1) {
       theirs.clear_placement();
@@ -1200,9 +1197,9 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
     std::map<std::string, Skill> skills = {{"final_attack", final_attack},
                                            {"advanced", theirs}};
 
-    // Summed rather than read off one source, so a failing case reports rather
-    // than aborting the two behind it -- and so 3.70 (both paid) and 3.06 (the
-    // wrong one paid) are told apart from the 0.64 that is right.
+    // Summed rather than read from one source, so a failing case reports
+    // instead of aborting the next two. It also distinguishes 3.70 (both
+    // counted) and 3.06 (the wrong one counted) from the correct 0.64.
     double total = 0.0;
     for (const FinalAttackSource& source :
          DerivedStatsFor(c, skills).final_attacks) {
@@ -1214,9 +1211,9 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
 
 // --- Exclusive groups ---
 
-// The Sharp Eyes pair, which is what a group is for: a Decent one that beats
-// three points spent in the real skill and loses to a maxed one, and a stat it
-// pays beside them that no member of the group competes for.
+// The Sharp Eyes pair, the case groups exist for: a Decent version that beats
+// three points in the real skill and loses to a maxed one, plus a stat it
+// grants that no other member of the group gives.
 Skill SharpEyes() {
   Skill skill;
   skill.set_name("Sharp Eyes");
@@ -1252,9 +1249,9 @@ TEST_F(DerivedStatsTest, AGroupPaysItsBestSourceOfEachLever) {
   ASSERT_TRUE(c.LearnSkill(decent, 1));
   ASSERT_TRUE(c.LearnSkill(sharp, 3));
 
-  // The Decent's, the three points in the real skill paying nothing -- and its
-  // LUK stands whichever of the two wins, the group holding no other source
-  // of it.
+  // The Decent's value wins and the three points in the real skill give
+  // nothing. Its LUK applies whichever one wins, since nothing else in the
+  // group grants LUK.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.crit_rate, 0.10, 1e-9);
   EXPECT_EQ(stats.skill_stats.luk(), 6);
@@ -1265,9 +1262,8 @@ TEST_F(DerivedStatsTest, AGroupPaysItsBestSourceOfEachLever) {
   EXPECT_EQ(stats.skill_stats.luk(), 6);
 }
 
-// Two members paying the same amount are one payment, not two -- and a skill
-// in no group goes on summing with everything, which is every other skill in
-// the catalog.
+// Two members giving the same amount count once, not twice. A skill in no group
+// still adds up with everything, as every other skill does.
 TEST_F(DerivedStatsTest, ATiedGroupPaysOnceAndTheUngroupedStillSum) {
   Skill sharp = SharpEyes();
   Skill decent = DecentSharpEyes();
@@ -1298,21 +1294,21 @@ TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {
   ASSERT_TRUE(c.LearnSkill(iron_body, 1));
 
   // The total is what the rest of the game reads: the skill's LUK and the
-  // armor's DEF arrive in the same stat line, indistinguishable by then.
+  // armor's DEF end up in the same stat line, no longer distinguishable.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EquipStats total = TotalEquipStats(c, stats);
   EXPECT_EQ(total.luk(), 5);
-  // 7 worn, 10 from Iron Body. This is DEF as a stat line carries it, which is
-  // not the DEF the character has -- stats.def adds the primary-stat base on
-  // top, and here that is the 2 the skill's own 5 LUK is worth.
+  // 7 worn and 10 from Iron Body. This is DEF as a stat line holds it, which
+  // isn't the character's DEF: stats.def adds the primary-stat base on top,
+  // here the 2 from the skill's 5 LUK.
   EXPECT_EQ(total.def(), 17);
   EXPECT_EQ(stats.def, 19);
 }
 
 // --- base DEF from the primary stats ---
 
-// Every character carries DEF before they wear anything: 1.5 a point of STR,
-// 0.4 a point of DEX and of LUK. A level-1 character in rags is not at zero.
+// Every character has DEF before wearing anything: 1.5 per point of STR, 0.4
+// per point of DEX and LUK. A level-1 character with no gear isn't at zero.
 TEST_F(DerivedStatsTest, PrimaryStatsCarryDefWithNothingWorn) {
   CharacterInstance c = MakeStatCharacter(rng_, 13, 4, 4, 4);
 
@@ -1320,15 +1316,15 @@ TEST_F(DerivedStatsTest, PrimaryStatsCarryDefWithNothingWorn) {
   EXPECT_EQ(DerivedStatsFor(c, {}).def, 22);
 }
 
-// INT buys no DEF at all, which is what separates it from the other three.
+// INT gives no DEF, unlike the other three.
 TEST_F(DerivedStatsTest, IntBuysNoDef) {
   CharacterInstance c = MakeStatCharacter(rng_, 0, 0, 500, 0);
 
   EXPECT_EQ(DerivedStatsFor(c, {}).def, 0);
 }
 
-// STR is worth nearly four times what DEX and LUK are, so the same AP spent
-// three ways does not buy the same bulk.
+// STR gives nearly four times the DEF of DEX or LUK, so the same AP spent on
+// different stats doesn't give the same DEF.
 TEST_F(DerivedStatsTest, StrIsWorthMoreDefThanDexOrLuk) {
   CharacterInstance strong = MakeStatCharacter(rng_, 100, 0, 0, 0);
   CharacterInstance quick = MakeStatCharacter(rng_, 0, 100, 0, 0);
@@ -1339,7 +1335,7 @@ TEST_F(DerivedStatsTest, StrIsWorthMoreDefThanDexOrLuk) {
   EXPECT_EQ(DerivedStatsFor(lucky, {}).def, 40);
 }
 
-// The base stacks with armour rather than replacing it or being replaced.
+// Base DEF adds to armour; neither replaces the other.
 TEST_F(DerivedStatsTest, BaseDefAddsToWornDef) {
   CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
   EquipArmor(c, /*max_hp=*/0, /*def=*/30);
@@ -1347,8 +1343,8 @@ TEST_F(DerivedStatsTest, BaseDefAddsToWornDef) {
   EXPECT_EQ(DerivedStatsFor(c, {}).def, 180);
 }
 
-// A stat granted by gear is worth exactly what an allocated one is, so the
-// formula has to read the total rather than the AP spend.
+// A stat from gear gives exactly as much DEF as an allocated one, so the
+// formula must read the total rather than the AP spent.
 TEST_F(DerivedStatsTest, StatsFromGearBuyDefToo) {
   CharacterInstance allocated = MakeStatCharacter(rng_, 100, 0, 0, 0);
   CharacterInstance worn = MakeStatCharacter(rng_, 0, 0, 0, 0);
@@ -1357,21 +1353,21 @@ TEST_F(DerivedStatsTest, StatsFromGearBuyDefToo) {
   EXPECT_EQ(DerivedStatsFor(worn, {}).def, DerivedStatsFor(allocated, {}).def);
 }
 
-// And so is one granted by a passive. Nimble Body's LUK reaches DEF the same
-// way a ring's would, which is what reading skill_stats back buys.
+// So does a stat from a passive. Nimble Body's LUK counts toward DEF the same
+// way a ring's would, which is why skill_stats is read back in.
 TEST_F(DerivedStatsTest, StatsFromPassivesBuyDefToo) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill nimble = NimbleBody();
   std::map<std::string, Skill> skills = {{"nimble_body", nimble}};
   ASSERT_TRUE(c.LearnSkill(nimble, 20));
 
-  // 20 LUK from the skill, at 0.4 DEF a point.
+  // 20 LUK from the skill, at 0.4 DEF each.
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 8);
 }
 
-// The percentage takes the whole pile -- what the stats buy, what is worn and
-// what a skill grants flat -- and leaves the base half of the pair alone,
-// which is what the stats page reads to show the two.
+// The percentage applies to the whole total (stats, worn gear and flat skill
+// grants) and leaves base DEF alone. The stats page reads base DEF to show both
+// numbers.
 TEST_F(DerivedStatsTest, DefPercentLeavesBaseDefAlone) {
   CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
   EquipArmor(c, /*max_hp=*/0, /*def=*/30);
@@ -1381,7 +1377,7 @@ TEST_F(DerivedStatsTest, DefPercentLeavesBaseDefAlone) {
   std::map<std::string, Skill> skills = {{"iron_body", mastery}};
   ASSERT_TRUE(c.LearnSkill(mastery, 1));
 
-  // 150 from STR, 30 worn, 10 from the skill, half as much again over the lot.
+  // 150 from STR, 30 worn, 10 from the skill, then +50% on the total.
   DerivedStats derived = DerivedStatsFor(c, skills);
   EXPECT_EQ(derived.base_def, 150);
   EXPECT_EQ(derived.def, 285);
@@ -1402,8 +1398,8 @@ TEST_F(DerivedStatsTest, TwoDefPercentsMultiplyRatherThanSum) {
   ASSERT_TRUE(c.LearnSkill(phoenix, 1));
   ASSERT_TRUE(c.LearnSkill(reckless, 1));
 
-  // Summed the pair would be +5% and leave 157 DEF. Multiplied they leave
-  // 1.30 * 0.75 of the 150 the character's STR bought.
+  // Summed, the pair would be +5% and leave 157 DEF. Multiplied, they leave
+  // 1.30 * 0.75 of the 150 from STR.
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 146);
 }
 
@@ -1418,16 +1414,16 @@ TEST_F(DerivedStatsTest, ADefPercentCanTakeDefenceAway) {
   std::map<std::string, Skill> skills = {{"reckless", reckless}};
   ASSERT_TRUE(c.LearnSkill(reckless, 10));
 
-  // Reckless Hunt's whole bargain: a quarter of the armour given up. The base
-  // the percentage is charged against is untouched.
+  // Reckless Hunt's trade: a quarter of the DEF given up. The base the
+  // percentage applies to is unchanged.
   DerivedStats derived = DerivedStatsFor(c, skills);
   EXPECT_EQ(derived.base_def, 150);
   EXPECT_EQ(derived.def, 112);
 }
 
-// Combat Orders as the White Knight's book states it: one level for most of
-// the ladder and two at the top, which is a step the per-level shape can only
-// walk by carrying a fraction.
+// Combat Orders as the White Knight's book states it: one level for most of the
+// ladder and two at the top. The per-level form can only express that step by
+// carrying a fraction.
 Skill CombatOrders() {
   Skill skill;
   skill.set_name("Combat Orders");
@@ -1453,8 +1449,8 @@ TEST_F(DerivedStatsTest, BonusLevelsClimbInWholeStepsAndStopAtTwo) {
   EXPECT_EQ(BonusSkillLevels(c, skills), 2);
 }
 
-// The granted level is real everywhere a skill is read: Iron Body learned to
-// 18 is worth its 20th level with two granted on top.
+// A granted level counts everywhere a skill is read: Iron Body learned to 18,
+// with two levels granted, is worth its level 20.
 TEST_F(DerivedStatsTest, BonusLevelsRaiseWhatAPassiveGrants) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
@@ -1468,9 +1464,9 @@ TEST_F(DerivedStatsTest, BonusLevelsRaiseWhatAPassiveGrants) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 200);
 }
 
-// The 4th job's rule: a skill marked for it takes granted levels PAST its
-// master level, two of them, which is where the levels its own page never
-// describes live. They are worth what the ladder says, like any other level.
+// The 4th job's rule: a skill marked for it can go two granted levels past its
+// master level. Those levels aren't on its skill page, but they are worth what
+// the ladder says, like any other level.
 TEST_F(DerivedStatsTest, BonusLevelsCarryAMarkedSkillPastItsMasterLevel) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
@@ -1489,8 +1485,8 @@ TEST_F(DerivedStatsTest, BonusLevelsCarryAMarkedSkillPastItsMasterLevel) {
       << "two past the master level however many are going";
 }
 
-// The bonus levels a group hands out are one grant too, read where every other
-// skill reads its level rather than through the passive fold.
+// Level bonuses from a group count as one grant too. They are read where every
+// skill reads its level, not in the passive fold.
 TEST_F(DerivedStatsTest, BonusLevelsDoNotStackInsideAGroup) {
   Skill orders = CombatOrders();
   orders.set_exclusive_group("Combat Orders");
@@ -1509,8 +1505,8 @@ TEST_F(DerivedStatsTest, BonusLevelsDoNotStackInsideAGroup) {
   EXPECT_EQ(BonusSkillLevels(c, skills), 2) << "the White Knight's alone";
 }
 
-// The same four rules read off a bare level, which is what the skill page
-// holds when it asks what one more point would buy.
+// The same four rules applied to a bare level, which is what the skill page has
+// when it asks what one more point would give.
 TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
   Skill iron_body = IronBody();
   Skill marked = IronBody();
@@ -1524,8 +1520,8 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
       << "the skill handing out the levels does not take them";
 }
 
-// GMS's Combat Orders leaves beginner, hyper and 5th job skills where they
-// stand. All three have room to climb here, so none is held back by a ceiling.
+// GMS's Combat Orders doesn't raise beginner, hyper or 5th job skills. All
+// three here have room to rise, so none is held back by a cap instead.
 TEST_F(DerivedStatsTest, GrantedLevelsSkipTheBeginnersPageHypersAndVNodes) {
   Skill hyper = IronBody();
   hyper.set_hyper(true);
@@ -1547,8 +1543,8 @@ TEST_F(DerivedStatsTest, GrantedLevelsSkipTheBeginnersPageHypersAndVNodes) {
   EXPECT_EQ(LevelWithBonus(IronBody(), 5, 2), 7) << "and the ordinary skill";
 }
 
-// The account's climb is what pays: every character folds Blessing of the
-// Fairy in, whatever book they hold and with nothing spent on it.
+// The account's progress is what counts: every character gets Blessing of the
+// Fairy, whatever book they hold and without spending anything.
 TEST_F(DerivedStatsTest, ASkillNobodyBuysStillPays) {
   Skill fairy;
   fairy.set_name("Blessing of the Fairy");
@@ -1567,9 +1563,9 @@ TEST_F(DerivedStatsTest, ASkillNobodyBuysStillPays) {
       << "nothing until the account reaches ten";
 }
 
-// Two rules the bonus has to hold at once for a skill NOT marked for the 4th
-// job's: it never carries the skill past its master level, and it never raises
-// the skill handing it out.
+// Two rules for a skill not marked for the 4th job's rule: the bonus never
+// takes it past its master level, and never raises the skill that grants the
+// bonus.
 TEST_F(DerivedStatsTest, BonusLevelsStopAtTheTopAndSkipTheirOwn) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
@@ -1581,12 +1577,11 @@ TEST_F(DerivedStatsTest, BonusLevelsStopAtTheTopAndSkipTheirOwn) {
 
   int bonus = BonusSkillLevels(c, skills);
   EXPECT_EQ(EffectiveSkillLevel(c, iron_body, bonus), 20);
-  // Room to be raised, and still not raised: it is the skill handing out the
-  // levels.
+  // It has room to rise but isn't raised, because it grants the levels.
   EXPECT_EQ(EffectiveSkillLevel(c, orders, bonus), 5);
 }
 
-// A skill nobody has bought is not one the bonus teaches.
+// The bonus doesn't teach a skill nobody learned.
 TEST_F(DerivedStatsTest, BonusLevelsLeaveAnUnlearnedSkillUnlearned) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
@@ -1599,8 +1594,8 @@ TEST_F(DerivedStatsTest, BonusLevelsLeaveAnUnlearnedSkillUnlearned) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 0);
 }
 
-// Another branch's Combat Orders is not this character's, so it hands out
-// nothing -- the same rule that keeps a Page's Weapon Mastery off a Fighter.
+// Another branch's Combat Orders isn't this character's, so it grants nothing.
+// The same rule keeps a Page's Weapon Mastery off a Fighter.
 TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
@@ -1609,8 +1604,8 @@ TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
                                          {"combat_orders", orders}};
   ASSERT_TRUE(c.LearnSkill(iron_body, 18));
   ASSERT_TRUE(c.LearnSkill(orders, 10));
-  // Learned, then moved into a book this swordman does not hold. The level
-  // stays -- it is keyed by display name -- and stops counting.
+  // Learned, then moved into a book this Swordman doesn't hold. The level
+  // stays, since it is keyed by display name, but stops counting.
   skills["combat_orders"].mutable_placement(0)->set_job_advancement(
       JOB_ADVANCEMENT_MAGICIAN);
 
@@ -1618,9 +1613,9 @@ TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 180);
 }
 
-// GMS hangs permanent grants off active skills and marks them "[Passive
-// Effects: ...]" -- Phoenix is a summon that also raises DEF for good. So the
-// kind decides what the skill does in a fight, not whether its levers are read.
+// GMS puts permanent grants on active skills and marks them "[Passive Effects:
+// ...]". Phoenix is a summon that also raises DEF permanently. So a skill's
+// kind decides what it does in a fight, not whether its levers are read.
 TEST_F(DerivedStatsTest, AnAttackSkillsPermanentGrantsStillLand) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill phoenix;
@@ -1637,14 +1632,14 @@ TEST_F(DerivedStatsTest, AnAttackSkillsPermanentGrantsStillLand) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_hp, 55);
   EXPECT_EQ(stats.def, 30);
-  // Its damage is the fight's business and stays out of the stat line.
+  // Its damage belongs to the fight and stays out of the stat line.
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
-// Fighter, Page and Spearman share four skill names between them, and learned
-// levels are keyed by display name -- so one catalog holds several entries
-// answering to a single learned level. Only the character's own book may fold
-// in, or the other branch's copy doubles it.
+// Fighter, Page and Spearman share skill names, and learned levels are keyed by
+// display name, so the catalog has several entries matching one learned level.
+// Only the character's own book may count, or the other branch's copy doubles
+// it.
 TEST_F(DerivedStatsTest, AnotherBranchsCopyOfASharedNameIsIgnored) {
   Character proto;
   proto.set_level(60);
@@ -1661,12 +1656,12 @@ TEST_F(DerivedStatsTest, AnotherBranchsCopyOfASharedNameIsIgnored) {
   std::map<std::string, Skill> skills = {{"spearman_physical_training", mine},
                                          {"fighter_physical_training", theirs}};
 
-  // 30 STR, not 60: the Fighter's entry is a different job's book.
+  // 30 STR, not 60: the Fighter's entry is another job's book.
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
-// And the character's own book still folds in, which is the other half of the
-// same check.
+// The character's own book still counts, which is the other half of the same
+// check.
 TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   Character proto;
   proto.set_level(60);
@@ -1681,8 +1676,8 @@ TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
-// Spirit Blade's two new levers: attack in the same shape a weapon grants it,
-// and the share of a hit that goes back into whatever landed it.
+// Spirit Blade's two levers: attack, in the same form a weapon grants it, and
+// the share of a hit reflected back at the attacker.
 TEST_F(DerivedStatsTest, AttackAndReflectionFoldIn) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill blade;
@@ -1702,8 +1697,8 @@ TEST_F(DerivedStatsTest, AttackAndReflectionFoldIn) {
   EXPECT_DOUBLE_EQ(stats.damage_reflect_pct, 5.0);
 }
 
-// Combo Attack states its attack per orb and how many orbs it hands out. The
-// orbs are taken as full, so what the character carries is the product.
+// Combo Attack states its attack per orb and how many orbs it gives. The orbs
+// are assumed full, so the character gets the product.
 TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill combo;
@@ -1719,11 +1714,10 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
 }
 
-// The skill pricing the orbs is not the skill handing them out, so the count
-// has to reach across the book: Combo Synergy states final damage per orb and
-// Combo Attack alone says there are five. Priced against the ring rather than
-// against nothing, the pair is worth 5 x 5% -- and against the same ring, the
-// attack per orb still lands.
+// The skill that prices the orbs isn't the one that grants them, so the count
+// must come from across the book: Combo Synergy gives final damage per orb, and
+// only Combo Attack says there are five. Priced against that ring, the pair is
+// worth 5 x 5%, and the attack per orb still applies.
 TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill combo;
@@ -1750,10 +1744,10 @@ TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
   EXPECT_NEAR(stats.final_dmg_pct, 0.25, 1e-9);
 }
 
-// A character carries one ring of orbs however many skills describe it, so two
-// skills naming a count leave the larger, not the pair added up. This is the
-// rule that matters when a later skill raises the maximum -- summed, it would
-// stack on the old count instead of replacing it.
+// A character has one ring of orbs however many skills describe it, so two
+// skills stating a count use the larger, not the sum. This matters when a later
+// skill raises the maximum: summing would add to the old count instead of
+// replacing it.
 TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   std::map<std::string, Skill> skills;
@@ -1780,9 +1774,9 @@ TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 16);
 }
 
-// Advanced Combo's whole trick: it widens the ring the Fighter's Combo Attack
-// prices, without replacing the skill doing the pricing. So the ATT per orb
-// goes on being paid, against more orbs than the skill granting it names.
+// Advanced Combo enlarges the ring that the Fighter's Combo Attack prices,
+// without replacing Combo Attack. So the ATT per orb is still paid, against
+// more orbs than the granting skill names.
 TEST_F(DerivedStatsTest, AWiderRingIsStillPricedByTheSkillThatNamedIt) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill combo;
@@ -1803,13 +1797,14 @@ TEST_F(DerivedStatsTest, AWiderRingIsStillPricedByTheSkillThatNamedIt) {
                                          {"advanced_combo", advanced}};
   ASSERT_TRUE(c.LearnSkill(combo, 1));
 
-  // Five orbs at 2 ATT apiece, before Advanced Combo is opened at all.
+  // Five orbs at 2 ATT each, before Advanced Combo is learned.
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
   ASSERT_TRUE(c.LearnSkill(advanced, 20));
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 20);
 }
 
-// The Hero's two: boss damage and DEF, each worth the ring times the bargain.
+// The Hero's two: boss damage and DEF, each worth the orb count times the
+// per-orb value.
 TEST_F(DerivedStatsTest, BossDamageAndDefArePricedPerOrb) {
   CharacterInstance c = MakeCharacter(rng_, 140, 0);
   Skill combo;
@@ -1835,9 +1830,9 @@ TEST_F(DerivedStatsTest, BossDamageAndDefArePricedPerOrb) {
   EXPECT_EQ(stats.skill_stats.def(), 1000);
 }
 
-// Instinctual Combo's gain lifts what the ring is worth rather than adding a
-// bargain of its own, so every lever priced per orb moves at once -- and the
-// flat ones floor, as a whole-number grant does everywhere else.
+// Instinctual Combo's gain raises what the ring is worth rather than adding its
+// own per-orb bonus, so every per-orb lever moves at once. The flat ones are
+// floored, as whole-number grants are everywhere else.
 TEST_F(DerivedStatsTest, AGainLiftsEveryOrbBargainAtOnce) {
   CharacterInstance c = MakeCharacter(rng_, 200, 0);
   Skill combo;
@@ -1875,9 +1870,9 @@ TEST_F(DerivedStatsTest, AGainLiftsEveryOrbBargainAtOnce) {
   EXPECT_EQ(after.skill_stats.def(), 1130);
 }
 
-// Sword Illusion's shape: six orbs' worth of final damage granted beside the
-// ring, reaching that one lever and no other -- and lifted by a gain as the
-// rest of the ring is.
+// Shaped like Sword Illusion: six orbs' worth of final damage added to the
+// ring. They count only for that lever, and a gain raises them like the rest of
+// the ring.
 TEST_F(DerivedStatsTest, LitOrbsPayFinalDamageAndNothingElse) {
   CharacterInstance c = MakeCharacter(rng_, 200, 0);
   Skill combo;
@@ -1907,7 +1902,7 @@ TEST_F(DerivedStatsTest, LitOrbsPayFinalDamageAndNothingElse) {
   EXPECT_EQ(lit.skill_stats.attack(), 20);
   EXPECT_NEAR(lit.boss_pct, 0.20, 1e-9);
 
-  // A gain lifts the six with the ten: 18.08 orbs rather than 16.
+  // A gain raises the six along with the ten: 18.08 orbs rather than 16.
   Skill instinct;
   instinct.set_name("Instinctual Combo");
   instinct.set_kind(SKILL_KIND_PASSIVE);
@@ -1919,8 +1914,8 @@ TEST_F(DerivedStatsTest, LitOrbsPayFinalDamageAndNothingElse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 1.808, 1e-9);
 }
 
-// A ring nobody hands out is no ring: the bargain is priced against nothing
-// and the character is left with the plain final damage they bought.
+// With no orbs, the per-orb bonus is worth nothing, and the character is left
+// with the plain final damage they bought.
 TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill synergy;
@@ -1935,16 +1930,17 @@ TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
 
   EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
 
-  // Nor do orbs lit for their final damage alone, which is GMS's "while Combo
-  // Attack is active" holding without a gate anywhere.
+  // Orbs added only for final damage don't count without a ring either. That
+  // matches GMS's "while Combo Attack is active" without needing a separate
+  // gate.
   synergy.mutable_base()->clear_final_dmg_pct_per_combo_orb();
   synergy.mutable_base()->set_final_dmg_combo_orbs(6);
   skills["combo_synergy"] = synergy;
   EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
 }
 
-// The two damage levers differ only once a second source exists: % damage
-// sums, final damage multiplies. Two skills of 10% each come to 20% and 21%.
+// The two damage levers only differ once there is a second source: % damage
+// adds, final damage multiplies. Two skills of 10% each give 20% and 21%.
 TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   std::map<std::string, Skill> skills;
@@ -1962,12 +1958,12 @@ TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.20);
-  // Not DOUBLE_EQ: 1.1 * 1.1 - 1 lands a few ulps off the 0.21 it means.
+  // Not DOUBLE_EQ: 1.1 * 1.1 - 1 lands a few ulps off 0.21.
   EXPECT_NEAR(stats.final_dmg_pct, 0.21, 1e-9);
 }
 
-// Both levers have to reach the damage chain, and PassiveOffenseFor is the
-// only thing carrying them across.
+// Both levers must reach the damage formula, and only PassiveOffenseFor carries
+// them there.
 TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   DerivedStats stats;
   stats.damage_pct = 0.15;
@@ -1981,8 +1977,8 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   EXPECT_DOUBLE_EQ(passives.ied, 0.25);
 }
 
-// Marksmanship's shape: 6% of the monster's DEF ignored at level 1, climbing a
-// point a level.
+// Shaped like Marksmanship: 6% of the monster's DEF ignored at level 1, plus a
+// point per level.
 Skill Marksmanship() {
   Skill skill;
   skill.set_name("Marksmanship");
@@ -1994,8 +1990,8 @@ Skill Marksmanship() {
   return skill;
 }
 
-// Marksmanship's other half: attack raised by a percentage rather than a
-// count, climbing a point a level from 6%.
+// Marksmanship's other half: attack raised by a percentage rather than a flat
+// amount, from 6% plus a point per level.
 Skill AttackPercent() {
   Skill skill;
   skill.set_name("Marksmanship");
@@ -2028,8 +2024,8 @@ TEST_F(DerivedStatsTest, AttackPercentScalesWornAndGrantedAlike) {
   c.PickUp(std::make_unique<EquipInstance>(bow));
   c.Equip(0);
 
-  // 80 worn and 20 granted make 100, and the 25% lands over the pair of them
-  // rather than over either alone.
+  // 80 worn and 20 granted make 100, and the 25% applies to both together
+  // rather than either alone.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.attack_pct, 0.25, 1e-9);
   EXPECT_EQ(TotalEquipStats(c, stats).attack(), 125);
@@ -2048,12 +2044,12 @@ TEST_F(DerivedStatsTest, AttackPercentScalesMagicAttackToo) {
   c.PickUp(std::make_unique<EquipInstance>(staff));
   c.Equip(0);
 
-  // A magician swings on magic attack, so a percentage of what you swing on
-  // has to reach it too.
+  // A magician uses magic attack, so a percentage of the attacking stat has to
+  // reach it too.
   EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, skills)).magic_attack(), 100);
 }
 
-// Speed Mirage's passive half: a skill that makes ONE other skill hit harder,
+// Speed Mirage's passive half: a skill that makes one other skill hit harder,
 // named rather than tagged.
 Skill SpeedMirage() {
   Skill skill;
@@ -2078,12 +2074,12 @@ TEST_F(DerivedStatsTest, ABoostReachesOnlyTheSkillItNames) {
   ASSERT_EQ(stats.skill_bonus.size(), 1u);
   EXPECT_NEAR(stats.skill_bonus.at("Wind Arrow").skill_pct, 0.70, 1e-9);
   EXPECT_EQ(stats.skill_bonus.count("Piercing Arrow"), 0u);
-  // It is not plain damage: everything else the character swings is untouched.
+  // It isn't plain damage: everything else the character swings is unchanged.
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
-// The other damage a boost can grant: a share of the character's own, which
-// only the named skill collects. See SkillBoost::effect.
+// The other damage a boost can grant: a share of the character's own % damage,
+// which only the named skill gets. See SkillBoost::effect.
 TEST_F(DerivedStatsTest, ABoostsPlainDamageStaysWithItsSkill) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill reinforce = SpeedMirage();
@@ -2102,8 +2098,8 @@ TEST_F(DerivedStatsTest, ABoostsPlainDamageStaysWithItsSkill) {
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
-// A boost node states its damage from level 1 and its extras at 20 and 40, so
-// a gift below its gate is not read at all. See SkillBoost::min_level.
+// A boost node states its damage from level 1 and its extras at 20 and 40, so a
+// bonus below its level isn't read at all. See SkillBoost::min_level.
 TEST_F(DerivedStatsTest, AGatedBoostPaysNothingBelowItsLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill node = SpeedMirage();
@@ -2121,8 +2117,8 @@ TEST_F(DerivedStatsTest, AGatedBoostPaysNothingBelowItsLevel) {
               1e-9);
 }
 
-// A boost aimed at the passive a Final Attack belongs to has no swing to ride,
-// so its levers land on the extra hit -- all of them, not only the damage.
+// A boost aimed at the passive that owns a Final Attack has no swing to apply
+// to, so all its levers go on the extra hit, not only the damage.
 TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackItNames) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill strike;
@@ -2151,7 +2147,7 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackItNames) {
   EXPECT_NEAR(source.crit_rate, 0.05, 1e-9);
   EXPECT_NEAR(source.ied, 0.20, 1e-9);
   EXPECT_NEAR(source.final_dmg_pct, 1.20, 1e-9);
-  // None of it follows the character to their ordinary swings.
+  // None of it applies to the character's ordinary swings.
   EXPECT_DOUBLE_EQ(stats.crit_rate, 0.0);
 }
 
@@ -2160,8 +2156,8 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   Skill first = SpeedMirage();
   Skill second = SpeedMirage();
   second.set_name("Silhouette Mirage");
-  // The lever aimed at the mark the skill leaves sums the same way, and
-  // climbs with the granting skill's level as the one above it does.
+  // The lever aimed at the mark the skill leaves adds up the same way, and
+  // rises with the granting skill's level like the one above.
   for (Skill* skill : {&first, &second}) {
     skill->mutable_boost(0)->set_dot_skill_pct(0.11);
     skill->mutable_boost(0)->set_dot_skill_pct_per_level(0.01);
@@ -2202,13 +2198,13 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
   ASSERT_TRUE(c.LearnSkill(first, 20));
   ASSERT_TRUE(c.LearnSkill(second, 1));
 
-  // 25% and 40% summed would be 65%; what is left of the armour is 0.75 * 0.60.
+  // 25% and 40% summed would be 65%; what remains of the DEF is 0.75 * 0.60.
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
-// Its elemental twin does sum, which is the whole difference between them:
-// GMS applies each to the resistance itself rather than to what the source
-// before it left standing.
+// The elemental version does add up, and that is the whole difference: GMS
+// applies each source to the resistance directly rather than to what the
+// previous source left.
 TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredElementalResistanceSum) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill decrease = Marksmanship();
@@ -2226,12 +2222,11 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredElementalResistanceSum) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ier, 0.20, 1e-9);
 }
 
-// An ATTACK's own ignored defence, boss damage and final damage belong to its
-// swing, so they never reach the character's stat line -- OffenseStatsFor
-// reads them off the skill being swung instead. Gungnir's Descent is the
-// shape: 30% ignored while it lands, nothing at all for the spear thrust after
-// it. Mist Eruption's final damage is the same promise about a different
-// lever.
+// An attack's own ignored defence, boss damage and final damage belong to its
+// swing, so they never reach the character's stat line. OffenseStatsFor reads
+// them from the skill being swung instead. Gungnir's Descent ignores 30% on its
+// own hit and nothing on the spear thrust after it. Mist Eruption's final
+// damage works the same way.
 TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill gungnir = Marksmanship();
@@ -2250,7 +2245,7 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_DOUBLE_EQ(stats.final_dmg_pct, 0.0);
 
   // A skill on its own clock keeps them the same way: Radiant Evil ignores
-  // defence as the eye swings, and the Dark Knight's own swing does not.
+  // defence on the eye's attacks, but the Dark Knight's own swing doesn't.
   Skill clock = gungnir;
   clock.set_kind(SKILL_KIND_AUTO_ATTACK);
   clock.set_cast_interval_seconds(20.0);
@@ -2260,7 +2255,7 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_DOUBLE_EQ(ticking.normal_pct, 0.0);
   EXPECT_DOUBLE_EQ(ticking.final_dmg_pct, 0.0);
 
-  // The same levers on a passive fold in as they always have.
+  // The same levers on a passive are added as usual.
   Skill passive = gungnir;
   passive.set_kind(SKILL_KIND_PASSIVE);
   DerivedStats folded = DerivedStatsFor(c, {{"gungnirs_descent", passive}});
@@ -2270,9 +2265,8 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 
-// Vicious Shot spends whatever critical rate the character ends up with, the
-// base 5% counted and nothing clamped away -- the excess past 100% is the only
-// thing the skill exists to buy.
+// Vicious Shot uses the character's final crit rate, including the base 5% and
+// with nothing capped. The rate past 100% is what the skill exists to use.
 TEST_F(DerivedStatsTest, CriticalDamagePerCriticalRateSpendsTheUncappedRate) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill shot = Marksmanship();
@@ -2287,7 +2281,7 @@ TEST_F(DerivedStatsTest, CriticalDamagePerCriticalRateSpendsTheUncappedRate) {
   EXPECT_NEAR(stats.crit_rate, 0.60, 1e-9);
   EXPECT_NEAR(stats.crit_dmg, 0.50 * 0.65, 1e-9);
 
-  // Past 100% it keeps counting, which is the whole bargain.
+  // Past 100% it keeps counting, which is the point of the skill.
   CharacterInstance rich = MakeCharacter(rng_, 15, 100);
   Skill over = shot;
   over.mutable_base()->set_crit_rate(1.20);
@@ -2296,9 +2290,9 @@ TEST_F(DerivedStatsTest, CriticalDamagePerCriticalRateSpendsTheUncappedRate) {
   EXPECT_NEAR(spent.crit_dmg, 0.50 * 1.25, 1e-9);
 }
 
-// The half an attack states apart is the half it keeps, whatever the lever:
-// Cruel Stab's final damage follows the Shadower onto Assassinate, where the
-// 50% Assassinate states for itself does not follow them back.
+// The part an attack states separately stays with the character, whatever the
+// lever. Cruel Stab's final damage applies to the Shadower's Assassinate, but
+// the 50% Assassinate states for itself doesn't apply to the Shadower.
 TEST_F(DerivedStatsTest, AnAttacksKeptHalfReachesTheStatLine) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill stab = Marksmanship();
@@ -2314,9 +2308,9 @@ TEST_F(DerivedStatsTest, AnAttacksKeptHalfReachesTheStatLine) {
   EXPECT_NEAR(stats.final_dmg_pct, 0.24, 1e-9);
 }
 
-// The two halves together are the whole effect: what one takes the other
-// leaves, and neither invents a lever. The skill page heads them apart, so a
-// lever falling through both cracks would go unstated as well as unpaid.
+// The two halves together are the whole effect: each lever is in exactly one,
+// and neither adds a lever. The skill page lists them separately, so a lever
+// missing from both would be neither shown nor applied.
 TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   SkillEffect effect;
   effect.set_ied_pct(0.40);
@@ -2349,9 +2343,9 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.0);
 }
 
-// Pick Pocket knocks the meso loose and Meso Explosion throws it, so neither
-// is worth anything without the other -- and Meso Mastery's points land on a
-// line of the throw, whichever order the catalog folds the three in.
+// Pick Pocket drops the meso and Meso Explosion throws it, so neither is worth
+// anything without the other. Meso Mastery's points apply to each line of the
+// throw, whatever order the catalog adds the three in.
 TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill pocket;
@@ -2397,24 +2391,24 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   DerivedStats derived = DerivedStatsFor(c, skills);
 
   ASSERT_EQ(derived.final_attacks.size(), 1u);
-  // 30% a line to knock one loose, and one throws two lines of 100% + Meso
-  // Mastery's 20 points.
+  // A 30% chance per line to drop a meso, and each throw is two lines of 100%
+  // plus Meso Mastery's 20 points.
   EXPECT_NEAR(derived.final_attacks[0].chance, 0.30, 1e-9);
   EXPECT_NEAR(derived.final_attacks[0].damage_pct, 2 * 1.20, 1e-9);
   EXPECT_TRUE(derived.final_attacks[0].per_line);
   EXPECT_NEAR(derived.meso_pct, 0.20, 1e-9);
-  // Nothing has branded the coins, so they hit a boss for what the character
-  // does.
+  // Nothing has given the mesos boss damage, so they hit a boss like the
+  // character does.
   EXPECT_NEAR(derived.final_attacks[0].boss_pct, 0.0, 1e-9);
-  // The points GMS pays a coin against anything that is not a boss ride the
-  // count in the same way the damage does: 5 a line, so 10 a meso.
+  // GMS's points against non-boss monsters follow the line count the same way
+  // as the damage: 5 per line, so 10 per meso.
   EXPECT_NEAR(derived.final_attacks[0].normal_skill_pct, 2 * 0.05, 1e-9);
-  // And they stay off the character, who swings no harder at an ordinary
-  // monster for holding the pair.
+  // They don't apply to the character, who hits normal monsters no harder for
+  // having the pair.
   EXPECT_NEAR(derived.damage_pct, 0.0, 1e-9);
 
-  // Blood Money brands them. Its boss damage lands on the throw and not on the
-  // Shadower, so the stat line is untouched.
+  // Blood Money gives them boss damage. It applies to the throw and not the
+  // Shadower, so the stat line is unchanged.
   Skill money;
   money.set_name("Blood Money");
   money.set_kind(SKILL_KIND_PASSIVE);
@@ -2432,8 +2426,8 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   EXPECT_NEAR(branded.final_attacks[0].boss_pct, 0.30, 1e-9);
   EXPECT_NEAR(branded.boss_pct, 0.0, 1e-9);
 
-  // A boost node aims critical rate and final damage at it too, and the coins
-  // are the only place either can land -- Meso Explosion is not a swing.
+  // A boost node also aims crit rate and final damage at it, and the mesos are
+  // the only place either can go, since Meso Explosion isn't a swing.
   Skill node;
   node.set_name("Meso Explosion Boost");
   node.set_kind(SKILL_KIND_PASSIVE);
@@ -2455,13 +2449,12 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   EXPECT_NEAR(boosted.final_attacks[0].final_dmg_pct, 1.80, 1e-9);
   EXPECT_NEAR(boosted.final_attacks[0].crit_rate, 0.05, 1e-9);
   // Neither reaches the character: the node names one skill, and that skill
-  // throws coins rather than swinging.
+  // throws mesos rather than swinging.
   EXPECT_NEAR(boosted.final_dmg_pct, branded.final_dmg_pct, 1e-9);
   EXPECT_NEAR(boosted.crit_rate, branded.crit_rate, 1e-9);
 }
 
-// Boss damage sums across the passives granting it, like plain damage and
-// unlike IED, which each swing keeps to itself.
+// Boss damage adds up across passives, like plain damage and unlike IED.
 TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill spirit;
@@ -2483,8 +2476,8 @@ TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).boss_pct, 0.15, 1e-9);
 }
 
-// Holy Fountain states a pulse and a wait, and both halves move with the
-// level. They reach the fight apart, so it can pour on the clock.
+// Holy Fountain states a pulse and an interval, and both change with level.
+// They reach the fight separately, so it can heal on each tick.
 TEST_F(DerivedStatsTest, AFountainKeepsItsPulseAndItsInterval) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill fountain;
@@ -2511,9 +2504,9 @@ TEST_F(DerivedStatsTest, AFountainKeepsItsPulseAndItsInterval) {
   EXPECT_NEAR(pulses[0].interval_seconds, 3.0, 1e-9);
 }
 
-// Holy Water's shape: the same pulse again for every whole step of INT the
-// character carries, so 2500 doubles it and 5000 trebles it. Charged against
-// the whole of their INT -- what a skill grants counts with what AP bought.
+// Shaped like Holy Water: the same pulse again for every whole step of INT, so
+// 2500 INT doubles it and 5000 triples it. It uses total INT, so INT from
+// skills counts along with AP.
 TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   Skill water;
   water.set_name("Holy Water");
@@ -2539,8 +2532,8 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   ASSERT_EQ(pulses.size(), 1);
   EXPECT_NEAR(pulses[0].pct, 0.05, 1e-9);
 
-  // The helping grows and the clock does not, so a clever character is healed
-  // in bigger pulses rather than more frequent ones.
+  // The pulse grows but the interval doesn't, so a high-INT character heals in
+  // bigger pulses, not more frequent ones.
   CharacterInstance clever = MakeStatCharacter(rng_, 0, 0, 5000, 0);
   ASSERT_TRUE(clever.LearnSkill(water, 10));
   pulses = DerivedStatsFor(clever, skills).regen_pulses;
@@ -2548,8 +2541,8 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   EXPECT_NEAR(pulses[0].pct, 3.0 * 0.05, 1e-9);
   EXPECT_NEAR(pulses[0].interval_seconds, 10.0, 1e-9);
 
-  // The last 1000 points come from a skill rather than from AP, and buy the
-  // same helping: a fold reading the allocation alone would stop at two.
+  // The last 1000 INT comes from a skill rather than AP and gives the same
+  // helping. Reading only the allocation would stop at two.
   CharacterInstance granted = MakeStatCharacter(rng_, 0, 0, 4000, 0);
   ASSERT_TRUE(granted.LearnSkill(water, 10));
   ASSERT_TRUE(granted.LearnSkill(wisdom, 1));
@@ -2558,8 +2551,8 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   EXPECT_NEAR(pulses[0].pct, 3.0 * 0.05, 1e-9);
 }
 
-// A Bishop carries three, on three different clocks. They stay apart rather
-// than summing into one, since no single interval could describe them.
+// A Bishop has three, each on its own clock. They stay separate rather than
+// being summed, since no single interval could describe them.
 TEST_F(DerivedStatsTest, TwoFountainsKeepTheirOwnClocks) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill fountain;
@@ -2587,8 +2580,7 @@ TEST_F(DerivedStatsTest, TwoFountainsKeepTheirOwnClocks) {
   EXPECT_NEAR(pulses[1].interval_seconds, 5.0, 1e-9);
 }
 
-// A fountain with no wait between its pulses says nothing about when to pour,
-// so it grants nothing.
+// A pulse with no interval can't be timed, so it grants nothing.
 TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill fountain;
@@ -2603,9 +2595,8 @@ TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
   EXPECT_TRUE(DerivedStatsFor(c, skills).regen_pulses.empty());
 }
 
-// High Wisdom grants the magician's own stat. It reaches the stat line like
-// any other stat, and buys no DEF -- which is the rule for INT wherever it
-// comes from.
+// High Wisdom grants the magician's own stat. It reaches the stat line like any
+// other stat and gives no DEF, which is the rule for INT from any source.
 TEST_F(DerivedStatsTest, SkillGrantedIntLandsInTheStatLineAndBuysNoDef) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill wisdom;
@@ -2624,9 +2615,9 @@ TEST_F(DerivedStatsTest, SkillGrantedIntLandsInTheStatLineAndBuysNoDef) {
   EXPECT_EQ(stats.def, 0);
 }
 
-// Freezing Crush's pair: critical damage rides beside crit rate, and magic
-// attack lands in the stat line exactly as a staff's would -- which is the
-// only way a magician's skills reach their own damage.
+// Freezing Crush's pair: crit damage is added alongside crit rate, and magic
+// attack goes into the stat line just like a staff's. That is how a magician's
+// skills reach their own damage.
 TEST_F(DerivedStatsTest, MagicAttackAndCritDamageFoldIn) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill crush;
@@ -2647,8 +2638,8 @@ TEST_F(DerivedStatsTest, MagicAttackAndCritDamageFoldIn) {
   EXPECT_EQ(TotalEquipStats(c, stats).magic_attack(), 30);
 }
 
-// Weapon Mastery masters a spear and a polearm alike, but only a spear swings
-// faster for it. The skill keeps working with either; only the bonus lapses.
+// Weapon Mastery gives mastery with both a spear and a polearm, but only the
+// spear gets faster swings. The skill works with either; only the bonus stops.
 TEST_F(DerivedStatsTest, AWeaponBonusLandsOnlyForItsOwnWeapons) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill mastery;
@@ -2680,8 +2671,8 @@ TEST_F(DerivedStatsTest, AWeaponBonusLandsOnlyForItsOwnWeapons) {
   EXPECT_DOUBLE_EQ(spear.damage_pct, 0.05);
 }
 
-// A bonus is flat: it says the same thing at level 1 as at max, so a skill
-// levelled up must not multiply it up with everything else.
+// A weapon bonus is flat: it is the same at level 1 as at max, so levelling the
+// skill must not multiply it.
 TEST_F(DerivedStatsTest, AWeaponBonusDoesNotGrowWithTheSkill) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill mastery;
@@ -2702,8 +2693,8 @@ TEST_F(DerivedStatsTest, AWeaponBonusDoesNotGrowWithTheSkill) {
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.05);
 }
 
-// Final Attack demands a sword or an axe. A learned skill whose weapon is not
-// in hand grants nothing, and grants it all again once it is.
+// Final Attack needs a sword or an axe. A learned skill whose weapon isn't in
+// hand grants nothing, and grants everything again once it is.
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill training = PhysicalTraining();
@@ -2719,9 +2710,9 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
-// The shipped Shield Mastery on a shipped Bandit holding a shipped scabbard.
-// The synthetic case below pins the rule; this pins that the rule reaches the
-// one skill written against it, through the real data on both sides.
+// The real Shield Mastery on a real Bandit holding a real scabbard. The
+// synthetic test below checks the rule; this checks that the rule reaches the
+// skill written for it, using real data on both sides.
 TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   std::map<std::string, Skill> skills = LoadTestData<Skill>("skills");
   std::map<std::string, EquipPrototype> equips =
@@ -2736,9 +2727,9 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   CharacterInstance c(rng_, std::move(proto));
   ASSERT_TRUE(c.LearnSkill(mastery, mastery.max_level()));
 
-  // Learned and holding nothing: the skill grants none of its three levers.
-  // The attack that IS there is Blessing of the Fairy's, which rides every
-  // character -- six points at level 60.
+  // Learned but holding no scabbard: the skill grants none of its three levers.
+  // The attack that is there comes from Blessing of the Fairy, which every
+  // character has: six points at level 60.
   const int kFairyAttack = 6;
   DerivedStats bare = DerivedStatsFor(c, skills);
   EXPECT_EQ(bare.skill_stats.attack(), kFairyAttack);
@@ -2749,22 +2740,21 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
   ASSERT_TRUE(c.has_secondary());
 
-  // GMS's own figures at level 10: +20 attack and 60% of damage turned aside.
+  // GMS's own numbers at level 10: +20 attack and 60% of damage blocked.
   DerivedStats armed = DerivedStatsFor(c, skills);
   EXPECT_EQ(armed.skill_stats.attack(), kFairyAttack + 20);
   EXPECT_DOUBLE_EQ(armed.damage_taken_pct, 0.6);
 
-  // And DEF at 2.1 times what the same character carries without the lever,
-  // which is the only way to ask it of a character wearing real gear.
+  // DEF is 2.1 times the same character's DEF without the lever. That is the
+  // only way to check it on a character wearing real gear.
   std::map<std::string, Skill> without = skills;
   without.at("bandit_shield_mastery").mutable_base()->clear_def_pct();
   without.at("bandit_shield_mastery").mutable_per_level()->clear_def_pct();
   EXPECT_EQ(armed.def, static_cast<int>(DerivedStatsFor(c, without).def * 2.1));
 }
 
-// Shield Mastery asks for a filled off hand rather than a weapon type. The
-// synthetic passive keeps the rule under test on its own, apart from whatever
-// the shipped skill happens to grant.
+// Shield Mastery needs a secondary rather than a weapon type. The synthetic
+// passive tests the rule alone, apart from whatever the real skill grants.
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheSecondaryItNames) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill training = PhysicalTraining();
@@ -2787,8 +2777,8 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheSecondaryItNames) {
 
 // --- Maple Warrior ---
 
-// Maple Warrior's shape: a share of what AP bought, granted back as flat
-// stat. 1% at level 1 climbing to 15% at 30, which is GMS's ceil(L/2)%.
+// Shaped like Maple Warrior: a share of AP-bought stats given back as flat
+// stats. 1% at level 1 up to 15% at 30, which is GMS's ceil(L/2)%.
 Skill MapleWarrior() {
   Skill skill;
   skill.set_name("Maple Warrior");
@@ -2800,8 +2790,8 @@ Skill MapleWarrior() {
   return skill;
 }
 
-// A character who spent AP, and a ring that grants the same stat, so the test
-// can tell what the share is charged against.
+// A character who spent AP, and a ring granting the same stat, so the test can
+// tell what the share applies to.
 CharacterInstance MapleWarriorCharacter(std::mt19937& rng) {
   Character proto;
   proto.set_level(140);
@@ -2819,8 +2809,8 @@ TEST_F(DerivedStatsTest, MapleWarriorGrantsAShareOfWhatApBought) {
   std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
   ASSERT_TRUE(c.LearnSkill(mw, 30));
 
-  // A ring's 500 STR is not part of what AP bought, so the 15% is 150 and not
-  // 225 -- and what the skill grants is a grant like the ring's.
+  // The ring's 500 STR wasn't bought with AP, so 15% is 150 and not 225. What
+  // the skill grants counts like the ring's grant.
   EquipPrototype ring;
   ring.set_name("Ring");
   ring.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -2832,13 +2822,12 @@ TEST_F(DerivedStatsTest, MapleWarriorGrantsAShareOfWhatApBought) {
   EXPECT_EQ(stats.skill_stats.str(), 150);
   EXPECT_EQ(stats.skill_stats.dex(), 15);
   EXPECT_EQ(TotalEquipStats(c, stats).str(), 650);
-  // 1.5 DEF per STR and 0.4 per DEX, over everything the character has.
+  // 1.5 DEF per STR and 0.4 per DEX, over all of the character's stats.
   EXPECT_EQ(stats.base_def, static_cast<int>(1.5 * 1650 + 0.4 * 115));
 }
 
-// The share is rounded down per stat, which is what GMS does with it: 100 DEX
-// at 1% is one point, and 100 at 15% is fifteen rather than a fraction of the
-// pair summed.
+// The share is rounded down per stat, as GMS does: 100 DEX at 1% is one point,
+// and at 15% it is fifteen, not a fraction of the two stats summed.
 TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
   CharacterInstance c = MapleWarriorCharacter(rng_);
   Skill mw = MapleWarrior();
@@ -2848,14 +2837,14 @@ TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.skill_stats.str(), 10);
   EXPECT_EQ(stats.skill_stats.dex(), 1);
-  // Nothing was spent on either of these, so neither grants anything.
+  // Nothing was spent on these, so neither gets anything.
   EXPECT_EQ(stats.skill_stats.int_(), 0);
   EXPECT_EQ(stats.skill_stats.luk(), 0);
 }
 
-// Maple World Goddess's Blessing, whose whole grant is a multiplier on the
-// skill above: GMS's "increases stat bonuses as Maple Warrior by 400%" is a
-// share of 3.00 added to the hundred percent already standing.
+// Maple World Goddess's Blessing, whose only effect multiplies the skill above.
+// GMS's "increases stat bonuses as Maple Warrior by 400%" means adding 3.00 to
+// the existing 100%.
 Skill GoddessBlessing() {
   Skill skill;
   skill.set_name("Maple World Goddess's Blessing");
@@ -2876,20 +2865,20 @@ TEST_F(DerivedStatsTest, GoddessBlessingMultipliesMapleWarriorsShare) {
   ASSERT_TRUE(c.LearnSkill(mw, 30));
   ASSERT_TRUE(c.LearnSkill(blessing, 30));
 
-  // Unraised it pays nothing: 15% of the 1000 STR AP bought.
+  // Without it: 15% of the 1000 STR bought with AP.
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 150);
 
-  // Up, the share is four times over -- 60% -- and the rounding is still per
-  // stat, so 100 DEX comes back as 60.
+  // With it up, the share is four times as big (60%), and still rounded per
+  // stat, so 100 DEX gives 60.
   const BuffUp up[] = {{&blessing}};
   DerivedStats buffed = DerivedStatsFor(c, skills, up);
   EXPECT_EQ(buffed.skill_stats.str(), 600);
   EXPECT_EQ(buffed.skill_stats.dex(), 60);
 }
 
-// The multiplier has nothing of its own to grant. A character who never took
-// Maple Warrior gets four times nothing, which is GMS's "can only be used when
-// you have Maple Warrior" falling out of the arithmetic.
+// The multiplier has nothing of its own to grant. A character without Maple
+// Warrior gets four times nothing, which gives GMS's "can only be used when you
+// have Maple Warrior" for free.
 TEST_F(DerivedStatsTest, GoddessBlessingGrantsNothingWithoutMapleWarrior) {
   CharacterInstance c = MapleWarriorCharacter(rng_);
   Skill blessing = GoddessBlessing();
@@ -2902,7 +2891,7 @@ TEST_F(DerivedStatsTest, GoddessBlessingGrantsNothingWithoutMapleWarrior) {
 
 // --- Hyper Stats ---
 
-// A character at the level cap, with the whole pool to spend.
+// A level-200 character with the whole Hyper Stat pool to spend.
 CharacterInstance HyperStatCharacter(std::mt19937& rng) {
   Character proto;
   proto.set_level(200);
@@ -2923,8 +2912,8 @@ TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ATTACK, farming, 3));
 
   DerivedStats stats = DerivedStatsFor(c, {});
-  // 300 from the Hyper Stat and 30 from the Inner Ability lines every
-  // character past 160 is holding.
+  // 300 from the Hyper Stat and 30 from the Inner Ability lines every character
+  // has from level 160.
   EXPECT_EQ(stats.skill_stats.str(), 330);
   EXPECT_EQ(stats.skill_stats.attack(), 9);
   EXPECT_EQ(stats.skill_stats.magic_attack(), 9)
@@ -2950,8 +2939,8 @@ TEST_F(DerivedStatsTest, HyperDamageLeversSplitBossFromNormal) {
   EXPECT_DOUBLE_EQ(stats.exp_pct, 0.025);
 }
 
-// The four stats are final stat: Maple Warrior takes its share of the
-// allocation and nothing else, so the Hyper Stat's 300 is not lifted by it.
+// The four stats are final stats: Maple Warrior takes its share of the
+// allocation only, so it doesn't raise the Hyper Stat's 300.
 TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
   CharacterInstance c = HyperStatCharacter(rng_);
   Skill mw = MapleWarrior();
@@ -2967,7 +2956,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
 
 // --- Inner Ability ---
 
-// A character holding `lines` in the named preset, at a level that pays them.
+// A character with `lines` in the given preset, at a level where they apply.
 CharacterInstance AbilityCharacter(std::mt19937& rng, AbilityRank rank,
                                    const std::vector<AbilityLine>& lines,
                                    StatPreset preset = StatPreset::kFirst,
@@ -2994,8 +2983,8 @@ AbilityLine Line(AbilityLineType type, AbilityRank rank) {
   return line;
 }
 
-// The lines every character is handed pay +10 all stat apiece, and nothing
-// below the unlock level pays at all.
+// Every character's starting lines give +10 all stats each, and nothing applies
+// below the unlock level.
 TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
   CharacterInstance below = AbilityCharacter(rng_, ABILITY_RANK_RARE, {},
                                              StatPreset::kFirst, /*level=*/159);
@@ -3009,10 +2998,10 @@ TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
   EXPECT_EQ(stats.skill_stats.luk(), 30);
 }
 
-// The switch that lands an ability line has one arm per type and a
-// static_assert to force a look when a type is added -- but an arm that falls
-// through silently pays nothing, and the line still reads correctly on the
-// panel. Every type has to MOVE something.
+// The switch that applies an ability line has one case per type and a
+// static_assert to force a look when a type is added. But a case that falls
+// through gives nothing silently, and the line still looks right on the panel.
+// So every type has to change something.
 TEST_F(DerivedStatsTest, EveryAbilityLineTypePaysSomething) {
   auto fingerprint = [this](AbilityLineType type) {
     std::vector<AbilityLine> lines;
@@ -3103,8 +3092,8 @@ TEST_F(DerivedStatsTest, AbilityBuffDurationAndNormalDamageLand) {
   EXPECT_EQ(stats.skill_stats.attack(), 0);
 }
 
-// All Stats pays every one of the four, which is what makes one line of it
-// worth four of a single stat's.
+// All Stats gives each of the four stats, which is why one line of it is worth
+// four lines of a single stat.
 TEST_F(DerivedStatsTest, AllStatsPaysAllFour) {
   CharacterInstance c = AbilityCharacter(
       rng_, ABILITY_RANK_LEGENDARY,
@@ -3117,8 +3106,8 @@ TEST_F(DerivedStatsTest, AllStatsPaysAllFour) {
   EXPECT_EQ(stats.skill_stats.luk(), 40);
 }
 
-// The stats an ability grants are final stat, exactly as a Hyper Stat's are:
-// Maple Warrior's share is charged against the allocation alone.
+// Ability stats are final stats, just like Hyper Stats: Maple Warrior's share
+// applies to the allocation only.
 TEST_F(DerivedStatsTest, MapleWarriorLeavesTheAbilityAlone) {
   CharacterInstance c =
       AbilityCharacter(rng_, ABILITY_RANK_LEGENDARY,
@@ -3134,7 +3123,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheAbilityAlone) {
 }
 
 // The preset read is the one the caller asks for, the same as the Hyper Stat
-// allocation beside it.
+// allocation.
 TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
   CharacterInstance c = AbilityCharacter(
       rng_, ABILITY_RANK_LEGENDARY,
@@ -3148,7 +3137,7 @@ TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
                    0.20);
 
-  // With the autoswap off, the one in use answers for both.
+  // With autoswap off, the preset in use applies to both.
   c.set_autoswap_presets(false);
   c.SetSlotInUse(PresetKind::kInnerAbility, StatPreset::kSecond);
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.20);
@@ -3166,9 +3155,9 @@ TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
                    0.35);
 }
 
-// With the autoswap off there is no activity to follow: the slot the player
-// put in use answers for the map and the boss alike, and the two kinds are
-// chosen apart.
+// With autoswap off there is no activity to follow: the slot the player
+// selected applies to farming and bossing alike, and each kind is chosen
+// separately.
 TEST_F(DerivedStatsTest, TheSlotInUseAnswersForEveryActivity) {
   CharacterInstance c = HyperStatCharacter(rng_);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
@@ -3182,12 +3171,12 @@ TEST_F(DerivedStatsTest, TheSlotInUseAnswersForEveryActivity) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
                    0.35);
 
-  // And the switch overrules it: the autoswap reads the first two slots.
+  // Turning autoswap on overrides it: autoswap reads the first two slots.
   c.set_autoswap_presets(true);
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
 }
 
-// Arcane Force from the Hyper Stat meets what the symbols carry.
+// Arcane Force from the Hyper Stat adds to what the symbols give.
 TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
   CharacterInstance c = HyperStatCharacter(rng_);
   c.set_autoswap_presets(true);
@@ -3200,8 +3189,8 @@ TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
 
 // --- Final Pact ---
 
-// Final Pact's shape: a wait between revivals that SHORTENS as the skill is
-// levelled, 1103 seconds down to 900 at 30.
+// Shaped like Final Pact: the cooldown between revivals gets shorter with
+// level, from 1103 seconds down to 900 at 30.
 Skill FinalPact() {
   Skill skill;
   skill.set_name("Final Pact");
@@ -3223,8 +3212,8 @@ TEST_F(DerivedStatsTest, APactShortensItsOwnWaitAsItIsLevelled) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 900.0);
 }
 
-// Two pacts are not one long one: what a character wants to know is how soon
-// the next revival comes, so the shorter wait stands.
+// Two revival skills aren't one long one. What matters is how soon the next
+// revival comes, so the shorter cooldown is used.
 TEST_F(DerivedStatsTest, TwoPactsLeaveTheShorterWaitStanding) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill pact = FinalPact();
@@ -3240,9 +3229,9 @@ TEST_F(DerivedStatsTest, TwoPactsLeaveTheShorterWaitStanding) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 300.0);
 }
 
-// The cut sums where the wait itself does not, and is taken off whichever
-// pact is left standing. A character holding only the cut is revived by
-// nothing, so the wait stays at nothing.
+// Cooldown reductions add up, unlike the cooldowns themselves, and come off
+// whichever cooldown is used. A character with only the reduction has no
+// revival, so the cooldown stays at zero.
 TEST_F(DerivedStatsTest, TheReviveCutComesOffTheShortestPact) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill pact = FinalPact();
@@ -3263,8 +3252,8 @@ TEST_F(DerivedStatsTest, TheReviveCutComesOffTheShortestPact) {
 
 // --- timed buffs ---
 
-// Dark Resonance's shape: ignored defence for good, and more of it for a
-// while at a time.
+// Shaped like Dark Resonance: permanent ignored defence, plus more of it while
+// the buff is up.
 Skill DarkResonance() {
   Skill skill;
   skill.set_name("Dark Resonance");
@@ -3283,9 +3272,9 @@ Skill DarkResonance() {
   return skill;
 }
 
-// The whole reason a buff cannot be a multiplier over a finished damage
-// number: what it grants meets what the character already has the way two
-// skills meet, and two sources of ignored defence combine rather than sum.
+// This is why a buff can't be a multiplier on a finished damage number: what it
+// grants combines with what the character has the same way two skills do, and
+// two sources of ignored defence combine multiplicatively rather than adding.
 TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalf) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill resonance = DarkResonance();
@@ -3295,7 +3284,7 @@ TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalf) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 0.30, 1e-9);
   const BuffUp up[] = {{&skills.at("dark_resonance")}};
   DerivedStats buffed = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
-  // 30% and 10%, which leave 63% of the monster's DEF between them.
+  // 30% and 10%, which together leave 63% of the monster's DEF.
   EXPECT_NEAR(buffed.ied, 0.37, 1e-9);
   EXPECT_NEAR(buffed.final_dmg_pct, 0.058, 1e-9);
 }
@@ -3315,9 +3304,8 @@ TEST_F(DerivedStatsTest, OnlyALearnedBuffIsOneTheCharacterCanPutUp) {
   EXPECT_EQ(buffs[0]->name(), "Dark Resonance");
 }
 
-// A node's buff is one the character can put up, the same as a book's. The
-// gate is their matrix rather than an advancement, since a common node names
-// one nobody has.
+// A node's buff can be cast like a book's. It is gated on the character's
+// matrix rather than an advancement, since a common node names none.
 TEST_F(DerivedStatsTest, ANodesBuffIsOneTheCharacterCanPutUp) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill node = DarkResonance();
@@ -3338,8 +3326,8 @@ TEST_F(DerivedStatsTest, ANodesBuffIsOneTheCharacterCanPutUp) {
   EXPECT_EQ(buffs[0]->name(), "Decent Advanced Blessing");
 }
 
-// Drop rate arrives in two currencies -- whole percents on an equip, a
-// fraction on a passive -- and has to come out as one number.
+// Drop rate comes in two units (whole percents on equipment, a fraction on a
+// passive) and must come out as one number.
 TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 10, 0);
@@ -3365,8 +3353,8 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
 }
 
-// Meso arrives in the same two currencies, but the worn half is capped on its
-// own and the granted half is not.
+// Meso comes in the same two units, but the worn part has its own cap and the
+// granted part doesn't.
 TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 10, 0);
@@ -3382,7 +3370,7 @@ TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
   EXPECT_NEAR(worn.equip_meso_pct, 1.50, 1e-9);
   EXPECT_NEAR(MesoBonus(worn), kEquipMesoSoftCap, 1e-9);
 
-  // A skill's share is past the worn cap, not under it.
+  // A skill's share is added past the worn cap, not under it.
   Skill greed;
   greed.set_name("Greed");
   greed.set_kind(SKILL_KIND_PASSIVE);
@@ -3394,14 +3382,14 @@ TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
   ASSERT_TRUE(c.LearnSkill(greed, 10));
   EXPECT_NEAR(MesoBonus(DerivedStatsFor(c, skills)), 1.50, 1e-9);
 
-  // And the hard cap holds whatever the two come to.
+  // The hard cap applies to whatever the two total.
   DerivedStats piled = DerivedStatsFor(c, skills);
   piled.meso_pct = 10.0;
   EXPECT_NEAR(MesoBonus(piled), kMesoHardCap, 1e-9);
 }
 
-// The Wealth Acquisition Potion is three levers at once, and the share it adds
-// sits past the equipment cap rather than under it.
+// The Wealth Acquisition Potion does three things, and the share it adds goes
+// past the equipment cap rather than under it.
 TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, kConsumableUnlockLevel, 0);
@@ -3419,22 +3407,22 @@ TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
 
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   DerivedStats after = DerivedStatsFor(c, {});
-  // Past the cap, not under it: a character already sitting on +100% from
-  // gear earns 2.2 x 1.2 == 2.64 times what a bare one does.
+  // Past the cap, not under it: a character already at +100% from gear earns
+  // 2.2 x 1.2 == 2.64 times what a character with nothing does.
   EXPECT_NEAR(MesoBonus(after), 1.20, 1e-9);
   EXPECT_NEAR(after.meso_final_mult, 1.20, 1e-9);
   EXPECT_NEAR(after.item_drop_pct, 0.20, 1e-9);
 
-  // A boss fight pays none of it: the buff is farming's, and the bossing
-  // preset is what a fight -- and the Boss stats tab -- reads.
+  // It does nothing in a boss fight: the buff is for farming, and a fight and
+  // the Boss stats tab read the bossing preset.
   DerivedStats bossing = DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
   EXPECT_NEAR(MesoBonus(bossing), 1.00, 1e-9);
   EXPECT_NEAR(bossing.meso_final_mult, 1.0, 1e-9);
   EXPECT_NEAR(bossing.item_drop_pct, 0.0, 1e-9);
 }
 
-// The Extreme Green Potion is the mirror of it: a stage in a boss fight, and
-// nothing at all on a map.
+// The Extreme Green Potion is the reverse: an attack speed stage in a boss
+// fight, and nothing on a map.
 TEST_F(DerivedStatsTest, TheGreenPotionIsAStageInABossFightAlone) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 190, 0);
@@ -3448,8 +3436,8 @@ TEST_F(DerivedStatsTest, TheGreenPotionIsAStageInABossFightAlone) {
 
 // --- the party ---
 
-// Bless's shape: what the caster keeps and what they hold over the party are
-// the same thing, which is the common case.
+// Shaped like Bless: the caster and the party get the same thing, which is the
+// common case.
 Skill Bless() {
   Skill skill;
   skill.set_name("Bless");
@@ -3481,17 +3469,17 @@ TEST_F(DerivedStatsTest, AllyGrantReachesOnlyWhoeverLacksTheSkill) {
   EXPECT_EQ(DerivedStatsFor(plain, skills).skill_stats.attack(), 0);
   EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 15);
 
-  // A second caster keeps their own rather than taking both: a buff does not
+  // A second caster keeps their own rather than getting both: a buff doesn't
   // stack with itself.
   CharacterInstance other = MakeCharacter(rng_, 100, 0);
   ASSERT_TRUE(other.LearnSkill(bless, 10));
   EXPECT_EQ(DerivedStatsFor(other, skills, {}, party).skill_stats.attack(), 15);
 }
 
-// Smokescreen's shape: the party half lives inside the BUFF, so it reaches an
-// ally as a window of their own rather than folding in as a passive. What
-// DerivedStatsFor is asked here is the negative -- nothing permanent -- and
-// AllyBuffsFor is what hands the fight the window.
+// Shaped like Smokescreen: the party part is inside the buff, so it reaches an
+// ally as a timed buff of their own rather than as a passive. DerivedStatsFor
+// is checked for the negative here (nothing permanent), and AllyBuffsFor is
+// what gives the fight the buff's uptime.
 Skill Smokescreen() {
   Skill skill;
   skill.set_name("Smokescreen");
@@ -3516,7 +3504,7 @@ TEST_F(DerivedStatsTest, ABuffsPartyHalfIsAWindowRatherThanAPassive) {
   CharacterInstance plain = MakeCharacter(rng_, 100, 0);
   std::vector<CharacterInstance> party = PartyOf(std::move(caster));
 
-  // Nothing permanent, either way round: the caster's own half is a buff too.
+  // Nothing permanent either way: the caster's own part is also a buff.
   EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party).damage_taken_pct,
                    0.0);
   std::vector<AllyGrant> buffs = AllyBuffsFor(plain, skills, party);
@@ -3525,8 +3513,8 @@ TEST_F(DerivedStatsTest, ABuffsPartyHalfIsAWindowRatherThanAPassive) {
   EXPECT_EQ(buffs[0].level, 10);
 }
 
-// An ally's buff folds in through the same door the character's own does, and
-// so can grant anything a buff grants rather than a share off a hit alone.
+// An ally's buff is added the same way as the character's own, so it can grant
+// anything a buff grants, not only damage reduction.
 TEST_F(DerivedStatsTest, APartyBuffGrantsWhateverABuffGrants) {
   Skill blessing = Smokescreen();
   blessing.set_name("Benediction");
@@ -3544,17 +3532,17 @@ TEST_F(DerivedStatsTest, APartyBuffGrantsWhateverABuffGrants) {
 
   std::vector<AllyGrant> raised = AllyBuffsFor(plain, skills, party);
   ASSERT_EQ(raised.size(), 1u);
-  // Down, it pays nothing at all -- a window, not a gift for good.
+  // While down, it gives nothing: it is a timed buff, not a permanent grant.
   EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party).final_dmg_pct,
                    0.0);
-  // Up, the CASTER's level settles it: six points is 5% plus five.
+  // While up, the caster's level decides it: level six is 5% plus five.
   const BuffUp up[] = {{raised[0].skill, raised[0].caster, raised[0].level}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, up, party).final_dmg_pct, 0.10,
               1e-9);
 }
 
-// Benediction's shape: the party's share grows on the CASTER's INT, and is
-// held to what the caster keeps for themselves divided by the party, rounded.
+// Shaped like Benediction: the party's share grows with the caster's INT, and
+// is capped at the caster's own share divided by the party size, rounded.
 TEST_F(DerivedStatsTest, APartyBuffGrowsOnTheCastersIntAndSplitsBetweenThem) {
   Skill blessing = Smokescreen();
   blessing.set_name("Benediction");
@@ -3575,36 +3563,36 @@ TEST_F(DerivedStatsTest, APartyBuffGrowsOnTheCastersIntAndSplitsBetweenThem) {
   CharacterInstance plain = MakeCharacter(rng_, 200, 0);
   std::vector<CharacterInstance> party = PartyOf(std::move(caster));
 
-  // 24,000 INT is eight steps over the 6% floor, which two in the zone take
-  // whole: the ceiling there is half the caster's own 33%, rounded up to 17%.
+  // 24,000 INT is eight steps over the 6% base, which a party of two gets in
+  // full. The cap there is half the caster's own 33%, rounded up to 17%.
   const BuffUp pair[] = {{&skills["benediction"], &party[0], 30, 24000, 2}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, pair, party).final_dmg_pct, 0.14,
               1e-9);
 
-  // Three in the zone, and the same INT is held to a third of it: 33/3 = 11%.
+  // With three in range, the same INT is capped at a third: 33/3 = 11%.
   const BuffUp trio[] = {{&skills["benediction"], &party[0], 30, 24000, 3}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, trio, party).final_dmg_pct, 0.11,
               1e-9);
 
-  // The step counts WHOLE thousands: 2,999 short of the ninth buys nothing.
+  // The steps count whole thousands: 26,999 is still short of the ninth step.
   const BuffUp under[] = {{&skills["benediction"], &party[0], 30, 26999, 2}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, under, party).final_dmg_pct, 0.14,
               1e-9);
 
-  // A Bishop with nothing to their name still pays the floor their level says.
+  // A Bishop with no INT still gives the base their level sets.
   const BuffUp poor[] = {{&skills["benediction"], &party[0], 30, 0, 2}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, poor, party).final_dmg_pct, 0.06,
               1e-9);
 
-  // What that INT is: the allocation, the gear and the book, summed.
+  // That INT is the allocation, gear and skills summed.
   EXPECT_EQ(
       TotalIntFor(party[0], skills),
       party[0].proto().allocated_stats().int_() +
           TotalEquipStats(party[0], DerivedStatsFor(party[0], skills)).int_());
 }
 
-// A lever naming a cap of its own is held to that, whatever the party is: the
-// recovery and the attack speed are the caster's INT alone.
+// A lever with its own cap stops there, whatever the party size: the recovery
+// and attack speed depend only on the caster's INT.
 TEST_F(DerivedStatsTest, ACappedIntLeverStopsAtItsOwnCeiling) {
   Skill blessing = Smokescreen();
   blessing.set_name("Benediction");
@@ -3624,18 +3612,18 @@ TEST_F(DerivedStatsTest, ACappedIntLeverStopsAtItsOwnCeiling) {
   CharacterInstance plain = MakeCharacter(rng_, 200, 0);
   std::vector<CharacterInstance> party = PartyOf(std::move(caster));
 
-  // Four whole steps over the 1% floor, and the ceiling still miles off.
+  // Four whole steps over the 1% base, and still well under the cap.
   const BuffUp mid[] = {{&skills["benediction"], &party[0], 30, 8999, 2}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, mid, party).crit_rate, 0.05, 1e-9);
-  // Past it, and the cap is what stands however much INT is behind it.
+  // Past the cap, it stays at the cap however much INT there is.
   const BuffUp rich[] = {{&skills["benediction"], &party[0], 30, 900000, 2}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, rich, party).crit_rate, 0.10,
               1e-9);
 }
 
-// The two rules that thin a permanent grant thin a buff's window the same
-// way: a Shadower takes nothing from the Shadower beside them, and nobody
-// takes anything from an ally who never learned it.
+// The two rules that filter a permanent grant filter a buff the same way: a
+// Shadower gets nothing from the Shadower beside them, and nobody gets anything
+// from an ally who never learned it.
 TEST_F(DerivedStatsTest, APartyBuffReachesOnlyWhoeverLacksTheSkill) {
   Skill smoke = Smokescreen();
   std::map<std::string, Skill> skills = {{"smokescreen", smoke}};
@@ -3647,15 +3635,15 @@ TEST_F(DerivedStatsTest, APartyBuffReachesOnlyWhoeverLacksTheSkill) {
   std::vector<CharacterInstance> party = PartyOf(std::move(caster));
 
   EXPECT_TRUE(AllyBuffsFor(plain, skills, {}).empty());
-  // An ally who never learned it holds nothing over anybody.
+  // An ally who never learned it gives nothing to anyone.
   EXPECT_TRUE(AllyBuffsFor(plain, skills, PartyOf(MakeCharacter(rng_, 100, 0)))
                   .empty());
   EXPECT_TRUE(AllyBuffsFor(holder, skills, party).empty());
   EXPECT_EQ(AllyBuffsFor(plain, skills, party).size(), 1u);
 }
 
-// Angel Ray's shape: an attack's own recovery leaves with the swing, but the
-// share it hands the party is a passive and has to survive that stripping.
+// Shaped like Angel Ray: an attack's own recovery goes with the swing, but the
+// share it gives the party is a passive and must survive that removal.
 TEST_F(DerivedStatsTest, AnAttacksAllyHalfPaysAsAPassive) {
   Skill ray = Bless();
   ray.set_name("Angel Ray");
@@ -3675,7 +3663,7 @@ TEST_F(DerivedStatsTest, AnAttacksAllyHalfPaysAsAPassive) {
                    0.08);
 }
 
-// Hex of the Evil Eye's shape: the party gets half of what the caster does.
+// Shaped like Hex of the Evil Eye: the party gets half of what the caster does.
 TEST_F(DerivedStatsTest, AllyHalfNeedNotMatchTheCastersOwn) {
   Skill hex = Bless();
   hex.set_name("Hex of the Evil Eye");
@@ -3691,8 +3679,8 @@ TEST_F(DerivedStatsTest, AllyHalfNeedNotMatchTheCastersOwn) {
   EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 3);
 }
 
-// Puncture's shape: what an ally is handed is a lever read against the enemy's
-// own condition, which folds apart from the flat ones and has to make the trip.
+// Shaped like Puncture: an ally gets a lever based on the enemy's condition,
+// which is combined separately from flat levers and must still reach them.
 TEST_F(DerivedStatsTest, AllyHalfCarriesTheEnemysCondition) {
   Skill puncture = Bless();
   puncture.set_name("Puncture");
@@ -3715,8 +3703,8 @@ TEST_F(DerivedStatsTest, AllyHalfCarriesTheEnemysCondition) {
                    0.10);
 }
 
-// Parashock Guard's shape: the caster is paid for shielding somebody, so alone
-// they are paid nothing.
+// Shaped like Parashock Guard: the caster is paid for shielding someone, so
+// alone they get nothing.
 TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
   Skill guard = Bless();
   guard.set_name("Parashock Guard");
@@ -3731,9 +3719,9 @@ TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
             15);
 }
 
-// Divine Echo's other half: the blessing's share is paid for the echo standing
-// on somebody, so alone the buff is worth only the two unconditional shares --
-// and the two multiply rather than sum.
+// Divine Echo's other half: the blessing's share is paid only while the echo is
+// on someone, so alone the buff gives only its two unconditional shares, and
+// those multiply rather than add.
 TEST_F(DerivedStatsTest, ABuffsPartyShareWaitsForCompany) {
   Skill echo = Bless();
   echo.set_name("Divine Echo");
@@ -3755,9 +3743,9 @@ TEST_F(DerivedStatsTest, ABuffsPartyShareWaitsForCompany) {
       2.45 * 1.15 - 1.0);
 }
 
-// Divine Echo's shape: the grant falls on ONE other member, and every reader
-// settles on the same one off the roster's names -- the caster's own excluded,
-// or a Paladin sorting first would echo nobody.
+// Shaped like Divine Echo: the grant goes to one other member, and every client
+// picks the same one from the roster's names. The caster is excluded, or a
+// Paladin whose name sorted first would echo nobody.
 TEST_F(DerivedStatsTest, AGrantReachingOneMemberLandsOnOneName) {
   Skill echo = Bless();
   echo.set_name("Divine Echo");
@@ -3796,8 +3784,8 @@ TEST_F(DerivedStatsTest, AGrantReachingOneMemberLandsOnOneName) {
             15);
 }
 
-// What one ally supersedes, the whole party loses -- a Bishop's Advanced
-// Blessing puts out the Cleric's Bless standing beside it.
+// A skill one ally supersedes is lost for the whole party: a Bishop's Advanced
+// Blessing turns off the Cleric's Bless beside it.
 TEST_F(DerivedStatsTest, AnAllysSupersessionReachesTheWholeParty) {
   Skill bless = Bless();
   Skill advanced = Bless();
@@ -3820,9 +3808,8 @@ TEST_F(DerivedStatsTest, AnAllysSupersessionReachesTheWholeParty) {
       << "the Bishop's alone, the Cleric's put out";
 }
 
-// An ally hands out what their own book left standing: a Bishop's Advanced
-// Blessing rather than the Bless underneath it, however many levels they
-// bought in the older skill.
+// An ally gives what is active in their own book: a Bishop's Advanced Blessing,
+// not the Bless under it, however many levels they put in the older skill.
 TEST_F(DerivedStatsTest, AnAllyHandsOutOnlyWhatTheirOwnBookLeftStanding) {
   Skill bless = Bless();
   Skill advanced = Bless();
@@ -3842,8 +3829,9 @@ TEST_F(DerivedStatsTest, AnAllyHandsOutOnlyWhatTheirOwnBookLeftStanding) {
       << "the Advanced Blessing alone, not both";
 }
 
-// A group is settled over the party too: an archer's Sharp Eyes and the Decent
-// one the character bought are two sources of one lever, wherever they stand.
+// Groups are settled across the party too: an archer's Sharp Eyes and the
+// Decent one the character bought are two sources of one lever, wherever they
+// come from.
 TEST_F(DerivedStatsTest, AnAllysGrantJoinsTheGroupRatherThanAddingToIt) {
   Skill sharp = SharpEyes();
   Skill decent = DecentSharpEyes();
@@ -3862,8 +3850,8 @@ TEST_F(DerivedStatsTest, AnAllysGrantJoinsTheGroupRatherThanAddingToIt) {
 
 // --- Toggle skills ---
 
-// The switch, and the form it raises in Bless's place. Both are written onto
-// the Swordman's book so one character can hold the pair.
+// The toggle, and the form it switches to in place of Bless. Both are put in
+// the Swordman's book so one character can have both.
 Skill Toggle() {
   Skill skill;
   skill.set_name("Righteously Indignant");
@@ -3903,8 +3891,8 @@ TEST_F(ToggleTest, TheSwitchDecidesWhichFormPays) {
       << "and switched on, only the form";
 }
 
-// The grant on the switch itself is not gated on it: GMS marks such a grant
-// "[Passive Effects]", which is permanent once the skill is learned.
+// The toggle's own grant doesn't depend on it being on: GMS marks such a grant
+// "[Passive Effects]", which is permanent once learned.
 TEST_F(ToggleTest, WhatTheSwitchItselfGrantsIsPermanent) {
   std::map<std::string, Skill> skills = {{"toggle", Toggle()}};
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
@@ -3914,8 +3902,8 @@ TEST_F(ToggleTest, WhatTheSwitchItselfGrantsIsPermanent) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.magic_attack(), 50);
 }
 
-// A character who never bought the switch has it off, so every form in the
-// catalog sleeps for them -- and the ally half of one never reaches a party.
+// A character who never learned the toggle has it off, so every form in the
+// catalog is dormant for them, and a form's party part never reaches the party.
 TEST_F(ToggleTest, AFormSleepsForWhoeverLacksTheSwitch) {
   std::map<std::string, Skill> skills = {{"bless", Bless()},
                                          {"form", VengeanceForm()}};
@@ -3924,8 +3912,8 @@ TEST_F(ToggleTest, AFormSleepsForWhoeverLacksTheSwitch) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 15);
 }
 
-// Blessed Ensemble is not a buff: it pays for the company kept, so two allies
-// holding it both pay.
+// Blessed Ensemble isn't a buff: it pays per ally present, so two allies with
+// it both pay.
 TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
   Skill ensemble;
   ensemble.set_name("Blessed Ensemble");
@@ -3949,9 +3937,9 @@ TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
       << "their own pays them nothing; the two beside them pay 20% each";
 }
 
-// A stacking grant answers to neither rule that thins the rest: the Bishop
-// replacing their own Ensemble with Harmony still pays, and so does the Cleric
-// beside them whose Ensemble the Bishop's book never touched.
+// Neither filtering rule applies to a stacking grant. The Bishop who replaced
+// their own Ensemble with Harmony still pays, and so does the Cleric beside
+// them, whose Ensemble the Bishop's book never touched.
 TEST_F(DerivedStatsTest, AStackingGrantIsNotThinnedBySupersession) {
   Skill ensemble;
   ensemble.set_name("Blessed Ensemble");
@@ -3980,7 +3968,7 @@ TEST_F(DerivedStatsTest, AStackingGrantIsNotThinnedBySupersession) {
       << "the Bishop pays once, not twice, and the Cleric still pays";
 }
 
-// Two allies with the same buff are one buff, at the better of the two levels.
+// Two allies with the same buff count as one buff, at the better level.
 TEST_F(DerivedStatsTest, TheBetterOfTwoAlliesGrantsStands) {
   Skill bless = Bless();
   std::map<std::string, Skill> skills = {{"bless", bless}};
@@ -3994,8 +3982,8 @@ TEST_F(DerivedStatsTest, TheBetterOfTwoAlliesGrantsStands) {
   EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 15);
 }
 
-// Combat Orders reaches the party the same way, and the ally's own copy is
-// what sets how many levels they hand out.
+// Combat Orders reaches the party the same way, and the ally's own level in it
+// sets how many levels they give.
 TEST_F(DerivedStatsTest, AnAllysCombatOrdersRaisesTheSkillsItReaches) {
   Skill iron_body = IronBody();
   Skill orders = CombatOrders();
@@ -4020,13 +4008,13 @@ TEST_F(DerivedStatsTest, AnAllysCombatOrdersRaisesTheSkillsItReaches) {
 
 // --- potential ---
 
-// Equips a ring carrying `lines`, all at `rank`, on an item of `item_level`.
+// Equips a ring with `lines`, all at `rank`, on an item of `item_level`.
 void EquipPotentialRing(CharacterInstance& character, int item_level,
                         PotentialRank rank,
                         const std::vector<PotentialLineType>& lines) {
   EquipPrototype ring;
   ring.set_name("Potted Ring");
-  // A slot of its own, so a test can wear a plain stat item beside it.
+  // It gets its own slot, so a test can wear a plain stat item alongside it.
   ring.set_equip_slot(EQUIP_SLOT_HAT);
   ring.set_required_level(item_level);
   Equip state;
@@ -4052,8 +4040,8 @@ TEST(PotentialStatsTest, FlatLinesLandLikeAWornStat) {
   EXPECT_EQ(stats.skill_stats.dex(), 5);
 }
 
-// GMS's rule, and deliberately not Maple Warrior's: a potential's %stat reads
-// the AP pool and everything worn, its own flat lines included.
+// GMS's rule, which differs from Maple Warrior's on purpose: a potential's
+// %stat applies to the AP pool and all worn gear, its own flat lines included.
 TEST(PotentialStatsTest, PercentStatReadsTheApPoolAndTheGear) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
@@ -4065,8 +4053,8 @@ TEST(PotentialStatsTest, PercentStatReadsTheApPoolAndTheGear) {
   EXPECT_EQ(stats.skill_stats.str(), 132);
 }
 
-// The rule [[final-stats]] rests on: a symbol's stat is final, so a %stat
-// line may not multiply it, even though it is worn like anything else.
+// The rule [[final-stats]] relies on: a symbol's stat is final, so a %stat line
+// may not multiply it, even though the symbol is worn like other gear.
 TEST(PotentialStatsTest, PercentStatSkipsWhatASymbolGrants) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
@@ -4089,15 +4077,15 @@ TEST(PotentialStatsTest, AllStatsPercentPaysEveryStat) {
   EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
                      {POTENTIAL_LINE_TYPE_ALL_STATS_PCT});
   DerivedStats stats = DerivedStatsFor(c, {});
-  // All Stats % pays a rank down: 9% at Legendary on a level 100 item.
+  // All Stats % gives one rank lower: 9% at Legendary on a level 100 item.
   EXPECT_EQ(stats.skill_stats.str(), 90);
   EXPECT_EQ(stats.skill_stats.dex(), 90);
   EXPECT_EQ(stats.skill_stats.int_(), 90);
   EXPECT_EQ(stats.skill_stats.luk(), 90);
 }
 
-// The two attacks are apart, which they are nowhere else: a %ATT line on a
-// staff is worth nothing, and a skill granting attack_pct still pays both.
+// The two attacks are separate here and nowhere else: a %ATT line on a staff is
+// worth nothing, but a skill granting attack_pct still gives both.
 TEST(PotentialStatsTest, AttackAndMagicAttackPercentAreSeparate) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
@@ -4121,8 +4109,8 @@ TEST(PotentialStatsTest, TheDamageLeversLandWhereTheirOwnSourcesDo) {
   EXPECT_DOUBLE_EQ(stats.crit_dmg, 0.08);
 }
 
-// Two ignored-defence lines meet in reverse, the way every pair of them does:
-// 35% and 40% leave 39% of the defence standing, not 25%.
+// Two ignored-defence lines combine multiplicatively, like every pair: 35% and
+// 40% leave 39% of the defence, not 25%.
 TEST(PotentialStatsTest, TwoIgnoredDefenceLinesMeetInReverse) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
@@ -4145,10 +4133,10 @@ TEST(PotentialStatsTest, MesoTakesTheWornCapAndDropDoesNot) {
   EXPECT_DOUBLE_EQ(stats.item_drop_pct, 0.20);
 }
 
-// The pile a %stat line multiplies is read back out of the finished stats, so
-// a caller pricing a potential the character is not wearing gets the same
-// answer the fold would give -- and the worn one's own share is taken off
-// first, rather than being multiplied a second time.
+// The total a %stat line multiplies is recovered from the finished stats, so a
+// caller pricing a potential the character isn't wearing gets the same answer
+// the fold would. The worn potential's share is subtracted first, not
+// multiplied again.
 TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
@@ -4159,12 +4147,12 @@ TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
   EXPECT_EQ(stats.potential_stats.str(), 90);
   EXPECT_EQ(PotentialStatGrant(c, stats, c.potential_totals()).str(), 90);
 
-  // A Legendary line on the same item pays 12% of the same 1000, not of 1090.
+  // A Legendary line on the same item gives 12% of the same 1000, not of 1090.
   PotentialTotals better;
   better.str_pct = 0.12;
   EXPECT_EQ(PotentialStatGrant(c, stats, better).str(), 120);
 
-  // Nothing at all takes the whole worn share back off.
+  // An empty potential removes the whole worn share.
   EXPECT_EQ(PotentialStatGrant(c, stats, PotentialTotals()).str(), 0);
 }
 
@@ -4179,8 +4167,8 @@ TEST(PotentialStatsTest, ACooldownLineReachesTheCharacter) {
 }
 
 // Boss damage is worth nothing while farming and normal damage nothing while
-// bossing, so each raises its own mode's combat power and neither raises the
-// other's. Level 200 with a weapon, so there is a number to move at all.
+// bossing, so each raises its own mode's combat power and not the other's.
+// Level 200 with a weapon, so there is something to change.
 TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   std::mt19937 rng(1);
   Character bare;
@@ -4203,13 +4191,13 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   EquipAttackWeapon(c);
 
   int baseline = CharacterCombatPower(nothing, {});
-  // The same ladder either side, so the two modes come out equal -- and both
+  // The same levels on each side, so the two modes come out equal, and both
   // above a character who has spent nothing.
   EXPECT_GT(CharacterCombatPower(c, {}, Activity::kFarming), baseline);
   EXPECT_EQ(CharacterCombatPower(c, {}, Activity::kFarming),
             CharacterCombatPower(c, {}, Activity::kBossing));
 
-  // And the boss ladder buys nothing at all under the farming allocation.
+  // And boss damage gives nothing under the farming allocation.
   Character misplaced;
   misplaced.set_level(200);
   misplaced.set_job(JOB_SWORDMAN);
@@ -4223,10 +4211,9 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   EXPECT_EQ(CharacterCombatPower(boss_only, {}, Activity::kFarming), baseline);
 }
 
-// A caller may name the gear itself, which is what pricing a piece against a
-// preset no activity reads needs. The whole fold follows it -- the stats, the
-// potentials and the weapon in hand alike -- rather than half of it reading
-// the activity's preset instead.
+// A caller may choose the gear preset, which is needed to price a piece against
+// a preset no activity uses. Everything follows that choice (stats, potentials
+// and the weapon in hand) rather than some of it reading the activity's preset.
 TEST(CharacterCombatPowerTest, ReadsTheGearPresetTheCallerNames) {
   std::mt19937 rng(1);
   Character proto;
