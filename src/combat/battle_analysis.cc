@@ -21,7 +21,7 @@ void BattleAnalysis::Reset() {
 
 void BattleAnalysis::Start() {
   if (state_ == AnalysisState::kWaitingToStop) {
-    state_ = AnalysisState::kRunning;  // the stop is taken back
+    state_ = AnalysisState::kRunning;  // cancel the pending stop
     return;
   }
   if (state_ == AnalysisState::kRunning) {
@@ -49,7 +49,7 @@ void BattleAnalysis::Advance(const AnalysisSample& sample) {
       if (!sample.respawned) {
         return;
       }
-      // The beat that starts it is the boundary, not a cycle of its own.
+      // The starting respawn is a boundary, not a cycle.
       state_ = AnalysisState::kRunning;
       break;
     case AnalysisState::kRunning:
@@ -64,8 +64,8 @@ void BattleAnalysis::Advance(const AnalysisSample& sample) {
   kills_ += sample.kills;
   meso_ += sample.meso;
   exp_ += sample.exp;
-  // The tick that closes it still counts: the beat lands at the top of a tick,
-  // and what the rest of that tick paid was earned inside the measurement.
+  // The tick that ends measuring still counts: the respawn happens at the start
+  // of the tick, and the rest of it was earned inside the measurement.
   if (state_ == AnalysisState::kWaitingToStop && sample.respawned) {
     state_ = AnalysisState::kStopped;
   }

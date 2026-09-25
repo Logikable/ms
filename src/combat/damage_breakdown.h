@@ -1,10 +1,10 @@
-/* damage_breakdown.h adds up one player's damage over a boss fight, by skill:
- * the table the fight ends on.
+/* Totals one player's damage over a boss fight by skill, for the table shown
+ * when the fight ends.
  *
- * A row is a skill as the player knows it. A Final Attack and a poison lent by
- * another skill are rows of their own; a boost, a form and a skill's own burn
- * are inside the skill they belong to. The fight decides which is which when
- * it files the line -- see DamageLine::credit.
+ * Each row is a skill as the player knows it. Final Attacks and poisons applied
+ * by another skill get their own rows; boosts, forms and a skill's own burn are
+ * counted under the skill they belong to. The fight decides this when it
+ * records each line (see DamageLine::credit).
  */
 #ifndef MS_SRC_COMBAT_DAMAGE_BREAKDOWN_H_
 #define MS_SRC_COMBAT_DAMAGE_BREAKDOWN_H_
@@ -16,45 +16,46 @@
 
 namespace ms {
 
-// One skill's share of a fight. Uncapped: a line that overkilled counts at
-// what it rolled.
+// One skill's share of a fight. Not capped at the monster's HP: an overkill
+// counts in full.
 struct BreakdownRow {
   std::string skill;
   double damage = 0.0;
-  // Landings, not presses: a hold is a cast per pulse, a burn one per tick.
+  // Number of times the skill landed, not key presses: a held skill counts once
+  // per pulse, a burn once per tick.
   int64_t casts = 0;
-  // Numbers landed, one per monster each line reached.
+  // Damage numbers landed, one per monster per line.
   int64_t lines = 0;
 
-  // The mean line, 0 for a row with none.
+  // Average damage per line, or 0 if there are none.
   double per_line() const;
 };
 
-// One player's rows, as the table at the end of a party's fight lists them.
+// One player's rows in the party's end-of-fight table.
 struct PlayerBreakdown {
   std::string account_id;
-  // Empty for the player at this screen.
+  // Empty for the local player.
   std::string name;
   std::vector<BreakdownRow> rows;
 };
 
-// Everything `rows` add up to.
+// Sum of `rows`' damage.
 double TotalDamage(const std::vector<BreakdownRow>& rows);
-// What `row` is of `total`, as a fraction; 0 against a total of nothing.
+// `row`'s fraction of `total`, or 0 if `total` is 0.
 double DamageShare(const BreakdownRow& row, double total);
-// Heaviest first; rows arriving in name order keep it through a tie.
+// Sorts largest first. Ties keep their existing (name) order.
 void SortHeaviestFirst(std::vector<BreakdownRow>& rows);
-// The party's table: every player's rows, one per skill name however many
-// players used it, heaviest first.
+// The party's combined table: one row per skill name across all players,
+// largest first.
 std::vector<BreakdownRow> MergeBreakdowns(
     const std::vector<PlayerBreakdown>& players);
 
 class DamageBreakdown {
  public:
-  // Files one line. `cast` is the fight's number for the landing it belongs
-  // to, never reused, so a cast is counted the first time its number is seen.
+  // Records one line. `cast` is the fight's unique ID for the landing it
+  // belongs to, so each cast is counted the first time its ID appears.
   void AddLine(const std::string& skill, double damage, int cast);
-  // Seconds the fight ran: the ones cooldowns and buffs tick through.
+  // Adds fight time, in the same seconds that cooldowns and buffs use.
   void AddSeconds(double seconds) {
     seconds_ += seconds;
   }
@@ -65,7 +66,7 @@ class DamageBreakdown {
   double total() const {
     return total_;
   }
-  // Heaviest first; a tie goes by name, so the order never flickers.
+  // Largest first; ties sort by name so the order stays stable.
   std::vector<BreakdownRow> Rows() const;
 
  private:

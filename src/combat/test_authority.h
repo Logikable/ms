@@ -1,7 +1,7 @@
-/* A shared fight a test writes by hand, standing in for the server.
+/* A fake server for tests: a shared fight the test writes by hand.
  *
- * It keeps whatever the run reported so a test can read it back, and hands
- * back whatever the test wrote into `fight_`.
+ * It stores whatever the run reports so the test can check it, and returns
+ * whatever the test put in `fight_`.
  */
 #ifndef MS_SRC_COMBAT_TEST_AUTHORITY_H_
 #define MS_SRC_COMBAT_TEST_AUTHORITY_H_
@@ -48,7 +48,7 @@ class TestAuthority : public FightAuthority {
     return true;
   }
 
-  // What the party's other player just landed on the monster in `slot`.
+  // Adds a hit from the party's other player on the monster in `slot`.
   void OtherLanded(int slot, int64_t damage) {
     SharedLine line;
     line.owner = 1;
@@ -60,8 +60,8 @@ class TestAuthority : public FightAuthority {
 
   SharedFight fight_;
   bool open_ = true;
-  // How many reports arrived, for a test about the beat they go out on
-  // rather than what they carried.
+  // Number of reports received, for tests about report timing rather than
+  // content.
   int reports_ = 0;
   int reported_phase_ = -1;
   int reported_spot_ = -1;

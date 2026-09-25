@@ -92,7 +92,7 @@ void DamageLedger::RecordRolls(const Landing& landing, double damage) {
   if (!recording_) {
     return;
   }
-  // One strike for the whole roll: its lines fell together and are drawn
+  // The whole roll is one hit: its lines landed together and are drawn
   // together.
   int strike = NextStrike(landing.event);
   for (const LineRoll& roll : line_rolls_) {

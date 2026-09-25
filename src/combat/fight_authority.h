@@ -1,13 +1,12 @@
-/* Somebody else deciding how a fight goes.
+/* Interface for letting someone else (the server) control a fight.
  *
- * A boss fought alone decides everything itself: what the monsters have left,
- * which phase is up, and what is on the clock. A boss fought with a party
- * takes all three from the server, which keeps the one roster everybody is
- * hitting. This is what that looks like from the run's side -- it reports what
- * it landed and reads back the fight as the authority has it.
+ * A solo boss fight tracks everything itself: monster HP, the current phase,
+ * and the timer. A party fight takes all three from the server, which keeps the
+ * one set of monsters everyone is hitting. From the run's side, it reports the
+ * damage it dealt and reads back the fight's state.
  *
- * The run still swings for itself either way. Only the roster is shared, so a
- * player's own charge bar never waits on the network.
+ * Each run still simulates its own attacks. Only the monsters are shared, so a
+ * player's charge bar never waits on the network.
  */
 #ifndef MS_SRC_COMBAT_FIGHT_AUTHORITY_H_
 #define MS_SRC_COMBAT_FIGHT_AUTHORITY_H_
@@ -22,8 +21,8 @@
 
 namespace ms {
 
-// Where a run is up to. The three at the end are all ways of being finished,
-// held apart because the screen says a different thing about each.
+// Where a run is. The last three are all finished states, kept separate because
+// the screen shows something different for each.
 enum class BossRunState {
   kCountdown,
   kFighting,
@@ -33,24 +32,24 @@ enum class BossRunState {
   kAborted,
 };
 
-// One line somebody else landed, as this run should draw it.
+// A damage line another player dealt, for this run to draw.
 struct SharedLine {
-  // Which player of the shared fight landed it, as an index into its players.
+  // Which player dealt it, as an index into the fight's players.
   int owner = 0;
-  // Which monster of the phase it fell on, in spawn order. An id is handed
-  // out per client and means nothing across one.
+  // Which monster it hit, by spawn order in the phase. Mob IDs are per client,
+  // so they can't be shared.
   int slot = 0;
   // Shared by every line one attack put on one monster.
   int event = 0;
-  // Which landing of that event it belongs to; the reader flashes through
-  // them. See DamageLine::strike.
+  // Which hit of that event it belongs to; the display flashes through them.
+  // See DamageLine::strike.
   int strike = 0;
   DamageSource source;
   int64_t damage = 0;
   bool crit = false;
 };
 
-// One player of a shared fight.
+// One player in a shared fight.
 struct SharedPlayer {
   std::string account_id;
   std::string name;
@@ -62,52 +61,52 @@ struct SharedPlayer {
   int buff_count = 0;
 };
 
-// One item a clear paid this player. `drop` names what fell; the roll behind
-// it has already happened, so its `per_kill` says nothing here.
+// One item a clear paid this player. `drop` names the item; it has already been
+// rolled, so its `per_kill` doesn't matter here.
 struct SharedAward {
   MobDrop drop;
   int64_t count = 0;
 };
 
-// The fight as its authority has it.
+// The fight's state according to the server.
 struct SharedFight {
   BossRunState state = BossRunState::kCountdown;
   int phase = 0;
   double seconds_left = 0.0;
   double countdown_left = 0.0;
-  // What every monster of the phase has left, one per slot.
+  // Each monster's remaining HP fraction, one per slot.
   std::vector<double> hp_fractions;
   std::vector<SharedPlayer> players;
-  // Which of `players` is at this screen. -1 before the authority has said.
+  // Which entry in `players` is the local player. -1 until the server says.
   int self = -1;
-  // How many were in the fight when it began, which is what a clear is split
-  // by. 0 until it is over.
+  // How many players were in the fight when it started; a clear's reward is
+  // split this many ways. 0 until the fight ends.
   int share_count = 0;
-  // What everybody else has landed since the last read. The player's own
-  // lines are not in here: they drew those as they landed them.
+  // Damage other players dealt since the last fetch. The local player's own
+  // lines aren't included; they were drawn as they landed.
   std::vector<SharedLine> lines;
-  // What a clear paid this player. The AUTHORITY deals the drops, which is
-  // what makes a certain drop certain and a one-off fall to one person.
+  // What a clear paid this player. The server rolls the drops, so a guaranteed
+  // drop is guaranteed and a single drop goes to exactly one player.
   std::vector<SharedAward> awards;
-  // Every player's damage by skill, in the order of `players`. Empty until
-  // the fight is over.
+  // Every player's damage by skill, in `players` order. Empty until the fight
+  // ends.
   std::vector<PlayerBreakdown> breakdowns;
 };
 
-// What one run has to say for itself: what it landed since the last report,
-// where its player is standing, and what they are winding up.
+// What one run reports: damage dealt since the last report, where its player
+// stands, and the attack they are charging.
 struct FightReport {
   // The phase the lines landed in.
   int phase = 0;
-  // Their `owner` means nothing here -- they are all this player's.
+  // `owner` is ignored here; every line is this player's.
   std::vector<SharedLine> lines;
   int spot = 0;
   std::string attack_name;
   double attack_fraction = 0.0;
-  // This player's Item Drop Rate, which a clear rolls its drops against.
+  // This player's item drop rate, used when rolling the clear's drops.
   double item_drop_pct = 0.0;
   int buff_count = 0;
-  // Everything the player has dealt this fight, by skill.
+  // This player's total damage this fight, by skill.
   std::vector<BreakdownRow> breakdown;
 };
 
@@ -115,12 +114,12 @@ class FightAuthority {
  public:
   virtual ~FightAuthority() = default;
 
-  // What this run has landed since the last report, and how its player
-  // stands.
+  // Sends the damage dealt since the last report and the player's current
+  // state.
   virtual void Report(const FightReport& report) = 0;
 
-  // The fight as it stands. False while nothing has arrived, which is where
-  // a run waits rather than deciding anything for itself.
+  // Gets the fight's current state. Returns false if nothing has arrived yet;
+  // the run then waits rather than deciding anything itself.
   virtual bool Fetch(SharedFight& fight) = 0;
 };
 

@@ -1,10 +1,8 @@
-/* damage_ledger.h holds the record of a fight's damage as it lands: what fell
- * on which monster, grouped so that one attack's lines read as one stack of
- * numbers rather than a stack apiece.
+/* Records a fight's damage as it lands: how much hit which monster, grouped so
+ * that one attack's lines show as one stack of numbers.
  *
- * Kept apart from the fight because everything else only writes into it. The
- * fight tells it what landed; nothing about how the fight goes is decided
- * here, and nothing here is read back by the fight.
+ * It is separate from the fight because it is write-only from the fight's side.
+ * Nothing recorded here affects how the fight plays out.
  */
 #ifndef MS_SRC_COMBAT_DAMAGE_LEDGER_H_
 #define MS_SRC_COMBAT_DAMAGE_LEDGER_H_
@@ -17,34 +15,32 @@
 
 namespace ms {
 
-// What did the damage, for a caller drawing it. The character's own SWING is
-// ONE source however many skills they swing; everything else is a source
-// apiece, so a summon's numbers never displace a burn's.
+// What dealt the damage, for display. All of the character's own attacks share
+// one source, whatever the skill. Everything else is its own source, so a
+// summon's numbers never replace a burn's.
 enum class DamageOrigin {
   kSwing,
-  kOwnClock,    // a summon, or a skill on a clock of its own
-  kSwingClock,  // a skill fired by swings landed rather than by seconds
-  kKillClock,   // a skill fired by enemies defeated
-  kSideStrike,  // the strike a swing sets off beside itself
+  kOwnClock,    // a summon, or another skill on its own timer
+  kSwingClock,  // a skill triggered by landed attacks rather than by time
+  kKillClock,   // a skill triggered by kills
+  kSideStrike,  // an extra strike an attack triggers alongside itself
   kBurn,
-  kLoad,  // the load another skill left for this press to spend
+  kLoad,  // a charge another skill stored for this attack to spend
 };
 
 struct DamageSource {
   DamageOrigin origin = DamageOrigin::kSwing;
-  // Which one, where the origin has more than one: which summon, which burn's
-  // slot. 0 for the swing, which is one source.
+  // Which one, when the origin has several: which summon, which burn slot. 0
+  // for the character's attacks.
   int index = 0;
 };
 
-// Two lines from the same source on the same monster belong to the same stack
-// of numbers.
+// Two lines from the same source on the same monster go in the same stack.
 inline bool operator==(const DamageSource& a, const DamageSource& b) {
   return a.origin == b.origin && a.index == b.index;
 }
 
-// So a tally can be kept by source. The order means nothing to a reader; what
-// it is for is a map key.
+// Ordering so DamageSource can be a map key. The order itself means nothing.
 inline bool operator<(const DamageSource& a, const DamageSource& b) {
   if (a.origin != b.origin) {
     return a.origin < b.origin;
@@ -52,29 +48,30 @@ inline bool operator<(const DamageSource& a, const DamageSource& b) {
   return a.index < b.index;
 }
 
-// One landed line, for a caller drawing the fight rather than only stepping
-// it. `event` is shared by every line one attack put on that monster, so an
-// eight-line swing reads as one stack of eight.
+// One damage line, for callers that draw the fight. Every line one attack puts
+// on a monster shares an `event`, so an eight-line attack shows as one stack of
+// eight.
 struct DamageLine {
   int mob_id = 0;
   int event = 0;
-  // Which landing of the event this line belongs to. One roll is one strike,
-  // so twelve slashes file twelve under the one event -- as do a Final Attack
-  // and a lead hit onto the same monster. See DamageStack.
+  // Which hit of the event this line belongs to. Each roll is one hit, so
+  // twelve slashes make twelve hits in one event, as do a Final Attack and the
+  // attack that triggered it on the same monster. See DamageStack.
   int strike = 0;
   DamageSource source;
   double damage = 0.0;
   bool crit = false;
-  // The skill it is filed under in a damage breakdown, as DamageLedger::
-  // credit_name reads it, and the cast it belongs to. Every line of one swing
-  // shares a cast whatever it lands on; a held swing takes one per pulse.
+  // The skill this line is credited to in the damage breakdown (see
+  // DamageLedger::credit_name), and the cast it belongs to. Every line from one
+  // attack shares a cast, whichever monster it hits; a held skill gets a new
+  // cast per pulse.
   int credit = -1;
   int cast = 0;
 };
 
-// Where a landing is filed and what scales it: the monster, the event, what
-// did it, and whatever multiplies it after the roll. Passed even by a fight
-// that is not recording, which files nothing whatever it is handed.
+// Where a landing is recorded and how it is scaled: the monster, the event, the
+// source, and any multiplier applied after the roll. Passed even when not
+// recording; it is then simply ignored.
 struct Landing {
   int mob_id = 0;
   int event = 0;
@@ -84,81 +81,79 @@ struct Landing {
   int cast = 0;
 };
 
-// A ledger that is not recording accepts everything and files nothing, so the
-// fight never has to ask whether anybody is reading.
+// When not recording, the ledger accepts everything and stores nothing, so the
+// fight never needs to check.
 class DamageLedger {
  public:
-  // Opens the step: the lines a caller reads are the ones filed since this.
+  // Starts a step. Callers see only the lines recorded after this.
   void BeginStep(bool recording);
   bool recording() const {
     return recording_;
   }
-  // Every line landed during the step so far, in the order they landed.
+  // Every line recorded this step so far, in order.
   const std::vector<DamageLine>& lines_this_step() const {
     return lines_this_step_;
   }
 
-  // Gives each of the front `hit` of `mobs` its own event, so the lines one
-  // attack puts on one monster group together however many ways it reaches
-  // them, and remembers what is doing the damage. `casts` are numbered from
-  // the landing's own: a hold of five pulses is five casts.
+  // Gives each of the first `hit` of `mobs` its own event, so all of one
+  // attack's lines on a monster group together, and remembers the source.
+  // Numbers `casts` casts starting from this landing: a five-pulse hold is five
+  // casts.
   void OpenLandings(int mobs, int hit, DamageSource source,
                     const std::string& credit, int casts = 1);
-  // Where the landing on the monster at `index` is filed, scaled by `scale`.
-  // The event is the one OpenLandings gave it.
+  // The landing for the monster at `index`, scaled by `scale`, using the event
+  // OpenLandings gave it.
   Landing LandingAt(int mob_id, int index, double scale) const;
-  // An event nothing else shares, for a landing that stands alone. Counted
-  // whether or not anybody is recording, so the numbers mean the same.
+  // A new event for a landing that stands alone. Counted even when not
+  // recording, so event numbers are the same either way.
   int NextEvent() {
     return ++next_event_;
   }
-  // A landing nothing else shares, on an event and a cast of its own: one tick
-  // of a burn.
+  // A landing with its own event and cast, such as one tick of a burn.
   Landing StandAlone(int mob_id, DamageSource source, int credit);
 
-  // The number `skill` is filed under, or -1 when nothing is being recorded.
-  // Numbers are never reused, so one held across steps stays good.
+  // The ID `skill` is credited under, or -1 when not recording. IDs are never
+  // reused, so they stay valid across steps.
   int Credit(const std::string& skill);
   const std::string& credit_name(int credit) const;
-  // Files one line of `damage`, already scaled, against `landing`. One call
-  // is one strike of the landing's event.
+  // Records one line of `damage`, already scaled, against `landing`. Each call
+  // is one hit of the landing's event.
   void RecordLine(const Landing& landing, double damage, bool crit);
-  // Files what the last RollFactor left in the sink as a landing of `damage`,
-  // each line taking its share. One call is one strike.
+  // Records the lines from the last RollFactor as a landing of `damage`, each
+  // line getting its share. Each call is one hit.
   void RecordRolls(const Landing& landing, double damage);
-  // Where a roll should write its per-line shares: the scratch buffer, or
-  // nowhere at all when nobody is reading the record.
+  // Where a roll writes its per-line shares: the scratch buffer, or null when
+  // not recording.
   std::vector<LineRoll>* LineSink();
 
  private:
-  // Whether the lines are being filed at all, from the params.
+  // Whether lines are being recorded at all, from the params.
   bool recording_ = false;
-  // Stamped onto each landing and never reused within a step, which is as long
-  // as anything holds one.
+  // Assigned to each landing and never reused within a step, which is as long
+  // as anything keeps one.
   int next_event_ = 0;
-  // Never reused at all, so a breakdown counting casts can tell a new one by
-  // its number alone.
+  // Never reused at all, so the breakdown can spot a new cast by its ID alone.
   int next_cast_ = 0;
   std::vector<std::string> credit_names_;
   std::map<std::string, int> credit_of_name_;
-  // The event each queued mob's lines are filed under for the landing being
-  // worked out, parallel to the queue, and what is doing the damage.
+  // The event for each queued mob's lines in the current landing, parallel to
+  // the queue, plus the current source.
   std::vector<int> landing_event_;
   DamageSource landing_source_;
   int landing_credit_ = -1;
   int landing_cast_ = 0;
-  // Strikes each event has taken, so the rolls one attack lands on one
-  // monster are told apart. Keyed rather than counted through: an event is
-  // come back to once every other monster is hit.
+  // Hits taken per event, so one attack's rolls on one monster can be told
+  // apart. A map rather than a counter, because an event is revisited after the
+  // other monsters are hit.
   std::map<int, int> strikes_of_event_;
   std::vector<DamageLine> lines_this_step_;
-  // Where RollFactor writes its per-line shares, reused every roll so a
-  // recording fight allocates once rather than once a line.
+  // Buffer RollFactor writes its per-line shares into. Reused every roll, so
+  // recording allocates once instead of once per line.
   std::vector<LineRoll> line_rolls_;
 
-  // The strike number the next roll against `event` takes, and one more taken.
+  // Returns the next hit number for `event` and advances it.
   int NextStrike(int event);
-  // Files one line under a strike already counted.
+  // Records one line under a hit number already taken.
   void FileLine(const Landing& landing, double damage, bool crit, int strike);
 };
 

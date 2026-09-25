@@ -1,21 +1,19 @@
-/* Paying the player for the time the game was closed.
+/* Pays the player for the time the game was closed.
  *
- * The rate is measured, never modelled: a cold CombatSim is stepped through a
- * sample of the absence on the map the player logged off from, and the kills
- * it reports are scaled up to the whole of it. There is one combat engine, so
- * what a returning player is paid cannot drift from what they would have
- * watched.
+ * The rate is measured, not estimated: a fresh CombatSim runs a sample of the
+ * absence on the player's current map, and its kills are scaled up to the full
+ * time. Since it uses the same combat engine, offline pay matches what the
+ * player would have earned watching.
  *
- * Two things are frozen for the whole absence: the character's level and what
- * they had spent. A player who climbs ten levels offline farms all of it at
- * the rate they left at -- the AP, the SP and the level itself only arrive
- * when they come back and see it. Nothing quietly plays the character better
- * than they left them.
+ * The character's level and spent points stay frozen for the whole absence. A
+ * player who gains ten levels offline farms all of it at their starting rate,
+ * and gets the AP and SP when they return. Nothing plays the character better
+ * than they left it.
  *
- * The one approximation is death. A sample cannot prove a map is survivable
- * forever, so a trend is fitted to the pool across it: one draining faster
- * than it swings projects the moment it runs out, and the player is credited
- * to there and sent home. See ApplyOfflineProgress.
+ * Death is the one approximation. A sample can't prove a map is safe forever,
+ * so a trend line is fitted to the player's HP across it. If HP drains faster
+ * than it recovers, the player is paid up to when it would run out and sent
+ * home. See ApplyOfflineProgress.
  */
 #ifndef MS_SRC_COMBAT_OFFLINE_H_
 #define MS_SRC_COMBAT_OFFLINE_H_
@@ -28,45 +26,44 @@
 
 namespace ms {
 
-// The stretch actually stepped before the rest of an absence is scaled from
-// it. Long enough for dozens of respawn beats at the slowest pacing band: one
-// beat is not a sample, it is the best beat the character ever has.
+// How long the sample runs before the rest of the absence is scaled from it.
+// Long enough for dozens of respawns at the slowest game speed, so one lucky
+// respawn doesn't set the rate.
 constexpr double kOfflineSampleSeconds = 600.0;
 
-// How finely that sample is stepped: the live tick, so the fight meets the
-// same step sizes offline that it does in front of the player.
+// Sample step size. Matches the live tick so the fight behaves the same
+// offline.
 constexpr double kOfflineStepSeconds = 0.1;
 
 // What an absence paid, for the pop-up that shows it. `farmed` is false when
-// there was nothing to farm -- no map, no weapon, no mobs -- which is not a
-// failure, just a player who left standing in town.
+// there was nothing to farm (no map, weapon or mobs), such as a player who
+// logged off in town. That is not an error.
 struct OfflineReport {
   bool farmed = false;
-  // How long the game was closed, and how much of it was farmed. The two
-  // differ only where the character fell partway through.
+  // How long the game was closed, and how much of that was farmed. They differ
+  // only if the character died partway through.
   double absence = 0.0;
   double seconds = 0.0;
   int64_t kills = 0;
   int start_level = 0;
   int end_level = 0;
   RewardTally rewards;
-  // Whether the map ran the player out of HP. They are on Maple Island when
-  // they come back, and nothing was farmed after the moment they fell.
+  // Whether the player ran out of HP. They return on Maple Island, and nothing
+  // was farmed after they died.
   bool died = false;
   std::string map_name;
 };
 
-// Seconds away, from a save's stamp to now. Zero for a save written before the
-// stamp existed and for a clock that has gone backwards.
+// Seconds between the save's timestamp and now. Zero for saves from before the
+// timestamp existed, or if the clock went backwards.
 double AbsenceSeconds(int64_t last_seen_unix_seconds, int64_t now_unix_seconds);
 
 // Farms `state`'s map for `seconds` of absence and pays for it.
 //
-// An absence shorter than the sample is stepped in full; past that the
-// sample's kills are scaled to what is left. Three samples are credited only
-// up to the fall and leave the player on Maple Island: one that dies, one
-// draining fast enough to run out before they return, and one that held but
-// came within a twentieth of empty.
+// An absence shorter than the sample is simulated in full. Longer ones scale
+// the sample's kills to the remaining time. The player is paid only up to their
+// death, and sent to Maple Island, if the sample dies, drains HP fast enough to
+// run out before they return, or drops within a tenth of empty.
 OfflineReport ApplyOfflineProgress(GameState& state, double seconds);
 
 }  // namespace ms

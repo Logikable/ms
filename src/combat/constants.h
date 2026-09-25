@@ -1,45 +1,43 @@
-/* Constants shared across the combat module. Anything used by only one file in
- * here belongs in that file's anonymous namespace instead -- this header is for
- * the handful of values several parts of combat must agree on.
+/* Constants that several parts of combat must agree on. A value used by only
+ * one file belongs in that file's anonymous namespace.
  */
 #ifndef MS_SRC_COMBAT_CONSTANTS_H_
 #define MS_SRC_COMBAT_CONSTANTS_H_
 
 namespace ms {
 
-// GMS global respawn tick: every 7.56s the server refills up to one mob per
-// spawn point. A map's full-clear kill cap is its spawn points over this.
+// GMS's global respawn timer: every 7.56s, each spawn point refills with up to
+// one mob. A map's kill rate is capped at its spawn points divided by this.
 constexpr double kRespawnIntervalSeconds = 7.56;
 
-// The pacing knob that used to live here -- how many times slower than GMS the
-// game runs -- is now GameSpeedFactor(level) in src/character/progression.h. It
-// stopped being a constant when it started stretching with the player's level.
+// The game-speed setting (how much slower than GMS the game runs) moved to
+// GameSpeedFactor(level) in src/character/progression.h, since it now scales
+// with level.
 
-// The action-delay quantization grain: GMS rounds attack delays up to whole
-// units of this. Not a simulation tick -- nothing here is stepped by it.
+// GMS rounds attack delays up to a multiple of this. It is not a simulation
+// tick; nothing steps by it.
 constexpr int kTickMs = 30;
 
-// What every character crits at before a skill is bought: GMS's 5% chance and
-// 35% bonus. Both are SHOWN on the stats page rather than folded away, so a
-// skill adding to either adds to a number the player can see.
+// Base crit chance and crit damage for every character, from GMS: 5% and 35%.
+// Both show on the stats page, so skills that raise them change a visible
+// number.
 constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
-// The three traits at the caps every endgame character fills them to: GMS pays
-// Insight in ignored elemental resistance, Ambition in ignored defence and
-// Empathy in buff duration. This game has no traits, so what they come to is
-// carried as a base, as the crit pair above is.
+// The three traits at the maximum every endgame character reaches. In GMS,
+// Insight gives ignore elemental resistance, Ambition gives ignore defense, and
+// Empathy gives buff duration. This game has no traits, so these are base
+// values, like the crit pair above.
 constexpr double kBaseIgnoreElementalResistance = 0.05;  // Insight
 constexpr double kBaseIgnoreDefense = 0.10;              // Ambition
 constexpr double kBaseBuffDuration = 0.10;               // Empathy
 
-// How many timed buffs are modelled at once. Every combination needs a damage
-// table of its own and the count doubles with each buff, but a table is built
-// on first ask and kept in a map, so a raise costs the combinations a fight
-// STANDS in rather than every mask. A book over the cap silently loses the
-// rest, so //src/data_test:skill_test refuses one. This bounds the PARTY's
-// buffs too, which take the bits above the character's own -- and the link
-// skills', which every job may equip on top of its own book.
+// How many timed buffs are modeled at once. Each combination of active buffs
+// needs its own damage table, so the count doubles per buff. Tables are built
+// on demand and cached, so only combinations a fight actually reaches cost
+// anything. Buffs past the cap are silently dropped, so
+// //src/data_test:skill_test rejects any job book over it. Party buffs and link
+// skills count toward the cap too.
 constexpr int kMaxBuffWindows = 15;
 
 }  // namespace ms

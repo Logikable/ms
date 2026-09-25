@@ -1,8 +1,5 @@
-/* The beats a boss fight is paced by.
- *
- * Their own header because both ends of a party fight keep to them: the
- * server counts the party in and holds the gap between phases, and a solo run
- * does the same for itself.
+/* Timing constants for boss fights. They have their own header because both the
+ * server (for party fights) and the client (for solo runs) use them.
  */
 #ifndef MS_SRC_COMBAT_BOSS_TIMING_H_
 #define MS_SRC_COMBAT_BOSS_TIMING_H_
@@ -13,26 +10,23 @@
 
 namespace ms {
 
-// How often a fight is stepped and redrawn, faster than the rest of the game:
-// a charge bar and the numbers a swing leaves are both wasted at a frame the
-// swing fits inside. kTickMs because every swing is a whole number of them, so
-// a frame this wide never splits one.
+// How often a boss fight is stepped and redrawn. Faster than the rest of the
+// game, since charge bars and damage numbers would be lost at a slower frame
+// rate. Every attack takes a whole number of kTickMs, so a frame never splits
+// one.
 inline constexpr std::chrono::milliseconds kBossFightStep(kTickMs);
 
-// How often a fight crosses the wire both ways. Ten times a second -- a bar
-// and a damage number are watched, not aimed at -- and faster is work nobody
-// sees, the other end not looking until its own beat. A client's screen still
-// runs at kBossFightStep; this is what it says out loud.
+// How often fight state is sent over the network: ten times a second is enough
+// for bars and damage numbers, and the other side only reads it on its own
+// timer. The client still redraws every kBossFightStep.
 inline constexpr std::chrono::milliseconds kFightPublishInterval(100);
 
-// The pause before the fight starts, so the player can see what they are up
-// against before anything moves.
+// The pause before the fight starts, so the player can see the boss first.
 inline constexpr double kBossCountdownSeconds = 3.0;
-// The beat between a phase ending and the next arriving.
+// The pause between one phase ending and the next starting.
 inline constexpr double kBossPhaseGapSeconds = 2.0;
-// How long a finished fight is held before the screen goes back. An abort
-// takes no hold at all: the player asked to leave, and there is nothing left
-// on screen for them to watch.
+// How long a finished fight stays on screen before returning. Aborting skips
+// this, since the player chose to leave.
 inline constexpr double kBossEndHoldSeconds = 1.0;
 
 }  // namespace ms

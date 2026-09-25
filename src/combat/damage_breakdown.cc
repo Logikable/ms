@@ -36,9 +36,9 @@ void DamageBreakdown::AddLine(const std::string& skill, double damage,
   tally.row.skill = skill;
   tally.row.damage += damage;
   ++tally.row.lines;
-  // A cast's lines on a second monster come after a later cast's on the
-  // first -- a hold files every pulse on one before the next -- so only a
-  // number past every one seen is new.
+  // A cast's lines on a second monster can arrive after a later cast's lines on
+  // the first (a held skill records every pulse on one monster before the
+  // next), so only an ID higher than any seen so far is a new cast.
   if (cast > tally.highest_cast) {
     tally.highest_cast = cast;
     ++tally.row.casts;

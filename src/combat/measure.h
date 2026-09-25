@@ -1,12 +1,12 @@
-/* Measuring a character instead of playing them: what they take off a crowd
- * per second, and which of their swings did it.
+/* Measures a character's damage per second against a crowd, and which attacks
+ * dealt it, instead of playing a real fight.
  *
- * A sim comparing two builds cannot use a fight. A fight empties the map and
- * then measures the respawn beat, its rolls put noise between two answers that
- * differ by less than the noise, and it ends. So the fight is asked the
- * question a different way -- monsters that never fall, rolls that land their
- * mean, and a horizon instead of a clear. That is all CombatParams::measuring
- * does, and it is why nothing here re-implements a single combat rule.
+ * A real fight is a poor way to compare two builds: it clears the map and then
+ * only measures the respawn rate, its random rolls add more noise than the
+ * difference being measured, and it ends. So measurement mode changes the fight
+ * instead: monsters never die, rolls always land their average, and the run
+ * lasts a fixed time. CombatParams::measuring does exactly that, so no combat
+ * rule is reimplemented here.
  */
 #ifndef MS_SRC_COMBAT_MEASURE_H_
 #define MS_SRC_COMBAT_MEASURE_H_
@@ -20,46 +20,43 @@
 
 namespace ms {
 
-// The HP to stand a measurement's monster up with. Its monsters never fall, so
-// all its HP decides is how long a hold is worth holding -- and one stood up
-// with its real HP is let go the moment it would have died, reading a fraction
-// of what the skill is worth.
+// HP for a measured monster. Measured monsters never die, so HP only matters
+// for held skills, which stop when their target would have died. A monster with
+// its real HP would cut them short and undercount them.
 inline constexpr int64_t kMeasuredMobHp = 1'000'000'000'000'000;
 
-// What a measured run came to.
+// The result of a measured run.
 struct Sequence {
-  // Everything that landed and how long it ran for. The rate is one over the
-  // other, summons and burns included, so nothing is added afterwards.
+  // Total damage and run length. Damage includes summons and burns, so the rate
+  // is simply one divided by the other.
   double damage = 0.0;
   double seconds = 0.0;
-  int main_attack = -1;  // index of the one swung most often, -1 for none
-  // What each of params.attacks came to, a burn credited to the swing that lit
-  // it. Sums with own_clock_damage to `damage`.
+  int main_attack = -1;  // the most-used attack, or -1 for none
+  // Damage per entry in params.attacks, with burns credited to the attack that
+  // applied them. Adds up to `damage` together with own_clock_damage.
   std::vector<AttackTally> by_attack;
-  // What everything on a clock of its own came to: the summons, the releases
-  // clocked by swings or by defeats, and what a reflection put back.
+  // Damage from everything on its own timer: summons, skills triggered by
+  // attacks or kills, and reflected damage.
   double own_clock_damage = 0.0;
-  // The same total by source, named and heaviest first. A summon's clock is
-  // what makes a branch's damage hard to read off its swings.
+  // The same total by source, largest first. Summons make a job's damage hard
+  // to read from its attacks alone.
   std::vector<std::pair<std::string, double>> own_clock_by_source;
-  // Share of the run each of the character's buffs spent standing, parallel to
-  // CombatParams::buffs.
+  // Fraction of the run each buff was active, parallel to CombatParams::buffs.
   std::vector<double> buff_uptime;
 };
 
-// Plays `params` out for `horizon` seconds against `enemies` monsters of its
-// first type, and reports what landed.
+// Runs `params` for `horizon` seconds against `enemies` monsters of its first
+// type, and reports the damage dealt.
 //
-// `horizon` is in the STRETCHED clock every duration in CombatParams is
-// written in -- GameSpeedFactor times the game's own. At level 230 that factor
-// is 10, so a two-minute cooldown reads 1200 and a shorter horizon is a burst
-// window with every buff up throughout. A caller working in game seconds must
-// multiply by GameSpeedFactor first.
+// `horizon` uses the stretched clock that all CombatParams durations use: game
+// seconds times GameSpeedFactor. At level 230 that factor is 10, so a
+// two-minute cooldown is 1200, and a shorter horizon measures a burst window
+// with every buff up. Callers working in game seconds must multiply by
+// GameSpeedFactor.
 //
-// No closed form can answer this once a cooldown exists: what a skill is worth
-// depends on what is swung while it recharges. A buff worth 25% standing for
-// half the run is not worth 12.5% of every swing, it is worth all of it to
-// half of them.
+// This has to be simulated because cooldowns interact: a skill's value depends
+// on what else is used while it recharges. A 25% buff active half the time
+// isn't worth 12.5% on every attack; it's worth 25% on half of them.
 Sequence MeasureFight(const CombatParams& params, double horizon,
                       int enemies = 1);
 

@@ -1,9 +1,8 @@
-/* One line of a drop table, read against the catalogs: what it is called, and
- * whether it is the prize the fight was walked into for.
+/* Looks up a drop table entry in the item catalogs: its display name, and
+ * whether it is a prize.
  *
- * A MobDrop names a catalog key and a rate and nothing else, so every question
- * about what it actually is comes back here. Paying one out is combat.h's
- * GrantDrop; this side only reads.
+ * A MobDrop holds only a catalog key and a rate, so this file answers what it
+ * actually is. Paying it out is GrantDrop in combat.h.
  */
 #ifndef MS_SRC_COMBAT_DROP_H_
 #define MS_SRC_COMBAT_DROP_H_
@@ -15,17 +14,13 @@
 
 namespace ms {
 
-// The name the player knows a drop by, or empty for one neither catalog has
-// heard of. The drop names a catalog key; what is shown is the prototype's own
-// name.
+// The drop's display name, or empty if neither catalog knows it.
 std::string DropName(const GameState& state, const MobDrop& drop);
 
-// Whether a drop is what the player came for: a piece of gear, or the token a
-// shop trades for one. Everything else -- the soul shard and its like -- is
-// what a clear pays whoever cleared it.
+// Whether a drop is a prize: gear, or a token a shop trades for gear.
+// Everything else, such as soul shards, is a regular clear reward.
 //
-// The reward lists rule the two apart, so a prize is never read out of the
-// middle of the numbers above it.
+// Reward lists show prizes separately, so they don't get lost among the rest.
 bool DropIsPrize(const GameState& state, const MobDrop& drop);
 
 }  // namespace ms

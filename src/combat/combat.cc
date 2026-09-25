@@ -25,12 +25,12 @@
 namespace ms {
 namespace {
 
-// The most units handed to the bag in one call. GrantDrop counts in int64
-// because an offline stretch can outgrow an int; the bag cannot.
+// Largest count handed to the bag in one call. GrantDrop takes an int64 because
+// offline progress can exceed an int, but the bag takes an int.
 constexpr int64_t kStackChunk = 1000000;
 
-// Adds `count` of `name` to the tally, of which `discarded` were thrown away.
-// One line per item however many mob types dropped it.
+// Adds `count` of `name` to the tally, `discarded` of which were thrown away.
+// Keeps one entry per item, even when several mob types drop it.
 void TallyItem(RewardTally& tally, const std::string& name, int64_t count,
                int64_t discarded) {
   for (RewardItem& item : tally.items) {
@@ -52,8 +52,8 @@ int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
     if (it == state.equips.end()) {
       return 0;
     }
-    // One at a time: every copy is its own item with its own slots and stars,
-    // and a full equip tab stops the rest of them.
+    // Add equips one at a time: each copy is its own item with its own slots
+    // and stars, and a full equip tab stops the rest.
     for (int64_t i = 0; i < count; ++i) {
       if (!state.character.PickUp(
               std::make_unique<EquipInstance>(it->second))) {
@@ -73,7 +73,7 @@ int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
     int took = state.character.AddItem(it->second, chunk);
     added += took;
     if (took < chunk) {
-      return added;  // the tab is full; the rest is lost
+      return added;  // the bag is full; the rest is lost
     }
     count -= chunk;
   }
@@ -90,12 +90,12 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       continue;
     }
     const Mob& mob = *params.types[i].mob;
-    // A boss pays out of its own table, not its level band: its EXP and meso
-    // are the fight's, paid once for the clear, so a body is worth neither.
+    // Bosses pay EXP and meso once per clear, from their own table, so a boss
+    // kill here pays neither.
     if (!mob.boss()) {
       exp_gained += kills[i] * mob.exp();
-      // The bonus multiplies the purse rather than each drop: a share of a
-      // sum is the share of its parts.
+      // Applying the meso bonus to the total is the same as applying it to each
+      // drop.
       int64_t meso = static_cast<int64_t>(
           RollMeso(mob, kills[i], params.item_drop_pct, state.rng) *
           (1.0 + params.meso_pct) * params.meso_final_mult);
@@ -103,16 +103,15 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
         character.AddMeso(meso);
         tally.meso += meso;
       }
-      // Honor is the monster's own and nothing multiplies it -- neither the
-      // meso bonus, which buys nothing here, nor drop rate.
+      // Nothing multiplies honor: not meso bonus, not drop rate.
       int64_t honor = RollMobHonor(kills[i], state.rng);
       if (honor > 0) {
         character.AddHonor(honor);
         tally.honor += honor;
       }
-      // V Points are a drop, so drop rate lifts them -- and only Arcane River
-      // monsters carry any. A character short of the 5th advancement banks
-      // them against the matrix they have yet to open.
+      // V Points count as a drop, so drop rate raises them. Only Arcane River
+      // mobs drop them. A character without the 5th job advancement still banks
+      // them.
       if (params.pays_v_points) {
         int64_t points =
             RollMobVPoints(kills[i], params.item_drop_pct, state.rng);
@@ -123,8 +122,8 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       }
     }
     for (const MobDrop& drop : mob.drops()) {
-      // Drop rate raises the rate itself, uncapped unlike the meso chance:
-      // RollDrops reads a rate past one as a drop plus a chance at another.
+      // Drop rate is uncapped here, unlike the meso chance. RollDrops treats a
+      // rate above 1 as a guaranteed drop plus a chance at another.
       int64_t dropped = RollDrops(
           drop.per_kill() * (1.0 + params.item_drop_pct), kills[i], state.rng);
       if (dropped <= 0) {
@@ -138,8 +137,8 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     }
   }
   if (exp_gained > 0) {
-    // The EXP passives land here rather than in the fight: what they buy is
-    // the climb, not the swing. Truncated, as every other reward is.
+    // EXP bonuses apply here, not in the fight, since they don't affect damage.
+    // Truncated like every other reward.
     tally.exp = static_cast<int64_t>(exp_gained * (1.0 + params.exp_pct)) *
                 state.exp_multiplier;
     AwardExp(state, tally.exp);
@@ -157,16 +156,15 @@ RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
   sim.Advance(params, elapsed_seconds);
   RewardTally tally =
       AwardCombatRewards(state, params, sim.view().kills_this_step);
-  // Charged for the seconds FARMED alone, after the kills are paid, so a
-  // second's farming can cover a second's rent.
+  // Charge potions only for seconds spent farming, and after paying for kills,
+  // so a second of farming can pay for itself.
   if (params.active) {
     tally.consumable_cost =
         state.character.ChargeFarmingConsumables(elapsed_seconds);
   }
   if (sim.view().died_this_step) {
-    // Dying costs the trip home and nothing else; the kills banked above
-    // happened. Moving the map is all it takes to be whole, the fight healing
-    // whoever arrives somewhere new.
+    // Dying sends the character home but keeps the kills paid above. Changing
+    // maps is enough to recover: the fight heals whoever arrives on a new map.
     state.current_map = kHomeMap;
   }
   return tally;

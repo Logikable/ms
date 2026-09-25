@@ -12,27 +12,26 @@
 namespace ms {
 namespace {
 
-// Never advance by less than this. Nothing in a fight is this short; it is
-// here so a clock reading zero cannot stall the loop.
+// Minimum step size. Nothing in a fight is this short; it only prevents a timer
+// at zero from stalling the loop.
 constexpr double kLeastStep = 1e-6;
 
-// The params a measurement wants: one kind of monster, as many as the question
-// asks, and nothing hitting back. One kind because every damage table is read
-// off the type a swing lands on; type 0 is the caller's own first, so a boss
-// is measured against the part the fight opens on.
+// Turns `params` into a measurement: one monster type, `enemies` of them, and
+// nothing hitting back. Only one type because damage tables are per type. Type
+// 0 is the caller's first, so a boss is measured against its opening phase.
 CombatParams AsMeasurement(const CombatParams& params, int enemies) {
   CombatParams measured = params;
   measured.measuring = true;
   measured.record_damage_lines = false;
-  // What is asked is the rate, not whether the character lives through it.
+  // We want the damage rate, not whether the character survives.
   measured.hit_seconds = 0.0;
   measured.types.resize(1);
   measured.types[0].simultaneous = std::max(1, enemies);
   return measured;
 }
 
-// What an own-clock source is called, out of the list its origin indexes into.
-// A side strike and a load are the swing's skill striking again.
+// Display name for a damage source on its own timer, looked up in the list its
+// origin indexes. Side strikes and loads reuse the attack's own skill name.
 std::string SourceName(const CombatParams& params, const DamageSource& source) {
   auto named = [&](const std::vector<AttackOption>& list,
                    const char* suffix) -> std::string {
@@ -43,7 +42,7 @@ std::string SourceName(const CombatParams& params, const DamageSource& source) {
   };
   switch (source.origin) {
     case DamageOrigin::kOwnClock:
-      // Index -1 is the reflection, which no cast stands behind.
+      // Index -1 is reflected damage, which has no skill behind it.
       return source.index < 0 ? "(reflected)" : named(params.auto_attacks, "");
     case DamageOrigin::kSwingClock:
       return named(params.triggered_attacks, "");
@@ -54,8 +53,8 @@ std::string SourceName(const CombatParams& params, const DamageSource& source) {
     case DamageOrigin::kLoad:
       return named(params.attacks, " (load)");
     case DamageOrigin::kBurn:
-      // A burn is credited to the swing that lit it wherever one lit it, so
-      // only the ones an own clock left ever reach here.
+      // Burns are credited to the attack that applied them, so only burns from
+      // own-timer sources reach here.
       return "(burn)";
     case DamageOrigin::kSwing:
       break;
@@ -76,20 +75,20 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   CombatParams measured = AsMeasurement(params, enemies);
 
   CombatSim sim;
-  // Fills the queue, aims the first swing and raises what stands from the
-  // off: the step below is sized to a swing that does not exist until now.
+  // Advance by zero first to fill the queue, pick the first target and apply
+  // opening buffs; the step size below depends on that first attack.
   sim.Advance(measured, 0.0);
   for (double elapsed = 0.0; elapsed < horizon;) {
-    // Straight to the next thing that can change what a swing is worth, rather
-    // than a hundred steps of winding clocks between one swing and the next.
+    // Jump straight to the next event that can change damage, instead of many
+    // small steps between attacks.
     double step =
         std::min(std::max(sim.SecondsToNextEvent(measured), kLeastStep),
                  horizon - elapsed);
     sim.Advance(measured, step);
     elapsed += step;
     played.seconds = elapsed;
-    // Read after the step, the buffs having been run at the top of it: a step
-    // ends on every edge one of them has, so none of it is spent half up.
+    // Buffs update at the start of each step, and steps end at every buff edge,
+    // so a buff is either up or down for the whole step.
     int mask = sim.buff_mask();
     for (int i = 0; i < static_cast<int>(played.buff_uptime.size()); ++i) {
       if ((mask >> i) & 1) {

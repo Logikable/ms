@@ -12,17 +12,17 @@ namespace {
 // Chance a mob drops meso on death before any drop rate is added.
 constexpr double kBaseMesoDropChance = 0.60;
 
-// How far either side of the mean the multiplier is drawn. Every GMS band is
-// its mean plus or minus a fifth, so one spread covers the table.
+// How far from the average the multiplier can land. Every GMS band is its
+// average plus or minus 20%.
 constexpr double kMesoSpread = 0.2;
 
-// What a Heroic world multiplies every meso drop by. GMS hands it out as a
-// Novice passive: a world with no trading buys with meso what an Interactive
-// world buys for cash. We have no trading either.
+// Heroic worlds multiply every meso drop by this. GMS gives it as a beginner
+// passive because Heroic worlds have no trading and buy with meso what other
+// worlds buy with cash. We have no trading either.
 constexpr double kHeroicMesoMultiplier = 6.0;
 
-// Mean of the meso multiplier k for the mob's level band; the drop is
-// mob_level * k. Bounds are the midpoints of the GMS per-band ranges.
+// Average meso multiplier for the mob's level band; a drop is mob_level times
+// this. Values are the midpoints of GMS's per-band ranges.
 double MeanMesoMultiplier(int mob_level) {
   if (mob_level <= 20) {
     return 2.0;
@@ -56,8 +56,7 @@ double MesoDropChance(double item_drop_pct) {
 
 double MeanMesoPerDrop(const Mob& mob) {
   int mob_level = mob.level();
-  // A level-1 mob drops a flat 1 meso; all higher levels scale by the band
-  // mean.
+  // A level-1 mob drops 1 meso; higher levels scale by the band average.
   double base_amount =
       mob_level <= 1 ? 1.0 : mob_level * MeanMesoMultiplier(mob_level);
   return kHeroicMesoMultiplier * base_amount;
@@ -71,8 +70,8 @@ int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
   if (!std::isfinite(per_kill) || per_kill <= 0.0 || kills <= 0) {
     return 0;
   }
-  // A rate above one is a drop every kill plus a chance at another, so the
-  // whole part is paid outright and only the remainder is a coin to flip.
+  // A rate above 1 drops every kill plus a chance at another, so pay the whole
+  // part outright and roll only the remainder.
   double whole = std::floor(per_kill);
   int64_t dropped = static_cast<int64_t>(whole) * kills;
   double chance = per_kill - whole;
@@ -90,7 +89,7 @@ double BossDropRate(const MobDrop& drop, double item_drop_pct) {
   }
   bool lifts = std::isfinite(item_drop_pct) && item_drop_pct > 0.0;
   if (!drop.has_equip()) {
-    // A stackable: the rate buys copies, so the whole rate is multiplied.
+    // Stackable items get more copies, so the whole rate is multiplied.
     return lifts ? per_kill * (1.0 + item_drop_pct) : per_kill;
   }
   double whole = std::floor(per_kill);
@@ -106,21 +105,21 @@ int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
   if (kills <= 0) {
     return 0;
   }
-  // The drop chance is one roll over the batch: which of these kills paid at
-  // all is not a question anything downstream asks.
+  // Roll the drop chance once for the whole batch; nothing needs to know which
+  // kills paid.
   std::binomial_distribution<int64_t> paying(kills,
                                              MesoDropChance(item_drop_pct));
   int64_t drops = paying(rng);
   int mob_level = mob.level();
   if (mob_level <= 1) {
-    // A flat 1 meso each before the world rate.
+    // 1 meso per drop, before the world multiplier.
     return static_cast<int64_t>(drops * kHeroicMesoMultiplier);
   }
   double mean = MeanMesoMultiplier(mob_level);
   std::uniform_real_distribution<double> multiplier(mean * (1.0 - kMesoSpread),
                                                     mean * (1.0 + kMesoSpread));
-  // Rolled one drop at a time, because each drop is its own amount. A tick
-  // pays for a few dozen kills and a sim's longest step for a few hundred.
+  // Roll each drop separately, since each has its own amount. A tick covers a
+  // few dozen kills and a sim's longest step a few hundred, so this is cheap.
   int64_t total = 0;
   for (int64_t i = 0; i < drops; ++i) {
     total += std::llround(mob_level * multiplier(rng) * kHeroicMesoMultiplier);
