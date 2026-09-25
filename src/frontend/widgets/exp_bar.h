@@ -1,8 +1,8 @@
-/* The bar across the foot of a character's screen: how far into their level
- * they are, as a fraction and a figure.
+/* The bar along the bottom of a character's screen: progress through the
+ * current level, as a fraction and a number.
  *
- * Here rather than on the main view because the Inspect screen draws one for
- * a party member, and a member's bar has to mean what the player's does.
+ * It lives here rather than in the main view because the Inspect screen draws
+ * one for a party member, and it must mean the same thing as the player's.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_EXP_BAR_H_
 #define MS_SRC_FRONTEND_WIDGETS_EXP_BAR_H_
@@ -12,9 +12,8 @@
 
 namespace ms {
 
-// A one-row bar for `character`. At the cap it reads MAX and sits full: there
-// is no next level to fill towards, and an empty bar would read as the EXP
-// having been taken away.
+// A one-row bar for `character`. At the level cap it reads MAX and is full:
+// there is no next level, and an empty bar would look like EXP had been lost.
 ftxui::Element ExpBar(const Character& character);
 
 }  // namespace ms

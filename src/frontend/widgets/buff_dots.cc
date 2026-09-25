@@ -7,7 +7,7 @@
 namespace ms {
 namespace {
 
-// The dots one glyph holds, indexed by how many.
+// The dot glyphs, indexed by how many dots each holds.
 const char* const kGlyphs[] = {"", "·", ":", "⁝", "⁞"};
 
 struct Cell {
@@ -15,9 +15,10 @@ struct Cell {
   int col = 0;
 };
 
-// Where one side's glyphs may go, edge first: a column in from the border and
-// a column apart, on the rows the name leaves empty before the rows it is on.
-// `limit(row)` is how far in from the edge that row lets a glyph stand.
+// Where one side's glyphs can go, starting at the edge: one column in from the
+// border, one column apart, first on rows the name leaves empty and then on the
+// name's rows. `limit(row)` is how far in from the edge that row allows a
+// glyph.
 template <typename Limit>
 std::vector<Cell> Slots(int rows, Limit limit) {
   std::vector<Cell> slots;
@@ -35,9 +36,9 @@ std::vector<Cell> Slots(int rows, Limit limit) {
   return slots;
 }
 
-// Lays `count` dots over `slots` in the lightest glyph that fits them all, the
-// part-glyph innermost. `mirror` turns a column in from the edge into one
-// counted from the right.
+// Places `count` dots over `slots` using the lightest glyph that fits them all,
+// with the partial glyph innermost. `mirror` converts a column counted from the
+// left edge into one counted from the right.
 void Lay(const std::vector<Cell>& slots, int count, int width, bool mirror,
          std::vector<std::vector<std::string>>& cells) {
   int room = static_cast<int>(slots.size());
@@ -63,7 +64,7 @@ std::vector<std::vector<std::string>> BuffDots(
   if (count <= 0 || width <= 0) {
     return cells;
   }
-  // A glyph a column clear of the name, or of the other side's glyph across
+  // A glyph one column clear of the name, or of the other side's glyph across
   // the middle of an empty row.
   auto left = [&](int row) {
     int len = static_cast<int>(labels[row].size());

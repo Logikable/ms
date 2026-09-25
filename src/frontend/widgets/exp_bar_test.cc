@@ -21,7 +21,7 @@ std::string Draw(const Character& character) {
   return screen.ToString();
 }
 
-// How many columns of the bar are filled, which is what says the fraction.
+// How many columns of the bar are filled, which shows the fraction.
 int Filled(const Character& character) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(1));
@@ -44,13 +44,13 @@ TEST(ExpBarTest, ReadsTheFigureAndThePercentage) {
   std::string bar = Draw(character);
   EXPECT_NE(bar.find("50%"), std::string::npos);
   EXPECT_NE(bar.find(std::to_string(character.exp())), std::string::npos);
-  // Half the level, so half the bar.
+  // Halfway through the level, so half the bar.
   EXPECT_NEAR(Filled(character), 30, 1);
 }
 
-// The decimals widen with the tier: a level worth hundreds of times the last
-// one moves its bar hundreds of times as slowly, and 0% would be all a player
-// ever read.
+// More decimals at higher tiers: a level that needs hundreds of times more EXP
+// moves its bar hundreds of times more slowly, and otherwise the player would
+// only ever see 0%.
 TEST(ExpBarTest, TheDecimalsFollowTheTier) {
   Character character;
   character.set_level(10);
@@ -62,8 +62,8 @@ TEST(ExpBarTest, TheDecimalsFollowTheTier) {
   EXPECT_NE(Draw(character).find("(33.33%)"), std::string::npos);
 }
 
-// At the cap there is no next level to fill towards, so the bar reads MAX and
-// sits full rather than empty.
+// At the cap there is no next level, so the bar reads MAX and is full, not
+// empty.
 TEST(ExpBarTest, TheCapReadsMaxAndFillsTheBar) {
   Character character;
   character.set_level(kTrialLevelCap);

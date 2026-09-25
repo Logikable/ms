@@ -26,18 +26,18 @@
 namespace ms {
 namespace {
 
-// The horizontal rule ftxui draws a border with, for a title padded out to
-// one end of it.
+// The horizontal line ftxui draws a border with, for padding a title to one end
+// of it.
 constexpr char kBorderRun[] = "\u2500";
 
 constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
 constexpr int kScrollWidth = 6;
 
-// Fills a row with BACKGROUND colour rather than block glyphs, so the label can
-// sit on top without the two fighting over the same characters. The label
-// takes one colour over the fill and another past it. One row per label line,
-// every row filled alike: a bar of two lines is one bar.
+// Fills a row with background colour rather than block glyphs, so the label can
+// sit on top without both needing the same characters. The label uses one
+// colour over the filled part and another past it. One row per label line, all
+// filled the same, so a two-line bar is one bar.
 class ProgressBarNode : public ftxui::Node {
  public:
   ProgressBarNode(float frac, ftxui::Color fill,
@@ -106,8 +106,8 @@ class ProgressBarNode : public ftxui::Node {
   int buff_count_;
 };
 
-// Lays its child out at the child's own size, from the corner of whatever box
-// the parent hands over, and tells the parent it needs nothing in return.
+// Lays out its child at the child's own size from the top-left of the parent's
+// box, and tells the parent it needs no space.
 class FloatingNode : public ftxui::Node {
  public:
   explicit FloatingNode(ftxui::Element child)
@@ -116,8 +116,8 @@ class FloatingNode : public ftxui::Node {
 
   void ComputeRequirement() override {
     ftxui::Node::ComputeRequirement();
-    // The child still measured itself above; this drops that on the floor so
-    // the parent sizes as though the child were not there.
+    // The child already measured itself above; this discards that so the parent
+    // is sized as if the child weren't there.
     requirement_ = ftxui::Requirement();
   }
 
@@ -127,15 +127,15 @@ class FloatingNode : public ftxui::Node {
   }
 
   void Render(ftxui::Screen& screen) override {
-    // Laid out a second time, because how much room there is to run off is not
-    // known until the screen is in hand, and SetBox runs before that.
+    // Laid out again because how far it can run off isn't known until the
+    // screen is available, and SetBox runs before that.
     children_[0]->SetBox(FitToScreen(NaturalBox(), screen));
     children_[0]->Render(screen);
   }
 
  private:
-  // The child at its full size in the parent box's top-left corner, reaching
-  // past the parent wherever it is the larger of the two.
+  // The child at full size in the parent box's top-left corner, extending past
+  // the parent wherever it is larger.
   ftxui::Box NaturalBox() const {
     const ftxui::Requirement& req = children_[0]->requirement();
     ftxui::Box box;
@@ -146,9 +146,9 @@ class FloatingNode : public ftxui::Node {
     return box;
   }
 
-  // Slides a box back until its bottom-right corner is on screen: a float that
-  // leaves the terminal is not drawn at all. One too big to fit gives up its
-  // TOP-LEFT, an overlay being positioned by the empty space there.
+  // Moves a box back until its bottom-right corner is on screen, since a float
+  // that leaves the terminal isn't drawn. A box too big to fit gives up its
+  // top-left instead, since an overlay is positioned by the empty space there.
   static ftxui::Box FitToScreen(ftxui::Box box, const ftxui::Screen& screen) {
     int over_x = std::max(0, box.x_max - (screen.dimx() - 1));
     box.x_min -= over_x;
@@ -160,8 +160,8 @@ class FloatingNode : public ftxui::Node {
   }
 };
 
-// The overlay's own left edge, and the half glyph it can leave standing
-// outside itself. See ClearUnder.
+// The overlay's own left edge, and the half glyph that can be left outside it.
+// See ClearUnder.
 class ClearUnderNode : public ftxui::Node {
  public:
   explicit ClearUnderNode(ftxui::Element child)
@@ -180,10 +180,10 @@ class ClearUnderNode : public ftxui::Node {
 
   void Render(ftxui::Screen& screen) override {
     ftxui::Node::Render(screen);
-    // The column outside the overlay's left border. A two-column glyph
-    // starting there keeps both of its columns when the screen is printed --
-    // ftxui skips the cell after one -- so the border is never drawn. Blanked,
-    // there being no way to draw half a glyph.
+    // The column just outside the overlay's left border. A two-column glyph
+    // starting there keeps both columns when the screen is printed (ftxui skips
+    // the cell after one), so the border would never be drawn. It is blanked,
+    // since half a glyph can't be drawn.
     const int x = box_.x_min - 1;
     if (x < 0) {
       return;
@@ -308,9 +308,9 @@ ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor) {
   if (!on_cursor) {
     return row;
   }
-  // bgcolor paints the whole box it is handed, and a row in a vbox is handed
-  // the list's full width -- so the band reaches the panel's border with no
-  // sizing of its own.
+  // bgcolor paints the whole box it is given, and a row in a vbox gets the
+  // list's full width, so the band reaches the panel's border without any
+  // sizing.
   return std::move(row) | ftxui::bgcolor(kSelectedRow);
 }
 
@@ -340,10 +340,9 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
   return chip;
 }
 
-// The mark standing where a bar runs off its edge. The RIGHT one's column is
-// reserved either way, so the chips hold still as the bar scrolls; the left
-// one's is taken only once something is off that edge, so two bars stacked in
-// a panel line up.
+// The marks shown where a bar runs off its edge. The right one's column is
+// always reserved, so the tabs stay still as the bar scrolls; the left one's is
+// only used once something is off that edge, so two stacked bars line up.
 namespace {
 
 constexpr char kMoreLeft[] = "‹";   // a single left angle
@@ -354,10 +353,10 @@ int ChipWidth(const TabSpec& tab) {
   return ftxui::string_width(tab.label) + 2;  // TabChip pads a space each side
 }
 
-// The leftmost chip a window on to `tabs` can start at and still reach
-// `active` within `budget` columns. Being leftmost makes it a plain function
-// of the selection: stepping right moves the window by the least it can, and
-// stepping back moves it to exactly where it was on the way out.
+// The leftmost tab a view of `tabs` can start at and still reach `active`
+// within `budget` columns. Using the leftmost makes it depend only on the
+// selection: stepping right moves the view as little as possible, and stepping
+// back returns it exactly where it was.
 int FirstVisible(const std::vector<TabSpec>& tabs, int active, int budget) {
   int first = 0;
   while (first < active) {
@@ -386,9 +385,8 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
   for (const TabSpec& tab : tabs) {
     whole += ChipWidth(tab);
   }
-  // A bar that fits is drawn as it always was, marks and all left off. Their
-  // columns would otherwise indent every bar for the sake of the one that
-  // scrolls.
+  // A bar that fits is drawn as before, with no marks. Otherwise their columns
+  // would indent every bar for the sake of the ones that scroll.
   bool scrolls = width > 0 && whole > width;
 
   int first = 0;
@@ -397,9 +395,9 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
     int budget = width - kMoreWidth;  // the right mark's own column
     first = FirstVisible(tabs, std::clamp(active, 0, last), budget);
     if (first > 0) {
-      // Something off the left edge, so that mark costs a column too. Asked
-      // in this order because the answer decides the question: a bar still
-      // showing its first chip is not paying for a mark it does not draw.
+      // Something is off the left edge, so that mark takes a column too. The
+      // order matters: a bar still showing its first tab doesn't pay for a mark
+      // it doesn't draw.
       budget -= kMoreWidth;
       first = FirstVisible(tabs, std::clamp(active, 0, last), budget);
     }
@@ -411,8 +409,8 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
       }
     }
     --last;  // the one that did not fit, or the end of the list
-    // A budget too small for even one chip still shows the chip the player is
-    // on: a bar that draws nothing says less than one that overflows.
+    // A budget too small for even one tab still shows the selected tab: a bar
+    // that draws nothing says less than one that overflows.
     last = std::max(last, first);
   }
 
@@ -461,8 +459,8 @@ int ScrollWindowStart(int total, int selected, int visible) {
   if (visible <= 0 || total <= visible) {
     return 0;
   }
-  // (visible - 1) / 2 rather than visible / 2, which is what yframe uses: an
-  // even window puts the cursor a row above its middle either way.
+  // (visible - 1) / 2 rather than visible / 2, as yframe uses: with an even
+  // window the cursor sits a row above the middle either way.
   int first = selected - (visible - 1) / 2;
   return std::max(0, std::min(first, total - visible));
 }
@@ -472,8 +470,8 @@ std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
   if (visible <= 0 || total <= visible) {
     return {};
   }
-  // Counted in half rows, so the thumb can start and end halfway down a cell.
-  // This is ftxui's own arithmetic, kept so the bar matches the bag's.
+  // Counted in half rows, so the thumb can start and end halfway through a
+  // cell. This is ftxui's own arithmetic, kept so the bar matches the bag's.
   int size = std::max(1, 2 * visible * visible / total);
   int start = 2 * first_visible * visible / total;
   std::vector<ftxui::Element> cells;
@@ -512,9 +510,9 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
     title_el = title_el | ftxui::inverted;
   }
   if (align == TitleAlign::kRight) {
-    // Padded with the border's own rune rather than blanks, so what stands in
-    // front of the title reads as the border it is sitting in -- and left OUT
-    // of the lit chip, which is about the name.
+    // Padded with the border's own character rather than spaces, so the space
+    // before the title looks like the border it sits in. The padding is kept
+    // out of the lit tab, which is only about the name.
     content->ComputeRequirement();
     int pad = std::max(0, content->requirement().min_x - TextColumns(title));
     std::string run;
@@ -540,9 +538,8 @@ ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
 }
 
 ftxui::Element CenteredRow(ftxui::Element row) {
-  // hcenter on its own does not do this. It centres within the width the widest
-  // row of the window sets -- and the row that sets that width is, by
-  // definition, the one flush against both borders.
+  // hcenter alone doesn't do this: it centres within the width set by the
+  // window's widest row, and that row is always flush against both borders.
   return ftxui::hbox({
              ftxui::text(" "),
              std::move(row),
@@ -568,7 +565,7 @@ ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
 }
 
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {
-  // The width the column is held to whatever is in the purse today.
+  // The width the column is held to, whatever the character's meso is now.
   constexpr int64_t kWidestQuietPurse = 100'000'000'000;
   return PriceBlock(FormatMeso(held), FormatMeso(cost), affordable,
                     TextColumns(FormatMeso(kWidestQuietPurse)));

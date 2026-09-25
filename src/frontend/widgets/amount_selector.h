@@ -1,16 +1,16 @@
-/* AmountSelector is the shared quantity-entry control for modals that pick an
- * integer in [0, max]: a textbox flanked by a low button and [MAX], over a
- * [Confirm]/[Cancel] row. The low button is [1] unless the caller says
- * otherwise -- a trade offers [0], nothing being a fair thing to put up.
+/* AmountSelector is the shared quantity entry for dialogs that pick an integer
+ * in [0, max]: a textbox between a low button and [MAX], above a
+ * [Confirm]/[Cancel] row. The low button is [1] unless the caller sets it; a
+ * trade uses [0], since offering nothing is reasonable there.
  *
  * The textbox is selected on Reset and is the only place digits and Backspace
  * edit the value, showing a blinking caret while selected. Left/Right move
- * within a row, Down drops from the top row to the buttons, and Up returns to
- * the textbox; Enter activates the focused control and Escape cancels.
+ * within a row, Down moves from the top row to the buttons, and Up returns to
+ * the textbox. Enter activates the focused control and Escape cancels.
  *
- * A value of zero is allowed -- Backspace the textbox empty. The selector owns
- * no game state: Reset(max) seeds it, value() reports the choice, and OnEvent
- * answers with the ConfirmChoice every dialog in the game answers with.
+ * Zero is allowed: Backspace the textbox empty. The selector owns no game
+ * state: Reset(max) sets it up, value() reports the choice, and OnEvent returns
+ * the same ConfirmChoice every dialog in the game uses.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_AMOUNT_SELECTOR_H_
 #define MS_SRC_FRONTEND_WIDGETS_AMOUNT_SELECTOR_H_
@@ -25,39 +25,39 @@ namespace ms {
 
 class AmountSelector {
  public:
-  // Seeds the control for choosing 0..max, defaulting the value to max with the
-  // textbox selected. The field widens to hold the largest number it can be
-  // asked for, so a purse of meso does not outgrow its box.
+  // Sets up the control to choose 0..max, starting at max with the textbox
+  // selected. The field widens to fit the largest number allowed, so a large
+  // meso amount doesn't outgrow its box.
   void Reset(int64_t max);
-  // As above, but opening at `initial`, which is clamped to 0..max -- so a
-  // caller may pass 1 for a max of 0 and get the empty field that amount
-  // deserves.
+  // As above, but starting at `initial`, clamped to 0..max, so a caller can
+  // pass 1 with a max of 0 and get an empty field.
   void Reset(int64_t max, int64_t initial);
-  // What the button left of the field sets, which is 1 until this is called.
-  // After Reset, which puts it back.
+  // What the button left of the field sets. It is 1 unless this is called, and
+  // must be called after Reset, which resets it.
   void set_low(int64_t low);
-  // Greys out [Confirm] and stops it activating, for a choice the caller cannot
-  // honour -- a total beyond the player's meso. Cancel still works. Cleared by
-  // the next Reset.
+  // Greys out [Confirm] and stops it working, for a choice the caller can't
+  // accept, such as a total beyond the player's meso. Cancel still works.
+  // Cleared by the next Reset.
   void set_confirm_enabled(bool enabled);
-  // The low . textbox . [MAX] row over a [Confirm] [Cancel] row, separated.
+  // The low / textbox / [MAX] row above a [Confirm] [Cancel] row, with a
+  // divider.
   ftxui::Element Render() const;
-  // Handles arrow navigation, Enter/Space activation, digit entry and
-  // Backspace on the textbox, and Escape (cancel). Returns which way the
-  // answer went, kPending while the player is still choosing.
+  // Handles arrow navigation, Enter/Space activation, digit entry and Backspace
+  // on the textbox, and Escape (cancel). Returns the answer, or kPending while
+  // the player is still choosing.
   ConfirmChoice OnEvent(ftxui::Event event);
   int64_t value() const {
     return value_;
   }
 
  private:
-  // What Enter on the focused control answered. The low and [MAX] buttons set
-  // the value and answer kPending: they are still the player choosing.
+  // The result of Enter on the focused control. The low and [MAX] buttons set
+  // the value and return kPending, since the player is still choosing.
   ConfirmChoice Activate();
 
   int64_t max_ = 0;
   int64_t value_ = 0;
-  // What the low button sets and is labelled with.
+  // What the low button sets, and its label.
   int64_t low_ = 1;
   int focus_ = 0;  // an internal Focus value (see amount_selector.cc)
   bool confirm_enabled_ = true;

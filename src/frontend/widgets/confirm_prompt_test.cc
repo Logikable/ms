@@ -27,7 +27,7 @@ TEST(ConfirmPromptTest, StartsClosedAndAnswersNothingWhileItIs) {
 }
 
 // Confirm by default; an irreversible action opens on Cancel instead, so Enter
-// alone cannot fire it.
+// alone can't trigger it.
 TEST(ConfirmPromptTest, OpensOnTheButtonItWasAskedFor) {
   ConfirmPrompt prompt;
   prompt.Open();
@@ -58,8 +58,8 @@ TEST(ConfirmPromptTest, EscapeCancels) {
   EXPECT_FALSE(prompt.open());
 }
 
-// Everything else is swallowed: a keystroke aimed at the prompt must never
-// reach the panel behind it.
+// Everything else is swallowed: a key meant for the prompt must never reach the
+// panel behind it.
 TEST(ConfirmPromptTest, SwallowsUnrelatedEventsWhileOpen) {
   ConfirmPrompt prompt;
   prompt.Open();
@@ -69,8 +69,8 @@ TEST(ConfirmPromptTest, SwallowsUnrelatedEventsWhileOpen) {
   EXPECT_TRUE(prompt.open());
 }
 
-// A dialog whose cursor is elsewhere -- the amount selector's textbox -- draws
-// the same row with neither button lit.
+// A dialog whose cursor is elsewhere (the amount selector's textbox) draws the
+// same row with neither button highlighted.
 TEST(ConfirmPromptTest, ButtonRowCanHighlightNeither) {
   ftxui::Element row = ConfirmButtons(ConfirmFocus::kNone);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(row),

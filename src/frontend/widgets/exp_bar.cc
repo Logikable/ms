@@ -14,8 +14,8 @@
 namespace ms {
 namespace {
 
-// Decimal places for the EXP percentage, scaled by job tier: a level worth
-// hundreds of times the last one moves its bar hundreds of times as slowly.
+// Decimal places for the EXP percentage, by job tier: a level that needs
+// hundreds of times more EXP moves its bar hundreds of times more slowly.
 int ExpPctDecimals(int level) {
   if (level < 60) {
     return 0;

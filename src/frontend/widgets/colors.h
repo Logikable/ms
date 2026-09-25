@@ -5,38 +5,36 @@
 
 namespace ms {
 
-/* Red and dim, and which of them says what.
+/* Red and dim, and what each means.
  *
- * **Red is the reason.** It goes on the ONE value the player falls short of --
- * a level, a job, a price -- so the screen answers "why not" without being
- * asked. Always a cell, never a whole row, and never a value that is merely
- * absent. Red is not a category colour: a thing that is always red says
- * nothing.
+ * Red marks the reason. It goes on the one value the player falls short of (a
+ * level, a job, a price), so the screen shows why without being asked. Always a
+ * single cell, never a whole row, and never a value that is just missing. Red
+ * isn't a category colour: something always red says nothing.
  *
- * **Dim is the door.** It goes on what cannot be used: a button that will not
- * answer, a menu entry, a row whose action is blocked. Never on the value the
- * player is meant to read and compare -- that is red's job.
+ * Dim marks what can't be used: a button that won't respond, a menu entry, a
+ * row whose action is blocked. Never on a value the player needs to read and
+ * compare; that is red's job.
  *
- * **Both at once is the strongest form, and is deliberate.** The scroll
- * confirm reddens the cost and dims the Confirm button: red names the
- * shortfall, dim says the door is shut. Copy that pairing rather than choosing
- * between them. Put them on DIFFERENT elements, though -- dimming a red cell
- * mutes the one thing worth reading.
+ * Using both at once is the strongest signal, and is intentional. The scroll
+ * confirmation turns the cost red and dims the Confirm button: red names the
+ * shortfall, and dim says the action is unavailable. Use that pairing rather
+ * than choosing one. Put them on different elements, though, since dimming a
+ * red cell mutes the one thing worth reading.
  *
- * Dim has a second, softer job: what is not in play rather than what is
- * blocked -- a set tier not yet earned, a job category an item does not serve.
- * Those sit on screens where nothing is being refused, so the two readings do
- * not collide in practice.
+ * Dim has a second, milder use: something not currently in effect rather than
+ * blocked, like an unearned set tier or a job category an item isn't for. Those
+ * appear on screens where nothing is being refused, so the two meanings don't
+ * clash in practice.
  */
 
-// Identity color: borders, separators, panel titles, structural labels. Also
-// a plain damage line, and the mark a weapon's price is asked in.
+// The identity colour: borders, dividers, panel titles and structural labels.
+// Also a plain damage line, and the mark for a weapon's price.
 inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 
-// The band under the row a list's cursor is on -- a background, never a
-// foreground. Dark enough that everything a row can say still reads on it: a
-// bright name, a red requirement, a dimmed row whose action is shut. See
-// HighlightRow in chrome.h, which is the only place it is used.
+// The band behind the row under a list's cursor. Background only, never text.
+// Dark enough that everything a row can show still reads on it: a bright name,
+// a red requirement, a dimmed row. Only used by HighlightRow in chrome.h.
 inline const ftxui::Color kSelectedRow = ftxui::Color::RGB(40, 62, 92);
 
 // Star bar in the inspect panel.
@@ -44,37 +42,36 @@ inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 
 // Stat source breakdown in the inspect panel, a skill list's auto-attack tag,
-// and the mark a shoulder's price is asked in. Far enough from the gold beside
-// it that the two tags cannot be read as shades of each other, and cool where
-// the other two marks are warm and blue.
+// and the mark for a shoulder's price. Different enough from the gold beside it
+// that the two tags don't look like shades of each other, and cool where the
+// other two marks are warm and blue.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
-// A skill list's attack tag, the Star Force share of a stat, and the mark a
-// Root Abyss hat's price is asked in.
+// A skill list's attack tag, the Star Force share of a stat, and the mark for a
+// Root Abyss hat's price.
 inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);
-// A critical damage line, and the mark an off-hand's price is asked in. Well
-// clear of the gold above: a crit has to be told apart from a plain line at a
-// glance, and the two marks from each other.
+// A critical damage line, and the mark for a secondary weapon's price. Clearly
+// different from the gold above: a crit must be distinguishable from a plain
+// line at a glance, and the two marks from each other.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(240, 140, 60);
 
-// Star Force outcome rates, and the mark a Root Abyss top's price is asked in.
+// Star Force success rates, and the mark for a Root Abyss top's price.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
-// The mark a Root Abyss bottom's price is asked in. Warm where kPurple is
-// cool, so the two never read as one another on the token shelf.
+// The mark for a Root Abyss bottom's price. Warm where kPurple is cool, so the
+// two are never confused on the token shelf.
 inline const ftxui::Color kPink = ftxui::Color::RGB(235, 130, 175);
 inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 
-// The reason something is refused, and a bad outcome: a requirement not met,
-// a price out of reach, the Star Force destroy rate. See the note above.
+// Why something is refused, and bad outcomes: an unmet requirement, an
+// unaffordable price, the Star Force destroy rate. See the note above.
 inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 
-// A party member's damage numbers and charge bar, plain and critical. Half the
-// strength of the pair above, so a fight with three people in it still reads
-// as the player's own: their numbers are the bright ones.
+// A party member's damage numbers and charge bar, normal and critical. Half as
+// bright as the player's, so a fight with three people still reads as the
+// player's own: their numbers are the bright ones.
 inline const ftxui::Color kFaintTheme = ftxui::Color::RGB(55, 80, 110);
 inline const ftxui::Color kFaintOrange = ftxui::Color::RGB(125, 75, 35);
 
-// A colour held as components rather than as an ftxui::Color, which does not
-// give its own back.
+// A colour stored as components, since ftxui::Color can't return its own.
 struct Rgb {
   int r = 0;
   int g = 0;
@@ -85,16 +82,15 @@ struct Rgb {
   }
 };
 
-// The four ranks GMS paints an Inner Ability line in: blue, purple, yellow,
-// green. The exact values are not published anywhere; these are what the
-// community renders them at.
+// The four colours GMS uses for Inner Ability ranks: blue, purple, yellow,
+// green. The exact values aren't published; these are what the community uses.
 inline constexpr Rgb kRare = {0x66, 0xFF, 0xFF};
 inline constexpr Rgb kEpic = {0x99, 0x33, 0xFF};
 inline constexpr Rgb kUnique = {0xFF, 0xCC, 0x00};
 inline constexpr Rgb kLegendary = {0x77, 0xEE, 0x00};
 
-// The game's ground tone, and the unfilled remainder of any progress bar
-// (EXP, attack charge, mob HP).
+// The game's background tone, and the unfilled part of every progress bar (EXP,
+// attack charge, mob HP).
 inline constexpr Rgb kGround = {20, 35, 55};
 inline const ftxui::Color kBarEmpty = kGround.ToColor();
 

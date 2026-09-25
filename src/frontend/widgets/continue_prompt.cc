@@ -21,8 +21,8 @@ bool ContinuePrompt::OnEvent(ftxui::Event event) {
   if (!open_) {
     return false;
   }
-  // Either key dismisses it: there is one button, so backing out and pressing
-  // it are the same thing.
+  // Either key dismisses it: there is only one button, so backing out and
+  // pressing it are the same.
   if (IsForward(event) || IsBack(event)) {
     Close();
     return true;

@@ -17,15 +17,14 @@
 namespace ms {
 namespace {
 
-// A symbol list's columns. The name gets more room than an item list's 26:
-// every symbol is called "Arcane Symbol: <area>", and only three columns
-// follow it to pay for the room.
+// A symbol list's columns. The name gets more room than an item list's 26
+// because every symbol is named "Arcane Symbol: <area>", and only three columns
+// follow it.
 constexpr int kSymbolNameWidth = 32;
 constexpr int kSymbolLevelWidth = 3;
 constexpr int kSymbolExpWidth = 7;
 
-// How far along its next level a symbol is, or "MAX" for one that has no next
-// level to be along.
+// Progress toward a symbol's next level, or "MAX" if it has none.
 std::string SymbolExpCell(const Equip& state) {
   int needed = SymbolExpToNextLevel(SymbolLevel(state));
   if (needed == 0) {
@@ -59,7 +58,7 @@ std::vector<EquippedRow> EquippedRows(
   std::vector<EquippedRow> rows;
   for (EquipSlot slot : slots) {
     const EquipInstance& item = *character.equipped(preset).at(slot);
-    // Only the selected row's name slides; the rest sit at their heads.
+    // Only the selected row's name scrolls; the others show their start.
     std::chrono::steady_clock::duration slide =
         static_cast<int>(rows.size()) == selected
             ? elapsed
@@ -85,7 +84,7 @@ std::vector<EquippedRow> SymbolRows(
     std::chrono::steady_clock::duration elapsed) {
   std::vector<EquippedRow> rows;
   // The worn map is keyed by slot, and the symbol slots are numbered in the
-  // order their areas open -- so walking it is already the order to list them.
+  // order their areas unlock, so iterating it already gives the right order.
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped()) {
     const EquipInstance& item = *kv.second;
@@ -102,8 +101,8 @@ std::vector<EquippedRow> SymbolRows(
         ScrollingWindow(item.prototype().name(), kSymbolNameWidth, slide);
     EquippedRow row;
     row.slot = kv.first;
-    // Columns of its own, so the row is written out rather than fitted: a
-    // symbol has no slot, no upgrades and no potential to show.
+    // It has its own columns, so the row is written out directly rather than
+    // fitted: a symbol has no slot, upgrades or potential to show.
     row.text.text = name + "  " +
                     PadRight(std::to_string(level), kSymbolLevelWidth) + "  " +
                     PadRight(SymbolExpCell(state), kSymbolExpWidth) + "  +" +

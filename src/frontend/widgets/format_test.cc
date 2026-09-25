@@ -17,8 +17,8 @@ TEST(PadRightTest, PadsOrTruncatesToTheWidth) {
   EXPECT_EQ(PadRight("", 3), "   ");
 }
 
-// Both pads count columns, so a row with a multibyte cell in it still lines up
-// with the rows around it. The cell above is the same width on screen.
+// Both pad functions count columns, so a row with a multibyte cell still lines
+// up with the rows around it. The cell above is the same width on screen.
 TEST(PadRightTest, PadsInColumnsNotBytes) {
   EXPECT_EQ(PadRight("📜", 4), "📜  ");
   EXPECT_EQ(PadRight("Émeraude", 9), "Émeraude ");
@@ -32,8 +32,8 @@ TEST(PadLeftTest, RightAlignsWithinTheWidth) {
   EXPECT_EQ(PadLeft("123", 3), "123");
 }
 
-// The one place it differs from PadRight, and the reason it exists: a level
-// that outgrew its column must read 1000, not 100.
+// The one way it differs from PadRight, and why it exists: a level too wide for
+// its column must read 1000, not 100.
 TEST(PadLeftTest, NeverTruncates) {
   EXPECT_EQ(PadLeft("1000", 3), "1000");
 }
@@ -70,8 +70,8 @@ TEST(FormatCompactTest, ThreeDigitsAndNoTrailingZeros) {
   EXPECT_EQ(FormatCompact(-5600000), "-5.6M");
 }
 
-// A unit is only taken up at two thousand of the one below, so the number
-// keeps the unit a reader can weigh it in.
+// A unit is only used from two thousand of the unit below, so the number stays
+// in a unit the reader can judge easily.
 TEST(FormatCompactTest, ClimbsAUnitAtTwoThousandOfTheLast) {
   EXPECT_EQ(FormatCompact(1570000000LL), "1570M");
   EXPECT_EQ(FormatCompact(2340000000LL), "2.34B");
@@ -102,7 +102,7 @@ TEST(FormatClockTest, CountsInMinutesAndSeconds) {
   EXPECT_EQ(FormatClock(299.5), "5:00");
   EXPECT_EQ(FormatClock(65.0), "1:05");
   EXPECT_EQ(FormatClock(9.2), "0:10");
-  // Only actually being out of time reads 0:00.
+  // Only 0:00 when time has really run out.
   EXPECT_EQ(FormatClock(0.1), "0:01");
   EXPECT_EQ(FormatClock(0.0), "0:00");
   EXPECT_EQ(FormatClock(-5.0), "0:00");
@@ -146,8 +146,9 @@ TEST(WrapBalancedTest, BreaksNearTheMiddle) {
             (std::vector<std::string>{"Condensed", "Power Crystal"}));
 }
 
-// Fewest lines first, and the tail is what the last line has to leave free.
-// "Zakum's Soul Shard" fits on one line; ask for room beside it and it stops.
+// Fewest lines first, and the tail is space only the last line must leave free.
+// "Zakum's Soul Shard" fits on one line; asking for room beside it makes it
+// wrap.
 TEST(WrapBalancedTest, TheTailIsOnlyChargedToTheLastLine) {
   EXPECT_EQ(WrapBalanced("Zakum's Soul Shard", 26, 5),
             (std::vector<std::string>{"Zakum's Soul Shard"}));
@@ -155,20 +156,20 @@ TEST(WrapBalancedTest, TheTailIsOnlyChargedToTheLastLine) {
             (std::vector<std::string>{"Zakum's", "Soul Shard"}));
 }
 
-// A word with nowhere to fit runs over rather than being cut, and nothing at
-// all is one empty line rather than none.
-// The margin is what makes two rows read as one name. It is charged to the
-// lines that carry it, so the balance is of what ends up on screen.
+// The indent is what makes two rows read as one name. It counts toward the
+// lines that have it, so the balance is based on what appears on screen.
 TEST(WrapBalancedTest, EveryLineButTheFirstCarriesTheMargin) {
   EXPECT_EQ(WrapBalanced("Aquatic Letter Eye Accessory", 26, 4, 2),
             (std::vector<std::string>{"Aquatic Letter", "  Eye Accessory"}));
   EXPECT_EQ(WrapBalanced("Zakum's Soul Shard", 26, 5, 2),
             (std::vector<std::string>{"Zakum's Soul Shard"}));
-  // Room for "Beginner Sword" and the margin, but not for both at once.
+  // Room for "Beginner Sword" plus the indent, but not both at once.
   EXPECT_EQ(WrapBalanced("A Beginner Sword", 14, 0, 2),
             (std::vector<std::string>{"A Beginner", "  Sword"}));
 }
 
+// A word with no room runs over rather than being cut, and empty text is one
+// empty line rather than none.
 TEST(WrapBalancedTest, AWordTooLongKeepsItsOwnLine) {
   EXPECT_EQ(WrapBalanced("Supercalifragilistic sword", 10, 0),
             (std::vector<std::string>{"Supercalifragilistic", "sword"}));

@@ -8,7 +8,7 @@
 namespace ms {
 namespace {
 
-// Each row of the dots with the labels laid over them, as the bar draws.
+// Each row of dots with the labels drawn over them, as the bar draws them.
 std::vector<std::string> Drawn(int width,
                                const std::vector<std::string>& labels,
                                int count) {
@@ -46,9 +46,9 @@ TEST(BuffDotsTest, DoubleUpRatherThanReachTheName) {
   EXPECT_EQ(Drawn(21, {"Brandish"}, 7)[0], " : :  Brandish · · · ");
   EXPECT_EQ(Drawn(21, {"Brandish"}, 12)[0], " ⁞ :  Brandish : : : ");
   EXPECT_EQ(Drawn(21, {"Brandish"}, 15)[0], " ⁞ ⁞  Brandish   ⁝ ⁞ ");
-  // Past four to a glyph the room is full, and shows no more.
+  // Beyond four per glyph the room is full, and no more are shown.
   EXPECT_EQ(Drawn(21, {"Brandish"}, 40)[0], " ⁞ ⁞  Brandish ⁞ ⁞ ⁞ ");
-  // A name leaving no room keeps it all.
+  // A name that leaves no room keeps the whole bar.
   EXPECT_EQ(Drawn(10, {"Brandish"}, 4)[0], " Brandish ");
 }
 
@@ -56,7 +56,7 @@ TEST(BuffDotsTest, TakeTheRowTheNameLeavesEmpty) {
   std::vector<std::string> rows = Drawn(14, {"Brandish", ""}, 3);
   EXPECT_EQ(rows[0], "   Brandish   ");
   EXPECT_EQ(rows[1], " · ·        · ");
-  // Full, the empty row spills onto the name's.
+  // When full, the empty row spills over onto the name's row.
   rows = Drawn(14, {"Brandish", ""}, 8);
   EXPECT_EQ(rows[0], " · Brandish · ");
   EXPECT_EQ(rows[1], " · · ·  · · · ");

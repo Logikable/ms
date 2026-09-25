@@ -13,14 +13,14 @@ namespace ms {
 namespace {
 
 // Empties the textbox, leaving focus on it. Digits append rather than replace,
-// so typing a fresh number means clearing first.
+// so typing a new number means clearing first.
 void Clear(AmountSelector* sel) {
   while (sel->value() > 0) {
     sel->OnEvent(ftxui::Event::Backspace);
   }
 }
 
-// The selector's foot is the game's one confirm row, not a lookalike.
+// The selector's bottom row is the game's standard confirm row, not a copy.
 TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
   AmountSelector sel;
   sel.Reset(10);
@@ -35,8 +35,8 @@ TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
   EXPECT_NE(rendered.find("[MAX]"), std::string::npos);
 }
 
-// A trade puts up nothing as readily as everything, so the button left of the
-// field is the caller's to name.
+// A trade can offer nothing as easily as everything, so the caller chooses the
+// low button's value.
 TEST(AmountSelectorTest, TheLowButtonIsTheCallersToSet) {
   AmountSelector sel;
   sel.Reset(10);
@@ -47,19 +47,19 @@ TEST(AmountSelectorTest, TheLowButtonIsTheCallersToSet) {
   ftxui::Render(screen, element);
   EXPECT_NE(screen.ToString().find("[0]"), std::string::npos);
 
-  // Left onto it, then Enter: the value goes to nothing rather than to one.
+  // Left onto it, then Enter: the value becomes zero, not one.
   sel.OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_EQ(sel.value(), 0);
 
-  // Reset puts it back, so no caller inherits another's button.
+  // Reset restores it, so no caller inherits another's button.
   sel.Reset(10);
   sel.OnEvent(ftxui::Event::ArrowLeft);
   sel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(sel.value(), 1);
 }
 
-// A purse of meso is past what an int holds, and the field grows to show it.
+// A large meso amount exceeds an int, and the field grows to show it.
 TEST(AmountSelectorTest, CarriesAnAmountPastAnInt) {
   constexpr int64_t kPurse = 100000000000;
   AmountSelector sel;
@@ -69,7 +69,7 @@ TEST(AmountSelectorTest, CarriesAnAmountPastAnInt) {
   }
   EXPECT_EQ(sel.value(), 99999999999);
 
-  // One digit more is held at the cap rather than wrapping past it.
+  // One more digit is held at the maximum rather than wrapping past it.
   sel.OnEvent(ftxui::Event::Character('9'));
   EXPECT_EQ(sel.value(), kPurse);
 
@@ -80,17 +80,16 @@ TEST(AmountSelectorTest, CarriesAnAmountPastAnInt) {
   EXPECT_NE(screen.ToString().find("100000000000"), std::string::npos);
 }
 
-// Opens on the whole amount, so a player who wants all of it presses Enter and
-// nothing else.
+// It starts at the full amount, so a player who wants everything just presses
+// Enter.
 TEST(AmountSelectorTest, DefaultsToMax) {
   AmountSelector sel;
   sel.Reset(10);
   EXPECT_EQ(sel.value(), 10);
 }
 
-// Digits append, either delete key drops the last one, and a value over the
-// max is held at it. Zero is reachable, which is why the confirm can be
-// refused.
+// Digits append, either delete key removes the last one, and a value over the
+// max is held at it. Zero is reachable, which is why Confirm can be disabled.
 TEST(AmountSelectorTest, TheTextboxEditsByDigitAndDelete) {
   AmountSelector sel;
   sel.Reset(100);
@@ -120,8 +119,8 @@ TEST(AmountSelectorTest, TheShortcutButtonsSetOneAndMax) {
   EXPECT_EQ(sel.value(), 100);
 }
 
-// Digits belong to the textbox alone, so arrowing onto a button and typing does
-// not quietly change the amount under it.
+// Only the textbox takes digits, so moving onto a button and typing doesn't
+// silently change the amount.
 TEST(AmountSelectorTest, DigitsEditOnlyWhileTheTextboxHoldsFocus) {
   AmountSelector sel;
   sel.Reset(100);
@@ -151,8 +150,8 @@ TEST(AmountSelectorTest, RightFromConfirmActivatesCancel) {
   EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
-// The confirm row is one Up from the textbox, so a player who went down to it
-// by mistake gets back to the amount without leaving the dialog.
+// The confirm row is one Up from the textbox, so a player who moved down by
+// mistake can get back to the amount without leaving the dialog.
 TEST(AmountSelectorTest, UpFromTheConfirmRowReturnsToTheTextbox) {
   AmountSelector sel;
   sel.Reset(100);
@@ -184,20 +183,20 @@ TEST(AmountSelectorTest, OpensOnTheAmountItIsGiven) {
   EXPECT_EQ(sel.value(), 1);
 }
 
-// A shop can offer one of something the player cannot afford, so the opening
-// amount has to survive a max of zero rather than sit above it.
+// A shop can offer one of something the player can't afford, so the starting
+// amount must handle a max of zero instead of exceeding it.
 TEST(AmountSelectorTest, ClampsTheOpeningAmountToMax) {
   AmountSelector sel;
   sel.Reset(0, /*initial=*/1);
   EXPECT_EQ(sel.value(), 0);
-  // Including by the shortcut: a caller that will not honour one must not be
-  // handed one by the button either.
+  // Including through the shortcut: a caller that won't accept one must not get
+  // one from the button either.
   sel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
   sel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(sel.value(), 0);
 }
 
-// The single line holding `needle`, escape codes and all.
+// The line containing `needle`, including escape codes.
 std::string LineWith(const std::string& rendered, const std::string& needle) {
   size_t at = rendered.find(needle);
   if (at == std::string::npos) {
@@ -220,15 +219,15 @@ TEST(AmountSelectorTest, DimsAConfirmItCannotHonour) {
             std::string::npos);
 }
 
-// The dimming has to be inert, not just grey: a caller that cannot honour the
-// amount must never be told the player confirmed it.
+// The disabled state must do nothing, not just look grey: a caller that can't
+// accept the amount must never be told the player confirmed it.
 TEST(AmountSelectorTest, ADisabledConfirmDoesNotConfirm) {
   AmountSelector sel;
   sel.Reset(9, /*initial=*/1);
   sel.set_confirm_enabled(false);
   sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
-  // Leaving is still available.
+  // Leaving still works.
   sel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
   EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }

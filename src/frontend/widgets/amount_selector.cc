@@ -16,28 +16,29 @@
 namespace ms {
 namespace {
 
-// Focusable controls, in the order the layout presents them.
+// Focusable controls, in layout order.
 enum Focus { kQty = 0, kLow, kMax, kConfirm, kCancel };
 
-// Fills behind the value when the textbox is not selected.
+// Background behind the value when the textbox isn't selected.
 const ftxui::Color kFieldBg = ftxui::Color::RGB(45, 55, 75);
 
-// The narrowest the value textbox is drawn. A larger cap widens it, a digit
-// at a time, so a number never outgrows its box.
+// The textbox's minimum width. A larger maximum widens it one digit at a time,
+// so a number never outgrows its box.
 constexpr int kMinFieldWidth = 8;
 
-// The columns a textbox holding up to `max` needs: its digits, a space each
-// side and a column for the caret.
+// The columns a textbox holding up to `max` needs: its digits, a space on each
+// side, and a column for the caret.
 int FieldWidth(int64_t max) {
   int digits = static_cast<int>(std::to_string(max).size());
   return std::max(kMinFieldWidth, digits + 3);
 }
 
-// Length of one blink phase; the caret shows for one and hides the next.
+// Length of one blink phase; the caret shows for one phase and hides for the
+// next.
 constexpr int kBlinkMs = 500;
 
-// True during the visible half of the caret blink cycle. Sampled from the wall
-// clock and refreshed by the TUI's periodic redraw.
+// True during the visible half of the caret's blink. Read from the wall clock
+// and refreshed by the TUI's periodic redraw.
 bool CaretVisible() {
   int64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::steady_clock::now().time_since_epoch())
@@ -45,8 +46,8 @@ bool CaretVisible() {
   return (ms / kBlinkMs) % 2 == 0;
 }
 
-// Renders the value textbox. When selected it turns white and carries a
-// blinking bar caret after the number; otherwise it is a dark filled box.
+// Renders the value textbox. When selected it is white with a blinking bar
+// caret after the number; otherwise it is a dark filled box.
 ftxui::Element ValueField(int64_t value, int width, bool selected) {
   std::string num = std::to_string(value);
   if (!selected) {
@@ -121,15 +122,15 @@ ftxui::Element AmountSelector::Render() const {
 
 ConfirmChoice AmountSelector::Activate() {
   if (focus_ == kLow) {
-    // Clamped like every other way in: a cap of zero means the caller cannot
-    // honour one either, and a button that sets one anyway hands Confirm an
+    // Clamped like every other input: a maximum of zero means the caller can't
+    // accept one either, and a button that set one anyway would give Confirm an
     // amount that would only be refused.
     value_ = std::min(low_, max_);
   } else if (focus_ == kMax) {
     value_ = max_;
   } else if (focus_ == kConfirm) {
-    // A dimmed Confirm is inert rather than merely unhelpful: the caller has
-    // said it cannot honour this amount, so pressing it must not report one.
+    // A dimmed Confirm does nothing, not just looks disabled: the caller has
+    // said it can't accept this amount, so pressing it must not report one.
     return confirm_enabled_ ? ConfirmChoice::kConfirmed
                             : ConfirmChoice::kPending;
   } else if (focus_ == kCancel) {
@@ -180,10 +181,10 @@ ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
   if (IsForward(event)) {
     return Activate();
   }
-  // The value is editable only while the textbox is selected.
+  // The value can only be edited while the textbox is selected.
   if (focus_ == kQty) {
-    // Either key drops a digit. Backspace stops reaching this far if the
-    // player binds it to Cancel, which is why Delete does the job too.
+    // Either key deletes a digit. If the player binds Backspace to Cancel it no
+    // longer reaches here, which is why Delete also works.
     if (event == ftxui::Event::Delete || event == ftxui::Event::Backspace) {
       value_ /= 10;
       return ConfirmChoice::kPending;
@@ -191,8 +192,8 @@ ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
     if (event.is_character() && event.character().size() == 1) {
       char c = event.character()[0];
       if (c >= '0' && c <= '9') {
-        // Grown a digit at a time and capped, so a long number typed into a
-        // small cap stops at the cap rather than wrapping past it.
+        // Grows one digit at a time and is capped, so typing a long number with
+        // a small maximum stops at the maximum instead of wrapping past it.
         int64_t next = value_ > max_ / 10 ? max_ : value_ * 10 + (c - '0');
         value_ = std::min(next, max_);
         return ConfirmChoice::kPending;
