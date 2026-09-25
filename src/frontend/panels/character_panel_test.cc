@@ -38,9 +38,9 @@ namespace {
 
 class CharacterPanelTest : public PanelTest {};
 
-// A stage-1 Warrior carrying `sp` first-job skill points and `ap` to spend.
-// The combat stats are gated on the advancement, so a test that wants to read
-// them starts from a character who has taken one rather than from c_.
+// A stage-1 Warrior with `sp` 1st job skill points and `ap` to spend. The
+// combat stats are gated on the advancement, so a test that reads them starts
+// from a character who has taken one rather than from c_.
 CharacterInstance MakeWarrior(std::mt19937& rng, int sp, int ap = 0) {
   Character proto;
   proto.set_level(15);
@@ -87,14 +87,14 @@ Skill MakePowerStrike() {
   return skill;
 }
 
-// A one-skill catalog holding the stage-1 Slash Blast.
+// A catalog with one skill, the stage-1 Slash Blast.
 std::map<std::string, Skill> SkillCatalog() {
   std::map<std::string, Skill> catalog;
   catalog["slash_blast"] = MakeSlashBlast();
   return catalog;
 }
 
-// The beginner's book: one skill, at a level nobody bought.
+// The beginner book: one skill, at a level nobody bought.
 Skill MakeFairyBlessing() {
   Skill skill;
   skill.set_name("Blessing of the Fairy");
@@ -113,7 +113,7 @@ std::map<std::string, Skill> TwoStageCatalog() {
   return catalog;
 }
 
-// A Dark Knight at `level` with a point of Hyper SP and nothing else.
+// A Dark Knight at `level` with one Hyper SP and nothing else.
 CharacterInstance MakeDarkKnight(std::mt19937& rng, int level) {
   Character proto;
   proto.set_level(level);
@@ -123,7 +123,7 @@ CharacterInstance MakeDarkKnight(std::mt19937& rng, int level) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A Dark Knight's 4th book and one Hyper Skill over it, opening at 150.
+// A Dark Knight's 4th job book and one Hyper Skill for it, unlocking at 150.
 std::map<std::string, Skill> HyperCatalog() {
   std::map<std::string, Skill> catalog;
   Skill impale;
@@ -141,7 +141,7 @@ std::map<std::string, Skill> HyperCatalog() {
   reinforce.set_required_level(150);
   catalog["gungnirs_reinforce"] = reinforce;
 
-  // A second one further up the ladder, for the rows a level still holds shut.
+  // A second one at a higher level, for rows still blocked by level.
   Skill guardbreak = reinforce;
   guardbreak.set_name("Gungnir's Guardbreak");
   guardbreak.set_required_level(165);
@@ -149,7 +149,7 @@ std::map<std::string, Skill> HyperCatalog() {
   return catalog;
 }
 
-// Two stage-1 skills, for a list long enough to walk down.
+// Two stage-1 skills, for a list long enough to move through.
 std::map<std::string, Skill> TwoSkillCatalog() {
   std::map<std::string, Skill> catalog = SkillCatalog();
   catalog["power_strike"] = MakePowerStrike();
@@ -157,13 +157,13 @@ std::map<std::string, Skill> TwoSkillCatalog() {
 }
 
 // The panel's rows as plain characters, one string per row and one character
-// per column. Read off the screen grid because the borders are box-drawing:
-// a byte offset into the rendered string does not land where it looks like it
-// does.
+// per column. Read from the screen grid because the borders are box-drawing
+// characters, so a byte offset into the rendered string doesn't land where it
+// seems to.
 std::vector<std::string> PanelRows(ftxui::Element element) {
-  // Taller than any panel this draws. A screen only as tall as a real terminal
-  // clips the tail, which reads as a stat the panel chose to drop -- and the
-  // budget tests set their own limit anyway.
+  // Taller than any panel drawn here. A screen only as tall as a real terminal
+  // clips the end, which would look like a stat the panel chose to drop, and
+  // the budget tests set their own limit anyway.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(40));
   ftxui::Render(screen, element);
@@ -182,9 +182,9 @@ std::string Trimmed(const std::string& s) {
   return s.substr(first, s.find_last_not_of(' ') - first + 1);
 }
 
-// The value column of the stats row this label opens, or "" if no row has it.
-// Reading the two columns by position is the point: it asserts the row is laid
-// out in columns, not just that the text is somewhere on the panel.
+// The value column of the stats row starting with this label, or "" if no row
+// has it. Reading the two columns by position checks that the row is laid out
+// in columns, not just that the text is somewhere on the panel.
 std::string StatValue(ftxui::Element element, const std::string& label) {
   for (const std::string& row : PanelRows(std::move(element))) {
     if (Trimmed(row.substr(1, 16)) == label) {
@@ -194,8 +194,8 @@ std::string StatValue(ftxui::Element element, const std::string& label) {
   return "";
 }
 
-// `rows` is the screen's height, which a panel taller than that is cut to:
-// the Hyper tab's fourteen stats put it past the twenty most of these want.
+// `rows` is the screen's height, and a taller panel is cut to it. The Hyper
+// tab's fourteen stats make it taller than the twenty most tests want.
 ftxui::Screen RenderToScreen(ftxui::Component comp, int rows = 20) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(rows));
@@ -203,10 +203,10 @@ ftxui::Screen RenderToScreen(ftxui::Component comp, int rows = 20) {
   return screen;
 }
 
-// Where `needle` starts on `screen`, or {-1, -1} if it is not there. Walks
+// Where `needle` starts on `screen`, or {-1, -1} if it isn't there. Walks
 // pixels rather than the rendered string because the window border is
-// multibyte, so a byte offset is not a column. `needle` must be ASCII: one
-// character, one cell.
+// multibyte, so a byte offset isn't a column. `needle` must be ASCII: one
+// character per cell.
 std::pair<int, int> FindCell(const ftxui::Screen& screen,
                              const std::string& needle) {
   int len = static_cast<int>(needle.size());
@@ -224,9 +224,9 @@ std::pair<int, int> FindCell(const ftxui::Screen& screen,
   return {-1, -1};
 }
 
-// Whether any cell of `screen` is exactly `glyph`. FindCell walks a needle a
-// byte a cell, so it can only look for ASCII; this is for the one-cell
-// multibyte marks -- the arrow a tab bar puts where it runs off its edge.
+// Whether any cell of `screen` is exactly `glyph`. FindCell matches one byte
+// per cell, so it only works for ASCII. This is for one-cell multibyte marks,
+// such as the arrow a tab bar shows where it runs off its edge.
 bool HasCell(const ftxui::Screen& screen, const std::string& glyph) {
   for (int y = 0; y < screen.dimy(); ++y) {
     for (int x = 0; x < screen.dimx(); ++x) {
@@ -238,9 +238,9 @@ bool HasCell(const ftxui::Screen& screen, const std::string& glyph) {
   return false;
 }
 
-// Where `needle` starts on row `y`, or -1. FindCell answers for the whole
-// screen and so only ever finds the topmost row; a claim about two rows
-// lining up has to ask each of them separately.
+// Where `needle` starts on row `y`, or -1. FindCell searches the whole screen
+// and so only finds the topmost match. A check that two rows line up has to
+// search each row separately.
 int FindInRow(const ftxui::Screen& screen, int y, const std::string& needle) {
   int len = static_cast<int>(needle.size());
   for (int x = 0; x + len <= screen.dimx(); ++x) {
@@ -255,9 +255,9 @@ int FindInRow(const ftxui::Screen& screen, int y, const std::string& needle) {
   return -1;
 }
 
-// The inverted flag of every cell under `needle`, as a string of '1' and '0' --
-// inversion is how the cursor shows itself, and a mask says exactly how far it
-// reaches. Returns "" when `needle` is not on screen.
+// The inverted flag of every cell under `needle`, as a string of '1' and '0'.
+// Inversion is how the cursor shows, and the mask shows exactly how far it
+// reaches. Returns "" when `needle` isn't on screen.
 std::string InversionMask(ftxui::Component comp, const std::string& needle) {
   ftxui::Screen screen = RenderToScreen(comp);
   std::pair<int, int> at = FindCell(screen, needle);
@@ -271,19 +271,16 @@ std::string InversionMask(ftxui::Component comp, const std::string& needle) {
   return mask;
 }
 
-// The dim flag of the cell under the first character of `needle`. Dimming is
-// how a row says it cannot be spent on.
+// The dim flag of the cell under the first character of `needle`. Dimming shows
+// that a row can't be spent on.
 bool IsDim(ftxui::Component comp, const std::string& needle, int rows = 20) {
   ftxui::Screen screen = RenderToScreen(comp, rows);
   std::pair<int, int> at = FindCell(screen, needle);
   return at.first >= 0 && screen.PixelAt(at.first, at.second).dim;
 }
 
-// Whether `needle` is on screen. RenderComponent's string is no use across a
-// change of colour: ToString writes escape codes between them, so a coloured
-// tag and the name beside it are not adjacent bytes.
-// Rows drawn as a horizontal rule, which is how the page says one block of it
-// has ended and another begun.
+// The number of rows drawn as a horizontal rule, which is how the page marks
+// the end of one block and the start of the next.
 int RuleRows(const std::string& rendered) {
   int rules = 0;
   std::size_t start = 0;
@@ -302,8 +299,8 @@ int RuleRows(const std::string& rendered) {
   return rules;
 }
 
-// The rightmost painted column of row `y`, the window's own border aside.
-// Two rows whose right-aligned cells line up end on the same one.
+// The rightmost painted column of row `y`, ignoring the window's own border.
+// Two rows whose right-aligned cells line up end on the same column.
 int RowEnd(const ftxui::Screen& screen, int y) {
   for (int x = screen.dimx() - 2; x > 0; --x) {
     const std::string& cell = screen.PixelAt(x, y).character;
@@ -314,7 +311,7 @@ int RowEnd(const ftxui::Screen& screen, int y) {
   return -1;
 }
 
-// A panel rendered onto a screen its own width, so its border lands where
+// A panel rendered onto a screen of its own width, so its border lands where
 // the main layout would put it rather than at the edge of the test screen.
 ftxui::Screen PanelScreen(const CharacterPanel& panel, int width) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
@@ -324,7 +321,7 @@ ftxui::Screen PanelScreen(const CharacterPanel& panel, int width) {
   return screen;
 }
 
-// The same, for the row `needle` is on.
+// The same, for the row containing `needle`.
 int RowEndOf(const ftxui::Screen& screen, const std::string& needle) {
   return RowEnd(screen, FindCell(screen, needle).second);
 }
@@ -356,7 +353,7 @@ TEST_F(CharacterPanelTest, ShowsTheLevelAndJob) {
   EXPECT_NE(drawn.find("Beginner"), std::string::npos);
 }
 
-// A level-10 Beginner, standing at the advancement it has not taken.
+// A level-10 Beginner with the advancement not yet taken.
 CharacterInstance MakePendingBeginner(std::mt19937& rng) {
   Character proto;
   proto.set_level(10);
@@ -374,8 +371,8 @@ TEST_F(CharacterPanelTest, TheAdvanceTabAppearsOnlyWithOnePending) {
   EXPECT_NE(RenderElement(pending.Render()).find("Advance"), std::string::npos);
 }
 
-// The tab is gone the moment the choice is made, and the cursor cannot be
-// left standing on it.
+// The tab disappears as soon as the job is chosen, and the cursor can't be left
+// on it.
 TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -390,11 +387,11 @@ TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
   EXPECT_EQ(rendered.find("Swordman"), std::string::npos);
 }
 
-// Taking the advancement rewrites the bar under the cursor: Advance leaves,
-// and the cursor lands on the tab beside where it stood. The zone it was in
-// belonged to the Advance tab, which left the cursor nowhere -- nothing drawn
-// as selected, and arrow keys landing in the skill rows rather than on the bar
-// the player was looking at.
+// Taking the advancement changes the bar under the cursor: Advance disappears,
+// and the cursor lands on the tab next to where it was. The zone it was in
+// belonged to the Advance tab, so without this the cursor would be nowhere:
+// nothing highlighted, and arrow keys going to the skill rows instead of the
+// bar the player is looking at.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -405,13 +402,13 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
   ASSERT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
 
   c.AdvanceJob(JOB_SWORDMAN);
-  // The bar holds the cursor, so Left walks it back to Stats.
+  // The bar has the cursor, so Left moves back to Stats.
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_NE(RenderComponent(comp).find("STR"), std::string::npos);
 }
 
-// And Down from there enters the Skills content, which is what the bar
-// holding the cursor means.
+// Down from there enters the Skills content, which confirms the bar has the
+// cursor.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsContentOneKeyAway) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -453,12 +450,12 @@ TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // Swordman -> Archer
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(chosen, JOB_ARCHER);
-  // Asking is all the panel does; performing it belongs to the confirmation.
+  // The panel only asks; the confirmation performs the advancement.
   EXPECT_EQ(c.proto().job(), JOB_BEGINNER);
 }
 
-// The Advance tab's ring, from the other end: Up off the bar lands on the last
-// job on offer rather than doing nothing.
+// The Advance tab's ring from the other end: Up from the bar lands on the last
+// job offered instead of doing nothing.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -481,7 +478,8 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
   CharacterPanelActions actions;
   actions.advance = [&chosen](Job job) { chosen = job; };
   ftxui::Component comp = panel.MakeComponent(actions);
-  // A pending Beginner's bar is Stats and Advance: no Skills until they pick.
+  // A pending Beginner's bar is Stats and Advance, with no Skills until they
+  // pick a job.
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
   comp->OnEvent(ftxui::Event::ArrowUp);     // back to the tab bar
@@ -490,8 +488,8 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
             std::string::npos);  // the Stats tab
 }
 
-// The Skills tab is held back by its level, whatever job the character is:
-// a new character's bar is Stats alone.
+// The Skills tab waits for its level whatever the character's job, so a new
+// character's bar has only Stats.
 TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
   CharacterPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
@@ -499,8 +497,8 @@ TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
   EXPECT_EQ(rendered.find("Skills"), std::string::npos);
 }
 
-// The tab arrives on the level alone: a Beginner standing at the gate has the
-// beginner's book to read, whether or not they have taken a job.
+// The tab appears based on level alone. A Beginner at the advancement level has
+// the beginner book to read, whether or not they have taken a job.
 TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheLevel) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   EXPECT_NE(RenderElement(CharacterPanel(c, account_, panel_focus_).Render())
@@ -538,9 +536,9 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHp) {
   EXPECT_NE(RenderElement(panel.Render()).find("HP: 103"), std::string::npos);
 }
 
-// Attack is written "(base+bonus) total", so it can outgrow its value column.
-// When it did, it ran into the gutter and took the row -- and the panel --
-// wider than every other row.
+// Attack is shown as "(base+bonus) total", so it can be longer than its value
+// column. It must not push the row, and so the panel, wider than every other
+// row.
 TEST_F(CharacterPanelTest, ALongValueKeepsTheRowWidth) {
   Skill marks;
   marks.set_name("Marksmanship");
@@ -620,7 +618,7 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
   c.PickUp(std::make_unique<EquipInstance>(weapon));
   c.Equip(0);
 
-  // Past 999,999 the words go and the number stays.
+  // Past 999,999 the label shortens and the number stays whole.
   CharacterPanel panel(c, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("CP 1,221,0"), std::string::npos);
@@ -628,7 +626,7 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
 }
 
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
-  // A Warrior, because a Beginner has only the one tab to sit on.
+  // A Warrior, because a Beginner has only one tab.
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(c, account_,
                        panel_focus_);  // panel_focus_ == kCharPanel
@@ -691,17 +689,17 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
   ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
   comp->OnEvent(ftxui::Event::ArrowUp);    // STR -> tab bar
-  // Enter allocates only from a stat row, so its silence is what says the
-  // cursor left one.
+  // Enter allocates only from a stat row, so nothing happening shows the cursor
+  // left one.
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(fired);
 }
 
 // --- the tab bar is the top of every tab's ring ---
 
-// Up off the bar lands on the last row of the tab's content, which for Stats
-// is View All Stats. Enter names the row, which is how the test says where the
-// cursor is standing.
+// Up from the bar lands on the last row of the tab's content, which for Stats
+// is View All Stats. Enter reports the row, which is how the test tells where
+// the cursor is.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -769,8 +767,8 @@ TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
 
 TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
   // The rows are worth reading whether or not there is AP to spend, so Down
-  // descends regardless. Prove the cursor left the tab bar: Right no longer
-  // switches tabs, because Left/Right belong to the bar alone.
+  // always moves into them. To prove the cursor left the tab bar, Right no
+  // longer switches tabs, since Left and Right belong only to the bar.
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent();
@@ -780,7 +778,7 @@ TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
 }
 
 // Right has nowhere to go on a Beginner's one-tab bar, so the stats stay put
-// rather than the cursor landing on a tab that is not drawn.
+// instead of the cursor landing on a tab that isn't drawn.
 TEST_F(CharacterPanelTest, RightStaysOnStatsForABeginner) {
   CharacterPanel panel(c_, account_, panel_focus_);  // c_ is a stage-0 Beginner
   ftxui::Component comp = panel.MakeComponent();
@@ -818,14 +816,14 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
-  // The level the player has it at, and no maximum beside it: the [+] going
-  // dim is what says a skill is finished.
+  // The skill's current level with no maximum beside it: the [+] dimming is
+  // what shows a skill is maxed.
   EXPECT_NE(rendered.find("Slash Blast           0"), std::string::npos);
   EXPECT_EQ(rendered.find("0/20"), std::string::npos);
 }
 
-// The Skills tab opens on the first book. A character reads their books in
-// the order they earned them, and the newest one is a Right away.
+// The Skills tab opens on the 1st job book. A character reads their books in
+// the order they earned them, and the newest is a Right away.
 TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_, TwoStageCatalog());
@@ -837,9 +835,9 @@ TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
   EXPECT_EQ(rendered.find("Spear Sweep"), std::string::npos);
 }
 
-// The beginner's page: first on the bar, marked with the circle rather than a
-// numeral, and with no [+] and no SP counter -- nothing on it is bought. Its
-// one skill stands at the account's climb over ten.
+// The beginner page: first on the bar, marked with the circle instead of a
+// numeral, with no [+] and no SP counter, since nothing on it is bought. Its
+// one skill is at the account's progress divided by ten.
 TEST_F(CharacterPanelTest, TheBeginnersPageBuysNothing) {
   CharacterInstance c = MakeSpearman(rng_);  // level 35
   std::map<std::string, Skill> catalog = TwoStageCatalog();
@@ -860,8 +858,8 @@ TEST_F(CharacterPanelTest, TheBeginnersPageBuysNothing) {
   EXPECT_EQ(rendered.find("SP"), std::string::npos);
 }
 
-// A character who has taken no job has that page and nothing else -- and the
-// tab is there for them, which is the whole reason the book exists.
+// A character with no job has that page and nothing else, and the tab is there
+// for them, which is the reason the book exists.
 TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
   CharacterInstance c = MakePendingBeginner(rng_);  // level 10
   std::map<std::string, Skill> catalog = TwoStageCatalog();
@@ -882,8 +880,8 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
             std::string::npos)
       << "there is nowhere to the right to go";
 
-  // Down reaches the rows rather than wrapping to the name: the Link Skills
-  // row, then the skill.
+  // Down reaches the rows instead of wrapping to the name: the Link Skills row,
+  // then the skill.
   EXPECT_NE(RenderComponent(comp).find("Link Skills"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::ArrowDown);
@@ -893,8 +891,8 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
 
 // --- the Hyper page ---
 
-// The H chip sits after the numerals, and the page behind it holds the Hyper
-// Skills rather than the 4th book they upgrade.
+// The H chip comes after the numerals, and its page holds the Hyper Skills, not
+// the 4th job book they upgrade.
 TEST_F(CharacterPanelTest, TheHyperPageComesAfterTheAdvancements) {
   CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150);
   CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
@@ -917,7 +915,7 @@ TEST_F(CharacterPanelTest, TheHyperPageComesAfterTheAdvancements) {
   EXPECT_NE(hyper.find("1 SP"), std::string::npos) << "the Hyper pool";
 }
 
-// A 5th job at `v_points`, holding the Hyper SP MakeDarkKnight hands out.
+// A 5th job with `v_points`, with the Hyper SP MakeDarkKnight gives.
 CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points) {
   CharacterInstance c = MakeDarkKnight(rng, /*level=*/200);
   c.AdvanceJob(JOB_DARK_KNIGHT);  // the 5th, which renames nobody
@@ -925,7 +923,7 @@ CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points) {
   return c;
 }
 
-// One common node and one of the Dark Knight's own, over the hyper catalog.
+// One common node and one Dark Knight node, on top of the hyper catalog.
 std::map<std::string, Skill> NodeCatalog() {
   std::map<std::string, Skill> catalog = HyperCatalog();
   Skill rope;
@@ -946,9 +944,9 @@ std::map<std::string, Skill> NodeCatalog() {
   return catalog;
 }
 
-// The 5th job keeps the 4th's Hyper page and gains a V page behind it, holding
-// the common nodes and its own together. Without a node there is no V page: an
-// empty one is worse than none.
+// The 5th job keeps the 4th's Hyper page and gains a V page after it, holding
+// the common nodes and its own together. With no nodes there is no V page,
+// since an empty page is worse than none.
 TEST_F(CharacterPanelTest, TheVPageComesAfterTheHyperOne) {
   CharacterInstance bare_c = MakeFifthJob(rng_, /*v_points=*/0);
   CharacterPanel bare(bare_c, account_, panel_focus_, HyperCatalog());
@@ -981,8 +979,9 @@ TEST_F(CharacterPanelTest, TheVPageComesAfterTheHyperOne) {
       << "the pool reads in V Points";
 }
 
-// Rules where the page breaks into blocks: the job's own nodes read apart from
-// the commons under them. A numbered book is one list and takes none.
+// Rules where the page splits into blocks, so the job's own nodes read
+// separately from the common nodes below. A numbered book is one list and has
+// none.
 TEST_F(CharacterPanelTest, TheVPageDrawsARuleBetweenItsBlocks) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
   CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
@@ -997,13 +996,13 @@ TEST_F(CharacterPanelTest, TheVPageDrawsARuleBetweenItsBlocks) {
   std::string matrix = RenderComponentText(page);
   ASSERT_NE(matrix.find("Radiant Evil"), std::string::npos);
   ASSERT_NE(matrix.find("Rope Lift"), std::string::npos);
-  // Two rules more than the book had: one between the job's own nodes and the
-  // commons, and one over the [Reset] at the foot.
+  // Two more rules than the book had: one between the job's own nodes and the
+  // common nodes, and one above the [Reset] at the bottom.
   EXPECT_EQ(RuleRows(matrix), book + 2);
 }
 
-// A node\'s [+] is live only while the pool covers its next level, which is a
-// price rather than a point: a common node\'s first costs seven.
+// A node's [+] is active only while the pool covers its next level, which has a
+// price rather than costing one point: a common node's first level costs seven.
 TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/6);
   CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
@@ -1017,8 +1016,9 @@ TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
     page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
   }
   page->OnEvent(ftxui::Event::ArrowDown);  // page bar -> node rows
-  // Down again to the commons at the foot: the job's own node leads the page
-  // and its first level is free, which would prove nothing about a price.
+  // Down again to the common nodes at the bottom. The job's own node comes
+  // first and its first level is free, which would prove nothing about the
+  // price.
   page->OnEvent(ftxui::Event::ArrowDown);
   page->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   ASSERT_NE(RenderComponent(page).find("Rope Lift"), std::string::npos);
@@ -1031,9 +1031,9 @@ TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
   EXPECT_EQ(bought, "Rope Lift");
 }
 
-// The matrix is the one book that hands its points back, so the V page is the
-// one page ending in a [Reset] -- under a rule of its own, as the Hyper tab's
-// is, and the last stop in the ring.
+// The matrix is the only book that refunds its points, so the V page is the
+// only page ending in a [Reset], under its own rule like the Hyper tab's, and
+// it is the last stop in the ring.
 TEST_F(CharacterPanelTest, TheVPageEndsInAReset) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
   CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
@@ -1051,7 +1051,7 @@ TEST_F(CharacterPanelTest, TheVPageEndsInAReset) {
 
   page->OnEvent(ftxui::Event::ArrowRight);  // H -> V
   EXPECT_NE(RenderComponent(page).find("[Reset]"), std::string::npos);
-  // Down past both nodes and onto the button under them.
+  // Down past both nodes and onto the button below them.
   for (int i = 0; i < 3; ++i) {
     page->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -1059,8 +1059,8 @@ TEST_F(CharacterPanelTest, TheVPageEndsInAReset) {
   EXPECT_TRUE(reset);
 }
 
-// A hyper above the character's level is on the page but shut: the [+] does
-// nothing, and the point stays in the pool.
+// A hyper skill above the character's level is on the page but locked: the [+]
+// does nothing, and the point stays in the pool.
 TEST_F(CharacterPanelTest, AHyperAboveItsLevelCannotBeBought) {
   CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150);
   CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
@@ -1081,14 +1081,14 @@ TEST_F(CharacterPanelTest, AHyperAboveItsLevelCannotBeBought) {
             std::string::npos);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(learned) << "level 165 is still ahead of them";
-  // The one they have reached still buys.
+  // The one they have reached can still be bought.
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(learned);
 }
 
-// Nothing on it is within reach yet, so there is no chip: a page that could
-// only ever list what the player cannot have says less than no page.
+// Nothing on it is reachable yet, so there is no chip. A page that could only
+// list what the player can't have is worse than no page.
 TEST_F(CharacterPanelTest, TheHyperPageWaitsForTheFirstSkillOnIt) {
   CharacterInstance c = MakeDarkKnight(rng_, /*level=*/149);
   CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
@@ -1103,9 +1103,8 @@ TEST_F(CharacterPanelTest, TheHyperPageWaitsForTheFirstSkillOnIt) {
             std::string::npos);
 }
 
-// And it stays where the player left it. Down out of the tab bar used to snap
-// the advancement bar to the newest stage, so a second-job character could
-// never get back down onto their first book.
+// It stays where the player left it, so a 2nd job character can go back to
+// their 1st job book.
 TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_, TwoStageCatalog());
@@ -1120,11 +1119,11 @@ TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
   EXPECT_NE(RenderComponent(comp).find("Slash Blast"), std::string::npos);
 }
 
-// The book's own order decides the list, and nothing else does. GMS lists a
-// class's skills in an order of its own -- it does not gather the attacks
-// above the passives -- so the catalog carries skill_order and the panel
-// obeys it. Built here so that stem order, kind order and skill_order all
-// disagree, which is the only way to tell which one the list is following.
+// The book's own order decides the list and nothing else. GMS lists each
+// class's skills in its own order and doesn't group attacks above passives, so
+// the catalog has skill_order and the panel follows it. The catalog here is
+// built so stem order, kind order and skill_order all disagree, which is the
+// only way to tell which one the list follows.
 TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
   const char* stems[] = {"a_iron_body", "b_evil_eye", "c_slash_blast"};
   const char* names[] = {"Iron Body", "Evil Eye Shock", "Slash Blast"};
@@ -1135,7 +1134,7 @@ TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
     Skill skill;
     skill.set_name(names[i]);
     skill.set_kind(kinds[i]);
-    // Numbered the reverse of what the old kind rank wanted.
+    // Numbered in reverse kind order.
     PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN, i + 1);
     skill.set_max_level(20);
     catalog[stems[i]] = skill;
@@ -1156,8 +1155,8 @@ TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
   EXPECT_LT(eye, slash);
 }
 
-// A book holding the longest name the game ships, which is four columns wider
-// than the column it has to sit in.
+// A book with the longest skill name in the game, four columns wider than its
+// column.
 std::map<std::string, Skill> WordyCatalog() {
   Skill wordy;
   wordy.set_name("Final Attack: Crossbow");
@@ -1168,16 +1167,16 @@ std::map<std::string, Skill> WordyCatalog() {
 }
 
 // The panel is laid out beside three others at a fixed width, so a name wider
-// than its column has to slide inside the column rather than push the border
-// out -- which is what "Final Attack: Crossbow" did to the whole main screen.
+// than its column has to scroll inside it instead of pushing the border out and
+// widening the whole main screen.
 TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
   ftxui::Component comp = panel.MakeComponent();
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
-  // The width the panel asks its layout for, which is what a long name used to
-  // inflate. Held against a book whose names all fit: the two must agree.
+  // The width the panel asks its layout for, which a long name must not
+  // increase. Compared with a book whose names all fit: the two must match.
   ftxui::Element wordy = panel.Render();
   CharacterPanel narrow(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component narrow_comp = narrow.MakeComponent();
@@ -1189,8 +1188,8 @@ TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
   EXPECT_LE(ftxui::Dimension::Fit(wordy).dimx, kLeftColumnMin);
 }
 
-// A row nobody is looking at shows the head of its name and stops. The rest
-// arrives by selecting the row; see the marquee's own tests for the slide.
+// An unselected row shows the start of its name and stops. The rest appears
+// when the row is selected; the marquee's own tests cover the scrolling.
 TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
@@ -1201,8 +1200,8 @@ TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
   EXPECT_FALSE(OnScreen(comp, "Final Attack: Crossbow"));
 }
 
-// ...and on a terminal with room for it, the same name is whole: the column a
-// wide screen buys goes to the names, which is what it was bought for.
+// On a terminal with room for it, the same name is shown whole: the extra width
+// of a wide screen goes to the names.
 TEST_F(CharacterPanelTest, AWideColumnHoldsTheWholeName) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
@@ -1216,29 +1215,29 @@ TEST_F(CharacterPanelTest, AWideColumnHoldsTheWholeName) {
       << "and the panel takes the width it was given, no more";
 }
 
-// The Stats tab does not spread with the panel -- a value chasing the border
-// would leave its own label at the other end of the row -- so the room a wide
-// panel brings sits blank either side of the block.
+// The Stats tab doesn't stretch with the panel, since a value pushed to the
+// border would be far from its label, so a wide panel's extra room is blank on
+// each side of the block.
 TEST_F(CharacterPanelTest, TheStatsBlockIsCentredInThePanel) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   for (int width : {kLeftColumnMax, kLeftColumnMin + 1}) {
     CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
     panel.SetWidth(width);
     ftxui::Screen screen = PanelScreen(panel, width);
-    // Both measured from inside the border: the blank in front of the block
-    // against the blank behind it.
+    // Both measured from inside the border: the blank space before the block
+    // against the blank space after it.
     int left = FindCell(screen, "HP:").first - 1;
     int right = width - 2 - RowEndOf(screen, "[+]");
-    // An odd column falls to the left, so the right-hand column keeps the
-    // gutter it would have on the narrowest panel.
+    // An odd column goes to the left, so the right-hand column keeps the gutter
+    // it has on the narrowest panel.
     EXPECT_EQ(left - right, (width - kLeftColumnMin) % 2)
         << "the block sits " << left << " in and " << right << " short at "
         << width;
   }
 }
 
-// The stat block is one block: what the extra stats right-align ends in the
-// same column as the [+] of the rows above them, on any panel width.
+// The stat block lines up as one block: the right-aligned extra stats end in
+// the same column as the [+] of the rows above them, at any panel width.
 TEST_F(CharacterPanelTest, TheExtraStatsLineUpWithThePlusColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   for (int width : {kLeftColumnMin, kLeftColumnMin + 1, kLeftColumnMax}) {
@@ -1250,9 +1249,9 @@ TEST_F(CharacterPanelTest, TheExtraStatsLineUpWithThePlusColumn) {
   }
 }
 
-// And on a panel with a column or less to spare, the block lands in the
-// Skills tab's [+] column too -- the odd column of the centring goes to the
-// left so that it does.
+// On a panel with one column or less to spare, the block also lines up with the
+// Skills tab's [+] column. The centring's odd column goes to the left so that
+// it does.
 TEST_F(CharacterPanelTest, TheTabsRightColumnsAgreeOnANarrowPanel) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   for (int width : {kLeftColumnMin, kLeftColumnMin + 1}) {
@@ -1267,9 +1266,9 @@ TEST_F(CharacterPanelTest, TheTabsRightColumnsAgreeOnANarrowPanel) {
   }
 }
 
-// The name column is a fixed width rather than each name's own, so the levels
-// beside them stay a column too -- which is the whole reason the long name is
-// cut instead of the row being allowed to grow.
+// The name column has a fixed width rather than each name's own, so the levels
+// beside the names stay in a column too. That is why a long name is cut instead
+// of the row growing.
 TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   Skill brief;
   brief.set_name("Rush");
@@ -1294,13 +1293,13 @@ TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   ASSERT_GE(FindInRow(screen, wordy.second, " 0 "), 0);
   EXPECT_EQ(FindInRow(screen, wordy.second, " 0 "),
             FindInRow(screen, rush.second, " 0 "));
-  // And so does the [+] past them, which is the far side of the column.
+  // So does the [+] past them, on the far side of the column.
   EXPECT_EQ(FindInRow(screen, wordy.second, "[+]"),
             FindInRow(screen, rush.second, "[+]"));
 }
 
-// Combat Orders' shape: two levels to every other skill in the book, by the
-// time it is maxed itself.
+// Shaped like Combat Orders: +2 levels to every other skill in the book, once
+// it is maxed itself.
 std::map<std::string, Skill> LendingCatalog() {
   Skill orders;
   orders.set_name("Combat Orders");
@@ -1327,8 +1326,8 @@ CharacterInstance MakeLender(std::mt19937& rng, int slash_blast) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// The level the rest of the game runs on, with the borrowed part in brackets
-// after it -- GMS prints a 10 with two lent as "12 (+2)", not "10 (+2)".
+// The effective level the rest of the game uses, followed by the bonus in
+// brackets. GMS shows a 10 with a +2 bonus as "12 (+2)", not "10 (+2)".
 TEST_F(CharacterPanelTest, ALentLevelIsCountedInAndThenNamed) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/10);
   CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
@@ -1339,9 +1338,8 @@ TEST_F(CharacterPanelTest, ALentLevelIsCountedInAndThenNamed) {
   EXPECT_FALSE(OnScreen(comp, "10 (+2)")) << "the lent levels are counted in";
 }
 
-// Two rules at once, both about who is owed nothing: a skill nobody has bought
-// stays at 0 with no brackets, and the skill lending the levels lends none to
-// itself.
+// Two rules about who gets no bonus: a skill nobody has bought stays at 0 with
+// no brackets, and the skill giving the bonus gives none to itself.
 TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/0);
   CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
@@ -1358,9 +1356,9 @@ TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
   EXPECT_GE(FindInRow(screen, orders, " 10 "), 0) << "its own level, unlifted";
 }
 
-// The column is as wide as the widest level ON THE PAGE, not the widest one
-// the character could ever reach: an unopened book is a thin column of 0s,
-// and the first point spent widens it and narrows the names beside it.
+// The column is as wide as the widest level on the page, not the widest the
+// character could reach. An unopened book gets a thin column of 0s, and the
+// first point spent widens it and narrows the names.
 TEST_F(CharacterPanelTest, TheLevelColumnIsAsWideAsThePageNeeds) {
   CharacterInstance closed = MakeLender(rng_, /*slash_blast=*/0);
   CharacterPanel thin(closed, account_, panel_focus_, LendingCatalog());
@@ -1383,8 +1381,8 @@ TEST_F(CharacterPanelTest, TheLevelColumnIsAsWideAsThePageNeeds) {
       << "one point in, the column widens and the names give up the room";
 }
 
-// Right-aligned, so the gap a short level leaves sits between the name and the
-// level instead of trailing off after it.
+// Right-aligned, so the gap a short level leaves is between the name and the
+// level instead of after it.
 TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/1);
   CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
@@ -1396,13 +1394,13 @@ TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
   int orders = FindCell(screen, "Combat Orders").second;
   ASSERT_GE(blast, 0);
   ASSERT_GE(orders, 0);
-  // "3 (+2)" and "10" end in the same column; only their heads differ.
+  // "3 (+2)" and "10" end in the same column and differ only at the start.
   EXPECT_EQ(FindInRow(screen, blast, "3 (+2) "),
             FindInRow(screen, orders, "10 ") - 4);
 }
 
-// The column the brackets need is only opened for a character whose book can
-// lend levels; everyone else gets the room for their skill names instead.
+// The column space for the brackets is only used for a character whose book
+// gives bonus levels. Everyone else gets that room for skill names.
 TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
   CharacterInstance lender = MakeLender(rng_, /*slash_blast=*/10);
   CharacterPanel wide(lender, account_, panel_focus_, LendingCatalog());
@@ -1427,7 +1425,7 @@ TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
       << "and the panel itself does not widen for them";
 }
 
-// A catalog with one skill of each kind, plus a kind-less one.
+// A catalog with one skill of each kind, plus one with no kind.
 std::map<std::string, Skill> AllKindsCatalog() {
   std::map<std::string, Skill> catalog;
   const char* names[] = {"Slash Blast", "War Leap", "Evil Eye Shock",
@@ -1446,9 +1444,9 @@ std::map<std::string, Skill> AllKindsCatalog() {
   return catalog;
 }
 
-// The tag says what the player does with a skill without their having to know
-// what the name means. Four columns whichever tag it is, so the names below
-// still line up; a kind-less skill gets the blanks rather than a wrong tag.
+// The tag says how a skill is used without the player needing to know what the
+// name means. Every tag is four columns, so the names line up, and a skill with
+// no kind gets blanks instead of a wrong tag.
 TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, AllKindsCatalog());
@@ -1461,16 +1459,16 @@ TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
   EXPECT_TRUE(OnScreen(comp, "P:  Iron Body"));
   EXPECT_TRUE(OnScreen(comp, "    Nameless"));
 
-  // Orange, not red: red is the colour that says a thing is refused, and an
-  // attack skill is never a problem for carrying its own kind.
+  // Orange, not red: red means refused, and an attack skill is never a problem
+  // for being an attack.
   EXPECT_EQ(ColorOf(comp, "A:  Slash Blast"), kGold);
   EXPECT_NE(ColorOf(comp, "A:  Slash Blast"), kRed);
   EXPECT_EQ(ColorOf(comp, "AA: Evil Eye Shock"), kPurple);
   EXPECT_EQ(ColorOf(comp, "P:  Iron Body"), kGreen);
 }
 
-// The tag is a fact about the skill, not a second thing to press: Enter opens
-// the skill, so the cursor covers the name and stops there at both ends.
+// The tag describes the skill and isn't something to press. Enter opens the
+// skill, so the cursor covers only the name.
 TEST_F(CharacterPanelTest, TheHighlightLeavesTheTagAlone) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, AllKindsCatalog());
@@ -1479,15 +1477,15 @@ TEST_F(CharacterPanelTest, TheHighlightLeavesTheTagAlone) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
 
-  // The name and nothing else: not the tag before it, and not the padding
-  // that holds the column open after it.
+  // Only the name: not the tag before it, and not the padding after it that
+  // keeps the column open.
   EXPECT_EQ(InversionMask(comp, "A:  Slash Blast  "),
             "000011111111111"
             "00");
 }
 
-// A requirement is a condition the player has to be able to act on, so what it
-// names has to be above it -- and next to it, so the pair reads as one thing.
+// A requirement is something the player has to act on, so the skill it names
+// must be above it, and right next to it so the pair reads as one.
 TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   Skill hyper_body;
   hyper_body.set_name("Hyper Body");
@@ -1501,8 +1499,8 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   iron_wall.set_kind(SKILL_KIND_PASSIVE);
   PlaceIn(iron_wall, JOB_ADVANCEMENT_SWORDMAN);
   iron_wall.set_max_level(10);
-  // A second link, so the chain is deeper than one hop -- the Cleric's Bless
-  // waits on Invincible, which waits on Heal.
+  // A second link, so the chain is more than one step deep, like the Cleric's
+  // Bless requiring Invincible, which requires Heal.
   iron_wall.mutable_required_skill()->set_skill_name("Endure");
   iron_wall.mutable_required_skill()->set_level(3);
   Skill endure;
@@ -1515,8 +1513,8 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   physical_training.set_kind(SKILL_KIND_PASSIVE);
   PlaceIn(physical_training, JOB_ADVANCEMENT_SWORDMAN);
   physical_training.set_max_level(5);
-  // Stem order puts the gated skill first and something unrelated between the
-  // pair, so both halves of the claim have somewhere to fail.
+  // Stem order puts the dependent skill first with something unrelated between
+  // the pair, so both parts of the check have a way to fail.
   std::map<std::string, Skill> catalog;
   catalog["a_hyper_body"] = hyper_body;
   catalog["b_physical_training"] = physical_training;
@@ -1541,8 +1539,8 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   EXPECT_LT(hyper, training);
 }
 
-// A requirement naming a skill from another book cannot be ordered around, and
-// must not take the skill that carries it out of the list.
+// A requirement naming a skill from another book can't be ordered around, and
+// must not remove its skill from the list.
 TEST_F(CharacterPanelTest, AnOffPageRequirementStillListsItsSkill) {
   Skill gated = MakeSpearSweep();
   gated.mutable_required_skill()->set_skill_name("Slash Blast");
@@ -1593,8 +1591,8 @@ TEST_F(CharacterPanelTest, DownIntoSkillRowsLandsOnTheNameNotThePlus) {
   EXPECT_FALSE(learned);
 }
 
-// The two columns are one Left/Right apart, and the cursor stays where it was
-// put -- walking to the [+] and back must not strand the row on the wrong one.
+// The two columns are one Left or Right apart, and the cursor stays where it is
+// put: moving to the [+] and back must not leave the row on the wrong column.
 TEST_F(CharacterPanelTest, LeftAndRightWalkBetweenTheTwoColumns) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -1614,8 +1612,8 @@ TEST_F(CharacterPanelTest, LeftAndRightWalkBetweenTheTwoColumns) {
   EXPECT_FALSE(learned);
 }
 
-// The cursor has to be visible on whichever column it is on, and on only that
-// one -- two highlights at once would read as two cursors.
+// The cursor must show on whichever column it is on, and only that one, since
+// two highlights would look like two cursors.
 TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -1627,9 +1625,9 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   EXPECT_TRUE(IsInverted(comp, "Slash Blast"));
   EXPECT_FALSE(IsInverted(comp, "[+]"));
 
-  // Enter on the name opens the skill, so the highlight stops at the end of
-  // it: eleven for the name, then the padding holding the column open and the
-  // level beyond it -- neither of which Enter reaches.
+  // Enter on the name opens the skill, so the highlight ends with it: eleven
+  // columns for the name, then the padding and the level, which Enter doesn't
+  // act on.
   EXPECT_EQ(InversionMask(comp, "Slash Blast           0"),
             "11111111111"
             "000000000000");
@@ -1639,8 +1637,8 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   EXPECT_TRUE(IsInverted(comp, "[+]"));
 }
 
-// A maxed skill with no SP behind it dims its [+], but the name is still a
-// live target -- the description is the whole reason to look at it.
+// A maxed skill with no SP dims its [+], but the name is still selectable,
+// since the description is the reason to look at it.
 TEST_F(CharacterPanelTest, InspectIsNotGatedBySpOrMaxLevel) {
   Character proto;
   proto.set_level(15);
@@ -1673,8 +1671,8 @@ TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   comp->OnEvent(ftxui::Event::Return);      // nothing to spend
   EXPECT_FALSE(fired);
-  // The cursor is on the rows, not the bar: Left/Right pick the column here,
-  // so an Up is what it takes to get back and switch tabs.
+  // The cursor is on the rows, not the bar, and Left and Right pick the column
+  // here, so it takes an Up to get back and switch tabs.
   comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowUp);    // advancement bar -> outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);  // outer tabs: Skills -> Stats
@@ -1717,9 +1715,8 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-// The Skills tab's ring is four deep: the username row, the outer tab bar, the
-// advancement bar under it, then the skills. Up off the top arrives at the
-// bottom.
+// The Skills tab's ring has four levels: the username row, the outer tab bar,
+// the page bar under it, then the skills. Up from the top wraps to the bottom.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -1744,15 +1741,15 @@ TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // the one skill row
   comp->OnEvent(ftxui::Event::ArrowDown);   // off the bottom -> the username
   comp->OnEvent(ftxui::Event::ArrowDown);   // username -> outer tab bar
-  // Left switches outer tabs only from the bar, so Stats coming back is where
-  // the cursor went.
+  // Left switches outer tabs only from the bar, so returning to Stats shows
+  // where the cursor went.
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 // A stage with no skills is a ring of three: the username row, the outer bar
-// and the advancement bar. Down from the advancement bar carries on round
-// rather than descending into a list that is not there.
+// and the page bar. Down from the page bar continues round instead of entering
+// a list that isn't there.
 TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   c.AdvanceJob(JOB_SWORDMAN);
@@ -1767,9 +1764,9 @@ TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-// Walking from one skill row to the next keeps whichever column the cursor was
-// in. Only arriving from outside the rows puts it back on the name, so a player
-// spending SP down a list does not have to re-cross to the [+] on every row.
+// Moving between skill rows keeps the current column. Only arriving from
+// outside the rows moves it back to the name, so a player spending SP down a
+// list doesn't have to move to the [+] on every row.
 TEST_F(CharacterPanelTest, WalkingBetweenSkillRowsKeepsTheColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, TwoSkillCatalog());
@@ -1800,7 +1797,7 @@ TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
   c.LearnSkill(MakeSlashBlast(), 1);        // drains stage-1 SP to 0
   comp->OnEvent(ftxui::Event::Return);      // no SP left: nothing to learn
   EXPECT_FALSE(fired);
-  // The cursor stayed put -- one Up reaches the bar, not the outer tabs.
+  // The cursor stayed put: one Up reaches the page bar, not the outer tabs.
   comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowLeft);  // on the bar: only one stage
   EXPECT_NE(RenderComponent(comp).find(" I "), std::string::npos);
@@ -1820,14 +1817,14 @@ TEST_F(CharacterPanelTest, ShowsStrWithBreakdownWhenGearContributes) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   CharacterPanel panel(c_, account_, panel_focus_);
-  // base AP STR is 0 for the test character; gear adds 5; total = 5.
+  // The test character's base AP STR is 0 and gear adds 5, so the total is 5.
   EXPECT_NE(RenderElement(panel.Render()).find("STR: 5 (0+5)"),
             std::string::npos);
 }
 
 // The labels of the rows below the AP stats, in order: the extra stats the
-// budget left standing, and the View All Stats row under them. Rules and blank
-// rows are not labels; a rule's first character is box-drawing, not ASCII.
+// budget kept, and the View All Stats row below them. Rules and blank rows
+// aren't labels; a rule's first character is box-drawing, not ASCII.
 std::vector<std::string> ExtrasShown(ftxui::Element element) {
   std::vector<std::string> labels;
   bool past_the_stats = false;
@@ -1842,17 +1839,17 @@ std::vector<std::string> ExtrasShown(ftxui::Element element) {
       continue;
     }
     // A stat row is a label, a run of spaces, then its value. The centred row
-    // has no run of spaces in it at all.
+    // has no run of spaces.
     size_t gap = text.find("  ");
     labels.push_back(gap == std::string::npos ? text : text.substr(0, gap));
   }
   return labels;
 }
 
-// The rows the panel asks for, borders included -- the height MainLayout
-// stacks it at, and so what the combat panel below it has to fit around.
-// Read from the requirement rather than off the screen: a window fills the box
-// it is given, so rendering the panel alone measures the screen instead.
+// The rows the panel asks for, borders included. MainLayout stacks it at this
+// height, so the combat panel below has to fit around it. Read from the
+// requirement rather than the screen, because a window fills the box it gets,
+// so rendering the panel alone would measure the screen.
 int PanelHeight(ftxui::Element element) {
   element->ComputeRequirement();
   return element->requirement().min_y;
@@ -1861,17 +1858,17 @@ int PanelHeight(ftxui::Element element) {
 TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  // 15 rows of chrome and stats above, then four rows for the extras: three
-  // stats and the row that leads to the rest of them.
+  // 15 rows of fixed rows and stats above, then four rows for the extras: three
+  // stats and the row that leads to the rest.
   panel.SetMaxRows(19);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Final Damage",
                                       "View All Stats"}));
 }
 
-// 24 rows is the terminal to fit: one goes to the exp bar and eight to a
-// combat panel showing a mob bar and the respawn beat, which leaves this
-// panel exactly its floor.
+// The target is a 24-row terminal: one row goes to the exp bar and eight to a
+// combat panel showing a mob bar and the respawn bar, which leaves this panel
+// exactly its minimum.
 TEST_F(CharacterPanelTest, TheFloorLeavesTheCombatPanelItsRows) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -1884,7 +1881,7 @@ TEST_F(CharacterPanelTest, TheFloorLeavesTheCombatPanelItsRows) {
 TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  // Room for nothing but the way out, and then for less than that.
+  // Room only for the View All Stats row, and then for less than that.
   panel.SetMaxRows(16);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"View All Stats"}));
@@ -1893,19 +1890,20 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
             (std::vector<std::string>{"View All Stats"}));
 }
 
-// What the budget is for: the combat panel sits under this one, and a panel
-// that draws past its budget pushes the mob bars off a short terminal. So the
-// measure is the height drawn, not which stats were dropped to reach it -- a
-// heading row added without kStatsTabFixedRows following it passes every test
-// above and still overruns by one, which is how the name row shipped.
+// This is what the budget is for: the combat panel sits below this one, and a
+// panel that draws past its budget pushes the mob bars off a short terminal. So
+// the test measures the height drawn, not which stats were dropped. A heading
+// row added without updating kStatsTabFixedRows passes every test above and
+// still overruns by one.
 TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   int natural = PanelHeight(panel.Render());
   EXPECT_EQ(natural, 24) << "chrome, the AP stats, 8 extras and the way out";
-  // From the tightest budget the chrome fits in, up past the height the panel
-  // wants: it takes every row it is given and not one more. 15 is the floor --
-  // the chrome and the way out, with the rule above the extras given up.
+  // From the tightest budget the fixed rows fit in, up past the height the
+  // panel wants: it takes every row it is given and no more. 15 is the minimum:
+  // the fixed rows and the View All Stats row, without the rule above the
+  // extras.
   for (int budget = 15; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
@@ -1914,8 +1912,8 @@ TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
 }
 
 // A Beginner's tab ends at the AP rows, so there is nothing for a budget to
-// drop -- but the chrome above those rows is the same chrome, and a heading
-// row counted wrong shows up here as a panel that has grown.
+// drop. The fixed rows above them are the same, though, so a miscounted heading
+// row shows up here as a panel that grew.
 TEST_F(CharacterPanelTest, ABeginnerPanelIsTheChromeAndTheApRows) {
   CharacterPanel panel(c_, account_, panel_focus_);
   EXPECT_EQ(PanelHeight(panel.Render()), 14);
@@ -1931,7 +1929,8 @@ TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
 
 // --- The Skills tab's row budget ---
 
-// A book of `count` stage-1 skills, named so their order reads off the panel.
+// A book of `count` stage-1 skills, named so their order can be read off the
+// panel.
 std::map<std::string, Skill> BookOf(int count) {
   std::map<std::string, Skill> catalog;
   for (int i = 1; i <= count; ++i) {
@@ -1946,7 +1945,7 @@ std::map<std::string, Skill> BookOf(int count) {
   return catalog;
 }
 
-// The panel on its Skills tab, with the cursor down on the skill rows.
+// The panel on its Skills tab, with the cursor on the skill rows.
 ftxui::Component OnSkillRows(CharacterPanel& panel) {
   ftxui::Component comp = panel.MakeComponent();
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
@@ -1955,15 +1954,15 @@ ftxui::Component OnSkillRows(CharacterPanel& panel) {
   return comp;
 }
 
-// Whether the scroll bar is drawn: any of the three glyphs it is made of.
+// Whether the scroll bar is drawn: any of the three glyphs it uses.
 bool HasScrollBar(const std::string& rendered) {
   return rendered.find("\u2503") != std::string::npos ||
          rendered.find("\u2579") != std::string::npos ||
          rendered.find("\u257b") != std::string::npos;
 }
 
-// The Bishop case: an eleven-skill book on a short terminal used to draw
-// straight through the combat panel below it.
+// The Bishop case: an eleven-skill book on a short terminal must not draw
+// through the combat panel below it.
 TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
@@ -1977,8 +1976,8 @@ TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
   }
 }
 
-// The V page's rule and [Reset] are never what a short terminal gives up: the
-// nodes above them are, and the way out of a matrix stays on the screen.
+// A short terminal never takes the V page's rule and [Reset]; it takes the
+// nodes above them, so the way to reset the matrix stays on screen.
 TEST_F(CharacterPanelTest, TheVPageKeepsItsResetAtEveryBudget) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
   CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
@@ -1998,8 +1997,8 @@ TEST_F(CharacterPanelTest, TheVPageKeepsItsResetAtEveryBudget) {
   }
 }
 
-// The window follows the cursor rather than sitting at the head of the book:
-// every skill has to be reachable, budget or no budget.
+// The window follows the cursor instead of staying at the top of the book, so
+// every skill is reachable whatever the budget.
 TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
@@ -2020,8 +2019,8 @@ TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
       << "the head of the book should have scrolled away";
 }
 
-// And it centres the cursor in that window, rather than dragging it along the
-// bottom edge -- the rule every scrolling list in the game follows.
+// It centres the cursor in the window instead of dragging it along the bottom
+// edge, like every scrolling list in the game.
 TEST_F(CharacterPanelTest, TheSkillWindowCentresTheCursor) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
@@ -2035,16 +2034,15 @@ TEST_F(CharacterPanelTest, TheSkillWindowCentresTheCursor) {
   EXPECT_EQ(rendered.find("Skill 03"), std::string::npos);
   EXPECT_NE(rendered.find("Skill 08"), std::string::npos) << "two below it";
 
-  // And walking back up moves the window a row at a time rather than snapping
-  // it to the head of the book.
+  // Moving back up shifts the window one row at a time instead of jumping to
+  // the top of the book.
   comp->OnEvent(ftxui::Event::ArrowUp);
   rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Skill 03"), std::string::npos);
   EXPECT_EQ(rendered.find("Skill 08"), std::string::npos);
 }
 
-// And there is no bar over a book that fits, nor a column taken off the names
-// to hold one.
+// No bar over a book that fits, and no column taken from the names for one.
 TEST_F(CharacterPanelTest, NoScrollBarOverABookThatFits) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(4));
@@ -2068,8 +2066,8 @@ TEST_F(CharacterPanelTest, TheNameRowIsAnInvitationUntilUpReachesIt) {
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
 }
 
-// The other way onto the row: off the bottom of the panel, the ring coming
-// round to its first stop.
+// The other way onto the row: down past the bottom of the panel, wrapping to
+// the first stop.
 TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2081,8 +2079,8 @@ TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
 }
 
-// Tabbing into the panel with a character still called "Set Username" opens
-// the cursor on the name row: the one thing waiting there.
+// Tabbing into the panel with a character still called "Set Username" puts the
+// cursor on the name row, the one thing waiting there.
 TEST_F(CharacterPanelTest, TabbingInOpensAnUnnamedCharacterOnTheName) {
   panel_focus_ = kEquipPanel;
   CharacterInstance c = MakeCharacter();
@@ -2094,8 +2092,8 @@ TEST_F(CharacterPanelTest, TabbingInOpensAnUnnamedCharacterOnTheName) {
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
 }
 
-// A named character has nothing waiting, so the cursor opens where it always
-// did -- on the tab bar, which Right then walks along.
+// A named character has nothing waiting, so the cursor starts on the tab bar,
+// which Right then moves along.
 TEST_F(CharacterPanelTest, TabbingInLandsOnTheTabBarForANamedCharacter) {
   panel_focus_ = kEquipPanel;
   CharacterInstance c = MakePendingBeginner(rng_);
@@ -2110,8 +2108,8 @@ TEST_F(CharacterPanelTest, TabbingInLandsOnTheTabBarForANamedCharacter) {
   EXPECT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
 }
 
-// And the name row is only the opening stop. Once the player has moved the
-// cursor, leaving the panel and coming back keeps where they left it.
+// The name row is only the starting stop. Once the player has moved the cursor,
+// leaving the panel and coming back keeps it where they left it.
 TEST_F(CharacterPanelTest, TabbingBackInKeepsAMovedCursor) {
   panel_focus_ = kEquipPanel;
   CharacterInstance c = MakePendingBeginner(rng_);
@@ -2145,8 +2143,8 @@ TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
   EXPECT_TRUE(OnScreen(comp, "Sean99"));
 }
 
-// The cap is 20 columns and the row is wider than that, so a full-length name
-// with spaces in it arrives whole and is shown whole.
+// The limit is 20 characters and the row is wider than that, so a full-length
+// name with spaces is accepted and shown whole.
 TEST_F(CharacterPanelTest, AFullLengthNameWithSpacesIsKeptWhole) {
   const std::string kFull = "Twenty Characters Ok";
   ASSERT_EQ(static_cast<int>(kFull.size()), kMaxUsernameLength);
@@ -2187,7 +2185,7 @@ TEST_F(CharacterPanelTest, EnterOnAnEmptyFieldLeavesTheOldName) {
   EXPECT_EQ(c.username(), "Logikable");
 }
 
-// An arrow out of the field abandons the edit and moves in the same keystroke.
+// An arrow out of the field discards the edit and moves, in one keystroke.
 TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   c.SetUsername("Logikable");
@@ -2207,8 +2205,8 @@ TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
   EXPECT_EQ(field, STAT_FIELD_STR) << "the cursor moved off the name";
 }
 
-// The row is a stop like any other, so the keys that walk the panel must not
-// be eaten by a field the player never opened.
+// The row is a stop like any other, so a field the player never opened must not
+// swallow the keys that move around the panel.
 TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2219,9 +2217,9 @@ TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
   EXPECT_TRUE(OnScreen(comp, kDefaultUsername));
 }
 
-// The block is what a job fills in, so a Beginner's tab ends at the AP rows --
-// and the way through to the All Stats screen ends with it. Two steps up off
-// the bar land on LUK instead, and Enter there spends the point.
+// The combat block is filled in by a job, so a Beginner's tab ends at the AP
+// rows, and so does the way to the All Stats screen. Two steps up from the bar
+// land on LUK instead, and Enter there spends the point.
 TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2240,9 +2238,9 @@ TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   EXPECT_EQ(field, STAT_FIELD_LUK);
 }
 
-// Each advancement opens the block further: the first brings what a new job
-// can move, the second the percent rows its passives write, the third the
-// three that pay out on nothing the player has met before then.
+// Each advancement shows more of the block: the first adds what a new job can
+// affect, the second the percent rows its passives write, and the third the
+// rows for things the player hasn't met before then.
 TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterInstance first = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(first, account_, panel_focus_);
@@ -2269,12 +2267,12 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
        {"Boss Damage", "Ignore DEF", "Additional EXP", "Arcane Force"}) {
     EXPECT_NE(std::find(late.begin(), late.end(), label), late.end()) << label;
   }
-  // And the row nobody asked for is gone from both.
+  // The row nobody asked for is absent from both.
   EXPECT_EQ(std::find(late.begin(), late.end(), "Dodge Chance"), late.end());
 }
 
-// The stat every Arcane River map measures the character against, at the foot
-// of the block and under the rule that separates it from the swing.
+// The stat every Arcane River map checks the character against, at the bottom
+// of the block below the rule that separates it from the combat stats.
 TEST_F(CharacterPanelTest, ShowsTheArcaneForceTheWornSymbolsCome) {
   Character proto;
   proto.set_level(200);
@@ -2307,13 +2305,13 @@ TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
   CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "7.50%");
   EXPECT_EQ(StatValue(panel.Render(), "Final Damage"), "5.00%");
-  // The base 5% and 35% every character carries, with the skill's on top.
+  // The base 5% and 35% every character has, plus the skill's.
   EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "25.00%");
   EXPECT_EQ(StatValue(panel.Render(), "Critical Damage"), "37.50%");
 }
 
-// The levers a skill has to buy read zero; the two every character is born
-// with read what they are born with.
+// Stats that only a skill can grant read zero, and the two every character
+// starts with read their base values.
 TEST_F(CharacterPanelTest, TheLeversReadZeroButCritReadsItsBase) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2354,8 +2352,8 @@ TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheSoftCap) {
 }
 
 TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
-  // Exercises the widest realistic stat strings to verify kContentWidth holds.
-  // " LUK: 999999 (1300+998699)" is the longest at 26 chars.
+  // Uses the widest realistic stat strings to check they fit the Stats tab's
+  // width. " LUK: 999999 (1300+998699)" is the longest at 26 characters.
   Character proto;
   proto.set_level(1);
   proto.set_job(JOB_BEGINNER);
@@ -2383,9 +2381,9 @@ TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
 
 // --- highlighting ---
 
-// The card across the screen says what happened; the gold border is
-// what says where to look for it. This panel is where the AP a level paid out
-// is spent, so it is the one lit on every level-up.
+// The card in the middle of the screen says what happened, and the gold border
+// says where to look. This panel is where a level's AP is spent, so it lights
+// up on every level-up.
 TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
   CharacterPanel panel(c_, account_, panel_focus_);
   ASSERT_EQ(BorderColor(panel.Render()), kTheme);
@@ -2393,8 +2391,8 @@ TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(panel.Render()), kYellow);
 }
 
-// The panel keeps no clock: whoever lit it is the one that puts it out, and
-// the border has to actually go back.
+// The panel keeps no timer: whoever turned it on turns it off, and the border
+// has to actually change back.
 TEST_F(CharacterPanelTest, ClearingTheHighlightRestoresTheTheme) {
   CharacterPanel panel(c_, account_, panel_focus_);
   panel.SetHighlighted(true);
@@ -2402,9 +2400,9 @@ TEST_F(CharacterPanelTest, ClearingTheHighlightRestoresTheTheme) {
   EXPECT_EQ(BorderColor(panel.Render()), kTheme);
 }
 
-// This panel is the one with rules through the middle of it -- under the
-// title, under the tab bar, and between the allocated stats and the derived
-// ones. A gold box around steel-blue seams is not a lit panel.
+// This panel has rules through the middle: under the title, under the tab bar,
+// and between the allocated stats and the derived ones. A gold box around
+// steel-blue rules doesn't look lit.
 TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
   CharacterPanel panel(c_, account_, panel_focus_);
   ASSERT_EQ(InnerRuleColor(panel.Render()), kTheme);
@@ -2417,13 +2415,13 @@ TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
 // --- a newly unlocked tab announces itself ---
 //
 // These read the chip colour with the panel unfocused. A focused, active chip
-// is drawn black on white -- correct, and nothing to do with whether the tab
-// is new -- so leaving focus here would test the wrong thing.
+// is drawn black on white, correctly and regardless of whether the tab is new,
+// so leaving focus here would test the wrong thing.
 
-// The Skills tab is new, and still says nothing. Advancing swaps it in at the
-// exact index the Advance tab vacates, so the player is left standing on it --
-// gold on a tab they are already reading announces nothing, and having never
-// been arrowed onto, nothing would clear it either.
+// The Skills tab is new but stays plain. Advancing puts it at the exact index
+// the Advance tab leaves, so the player ends up on it. Gold on a tab they are
+// already reading would announce nothing, and since they never moved onto it,
+// nothing would clear it either.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob());
@@ -2437,8 +2435,8 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
   ASSERT_EQ(RenderComponent(component).find("Advance"), std::string::npos)
       << "the tab is spent, so Skills has taken its place on the bar";
 
-  // Read unfocused from here: a focused active chip is drawn black on white
-  // rather than inverted, and gold on white rather than gold.
+  // Read unfocused from here on: a focused active chip is drawn black on white
+  // instead of inverted, and gold on white instead of gold.
   panel_focus_ = kInventoryPanel;
   EXPECT_TRUE(IsInverted(component, "Skills"))
       << "the cursor did not move, so Skills is the tab now under it";
@@ -2446,9 +2444,9 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
       << "so there is nothing for gold to tell them";
 }
 
-// The Advance tab is not a Feature and not permanent -- it appears at the
-// threshold and is gone once a job is picked -- so it gets the same treatment
-// from its own path through TabKey.
+// The Advance tab isn't a Feature and isn't permanent (it appears at the
+// threshold and disappears once a job is picked), so it gets the same treatment
+// through its own path in TabKey.
 TEST_F(CharacterPanelTest, ANewAdvanceTabIsWrittenInGold) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob()) << "the tab has to be on the bar at all";
@@ -2472,10 +2470,9 @@ TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
          "advancement is news again";
 }
 
-// The other way a tab is read: focus arriving on the panel while the tab is
-// already the open one. The controller calls this on every Tab, so the rule
-// reads the same on both panels that carry gold -- see the bag, where the
-// Equip tab is the one it actually catches.
+// The other way a tab is read: the panel gets focus while the tab is already
+// open. The controller calls this on every Tab, so both panels with gold follow
+// the same rule. In the bag it is the Equip tab this actually catches.
 TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2485,8 +2482,8 @@ TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
   component->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   ASSERT_TRUE(account_.Seen(AdvanceTabKey(1)));
 
-  // Stats has nothing to announce, so marking it records nothing rather than
-  // recording the empty key -- which Seen would then answer yes to.
+  // Stats has nothing to announce, so marking it records nothing instead of
+  // recording the empty key, which Seen would then report as seen.
   component->OnEvent(ftxui::Event::ArrowLeft);
   component->OnEvent(ftxui::Event::ArrowLeft);
   panel.MarkActiveTabSeen();
@@ -2495,7 +2492,7 @@ TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
 
 // --- skills waiting on another skill ---
 
-// Hyper Body's shape: three points in Iron Wall come first.
+// Shaped like Hyper Body: three points in Iron Wall come first.
 Skill MakeGatedSkill() {
   Skill skill;
   skill.set_name("Hyper Body");
@@ -2512,9 +2509,9 @@ std::map<std::string, Skill> GatedCatalog() {
   return catalog;
 }
 
-// A skill the character cannot buy yet is not a skill they have. The whole row
-// goes dim, not only the [+], because what is missing is the skill rather than
-// the points.
+// A skill the character can't buy yet isn't one they have. The whole row dims,
+// not only the [+], because what is missing is the skill rather than the
+// points.
 TEST_F(CharacterPanelTest, ASkillWaitingOnAnotherDimsItsWholeRow) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
   CharacterPanel panel(c, account_, panel_focus_, GatedCatalog());
@@ -2539,7 +2536,7 @@ TEST_F(CharacterPanelTest, MeetingTheRequirementUndimsTheRow) {
   EXPECT_FALSE(IsDim(comp, "[+]"));
 }
 
-// An ordinary skill with SP behind it must not be dimmed by the check.
+// An ordinary skill with SP available must not be dimmed by the check.
 TEST_F(CharacterPanelTest, ASkillDemandingNothingIsNotDimmed) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -2548,7 +2545,7 @@ TEST_F(CharacterPanelTest, ASkillDemandingNothingIsNotDimmed) {
   EXPECT_FALSE(IsDim(comp, "Slash Blast"));
 }
 
-// The rendered panel split into rows, for a test asking what follows what.
+// The rendered panel split into rows, for tests about what follows what.
 std::vector<std::string> Rows(ftxui::Element element) {
   ftxui::Screen screen = ftxui::Screen::Create(
       ftxui::Dimension::Fixed(kLeftColumnMin), ftxui::Dimension::Fixed(24));
@@ -2556,8 +2553,8 @@ std::vector<std::string> Rows(ftxui::Element element) {
   return ScreenRows(screen);
 }
 
-// A 4th-job Hero at the level Hyper Stats open at, with a level in one stat
-// of each allocation so the two read differently.
+// A 4th job Hero at the Hyper Stats level, with a level in one stat of each
+// allocation so the two read differently.
 CharacterInstance MakeHyperHero(std::mt19937& rng, int ap = 0) {
   Character proto;
   proto.set_level(140);
@@ -2570,12 +2567,12 @@ CharacterInstance MakeHyperHero(std::mt19937& rng, int ap = 0) {
   (*PresetOf(hyper, StatPreset::kSecond)
         .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
   CharacterInstance c(rng, std::move(proto));
-  // Two allocations to tell apart is what the autoswap is for.
+  // Having two allocations to tell apart is what the autoswap is for.
   c.set_autoswap_presets(true);
   return c;
 }
 
-// The row arrives with the Hyper Stats it picks between, and not before.
+// The row appears with the Hyper Stats it picks between, not before.
 TEST_F(CharacterPanelTest, TheStatsTabGetsAFarmBossRowAt140) {
   CharacterInstance early = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel before(early, account_, panel_focus_);
@@ -2588,7 +2585,7 @@ TEST_F(CharacterPanelTest, TheStatsTabGetsAFarmBossRowAt140) {
   EXPECT_NE(rendered.find("Boss"), std::string::npos);
 }
 
-// With the switch off there is one allocation in play, so the Stats tab has
+// With the autoswap off there is one allocation in play, so the Stats tab has
 // nothing to pick between and drops the row.
 TEST_F(CharacterPanelTest, TheStatsTabDropsTheRowWithTheAutoswapOff) {
   CharacterInstance c = MakeHyperHero(rng_);
@@ -2599,7 +2596,7 @@ TEST_F(CharacterPanelTest, TheStatsTabDropsTheRowWithTheAutoswapOff) {
   EXPECT_EQ(rendered.find("1  "), std::string::npos);
 }
 
-// The two rows of tabs sit together, with the rule under the pair.
+// The two rows of tabs sit together, with the rule under both.
 TEST_F(CharacterPanelTest, NoRuleBetweenTheTwoRowsOfTabs) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2613,7 +2610,7 @@ TEST_F(CharacterPanelTest, NoRuleBetweenTheTwoRowsOfTabs) {
       << "the Farm/Boss row should follow the tab bar directly";
 }
 
-// Which allocation the row is on is what the stats above and below it read.
+// The allocation the row is on decides what the stats above and below it show.
 TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2627,7 +2624,7 @@ TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
   EXPECT_NE(RenderComponentText(comp).find("STR: 60 (0+60)"),
             std::string::npos);
 
-  // The bars in this panel clamp rather than wrap, so the end is the end.
+  // The bars in this panel stop at the ends instead of wrapping.
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.hyper_preset(), StatPreset::kSecond);
   comp->OnEvent(ftxui::Event::ArrowLeft);
@@ -2635,7 +2632,7 @@ TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
   EXPECT_EQ(panel.hyper_preset(), StatPreset::kFirst);
 }
 
-// And it is a stop in the same ring: Down off it lands on the first stat.
+// It is also a stop in the same ring: Down from it lands on the first stat.
 TEST_F(CharacterPanelTest, TheFarmBossRowIsAStopBetweenTheTabsAndTheStats) {
   CharacterInstance c = MakeHyperHero(rng_, /*ap=*/1);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2651,9 +2648,9 @@ TEST_F(CharacterPanelTest, TheFarmBossRowIsAStopBetweenTheTabsAndTheStats) {
 
 // --- the Hyper tab ---
 
-// Walks the cursor from the outer tab bar onto the Hyper tab and down into
-// its stat rows. Stats -> Skills -> Hyper is two steps right, and a 4th job
-// with nothing pending has no Advance tab past it.
+// Moves the cursor from the outer tab bar onto the Hyper tab and down into its
+// stat rows. Stats to Skills to Hyper is two steps right, and a 4th job with
+// nothing pending has no Advance tab after it.
 ftxui::Component OnHyperRows(CharacterPanel& panel) {
   ftxui::Component comp = panel.MakeComponent();
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
@@ -2682,9 +2679,8 @@ TEST_F(CharacterPanelTest, TheHyperTabArrivesWithTheStatsAndIsGoldUntilRead) {
   EXPECT_TRUE(account_.Seen(kHyperTabKey));
 }
 
-// Every stat, its level and the points left -- and nothing else.
-// The Hyper tab spends into a slot, so its row names all three of them --
-// numbered with the switch off, and the one in use carrying the mark.
+// The Hyper tab spends into a slot, so its row names all three slots, numbered
+// with the autoswap off and with a mark on the one in use.
 TEST_F(CharacterPanelTest, TheHyperRowNamesEveryPresetSlot) {
   CharacterInstance c = MakeHyperHero(rng_);
   c.set_autoswap_presets(false);
@@ -2696,8 +2692,8 @@ TEST_F(CharacterPanelTest, TheHyperRowNamesEveryPresetSlot) {
   EXPECT_NE(rendered.find("3"), std::string::npos);
   EXPECT_EQ(rendered.find("Farm"), std::string::npos);
 
-  // With the switch on the first two are named for what they are for, and no
-  // mark is drawn: which one is read is the fight's to say.
+  // With the autoswap on, the first two are named for their use and no mark is
+  // drawn, since the fight decides which one is read.
   c.set_autoswap_presets(true);
   CharacterPanel autoswapped(c, account_, panel_focus_);
   rendered = ScreenText(RenderToScreen(OnHyperRows(autoswapped), 32));
@@ -2706,9 +2702,9 @@ TEST_F(CharacterPanelTest, TheHyperRowNamesEveryPresetSlot) {
   EXPECT_EQ(rendered.find("✓"), std::string::npos);
 }
 
-// Enter on the row raises the menu for the slot under the cursor, and names
-// the kind of preset the tab spends into. The Stats row picks between two
-// activities rather than slots, so it raises nothing.
+// Enter on the row opens the menu for the slot under the cursor and names the
+// kind of preset the tab spends into. The Stats row picks between two
+// activities rather than slots, so it opens nothing.
 TEST_F(CharacterPanelTest, EnterOnThePresetRowRaisesItsMenu) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2735,8 +2731,8 @@ TEST_F(CharacterPanelTest, EnterOnThePresetRowRaisesItsMenu) {
   EXPECT_EQ(raised[0].second, StatPreset::kSecond);
 }
 
-// The cursor reaches the third slot on the Hyper tab and holds it across a
-// look at the Stats tab, whose row has only the two activities on it.
+// The cursor reaches the third slot on the Hyper tab and keeps it through a
+// visit to the Stats tab, whose row has only the two activities.
 TEST_F(CharacterPanelTest, TheThirdSlotSurvivesALookAtTheStatsTab) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2748,7 +2744,7 @@ TEST_F(CharacterPanelTest, TheThirdSlotSurvivesALookAtTheStatsTab) {
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.hyper_preset(), StatPreset::kThird);
-  // And no further: the row clamps at its last chip.
+  // No further: the row stops at its last chip.
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.hyper_preset(), StatPreset::kThird);
 
@@ -2759,6 +2755,7 @@ TEST_F(CharacterPanelTest, TheThirdSlotSurvivesALookAtTheStatsTab) {
   EXPECT_EQ(panel.SelectedActivity(), Activity::kBossing);
 }
 
+// Every stat, its level and the points left, and nothing else.
 TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2769,15 +2766,15 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
               std::string::npos)
         << HyperStatName(kHyperStatOrder[i]);
   }
-  // Level 140 pays three points, and this character has spent one on STR.
+  // Level 140 grants three points, and this character has spent one on STR.
   EXPECT_NE(rendered.find("2 Points"), std::string::npos);
   EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
-  // What a stat is worth is on the card Enter opens, not in a column here.
+  // A stat's value is on the card Enter opens, not in a column here.
   EXPECT_EQ(rendered.find("+30"), std::string::npos);
 }
 
-// The [+] is the door, and it closes on a stat the level holds shut. The row
-// itself dims with it, as a locked skill's does.
+// The [+] is how a stat is bought, and it is closed on a stat the level hasn't
+// unlocked. The row dims with it, as a locked skill's does.
 TEST_F(CharacterPanelTest, ArcaneForceIsHeldShutUntilItsOwnLevel) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2789,7 +2786,7 @@ TEST_F(CharacterPanelTest, ArcaneForceIsHeldShutUntilItsOwnLevel) {
   CharacterPanelActions actions;
   actions.hyper_allocate = [&](HyperStatField field) { raised = field; };
   ftxui::Component with_callback = panel.MakeComponent(actions);
-  // Down to the last row, which is Arcane Force, and over to its [+].
+  // Down to the last row, Arcane Force, and over to its [+].
   for (int i = 1; i < kNumHyperStats; ++i) {
     with_callback->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -2800,7 +2797,8 @@ TEST_F(CharacterPanelTest, ArcaneForceIsHeldShutUntilItsOwnLevel) {
       << "Arcane Force below level 200 has no [+] to press";
 }
 
-// Both buttons name the stat under them, and neither moves a level itself.
+// Both buttons name the stat they belong to, and neither changes a level
+// itself.
 TEST_F(CharacterPanelTest, TheHyperButtonsNameTheStatUnderThem) {
   CharacterInstance c = MakeHyperHero(rng_);
   HyperStatField raised = HYPER_STAT_FIELD_UNSPECIFIED;
@@ -2832,7 +2830,7 @@ TEST_F(CharacterPanelTest, TheHyperButtonsNameTheStatUnderThem) {
       << "the panel asks here too";
 }
 
-// A stat at zero has nothing to give back, so its [-] does not answer.
+// A stat at zero has nothing to give back, so its [-] does nothing.
 TEST_F(CharacterPanelTest, TheHyperMinusIsShutAtZero) {
   CharacterInstance c = MakeHyperHero(rng_);
   HyperStatField lowered = HYPER_STAT_FIELD_UNSPECIFIED;
@@ -2855,8 +2853,8 @@ TEST_F(CharacterPanelTest, TheHyperMinusIsShutAtZero) {
   EXPECT_EQ(lowered, HYPER_STAT_FIELD_UNSPECIFIED);
 }
 
-// Enter on the name opens the card, as it does on a skill's name -- and it is
-// never gated: a stat the level holds shut is the one worth reading about.
+// Enter on the name opens the card, as on a skill's name, and it is never
+// gated: a stat the level hasn't unlocked is the one worth reading about.
 TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   CharacterInstance c = MakeHyperHero(rng_);
   HyperStatField opened = HYPER_STAT_FIELD_UNSPECIFIED;
@@ -2875,8 +2873,8 @@ TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   EXPECT_EQ(opened, HYPER_STAT_FIELD_STR);
   EXPECT_EQ(raised, HYPER_STAT_FIELD_UNSPECIFIED) << "the name spends nothing";
 
-  // Right walks out to the [+] past the [-], and Left back to the name. Both
-  // ends clamp, so the extra press in each direction changes nothing.
+  // Right moves past the [-] to the [+], and Left back to the name. Both ends
+  // stop, so the extra press in each direction changes nothing.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
@@ -2889,7 +2887,7 @@ TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, HYPER_STAT_FIELD_STR);
 
-  // And the last row, which the character's level holds shut, opens too.
+  // The last row, which the character's level hasn't unlocked, opens too.
   for (int i = 1; i < kNumHyperStats; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -2897,7 +2895,7 @@ TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   EXPECT_EQ(opened, HYPER_STAT_FIELD_ARCANE_FORCE);
 }
 
-// The level sits between its two buttons, one column off each.
+// The level sits between its two buttons, one column from each.
 TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2914,7 +2912,7 @@ TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   }
 }
 
-// The last stop in the ring, under a rule of its own.
+// The last stop in the ring, under its own rule.
 TEST_F(CharacterPanelTest, ResetIsTheStopBelowTheStats) {
   CharacterInstance c = MakeHyperHero(rng_);
   bool reset = false;
@@ -2926,15 +2924,15 @@ TEST_F(CharacterPanelTest, ResetIsTheStopBelowTheStats) {
   ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
-  // Up off the name row -- the top of the ring -- comes out at the bottom of
-  // it, which is [Reset].
+  // Up from the name row, the top of the ring, wraps to the bottom, which is
+  // [Reset].
   comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(reset);
 }
 
-// The rule and the button are never what a short terminal gives up.
+// A short terminal never takes the rule and the button.
 TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2953,9 +2951,9 @@ TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
 
 // --- the Ability tab ---
 
-// A 4th-job Hero at the level Inner Ability opens at, carrying `honor` and a
-// line of each of the three ranks that read differently: a Legendary one that
-// holds, a Unique one that holds, and an Epic one that never can.
+// A 4th job Hero at the Inner Ability level, with `honor` and one line of each
+// of three ranks that read differently: a Legendary one that can be locked, a
+// Unique one that can be locked, and an Epic one that never can.
 CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
   Character proto;
   proto.set_level(kInnerAbilityUnlockLevel);
@@ -2979,8 +2977,8 @@ CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// The row on the Ability tab raises the menu for the other kind of preset:
-// the two are chosen apart.
+// The row on the Ability tab opens the menu for the other kind of preset, since
+// the two are chosen separately.
 TEST_F(CharacterPanelTest, ThePresetRowOnAbilityNamesTheAbilityPresets) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3000,8 +2998,8 @@ TEST_F(CharacterPanelTest, ThePresetRowOnAbilityNamesTheAbilityPresets) {
   EXPECT_EQ(raised[0], PresetKind::kInnerAbility);
 }
 
-// Walks the cursor onto the Ability tab and down into its line rows. Stats ->
-// Skills -> Hyper -> Ability is three steps right.
+// Moves the cursor onto the Ability tab and down into its line rows. Stats to
+// Skills to Hyper to Ability is three steps right.
 ftxui::Component OnAbilityRows(CharacterPanel& panel) {
   ftxui::Component comp = panel.MakeComponent();
   for (int i = 0; i < 3; ++i) {
@@ -3012,8 +3010,8 @@ ftxui::Component OnAbilityRows(CharacterPanel& panel) {
   return comp;
 }
 
-// The tab is gated on this character's own level, and the gold on it is the
-// account's: the first one there is told, and the next one is not.
+// The tab is gated on this character's own level, and its gold is account-wide:
+// the first character there is told, and the next is not.
 TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt160AndIsGoldOnceAnAccount) {
   CharacterInstance early = MakeHyperHero(rng_);
   CharacterPanel before(early, account_, panel_focus_);
@@ -3030,13 +3028,13 @@ TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt160AndIsGoldOnceAnAccount) {
   EXPECT_EQ(LabelColor(panel.Render(), "Ability"), kTheme);
   EXPECT_TRUE(account_.Seen(kAbilityTabKey));
 
-  // A second character on the same account arrives to a quiet tab.
+  // A second character on the same account finds the tab plain.
   CharacterInstance next = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel second(next, account_, panel_focus_);
   EXPECT_EQ(LabelColor(second.Render(), "Ability"), kTheme);
 }
 
-// The three lines, the pool over them and the price under them.
+// The three lines, the pool above them and the price below.
 TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/12345);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3046,15 +3044,15 @@ TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
   EXPECT_NE(rendered.find("+20%"), std::string::npos);
   EXPECT_NE(rendered.find("STR"), std::string::npos);
   EXPECT_NE(rendered.find("+30"), std::string::npos);
-  // The pool reads with commas and the price without: one is a total to read
-  // off, the other a number to weigh against it.
+  // The pool is shown with commas and the price without: one is a total to
+  // read, the other a number to compare against it.
   EXPECT_NE(rendered.find("12,345 Honor"), std::string::npos);
   EXPECT_NE(rendered.find("Honor Cost"), std::string::npos);
   EXPECT_NE(rendered.find("8000"), std::string::npos);
   EXPECT_NE(rendered.find("[Reroll]"), std::string::npos);
 }
 
-// The preset's own rank stands on a banner over the lines, in its colour.
+// The preset's rank is shown on a banner above the lines, in its colour.
 TEST_F(CharacterPanelTest, TheAbilityTabBannersItsRank) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3067,7 +3065,7 @@ TEST_F(CharacterPanelTest, TheAbilityTabBannersItsRank) {
   EXPECT_LT(rendered.find("Legendary Ability"), rendered.find("Boss Damage"));
 }
 
-// Every row is written in its rank's colour, and the lock beside it is not.
+// Each line is drawn in its rank's colour, and the lock beside it isn't.
 TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3077,7 +3075,7 @@ TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   EXPECT_EQ(ColorOf(comp, "STR"), kUnique.ToColor());
   EXPECT_EQ(ColorOf(comp, "Attack"), kEpic.ToColor());
 
-  // Every row carries a lock, and it is never the rank's colour.
+  // Every row has a lock, and it is never in the rank's colour.
   ftxui::Screen screen = RenderToScreen(comp);
   for (const std::string& needle : {"Boss Damage", "STR", "Attack"}) {
     const int y = FindCell(screen, needle).second;
@@ -3087,13 +3085,13 @@ TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   EXPECT_NE(screen.PixelAt(RowEnd(screen, y), y).foreground_color,
             kLegendary.ToColor());
 
-  // Holding a line does not repaint it: the lock says that on its own.
+  // Locking a line doesn't recolour it; the lock shows that on its own.
   ASSERT_TRUE(c.LockAbilityLine(0, true));
   EXPECT_EQ(ColorOf(comp, "Boss Damage"), kLegendary.ToColor());
 }
 
-// Every line is a stop on the ring, whatever its rank, and Enter on one asks
-// to hold it.
+// Every line is a stop on the ring whatever its rank, and Enter on one asks to
+// lock it.
 TEST_F(CharacterPanelTest, EveryLineIsAStopOnTheRing) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3112,7 +3110,7 @@ TEST_F(CharacterPanelTest, EveryLineIsAStopOnTheRing) {
     EXPECT_EQ(locked, i) << "the Epic line asks like the rest";
   }
 
-  // Down off the last of them is the button, and Up comes back to it.
+  // Down from the last one is the button, and Up comes back to it.
   comp->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
   locked = -1;
@@ -3121,8 +3119,8 @@ TEST_F(CharacterPanelTest, EveryLineIsAStopOnTheRing) {
   EXPECT_EQ(locked, kAbilityLines - 1);
 }
 
-// The price reddens and the button greys when the pool is short, and Enter on
-// it does nothing -- there is nothing a dialog could add to what is on screen.
+// The price turns red and the button grey when the pool is short, and Enter on
+// it does nothing, since a dialog couldn't add anything to what is on screen.
 TEST_F(CharacterPanelTest, AShortPoolRedensTheCostAndShutsTheButton) {
   CharacterInstance poor = MakeAbilityHero(rng_, /*honor=*/10);
   CharacterPanel panel(poor, account_, panel_focus_);
@@ -3159,7 +3157,7 @@ TEST_F(CharacterPanelTest, AShortPoolRedensTheCostAndShutsTheButton) {
 }
 
 // The button is the last stop in the ring, and the ring wraps to the name row
-// the way every other tab's does.
+// like every other tab's.
 TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/8000);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3172,7 +3170,7 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   // Down past the Farm/Boss row and the three lines lands on the button, and
-  // one more wraps back round to the name at the top.
+  // one more wraps to the name at the top.
   for (int i = 0; i < 5; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -3187,7 +3185,7 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
 
 // --- the Buffs tab ---
 
-// A 4th-job Hero at `level`, which is what decides how many buffs are listed.
+// A 4th job Hero at `level`, which decides how many buffs are listed.
 CharacterInstance MakeBuffHero(std::mt19937& rng, int level) {
   Character proto;
   proto.set_level(level);
@@ -3197,8 +3195,8 @@ CharacterInstance MakeBuffHero(std::mt19937& rng, int level) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// Walks the cursor onto the Buffs tab and down onto its first row. Stats ->
-// Skills -> Hyper -> Ability -> Buffs is four steps right, and there is no
+// Moves the cursor onto the Buffs tab and down onto its first row. Stats to
+// Skills to Hyper to Ability to Buffs is four steps right, and there is no
 // Farm/Boss row in between.
 ftxui::Component OnBuffRows(CharacterPanel& panel,
                             CharacterPanelActions actions = {}) {
@@ -3210,16 +3208,16 @@ ftxui::Component OnBuffRows(CharacterPanel& panel,
   return comp;
 }
 
-// Gated on this character's own level, and gold once for the account -- the
-// same deal the Ability tab gets, and for the same reason.
+// Gated on this character's own level, with gold once per account, like the
+// Ability tab and for the same reason.
 TEST_F(CharacterPanelTest, TheBuffsTabArrivesAt170AndIsGoldOnceAnAccount) {
   CharacterInstance early = MakeBuffHero(rng_, kConsumableUnlockLevel - 1);
   CharacterPanel before(early, account_, panel_focus_);
   before.SetWidth(kLeftColumnMax);
   EXPECT_EQ(RenderElement(before.Render()).find("Buffs"), std::string::npos);
 
-  // Wide enough for the whole bar: at the narrowest it scrolls, and a chip
-  // held back behind the mark has no colour to read.
+  // Wide enough for the whole bar. At the narrowest the bar scrolls, and a chip
+  // hidden behind the scroll mark has no colour to read.
   CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
@@ -3233,8 +3231,8 @@ TEST_F(CharacterPanelTest, TheBuffsTabArrivesAt170AndIsGoldOnceAnAccount) {
   EXPECT_TRUE(account_.Seen(kBuffsTabKey));
 }
 
-// A buff below its own level is not listed at all: it cannot be switched on or
-// bought, and a greyed row would only advertise it.
+// A buff below its own level isn't listed at all: it can't be turned on or
+// bought, and a grey row would only advertise it.
 TEST_F(CharacterPanelTest, TheBuffsTabListsOnlyTheBuffsTheLevelHasOpened) {
   CharacterInstance early = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel first(early, account_, panel_focus_);
@@ -3243,7 +3241,7 @@ TEST_F(CharacterPanelTest, TheBuffsTabListsOnlyTheBuffsTheLevelHasOpened) {
   std::string rendered = ScreenText(RenderToScreen(OnBuffRows(first)));
   EXPECT_NE(rendered.find("Wealth Acquisition"), std::string::npos);
   EXPECT_EQ(rendered.find("Extreme Green"), std::string::npos);
-  // Unbought and unswitched: the rent tag, and no mark.
+  // Not bought and not on: the rent tag, and no mark.
   EXPECT_NE(rendered.find("R:"), std::string::npos);
   EXPECT_EQ(rendered.find("\u2713"), std::string::npos);
 
@@ -3261,8 +3259,8 @@ TEST_F(CharacterPanelTest, TheBuffsTabListsOnlyTheBuffsTheLevelHasOpened) {
             std::string::npos);
 }
 
-// One stop on the row, and Enter on it raises the menu wherever the cursor
-// sits: there is no second column to answer for.
+// One stop per row, and Enter anywhere on it opens the menu, since there is no
+// second column.
 TEST_F(CharacterPanelTest, EnterOnABuffRowOpensItsMenu) {
   CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3279,11 +3277,11 @@ TEST_F(CharacterPanelTest, EnterOnABuffRowOpensItsMenu) {
   EXPECT_EQ(opened[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
 }
 
-// A buff that is switched on is the lit row with the mark on the end; one that
-// is off carries neither.
+// A buff that is on has the lit row and the mark at the end. One that is off
+// has neither.
 TEST_F(CharacterPanelTest, ASwitchedOnBuffIsMarkedAndLit) {
-  // Both buffs, so the cursor can sit on the first and leave the second to be
-  // read without the highlight on it.
+  // Both buffs, so the cursor can sit on the first and the second can be read
+  // without the highlight.
   CharacterInstance c = MakeBuffHero(rng_, 190);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
@@ -3293,14 +3291,14 @@ TEST_F(CharacterPanelTest, ASwitchedOnBuffIsMarkedAndLit) {
 
   c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION);
   EXPECT_FALSE(IsDim(comp, "Extreme"));
-  // The mark is one cell of three bytes, which is FindCell's blind spot.
+  // The mark is one cell of three bytes, which FindCell can't find.
   ftxui::Screen screen = RenderToScreen(comp);
   EXPECT_TRUE(HasCell(screen, "\u2713"));
   EXPECT_EQ(PixelOf(screen, "\u2713").foreground_color, kGreen);
 }
 
-// Bought outright, the row is tagged O: in place of the rent's R: -- nothing
-// is charged for it again.
+// A buff bought outright is tagged O: instead of the rent's R:, since it is
+// never charged again.
 TEST_F(CharacterPanelTest, AnOwnedBuffIsTaggedInsteadOfPriced) {
   CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   ASSERT_TRUE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
@@ -3312,11 +3310,11 @@ TEST_F(CharacterPanelTest, AnOwnedBuffIsTaggedInsteadOfPriced) {
   EXPECT_EQ(ScreenText(RenderToScreen(comp)).find("R:"), std::string::npos);
 }
 
-// Five chips do not fit the narrowest panel, so the bar scrolls under them --
-// and whichever tab the cursor is on is one of the chips still drawn.
+// Five chips don't fit the narrowest panel, so the bar scrolls, and the tab
+// under the cursor is always one of the chips drawn.
 TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
-  // A Crusader who never took their 4th job: five tabs at once, which is the
-  // most the bar is ever asked to hold.
+  // A Crusader who hasn't taken the 4th job: five tabs at once, the most the
+  // bar ever has to hold.
   Character proto;
   proto.set_level(kInnerAbilityUnlockLevel);
   proto.set_job(JOB_CRUSADER);
@@ -3337,7 +3335,7 @@ TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
   EXPECT_GE(FindCell(at_end, "Advance").first, 0)
       << "the tab the cursor is on is always drawn";
 
-  // And the whole bar fits at the widest, marks and all left off.
+  // The whole bar fits at the widest, with no scroll marks.
   panel.SetWidth(kLeftColumnMax);
   ftxui::Screen wide = PanelScreen(panel, kLeftColumnMax);
   EXPECT_GE(FindCell(wide, "Stats").first, 0);
@@ -3346,13 +3344,13 @@ TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
 
 // --- read-only, the panel the Inspect screen draws a party member with ---
 
-// A 4th-job Hero with something waiting on every tab: AP, SP, a Hyper point,
-// an ability and the level a buff opens at. Read-only has to take them all
-// off, so a fixture short of one proves nothing.
+// A 4th job Hero with something waiting on every tab: AP, SP, a Hyper point, an
+// ability and the level a buff unlocks at. Read-only has to remove all of them,
+// so a fixture missing one proves nothing.
 CharacterInstance MakeInspectedHero(std::mt19937& rng) {
   Character proto;
-  // Past every tab gate there is, the 5th job's included, so a tab missing
-  // from this panel is missing because it was taken off.
+  // Past every tab gate, including the 5th job's, so a tab missing from this
+  // panel was removed on purpose.
   proto.set_level(200);
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
@@ -3373,8 +3371,8 @@ CharacterInstance MakeInspectedHero(std::mt19937& rng) {
   return c;
 }
 
-// Everything that spends comes off, and what it was spent on stays: the AP
-// counter reads, the stats read, and there is nothing to press.
+// Everything that spends is removed, and what was spent stays: the AP counter
+// and the stats still show, and there is nothing to press.
 TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
   CharacterInstance c = MakeInspectedHero(rng_);
   UnlockEverything();
@@ -3406,13 +3404,14 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
   std::string ability = ScreenText(RenderToScreen(comp));
   EXPECT_NE(ability.find("Boss Damage"), std::string::npos);
   EXPECT_EQ(ability.find("[Reroll]"), std::string::npos) << ability;
-  // Honor is the one balance a sheet does not carry, so neither the pool nor
-  // the price it sets can be drawn.
+  // Honor is the one balance a character sheet doesn't include, so neither the
+  // pool nor the price based on it can be drawn.
   EXPECT_EQ(ability.find("Honor"), std::string::npos) << ability;
 
-  // And Ability is the end of the bar. A bag is not on the sheet, and an
-  // advancement is not the reader's to take -- asked by stepping past rather
-  // than by reading the bar, which scrolls a narrow panel's labels off.
+  // Ability is the end of the bar: a bag isn't part of the sheet, and an
+  // advancement isn't the reader's to take. Checked by stepping past rather
+  // than by reading the bar, since a narrow panel's bar scrolls labels out of
+  // view.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Boss Damage"),
@@ -3420,8 +3419,8 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
       << "the bar carried on past Ability";
 }
 
-// The same character on the player's own panel: the two tabs read-only drops
-// are there, so the test above is measuring the flag rather than the level.
+// The same character on the player's own panel has the two tabs read-only
+// removes, so the test above is measuring the flag, not the level.
 TEST_F(CharacterPanelTest, TheBuffsAndAdvanceTabsAreThereWhenItIsYourOwn) {
   CharacterInstance c = MakeInspectedHero(rng_);
   ASSERT_TRUE(c.consumables_unlocked());
@@ -3441,8 +3440,8 @@ TEST_F(CharacterPanelTest, TheBuffsAndAdvanceTabsAreThereWhenItIsYourOwn) {
       << "no job rows on the Advance tab";
 }
 
-// Reading a party member must not spend the gold the player's own tabs are
-// waiting to show them.
+// Reading a party member's sheet must not use up the gold the player's own tabs
+// are waiting to show.
 TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
   CharacterInstance c = MakeInspectedHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3450,8 +3449,8 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
   panel_focus_ = kCharPanel;
   ftxui::Component comp = panel.MakeComponent();
 
-  // Off an unfocused bar: the chip under the cursor is lit either way, and
-  // gold is what is being asked about.
+  // From an unfocused bar: the chip under the cursor is lit either way, and the
+  // test is about gold.
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Hyper"), kTheme) << "never gold";
   panel_focus_ = kCharPanel;
@@ -3462,8 +3461,8 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
   EXPECT_FALSE(account_.Seen(kAbilityTabKey));
 }
 
-// The four AP rows stop being stops: there is no [+] on them, and the row
-// they used to lead down to is the one worth walking to.
+// The four AP rows are no longer stops, since they have no [+], and the row
+// below them is the one worth moving to.
 TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
   CharacterInstance c = MakeInspectedHero(rng_);
   UnlockEverything();
@@ -3481,8 +3480,8 @@ TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1);
 
-  // And that row is the foot of the ring: one more step comes round to the
-  // name, rather than through four rows there is nothing to press on.
+  // That row is the bottom of the ring: one more step wraps to the name, rather
+  // than passing four rows with nothing to press.
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1) << "the ring did not come round off View All Stats";
@@ -3492,8 +3491,8 @@ TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
   EXPECT_EQ(opened, 2) << "View All Stats is not one step up from the name";
 }
 
-// The V page hands its points back, so it is the one page with a [Reset] --
-// and that is not the reader's to press either.
+// The V page refunds its points, so it is the only page with a [Reset], and
+// that isn't the reader's to press either.
 TEST_F(CharacterPanelTest, ReadOnlyDropsTheVPagesReset) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
   CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
@@ -3511,15 +3510,15 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsTheVPagesReset) {
   std::string rendered = ScreenText(RenderToScreen(page));
   EXPECT_NE(rendered.find("Rope Lift"), std::string::npos) << "not the V page";
   EXPECT_EQ(rendered.find("[Reset]"), std::string::npos) << rendered;
-  // Down past both nodes lands back on the outer bar, the button being gone.
+  // Down past both nodes lands back on the outer bar, since the button is gone.
   for (int i = 0; i < 3; ++i) {
     page->OnEvent(ftxui::Event::ArrowDown);
   }
   page->OnEvent(ftxui::Event::Return);
 }
 
-// What is left to press opens a card: a skill's, a Hyper Stat's. Both are
-// reading, and both are the only thing Enter does on their row.
+// What is left to press opens a card: a skill's or a Hyper Stat's. Both only
+// read, and opening the card is all Enter does on those rows.
 TEST_F(CharacterPanelTest, ReadOnlyKeepsTheCardsAndNothingElse) {
   CharacterInstance c = MakeInspectedHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -3543,8 +3542,8 @@ TEST_F(CharacterPanelTest, ReadOnlyKeepsTheCardsAndNothingElse) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // -> the advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // -> the first skill
-  // Right would step onto the [+] column on the player's own panel. There is
-  // none here, so Enter still opens the card.
+  // On the player's own panel Right would move to the [+] column. There is none
+  // here, so Enter still opens the card.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(opened.size(), 1u) << "the skill card did not open";
@@ -3558,8 +3557,8 @@ TEST_F(CharacterPanelTest, ReadOnlyKeepsTheCardsAndNothingElse) {
   comp->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(opened.size(), 2u) << "the Hyper Stat card did not open";
 
-  // The ring is a stop shorter for the [Reset] that is gone, so four steps
-  // back off the first stat is the LAST stat rather than the button.
+  // The ring is one stop shorter without the [Reset], so four steps back from
+  // the first stat reach the last stat rather than the button.
   for (int i = 0; i < 4; ++i) {
     comp->OnEvent(ftxui::Event::ArrowUp);
   }
@@ -3568,8 +3567,8 @@ TEST_F(CharacterPanelTest, ReadOnlyKeepsTheCardsAndNothingElse) {
   EXPECT_EQ(opened[2], HyperStatName(kHyperStatOrder[kNumHyperStats - 1]));
 }
 
-// The Ability tab keeps its lines and gives up every stop under the
-// Farm/Boss row: a lock is not the reader's to turn, nor a reroll to buy.
+// The Ability tab keeps its lines but removes every stop below the Farm/Boss
+// row, since the reader can't change a lock or buy a reroll.
 TEST_F(CharacterPanelTest, ReadOnlyLeavesNothingToStandOnUnderTheAbilityRow) {
   CharacterInstance c = MakeInspectedHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3583,7 +3582,7 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesNothingToStandOnUnderTheAbilityRow) {
   for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> ... -> Ability
   }
-  // The row, then off the foot of the ring and round every stop it has.
+  // The row, then past the bottom of the ring and round every stop it has.
   for (int i = 0; i < 4; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
     comp->OnEvent(ftxui::Event::Return);
@@ -3593,7 +3592,7 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesNothingToStandOnUnderTheAbilityRow) {
       << "the lines stopped being drawn";
 }
 
-// A name is not the reader's to change, so Enter on it opens no field.
+// The name isn't the reader's to change, so Enter on it opens no field.
 TEST_F(CharacterPanelTest, ReadOnlyLeavesTheNameAlone) {
   CharacterInstance c = MakeInspectedHero(rng_);
   c.SetUsername("Bree");
@@ -3610,7 +3609,7 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheNameAlone) {
 
 // --- The Link Skills row ---
 
-// The column `needle` starts in, counting from the head of its own line.
+// The column where `needle` starts, counted from the start of its own line.
 int ColumnOf(const std::string& rendered, const std::string& needle) {
   std::size_t at = rendered.find(needle);
   if (at == std::string::npos) {
@@ -3620,8 +3619,8 @@ int ColumnOf(const std::string& rendered, const std::string& needle) {
   return static_cast<int>(at - (line == std::string::npos ? 0 : line + 1));
 }
 
-// The beginner's book, which every character holds: one passive, so the page
-// has a skill row to line the Link Skills row up against.
+// The beginner book, which every character has: one passive, so the page has a
+// skill row to line the Link Skills row up with.
 std::map<std::string, Skill> BeginnerBook() {
   Skill fairy;
   fairy.set_name("Blessing of the Fairy");
@@ -3632,8 +3631,8 @@ std::map<std::string, Skill> BeginnerBook() {
   return {{"blessing_of_the_fairy", fairy}};
 }
 
-// A second-job Fighter: a book of their own, so the tab opens on page I and
-// the beginner's page is one step left.
+// A 2nd job Fighter with a book of their own, so the tab opens on page I and
+// the beginner page is one step left.
 CharacterInstance MakeLinkedHero(std::mt19937& rng) {
   Character proto;
   proto.set_level(30);
@@ -3642,7 +3641,7 @@ CharacterInstance MakeLinkedHero(std::mt19937& rng) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// The panel on the beginner's page of its Skills tab, with the cursor on the
+// The panel on the beginner page of its Skills tab, with the cursor on the
 // rows.
 ftxui::Component OnBeginnerPage(CharacterPanel& panel) {
   ftxui::Component comp = panel.MakeComponent();
@@ -3653,8 +3652,8 @@ ftxui::Component OnBeginnerPage(CharacterPanel& panel) {
   return comp;
 }
 
-// It stands over the beginner's book, carries no tag and no level, and is
-// there from the start -- only the trail waits for the account's climb.
+// The row is at the top of the beginner book, has no tag and no level, and is
+// there from the start. Only the gold trail waits for the account's progress.
 TEST_F(CharacterPanelTest, TheLinkSkillsRowLeadsTheBeginnersPage) {
   CharacterInstance c = MakeLinkedHero(rng_);
   panel_focus_ = kCharPanel;
@@ -3662,15 +3661,15 @@ TEST_F(CharacterPanelTest, TheLinkSkillsRowLeadsTheBeginnersPage) {
   panel.SetWidth(kLeftColumnMax);
   std::string rendered = ScreenText(RenderToScreen(OnBeginnerPage(panel)));
   EXPECT_NE(rendered.find("Link Skills"), std::string::npos);
-  // It leads the page, and its name starts where a skill's does -- the tag's
-  // columns are left blank rather than reclaimed.
+  // It comes first on the page, and its name starts where a skill name does:
+  // the tag's columns are left blank rather than reused.
   EXPECT_LT(rendered.find("Link Skills"), rendered.find("Blessing"));
   EXPECT_EQ(ColumnOf(rendered, "Link Skills"), ColumnOf(rendered, "Blessing"))
       << "the two names start in the same column";
 }
 
-// Enter on it opens the screen, and walking the trail puts each signpost out
-// in turn.
+// Enter on it opens the screen, and following the trail turns off each gold
+// marker in turn.
 TEST_F(CharacterPanelTest, TheLinkTrailGoesOutOneSignpostAtATime) {
   account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
   CharacterInstance c = MakeLinkedHero(rng_);
@@ -3706,8 +3705,8 @@ TEST_F(CharacterPanelTest, TheLinkTrailGoesOutOneSignpostAtATime) {
   EXPECT_TRUE(account_.Seen(LinkTrailKey(LinkTrailStep::kLinkRow)));
 }
 
-// Nobody else's sheet offers it: the Inspect screen reads a character, and
-// what they carry is not the reader's to change.
+// No one else's sheet offers it: the Inspect screen shows a character, and
+// their Link Skills aren't the reader's to change.
 TEST_F(CharacterPanelTest, ReadOnlyDropsTheLinkSkillsRow) {
   account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
   CharacterInstance c = MakeLinkedHero(rng_);
@@ -3720,7 +3719,7 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsTheLinkSkillsRow) {
       std::string::npos);
 }
 
-// Every tab at the narrowest the left column goes: the rows fill that width
+// Every tab at the left column's narrowest width. The rows fill that width
 // exactly, so a column measured wrong runs into the border.
 TEST_F(CharacterPanelTest, NoTabWeldsARowToTheRightBorder) {
   LevelTo(200);
