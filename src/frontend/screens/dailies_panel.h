@@ -1,11 +1,11 @@
 /* DailiesPanel is the question the Dailies menu entry asks: what today's claim
  * pays, and whether to take it.
  *
- * The rows are the reward, name on the left and count on the right, with a
- * column of clearance inside each border so nothing sits against the frame.
+ * The rows list the reward, name on the left and count on the right, with a
+ * blank column inside each border so nothing touches the frame.
  *
- * The panel owns no game state: Reset() seeds it and OnEvent answers with the
- * ConfirmChoice every dialog answers with.
+ * The panel holds no game state: Reset() sets it up and OnEvent returns the
+ * ConfirmChoice every dialog returns.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_DAILIES_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_DAILIES_PANEL_H_
@@ -22,13 +22,13 @@ namespace ms {
 
 class DailiesPanel {
  public:
-  // One row of the claim: what it is, and how many of it.
+  // One row of the claim: what it is, and how many.
   struct Reward {
     std::string name;
     int count = 0;
   };
 
-  // Seeds the panel with what the claim would pay, top to bottom.
+  // Sets up the panel with what the claim would pay, top to bottom.
   void Reset(std::vector<Reward> rewards);
   ftxui::Element Render() const;
   ConfirmChoice OnEvent(ftxui::Event event);

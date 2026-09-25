@@ -1,10 +1,9 @@
-/* HammerPanel is the confirm dialog for driving a golden hammer into a piece
- * of equipment: one more upgrade slot for a flat price.
+/* HammerPanel is the confirm dialog for using a Golden Hammer on an item: one
+ * more upgrade slot for a flat price.
  *
- * The panel owns no game state. Reset() seeds it with the purse the price is
- * being asked of; OnEvent() reports which way the answer went. A player who
- * cannot pay gets a greyed [Confirm] rather than a dialog that refuses them
- * after they press it.
+ * The panel holds no game state. Reset() sets up the purse the price is checked
+ * against, and OnEvent() reports the answer. A player who can't pay gets a grey
+ * [Confirm] instead of a dialog that refuses them after they press it.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_HAMMER_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_HAMMER_PANEL_H_
@@ -19,12 +18,12 @@ namespace ms {
 
 class HammerPanel {
  public:
-  // Seeds the dialog against a purse holding `meso`.
+  // Sets up the dialog against a purse holding `meso`.
   void Reset(int64_t meso);
   ftxui::Element Render() const;
   ConfirmChoice OnEvent(ftxui::Event event);
-  // Whether the purse covers a hammer. The controller asks before spending,
-  // so the check the greyed button shows is the check that is enforced.
+  // Whether the purse covers a hammer. The controller checks this before
+  // spending, so the check the grey button shows is the one that is enforced.
   bool affordable() const;
 
  private:

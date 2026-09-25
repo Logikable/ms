@@ -19,7 +19,7 @@ namespace {
 
 class CubePanelTest : public PanelTest {
  protected:
-  // A weapon carrying one Rare line, which is enough to read the window by.
+  // A weapon with one Rare line, which is enough to test the window.
   EquipInstance Cubed() {
     Equip state;
     Potential* potential = state.mutable_main_potential();
@@ -65,7 +65,7 @@ TEST_F(CubePanelTest, TheShelfKeepsItsHeight) {
   EXPECT_EQ(shelf->requirement().min_y, 10);
 }
 
-// Both windows measure themselves, so both have to ask for the margin.
+// Both windows measure themselves, so both have to request the margin.
 TEST_F(CubePanelTest, NeitherWindowWeldsTextToItsBorder) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 5 * kCubeCost);
@@ -92,8 +92,8 @@ TEST_F(CubePanelTest, TheQuestionShowsTheLinesItWouldThrowAway) {
   EXPECT_NE(rendered.find("Red Cube"), std::string::npos);
   EXPECT_NE(rendered.find("Reroll these lines?"), std::string::npos);
   EXPECT_NE(rendered.find("STR"), std::string::npos);
-  // The purse and the price, in that order: what the reroll leaves is read
-  // before what it takes, and the window is the only place either is said.
+  // The purse, then the price: what the reroll leaves is read before what it
+  // costs, and the window is the only place either is shown.
   size_t held = rendered.find("60,000,000");
   size_t cost = rendered.find("12,000,000");
   ASSERT_NE(held, std::string::npos) << rendered;
@@ -101,7 +101,7 @@ TEST_F(CubePanelTest, TheQuestionShowsTheLinesItWouldThrowAway) {
   EXPECT_LT(held, cost);
 }
 
-// An item with nothing on it yet is not being asked the same question.
+// An item with no potential yet gets a different question.
 TEST_F(CubePanelTest, AnItemWithNoPotentialIsAskedToBeGrantedOne) {
   EquipInstance item(sword_);
   CubePanel panel = Open(item, 5 * kCubeCost);
@@ -110,8 +110,8 @@ TEST_F(CubePanelTest, AnItemWithNoPotentialIsAskedToBeGrantedOne) {
   EXPECT_EQ(rendered.find("Reroll these lines?"), std::string::npos);
 }
 
-// The Confirm leaves its window up: the caller rerolls and the same question
-// is asked again over the new lines.
+// Confirm leaves the window open: the caller rerolls and the same question is
+// asked again over the new lines.
 TEST_F(CubePanelTest, ConfirmDoesNotCloseTheQuestion) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 5 * kCubeCost);
@@ -121,8 +121,8 @@ TEST_F(CubePanelTest, ConfirmDoesNotCloseTheQuestion) {
   EXPECT_FALSE(panel.IsConfirming());
 }
 
-// Rerolled dry: the price goes red, Confirm cannot be pressed, and the cursor
-// is taken off it.
+// Out of meso after a reroll: the price turns red, Confirm can't be pressed,
+// and the cursor moves off it.
 TEST_F(CubePanelTest, AnEmptiedPurseStopsTheReroll) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, kCubeCost);
@@ -131,12 +131,13 @@ TEST_F(CubePanelTest, AnEmptiedPurseStopsTheReroll) {
   panel.SetItem(&item, 0);
   EXPECT_EQ(LabelColor(panel.RenderConfirm(), "12,000,000"), kRed);
   EXPECT_NE(LabelColor(panel.RenderConfirm(), "Held"), kRed);
-  // The cursor is on Cancel, so Enter leaves rather than doing nothing.
+  // The cursor is on Cancel, so Enter closes the window instead of doing
+  // nothing.
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
-// A cube the purse cannot cover is still walked onto and still opens its
-// window -- the same one a player rerolls their way into.
+// A cube the purse can't cover can still be selected and still opens its
+// window, the same one a player rerolls their way into.
 TEST_F(CubePanelTest, AnUnaffordableCubeStillOpensItsQuestion) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 0);
@@ -144,9 +145,9 @@ TEST_F(CubePanelTest, AnUnaffordableCubeStillOpensItsQuestion) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
-// The shelf is a ring, and the question holds the arrows while it is up.
-// A reroll that carries the potential up a rank turns the whole window gold,
-// rules included: a steel-blue rule across a gold window reads as a seam.
+// A reroll that raises the potential's rank turns the whole window gold,
+// including its rules, since a steel-blue rule across a gold window looks like
+// a seam.
 TEST_F(CubePanelTest, ARankUpTurnsTheWholeQuestionGold) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 5 * kCubeCost);
@@ -162,8 +163,8 @@ TEST_F(CubePanelTest, ARankUpTurnsTheWholeQuestionGold) {
   EXPECT_EQ(BorderColor(panel.RenderConfirm()), kTheme);
 }
 
-// Opening the screen starts it steel blue, whatever the last item's last
-// reroll did.
+// Opening the screen starts it steel blue, whatever the last item's last reroll
+// did.
 TEST_F(CubePanelTest, ResetPutsTheGoldOut) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 5 * kCubeCost);
@@ -174,6 +175,7 @@ TEST_F(CubePanelTest, ResetPutsTheGoldOut) {
   EXPECT_EQ(BorderColor(panel.RenderConfirm()), kTheme);
 }
 
+// The shelf wraps, and the question keeps the arrows while it is open.
 TEST_F(CubePanelTest, TheCursorWrapsAndTheQuestionHoldsIt) {
   EquipInstance item = Cubed();
   CubePanel panel;

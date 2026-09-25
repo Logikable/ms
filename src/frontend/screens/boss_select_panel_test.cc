@@ -54,7 +54,7 @@ Boss Zakum() {
   return boss;
 }
 
-// A second boss, smaller, to check the list sorts by how much there is to kill.
+// A second, smaller boss, for checking the list order.
 Boss Balrog() {
   Boss boss;
   boss.set_name("Balrog");
@@ -87,28 +87,27 @@ std::unique_ptr<GameState> WithBosses(bool two = false) {
   return state;
 }
 
-// Raises `state`'s character to `level`, for the fights that only open partway
-// up the ladder.
+// Raises `state`'s character to `level`, for fights that unlock partway up.
 void LevelTo(GameState& state, int level) {
   while (state.character.proto().level() < level) {
     state.character.LevelUp();
   }
 }
 
-// The clock the sliding names are read at. The epoch shows every name from
-// its head, which is where one sits for the first second it is up.
+// The time the scrolling names are read at. The epoch shows every name from the
+// start, where it stays for the first second.
 constexpr std::chrono::steady_clock::time_point kHead;
 
-// The columns the panel actually takes, for asking whether a row inside it
-// pushed it wider.
+// The width the panel actually takes, for checking whether a row pushed it
+// wider.
 int Width(const BossSelectPanel& panel) {
   ftxui::Element element = panel.Render(kHead);
   // Fit clamps to the terminal unless told not to, and this screen is wider
-  // than the 80 columns a test terminal claims.
+  // than the 80 columns a test terminal reports.
   return ftxui::Dimension::Fit(element, /*extend_beyond_screen=*/true).dimx;
 }
 
-// The panel's rows as text, for asking which of them comes before which.
+// The panel's rows as text, for checking which comes before which.
 std::vector<std::string> RenderRows(
     const BossSelectPanel& panel, int height = 32,
     std::chrono::steady_clock::time_point now = kHead) {
@@ -128,7 +127,7 @@ std::string Render(const BossSelectPanel& panel, int height = 32,
   return out;
 }
 
-// Which row says `needle`, or -1 for a panel that does not.
+// The row containing `needle`, or -1 if the panel doesn't show it.
 int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     if (rows[i].find(needle) != std::string::npos) {
@@ -138,8 +137,8 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
   return -1;
 }
 
-// The rendered screen itself, for a question ToString() cannot answer -- the
-// dim bit, which is not in the text.
+// The rendered screen, for something ToString() can't show: the dim flag, which
+// isn't in the text.
 ftxui::Screen RenderScreen(const BossSelectPanel& panel) {
   ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
@@ -148,9 +147,9 @@ ftxui::Screen RenderScreen(const BossSelectPanel& panel) {
   return screen;
 }
 
-// The colour the first character of the row holding `needle` is drawn in.
-// Read off the pixel, because ToString() is where colour goes to die: a red
-// row and a white one produce the same string.
+// The colour of the first character on the row containing `needle`. Read from
+// the pixel, because ToString() loses colour: a red row and a white one give
+// the same string.
 ftxui::Color RowColor(const BossSelectPanel& panel, const std::string& needle) {
   ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
@@ -166,8 +165,8 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   std::string out = Render(panel);
   EXPECT_NE(out.find("Normal Zakum"), std::string::npos);
   EXPECT_NE(out.find("110"), std::string::npos);
-  // Phase 1 is all eight arms together, phase 2 the body, and a fight with
-  // two of them numbers them.
+  // Phase 1 is all eight arms together and phase 2 is the body, and a fight
+  // with two phases numbers them.
   EXPECT_NE(out.find("P1 HP"), std::string::npos);
   EXPECT_NE(out.find("5.6M"), std::string::npos);
   EXPECT_NE(out.find("P2 HP"), std::string::npos);
@@ -175,15 +174,14 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   EXPECT_NE(out.find("40%"), std::string::npos);
   EXPECT_NE(out.find("5:00"), std::string::npos);
   EXPECT_NE(out.find("Daily"), std::string::npos);
-  // Nothing drops yet, and an empty list says so and nothing else. A fight
-  // paying no EXP has no row for it rather than a row reading zero.
+  // Nothing drops yet, and an empty list says only that. A fight that pays no
+  // EXP has no EXP row instead of one reading zero.
   EXPECT_NE(out.find("(empty)"), std::string::npos);
   EXPECT_EQ(out.find("EXP"), std::string::npos);
 }
 
-// The rewards a clear pays, which is what the player is choosing between when
-// there is more than one fight. An equip is named out of its own catalog: the
-// list read only the stackables before Zakum dropped anything.
+// The rewards a clear pays, which is what the player compares when there is
+// more than one fight. An equip's name comes from the equip catalog.
 TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -209,8 +207,8 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_NE(out.find("EXP"), std::string::npos);
   EXPECT_NE(out.find("4,750,740"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
-  // A name too long for its column is cut to it -- it slides, and at the head
-  // of the slide the tail is not up yet. One that fits stands whole.
+  // A name too long for its column is cut to fit and scrolls; at the start of
+  // the scroll its end isn't shown yet. A name that fits is shown whole.
   EXPECT_NE(out.find("Royal Black Metal"), std::string::npos);
   EXPECT_EQ(out.find("Royal Black Metal Shoulder"), std::string::npos);
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
@@ -218,8 +216,8 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_EQ(out.find("(empty)"), std::string::npos);
 }
 
-// Honor is the third thing every gated clear pays, and it reads in the block
-// with the meso and the EXP -- above the drops, which are chances.
+// Honor is the third thing every clear with a reset pays, and it is listed with
+// the meso and EXP, above the drops, which are chances.
 TEST(BossSelectPanelTest, TheRewardsListNamesTheHonorAClearPays) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -234,7 +232,7 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheHonorAClearPays) {
   EXPECT_NE(rows[RowOf(rows, "Honor")].find("1,500"), std::string::npos);
 }
 
-// Nothing spends honor before Inner Ability opens, so nothing names it.
+// Nothing uses honor before Inner Ability unlocks, so it isn't shown.
 TEST(BossSelectPanelTest, TheHonorRowWaitsForInnerAbility) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -242,7 +240,7 @@ TEST(BossSelectPanelTest, TheHonorRowWaitsForInnerAbility) {
   EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
 }
 
-// A fight the calendar does not gate pays no honor, so it names none.
+// A fight with no reset pays no honor, so none is shown.
 TEST(BossSelectPanelTest, AFightWithNoLockoutNamesNoHonor) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -252,8 +250,8 @@ TEST(BossSelectPanelTest, AFightWithNoLockoutNamesNoHonor) {
   EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
 }
 
-// The gear is ruled off from what the clear always pays and the shard, and
-// stands under it commonest first: the rarest drop is the bottom line.
+// The gear is separated by a rule from what every clear pays and the shard, and
+// listed below it most common first, so the rarest drop is the last line.
 TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -267,7 +265,8 @@ TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
   shard.set_name("Shard");
   state.items["shard"] = shard;
   BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
-  // Listed rarest first, and by the equip, to show neither is what orders it.
+  // Added rarest first, and with the equip, to show that neither decides the
+  // order.
   MobDrop* rare = normal->add_drops();
   rare->set_equip("eye");
   rare->set_per_kill(0.1);
@@ -284,13 +283,13 @@ TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
   int crystal_row = RowOf(rows, "Crystal");
   EXPECT_LT(shard_row, crystal_row);
   EXPECT_LT(crystal_row, RowOf(rows, "Eye"));
-  // The rule between them, and no other between the shard and the gear.
+  // The rule between them, and no other rule between the shard and the gear.
   EXPECT_EQ(crystal_row, shard_row + 2);
   EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
-// A token buys a piece of gear, so it is ruled off with the gear rather than
-// read as one more thing every clear pays.
+// A token buys a piece of gear, so it goes below the rule with the gear rather
+// than being read as something every clear pays.
 TEST(BossSelectPanelTest, ATokenIsRuledOffWithTheGear) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -317,10 +316,10 @@ TEST(BossSelectPanelTest, ATokenIsRuledOffWithTheGear) {
   EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
-// The names are the longest strings on this screen. A row that ran past the
-// label and value columns used to push the whole panel wider than the detail
-// rows it stands among; now it slides under its column instead, and the tail
-// arrives once the head has been up long enough to read.
+// The reward names are the longest text on this screen. A name longer than the
+// label and value columns must not push the panel wider; it scrolls inside its
+// column, and the end appears once the start has been shown long enough to
+// read.
 TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -338,15 +337,15 @@ TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   EXPECT_EQ(Width(wide), narrow);
   EXPECT_NE(Render(wide).find("Aquatic Letter"), std::string::npos);
   EXPECT_EQ(Render(wide).find("Eye Accessory"), std::string::npos);
-  // Past the pause at the head and the 600ms slide, inside the pause the name
-  // spends at the far end with its tail up.
+  // Past the pause at the start and the 600ms scroll, inside the pause at the
+  // far end with the end of the name showing.
   std::chrono::steady_clock::time_point slid =
       kHead + std::chrono::milliseconds(2000);
   EXPECT_NE(Render(wide, 32, slid).find("Eye Accessory"), std::string::npos);
 }
 
-// One monster is just "HP": there is no other phase for the number to be
-// confused with.
+// A single monster is just "HP", since there is no other phase to confuse it
+// with.
 TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
@@ -356,9 +355,8 @@ TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
   EXPECT_EQ(out.find("P1 HP"), std::string::npos);
 }
 
-// Nothing on this screen moves as the cursor walks it: both panels are the
-// same 25 rows whichever fight is under the cursor, and the options row under
-// them makes 28.
+// Nothing on this screen moves as the cursor moves: both panels are 25 rows
+// whatever fight is selected, and the options row below makes 28.
 TEST(BossSelectPanelTest, TheScreenIsTheSameSizeForEveryFight) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
@@ -404,9 +402,9 @@ TEST(BossSelectPanelTest, TheListSortsByLevelAndTheCursorWraps) {
   EXPECT_EQ(panel.selected_boss(), "zakum");
 }
 
-// The column belongs to the grid, not to a fight: moving down the second
-// column stays in the second column. A fight with fewer difficulties than the
-// widest is the one exception, and it does not cost the column.
+// The column belongs to the grid, not to a fight: moving down in the second
+// column stays in the second column. A fight with fewer difficulties is the one
+// exception, and it doesn't lose the column.
 TEST(BossSelectPanelTest, TheColumnIsHeldAcrossTheGridAndClampsToItsEnds) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
@@ -414,16 +412,16 @@ TEST(BossSelectPanelTest, TheColumnIsHeldAcrossTheGridAndClampsToItsEnds) {
   ASSERT_EQ(panel.selected_boss(), "balrog");
   panel.ChangeDifficulty(1);
   EXPECT_EQ(panel.selected_title(), "Normal Balrog");
-  // Past the last difficulty stays on it -- the ladder has a top.
+  // Moving past the last difficulty stays on it, since the ladder has a top.
   panel.ChangeDifficulty(1);
   EXPECT_EQ(panel.selected_difficulty(), 1);
 
-  // Zakum has only the one, so its row falls back to it ...
+  // Zakum has only one difficulty, so its row falls back to it...
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_title(), "Normal Zakum");
   EXPECT_EQ(panel.selected_difficulty(), 0);
 
-  // ... and the column is still the second one on the way back.
+  // ...and the column is still the second one on the way back.
   panel.MoveCursor(-1);
   EXPECT_EQ(panel.selected_title(), "Normal Balrog");
   EXPECT_EQ(panel.selected_difficulty(), 1);
@@ -433,14 +431,14 @@ TEST(BossSelectPanelTest, TheColumnIsHeldAcrossTheGridAndClampsToItsEnds) {
   panel.ChangeDifficulty(-1);  // and a bottom
   EXPECT_EQ(panel.selected_difficulty(), 0);
 
-  // Opening the screen starts over on the easiest.
+  // Opening the screen starts again on the easiest.
   panel.ChangeDifficulty(1);
   panel.Reset();
   EXPECT_EQ(panel.selected_title(), "Easy Balrog");
 }
 
-// Every difficulty a fight has stands on its row at once, and the cursor is
-// the lit cell rather than a caret. Both panels keep a column of clearance
+// Every difficulty of a fight is shown on its row, and the cursor is shown by
+// lighting the cell rather than with a caret. Both panels keep a blank column
 // inside each border.
 TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
@@ -473,7 +471,7 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
       << "the detail panel too";
 }
 
-// Green for a fight that can be taken, red for one waiting on its reset.
+// Green for a fight that can be entered, red for one waiting on its reset.
 TEST(BossSelectPanelTest, AClearedFightSaysSoAndIsNotAvailable) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -488,8 +486,9 @@ TEST(BossSelectPanelTest, AClearedFightSaysSoAndIsNotAvailable) {
   EXPECT_NE(Render(panel).find("Cleared"), std::string::npos);
 }
 
-// Beating a boss at any difficulty is beating the boss: the rung beside the
-// one that was taken reads Cleared too, and waits for the same reset.
+// Beating a boss at any difficulty counts as beating the boss: the difficulty
+// next to the one that was beaten also reads Cleared and waits for the same
+// reset.
 TEST(BossSelectPanelTest, AClearOfOneDifficultyClosesTheOthers) {
   std::unique_ptr<GameState> owner = WithBosses(true);
   GameState& state = *owner;
@@ -498,12 +497,12 @@ TEST(BossSelectPanelTest, AClearOfOneDifficultyClosesTheOthers) {
   state.character.RecordBossClear("balrog", "Normal",
                                   static_cast<int64_t>(std::time(nullptr)));
 
-  // The cursor is still on Easy, which nobody has taken.
+  // The cursor is still on Easy, which nobody has beaten.
   EXPECT_EQ(panel.selected()->name(), "Easy");
   EXPECT_FALSE(panel.selected_available());
   EXPECT_NE(Render(panel).find("Cleared"), std::string::npos);
 
-  // The other fight on the list is untouched.
+  // The other fight on the list is unaffected.
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_boss(), "zakum");
   EXPECT_TRUE(panel.selected_available());
@@ -525,8 +524,8 @@ TEST(BossSelectPanelTest, AnEmptyCatalogDrawsWithoutAFight) {
 
 // --- a difficulty that opens partway up the ladder ---
 
-// The row is under the fight's own level: what the player is up against, then
-// what it takes to stand there. Red while they are short of it.
+// The row is below the fight's own level: what the player faces, then what it
+// takes to enter. Red while they are below it.
 TEST(BossSelectPanelTest, ALockedFightNamesTheLevelItWants) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -538,8 +537,8 @@ TEST(BossSelectPanelTest, ALockedFightNamesTheLevelItWants) {
   EXPECT_EQ(panel.selected_unlock_level(), 130);
 }
 
-// Neither "Available" nor "Cleared" is true of a fight that cannot be entered
-// at all.
+// Neither "Available" nor "Cleared" applies to a fight that can't be entered at
+// all.
 TEST(BossSelectPanelTest, ALockedFightReadsLockedRatherThanAvailable) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -550,8 +549,8 @@ TEST(BossSelectPanelTest, ALockedFightReadsLockedRatherThanAvailable) {
   EXPECT_EQ(out.find("Available"), std::string::npos);
 }
 
-// Red is the reason: the one value the player falls short of. Both cells that
-// name it go red, and neither is red once the level is reached.
+// Red marks the reason: the one value the player falls short of. Both cells
+// showing it are red, and neither is once the level is reached.
 TEST(BossSelectPanelTest, TheLevelAndTheStatusGoRedWhileItIsOutOfReach) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -566,7 +565,7 @@ TEST(BossSelectPanelTest, TheLevelAndTheStatusGoRedWhileItIsOutOfReach) {
       << "a level already reached is not something to warn about";
 }
 
-// And the level opens it, row and all.
+// Reaching the level unlocks it, row and all.
 TEST(BossSelectPanelTest, ReachingTheLevelUnlocksTheFight) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -581,23 +580,22 @@ TEST(BossSelectPanelTest, ReachingTheLevelUnlocksTheFight) {
   EXPECT_EQ(out.find("Locked"), std::string::npos);
 }
 
-// A fight with no gate of its own says nothing at all, rather than carrying a
-// row reading 0.
+// A fight with no unlock level of its own shows no row, instead of one reading
+// 0.
 TEST(BossSelectPanelTest, AnUngatedFightHasNoUnlockRow) {
   std::unique_ptr<GameState> owner = WithBosses();
   BossSelectPanel panel(*owner);
   EXPECT_EQ(Render(panel).find("Unlock Level"), std::string::npos);
 }
 
-// The list is the ladder, and its rung is how much there is to kill on the
-// easiest difficulty -- whatever the fight is named and whatever gate it
-// carries.
+// With neither fight gated, the list is ordered by the easiest difficulty's HP,
+// whatever the fight is called.
 TEST(BossSelectPanelTest, TheListSortsByTheHpOfTheEasiestDifficulty) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
   BossSelectPanel small(state);
   EXPECT_EQ(small.selected_boss(), "balrog") << "100k against Zakum's 12.6M";
-  // Growing him past Zakum's arms and body together has to move him below.
+  // Raising his HP above Zakum's arms and body combined must move him below.
   state.mobs["balrog"].set_max_hp(20000000);
   BossSelectPanel big(state);
   EXPECT_EQ(big.selected_boss(), "zakum");
@@ -605,8 +603,8 @@ TEST(BossSelectPanelTest, TheListSortsByTheHpOfTheEasiestDifficulty) {
   EXPECT_EQ(big.selected_boss(), "balrog");
 }
 
-// Adds a Chaos difficulty to Zakum that is written down but not built, and
-// gives it a body big enough to need a 64-bit HP.
+// Adds a Chaos difficulty to Zakum that is defined but not built, with a body
+// large enough to need a 64-bit HP.
 BossDifficulty* AddChaosZakum(GameState& state) {
   state.mobs["chaos_zakum"] = BossMob("Chaos Zakum", 180, 84000000000LL, 100);
   BossDifficulty* chaos = state.bosses["zakum"].add_difficulties();
@@ -616,8 +614,8 @@ BossDifficulty* AddChaosZakum(GameState& state) {
   return chaos;
 }
 
-// The whole panel for a fight that is not built yet: the promise, a blank
-// line, the HP, and nothing that has not been decided.
+// The whole panel for a fight that isn't built yet: the "coming soon" line, a
+// blank line, the HP, and nothing that hasn't been decided.
 TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -633,13 +631,13 @@ TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
   EXPECT_EQ(out.find("Rewards"), std::string::npos);
   EXPECT_EQ(out.find("Available"), std::string::npos);
   EXPECT_EQ(out.find("PDR"), std::string::npos);
-  // Gold says the fight is on its way rather than refused, which is why it is
-  // not the red a shortfall gets.
+  // Gold says the fight is coming rather than refused, which is why it isn't
+  // the red used for a shortfall.
   EXPECT_EQ(RowColor(panel, "Coming soon!"), kYellow);
 }
 
-// The blank row is the point of the pair: it holds the HP off the promise so
-// the two do not read as one sentence.
+// The blank row keeps the HP apart from the "coming soon" line so the two don't
+// read as one sentence.
 TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -661,8 +659,9 @@ TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
   EXPECT_NE(ScreenRow(screen, at + 2).find("HP"), std::string::npos);
 }
 
-// Dim is the door, and this one does not open at any level. The cursor
-// outranks it: a cell being stood on is lit even where the door is shut.
+// Dimming marks a fight that can't be entered, and this one never can at any
+// level. The cursor takes priority: a selected cell is lit even when the fight
+// is closed.
 TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -686,7 +685,7 @@ TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
       << "and lit rather than dimmed once the cursor is on it";
 }
 
-// The three windows are one ring, and the screen opens on the grid.
+// The three windows form one ring, and the screen opens on the grid.
 TEST(BossSelectPanelTest, TabWalksTheThreeWindows) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -704,9 +703,9 @@ TEST(BossSelectPanelTest, TabWalksTheThreeWindows) {
   EXPECT_EQ(panel.focus(), BossPanel::kList);
 }
 
-// A fight card with more rewards than it has room for scrolls them under a
-// bar, and the arrows that scroll it leave the grid's cursor alone. They stop
-// at both ends: a list held at its foot has nowhere further to go.
+// A fight card with more rewards than fit scrolls them with a bar, and the
+// arrows that scroll it don't move the grid's cursor. They stop at both ends,
+// since a list at its bottom has nowhere further to go.
 TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
@@ -722,7 +721,7 @@ TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
   BossSelectPanel panel(state);
   panel.MoveCursor(1);  // Balrog sorts first, being the smaller fight.
   std::string top = Render(panel);
-  // The bar is only drawn once there is something under the window.
+  // The bar is drawn only once something is below the window.
   EXPECT_NE(top.find("\u2503"), std::string::npos);
   EXPECT_NE(top.find("100%"), std::string::npos);
 
@@ -731,8 +730,8 @@ TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
   EXPECT_EQ(panel.selected_boss(), "zakum");
   std::string scrolled = Render(panel);
   EXPECT_EQ(scrolled.find("100%"), std::string::npos);
-  // Left and Right belong to the grid, and a card holding the keys does not
-  // move its column.
+  // Left and Right belong to the grid, and a card with the keys doesn't change
+  // its column.
   panel.ChangeDifficulty(1);
   EXPECT_EQ(panel.selected_difficulty(), 0);
 
@@ -746,8 +745,8 @@ TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
   EXPECT_EQ(Render(panel), foot);
 }
 
-// The rewards go back to the top with the cursor: a fight with two drops has
-// nothing to show at another fight's offset.
+// The rewards reset to the top when the cursor moves: a fight with two drops
+// has nothing to show at another fight's offset.
 TEST(BossSelectPanelTest, MovingTheCursorPutsTheRewardsBackAtTheTop) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -770,8 +769,8 @@ TEST(BossSelectPanelTest, MovingTheCursorPutsTheRewardsBackAtTheTop) {
   EXPECT_EQ(Render(panel), top);
 }
 
-// The options row runs under both panels, and is held open while there is
-// nothing on it so that filling it does not move them.
+// The options row runs under both panels and keeps its space even when empty,
+// so filling it doesn't move them.
 TEST(BossSelectPanelTest, AnOptionsRowRunsUnderBothPanels) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -783,8 +782,8 @@ TEST(BossSelectPanelTest, AnOptionsRowRunsUnderBothPanels) {
   EXPECT_EQ(options, 25);
 }
 
-// A fight's name slides under the grid's column rather than reaching the
-// Difficulty beside it, and does so whichever window holds the keys.
+// A fight's name scrolls inside the grid's column instead of reaching the
+// Difficulty beside it, whichever window has the keys.
 TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -792,7 +791,7 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   BossSelectPanel panel(state);
   EXPECT_NE(Render(panel).find("Zakum The Everlasting"), std::string::npos);
   EXPECT_EQ(Render(panel).find("Flame "), std::string::npos);
-  // Past the pause at the head and the 750ms slide.
+  // Past the pause at the start and the 750ms scroll.
   std::chrono::steady_clock::time_point slid =
       kHead + std::chrono::milliseconds(2200);
   EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
@@ -800,8 +799,8 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
 }
 
-// The row draws the switch as its state, and Left and Right stay on the one
-// switch there is.
+// The row draws the switch in its current state, and Left and Right stay on the
+// only switch there is.
 TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -822,12 +821,12 @@ TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
   EXPECT_EQ(panel.selected_option(), 0);
   panel.ChangeDifficulty(-1);
   EXPECT_EQ(panel.selected_option(), 0);
-  // The grid's own cursor is not what Left and Right moved.
+  // Left and Right didn't move the grid's own cursor.
   EXPECT_EQ(panel.selected_difficulty(), 0);
 }
 
-// Practice walks past the reset, so "Cleared" is no longer what stands between
-// the player and the fight -- and the rewards it will not pay go dim.
+// Practice ignores the reset, so "Cleared" no longer stands between the player
+// and the fight, and the rewards it won't pay are dimmed.
 TEST(BossSelectPanelTest, PracticeRestatesTheStatusAndDimsTheRewards) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -842,17 +841,17 @@ TEST(BossSelectPanelTest, PracticeRestatesTheStatusAndDimsTheRewards) {
   EXPECT_NE(out.find("Practice"), std::string::npos);
   EXPECT_EQ(out.find("Cleared"), std::string::npos);
   EXPECT_EQ(RowColor(panel, "Status"), kYellow);
-  // capture-pane drops the dim bit, so it is only ever checked here.
+  // tmux capture-pane loses the dim flag, so it can only be checked here.
   EXPECT_TRUE(PixelOf(RenderScreen(panel), "Meso").dim);
   EXPECT_TRUE(PixelOf(RenderScreen(panel), "Rewards").dim);
-  // A fight the character is too low for is still locked: practice opens the
-  // door the reset closed, not the one the level does.
+  // A fight the character's level is too low for stays locked: practice skips
+  // the reset, not the level requirement.
   state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(300);
   EXPECT_NE(Render(panel).find("Locked"), std::string::npos);
 }
 
-// The list, the detail panel beside it and the options page are all fitted
-// to their own rows.
+// The list, the detail panel beside it and the options row are each fitted to
+// their own rows.
 TEST(BossSelectPanelTest, NoPanelWeldsARowToItsRightBorder) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   BossSelectPanel panel(*owner);

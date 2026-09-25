@@ -45,8 +45,8 @@ Mob BossMob(const std::string& name, int max_hp) {
   return mob;
 }
 
-// The places a phase lets the player stand, as (x, y) pairs, the first being
-// where they start.
+// The places a phase lets the player stand, as (x, y) pairs. The first is where
+// they start.
 void AddSpots(BossPhase* phase, const std::vector<std::pair<int, int>>& spots) {
   for (const std::pair<int, int>& spot : spots) {
     ArenaSpot* at = phase->add_player_spots();
@@ -63,7 +63,7 @@ Boss Zakum() {
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   // The arms in two columns of four down the middle, with the player's floor
-  // under them and a ledge over each end, as the data file lays them out.
+  // below and a ledge over each end, as the data file lays them out.
   BossPhase* arms = normal->add_phases();
   Spawn* arm = arms->add_spawns();
   arm->set_mob("arm");
@@ -87,8 +87,8 @@ Boss Zakum() {
   return boss;
 }
 
-// One arm in a column of its own, with the player under it and nothing to
-// either side: an arena where a stack can only stand over its monster.
+// One arm in its own column with the player below and nothing on either side:
+// an arena where a stack can only go over its monster.
 Boss OneArmBoss() {
   Boss boss;
   boss.set_name("Zakum");
@@ -108,9 +108,9 @@ Boss OneArmBoss() {
   return boss;
 }
 
-// Two arms in one column, the player under them: the space over the lower arm
-// is the gap between the two bars, which is exactly the space a stack placed
-// under the upper one would take.
+// Two arms in one column with the player below. The space over the lower arm is
+// the gap between the two bars, which is exactly where a stack under the upper
+// one would go.
 Boss ColumnBoss() {
   Boss boss;
   boss.set_name("Zakum");
@@ -147,8 +147,8 @@ std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp,
 }
 
 // The screen as one string per row, one character per column. A border is
-// multi-byte, so it is written as a single '#': what these rows are read for
-// is which column something is in, and a byte offset is not that.
+// multibyte, so it is written as a single '#'. These rows are read for which
+// column something is in, and a byte offset doesn't give that.
 std::vector<std::string> RowsOf(const ftxui::Screen& screen) {
   std::vector<std::string> rows;
   for (int y = 0; y < screen.dimy(); ++y) {
@@ -171,7 +171,7 @@ std::vector<std::string> Rows(const BossRun& run,
   return RowsOf(screen);
 }
 
-// The column `needle` starts in, or -1 if nothing holds it.
+// The column where `needle` starts, or -1 if it isn't there.
 int ColumnOf(const std::vector<std::string>& rows, const std::string& needle) {
   for (const std::string& row : rows) {
     std::size_t at = row.find(needle);
@@ -192,8 +192,8 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
   return -1;
 }
 
-// A character holding a swing that lands eight times on one enemy, so a stack
-// has enough numbers in it to be crowded out of a corner.
+// A character with an attack that hits one enemy eight times, so a stack has
+// enough numbers to be crowded out of a corner.
 std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   Skill flurry;
   flurry.set_name("Flurry");
@@ -202,7 +202,7 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   flurry.set_max_level(1);
   flurry.set_max_enemies(1);
   flurry.set_lines(8);
-  // Slower than a stack's life, so only one is ever on screen.
+  // Slower than a stack's lifetime, so only one is on screen at a time.
   flurry.set_base_delay_ms(2000);
   flurry.mutable_base()->set_skill_pct(5.0);
   std::map<std::string, Skill> book = {{"flurry", flurry}};
@@ -211,8 +211,8 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   }
   std::unique_ptr<GameState> state = MakeState(1000000000, 1, std::move(book));
   state->character.AdvanceJob(JOB_SWORDMAN);
-  // Up to the arms' own level: forty levels under a monster the whole chain
-  // floors at a point of damage, and every swing would tie with the poke.
+  // Up to the arms' own level. Forty levels below a monster, all damage drops
+  // to the minimum of one, and every attack would tie with the basic attack.
   for (int i = 0; i < 110; ++i) {
     state->character.LevelUp();
   }
@@ -220,8 +220,8 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   return state;
 }
 
-// A character whose swing slashes four times, two lines a slash: the same
-// eight numbers, landed as four strikes the screen flashes through.
+// A character whose attack hits four times with two lines each: the same eight
+// numbers, shown as four strikes the screen flashes through.
 std::unique_ptr<GameState> FourStrikeState() {
   Skill illusion;
   illusion.set_name("Illusion");
@@ -243,8 +243,8 @@ std::unique_ptr<GameState> FourStrikeState() {
   return state;
 }
 
-// The same character, holding a summon that pulses beside their swing: two
-// sources landing on one monster, which is what the arena has to keep apart.
+// The same character with a summon that hits alongside their attack: two
+// sources on one monster, which the arena has to keep apart.
 std::unique_ptr<GameState> SummonState() {
   Skill phoenix;
   phoenix.set_name("Phoenix");
@@ -269,20 +269,20 @@ ftxui::Screen RenderScreen(const BossRun& run, int width = 120,
   return screen;
 }
 
-// One number the arena drew, and where: a run of neighbouring cells in a
-// damage number's own colours, read straight off the screen.
+// One number the arena drew, and where: a run of adjacent cells in a damage
+// number's colours, read from the screen.
 struct DrawnNumber {
   std::string text;
   int row = 0;
   int column = 0;
   bool crit = false;
-  // A party member's number rather than the player's own, by its colour.
+  // A party member's number rather than the player's, judged by its colour.
   bool faint = false;
 };
 
-// Whether this cell is a digit in a damage number's colours. A panel's own
-// title is written in the same blue, so a run of digits a percent sign closes
-// is that title's, not a swing's.
+// Whether this cell is a digit in a damage number's colours. A panel's title
+// uses the same blue, so a run of digits ending in a percent sign belongs to
+// the title, not an attack.
 bool NumberCell(const ftxui::Pixel& px) {
   return px.character.size() == 1 && isdigit(px.character[0]) &&
          (px.foreground_color == kTheme || px.foreground_color == kOrange ||
@@ -322,7 +322,7 @@ std::vector<DrawnNumber> DrawnNumbers(const ftxui::Screen& screen) {
   return drawn;
 }
 
-// The screen row a bar's top border is drawn on, found by the name on it.
+// The screen row of a bar's top border, found by the name on it.
 int PanelTop(const std::vector<std::string>& rows, const std::string& title) {
   for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
     if (rows[y].find(title) != std::string::npos) {
@@ -332,8 +332,8 @@ int PanelTop(const std::vector<std::string>& rows, const std::string& title) {
   return -1;
 }
 
-// Steps the fight until the player has a critical line -- or a plain one --
-// on screen, and says whether it found one.
+// Steps the fight until the player has a critical line (or a plain one) on
+// screen, and returns whether it found one.
 bool RunUntilLine(BossRun& run, GameState& state, bool crit) {
   for (int step = 0; step < 2000; ++step) {
     run.Advance(state, 0.05);
@@ -348,14 +348,13 @@ bool RunUntilLine(BossRun& run, GameState& state, bool crit) {
   return false;
 }
 
-// The rows standing over the one monster of a one-bar fight.
+// The rows over the only monster in a one-bar fight.
 std::vector<DamageRow> OnlyColumn(const BossRun& run) {
   return DamageColumn(run.damage_writes(), run.slots().front().id);
 }
 
-// The numbers of `column` read down the screen, which is the top row first --
-// the reverse of the rows, which are read up from the bar. An empty row holds
-// nothing and is not one of them.
+// The numbers of `column` read down the screen, top row first. That is the
+// reverse of the rows, which are read up from the bar. Empty rows are skipped.
 std::vector<std::string> ColumnDownwards(const std::vector<DamageRow>& column) {
   std::vector<std::string> text;
   for (std::size_t i = column.size(); i > 0; --i) {
@@ -385,8 +384,9 @@ TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   EXPECT_EQ(FightHeading(run), "Normal Zakum - Left");
 }
 
-// Practice leads the heading: the tail is the phase and the percent, which
-// move, and what the run is worth should not have to be found among them.
+// Practice comes first in the heading: the end holds the phase and the percent,
+// which change, and what the run is worth shouldn't have to be found among
+// them.
 TEST(BossFightPanelTest, APracticeRunSaysSoBeforeAnythingElse) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
@@ -398,8 +398,8 @@ TEST(BossFightPanelTest, APracticeRunSaysSoBeforeAnythingElse) {
   EXPECT_EQ(FightHeading(run), "Practice - Normal Zakum - Left");
 }
 
-// A fight of one room has no phase to name: "P1" would only ask the player
-// which other phase there was.
+// A one-room fight has no phase to name: "P1" would only make the player wonder
+// what the other phase was.
 TEST(BossFightPanelTest, AOnePhaseFightNamesNoPhase) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
@@ -420,7 +420,7 @@ TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   EXPECT_NE(out.find("Normal Zakum - P1 - 100%"), std::string::npos);
   EXPECT_NE(out.find("5:00"), std::string::npos);
   EXPECT_NE(out.find("You"), std::string::npos);
-  // Eight arms, four to a side.
+  // Eight arms, four on each side.
   int drawn = 0;
   for (std::size_t at = out.find("Zakum's Arm"); at != std::string::npos;
        at = out.find("Zakum's Arm", at + 1)) {
@@ -429,8 +429,8 @@ TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   EXPECT_EQ(drawn, 8);
 }
 
-// A dead arm's bar leaves the screen, but the four rows on that side stay
-// four rows: the bars beside it must not move.
+// A dead arm's bar disappears, but its side still has four rows, so the bars
+// beside it don't move.
 TEST(BossFightPanelTest, ADeadArmLeavesItsSlotEmpty) {
   std::unique_ptr<GameState> state = MakeState(1, 1000000000);
   Boss boss = Zakum();
@@ -453,12 +453,12 @@ TEST(BossFightPanelTest, ADeadArmLeavesItsSlotEmpty) {
                                               ftxui::Dimension::Fixed(30));
   ftxui::Render(after, BossFightPanel(run, true));
   EXPECT_EQ(after.dimy(), before);
-  // The gone arm is not drawn, and the ones still standing are.
+  // The dead arm isn't drawn, and the living ones are.
   std::string out = after.ToString();
   EXPECT_NE(out.find("Zakum's Arm"), std::string::npos);
 }
 
-// The count-in stands where the swing name will, so the one thing about to
+// The countdown sits where the attack name will be, so the thing about to
 // change is where the eye already is.
 TEST(BossFightPanelTest, TheCountdownShowsOnThePlayerPanel) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
@@ -469,7 +469,7 @@ TEST(BossFightPanelTest, TheCountdownShowsOnThePlayerPanel) {
   EXPECT_NE(Render(run).find("1"), std::string::npos);
 }
 
-// A name too long for one row wraps over the player's two rather than
+// A name too long for one row wraps over the player's two rows instead of
 // widening the whole arena.
 TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   Skill carnival;
@@ -482,7 +482,7 @@ TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   std::unique_ptr<GameState> state =
       MakeState(1000000000, 1, {{"carnival", carnival}});
   state->character.AdvanceJob(JOB_SWORDMAN);
-  // SP arrives with the levels, and only past level 10.
+  // SP comes with levels, and only after level 10.
   for (int i = 0; i < 12; ++i) {
     state->character.LevelUp();
   }
@@ -499,7 +499,7 @@ TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   EXPECT_EQ(out.find("Midnight Carnival"), std::string::npos);
 }
 
-// The body stands over the player rather than off to one side.
+// The body is drawn above the player, not off to one side.
 TEST(BossFightPanelTest, TheBodyIsDrawnAboveThePlayer) {
   std::unique_ptr<GameState> state = MakeState(1, 1000000000);
   Boss boss = Zakum();
@@ -515,7 +515,7 @@ TEST(BossFightPanelTest, TheBodyIsDrawnAboveThePlayer) {
   EXPECT_LT(out.find(" Zakum "), out.find(" You "));
 }
 
-// A phase where two parts stand four cells apart, with a cell of margin to
+// A phase where two parts stand four cells apart, with one cell of margin to
 // the right of the second and none to the left of the first.
 Boss TwoPartBoss() {
   Boss boss;
@@ -537,12 +537,12 @@ Boss TwoPartBoss() {
   return boss;
 }
 
-// The whole point of the spots: a part is drawn where the fight puts it, in
-// the order and on the row the phase asked for.
+// This is what spots are for: a part is drawn where the fight puts it, in the
+// order and on the row the phase asked for.
 TEST(BossFightPanelTest, EachPartStandsWhereItsSpotSays) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
-  // Names of the same length, so the two are centred in their panels alike
-  // and the columns between them are the panels' own.
+  // Names of the same length, so both are centred in their panels the same way
+  // and the columns between them belong to the panels.
   state->mobs["arm"].set_name("Left Hand");
   state->mobs["body"].set_name("Rite Hand");
   Boss boss = TwoPartBoss();
@@ -555,17 +555,17 @@ TEST(BossFightPanelTest, EachPartStandsWhereItsSpotSays) {
   ASSERT_GE(left, 0);
   ASSERT_GE(right, 0);
   EXPECT_LT(left, right);
-  // The one in the first cell stands against the edge; the one in the last
-  // but one keeps the cell of margin the arena asked for.
+  // The one in the first cell is against the edge, and the one in the
+  // second-to-last cell keeps the cell of margin the arena asked for.
   EXPECT_LT(left, kBossPanelWidth);
   EXPECT_GT(right + kBossPanelWidth, 100);
-  // And the player stands under them rather than beside them.
+  // The player is below them, not beside them.
   EXPECT_GT(RowOf(rows, "You"), RowOf(rows, "Left Hand"));
 }
 
-// The arena is the screen it is drawn on: the bars keep their size and the
-// space between them takes the rest, so a wider terminal spreads the fight
-// out rather than leaving it in a huddle in the middle.
+// The arena fills the screen: the bars keep their size and the space between
+// them takes the rest, so a wider terminal spreads the fight out instead of
+// bunching it in the middle.
 TEST(BossFightPanelTest, TheArenaSpreadsToFillTheScreen) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   state->mobs["arm"].set_name("Left Hand");
@@ -583,7 +583,7 @@ TEST(BossFightPanelTest, TheArenaSpreadsToFillTheScreen) {
 }
 
 // A part whose name is too long for one row gets two, and every bar in the
-// phase takes the same two so the arena's rows stay square.
+// phase gets the same two so the arena's rows stay even.
 TEST(BossFightPanelTest, ALongPartNameWrapsOverTwoRows) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   state->mobs["arm"].set_name("Horntail's Left Head");
@@ -597,8 +597,8 @@ TEST(BossFightPanelTest, ALongPartNameWrapsOverTwoRows) {
   EXPECT_EQ(out.find("Horntail's Left Head"), std::string::npos);
 }
 
-// How many places to stand are drawn empty. The player is on one of them, so
-// a five-spot phase marks four.
+// How many standing spots are drawn empty. The player is on one of them, so a
+// five-spot phase marks four.
 int MarkedSpots(const BossRun& run) {
   std::string out = Render(run);
   int found = 0;
@@ -609,8 +609,8 @@ int MarkedSpots(const BossRun& run) {
   return found;
 }
 
-// The walk is drawn: every spot the player is not on is marked, and the one
-// they are on holds their panel instead.
+// The spots are drawn: every spot the player isn't on is marked, and the one
+// they are on shows their panel instead.
 TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   Boss boss = Zakum();
@@ -624,21 +624,19 @@ TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
   EXPECT_LT(left, middle) << "the player walked, and their panel with them";
   EXPECT_EQ(MarkedSpots(run), 4) << "the spot they left is marked now";
 
-  // Up the ledge, which is a row the player was not on a moment ago.
+  // Up to the ledge, a row the player wasn't on a moment ago.
   int floor = RowOf(Rows(run), "You");
   run.MovePlayer(0, -1);
   EXPECT_LT(RowOf(Rows(run), "You"), floor);
 }
 
-// A party's fight: the whole of Zakum's arena with three people in it, this
-// player on the floor and the other two on the ledges.
-// A duration as the run counts them.
+// A duration in the units the run counts in.
 double Seconds(std::chrono::milliseconds ms) {
   return ms.count() / 1000.0;
 }
 
-// Steps `run` until its clock reads `seconds`, in beats no wider than a frame,
-// so what the arena draws is what it would have drawn on the way there.
+// Steps `run` until its clock reads `seconds`, in steps no longer than a frame,
+// so the arena draws what it would have drawn along the way.
 void RunTo(BossRun& run, GameState& state, double seconds) {
   const double kFrame = 0.03;
   while (run.elapsed_seconds() < seconds) {
@@ -646,6 +644,8 @@ void RunTo(BossRun& run, GameState& state, double seconds) {
   }
 }
 
+// A party fight: Zakum's whole arena with three people in it, this player on
+// the floor and the other two on the ledges.
 std::unique_ptr<TestAuthority> PartyOfThree() {
   std::unique_ptr<TestAuthority> authority = std::make_unique<TestAuthority>(8);
   authority->fight_.players.resize(3);
@@ -666,20 +666,20 @@ TEST(BossFightPanelTest, EverybodyInThePartyStandsInTheArena) {
   run.Advance(*state, 0.1);
 
   std::vector<std::string> rows = Rows(run);
-  // This player is not named, and everybody else is.
+  // This player isn't named, and everyone else is.
   EXPECT_NE(RowOf(rows, "You"), -1);
   EXPECT_NE(RowOf(rows, "Wand"), -1);
   EXPECT_NE(RowOf(rows, "Claw"), -1);
   EXPECT_EQ(RowOf(rows, "Dagger"), -1);
-  // Five spots, three of them stood on.
+  // Five spots, three of them occupied.
   EXPECT_EQ(MarkedSpots(run), 2);
   // The two on the ledges are drawn above the one on the floor.
   EXPECT_LT(RowOf(rows, "Wand"), RowOf(rows, "You"));
 }
 
-// A name wider than the twelve-column plate is not cut and left there: it
-// slides under the plate on the run's own clock, over and over, since there
-// is no cursor here to start it and nobody is waiting on the answer.
+// A name wider than the twelve-column plate isn't just cut: it scrolls on the
+// run's own clock, over and over, since there is no cursor here to start it and
+// nobody is waiting on it.
 TEST(BossFightPanelTest, ALongPartyNameSlidesUnderItsPlateAndComesBack) {
   const std::string kLong = "Twenty Characters Ok";
   const int kPlate = kBossPanelWidth - 4;  // the plate inside the frame
@@ -689,21 +689,22 @@ TEST(BossFightPanelTest, ALongPartyNameSlidesUnderItsPlateAndComesBack) {
   authority->fight_.players[1].name = kLong;
   BossRun run("zakum", boss, 0, authority.get());
 
-  // A round trip is a pause at each end with a step for every offset between.
+  // A round trip is a pause at each end plus a step for every offset between.
   double step = Seconds(kMarqueeStep);
   double pause = Seconds(kMarqueePause);
   double slide = step * (static_cast<int>(kLong.size()) - kPlate - 1);
 
-  // The head first, held over the pause so it can be read before it goes.
+  // The start first, held for the pause so it can be read before it moves.
   RunTo(run, *state, 0.1);
   EXPECT_NE(RowOf(Rows(run), kLong.substr(0, kPlate)), -1);
 
-  // Through the slide and into the pause at the far end, where the tail is.
+  // Through the scroll and into the pause at the far end, where the end of the
+  // name is.
   RunTo(run, *state, pause + slide + pause / 2);
   EXPECT_EQ(RowOf(Rows(run), kLong.substr(0, kPlate)), -1) << "the head went";
   EXPECT_NE(RowOf(Rows(run), kLong.substr(kLong.size() - kPlate)), -1);
 
-  // And round again: the name starts over rather than sitting on its tail.
+  // Round again: the name starts over instead of staying at its end.
   RunTo(run, *state, 2 * pause + slide + 0.1);
   EXPECT_NE(RowOf(Rows(run), kLong.substr(0, kPlate)), -1);
 }
@@ -719,8 +720,8 @@ TEST(BossFightPanelTest, APlayerWhoLeavesLeavesAnEmptySpot) {
   authority->fight_.players[1].present = false;
   run.Advance(*state, 0.1);
 
-  // Their panel goes, the rest of the party stays, and the spot they stood on
-  // is one of the empty ones again.
+  // Their panel disappears, the rest of the party stays, and the spot they
+  // stood on is empty again.
   std::vector<std::string> rows = Rows(run);
   EXPECT_EQ(RowOf(rows, "Wand"), -1);
   EXPECT_NE(RowOf(rows, "You"), -1);
@@ -728,8 +729,8 @@ TEST(BossFightPanelTest, APlayerWhoLeavesLeavesAnEmptySpot) {
   EXPECT_EQ(MarkedSpots(run), 3);
 }
 
-// Their numbers are drawn in their own faint colours, so a fight with three
-// people in it still reads as the player's own.
+// Party members' numbers are drawn in their own faint colours, so a fight with
+// three people still reads as the player's own.
 TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   Boss boss = Zakum();
@@ -752,9 +753,9 @@ TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {
   EXPECT_EQ(faint, 2) << "4242 holds two of them";
 }
 
-// A swing puts its numbers over the monster it hit, all of them where there is
-// room, written plainly -- no commas, whatever the number -- and stacked
-// upwards: the line that landed first is the bottom one.
+// An attack puts its numbers over the monster it hit, all of them where there
+// is room, without commas whatever the number, and stacked upwards: the first
+// line to land is at the bottom.
 TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
   std::unique_ptr<GameState> state = EightLineState();
   Boss boss = OneArmBoss();
@@ -777,7 +778,7 @@ TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
 }
 
 // The numbers are right-aligned: a short one and a long one in the same column
-// end on the same cell, so the digits line up under one another.
+// end on the same cell, so the digits line up.
 TEST(BossFightPanelTest, TheNumbersOfAColumnShareTheirRightEdge) {
   std::unique_ptr<GameState> state = EightLineState();
   Boss boss = OneArmBoss();
@@ -797,9 +798,9 @@ TEST(BossFightPanelTest, TheNumbersOfAColumnShareTheirRightEdge) {
   EXPECT_EQ(edges.size(), 1u) << "the numbers do not end on one cell";
 }
 
-// A swing of several strikes files a write apiece and they come up one after
-// another, so the two rows it fills flash rather than the whole swing going up
-// at once.
+// An attack with several strikes records one write per strike, and they appear
+// one after another, so the two rows it fills flash rather than the whole
+// attack appearing at once.
 TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
   std::unique_ptr<GameState> state = FourStrikeState();
   Boss boss = OneArmBoss();
@@ -811,7 +812,7 @@ TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
     EXPECT_EQ(write.lines.size(), 2u);
   }
 
-  // Two rows hold the swing, whichever strike is showing in them.
+  // Two rows hold the attack, whichever strike is showing.
   std::vector<std::string> first = ColumnDownwards(OnlyColumn(run));
   ASSERT_EQ(first.size(), 2u) << "the whole swing went up at once";
   std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
@@ -819,15 +820,15 @@ TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
   EXPECT_EQ(drawn[0].text, first[0]);
   EXPECT_EQ(drawn[1].text, first[1]);
 
-  // A frame on, the next strike is due and has taken the same two rows.
+  // One frame later the next strike is due and has taken the same two rows.
   run.Advance(*state, kDamageStrikeSeconds);
   std::vector<std::string> next = ColumnDownwards(OnlyColumn(run));
   ASSERT_EQ(next.size(), 2u);
   EXPECT_NE(next, first) << "the strikes flash through the rows";
 }
 
-// The strikes come one per frame and the last of them stands for the rest of
-// the stack's life: a swing that has finished flashing does not go blank.
+// The strikes advance one per frame, and the last one stays for the rest of the
+// stack's lifetime: an attack that has finished flashing doesn't go blank.
 TEST(BossFightPanelTest, TheStrikesStepOneAFrameAndTheLastOneHolds) {
   DamageStack stack;
   stack.lines = {{10, false}, {11, false}, {20, false}, {30, false}};
@@ -840,7 +841,7 @@ TEST(BossFightPanelTest, TheStrikesStepOneAFrameAndTheLastOneHolds) {
       << "the last strike holds rather than the stack going blank";
   EXPECT_EQ(stack.TallestStrike(), 2);
 
-  // A swing that landed once is one strike, and stands still for its life.
+  // An attack that landed once is one strike and stays still for its lifetime.
   DamageStack single;
   single.lines = {{10, false}, {11, false}};
   single.strike_starts = {0};
@@ -848,8 +849,8 @@ TEST(BossFightPanelTest, TheStrikesStepOneAFrameAndTheLastOneHolds) {
   EXPECT_EQ(single.StrikeAt(kDamageStackSeconds), std::make_pair(0, 2));
 }
 
-// A row with something already in it costs that one number. The rest of the
-// stack stays where it was rather than sliding out from over the monster.
+// A row that is already occupied costs only that one number. The rest of the
+// stack stays where it was instead of sliding away from over the monster.
 TEST(BossFightPanelTest, ABlockedRowCostsItsOwnNumberAndNoOther) {
   std::unique_ptr<GameState> state = EightLineState();
   Boss boss = OneArmBoss();
@@ -858,20 +859,20 @@ TEST(BossFightPanelTest, ABlockedRowCostsItsOwnNumberAndNoOther) {
   ASSERT_TRUE(RunUntilLine(run, *state, false));
   std::vector<std::string> want = ColumnDownwards(OnlyColumn(run));
 
-  // Short enough that the top of the arena cuts the column off partway.
+  // Short enough that the top of the arena cuts off part of the column.
   std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 16));
   ASSERT_FALSE(drawn.empty());
   ASSERT_LT(drawn.size(), want.size());
-  // What survives is the end nearest the monster, each number still on the row
-  // it would have had.
+  // What survives is the end nearest the monster, with each number still on the
+  // row it would have had.
   for (std::size_t i = 0; i < drawn.size(); ++i) {
     EXPECT_EQ(drawn[i].text, want[want.size() - drawn.size() + i]);
   }
 }
 
-// The numbers stand clear of the bars: every cell of a bar carries the fill's
-// own background, so a number sitting on one is caught by its background
-// rather than by hunting for the name it covered.
+// The numbers stay clear of the bars. Every cell of a bar has the fill's
+// background, so a number on one is caught by its background rather than by
+// looking for the name it covered.
 TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
   std::unique_ptr<GameState> state = SummonState();
   Boss boss = Zakum();
@@ -896,8 +897,8 @@ TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
 }
 
 // Where the clock is drawn, as {left, right, top, bottom} in screen cells.
-// Found by its own text: nothing else on the screen holds a digit, a colon
-// and a digit in a row.
+// Found by its text: nothing else on the screen has a digit, a colon and a
+// digit in a row.
 ftxui::Box ClockBox(const std::vector<std::string>& rows) {
   for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
     for (int x = 1; x + 1 < static_cast<int>(rows[y].size()); ++x) {
@@ -915,8 +916,8 @@ ftxui::Box ClockBox(const std::vector<std::string>& rows) {
   return {-1, -1, -1, -1};
 }
 
-// How many numbers are drawn on the clock's rows, having checked that not one
-// of them touches the clock itself.
+// How many numbers are drawn on the clock's rows, after checking that none of
+// them touches the clock itself.
 int NumbersBesideTheClock(const ftxui::Screen& screen) {
   ftxui::Box clock = ClockBox(RowsOf(screen));
   EXPECT_GE(clock.x_min, 0) << "the clock was not found";
@@ -933,10 +934,10 @@ int NumbersBesideTheClock(const ftxui::Screen& screen) {
   return beside;
 }
 
-// The clock stands inside the arena rather than on a strip of its own: a stack
-// may use its rows, and may not touch one cell of it.
+// The clock is inside the arena rather than on its own strip: a stack may use
+// its rows but may not touch any cell of it.
 TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
-  // Zakum's arms stand either side of the clock, so their numbers climb past
+  // Zakum's arms are on either side of the clock, so their numbers climb past
   // it into its rows.
   std::unique_ptr<GameState> state = EightLineState();
   Boss zakum = Zakum();
@@ -946,8 +947,8 @@ TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
   EXPECT_GT(NumbersBesideTheClock(RenderScreen(run)), 0)
       << "no number reached the clock's rows";
 
-  // A bar directly under the clock, in an arena one cell wide: its stack
-  // reaches the clock head on, and every cell of the clock survives it.
+  // A bar directly under the clock in an arena one cell wide: its stack reaches
+  // the clock head on, and every cell of the clock survives.
   std::unique_ptr<GameState> under = EightLineState();
   Boss column = ColumnBoss();
   BossRun below("zakum", column, 0);
@@ -970,8 +971,8 @@ TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
             " " + FormatClock(below.seconds_left()) + " ");
 }
 
-// Orange for a critical line and the theme blue for a plain one, which is the
-// whole of what a number's colour says.
+// Orange for a critical line and the theme blue for a plain one. That is all a
+// number's colour means.
 TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
   for (bool crit : {false, true}) {
     std::unique_ptr<GameState> state = EightLineState();
@@ -993,15 +994,15 @@ TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
   }
 }
 
-// Every source the player has writes into the one column over the monster:
-// a summon's numbers take rows there the same as a swing's, rather than
-// standing somewhere of their own.
+// Every damage source the player has writes into the one column over the
+// monster: a summon's numbers take rows there just like an attack's, instead of
+// going somewhere of their own.
 TEST(BossFightPanelTest, ASummonWritesIntoTheSameColumnAsTheSwing) {
   std::unique_ptr<GameState> state = SummonState();
   Boss boss = OneArmBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
-  // Until the arm has taken both, which is the case the one column is for.
+  // Until the arm has taken both, which is the case the shared column is for.
   std::set<std::string> summoned;
   for (int step = 0; step < 400 && summoned.empty(); ++step) {
     run.Advance(*state, 0.05);
@@ -1016,7 +1017,7 @@ TEST(BossFightPanelTest, ASummonWritesIntoTheSameColumnAsTheSwing) {
   }
   ASSERT_FALSE(summoned.empty());
 
-  // Everything on screen stands over the arm, whatever landed it.
+  // Everything on screen is over the arm, whatever dealt it.
   ftxui::Screen screen = RenderScreen(run, 60, 40);
   int bar = PanelTop(RowsOf(screen), "Zakum's Arm");
   ASSERT_NE(bar, -1);
@@ -1029,11 +1030,11 @@ TEST(BossFightPanelTest, ASummonWritesIntoTheSameColumnAsTheSwing) {
   EXPECT_EQ(drawn.size(), ColumnDownwards(OnlyColumn(run)).size());
 }
 
-// The column over a monster is this player's, and a party member's numbers
-// stay out of it -- even while no number of the player's is holding it.
+// The column over a monster belongs to this player, and a party member's
+// numbers stay out of it, even while the player has no number there.
 TEST(BossFightPanelTest, APartyMembersNumbersStayOutOfTheColumn) {
-  // Arms nothing can kill: the party's numbers have to have somewhere to go
-  // for the whole run, and a buried monster is nowhere.
+  // Arms nothing can kill, so the party's numbers always have somewhere to go;
+  // a dead monster has no space.
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   Boss boss = ColumnBoss();
   std::unique_ptr<TestAuthority> authority = PartyOfThree();
@@ -1046,7 +1047,7 @@ TEST(BossFightPanelTest, APartyMembersNumbersStayOutOfTheColumn) {
     run.Advance(*state, 0.05);
     ftxui::Screen screen = RenderScreen(run, 80, 40);
     std::vector<std::string> rows = RowsOf(screen);
-    // The lower of the two bars: the column over it is the player's.
+    // The lower of the two bars, whose column belongs to the player.
     int lower = -1;
     for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
       if (rows[y].find("Zakum's Arm") != std::string::npos) {
@@ -1054,7 +1055,7 @@ TEST(BossFightPanelTest, APartyMembersNumbersStayOutOfTheColumn) {
       }
     }
     ASSERT_NE(lower, -1) << "at step " << step;
-    // The bar's own columns, off the borders bracketing its name.
+    // The bar's own columns, from the borders around its name.
     std::size_t name = rows[lower].find("Zakum's Arm");
     int left = static_cast<int>(rows[lower].rfind('#', name));
     int right = static_cast<int>(rows[lower].find('#', name));
@@ -1071,8 +1072,8 @@ TEST(BossFightPanelTest, APartyMembersNumbersStayOutOfTheColumn) {
   EXPECT_GT(theirs_drawn, 0) << "their numbers were drawn somewhere";
 }
 
-// A phase on the shipped grid with the player standing wherever `spots` says
-// and one monster out of the way, for a test that reads the layout itself.
+// A phase on the game's grid with the player at the given `spots` and one
+// monster out of the way, for a test that checks the layout itself.
 Boss GridBoss(const std::vector<std::pair<int, int>>& spots) {
   Boss boss;
   boss.set_name("Zakum");
@@ -1092,8 +1093,8 @@ Boss GridBoss(const std::vector<std::pair<int, int>>& spots) {
   return boss;
 }
 
-// Where every empty spot's marker was drawn, as (row, column). The marker is
-// multi-byte, so RowsOf leaves it as "# # #".
+// Where each empty spot's marker was drawn, as (row, column). The marker is
+// multibyte, so RowsOf shows it as "# # #".
 std::vector<std::pair<int, int>> EmptySpotsIn(
     const std::vector<std::string>& rows) {
   std::vector<std::pair<int, int>> found;
@@ -1107,18 +1108,17 @@ std::vector<std::pair<int, int>> EmptySpotsIn(
   return found;
 }
 
-// The grid every arena stands on, measured against the smallest terminal the
-// game is laid out for. One column or one row more than kArenaColumns and
-// kArenaRows allow is drawn off the screen or on top of its neighbour, and
-// neither shows up in a data file -- so the grid is pinned here, where it can
-// be seen, rather than trusted where it is written.
+// The grid every arena uses, checked against the smallest supported terminal.
+// One column or row more than kArenaColumns and kArenaRows allow is drawn off
+// screen or on top of its neighbour, and neither shows up in a data file, so
+// the grid is checked here where it can be seen.
 TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
-  // Two rows of border and the bar itself: what every panel in the arena
-  // takes, whatever is standing in it.
+  // Two border rows and the bar itself: what every panel in the arena takes,
+  // whatever is in it.
   constexpr int kPanelRows = 2 + kPlayerBarRows;
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
-  // A full row of the grid and a full column of it, on alternate cells across
-  // and every cell down, which is the most any fight asks of either.
+  // A full row of the grid and a full column, on alternate cells across and
+  // every cell down, which is the most any fight uses of either.
   std::vector<std::pair<int, int>> spots;
   for (int x = 0; x < kArenaColumns; x += 2) {
     spots.push_back({x, kArenaRows - 1});
@@ -1130,8 +1130,8 @@ TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
 
-  // The player stands on the first spot and is drawn as their own panel, so
-  // every other spot is an empty one and all of them are on the screen.
+  // The player is on the first spot and drawn as their own panel, so every
+  // other spot is empty and all of them are on screen.
   std::vector<std::pair<int, int>> drawn = EmptySpotsIn(Rows(run));
   ASSERT_EQ(drawn.size(), spots.size() - 1);
   for (std::size_t i = 1; i < drawn.size(); ++i) {
@@ -1147,8 +1147,8 @@ TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
   }
 }
 
-// Three panels across the arena, each a fixed height but fitted sideways to
-// what it holds -- a long mob name or a big number is what would fill one.
+// Three panels across the arena, each a fixed height but sized sideways to its
+// contents, which a long mob name or a large number could fill.
 TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

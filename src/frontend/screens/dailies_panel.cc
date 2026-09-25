@@ -33,8 +33,8 @@ ftxui::Element DailiesPanel::Render() const {
   rows.push_back(CenteredRow("Claim today's dailies?"));
   rows.push_back(ThemedSeparator());
   for (const Reward& reward : rewards_) {
-    // A column of clearance at both ends, so neither the name nor the count
-    // sits against the border.
+    // A blank column at both ends, so neither the name nor the count touches
+    // the border.
     rows.push_back(ftxui::text(" " + PadRight(reward.name, widest) +
                                std::string(kGap, ' ') + "x" +
                                std::to_string(reward.count) + " "));

@@ -23,11 +23,11 @@ namespace ms {
 namespace {
 
 // Rows the shelf keeps whether or not there are cubes to fill them, so the
-// panel is the same height today with one cube as it will be with the last
-// one the game ever ships, and the card beside it never moves.
+// panel is the same height now with one cube as it will be with more, and the
+// card beside it never moves.
 constexpr int kShelfRows = 6;
 
-// The three columns, each as wide as the widest thing that goes in it.
+// The three columns, each as wide as its widest content.
 struct ShelfWidths {
   int name = 0;
   int type = 0;
@@ -44,9 +44,9 @@ ShelfWidths Widths() {
   return widths;
 }
 
-// One row of the shelf, cursor and all. The cost is its own cell so a price
-// out of reach can be said in red while the rest of the row greys -- the
-// reason and the door it closes, drawn apart.
+// One row of the shelf, cursor included. The cost is its own cell so an
+// unaffordable price can be red while the rest of the row is grey: the reason
+// and what it blocks, drawn separately.
 ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
                         bool selected, bool affordable) {
   ftxui::Element label = ftxui::text(
@@ -57,8 +57,8 @@ ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
   }
   ftxui::Element cost = RedUnless(
       ftxui::text(PadLeft(FormatMeso(cube.cost), widths.cost)), affordable);
-  // The margin the window's own border needs, asked for here: the rows are
-  // laid out cell by cell, so nothing else is in a position to leave it.
+  // The margin for the window's own border is requested here, because the rows
+  // are laid out cell by cell and nothing else can leave it.
   return HighlightRow(
       ftxui::hbox({std::move(label), std::move(cost), ftxui::text(" ")}),
       selected);
@@ -69,9 +69,9 @@ ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
 void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
   item_ = item;
   meso_ = meso;
-  // The reroll that emptied the purse is also the one that moves the cursor:
-  // asked here rather than where the cube is bought, so the window is right
-  // however the purse came to be short.
+  // The reroll that emptied the purse is also what moves the cursor. Checked
+  // here rather than where the cube is bought, so the window is right however
+  // the purse became short.
   if (confirm_.open() && !Affordable()) {
     confirm_.FocusCancel();
   }
@@ -114,7 +114,7 @@ ftxui::Element CubePanel::Render(bool focused) const {
     rows.push_back(
         ShelfRow(kCubes[i], widths, i == selected_, meso_ >= kCubes[i].cost));
   }
-  // The shelf stands at its full height with or without cubes to fill it.
+  // The shelf keeps its full height with or without cubes to fill it.
   for (int i = std::size(kCubes); i < kShelfRows; ++i) {
     rows.push_back(ftxui::text(""));
   }
@@ -125,9 +125,9 @@ ftxui::Element CubePanel::Render(bool focused) const {
 std::vector<ftxui::Element> CubePanel::LineRows() const {
   const Potential& potential = item_->potential();
   if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
-    // An item with no potential has no lines to show, and the rows stand
-    // empty rather than being left out: the window is the same size before
-    // the first cube as after it.
+    // An item with no potential has no lines to show, and the rows stay empty
+    // instead of being removed, so the window is the same size before the first
+    // cube as after.
     return std::vector<ftxui::Element>(
         kPotentialLines, CenteredRow(ftxui::text("—") | ftxui::dim));
   }
@@ -144,8 +144,8 @@ std::vector<ftxui::Element> CubePanel::LineRows() const {
   }
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-    // The rank dot the inspect card gives each line, so the same three lines
-    // read the same way in the window and on the card behind it.
+    // The rank dot the inspect card shows on each line, so the same three lines
+    // look the same in the window and on the card behind it.
     rows.push_back(CenteredRow(ftxui::hbox({
         ftxui::text("◼ ") |
             ftxui::color(RarityColor(potential.lines(i).rank())),
@@ -159,9 +159,9 @@ std::vector<ftxui::Element> CubePanel::LineRows() const {
 ftxui::Element CubePanel::RenderConfirm() const {
   const bool fresh = item_ == nullptr ||
                      item_->potential().rank() == POTENTIAL_RANK_UNSPECIFIED;
-  // Gold on a rank up, steel blue otherwise. The body's own rules take it too:
+  // Gold on a rank up, steel blue otherwise. The body's own rules use it too:
   // an AccentWindow draws its content white, so a themed rule inside a gold
-  // window comes out as a seam across it.
+  // window would look like a seam.
   const ftxui::Color accent = PanelAccent(rank_up_);
   std::vector<ftxui::Element> body = {
       CenteredRow(fresh ? "Grant potential?" : "Reroll these lines?"),
@@ -173,9 +173,9 @@ ftxui::Element CubePanel::RenderConfirm() const {
     }
   }
   body.push_back(AccentSeparator(accent));
-  // The purse over the price: the window is the only thing on screen saying
-  // what a reroll leaves the player with, and it is what the greyed Confirm
-  // below is explained by.
+  // The purse above the price: the window is the only thing on screen saying
+  // what a reroll leaves the player with, and it explains the grey Confirm
+  // below.
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
                       ConfirmButtons(confirm_.focus(), Affordable()), accent);
@@ -184,17 +184,16 @@ ftxui::Element CubePanel::RenderConfirm() const {
 ConfirmChoice CubePanel::OnEvent(ftxui::Event event) {
   if (!confirm_.open()) {
     if (IsForward(event)) {
-      // A cube the purse cannot cover opens the question all the same, with
-      // its Confirm greyed: it is the same window a player rerolls their way
-      // into, and refusing to draw it would say the shelf had gone away.
+      // A cube the purse can't cover still opens the question, with Confirm
+      // greyed. It is the same window a player rerolls their way into, and not
+      // showing it would look like the shelf had gone away.
       confirm_.Open(/*cancel_selected=*/!Affordable());
     }
     return ConfirmChoice::kPending;
   }
   ConfirmChoice choice = confirm_.OnEvent(std::move(event), Affordable());
   if (choice == ConfirmChoice::kConfirmed) {
-    // The window stays standing: what the Confirm buys is another roll of the
-    // lines it is showing.
+    // The window stays open: Confirm buys another roll of the lines it shows.
     confirm_.Open(/*cancel_selected=*/false);
   }
   return choice;

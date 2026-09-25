@@ -22,18 +22,17 @@
 namespace ms {
 namespace {
 
-// The list's columns. A name is capped at kMaxUsernameLength and the job
-// column takes the longest short name, "I/L Arch Mage"; each carries the gap
-// after it. The check's column is the last, where the party list keeps its
-// own mark.
+// The list's columns. A name is at most kMaxUsernameLength, and the job column
+// fits the longest short name, "I/L Arch Mage"; each includes the gap after it.
+// The check is in the last column, where the party list puts its own mark.
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kJobWidth = 15;
 constexpr int kLevelWidth = 7;
 constexpr int kOfflineWidth = 7;
 
-// The list window, one size whatever the account holds, and the card beside
-// it at the width the Character panel reads at its narrowest -- its own rows
-// are what this draws.
+// The list window is one size however many characters the account has, and the
+// card beside it is the Character panel's narrowest width, since it draws that
+// panel's rows.
 constexpr int kListWidth =
     2 + kNameWidth + kJobWidth + kLevelWidth + kOfflineWidth + 1;
 constexpr int kCardWidth = kLeftColumnMin - 2;
@@ -41,20 +40,19 @@ constexpr int kCardWidth = kLeftColumnMin - 2;
 constexpr char kCursorHere[] = "> ";
 constexpr char kCursorAway[] = "  ";
 
-// The buttons under the list, in the order the cursor walks them.
+// The buttons under the list, in the order the cursor moves through them.
 constexpr char kCreateLabel[] = "Create";
 constexpr char kQuitLabel[] = "Quit";
 
 // The check beside the character who farms while the game is closed, in its
-// column and in the theme's own colour, as the party list's ready mark is.
+// column and the theme colour, like the party list's ready mark.
 ftxui::Element OfflineCell(bool offline) {
   return ftxui::text(offline ? "   ✓   " : "       ") | ftxui::color(kTheme);
 }
 
-// Marks the row the frame scrolls to, which is the one holding the cursor.
-// The cursor's row: the band behind it, and the mark the frame scrolls to.
-// A table row wide enough that the caret alone leaves the far cell unclaimed
-// -- see HighlightRow in chrome.h.
+// The cursor's row: the band behind it, and the mark the frame scrolls to. A
+// table row is wide enough that the caret alone would leave the far cell
+// unmarked (see HighlightRow in chrome.h).
 ftxui::Element Focused(ftxui::Element row, bool on_cursor) {
   row = HighlightRow(std::move(row), on_cursor);
   return on_cursor ? std::move(row) | ftxui::focus : std::move(row);
@@ -66,8 +64,8 @@ ftxui::Element CardTitle(const std::string& text) {
   return ftxui::text(PadRight(std::string(pad, ' ') + text, kCardWidth));
 }
 
-// One stat of the card: the label, and the value against the right edge a
-// gutter shy of the border. The Character panel's own row.
+// One stat on the card: the label, and the value against the right edge one
+// gutter from the border. The same row as the Character panel's.
 ftxui::Element CardRow(const std::string& label, const std::string& value) {
   int gap = kCardWidth - 2 - TextColumns(value);
   return ftxui::text(" " + PadRight(label, std::max(0, gap)) + value + " ");
@@ -85,8 +83,8 @@ CharacterSelectPanel::CharacterSelectPanel(GameState& state)
 void CharacterSelectPanel::Reset() {
   Refresh();
   button_ = 0;
-  // On the character being played, who is the top row until the player has
-  // played somebody else this session.
+  // On the character being played, which is the top row until the player plays
+  // someone else this session.
   cursor_ = 0;
   for (int i = 0; i < static_cast<int>(rows_.size()); ++i) {
     if (rows_[i].played) {
@@ -100,14 +98,14 @@ void CharacterSelectPanel::Refresh() {
   rows_ = Roster(state_);
   CloseMenu();
   cursor_ = Cursor();
-  // A cursor that was on a character stays on one: deleting the last row
-  // lands on the row above it rather than dropping onto the buttons, which
-  // would leave the card describing somebody who is gone.
+  // A cursor that was on a character stays on one: deleting the last row lands
+  // on the row above instead of the buttons, which would leave the card showing
+  // someone who is gone.
   if (on_row && !rows_.empty()) {
     cursor_ = std::min(cursor_, static_cast<int>(rows_.size()) - 1);
   }
-  // A delete renumbers the slots, so what the card is holding may no longer
-  // be the character the cursor is on.
+  // A delete renumbers the slots, so the card's character may no longer be the
+  // one under the cursor.
   preview_slot_ = -1;
 }
 
@@ -120,8 +118,8 @@ bool CharacterSelectPanel::on_buttons() const {
 }
 
 void CharacterSelectPanel::MoveCursor(int delta) {
-  // The button row is the last stop of the ring, so Down off the last
-  // character lands on it and Down again comes back to the top.
+  // The button row is the last stop in the ring, so Down from the last
+  // character lands on it and Down again returns to the top.
   cursor_ = StepCursor(Cursor(), delta, static_cast<int>(rows_.size()) + 1);
 }
 
@@ -168,13 +166,13 @@ void CharacterSelectPanel::OpenMenu() {
   if (on_buttons()) {
     return;
   }
-  // Play is not dimmed on the character already in play: it is the only way
+  // Play isn't dimmed on the character already being played: it is the only way
   // back into the game, and on that row it resumes them.
   if (rows_[Cursor()].offline) {
     menu_.Disable(kCharacterMenuSetOffline);
   }
   if (rows_.size() <= 1) {
-    // There has to be somebody to play.
+    // There has to be someone to play.
     menu_.Disable(kCharacterMenuDelete);
   }
 }
@@ -242,10 +240,11 @@ void CharacterSelectPanel::PreviewSelected() const {
   }
   preview_.RestoreFrom(all[slot].character(), state_.equips, state_.items);
   preview_.UseEquipSets(state_.equip_sets);
-  // RestoreFrom carries the sheet and nothing of the account behind it.
-  // Without this the card reads a character with no link skills, no account
-  // record under Blessing of the Fairy and their first preset worn whatever
-  // the switch says -- a weaker character than playing them gives.
+  // RestoreFrom loads the character sheet but none of the account behind it.
+  // Without this the card would show a character with no Link Skills, no
+  // account level for Blessing of the Fairy, and their first preset worn
+  // whatever the autoswap says, which is weaker than they really are when
+  // played.
   state_.MirrorAccountOnto(preview_, all, slot);
   preview_slot_ = slot;
 }
@@ -263,8 +262,8 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
   rows.push_back(ThemedSeparator());
   if (ShowsActivityBar()) {
     // Lit while the arrows reach it, which is while the cursor is on a
-    // character. The row is not a stop of its own: the cursor stays in the
-    // list and the chips move under it.
+    // character. The row isn't a stop of its own: the cursor stays in the list
+    // and the chips change under it.
     std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};
     rows.push_back(TabBar(specs, doing == Activity::kBossing ? 1 : 0,
                           /*row_focused=*/!on_buttons(), kCardWidth));
@@ -277,14 +276,13 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
     rows.push_back(CardRow(line.label, line.value));
   }
   rows.push_back(ThemedSeparator());
-  // What is left of the window after the block above, which is what the
-  // stats get. The tail is cut rather than the window grown: both windows
-  // are one height, and a card that outgrew the list would say so by moving
-  // the border.
+  // What is left of the window after the block above, which the stats get. The
+  // end is cut instead of the window growing: both windows are the same height,
+  // and a card taller than the list would move the border.
   std::vector<StatLine> extras = ExtraStatLines(preview_, state_.skills, doing);
   int room = kCharacterPanelHeight - 2 - static_cast<int>(rows.size());
   int shown = std::clamp(static_cast<int>(extras.size()), 0, room);
-  // A rule with nothing under it reads as a row that failed to draw.
+  // A rule with nothing under it looks like a row that failed to draw.
   while (shown > 0 && extras[shown - 1].rule) {
     --shown;
   }
@@ -298,9 +296,9 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
 }
 
 int CharacterSelectPanel::MenuRow() const {
-  // +3 rows: the window's top border, the column header and its separator.
-  // One row back from there, so the entry standing highlighted lands beside
-  // the character rather than below them.
+  // +3 rows: the window's top border, the column header and its separator. One
+  // row back from there, so the highlighted menu entry sits beside the
+  // character rather than below.
   constexpr int kFirstCharacterRow = 3;
   return kFirstCharacterRow + Cursor() - 1;
 }
@@ -316,10 +314,9 @@ ftxui::Element CharacterSelectPanel::Render() const {
       ThemedWindow(" Character Select ", std::move(body)) |
       ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kCharacterPanelHeight);
   if (menu_open_) {
-    // Anchored inside the window rather than on the terminal, the screen
-    // being centred and so having no fixed place to measure from. The column
-    // clears the cursor and the name, so the menu covers the job rather than
-    // who it is about.
+    // Placed relative to the window rather than the terminal, since the screen
+    // is centred and has no fixed position. The column clears the cursor and
+    // the name, so the menu covers the job rather than who it is about.
     constexpr int kMenuCol = 2 + kNameWidth;
     list = ftxui::dbox({
         std::move(list),

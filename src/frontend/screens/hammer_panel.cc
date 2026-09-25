@@ -15,8 +15,8 @@ namespace ms {
 
 void HammerPanel::Reset(int64_t meso) {
   meso_ = meso;
-  // On [Confirm]: a hammer is not an attempt, and there is nothing to lose by
-  // it -- what it buys is a slot, and it always lands.
+  // On [Confirm]: a hammer always succeeds, so there is nothing to lose. It
+  // buys a slot every time.
   confirm_.Open(/*cancel_selected=*/false);
 }
 
@@ -25,12 +25,11 @@ bool HammerPanel::affordable() const {
 }
 
 ftxui::Element HammerPanel::Render() const {
-  // Red on a price the purse cannot cover: the reason sits on the cell that
-  // carries it, and the greyed button below is the door it closes.
+  // Red on a price the purse can't cover: the reason is on the cell that causes
+  // it, and the grey button below is what it blocks.
   ftxui::Element price =
       RedUnless(ftxui::text(FormatMeso(kGoldenHammerCost)), affordable());
-  // Titleless: the question names the hammer, and a chip over it would ask
-  // twice.
+  // No title: the question names the hammer, and a title would say it twice.
   return DialogWindow("",
                       {
                           CenteredRow("Apply a Golden Hammer?"),

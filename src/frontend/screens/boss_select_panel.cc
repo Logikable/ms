@@ -30,29 +30,29 @@ namespace ms {
 namespace {
 
 constexpr int kDifficultyWidth = 10;
-// The detail rows are a label and a right-aligned value, so the panel does not
-// breathe as a number gains a digit. The value takes whatever the card has
-// left over after the label and a column of clearance on each side -- the card
-// is sized by its TITLE, which is the longest thing on it.
+// The detail rows are a label and a right-aligned value, so the panel doesn't
+// change width as a number gains a digit. The value takes whatever the card has
+// left after the label and a blank column on each side. The card is sized by
+// its title, the longest thing on it.
 constexpr int kLabelWidth = 12;
 constexpr int kValueWidth = kDetailWidth - kLabelWidth - 2;
-// The fight card's own column plus the lane the scroll bar runs down. The lane
-// is held open whether or not the rewards overflow, so the card does not
-// change width as the cursor walks the list.
+// The fight card's own column plus the lane for the scroll bar. The lane is
+// kept open whether or not the rewards overflow, so the card doesn't change
+// width as the cursor moves through the list.
 constexpr int kDetailContentWidth = kDetailWidth + 1;
 // The rows inside a panel's border.
 constexpr int kPanelRows = kBossPanelHeight - 2;
 // Two borders and the row of switches between them.
 constexpr int kOptionsHeight = 3;
-// The switches the row holds, left to right.
+// The switches on the row, left to right.
 constexpr int kOptionCount = 1;
-// One switch: its box, and the name beside it. The box leads, so the row reads
-// as a column of states rather than a sentence to the end of.
+// One switch: its box, then its name. The box comes first so the row reads as a
+// column of states rather than a sentence.
 ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor) {
   ftxui::Element chip = ftxui::text((on ? kCheckedBox : kUncheckedBox) +
                                     std::string(" ") + label);
-  // A switch is a control rather than a row, so it inverts as every other
-  // button in the game does.
+  // A switch is a control rather than a row, so it inverts like every other
+  // button in the game.
   return on_cursor ? std::move(chip) | ftxui::inverted : chip;
 }
 
@@ -67,8 +67,8 @@ std::string ResetName(ResetPeriod period) {
   }
 }
 
-// mm:ss, which is what a five-minute clock wants and what the fight screen
-// counts down in.
+// mm:ss, which suits a five-minute clock and matches the fight screen's
+// countdown.
 std::string Clock(int seconds) {
   int minutes = seconds / 60;
   int rest = seconds % 60;
@@ -122,9 +122,8 @@ int BossLevel(const GameState& state, const BossDifficulty& difficulty) {
 
 namespace {
 
-// The stiffest defence anything in the fight stands behind. One number for
-// what an Ignore DEF lever is worth here, which is what the player is reading
-// the row for.
+// The highest defence of anything in the fight. It is one number showing what
+// Ignore DEF is worth here, which is why the player reads the row.
 int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
   int pdr = 0;
   for (const BossPhase& phase : difficulty.phases()) {
@@ -142,10 +141,10 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 }  // namespace
 
 BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
-  // The level the fight opens at, on the easiest difficulty. The GATE says
-  // where a fight sits in a character's life; HP stands in badly, one body
-  // holding what another spreads over six parts. A fight with no gate is not
-  // built yet and sorts last, on the HP it does state.
+  // The level the fight unlocks at, on its easiest difficulty. The unlock level
+  // says where a fight belongs in a character's progress; HP is a poor guide,
+  // since one boss has in one body what another spreads over six parts. A fight
+  // with no unlock level isn't built yet and sorts last, by its stated HP.
   std::vector<std::tuple<int, int64_t, std::string, std::string>> sorted;
   for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
     int64_t hp = 0;
@@ -264,8 +263,8 @@ bool BossSelectPanel::selected_available() const {
   if (selected() == nullptr) {
     return false;
   }
-  // Asked of the boss rather than of the rung: beating him at any difficulty
-  // is beating him, and the whole ladder waits for the reset.
+  // Checked on the boss rather than the difficulty: beating him at any
+  // difficulty counts, and every difficulty waits for the reset.
   const std::string& key = bosses_[selected_];
   return BossAvailable(key, state_.bosses.at(key),
                        state_.character.proto().boss_clears(),
@@ -303,14 +302,15 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   }
   const BossDifficulty& difficulty = fight.difficulties(at);
   ftxui::Element name = ftxui::text(difficulty.name());
-  // The cursor is the lit cell rather than a caret on the row, since Left and
-  // Right walk the row and Up and Down the column. It outranks the dim, as on
-  // the stat and skill rows: a dimmed inversion says neither thing clearly.
+  // The cursor is shown by lighting the cell rather than a caret on the row,
+  // since Left and Right move along the row and Up and Down along the column.
+  // It takes priority over dimming, as on the stat and skill rows, since a
+  // dimmed inversion shows neither clearly.
   //
-  // Dim is the door: a fight the character has not levelled up to -- or one
-  // that is not built yet -- is still listed and still readable, and Enter on
-  // it says what it wants. Every cell answers for itself, so Normal can be
-  // open while Chaos beside it is not.
+  // Dimming marks a fight the character can't enter yet: one they haven't
+  // reached the level for, or one that isn't built. It is still listed and
+  // readable, and Enter on it says what it needs. Each cell is checked
+  // separately, so Normal can be open while Chaos next to it isn't.
   if (boss == selected_ && at == DifficultyAt(boss)) {
     name = std::move(name) | ftxui::inverted;
   } else if (!Unlocked(difficulty) || difficulty.coming_soon()) {
@@ -366,11 +366,11 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   rows.push_back(ThemedSeparator());
   rows.push_back(
       DetailRow("Level", std::to_string(BossLevel(state_, difficulty))));
-  // Under the fight's own level, because the two together are what the player
-  // is: what they are up against, and what it takes to stand there. Everything
-  // below is the fight's own.
+  // Under the fight's own level, because together they show where the player
+  // stands: what they face, and what it takes to enter. Everything below is
+  // about the fight.
   if (difficulty.unlock_level() > 0) {
-    // Red is the reason: the one value the player falls short of.
+    // Red marks the reason: the one value the player falls short of.
     rows.push_back(RedUnless(
         DetailRow("Unlock Level", std::to_string(difficulty.unlock_level())),
         Unlocked(difficulty)));
@@ -382,17 +382,17 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
       DetailRow("Time Limit", Clock(difficulty.time_limit_seconds())));
   rows.push_back(DetailRow("Reset", ResetName(difficulty.reset())));
   if (!Unlocked(difficulty)) {
-    // Neither "Available" nor "Cleared" is true of a fight the character
-    // cannot enter at all, and the level above says what it is short of.
+    // Neither "Available" nor "Cleared" applies to a fight the character can't
+    // enter at all, and the level above says what they are short of.
     rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
   } else if (practice()) {
-    // Practice walks past the reset, so "Cleared" is no longer what stands
-    // between the player and the fight. Yellow rather than green: it opens the
-    // door and empties the purse behind it.
+    // Practice ignores the reset, so "Cleared" no longer stands between the
+    // player and the fight. Yellow rather than green, since it lets them in but
+    // pays nothing.
     rows.push_back(DetailRow("Status", "Practice") | ftxui::color(kYellow));
   } else if (!selected_available()) {
-    // Red is the reason: the one value the player falls short of. What they
-    // are short of here is a reset, so it goes on the status and nowhere else.
+    // Red marks the reason: the one value the player falls short of. Here they
+    // are waiting on a reset, so only the status is red.
     rows.push_back(DetailRow("Status", "Cleared") | ftxui::color(kRed));
   } else {
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
@@ -400,8 +400,8 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   rows.push_back(ThemedSeparator());
   ftxui::Element heading = ftxui::text(" Rewards ") | ftxui::color(kTheme);
   RenderRewards(detail.rewards, difficulty, now);
-  // Dimmed whole rather than cut: a practice run pays none of it, and the
-  // player is still reading the card to decide what a real clear is worth.
+  // Dimmed rather than removed: a practice run pays none of it, and the player
+  // still reads the card to decide what a real clear is worth.
   if (practice()) {
     heading = std::move(heading) | ftxui::dim;
     for (RewardRow& row : detail.rewards) {
@@ -417,7 +417,8 @@ void BossSelectPanel::AppendRewardWindow(
   int total = static_cast<int>(rewards.size());
   int visible = std::max(0, kPanelRows - static_cast<int>(rows.size()));
   // Clamped here as well as in ScrollRewards: the window shrinks as the fight
-  // above it grows, and a card scrolled to its foot then has too far to go.
+  // details above it grow, and a card scrolled to the bottom then has too far
+  // to go.
   int offset = std::clamp(scroll_, 0, std::max(0, total - visible));
   std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
   for (int row = 0; row < visible && offset + row < total; ++row) {
@@ -445,9 +446,9 @@ ftxui::Element BossSelectPanel::RenderDetail(
     rows.push_back(ThemedSeparator());
     rows.push_back(EmptyState("empty"));
   } else if (difficulty->coming_soon()) {
-    // A fight that is not built yet has none of the rest to state: no clock,
-    // no reset, no reward. What it can honestly show is how big it is, under a
-    // line saying why that is all there is.
+    // A fight that isn't built yet has nothing else to show: no clock, no
+    // reset, no reward. It shows only how big it is, under a line saying why
+    // that is all.
     rows.push_back(RenderDetailTitle(now));
     rows.push_back(ThemedSeparator());
     rows.push_back(ftxui::text(PadRight(" Coming soon!", kDetailWidth)) |
@@ -468,8 +469,8 @@ ftxui::Element BossSelectPanel::RenderDetail(
 }
 
 ftxui::Element BossSelectPanel::RenderOptions() const {
-  // The band marks the cursor only while the row holds the keys, a band on an
-  // unfocused row claiming a selection Enter would not throw.
+  // The band shows the cursor only while the row has the keys. A band on an
+  // unfocused row would suggest a selection Enter wouldn't toggle.
   bool focused = focus_ == BossPanel::kOptions;
   return ThemedWindow(
              " Options ",
@@ -495,8 +496,8 @@ void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
 void BossSelectPanel::RenderRewards(
     std::vector<RewardRow>& rows, const BossDifficulty& difficulty,
     std::chrono::steady_clock::time_point now) const {
-  // The meso first: it is the one thing a clear always pays, and everything
-  // under it is a chance at something.
+  // Meso first, since every clear pays it, and everything below is a chance at
+  // something.
   int named = 0;
   if (difficulty.meso() > 0) {
     rows.push_back({DetailRow("Meso", FormatWithCommas(difficulty.meso()))});
@@ -506,18 +507,18 @@ void BossSelectPanel::RenderRewards(
     rows.push_back({DetailRow("EXP", FormatWithCommas(difficulty.exp()))});
     ++named;
   }
-  // Honor is paid for a clear the calendar gates, as PayReward has it, and is
-  // named only to a player who has something to spend it on.
+  // Honor is paid for a clear that has a reset, as PayReward does, and is shown
+  // only to a player who has something to spend it on.
   if (difficulty.reset() != RESET_PERIOD_UNSPECIFIED &&
       HonorVisible(state_.character.proto().level(),
                    state_.account.max_level())) {
     rows.push_back({DetailRow("Honor", FormatWithCommas(kBossClearHonor))});
     ++named;
   }
-  // The prizes last and apart, commonest first: what a clear always pays reads
-  // as one block, and the drop a player is here for is at the bottom of it. A
-  // drop no catalog holds names nothing and is left out here, before its place
-  // in the list is counted.
+  // The prizes last and separate, most common first: what every clear pays
+  // reads as one block, and the drop the player is here for is at the bottom. A
+  // drop no catalog has would name nothing, so it is left out here before its
+  // position in the list is counted.
   std::vector<const MobDrop*> paid;
   std::vector<const MobDrop*> prizes;
   for (const MobDrop& drop : difficulty.drops()) {
@@ -549,9 +550,9 @@ void BossSelectPanel::RenderRewards(
 void BossSelectPanel::RenderDropRow(
     std::vector<RewardRow>& rows, const MobDrop& drop,
     std::chrono::steady_clock::time_point now) const {
-  // Slid rather than wrapped: drop names run long, half of one names nothing,
-  // and a second row would push the drop under it out of the window. The
-  // chance keeps the column every other value on this panel stands in.
+  // Scrolled rather than wrapped: drop names are long, half a name means
+  // nothing, and a second row would push the next drop out of the window. The
+  // chance stays in the same column as every other value on this panel.
   std::string chance = DropChance(drop.per_kill());
   int width = kDetailWidth - 3 - static_cast<int>(chance.size());
   rows.push_back({ftxui::text(

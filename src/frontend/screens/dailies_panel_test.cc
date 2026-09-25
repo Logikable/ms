@@ -14,8 +14,8 @@
 namespace ms {
 namespace {
 
-// Beside a filler, the way the dialog is centred on screen: the window keeps
-// its own width rather than stretching to the terminal's.
+// Beside a filler, as the dialog is centred on screen, so the window keeps its
+// own width instead of stretching to the terminal's.
 ftxui::Screen Render(const DailiesPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(12));
@@ -23,8 +23,7 @@ ftxui::Screen Render(const DailiesPanel& panel) {
   return screen;
 }
 
-// The rows line their counts up under each other, and neither end of a row
-// sits against the border.
+// The counts line up, and neither end of a row touches the border.
 TEST(DailiesPanelTest, TheRowsAreSpacedOffBothBorders) {
   DailiesPanel panel;
   panel.Reset({{"Arcane Symbol: Vanishing Journey", 20},
@@ -47,7 +46,7 @@ TEST(DailiesPanelTest, PassesTheAnswerThrough) {
   panel.Reset({{"Arcane Symbol: Vanishing Journey", 20}});
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 
-  // It opens on [Confirm]: the claim is what the player pressed Enter for.
+  // It opens on [Confirm], since claiming is what the player pressed Enter for.
   panel.Reset({{"Arcane Symbol: Vanishing Journey", 20}});
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }

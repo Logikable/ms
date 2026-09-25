@@ -14,8 +14,9 @@
 namespace ms {
 namespace {
 
-// The [Confirm]/[Cancel] mechanics belong to confirm_prompt_test; these cover
-// what this dialog says and what it does with an answer it cannot honour.
+// confirm_prompt_test covers the [Confirm]/[Cancel] mechanics. These tests
+// cover what this dialog says and what it does with an answer it can't carry
+// out.
 class HammerPanelTest : public testing::Test {
  protected:
   static std::string Render(const HammerPanel& panel) {
@@ -35,14 +36,14 @@ TEST_F(HammerPanelTest, AsksTheQuestionAndNamesThePrice) {
   EXPECT_TRUE(panel.affordable());
 }
 
-// A purse that cannot cover it gets the question asked and refused rather than
-// a dialog that closes as though something happened.
+// A purse that can't cover it gets the question shown and refused, instead of a
+// dialog that closes as if something happened.
 TEST_F(HammerPanelTest, AnUnaffordableHammerCannotBeConfirmed) {
   HammerPanel panel;
   panel.Reset(kGoldenHammerCost - 1);
   EXPECT_FALSE(panel.affordable());
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
-  // And it is still up, saying the same thing.
+  // It is still open, showing the same question.
   EXPECT_NE(Render(panel).find("Apply a Golden Hammer?"), std::string::npos);
   // Leaving still works.
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
