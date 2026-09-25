@@ -54,8 +54,8 @@ int RowIndexOf(const ftxui::Screen& screen, const std::string& needle) {
 ScreenPos FindOnScreen(const ftxui::Screen& screen, const std::string& needle) {
   for (int y = 0; y < screen.dimy(); ++y) {
     // The column each byte of the row starts at. A box-drawing character is
-    // three bytes in one cell, so an offset into the row is not a column --
-    // which is what a caller measuring where a box was drawn is asking for.
+    // three bytes in one cell, so a byte offset isn't a column, and a caller
+    // measuring where a box was drawn wants the column.
     std::string row;
     std::vector<int> column_at;
     for (int x = 0; x < screen.dimx(); ++x) {

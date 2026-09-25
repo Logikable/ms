@@ -12,7 +12,7 @@ namespace {
 
 class ItemRefTest : public PanelTest {
  protected:
-  // A character who can actually wear sword_ (required level 10, Warrior).
+  // A character who can wear sword_ (required level 10, Warrior).
   CharacterInstance MakeWarrior() {
     Character proto;
     proto.set_level(10);
@@ -40,8 +40,8 @@ TEST_F(ItemRefTest, ResolvesAnEquipSlot) {
   EXPECT_NE(ref.GetInstance(warrior), nullptr);
 }
 
-// The two halves are told apart by the ref itself, not by which panel had
-// focus, so a bag ref never reads a slot and vice versa.
+// The ref itself says which kind it is, not the focused panel, so a bag ref
+// never reads a slot and vice versa.
 TEST_F(ItemRefTest, KnowsWhichHalfItNames) {
   EXPECT_TRUE(ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON).equipped());
   EXPECT_FALSE(ItemRef::InBag(3).equipped());
@@ -56,8 +56,8 @@ TEST_F(ItemRefTest, DefaultRefNamesNothing) {
   EXPECT_EQ(ref.GetInstance(c_), nullptr);
 }
 
-// The old code reached straight into equipped().at(slot), which throws on an
-// empty slot. Resolving has to survive the item going away.
+// Resolving must survive the item being gone, so an empty slot gives null
+// instead of throwing.
 TEST_F(ItemRefTest, EmptySlotResolvesToNullRatherThanThrowing) {
   ItemRef ref = ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON);
   EXPECT_EQ(ref.Get(c_), nullptr);
@@ -70,8 +70,8 @@ TEST_F(ItemRefTest, BagIndexPastTheEndResolvesToNull) {
   EXPECT_EQ(ItemRef::InBag(-1).Get(c_), nullptr);
 }
 
-// A trace is a real bag item but has no live instance behind it, so the two
-// getters disagree -- which is the whole reason there are two.
+// A trace is a real bag item with no live instance, so the two getters give
+// different answers. That is why there are two.
 TEST_F(ItemRefTest, TraceHasAnItemButNoInstance) {
   Equip state;
   state.set_stars(17);
@@ -82,8 +82,8 @@ TEST_F(ItemRefTest, TraceHasAnItemButNoInstance) {
   EXPECT_EQ(ref.GetInstance(c_), nullptr);
 }
 
-// A 100% scroll, so the outcome does not depend on the roll and these tests
-// can assert exactly which item was touched.
+// A 100% scroll, so the outcome doesn't depend on the roll and these tests can
+// check exactly which item was changed.
 Scroll SureThingScroll() {
   Scroll scroll;
   scroll.set_name("100% ATT");
@@ -93,7 +93,7 @@ Scroll SureThingScroll() {
 }
 
 // The routing tests: with one item worn and another in the bag, the ref alone
-// decides which one the action lands on.
+// decides which one the action affects.
 TEST_F(ItemRefTest, ScrollResolvesTheWornItem) {
   EquipPrototype upgradeable = sword_;
   upgradeable.set_upgrade_slots(1);
@@ -133,8 +133,8 @@ TEST_F(ItemRefTest, ScrollResolvesTheBagItem) {
             0);
 }
 
-// Star forcing a bag item replaces it in place, so the bag never grows -- the
-// signal that the call went to the bag half and not the worn one.
+// Star forcing a bag item replaces it in place, so the bag never grows. That
+// shows the call went to the bag and not the worn item.
 TEST_F(ItemRefTest, StarForceItemReachesTheBagItem) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   int before = c_.inventory()[0].stars();
@@ -142,14 +142,14 @@ TEST_F(ItemRefTest, StarForceItemReachesTheBagItem) {
   StarForceItem(c_, ItemRef::InBag(0));
 
   EXPECT_EQ(c_.inventory().size(), 1);
-  // Success bumps it, failure holds it, destroy leaves a trace at the same
-  // stars. Any of those means the call landed; an untouched item at a
-  // different index would not.
+  // Success raises the stars, failure keeps them, and a destroy leaves a trace
+  // at the same stars. Any of those means the call reached this item; an
+  // untouched item at another index wouldn't show it.
   EXPECT_GE(c_.inventory()[0].stars(), before);
 }
 
-// Both halves again, over one call: the worn copy takes the hammer and the
-// bag copy is untouched, and then the other way round.
+// Both kinds again: the worn copy takes the hammer and the bag copy is
+// untouched, then the reverse.
 TEST_F(ItemRefTest, HammerItemResolvesEitherHalf) {
   EquipPrototype upgradeable = sword_;
   upgradeable.set_upgrade_slots(1);
@@ -171,8 +171,8 @@ TEST_F(ItemRefTest, HammerItemResolvesEitherHalf) {
   EXPECT_EQ(warrior.inventory()[0].equip_state().hammers(), 1);
 }
 
-// Both halves once more, and the price with them: each cube costs the item it
-// was aimed at a potential and the purse kCubeCost.
+// Both kinds once more, with the price: each cube gives its item a potential
+// and costs kCubeCost.
 TEST_F(ItemRefTest, CubeItemResolvesEitherHalfAndCharges) {
   CharacterInstance warrior = MakeWarrior();
   warrior.AddMeso(2 * kCubeCost);
@@ -193,7 +193,7 @@ TEST_F(ItemRefTest, CubeItemResolvesEitherHalfAndCharges) {
   EXPECT_EQ(warrior.proto().meso(), 0);
 }
 
-// A purse short of the price buys nothing, on either half.
+// A character who can't afford the price buys nothing, for either kind.
 TEST_F(ItemRefTest, CubeItemRefusesWhatThePurseCannotCover) {
   CharacterInstance warrior = MakeWarrior();
   warrior.AddMeso(kCubeCost - 1);

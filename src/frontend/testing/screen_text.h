@@ -1,9 +1,9 @@
-/* Reading a rendered ftxui::Screen back as plain text, for tests.
+/* Reads a rendered ftxui::Screen back as plain text, for tests.
  *
- * Screen::ToString KEEPS the colour and dim escapes, so a styled cell puts
- * bytes between two things that look adjacent on screen -- which is what
- * breaks a search for "> Name" the moment the name is dimmed. Everything here
- * reads the pixel grid instead, and an unpainted cell reads as a space.
+ * Screen::ToString keeps the colour and dim escapes, so a styled cell puts
+ * bytes between two things that look adjacent on screen. That breaks a search
+ * for "> Name" as soon as the name is dimmed. Everything here reads the pixel
+ * grid instead, and an unpainted cell reads as a space.
  */
 #ifndef MS_SRC_FRONTEND_TESTING_SCREEN_TEXT_H_
 #define MS_SRC_FRONTEND_TESTING_SCREEN_TEXT_H_
@@ -25,36 +25,35 @@ std::string ScreenRow(const ftxui::Screen& screen, int y);
 // Every row, top to bottom.
 std::vector<std::string> ScreenRows(const ftxui::Screen& screen);
 
-// The whole screen, a newline between rows.
+// The whole screen, with a newline between rows.
 std::string ScreenText(const ftxui::Screen& screen);
 
-// The index of the first row holding `needle`, or -1 if none does.
+// The index of the first row containing `needle`, or -1 if none does.
 int RowIndexOf(const ftxui::Screen& screen, const std::string& needle);
 
-// Where the first `needle` starts, as {x, y}, or {-1, -1} if it is not drawn.
-// `x` is the COLUMN, not the byte offset into the row: a box-drawing character
-// is three bytes in one cell, so the two part company the moment a border is
-// on the row.
+// Where the first `needle` starts, as {x, y}, or {-1, -1} if it isn't drawn.
+// `x` is the column, not the byte offset in the row: a box-drawing character is
+// three bytes in one cell, so the two differ once a border is on the row.
 struct ScreenPos {
   int x = -1;
   int y = -1;
 };
 ScreenPos FindOnScreen(const ftxui::Screen& screen, const std::string& needle);
 
-// The foreground colour of the first cell of `needle`. Color::Default when it
-// is not on screen, which no expected colour equals.
+// The foreground colour of the first cell of `needle`. Color::Default if it
+// isn't on screen, which no expected colour equals.
 ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle);
 
-// The whole pixel there, for a caller asking about the dim bit as well as the
-// colour. A default-constructed Pixel when `needle` is not on screen.
+// The whole pixel there, for checking the dim bit as well as the colour. A
+// default-constructed Pixel if `needle` isn't on screen.
 ftxui::Pixel PixelOf(const ftxui::Screen& screen, const std::string& needle);
 
-// The rows of `element` that put text hard against its RIGHT border with no
-// clearance, drawn at the width the element asks for. Empty passes.
+// The rows of `element` whose text touches its right border with no gap, drawn
+// at the element's requested width. An empty result passes.
 //
-// It catches a card that measures its width from its widest row and forgets
-// the margin. The LEFT is not asked about: that column belongs to the cursor.
-// Rules are skipped, as is a card whose right column is a scroll bar.
+// This catches a card that sizes itself to its widest row and forgets the
+// margin. The left side isn't checked, since that column belongs to the cursor.
+// Divider lines are skipped, as is a card whose right column is a scroll bar.
 std::vector<std::string> RowsTouchingTheRightBorder(ftxui::Element element);
 
 }  // namespace ms

@@ -14,18 +14,18 @@
 namespace ms {
 namespace {
 
-// The width the test lays the left column out at, which the stand-in panels
-// are drawn to as well so their borders land where the column ends.
+// The width the test gives the left column. The stand-in panels are drawn at
+// this width too, so their borders land where the column ends.
 constexpr int kLeftWidth = 35;
 constexpr int kScreenWidth = 100;
 constexpr int kScreenHeight = 30;
-// Deliberately narrower than the room left beside the left column, so a right
-// column that failed to flex would be visibly short of the screen's edge.
+// Narrower than the space beside the left column on purpose, so a right column
+// that failed to flex would visibly fall short of the screen's edge.
 constexpr int kRightWidth = 40;
 
 // A bordered stand-in for a panel: `rows` rows of content, each reading
-// `label`, inside a border `width` columns across. Rendering the real panels
-// would drag in a whole GameState, and the layout only ever sees their size.
+// `label`, inside a border `width` columns wide. Real panels would need a whole
+// GameState, and the layout only sees their size.
 ftxui::Element Panel(const std::string& label, int width, int rows) {
   std::vector<ftxui::Element> body;
   for (int i = 0; i < rows; ++i) {
@@ -39,23 +39,23 @@ ftxui::Element Panel(const std::string& label, int width, int rows) {
 class MainLayoutTest : public testing::Test {
  protected:
   // Renders the layout onto a fixed screen and keeps the rows, so a test can
-  // ask where each piece ended up. The stand-ins are sized so the left column
-  // is 10 rows of character over 5 of combat, and the right column 3 rows of
-  // equipped over a bag of whatever height the test asks for.
+  // check where each piece landed. The left column is 10 rows of character over
+  // 5 of combat, and the right column is 3 rows of equipped over a bag of
+  // whatever height the test asks for.
   void Render(int bag_rows) {
     RenderWith(Panel("EQUIP", kRightWidth, 1),
                Panel("BAG", kRightWidth, bag_rows), nullptr);
   }
 
-  // The same two panels with the equipped one tall enough to argue over the
-  // column, which is what the half cap is there for.
+  // The same two panels, with the equipped panel tall enough to compete for the
+  // column, which is what the half cap is for.
   void RenderTall(int equip_rows, int bag_rows) {
     RenderWith(Panel("EQUIP", kRightWidth, equip_rows),
                Panel("BAG", kRightWidth, bag_rows), nullptr);
   }
 
   // The same layout with whichever right-column panels the test wants, so it
-  // can pass null for one a character has not unlocked.
+  // can pass null for one a character hasn't unlocked.
   void RenderWith(ftxui::Element equipped, ftxui::Element inventory,
                   ftxui::Element corner) {
     screen_ = ftxui::Screen::Create(ftxui::Dimension::Fixed(kScreenWidth),
@@ -103,8 +103,8 @@ class MainLayoutTest : public testing::Test {
     return -1;
   }
 
-  // The row of the lowest bottom-left corner in column `col` -- the foot of
-  // the lowest panel stacked in that column.
+  // The row of the lowest bottom-left corner in column `col`: the bottom of the
+  // lowest panel in that column.
   int LowestPanelFoot(int col) {
     for (int y = kScreenHeight - 1; y >= 0; --y) {
       if (Cell(col, y) == "╰") {
@@ -128,10 +128,9 @@ class MainLayoutTest : public testing::Test {
                                                 ftxui::Dimension::Fixed(1));
 };
 
-// The bug that started this: the bag stopped partway down and the rest of its
-// width sat blank. A bag with more in it than fits runs to the exp bar on the
-// last row -- and gives way rather than running past it, which would push the
-// bar off the screen.
+// The original bug: the bag stopped partway down and the rest of its width was
+// blank. A bag with more than fits runs down to the EXP bar on the last row,
+// and stops there rather than pushing the bar off the screen.
 TEST_F(MainLayoutTest, AFullBagRunsToTheExpBarAndNoPast) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("EXPBAR"), kScreenHeight - 1);
@@ -139,8 +138,8 @@ TEST_F(MainLayoutTest, AFullBagRunsToTheExpBarAndNoPast) {
   EXPECT_EQ(LastRowWith("BAG"), kScreenHeight - 3);
 }
 
-// The other half of the ask: a tab with little in it is a few rows, not a
-// screen of blank held open down to the exp bar.
+// The other half of the request: a tab with little in it is a few rows, not a
+// screen of blank space down to the EXP bar.
 TEST_F(MainLayoutTest, AShortBagKeepsItsOwnHeight) {
   // Equipped is three rows (0..2), so a one-row bag ends on row 5.
   Render(/*bag_rows=*/1);
@@ -150,10 +149,9 @@ TEST_F(MainLayoutTest, AShortBagKeepsItsOwnHeight) {
   EXPECT_EQ(LowestPanelFoot(kLeftWidth), 10);
 }
 
-// Combat is pinned to the bottom-left corner, so its foot lands on the row
-// above the exp bar rather than following the character panel down from the
-// top of the column -- pinned rather than stretched, so it keeps the height of
-// its own contents and the gap opens above it.
+// Combat is pinned to the bottom-left corner, so its bottom edge is on the row
+// above the EXP bar, not right under the character panel. It keeps its own
+// height rather than stretching, so the gap opens above it.
 TEST_F(MainLayoutTest, CombatSitsInTheBottomLeftCornerKeepingItsOwnHeight) {
   Render(/*bag_rows=*/40);
   ASSERT_NE(FirstRowWith("COMBAT"), -1);
@@ -163,14 +161,14 @@ TEST_F(MainLayoutTest, CombatSitsInTheBottomLeftCornerKeepingItsOwnHeight) {
   EXPECT_EQ(LowestPanelFoot(0), combat_top + 4);
 }
 
-// The character panel stays at the top of the column, keeping its own height.
+// The character panel stays at the top of the column at its own height.
 TEST_F(MainLayoutTest, TheCharacterPanelKeepsItsHeight) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("CHAR"), 1);
   EXPECT_EQ(Cell(0, 9), "╰");
 }
 
-// The gap the pinning opens is empty, not a stretched panel.
+// The gap from pinning is empty, not a stretched panel.
 TEST_F(MainLayoutTest, TheGapBetweenPanelsStaysBlank) {
   Render(/*bag_rows=*/40);
   int combat_top = FirstRowWith("COMBAT") - 1;
@@ -179,21 +177,20 @@ TEST_F(MainLayoutTest, TheGapBetweenPanelsStaysBlank) {
   }
 }
 
-// What the combat panel used to take up the whole width of. Beside it is the
-// bag, not blank screen.
+// The bag runs down beside the combat panel, rather than combat taking the
+// whole width.
 TEST_F(MainLayoutTest, TheBagRunsDownBesideTheCombatPanel) {
   Render(/*bag_rows=*/40);
   int combat_row = FirstRowWith("COMBAT");
   ASSERT_GE(combat_row, 0);
-  // The bag's left border, in the first column past the left column.
+  // The bag's left border, in the first column after the left column.
   EXPECT_EQ(Cell(kLeftWidth, combat_row), "│");
   EXPECT_NE(Row(combat_row).find("BAG"), std::string::npos);
 }
 
-// Equipped keeps its own height while it fits under the cap, however much or
-// little the bag beside it wants. What an overflowing bag cannot have is the
-// half of the column the cap holds for it, not a row off a panel that is
-// already well short of that.
+// Equipped keeps its own height while it fits under the cap, however much the
+// bag wants. An overflowing bag can only take the half of the column the cap
+// reserves for it, not rows from a panel that is already well under that.
 TEST_F(MainLayoutTest, TheEquippedPanelKeepsItsOwnHeight) {
   Render(/*bag_rows=*/1);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
@@ -207,9 +204,9 @@ TEST_F(MainLayoutTest, TheEquippedPanelKeepsItsOwnHeight) {
 
 // --- the half cap ---
 
-// There are enough gear slots now to fill a column, so the equipped panel is
-// held to half of what the two panels have to share -- and the odd row of an
-// odd column falls to the bag, which is the panel the player works out of.
+// There are now enough gear slots to fill a column, so the equipped panel is
+// limited to half of the pair's shared height. In an odd column the odd row
+// goes to the bag, which is the panel the player works from.
 TEST_F(MainLayoutTest, ATallEquippedPanelStopsAtHalfTheColumn) {
   RenderTall(/*equip_rows=*/30, /*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1) << "still at the top of the column";
@@ -219,8 +216,8 @@ TEST_F(MainLayoutTest, ATallEquippedPanelStopsAtHalfTheColumn) {
       << "and the bag runs to the exp bar, 15 rows of it";
 }
 
-// The cap is on the room the pair has, not on the room the bag asks for: a
-// nearly empty bag does not hand its half back.
+// The cap is on the pair's space, not on what the bag asks for: a nearly empty
+// bag doesn't give its half back.
 TEST_F(MainLayoutTest, AnEmptyBagDoesNotLiftTheCap) {
   RenderTall(/*equip_rows=*/30, /*bag_rows=*/3);
   EXPECT_EQ(Cell(kLeftWidth, 13), "╰") << "the same 14 rows";
@@ -228,7 +225,7 @@ TEST_F(MainLayoutTest, AnEmptyBagDoesNotLiftTheCap) {
   EXPECT_EQ(LowestPanelFoot(kLeftWidth), 18) << "a 5-row bag under it";
 }
 
-// What the short bag leaves over is blank, not a stretched panel.
+// The space under a short bag stays blank, not a stretched panel.
 TEST_F(MainLayoutTest, TheRoomUnderAShortBagStaysBlank) {
   RenderTall(/*equip_rows=*/30, /*bag_rows=*/3);
   for (int y = 19; y < kScreenHeight - 1; ++y) {
@@ -237,8 +234,8 @@ TEST_F(MainLayoutTest, TheRoomUnderAShortBagStaysBlank) {
   }
 }
 
-// The corner panel is not part of the pair, so the half is measured on the
-// column above it -- and the corner stays pinned to the foot.
+// The corner panel isn't part of the pair, so the half is measured on the
+// column above it, and the corner stays pinned to the bottom.
 TEST_F(MainLayoutTest, TheCornerPanelIsNotHalvedWithThem) {
   RenderWith(Panel("EQUIP", kRightWidth, 30), Panel("BAG", kRightWidth, 40),
              Panel("KEYS", kRightWidth, 5));
@@ -248,7 +245,7 @@ TEST_F(MainLayoutTest, TheCornerPanelIsNotHalvedWithThem) {
       << "still pinned above the exp bar";
 }
 
-// The right column takes the width left over rather than its own, so the bag
+// The right column takes the leftover width rather than a fixed one, so the bag
 // reaches the edge of the terminal.
 TEST_F(MainLayoutTest, TheRightColumnFillsTheRemainingWidth) {
   Render(/*bag_rows=*/40);
@@ -259,8 +256,8 @@ TEST_F(MainLayoutTest, TheRightColumnFillsTheRemainingWidth) {
 
 // --- panels a character has not unlocked ---
 
-// Nothing to the right of the character panel at level 1, and the two panels
-// that do exist keep the places they will have for the rest of the game.
+// At level 1 there is nothing to the right of the character panel, and the two
+// panels that exist keep the places they will always have.
 TEST_F(MainLayoutTest, NoRightPanelsLeavesOneColumn) {
   RenderWith(nullptr, nullptr, nullptr);
   EXPECT_EQ(FirstRowWith("EQUIP"), -1);
@@ -272,9 +269,9 @@ TEST_F(MainLayoutTest, NoRightPanelsLeavesOneColumn) {
       << "combat still pinned above the exp bar";
 }
 
-// The bag arrives a level after the equipped panel, so for one level the
-// right column is the equipped panel alone -- and it must sit at the top of
-// the column rather than floating where the bag would have put it.
+// The bag unlocks a level after the equipped panel, so for one level the right
+// column is only the equipped panel. It must sit at the top of the column, not
+// where the bag would have put it.
 TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
   RenderWith(Panel("EQUIP", kRightWidth, 1), nullptr, nullptr);
   EXPECT_EQ(FirstRowWith("BAG"), -1);
@@ -282,8 +279,8 @@ TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
   EXPECT_EQ(FirstRowWith("CHAR"), 1) << "both columns start at the top";
 }
 
-// The right column is what flexes to fill the width. With nothing in it the
-// left column must not stretch to take its place.
+// The right column is the one that flexes to fill the width. When it is empty,
+// the left column must not stretch to fill its place.
 TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthAlone) {
   RenderWith(nullptr, nullptr, nullptr);
   int row = FirstRowWith("CHAR");
@@ -294,7 +291,7 @@ TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthAlone) {
 
 // --- the hotkeys tip ---
 
-// It mirrors combat: pinned to the foot of its column so it lands in the
+// Like combat, it is pinned to the bottom of its column, so it is in the
 // bottom-right corner however tall the terminal is.
 TEST_F(MainLayoutTest, TheHotkeysTipSitsInTheBottomRightCorner) {
   RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 3),
@@ -304,9 +301,8 @@ TEST_F(MainLayoutTest, TheHotkeysTipSitsInTheBottomRightCorner) {
   EXPECT_LT(FirstRowWith("BAG"), FirstRowWith("KEYS")) << "and below the bag";
 }
 
-// For the first two levels there is no equipped panel and no bag, so the tip
-// is the whole right column -- and must still be at the bottom of it rather
-// than at the top where the only other child would have put it.
+// For the first two levels there is no equipped panel or bag, so the tip is the
+// whole right column. It must still be at the bottom, not at the top.
 TEST_F(MainLayoutTest, TheHotkeysTipAloneStillSitsAtTheBottom) {
   RenderWith(nullptr, nullptr, Panel("KEYS", kRightWidth, 5));
   EXPECT_EQ(FirstRowWith("EQUIP"), -1);
@@ -315,8 +311,8 @@ TEST_F(MainLayoutTest, TheHotkeysTipAloneStillSitsAtTheBottom) {
   EXPECT_EQ(FirstRowWith("CHAR"), 1) << "the left column is unaffected";
 }
 
-// A bag long enough to fill the column must not squeeze the tip: the bag is
-// the one panel marked shrinkable, and everything else keeps its own height.
+// A bag long enough to fill the column must not squash the tip: the bag is the
+// only panel marked shrinkable, and everything else keeps its own height.
 TEST_F(MainLayoutTest, AFullBagDoesNotSquashTheHotkeysTip) {
   RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 40),
              Panel("KEYS", kRightWidth, 5));
@@ -326,8 +322,8 @@ TEST_F(MainLayoutTest, AFullBagDoesNotSquashTheHotkeysTip) {
       << "five content rows and two borders";
 }
 
-// Once the tip retires the right column goes back to exactly what it was, so
-// nothing below level 5 leaves a gap behind it.
+// Once the tip is gone the right column is exactly as before, so nothing leaves
+// a gap after level 5.
 TEST_F(MainLayoutTest, TheRetiredTipLeavesNoGap) {
   RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 3),
              nullptr);
@@ -338,15 +334,15 @@ TEST_F(MainLayoutTest, TheRetiredTipLeavesNoGap) {
 
 // --- the column widths ---
 
-// Room for everything: the left column takes its maximum and the bag gets the
-// rest, which is more than its own minimum.
+// Plenty of room: the left column takes its maximum and the bag gets the rest,
+// which is more than its minimum.
 TEST(MainWidthsTest, AWideTerminalFillsBothColumns) {
   MainWidths widths = ComputeMainWidths(200, /*has_right_column=*/true);
   EXPECT_EQ(widths.left, kLeftColumnMax);
   EXPECT_EQ(widths.right, 200 - kLeftColumnMax);
 }
 
-// The width both columns are first satisfied at, and one column short of it.
+// The width where both columns first get their full size, and one column less.
 TEST(MainWidthsTest, TheLeftColumnGrowsLast) {
   int full = kLeftColumnMax + kRightColumnMin;
   EXPECT_EQ(ComputeMainWidths(full, true).left, kLeftColumnMax);
@@ -355,8 +351,8 @@ TEST(MainWidthsTest, TheLeftColumnGrowsLast) {
   EXPECT_EQ(ComputeMainWidths(full - 1, true).right, kRightColumnMin);
 }
 
-// Below the pair's minimums the left column holds its own and the bag takes
-// what is left, however short of its minimum that is.
+// Below the two minimums, the left column keeps its width and the bag takes
+// what's left, however far under its minimum.
 TEST(MainWidthsTest, ANarrowTerminalSqueezesTheRightColumn) {
   MainWidths widths = ComputeMainWidths(100, /*has_right_column=*/true);
   EXPECT_EQ(widths.left, kLeftColumnMin);
@@ -372,8 +368,8 @@ TEST(MainWidthsTest, ATinyTerminalKeepsTheLeftMinimum) {
 }
 
 // Unlocking the equipped panel must not resize the character panel under the
-// player: the left column is the same at every width, wide enough for its
-// maximum or narrow enough to be squeezed to its minimum.
+// player: the left column is the same at every width, whether wide enough for
+// its maximum or squeezed to its minimum.
 TEST(MainWidthsTest, UnlockingTheRightColumnLeavesTheLeftOneAlone) {
   for (int width : {20, 100, kLeftColumnMax + kRightColumnMin, 200}) {
     EXPECT_EQ(ComputeMainWidths(width, false).left,

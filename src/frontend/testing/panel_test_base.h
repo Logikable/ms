@@ -21,14 +21,13 @@
 
 namespace ms {
 
-// Wide enough for the widest list a panel draws. The game runs wider still;
-// a screen that clipped a column would fail tests over something no player
-// ever sees.
+// Wide enough for the widest list a panel draws. The game runs wider still; a
+// screen that clipped a column would fail tests over something no player sees.
 constexpr int kTestScreenWidth = 100;
 
-// Where a band of background colour landed: the row, and the columns it
-// covers. Asserted on the SPAN rather than the row alone -- a band stopping
-// short of the borders reads as a column that is not part of the row.
+// Where a band of background colour landed: the row and the columns it covers.
+// Tests check the span, not just the row, because a band stopping short of the
+// borders looks like a column that isn't part of the row.
 struct BandSpan {
   int y = 0;
   int first = 0;
@@ -55,8 +54,8 @@ inline std::vector<BandSpan> BandSpans(const ftxui::Screen& screen,
   return spans;
 }
 
-// Shared fixture for panel tests. Provides c_ (level-1 Beginner character)
-// and sword_ (primary weapon slot, required level 10, Warrior only).
+// Shared fixture for panel tests. Provides c_ (level-1 Beginner character) and
+// sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
  protected:
   CharacterInstance MakeCharacter(int level = 1, int ap = 0) {
@@ -74,9 +73,9 @@ class PanelTest : public testing::Test {
     return screen.ToString();
   }
 
-  // The color of a panel's top-left border cell. Read off the pixel because
-  // RenderElement goes through Screen::ToString, which is where color goes to
-  // die: a gold border and a steel-blue one produce the same string.
+  // The colour of a panel's top-left border cell. Read from the pixel because
+  // RenderElement goes through Screen::ToString, which loses colour: a gold
+  // border and a steel-blue one give the same string.
   static ftxui::Color BorderColor(ftxui::Element element) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
@@ -84,17 +83,17 @@ class PanelTest : public testing::Test {
     return screen.PixelAt(0, 0).foreground_color;
   }
 
-  // The colours of every divider rule inside a panel, top to bottom. A lit
-  // panel goes gold all the way through, and a steel-blue rule across a gold
-  // window reads as a seam -- which BorderColor cannot see.
+  // The colours of every divider line inside a panel, top to bottom. A lit
+  // panel is gold throughout, and a steel-blue line across a gold window looks
+  // like a seam, which BorderColor can't detect.
   static std::vector<ftxui::Color> InnerRuleColors(ftxui::Element element) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
     std::vector<ftxui::Color> colors;
-    // Sampled at x=1 rather than x=0, which is the window's left border: a
-    // vertical line on every row, including the ones a rule crosses. The first
-    // and last rows are the window's own borders, which BorderColor covers.
+    // Sampled at x=1, not x=0, because x=0 is the window's left border, a
+    // vertical line on every row including those a divider crosses. The first
+    // and last rows are the window's borders, which BorderColor covers.
     for (int y = 1; y + 1 < screen.dimy(); ++y) {
       if (screen.PixelAt(1, y).character == "─") {
         colors.push_back(screen.PixelAt(1, y).foreground_color);
@@ -103,17 +102,16 @@ class PanelTest : public testing::Test {
     return colors;
   }
 
-  // The topmost inner rule's color, for a panel that only has one worth
-  // asking about. Color::Default when the panel has no inner rule at all,
-  // which no expected color equals.
+  // The topmost inner divider's colour, for a panel with only one worth
+  // checking. Color::Default if there is none, which no expected colour equals.
   static ftxui::Color InnerRuleColor(ftxui::Element element) {
     std::vector<ftxui::Color> colors = InnerRuleColors(std::move(element));
     return colors.empty() ? ftxui::Color::Default : colors.front();
   }
 
-  // The foreground color of the first cell of `label` in a rendered element,
-  // for asking what color a tab chip came out. Returns Color::Default when the
-  // label is not on screen, which no expected color equals.
+  // The foreground colour of the first cell of `label` in a rendered element,
+  // for checking a tab's colour. Returns Color::Default if the label isn't on
+  // screen, which no expected colour equals.
   static ftxui::Color LabelColor(ftxui::Element element,
                                  const std::string& label) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
@@ -122,9 +120,9 @@ class PanelTest : public testing::Test {
     return ColorOf(screen, label);
   }
 
-  // The rendered component as plain characters. Use this to ask what the
-  // screen says; use RenderComponent only when the styling is what is being
-  // asserted. See screen_text.h for why ToString will not do.
+  // The rendered component as plain text. Use this to check what the screen
+  // says, and RenderComponent only when checking styling. See screen_text.h for
+  // why ToString doesn't work.
   static std::string RenderComponentText(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(
         ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
@@ -139,9 +137,9 @@ class PanelTest : public testing::Test {
     return screen.ToString();
   }
 
-  // Levels `c_` to `level`. The item menu's entries are level-gated, so a test
-  // asserting one is ABSENT proves nothing at level 1, where they all are. ASK
-  // UnlockLevel(Feature::...) rather than writing a number.
+  // Levels `c_` to `level`. Item menu entries are level-gated, so a test
+  // checking that one is absent proves nothing at level 1, where they all are.
+  // Use UnlockLevel(Feature::...) rather than a hard-coded number.
   void LevelTo(int level) {
     while (c_.proto().level() < level) {
       c_.LevelUp();
@@ -155,17 +153,16 @@ class PanelTest : public testing::Test {
     sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   }
 
-  // Opens every level-gated mechanic for the account, for a test that is
-  // about what a panel draws once the game is fully open rather than about
-  // the gate itself.
+  // Unlocks every level-gated feature for the account, for tests about what a
+  // panel shows once everything is unlocked rather than about the gate itself.
   void UnlockEverything() {
     account_.RecordProgress(kMaxLevel, /*job_stage=*/4);
   }
 
   std::mt19937 rng_{0};
   CharacterInstance c_ = MakeCharacter();
-  // The account every panel under test shares. Empty, so the unlocks a test
-  // asks about are the character's own climb.
+  // The account every panel test shares. It is empty, so any unlocks come from
+  // the character's own level.
   AccountInstance account_;
   EquipPrototype sword_;
   int panel_focus_ = 0;

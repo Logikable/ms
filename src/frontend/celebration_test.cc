@@ -16,8 +16,8 @@
 namespace ms {
 namespace {
 
-// The card's text, read off the screen cell by cell. Not Screen::ToString,
-// which threads colour escapes through every row.
+// The card's text, read from the screen cell by cell. Not Screen::ToString,
+// which puts colour escapes in every row.
 std::string CardText(const Celebration& celebration) {
   ftxui::Element card = celebration.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
@@ -27,11 +27,12 @@ std::string CardText(const Celebration& celebration) {
 
 class CelebrationTest : public testing::Test {
  protected:
-  // Starts a level-up with the player looking somewhere that is never lit, so
-  // every panel the celebration touches is one they have to go and visit.
-  // Tests about the timed half say where the player is standing explicitly.
+  // Starts a level-up with the player looking at a panel that is never lit, so
+  // every panel the celebration lights is one they must visit. Tests about
+  // timed glows set where the player is explicitly.
   //
-  // On a fresh account, so the climb is this player's first over that ground.
+  // It uses a new account, so this is the first time any character has reached
+  // these levels.
   void BeginAway(int from_level, int to_level, int ap = 5, int sp = 3) {
     celebration_.BeginLevelUp(from_level, to_level, ap, sp, /*hyper_sp=*/0,
                               /*account_level=*/0, kCombatPanel);
@@ -50,17 +51,17 @@ TEST_F(CelebrationTest, StartsWithNoCardUp) {
 TEST_F(CelebrationTest, TheCardStaysUpForTheWholeDuration) {
   BeginAway(12, 13);
   ASSERT_TRUE(celebration_.card_visible());
-  // A tick short of the full four seconds, in the 300ms steps the game
-  // actually advances in.
+  // One tick short of the full four seconds, in the 300ms steps the game really
+  // uses.
   celebration_.Advance(kCelebrationSeconds - 0.3);
   EXPECT_TRUE(celebration_.card_visible());
   celebration_.Advance(0.3);
   EXPECT_FALSE(celebration_.card_visible());
 }
 
-// The game advances in ticks, so the moment the clock runs out almost never
-// lands on a tick boundary. Overshooting it must take the card down, not
-// leave it up on a negative countdown.
+// The game advances in ticks, so the clock almost never runs out exactly on a
+// tick. Overshooting must take the card down, not leave it up with a negative
+// countdown.
 TEST_F(CelebrationTest, TheCardGoesWhenTheClockIsOvershot) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds * 10);
@@ -78,9 +79,9 @@ TEST_F(CelebrationTest, DismissTakesTheCardDownEarly) {
   EXPECT_FALSE(celebration_.card_visible());
 }
 
-// A second level-up while the first is still up restarts the clock rather than
-// inheriting what was left of it -- otherwise a level landing a moment before
-// the card expired would flash by.
+// A second level-up while the first card is up restarts the clock instead of
+// keeping what was left. Otherwise a level gained just before the card expired
+// would flash by.
 TEST_F(CelebrationTest, ASecondLevelUpGetsItsOwnFourSeconds) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds - 0.3);
@@ -97,13 +98,13 @@ TEST_F(CelebrationTest, AnOrdinaryLevelUpLightsOnePanel) {
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
   EXPECT_FALSE(celebration_.Lights(kCombatPanel));
-  // And a panel off either end of the range is asked about safely.
+  // A panel outside the valid range can also be checked safely.
   EXPECT_FALSE(celebration_.Lights(kNumPanels));
   EXPECT_FALSE(celebration_.Lights(kNoPanel));
 }
 
-// The level that hands over the equipped panel points at it: a card in the
-// middle of the screen does not say where the new thing is.
+// The level that unlocks the equipped panel lights it: a card in the middle of
+// the screen doesn't say where the new thing is.
 TEST_F(CelebrationTest, TheLevelThatOpensTheEquippedPanelLightsIt) {
   int level = UnlockLevel(Feature::kEquipped);
   BeginAway(level - 1, level);
@@ -119,9 +120,8 @@ TEST_F(CelebrationTest, TheLevelThatOpensTheBagLightsIt) {
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
 }
 
-// One combat tick can carry a character through both unlocks. Neither may be
-// stepped over: the player would be left with two panels they were never sent
-// to.
+// One combat tick can take a character past both unlocks. Neither may be
+// skipped, or the player would have two new panels they were never pointed to.
 TEST_F(CelebrationTest, AClimbPastBothUnlocksLightsBoth) {
   int first = UnlockLevel(Feature::kEquipped);
   int second = UnlockLevel(Feature::kBag);
@@ -130,16 +130,16 @@ TEST_F(CelebrationTest, AClimbPastBothUnlocksLightsBoth) {
   EXPECT_TRUE(celebration_.Lights(kInventoryPanel));
 }
 
-// A climb that starts at the unlock level has already been through it, so it
-// is not news again.
+// A climb that starts at the unlock level has already passed it, so it isn't
+// news again.
 TEST_F(CelebrationTest, AClimbStartingOnAnUnlockDoesNotRelightIt) {
   int level = UnlockLevel(Feature::kEquipped);
   BeginAway(level, level + 1);
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
 }
 
-// A second character's panels were on screen from level 1, so the level that
-// would have opened them points at nothing.
+// A second character's panels were visible from level 1, so the level that
+// would have unlocked them lights nothing.
 TEST_F(CelebrationTest, ASecondCharacterIsSentToNoPanel) {
   int level = UnlockLevel(Feature::kBag);
   celebration_.BeginLevelUp(level - 1, level, /*ap=*/5, /*sp=*/3,
@@ -150,8 +150,8 @@ TEST_F(CelebrationTest, ASecondCharacterIsSentToNoPanel) {
   EXPECT_TRUE(celebration_.Lights(kCharPanel)) << "the AP is still theirs";
 }
 
-// Scrolling and star force live in an item menu, with no panel of their own to
-// go gold, so the card has to name them or a player never learns they arrived.
+// Scrolling and star force are in an item menu with no panel to light, so the
+// card must name them or the player never learns they arrived.
 TEST_F(CelebrationTest, TheCardNamesAnUpgradeTheClimbOpened) {
   int level = UnlockLevel(Feature::kScrolling);
   BeginAway(level - 1, level);
@@ -159,8 +159,8 @@ TEST_F(CelebrationTest, TheCardNamesAnUpgradeTheClimbOpened) {
             std::string::npos);
 }
 
-// An ordinary level names no unlock, and no honor either: honor is paid from
-// the second level but goes unmentioned until Inner Ability is open.
+// An ordinary level names no unlock and no honor. Honor is paid from level 2
+// but isn't mentioned until Inner Ability is unlocked.
 TEST_F(CelebrationTest, TheCardNamesNoUpgradeOrHonorOnAnOrdinaryLevel) {
   BeginAway(11, 12);
   std::string card = CardText(celebration_);
@@ -168,8 +168,8 @@ TEST_F(CelebrationTest, TheCardNamesNoUpgradeOrHonorOnAnOrdinaryLevel) {
   EXPECT_EQ(card.find("Honor"), std::string::npos);
 }
 
-// The card is rebuilt from the last climb, not accumulated: an unlock
-// announced once must not ride along on the next level.
+// The card is rebuilt from the latest climb, not accumulated: an unlock
+// announced once must not appear again on the next level.
 TEST_F(CelebrationTest, TheNextLevelDropsTheAnnouncement) {
   int level = UnlockLevel(Feature::kScrolling);
   BeginAway(level - 1, level);
@@ -177,8 +177,8 @@ TEST_F(CelebrationTest, TheNextLevelDropsTheAnnouncement) {
   EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
 }
 
-// Honor is named once Inner Ability has been opened -- on this character or,
-// for the one after them, on the account.
+// Honor is shown once Inner Ability is unlocked, on this character or, for
+// later characters, on the account.
 TEST_F(CelebrationTest, TheCardNamesTheHonorOnceInnerAbilityIsOpen) {
   BeginAway(159, 160);
   EXPECT_NE(CardText(celebration_).find("+1,800 Honor"), std::string::npos);
@@ -208,8 +208,8 @@ TEST_F(CelebrationTest, AnAdvancementInheritsNoLitPanels) {
 
 // --- how the gold goes out ---
 
-// The whole reason the gold is there: the player was not looking, so it waits
-// for them however long that takes.
+// This is why the gold exists: the player wasn't looking, so it waits for them
+// however long that takes.
 TEST_F(CelebrationTest, GoldOnAPanelYouWereNotOnOutlivesTheCard) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds * 10);
@@ -217,8 +217,8 @@ TEST_F(CelebrationTest, GoldOnAPanelYouWereNotOnOutlivesTheCard) {
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// And the other half: a panel already in front of them has been seen by the
-// time the card names it, so it fades on the clock like the card does.
+// The other half: a panel the player is already on has been seen by the time
+// the card names it, so it fades on the clock like the card.
 TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
   celebration_.BeginLevelUp(12, 13, 5, 3, /*hyper_sp=*/0,
                             /*account_level=*/0, kCharPanel);
@@ -228,8 +228,8 @@ TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }
 
-// Walking away before the four seconds are up does not turn a panel that was
-// seen back into one that is waiting to be.
+// Leaving before the four seconds are up doesn't turn a seen panel back into
+// one waiting to be visited.
 TEST_F(CelebrationTest, LeavingAPanelDoesNotRearmItsGold) {
   celebration_.BeginLevelUp(12, 13, 5, 3, /*hyper_sp=*/0,
                             /*account_level=*/0, kCharPanel);
@@ -238,8 +238,8 @@ TEST_F(CelebrationTest, LeavingAPanelDoesNotRearmItsGold) {
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }
 
-// Visiting is a latch. Gold that came back every time the player tabbed away
-// would stop meaning "you have not seen this" and start meaning nothing.
+// Visiting is permanent. Gold that came back every time the player tabbed away
+// would stop meaning "you haven't seen this".
 TEST_F(CelebrationTest, VisitingAPanelPutsItsGoldOutForGood) {
   BeginAway(12, 13);
   ASSERT_TRUE(celebration_.Lights(kCharPanel));
@@ -250,7 +250,7 @@ TEST_F(CelebrationTest, VisitingAPanelPutsItsGoldOutForGood) {
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }
 
-// One visit is one panel. The player walked onto the bag, not onto everything.
+// A visit clears only that panel. The player went to the bag, not everywhere.
 TEST_F(CelebrationTest, VisitingOnePanelLeavesTheOthersGold) {
   int level = UnlockLevel(Feature::kBag);
   BeginAway(level - 1, level);
@@ -259,8 +259,8 @@ TEST_F(CelebrationTest, VisitingOnePanelLeavesTheOthersGold) {
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// Nothing is visited from the shop or map select: panel_focus_ still names a
-// panel there, but it is not one the player can see.
+// Nothing counts as visited from the shop or map select: panel_focus_ still
+// names a panel there, but the player can't see it.
 TEST_F(CelebrationTest, VisitingNoPanelPutsNothingOut) {
   BeginAway(12, 13);
   celebration_.Visit(kNoPanel);
@@ -268,17 +268,16 @@ TEST_F(CelebrationTest, VisitingNoPanelPutsNothingOut) {
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// Getting the card out of the way is not the same as having gone to look at
-// what it was pointing at.
+// Dismissing the card isn't the same as visiting what it pointed at.
 TEST_F(CelebrationTest, DismissingTheCardLeavesTheGoldAlone) {
   BeginAway(12, 13);
   celebration_.Dismiss();
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// Even the timed half, which the card's own clock would otherwise have taken
-// with it: four seconds of gold is four seconds whether or not the card is
-// still sitting on top of it.
+// That includes timed glows, which the card's own clock would otherwise take
+// with it: four seconds of gold lasts four seconds whether or not the card is
+// still up.
 TEST_F(CelebrationTest, DismissingTheCardKeepsTheGlow) {
   celebration_.BeginLevelUp(12, 13, 5, 3, /*hyper_sp=*/0,
                             /*account_level=*/0, kCharPanel);
@@ -311,9 +310,8 @@ TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementCard) {
   EXPECT_EQ(text.find("Level Up"), std::string::npos);
 }
 
-// An advancement replaces a level-up rather than queueing behind it: taking
-// one is the larger news, and the player did not ask to be shown the old card
-// again first.
+// An advancement replaces a level-up card instead of queueing behind it: it is
+// the bigger news, and the player didn't ask to see the old card again first.
 TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpCard) {
   BeginAway(29, 30);
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, 1, kCombatPanel);
@@ -347,9 +345,8 @@ TEST_F(CelebrationTest, ADeathReplacesALevelUpStillOnScreen) {
   EXPECT_EQ(CardText(celebration_).find("Level Up"), std::string::npos);
 }
 
-// Dying lights no panel of its own -- there is nowhere it is sending the
-// player -- and takes down none of the gold a level-up on the way there put
-// up. That signpost has still not been walked past.
+// Dying lights no panel, since it points the player nowhere, and doesn't clear
+// gold from an earlier level-up. That panel still hasn't been visited.
 TEST_F(CelebrationTest, ADeathNeitherLightsNorUnlightsAnything) {
   celebration_.BeginDeath();
   EXPECT_FALSE(celebration_.Lights(kCharPanel));

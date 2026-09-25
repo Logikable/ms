@@ -1,18 +1,17 @@
-/* The few seconds after something worth stopping for happens: the card across
- * the middle of the screen, and the panels lit gold behind it. Death rides the
- * same mechanism -- one card at a time, four seconds, any key dismisses it --
- * so it lives here rather than in a second copy that could put a card on
- * screen beside this one.
+/* The few seconds after something important happens: a card across the middle
+ * of the screen, and the related panels lit gold behind it. Death uses the same
+ * mechanism (one card at a time, four seconds, any key dismisses it), so it
+ * lives here too and two cards can never be on screen at once.
  *
- * Kept apart from Tui so the decisions can be tested: how long the moment
- * lasts, which panels it points at, what the card says. Nothing here blocks --
- * the game may be running unattended, and a card that waited for a keypress
- * would stall it.
+ * It is separate from Tui so its decisions can be tested: how long it lasts,
+ * which panels it lights, and what the card says. Nothing here blocks, because
+ * the game may be running unattended and a card waiting for a key would stall
+ * it.
  *
- * The card and the gold have separate lives. Four seconds is plenty of an
- * announcement; a signpost that took itself down before anybody walked past it
- * has not done its job. So a panel the player was not already looking at holds
- * its gold until they go and look.
+ * The card and the gold last different lengths of time. Four seconds is enough
+ * for the announcement, but the gold is there to show the player where to go.
+ * So a panel the player wasn't already looking at stays gold until they visit
+ * it.
  */
 #ifndef MS_SRC_FRONTEND_CELEBRATION_H_
 #define MS_SRC_FRONTEND_CELEBRATION_H_
@@ -27,50 +26,49 @@
 
 namespace ms {
 
-// How long a celebration stays up. Long enough to be caught out of the corner
-// of an eye and read, short enough that it is gone before it is in the way.
+// How long a celebration stays up: long enough to notice and read, short enough
+// to be gone before it gets in the way.
 constexpr double kCelebrationSeconds = 4.0;
 
 class Celebration {
  public:
   enum class Kind { kNone, kLevelUp, kAdvancement, kDeath };
 
-  // Starts the level-up card for a climb from `from_level` to `to_level`. A
-  // SPAN, since one tick can cross several thresholds, and the span is what
-  // decides which panels are lit.
+  // Starts the level-up card for a climb from `from_level` to `to_level`. It
+  // takes a range because one tick can cross several levels, and the range
+  // decides which panels light up.
   //
-  // `account_level` is the furthest any character has reached: a climb over
-  // covered ground still pays AP but opens nothing, and it also decides
-  // whether the honor is named at all -- see HonorVisible.
+  // `account_level` is the highest level any character has reached. A climb
+  // over levels already reached still pays AP but unlocks nothing. It also
+  // decides whether honor is shown; see HonorVisible.
   void BeginLevelUp(int from_level, int to_level, int ap, int sp, int hyper_sp,
                     int account_level, Panel focused);
 
-  // Starts the advancement card, replacing a level-up still on screen: it is
-  // the larger news, and stacking the two would make the player wait.
+  // Starts the advancement card, replacing a level-up card still on screen. It
+  // is the bigger news, and queueing both would make the player wait.
   void BeginAdvancement(Job from_job, Job to_job, int to_stage, Panel focused);
 
-  // Starts the death card, replacing whatever is up: being picked up and put
-  // somewhere else outranks any news still being read. Lights nothing, and
-  // puts nothing out -- dying is no reason to take a signpost down.
+  // Starts the death card, replacing whatever is up, since being moved
+  // elsewhere matters more than any news. It lights and clears no panels; dying
+  // is no reason to remove a pointer the player hasn't followed.
   void BeginDeath();
 
-  // Runs both clocks down by `elapsed_seconds`: the card's, and the one the
-  // panels already in front of the player fade on. Safe to call when nothing
-  // is up.
+  // Runs both clocks down by `elapsed_seconds`: the card's, and the one that
+  // fades the gold on panels the player was already looking at. Safe to call
+  // when nothing is up.
   void Advance(double elapsed_seconds);
 
-  // Records that the player is looking at `focused`, putting out its gold if
-  // it was waiting to be visited. LATCHES: leaving does not bring the gold
-  // back, the point of it having been to be seen once.
+  // Records that the player is looking at `focused`, clearing its gold if it
+  // was waiting to be visited. This is permanent: leaving doesn't bring the
+  // gold back, since it only needed to be seen once.
   void Visit(Panel focused);
 
-  // Takes the card down, for a player who has already read it. Leaves the
-  // gold alone -- getting a card out of the way is not the same as having
-  // gone to look at what it was pointing at.
+  // Takes the card down for a player who has already read it. The gold stays,
+  // since dismissing the card isn't the same as visiting the panel.
   void Dismiss();
 
-  // Whether the card is on screen. The gold outlives it, so this is not the
-  // question of whether a celebration is still doing anything.
+  // Whether the card is on screen. The gold can outlast it, so this doesn't say
+  // whether the celebration is still doing anything.
   bool card_visible() const {
     return card_seconds_ > 0.0;
   }
@@ -78,37 +76,35 @@ class Celebration {
     return kind_;
   }
 
-  // Whether `panel` should be drawn lit. False for everything once its gold is
-  // spent, so the caller can set every panel from this every frame rather than
-  // remembering to put them out.
+  // Whether `panel` should be drawn lit. It returns false once the gold is
+  // gone, so the caller can set every panel from this each frame instead of
+  // having to clear them.
   bool Lights(Panel panel) const;
 
   // The card. Only call while card_visible().
   ftxui::Element Render() const;
 
  private:
-  // What is keeping a panel gold, if anything.
+  // Why a panel is gold, if it is.
   enum class Glow {
     kOff,
-    // The player was already on it, so they have seen it: it fades on the
-    // clock like the card does.
+    // The player was already on it, so it fades on the clock like the card.
     kTimed,
-    // They were not, so it waits however long it takes.
+    // The player wasn't on it, so it waits until they visit.
     kUntilVisited,
   };
 
-  // Lights `panel` in whichever way suits where the player is standing.
+  // Lights `panel` in the way that suits where the player is.
   void Light(Panel panel, Panel focused);
 
   Kind kind_ = Kind::kNone;
   double card_seconds_ = 0.0;
-  // Kept apart from card_seconds_ so that dismissing the card does not cut
-  // a timed glow short with it.
+  // Separate from card_seconds_ so dismissing the card doesn't cut a timed glow
+  // short.
   double glow_seconds_ = 0.0;
-  // What is lighting each panel, indexed by Panel. Worked out when the
-  // celebration begins rather than on every frame: it depends on the levels
-  // climbed through, which is not something the character still knows
-  // afterwards.
+  // Why each panel is lit, indexed by Panel. It is worked out when the
+  // celebration starts, not every frame, because it depends on the levels
+  // passed, which the character no longer knows afterwards.
   Glow glow_[kNumPanels] = {};
 
   int from_level_ = 0;
@@ -116,11 +112,11 @@ class Celebration {
   int ap_ = 0;
   int sp_ = 0;
   int hyper_sp_ = 0;
-  // What the climb paid, or 0 for a player who has yet to open Inner Ability:
-  // the card names what it can be read about.
+  // Honor the climb paid, or 0 for a player who hasn't unlocked Inner Ability
+  // yet: the card only mentions what the player can look up.
   int64_t honor_ = 0;
-  // Worked out when the climb happens, for the same reason the glow is: the
-  // character no longer knows which levels it came through.
+  // Worked out when the climb happens, for the same reason as the glow: the
+  // character no longer knows which levels it passed.
   std::vector<std::string> unlocks_;
   Job from_job_ = JOB_BEGINNER;
   Job to_job_ = JOB_BEGINNER;

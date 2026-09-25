@@ -13,10 +13,10 @@ ProgressWatcher::ProgressWatcher(const Character& character)
 
 Progress ProgressWatcher::Notice(const Character& character) {
   Progress progress;
-  // The advancement is checked first and wins: it is the larger news, and
-  // reaching the level that offers one does not itself take it, so the two
-  // cannot be describing the same moment. The stage says it, not the job --
-  // the 5th advancement leaves a Night Lord a Night Lord.
+  // The advancement is checked first and wins: it is the bigger news, and
+  // reaching the level that offers one doesn't take it, so the two can't happen
+  // at the same moment. The stage is checked, not the job, because the 5th
+  // advancement leaves a Night Lord a Night Lord.
   if (character.job_stage() != last_stage_) {
     progress.kind = kJobAdvanced;
     progress.from_job = last_job_;
@@ -36,8 +36,8 @@ Progress ProgressWatcher::Notice(const Character& character) {
     progress.sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
     progress.hyper_sp = gains.hyper_sp;
   }
-  // Assigned rather than only raised, so a level that somehow went down does
-  // not leave the next real level-up reporting a climb it did not make.
+  // Assigned, not just raised, so if the level ever went down the next real
+  // level-up doesn't report a climb that didn't happen.
   last_level_ = character.level();
   return progress;
 }

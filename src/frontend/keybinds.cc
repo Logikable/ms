@@ -110,18 +110,18 @@ void KeyCatalog::AddSpecials() {
 void KeyCatalog::AddLetters() {
   for (char lower = 'a'; lower <= 'z'; ++lower) {
     std::string upper(1, static_cast<char>(lower - 'a' + 'A'));
-    // A letter is written the way a keyboard prints it, so shift is what
-    // tells the two apart rather than the case of the label.
+    // A letter is written the way a keyboard prints it, so shift, not the
+    // label's case, tells the two apart.
     Add(std::string(1, lower), upper, upper);
     Add(upper, "Shift" + upper, "Shift+" + upper);
     // Ctrl+C is left out on purpose: it closes the game, and a player who
-    // bound it away could not.
+    // rebound it couldn't quit.
     std::string ctrl(1, static_cast<char>(lower - 'a' + 1));
     if (lower != 'c') {
       Add(ctrl, "Ctrl" + upper, "Ctrl+" + upper);
-      // Two modifiers are written as their initials, in Ctrl-Shift-Alt order:
-      // spelling both out gives one key a label wider than the column it
-      // shares with two others.
+      // Two modifiers are written as initials, in Ctrl-Shift-Alt order.
+      // Spelling both out makes the label wider than the column it shares with
+      // two others.
       Add("\x1b" + ctrl, "CtrlAlt" + upper, "CA+" + upper);
     }
     Add("\x1b" + std::string(1, lower), "Alt" + upper, "Alt+" + upper);
@@ -130,8 +130,8 @@ void KeyCatalog::AddLetters() {
 }
 
 void KeyCatalog::AddCharacters() {
-  // Everything else on the keyboard that prints: digits and punctuation, each
-  // known by the character it types.
+  // Every other printable key: digits and punctuation, each named by the
+  // character it types.
   for (char c = '!'; c <= '~'; ++c) {
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
       continue;
@@ -196,8 +196,8 @@ ftxui::Event KeyMap::CanonicalEvent(KeyAction action) {
 }
 
 ftxui::Event KeyMap::DefaultKey(KeyAction action, int slot) {
-  // Only the locked slot ships with a key. The other two are the player's,
-  // empty until they put something in them.
+  // Only the locked slot has a default key. The other two belong to the player
+  // and start empty.
   if (slot == 0) {
     return CanonicalEvent(action);
   }
@@ -214,16 +214,16 @@ Keybind* KeyMap::Row(KeyAction action) const {
 }
 
 void KeyMap::Normalize() {
-  // A save carries only what the player set, and may carry nothing at all.
-  // What comes out is one row per action, in order, three slots apiece.
+  // A save holds only what the player set, and may hold nothing. The result has
+  // one row per action, in order, with three slots each.
   Keybinds ordered;
   for (int i = 0; i < kKeyActionCount; ++i) {
     KeyAction action = kKeyActions[i];
     Keybind* row = ordered.add_binds();
     row->set_action(action);
     Keybind* saved = Row(action);
-    // The locked slot is the game's own key; the two after it are whatever
-    // the save carries, which for a new character is nothing.
+    // The locked slot holds the game's key; the next two hold whatever the save
+    // has, which is nothing for a new character.
     row->add_keys(catalog_.IdOf(DefaultKey(action, 0)));
     for (int slot = 1; slot < kKeySlots; ++slot) {
       std::string id;
@@ -235,13 +235,13 @@ void KeyMap::Normalize() {
   }
   *binds_ = ordered;
 
-  // Anything this build cannot honour goes: a name it does not know, a key
-  // some action holds locked, and a key a row above already claimed.
+  // Drop anything this build can't honour: an unknown name, a key another
+  // action has locked, or a key an earlier row already has.
   std::map<std::string, bool> taken;
   for (int i = 0; i < binds_->binds_size(); ++i) {
     Keybind* row = binds_->mutable_binds(i);
     for (int slot = 0; slot < kKeySlots; ++slot) {
-      // A copy: the row is written to below.
+      // A copy, because the row is written to below.
       std::string id = row->keys(slot);
       if (id.empty()) {
         continue;
@@ -315,8 +315,9 @@ BindOutcome KeyMap::Bind(KeyAction action, int slot, const ftxui::Event& key) {
   if (ReservedFor(key) != KEY_ACTION_UNSPECIFIED) {
     return BindOutcome::kReserved;
   }
-  // One key, one job. Whatever else held it lets go -- including this action's
-  // other slot, so binding a key twice moves it rather than doubling it.
+  // Each key does one thing. Whatever held it before loses it, including this
+  // action's other slot, so binding a key twice moves it instead of duplicating
+  // it.
   for (int i = 0; i < binds_->binds_size(); ++i) {
     Keybind* row = binds_->mutable_binds(i);
     for (int s = 1; s < kKeySlots; ++s) {

@@ -32,8 +32,8 @@ ftxui::Element Box(int rows, int columns, const std::string& label) {
 
 TEST(PlacementTest, CentredSitsInTheMiddleOfBothAxes) {
   std::vector<std::string> rows = Draw(Centred(Box(3, 5, "x")));
-  // Five rows of box in eleven leaves three blank above and below; seven
-  // columns in twenty-one leaves seven either side.
+  // Five rows of box in eleven leave three blank above and below; seven columns
+  // in twenty-one leave seven on each side.
   EXPECT_EQ(rows[3], "       ╭─────╮       ");
   EXPECT_EQ(rows[7], "       ╰─────╯       ");
 }
@@ -41,8 +41,8 @@ TEST(PlacementTest, CentredSitsInTheMiddleOfBothAxes) {
 TEST(PlacementTest, BottomRightTucksTheBoxIntoTheCorner) {
   std::vector<std::string> rows =
       Draw(BottomRight(ftxui::filler(), Box(1, 3, "x")));
-  // Three rows of box against the bottom of eleven, five columns against the
-  // right of twenty-one.
+  // Three rows of box at the bottom of eleven, five columns at the right of
+  // twenty-one.
   EXPECT_EQ(rows[8], "                ╭───╮");
   EXPECT_EQ(rows[10], "                ╰───╯");
   EXPECT_EQ(rows[7], "                     ");
@@ -51,8 +51,8 @@ TEST(PlacementTest, BottomRightTucksTheBoxIntoTheCorner) {
 TEST(PlacementTest, CardRowDrawsEveryCardTheHeightOfTheTallest) {
   std::vector<std::string> rows =
       Draw(SideBySide({Box(1, 3, "a"), Box(5, 3, "b")}));
-  // Both borders open on the same row and close on the same row: a short card
-  // is stretched to the tall one rather than centred against it.
+  // Both borders start and end on the same rows: a short card is stretched to
+  // the tall one's height, not centred beside it.
   EXPECT_EQ(rows[2], "     ╭───╮╭───╮      ");
   EXPECT_EQ(rows[8], "     ╰───╯╰───╯      ");
 }
@@ -61,8 +61,8 @@ TEST(PlacementTest, OverlayCentresTheDialogOverTheScreen) {
   ftxui::Element screen =
       ftxui::border(ftxui::text("background") | ftxui::flex);
   std::vector<std::string> rows = Draw(Overlay(screen, Box(1, 3, "d")));
-  // The screen behind keeps its own corners, and the dialog lands in the
-  // middle with the background blanked under it.
+  // The screen behind keeps its corners, and the dialog sits in the middle with
+  // the background cleared under it.
   EXPECT_EQ(rows[0].substr(0, 3), "╭");
   EXPECT_EQ(rows[4], "│       ╭───╮       │");
   EXPECT_EQ(rows[6], "│       ╰───╯       │");

@@ -14,9 +14,9 @@
 namespace ms {
 namespace {
 
-// Whether a climb from `from` to `to` passed through `level`. Asked of the
-// span rather than of the level landed on, so a jump of several levels does
-// not step over the one that opened something.
+// Whether a climb from `from` to `to` passed `level`. It checks the whole
+// range, not just the level reached, so a jump of several levels doesn't skip
+// the one that unlocked something.
 bool CrossedInto(int level, int from, int to) {
   return from < level && level <= to;
 }
@@ -47,13 +47,11 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   }
 
   std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
-  // Always the character panel: it is where the AP a level pays out is spent,
-  // so it is where the player is being sent every time.
+  // Always the character panel, since that is where the new AP is spent.
   Light(kCharPanel, focused);
-  // And whichever panels this climb opened. Asked of the unlock table rather
-  // than written as levels 3 and 4, because those have moved before and the
-  // celebration should follow them. Measured from what the account had
-  // already opened, so a second character lights nothing.
+  // Also any panels this climb unlocked. It reads the unlock table instead of
+  // hard-coding levels, so it follows the table if the levels move. It starts
+  // from the account's highest level, so a second character lights nothing.
   int from = std::max(from_level, account_level);
   if (CrossedInto(UnlockLevel(Feature::kEquipped), from, to_level)) {
     Light(kEquipPanel, focused);
@@ -73,17 +71,15 @@ void Celebration::BeginAdvancement(Job from_job, Job to_job, int to_stage,
   to_stage_ = to_stage;
 
   std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
-  // The character panel alone: an advancement hands over a job whose stats and
-  // skills are both read there.
+  // Only the character panel: the new job's stats and skills are both there.
   Light(kCharPanel, focused);
 }
 
 void Celebration::BeginDeath() {
   kind_ = Kind::kDeath;
   card_seconds_ = kCelebrationSeconds;
-  // glow_ and glow_seconds_ are deliberately left where they are -- see the
-  // header. This is the one card that points nowhere, so it takes no panel
-  // and gives none back.
+  // glow_ and glow_seconds_ are left alone on purpose; see the header. This
+  // card points at no panel, so it neither lights nor clears any.
 }
 
 void Celebration::Advance(double elapsed_seconds) {
@@ -92,8 +88,8 @@ void Celebration::Advance(double elapsed_seconds) {
   if (glow_seconds_ > 0.0) {
     return;
   }
-  // Only the timed ones. A panel still waiting to be visited has not been, and
-  // no amount of time passing changes that.
+  // Only timed glows. A panel waiting to be visited still hasn't been, however
+  // much time passes.
   for (Glow& glow : glow_) {
     if (glow == Glow::kTimed) {
       glow = Glow::kOff;

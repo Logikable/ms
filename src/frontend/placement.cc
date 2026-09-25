@@ -23,9 +23,9 @@ ftxui::Element Overlay(ftxui::Element screen, ftxui::Element dialog) {
 }
 
 ftxui::Element BottomRight(ftxui::Element screen, ftxui::Element box) {
-  // The fillers push the box into the corner; the screen behind sets how far
-  // that is, an overlaid vbox with no flexing child of its own having no
-  // height to give away.
+  // The fillers push the box into the corner. The screen behind sets how far
+  // that is, because an overlaid vbox with no flexing child has no height of
+  // its own.
   return ftxui::dbox({
       std::move(screen),
       ftxui::vbox({

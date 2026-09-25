@@ -1,11 +1,9 @@
-/* ItemRef names where an item the player picked lives: worn in an equip slot,
- * or sitting at an index in the bag. Every modal the game opens on an item --
- * inspect, scroll, star force, hammer -- opens on one of these.
+/* ItemRef says where an item the player picked is: worn in an equip slot, or at
+ * an index in the bag. Every modal opened on an item (inspect, scroll, star
+ * force, hammer) opens on one of these.
  *
- * It exists so "is this item worn or in the bag?" is asked once, when the
- * player picks the item, instead of again at every place that needs the item
- * back. The controller used to keep a slot and an index side by side for each
- * modal and branch on the focused panel to decide which half was live.
+ * It means "is this item worn or in the bag?" is answered once, when the player
+ * picks the item, instead of at every place that needs the item later.
  */
 #ifndef MS_SRC_FRONTEND_ITEM_REF_H_
 #define MS_SRC_FRONTEND_ITEM_REF_H_
@@ -22,10 +20,10 @@ namespace ms {
 
 class ItemRef {
  public:
-  // A ref naming nothing. Get() and GetInstance() return nullptr for it.
+  // A ref to nothing. Get() and GetInstance() return nullptr for it.
   ItemRef() = default;
-  // `preset` is the gear preset the item was picked from, which is what says
-  // which item a slot holds once the presets differ.
+  // `preset` is the gear preset the item was picked from, which decides which
+  // item a slot holds once presets differ.
   static ItemRef Equipped(EquipSlot slot,
                           StatPreset preset = StatPreset::kFirst);
   static ItemRef InBag(int index);
@@ -43,12 +41,12 @@ class ItemRef {
     return index_;
   }
 
-  // The item, or nullptr if this ref names nothing -- an empty slot, or a bag
-  // index past the end. May be a trace.
+  // The item, or nullptr if this ref names nothing (an empty slot, or a bag
+  // index past the end). May be a trace.
   const EquipTabItem* Get(const CharacterInstance& character) const;
   // The item as a live EquipInstance, or nullptr if it is a trace or the ref
-  // names nothing. A trace has no instance behind it: it is the husk left when
-  // star forcing destroyed one.
+  // names nothing. A trace has no instance: it is what is left after star force
+  // destroyed an item.
   const EquipInstance* GetInstance(const CharacterInstance& character) const;
 
  private:
@@ -58,22 +56,23 @@ class ItemRef {
   int index_ = 0;
 };
 
-// Applies `scroll` to the item `ref` names. The two paths behind this really do
-// differ -- scrolling something worn has to recompute the character's totals --
-// so CharacterInstance keeps them apart and this only picks between them.
+// Applies `scroll` to the item `ref` names. The two paths really differ, since
+// scrolling a worn item must recompute the character's totals, so
+// CharacterInstance keeps them separate and this just picks one.
 ScrollOutcome ScrollItem(CharacterInstance& character, ItemRef ref,
                          const Scroll& scroll);
 
-// Star forces the item `ref` names. Same split as ScrollItem: a worn item that
-// gets destroyed moves to the bag as a trace, a bag item is replaced in place.
+// Star forces the item `ref` names. Same split as ScrollItem: a destroyed worn
+// item moves to the bag as a trace, and a bag item is replaced in place.
 StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref);
 
-// Drives a golden hammer into the item `ref` names, and says whether one went
-// in. Same split again, for the same reason: a worn item's totals are rebuilt.
+// Uses a golden hammer on the item `ref` names and returns whether it worked.
+// Same split again, because a worn item's totals are rebuilt.
 bool HammerItem(CharacterInstance& character, ItemRef ref);
 
-// Charges for one `cube` and puts what it rolls on the item `ref` names. False,
-// and nothing spent, when the item takes no potential or the purse is short.
+// Charges for one `cube` and applies its roll to the item `ref` names. Returns
+// false, spending nothing, if the item can't have potential or the character
+// can't afford it.
 bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube);
 
 }  // namespace ms

@@ -13,10 +13,10 @@
 namespace ms {
 namespace {
 
-// Two panels, the top one never taking more than half the height they share --
-// rounded down, so the odd row falls to the bottom. Neither is stretched past
-// the height it asked for, and the node fills its column, which leaves the
-// slack under the bottom panel blank.
+// Two panels, the top one never taking more than half their shared height
+// (rounded down, so the odd row goes to the bottom). Neither is stretched past
+// the height it asked for, and the node fills its column, so the space under
+// the bottom panel is left blank.
 class HalfAndRestNode : public ftxui::Node {
  public:
   HalfAndRestNode(ftxui::Element top, ftxui::Element bottom)
@@ -59,9 +59,8 @@ class HalfAndRestNode : public ftxui::Node {
   }
 
   void Render(ftxui::Screen& screen) override {
-    // A panel squeezed down to nothing is skipped rather than drawn: its box
-    // ends above where it starts, and a border asked to draw itself in one
-    // paints outside the space it was given.
+    // A panel squeezed to nothing is skipped, since its box would end above
+    // where it starts and a border drawn in it would paint outside its space.
     if (top_rows_ > 0) {
       children_[0]->Render(screen);
     }
@@ -83,10 +82,10 @@ ftxui::Element HalfAndRest(ftxui::Element top, ftxui::Element bottom) {
 
 MainWidths ComputeMainWidths(int terminal_width, bool has_right_column) {
   MainWidths widths;
-  // The right column's room is reserved whether or not it is on screen, so
-  // the character panel is the same width before and after the equipped panel
-  // unlocks. A panel that resizes under the player is worse than the blank
-  // columns beside it in the meantime.
+  // The right column's space is reserved whether or not it is shown, so the
+  // character panel has the same width before and after the equipped panel
+  // unlocks. A panel resizing under the player is worse than the blank columns
+  // until then.
   widths.left = std::clamp(terminal_width - kRightColumnMin, kLeftColumnMin,
                            kLeftColumnMax);
   if (has_right_column) {
@@ -99,46 +98,46 @@ ftxui::Element MainLayout(MainWidths widths, ftxui::Element character,
                           ftxui::Element combat, ftxui::Element equipped,
                           ftxui::Element inventory, ftxui::Element corner,
                           ftxui::Element exp_bar) {
-  // Columns, not bare panels: an hbox hands every child the full height of the
-  // row, which would drag a panel's bottom border away from its contents.
+  // Columns, not bare panels: an hbox gives every child the full row height,
+  // which would pull a panel's bottom border away from its contents.
   ftxui::Elements columns;
-  // Pinned rather than left to the panels: the column is what fixes their
-  // width, and the two of them have to agree on one however wide the panel
-  // above happens to have drawn itself.
+  // Fixed width, because the column sets the width of both its panels, and they
+  // must agree however wide the panel above drew itself.
   columns.push_back(ftxui::vbox({
                         std::move(character),
-                        // Pinned to the foot, so combat holds the bottom-left
-                        // corner however tall the terminal is. It belongs in
-                        // this column and not in a row of its own: as a row it
-                        // capped the column beside it at its own top edge.
+                        // Pinned to the bottom, so combat stays in the
+                        // bottom-left corner however tall the terminal is. It
+                        // belongs in this column, not a row of its own: as a
+                        // row it limited the column beside it to its own top
+                        // edge.
                         ftxui::filler(),
                         std::move(combat),
                     }) |
                     ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left));
 
   ftxui::Elements right;
-  // The pair takes the column between them, the equipped panel held to half of
-  // it: there are enough gear slots now to fill a screen, and the bag is the
-  // one of the two the player is working out of.
+  // The pair shares the column, with the equipped panel limited to half. There
+  // are enough gear slots to fill a screen, and the player mostly works from
+  // the bag.
   bool paired = equipped != nullptr && inventory != nullptr;
   if (paired) {
     right.push_back(HalfAndRest(std::move(equipped), std::move(inventory)));
   } else if (equipped != nullptr) {
     right.push_back(std::move(equipped));
   } else if (inventory != nullptr) {
-    // The bag shrinks but does not grow, so an empty tab is a few rows rather
-    // than a screen of blank.
+    // The bag shrinks but doesn't grow, so an empty tab is a few rows instead
+    // of a screen of blank space.
     right.push_back(std::move(inventory) | ftxui::yflex_shrink);
   }
   if (corner != nullptr) {
-    // Pinned to the foot, the mirror of combat. Only where the pair is absent:
-    // the pair grows to fill the column itself, and a second thing to grow
-    // into the slack would take half of it away.
+    // Pinned to the bottom, like combat on the left. Only when the pair is
+    // absent: the pair already grows to fill the column, and a second growing
+    // element would take half the space.
     if (!paired) {
       right.push_back(ftxui::filler());
     }
-    // Against a filler, or the corner takes the column's whole flexed width
-    // and stretches across the screen.
+    // Next to a filler, or the corner panel takes the column's full width and
+    // stretches across the screen.
     right.push_back(ftxui::hbox({ftxui::filler(), std::move(corner)}));
   }
   if (!right.empty()) {
@@ -146,8 +145,8 @@ ftxui::Element MainLayout(MainWidths widths, ftxui::Element character,
   }
 
   return ftxui::vbox({
-      // Flexed, with no filler under it, so the row reaches down to the exp
-      // bar rather than stopping at the height of what it holds.
+      // Flexed, with no filler under it, so the row reaches down to the EXP bar
+      // instead of stopping at its content's height.
       ftxui::hbox(std::move(columns)) | ftxui::flex,
       std::move(exp_bar),
   });

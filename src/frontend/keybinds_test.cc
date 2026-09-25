@@ -20,7 +20,7 @@ TEST(KeyMapTest, DefaultsBindTheKeysTheGameShippedWith) {
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 0), "↑");
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 0), "Enter");
   EXPECT_EQ(keys.Label(KEY_ACTION_PREV_PANEL, 0), "Shift+Tab");
-  // Only the locked slot ships with a key.
+  // Only the locked slot has a default key.
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "");
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 1), "");
   EXPECT_EQ(keys.Label(KEY_ACTION_CANCEL, 1), "");
@@ -32,8 +32,7 @@ TEST(KeyMapTest, ABoundKeyArrivesAsItsActionsEvent) {
   EXPECT_EQ(keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::w), BindOutcome::kBound);
   EXPECT_EQ(keys.Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "W");
-  // Space is a key like any other: it does nothing until the player puts it
-  // somewhere.
+  // Space is an ordinary key: it does nothing until the player binds it.
   EXPECT_EQ(keys.Translate(ftxui::Event::Character(' ')),
             ftxui::Event::Character(' '));
   keys.Bind(KEY_ACTION_CONFIRM, 1, ftxui::Event::Character(' '));
@@ -51,7 +50,8 @@ TEST(KeyMapTest, BindingAKeyTakesItOffWhateverHeldIt) {
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 2), "W");
   EXPECT_EQ(keys.Translate(ftxui::Event::w), ftxui::Event::ArrowDown);
 
-  // Bound twice to the same action, the key moves rather than doubling.
+  // Binding the key to the same action twice moves it instead of duplicating
+  // it.
   keys.Bind(KEY_ACTION_DOWN, 1, ftxui::Event::w);
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 1), "W");
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 2), "");
@@ -74,7 +74,7 @@ TEST(KeyMapTest, AKeyTheGameHasNoNameForIsRefused) {
   KeyMap keys(&binds);
   EXPECT_EQ(keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::Special("\x1b[1;2A")),
             BindOutcome::kUnsupported);
-  // Ctrl+C closes the game, so it is not on offer.
+  // Ctrl+C closes the game, so it can't be bound.
   EXPECT_EQ(keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::CtrlC),
             BindOutcome::kUnsupported);
 }
@@ -101,11 +101,11 @@ TEST(KeyMapTest, ModifiersAndLettersReadAsTheyArePrinted) {
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "Shift+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 1), "Ctrl+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_LEFT, 1), "Alt+A");
-  // Two modifiers are their initials, in Ctrl-Shift-Alt order.
+  // Two modifiers are written as initials, in Ctrl-Shift-Alt order.
   EXPECT_EQ(keys.Label(KEY_ACTION_RIGHT, 1), "CA+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 2), "A");
   EXPECT_EQ(keys.Label(KEY_ACTION_NEXT_PANEL, 1), "SA+G");
-  // Each of those is a key of its own.
+  // Each of those is a separate key.
   EXPECT_EQ(keys.Translate(ftxui::Event::A), ftxui::Event::ArrowUp);
   EXPECT_EQ(keys.Translate(ftxui::Event::a), ftxui::Event::Return);
 }
@@ -133,7 +133,7 @@ TEST(KeyMapTest, ASaveThatNamesNonsenseFallsBackToTheDefaults) {
   KeyMap keys(&binds);
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 0), "↑");
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "");
-  // Escape belongs to Cancel and cannot be held by anything else.
+  // Escape belongs to Cancel and can't be bound to anything else.
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 2), "");
   EXPECT_EQ(keys.Label(KEY_ACTION_CANCEL, 0), "Esc");
 }
@@ -152,7 +152,7 @@ TEST(KeyMapTest, ASaveCannotBindOneKeyToTwoActions) {
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 1), "");
 }
 
-// Records the last key it was handed, standing in for the component tree.
+// Records the last key it received, standing in for the component tree.
 class KeySpy : public ftxui::ComponentBase {
  public:
   bool OnEvent(ftxui::Event event) override {
@@ -176,7 +176,7 @@ TEST(TranslateKeysTest, TheTreeHearsTheGamesKeys) {
   EXPECT_EQ(spy->last, ftxui::Event::q);
 }
 
-// While a slot waits for a key, the raw one has to get through -- otherwise a
+// While a slot waits for a key, the raw key must pass through; otherwise a
 // bound key could never be rebound.
 TEST(TranslateKeysTest, CapturingLetsTheRawKeyThrough) {
   Keybinds binds;
@@ -205,8 +205,8 @@ class FieldSpy : public ftxui::ComponentBase {
   TextField field{12};
 };
 
-// A player who binds Space to Confirm must still be able to put a space in
-// their name: while the field is open the key arrives as it was pressed.
+// A player who binds Space to Confirm must still be able to type a space in
+// their name: while the field is open, the key arrives as pressed.
 TEST(TranslateKeysTest, SpaceBoundToConfirmStillTypesASpace) {
   Keybinds binds;
   KeyMap keys(&binds);
@@ -222,7 +222,7 @@ TEST(TranslateKeysTest, SpaceBoundToConfirmStillTypesASpace) {
   EXPECT_EQ(spy->field.text(), "IL Arch Mage");
   EXPECT_TRUE(spy->field.editing()) << "no space committed the name";
 
-  // Once the field is shut, the same key is Confirm again.
+  // Once the field is closed, the same key is Confirm again.
   spy->field.EndEdit();
   wrapped->OnEvent(ftxui::Event::Character(' '));
   EXPECT_EQ(spy->field.text(), "");

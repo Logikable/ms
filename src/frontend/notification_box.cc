@@ -12,8 +12,8 @@
 namespace ms {
 namespace {
 
-// The narrowest the box is drawn. Wide enough that two short lines still read
-// as a box rather than as a scrap of text against the border.
+// The box's minimum width, wide enough that two short lines still look like a
+// box and not a scrap of text against the border.
 constexpr int kWidth = 24;
 
 }  // namespace

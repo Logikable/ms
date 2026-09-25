@@ -26,7 +26,7 @@ TEST(NotificationBoxTest, StandsUntilBothTheClockAndAKey) {
   EXPECT_NE(Drawn(notification).find("Trade request from"), std::string::npos);
   EXPECT_NE(Drawn(notification).find("Dagger"), std::string::npos);
 
-  // A key while the clock is still running takes nothing down.
+  // A key while the clock is still running removes nothing.
   notification.Touch();
   notification.Advance(1.0);
   EXPECT_TRUE(notification.visible());
@@ -39,7 +39,7 @@ TEST(NotificationBoxTest, WaitsOutAPlayerWhoIsAway) {
   NotificationBox notification;
   notification.Raise({"Trade request from", "Dagger"});
 
-  // The clock alone would take it down in front of nobody.
+  // The clock alone would remove it while nobody was looking.
   notification.Advance(kNotificationSeconds * 10);
   EXPECT_TRUE(notification.visible());
 

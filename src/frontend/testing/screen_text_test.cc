@@ -30,15 +30,14 @@ TEST(ScreenTextTest, AColumnRangeIsClampedToTheScreen) {
   EXPECT_EQ(ScreenRow(screen, 0, -5, 99), "ab  ");
 }
 
-// The whole reason this is not a find() into Screen::ToString: a border cell
-// is three bytes wide and one column wide, so the two part company the moment
-// one is on the row.
+// This is why it doesn't just search Screen::ToString: a border cell is three
+// bytes but one column, so the two differ once one is on the row.
 TEST(ScreenTextTest, FindsTheColumnPastMultiByteCells) {
   ftxui::Screen screen = Render(ftxui::border(ftxui::text("hi")), 6, 3);
   EXPECT_EQ(FindOnScreen(screen, "hi").x, 1);
   EXPECT_EQ(FindOnScreen(screen, "hi").y, 1);
   EXPECT_EQ(RowIndexOf(screen, "hi"), 1);
-  // The byte offset a naive search would have returned instead.
+  // The byte offset a naive search would have returned.
   EXPECT_EQ(ScreenRow(screen, 1).find("hi"), 3u);
 }
 
@@ -50,8 +49,8 @@ TEST(ScreenTextTest, SaysSoWhenNothingHoldsTheNeedle) {
   EXPECT_EQ(PixelOf(screen, "zz").character, "");
 }
 
-// The colour is read off the cell the needle starts in, which is what a byte
-// offset would get wrong once a border shares the row.
+// The colour is read from the cell where the needle starts, which a byte offset
+// would get wrong once a border shares the row.
 TEST(ScreenTextTest, ReadsTheColourAndPixelWhereTheNeedleStarts) {
   ftxui::Screen screen =
       Render(ftxui::border(ftxui::text("hi") | ftxui::color(ftxui::Color::Red) |
