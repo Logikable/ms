@@ -20,9 +20,14 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/scroll_card.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+
+// A card with no row budget that still holds the bar's column open, so a card
+// measured unbounded is the width it is drawn at.
+ScrollCard UnboundedCard();
 
 class SkillInspectPanel {
  public:
@@ -46,9 +51,7 @@ class SkillInspectPanel {
   // The rows the card may take; past this it scrolls, with a bar down its
   // right edge. Zero is no limit, which a card beside something else wants.
   // Not read from the terminal, for CharacterPanel's reason.
-  void SetMaxRows(int rows) {
-    max_rows_ = rows;
-  }
+  void SetMaxRows(int rows);
   // The columns the card lays out in, borders and scroll bar included. Both
   // default to zero, which measures the card from the skill and gives it what
   // it asks for. A screen that must stand still while the cursor walks a book
@@ -57,31 +60,25 @@ class SkillInspectPanel {
     min_width_ = min_columns;
     max_width_ = max_columns;
   }
-  // Moves the view `delta` rows, held to the card at both ends. There is no
-  // selected row on this screen -- nothing to point at, only text to read --
-  // so a key moves the page itself, and it does not wrap: coming out of the
-  // foot at the head is disorienting with no cursor to follow.
+  // Moves the level blocks `delta` rows, held to the card at both ends; the
+  // name, description and every-level facts over them hold still. Nothing to
+  // point at, only text to read, so a key moves the page itself.
   void ScrollBy(int delta);
   // Back to the top, for a card the player has just opened.
   void ResetScroll() {
-    offset_ = 0;
+    card_.Reset();
   }
 
   ftxui::Element Render() const;
 
  private:
-  // How many of `total` rows fit inside the border, given the row budget. All
-  // of them when there is no budget.
-  int VisibleRows(int total) const;
-
   const Skill* skill_ = nullptr;
   int level_ = 0;
   int bonus_ = 0;
   Levels levels_ = kLearned;
-  int max_rows_ = 0;
   int min_width_ = 0;
   int max_width_ = 0;
-  int offset_ = 0;
+  ScrollCard card_ = UnboundedCard();
 };
 
 // The size of the largest preview card of `skills`, borders included.

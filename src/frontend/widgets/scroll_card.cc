@@ -16,11 +16,19 @@ constexpr int kBorderRows = 2;
 
 // One drawn line. A rule is left to stretch: sized to the rows it stops short
 // of the border the moment something widens the card, and reads as a notch.
-// Everything else is held to `width` with `cell` -- the bar, or a blank
-// holding its column -- against the right border.
-ftxui::Element Line(CardRow row, int width, bool bar, ftxui::Element cell) {
+// Where the bar is drawn beside it, the rule gives way to the bar's cell, so
+// the bar reads as one unbroken line. Everything else is held to `width` with
+// `cell` -- the bar, or a blank holding its column -- against the right border.
+ftxui::Element Line(CardRow row, int width, bool bar, ftxui::Element cell,
+                    bool bar_drawn = false) {
   if (row.separator) {
-    return std::move(row.element);
+    if (!bar_drawn) {
+      return std::move(row.element);
+    }
+    return ftxui::hbox({
+        std::move(row.element) | ftxui::flex,
+        std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
+    });
   }
   ftxui::Element line =
       std::move(row.element) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
@@ -134,10 +142,10 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
   for (int i = 0; i < visible_; ++i) {
     // Blank while the body fits: the column is reserved either way, but a bar
     // is only drawn when there is something off screen to point at.
-    ftxui::Element cell =
-        cells.empty() ? ftxui::text(" ") : std::move(cells[i]);
-    lines.push_back(
-        Line(std::move(rows.body[offset_ + i]), width, bar, std::move(cell)));
+    bool bar_drawn = !cells.empty();
+    ftxui::Element cell = bar_drawn ? std::move(cells[i]) : ftxui::text(" ");
+    lines.push_back(Line(std::move(rows.body[offset_ + i]), width, bar,
+                         std::move(cell), bar_drawn));
   }
   for (CardRow& row : rows.foot) {
     lines.push_back(Line(std::move(row), width, bar, ftxui::text(" ")));

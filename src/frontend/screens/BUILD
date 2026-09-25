@@ -307,6 +307,7 @@ cc_library(
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:scroll_card",
         "//src/frontend/widgets:text_columns",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

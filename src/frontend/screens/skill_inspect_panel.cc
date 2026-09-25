@@ -17,6 +17,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/scroll_card.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -250,7 +251,7 @@ struct Row {
     kEffect,  // label and value, in the card's two columns
     kProse,   // one paragraph, wrapped to the card and indented a space
     kWhole,   // an element that is its own row: a heading, an empty state
-    kRule,    // a section divider, drawn across the scroll bar as well
+    kRule,    // a section divider; the bar crosses one it scrolls beside
   };
   Kind kind = kEffect;
   std::string label;
@@ -264,7 +265,7 @@ Row EffectRow(std::string label, std::string value) {
   return {Row::kEffect, std::move(label), std::move(value), nullptr};
 }
 
-Row TextRow(ftxui::Element element) {
+Row WholeRow(ftxui::Element element) {
   return {Row::kWhole, "", "", std::move(element)};
 }
 
@@ -1352,7 +1353,7 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
 // skill list's tags for active and passive, so the halves are told apart by
 // the colours the player learned there. Only the HEADING is coloured.
 Row SectionRow(const std::string& label, ftxui::Color color) {
-  return TextRow(ftxui::text(" " + label) | ftxui::color(color));
+  return WholeRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
 // What one list of boosts hands other skills, one sentence a grant.
@@ -1965,12 +1966,12 @@ std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   if (cost > 0) {
     heading += " - " + std::to_string(cost) + " VP";
   }
-  rows.push_back(TextRow(ftxui::text(heading)));
+  rows.push_back(WholeRow(ftxui::text(heading)));
   std::vector<Row> effects = EffectRows(skill, level);
   if (effects.empty()) {
     // A skill whose whole effect is unmodelled still has levels to spend on,
     // and saying so is better than a heading standing over nothing.
-    rows.push_back(TextRow(EmptyState("no effect", kEffectIndent)));
+    rows.push_back(WholeRow(EmptyState("no effect", kEffectIndent)));
   }
   for (Row& row : effects) {
     rows.push_back(std::move(row));
@@ -1978,31 +1979,31 @@ std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   return rows;
 }
 
-// One laid-out row, ready to draw. `separator` rules off a section and is
-// drawn across the scroll bar's column too: one stopping short of the border
-// reads as a gap in the card.
-struct Line {
-  ftxui::Element element;
-  bool separator = false;
+// The card's rows in its two groups, borders aside and columns not yet
+// decided. The head -- name, description, the facts that hold at every level
+// -- is held on screen; the level blocks under it are what scrolls.
+struct SkillRows {
+  std::vector<Row> head;
+  std::vector<Row> body;
 };
 
-// Every row of the card, in order, borders aside and columns not yet decided.
-std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
-                          SkillInspectPanel::Levels levels) {
-  std::vector<Row> rows;
-  auto rule = [&rows]() {
-    rows.push_back({Row::kRule, "", "", ThemedSeparator()});
+SkillRows CardRowsFor(const Skill& skill, int level, int bonus,
+                      SkillInspectPanel::Levels levels) {
+  SkillRows card;
+  std::vector<Row>& rows = card.head;
+  auto rule = [](std::vector<Row>& to) {
+    to.push_back({Row::kRule, "", "", ThemedSeparator()});
   };
-  rows.push_back(TextRow(CenteredRow(skill.name())));
-  rows.push_back(TextRow(
+  rows.push_back(WholeRow(CenteredRow(skill.name())));
+  rows.push_back(WholeRow(
       CenteredRow("Max Level: " + std::to_string(SkillMaxLevel(skill)))));
 
-  rule();
+  rule(rows);
   rows.push_back({Row::kProse, "", skill.description(), nullptr});
 
   std::vector<Row> invariant = InvariantRows(skill);
   if (!invariant.empty()) {
-    rule();
+    rule(rows);
     Append(std::move(invariant), rows);
   }
 
@@ -2020,21 +2021,27 @@ std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
     // have carried the skill to the ceiling the next one would reach.
     has_second = level < SkillMaxLevel(skill) && second > first;
   }
+  // The rule over the first block closes the head; the one between the blocks
+  // scrolls with them, and the bar crosses it.
+  if (first > 0 || has_second) {
+    rule(card.head);
+  }
   if (first > 0) {
-    rule();
-    Append(LevelBlock(skill, first), rows);
+    Append(LevelBlock(skill, first), card.body);
   }
   if (has_second) {
-    rule();
+    if (first > 0) {
+      rule(card.body);
+    }
     // A node's next level wears its price, its levels not being one point
     // each. Priced off the LEARNED level: the ladder charges for the step
     // being bought, whatever the heading reads.
     int cost = levels == SkillInspectPanel::kLearned
                    ? VNodeStepCost(skill.v_node(), level + 1)
                    : 0;
-    Append(LevelBlock(skill, second, cost), rows);
+    Append(LevelBlock(skill, second, cost), card.body);
   }
-  return rows;
+  return card;
 }
 
 // The widest label the rows carry, which is what the label column is cut to.
@@ -2074,29 +2081,40 @@ int ContentWidth(const std::vector<Row>& rows, int min_card, int max_card) {
   return std::max(content, kEffectIndent + kMinValueWidth);
 }
 
-// The card's rows drawn into `content` columns. A value too long continues on
-// the next line with the label blank, rather than being cut mid-word.
-std::vector<Line> LayOut(std::vector<Row> rows, int content) {
+// Every row of both groups, for the measures that span the whole card: the
+// label column is cut once, so the head's facts and the level blocks under
+// them line up.
+std::vector<Row> AllRows(const SkillRows& card) {
+  std::vector<Row> rows = card.head;
+  rows.insert(rows.end(), card.body.begin(), card.body.end());
+  return rows;
+}
+
+// `rows` drawn into `content` columns, labels cut to `widest_label`. A value
+// too long continues on the next line with the label blank, rather than being
+// cut mid-word.
+std::vector<CardRow> LayOut(std::vector<Row> rows, int content,
+                            int widest_label) {
   const std::string indent(kEffectIndent, ' ');
   // Just enough for the widest label, unless the card is too narrow to seat
   // that and a value worth reading -- then the long labels take their own row.
   int label_width =
-      std::min(WidestLabel(rows) + kLabelGap,
+      std::min(widest_label + kLabelGap,
                std::max(1, content - kEffectIndent - kMinValueWidth));
   int value_width = std::max(1, content - kEffectIndent - label_width);
-  std::vector<Line> lines;
+  std::vector<CardRow> lines;
   for (Row& row : rows) {
     if (row.kind == Row::kRule) {
-      lines.push_back({std::move(row.element), /*separator=*/true});
+      lines.push_back(RuleRow(std::move(row.element)));
       continue;
     }
     if (row.kind == Row::kWhole) {
-      lines.push_back({std::move(row.element), /*separator=*/false});
+      lines.push_back(TextRow(std::move(row.element)));
       continue;
     }
     if (row.kind == Row::kProse) {
       for (const std::string& line : WrapText(row.value, content - 2)) {
-        lines.push_back({ftxui::text(" " + line), /*separator=*/false});
+        lines.push_back(TextRow(ftxui::text(" " + line)));
       }
       continue;
     }
@@ -2104,19 +2122,41 @@ std::vector<Line> LayOut(std::vector<Row> rows, int content) {
     // A label too wide takes a row to itself rather than being cut -- half a
     // skill's name is not one -- and the value reads under it.
     if (TextColumns(head) > label_width) {
-      lines.push_back({ftxui::text(indent + head), /*separator=*/false});
+      lines.push_back(TextRow(ftxui::text(indent + head)));
       head.clear();
     }
     for (const std::string& line : WrapText(row.value, value_width)) {
-      lines.push_back({ftxui::text(indent + PadRight(head, label_width) + line),
-                       /*separator=*/false});
+      lines.push_back(
+          TextRow(ftxui::text(indent + PadRight(head, label_width) + line)));
       head.clear();
     }
   }
   return lines;
 }
 
+// The card's rows, laid out and grouped for the ScrollCard to draw.
+CardRows Laid(const SkillRows& card, int content) {
+  int widest = WidestLabel(AllRows(card));
+  CardRows rows;
+  rows.head = LayOut(card.head, content, widest);
+  rows.body = LayOut(card.body, content, widest);
+  return rows;
+}
+
+// A row budget no card reaches.
+constexpr int kUnboundedRows = 1 << 20;
+
 }  // namespace
+
+ScrollCard UnboundedCard() {
+  ScrollCard card;
+  card.SetMaxRows(kUnboundedRows);
+  return card;
+}
+
+void SkillInspectPanel::SetMaxRows(int rows) {
+  card_.SetMaxRows(rows > 0 ? rows : kUnboundedRows);
+}
 
 void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
                                  Levels levels) {
@@ -2126,65 +2166,22 @@ void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
   levels_ = levels;
 }
 
-int SkillInspectPanel::VisibleRows(int total) const {
-  if (max_rows_ <= 0) {
-    return total;
-  }
-  // The two border rows are paid first, and at least one row is drawn however
-  // small the budget: a card cut to nothing says less than a card cut short.
-  return std::max(1, std::min(total, max_rows_ - 2));
-}
-
 void SkillInspectPanel::ScrollBy(int delta) {
-  if (skill_ == nullptr) {
-    return;
-  }
-  std::vector<Row> rows = CardRows(*skill_, level_, bonus_, levels_);
-  int content = ContentWidth(rows, min_width_, max_width_);
-  int total = static_cast<int>(LayOut(std::move(rows), content).size());
-  int last = total - VisibleRows(total);
-  offset_ = std::max(0, std::min(offset_ + delta, last));
+  // Laid out first: the card answers from its last render, and the budget or
+  // the skill may have moved since.
+  Render();
+  card_.ScrollBy(delta);
 }
 
 ftxui::Element SkillInspectPanel::Render() const {
   if (skill_ == nullptr) {
     return ThemedWindow(" Skill ", EmptyState("no skill"));
   }
-
-  std::vector<Row> card = CardRows(*skill_, level_, bonus_, levels_);
-  int content = ContentWidth(card, min_width_, max_width_);
-  std::vector<Line> rows = LayOut(std::move(card), content);
-  int total = static_cast<int>(rows.size());
-  int visible = VisibleRows(total);
-  // Clamped here as well as in ScrollBy: a terminal made taller under a card
-  // scrolled to its foot leaves the old offset too far down.
-  int offset = std::max(0, std::min(offset_, total - visible));
-
-  // A row at a time rather than a column of text beside a column of bar, so a
-  // separator is a child of the card's own vbox and stretches the whole way
-  // across. The bar's column is held open whether or not there is anything to
-  // scroll, so the card does not change width when it outgrows the terminal.
-  std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
-  std::vector<ftxui::Element> lines;
-  for (int row = 0; row < visible; ++row) {
-    Line& card_row = rows[offset + row];
-    if (card_row.separator) {
-      lines.push_back(std::move(card_row.element) |
-                      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content));
-      continue;
-    }
-    ftxui::Element cell =
-        cells.empty() ? ftxui::text(" ") : std::move(cells[row]);
-    lines.push_back(ftxui::hbox({
-        std::move(card_row.element) |
-            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content),
-        std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
-    }));
-  }
-
+  SkillRows card = CardRowsFor(*skill_, level_, bonus_, levels_);
+  int content = ContentWidth(AllRows(card), min_width_, max_width_);
   // What the skill is, which is the first thing worth knowing about it.
   std::string title = IsActive(*skill_) ? " Active " : " Passive ";
-  return ThemedWindow(title, ftxui::vbox(std::move(lines)));
+  return card_.Render(title, Laid(card, content), content);
 }
 
 std::vector<SkillEffectLine> SkillEffectsAt(const Skill& skill, int level) {
