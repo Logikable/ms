@@ -1,4 +1,4 @@
-# GMS sells avoidability here without saying how much, and it is the AVOID stat,
+# GMS sells avoidability here without saying how much, and it is the avoid stat,
 # not the flat roll dodge_chance models. So this gives the same DEF as its bow
 # twin, with critical damage instead of attack and final damage. See
 # reckless_hunt_bow.

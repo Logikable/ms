@@ -3,7 +3,7 @@
 # Intent buff, and a Shadower always has one, so the buff isn't modelled and its
 # final damage is written on the blow itself.
 #
-# On the BLOW, not the swing: GMS states it on the blow's own line, and Blood
+# On the blow, not the swing: GMS states it on the blow's own line, and Blood
 # Money, which gives the buff, says it "enhances your next Assassinate's final
 # blow". The six strikes before it get nothing.
 #

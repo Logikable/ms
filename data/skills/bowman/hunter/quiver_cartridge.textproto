@@ -7,7 +7,7 @@
 # them. There is nothing to switch here, so only one arrowhead is kept, with
 # levels.
 #
-# The arrow "pursues the enemy" and states no mobCount, so it lands on ONE enemy
+# The arrow "pursues the enemy" and states no mobCount, so it lands on one enemy
 # the swing reached, like Final Attack.
 name: "Quiver Cartridge"
 description: "Uses a special arrowhead."

@@ -6,7 +6,7 @@
 # It needs the Fighter's weapons, so both stop together: a Hero holding a weapon
 # neither fires with gets neither.
 #
-# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# The extra hit lands on one enemy the swing reached, not on each. GMS's Final
 # Attack has no mobCount or hitbox of its own, and its text names its target:
 # "attacks the boss with the highest HP first".
 name: "Advanced Final Attack"

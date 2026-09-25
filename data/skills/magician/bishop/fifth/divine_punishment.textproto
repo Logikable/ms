@@ -17,7 +17,7 @@
 #
 # `base_delay_ms` is the client's own wind-up and release (`prepare/time 240`
 # plus `keydownend/time 120`), the minimum a press commits to. It never matters:
-# one light already takes 960ms. masonym's 1320 is the LOOP action, not this
+# one light already takes 960ms. masonym's 1320 is the loop action, not this
 # minimum.
 #
 # Dropped: the 40 MP per attack, the knockback and status immunity (nothing here

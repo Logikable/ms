@@ -2,7 +2,7 @@
 # with nothing to exclude: Speed Infusion is a pirate skill, and there are no
 # pirates here.
 #
-# Its stage goes PAST the soft cap instead of counting toward it. Every branch's
+# Its stage goes past the soft cap instead of counting toward it. Every branch's
 # skills reach seven or eight stages against a cap of eight, so a capped stage
 # would be worth nothing to half of them and would push out the Inner Ability
 # line that gives the same thing. See SkillEffect.uncapped_attack_speed.

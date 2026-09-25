@@ -5,7 +5,7 @@
 # made every ten seconds for free, and 46 loaded at once by the active half, two
 # to four used on every attack skill pressed, for 1000 MP on a 120s cooldown.
 #
-# ONE bank, filled two ways, as GMS states it: a charm is a charm, and the two
+# One bank, filled two ways, as GMS states it: a charm is a charm, and the two
 # halves differ only in how you get one. That is also all GMS's "the active and
 # passive effects cannot trigger simultaneously" means: the timer that makes
 # charms pauses while a load is in, and restarts once the burst's charges are

@@ -15,7 +15,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # The same time limit as Cygnus, the other level-200 fight.
+  # Fifteen minutes, like Cygnus and most level-200 fights.
   time_limit_seconds: 900
   # Level 200. All four Root Abyss bosses unlock together.
   unlock_level: 200

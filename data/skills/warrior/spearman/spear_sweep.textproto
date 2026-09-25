@@ -3,7 +3,7 @@
 # would always fill. See Skill.max_enemies.
 #
 # GMS pulls and stuns everything it hits. The pull is dropped, since the fight
-# has no positions. The two-second stun is OUR choice: GMS states no duration,
+# has no positions. The two-second stun is our choice: GMS states no duration,
 # which means the client hardcodes one.
 name: "Spear Sweep"
 description: "Swing your spear in a long arc, stunning the enemies around you."

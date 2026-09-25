@@ -9,7 +9,7 @@
 # chance climbs to 90% at this skill's max.
 #
 # The aura heal is restated because this supersedes the skill that gave it, and
-# is flat because it belongs to the EYE: a louder shout doesn't heal more.
+# is flat because it belongs to the eye: a louder shout doesn't heal more.
 name: "Evil Eye Shock II"
 description: "Empowers Evil Eye Shock, increasing its damage."
 kind: SKILL_KIND_AUTO_ATTACK

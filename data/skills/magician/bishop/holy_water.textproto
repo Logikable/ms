@@ -3,7 +3,7 @@
 # the Bishop and everyone with them: the same 5% at max level, on a ten-second
 # cooldown, plus the same again for every 2500 INT the Bishop has.
 #
-# The party's share uses the DRINKER's INT, not the Bishop's, because the
+# The party's share uses the drinker's INT, not the Bishop's, because the
 # calculation only knows the character it is for.
 #
 # The value scales with a stat instead of a level, which is why a Bishop's INT

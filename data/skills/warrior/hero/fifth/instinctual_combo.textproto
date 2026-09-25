@@ -2,7 +2,7 @@
 # every Raging Blow tears the space it swings through.
 #
 # The orb line looks like a fifth bonus per orb but isn't: it raises what the
-# orbs ALREADY give by 13%, whichever skill gives it. GMS's own tables take
+# orbs already give by 13%, whichever skill gives it. GMS's own tables take
 # Combo Attack's 20 ATT to 22.2 and Advanced Combo's 120% final damage to
 # 133.2%, exactly that multiplier.
 #

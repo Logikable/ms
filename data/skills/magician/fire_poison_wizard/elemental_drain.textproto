@@ -2,7 +2,7 @@
 # enemies in front of them, and gives 3% final damage for each, up to five.
 # Burns are real and the fight can count them, so this uses the count.
 #
-# The count is over the GROUP, which is what "within a certain range" means:
+# The count is over the group, which is what "within a certain range" means:
 # eight monsters with one burn each count as eight. So it is at its cap on a map
 # and only counts what the rotation keeps burning on a boss, and at 2nd job,
 # where only Poison Breath burns, it gives very little. GMS says so outright.

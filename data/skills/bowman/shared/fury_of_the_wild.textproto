@@ -1,7 +1,7 @@
 # The bird doesn't gain an attack; it is replaced. The client keeps this skill's
 # animations under a `summon` node, and the 6th job skill that uses it says
 # "while Fury of the Wild is summoned", so for forty seconds the Phoenix or
-# Frostprey IS this.
+# Frostprey is this.
 #
 # 3.42 seconds isn't published anywhere. It is twice the 1.71 used for the two
 # birds, which matches their animations: theirs run 1170ms and this one

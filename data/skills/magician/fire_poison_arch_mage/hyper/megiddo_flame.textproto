@@ -1,5 +1,5 @@
 # GMS throws three blue flames that each split once on landing, up to eleven in
-# all. Each flame burns ONE enemy for 380% four times and leaves it burning for
+# all. Each flame burns one enemy for 380% four times and leaves it burning for
 # half a minute; a flame landing on an enemy another already hit keeps 45% of
 # its final damage. All GMS's own numbers.
 #

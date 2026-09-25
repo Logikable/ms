@@ -1,5 +1,5 @@
 # GMS states the damage twice: 100 + 4*L% five times, and the same figure again
-# as percentage POINTS against normal monsters. So ordinary monsters take
+# as percentage points against normal monsters. So ordinary monsters take
 # double, which is what normal_skill_pct carries; bosses take the base.
 #
 # Uses Flash Blade's animation, since it is the same dash, only bigger.

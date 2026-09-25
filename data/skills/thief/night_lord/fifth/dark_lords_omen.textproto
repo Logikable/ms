@@ -9,7 +9,7 @@
 # from, and the only number in the block the tooltip never uses. Twelve firings
 # fit in twelve seconds, and the twelfth is the burst.
 #
-# The seven fixed stars fire EVERY tick, not only at the start. Namu says part
+# The seven fixed stars fire every tick, not only at the start. Namu says part
 # of the stars it keeps firing scales with the crowd; `bulletCount` is GMS's
 # per-cast line count everywhere else; and the balance range agrees: 276,720% at
 # max is 4,612%/s over the cooldown, just under Storm of Arrows, while firing

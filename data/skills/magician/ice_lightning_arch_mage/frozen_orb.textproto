@@ -7,7 +7,7 @@
 # Both numbers come from the client, not guesses: Frozen Orb is a ball skill, so
 # the client gives its rate in attackDelay and its lifetime in time.
 #
-# It freezes nothing. GMS says the orb SLOWS what it hits, where every other ice
+# It freezes nothing. GMS says the orb slows what it hits, where every other ice
 # skill in the book states a freeze duration, so it builds stacks and leaves
 # freezing to the swings that do it.
 name: "Frozen Orb"

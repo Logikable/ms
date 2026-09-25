@@ -3,7 +3,7 @@
 #
 # 600ms is GMS's `x`, the one number in its common block the tooltip never uses,
 # which is also where Spirit of Snow's timing was found. What confirms it is
-# that `t`, the 0.6 seconds added per active Fervent Drain, is the SAME number:
+# that `t`, the 0.6 seconds added per active Fervent Drain, is the same number:
 # each stack buys exactly one more strike, and the window runs 3 to 6 seconds as
 # five strikes become ten.
 #

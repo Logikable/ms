@@ -8,7 +8,7 @@
 # Combat Orders don't buy an eleventh.
 #
 # It supersedes Combo Synergy, whose only grant is the per-orb final damage this
-# restates. It does NOT supersede Combo Attack: the largest orb count is used,
+# restates. It does not supersede Combo Attack: the largest orb count is used,
 # not the sum, so the Fighter's 2 ATT per orb keeps paying, now for ten orbs.
 name: "Advanced Combo"
 description:

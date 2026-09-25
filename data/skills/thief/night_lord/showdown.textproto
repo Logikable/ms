@@ -10,7 +10,7 @@
 # because GMS's Showdown - Spread widens the talisman and leaves the shuriken at
 # six.
 #
-# Six go out, and each hunts ONE enemy (`mobCount` is 1 in the client). So it
+# Six go out, and each hunts one enemy (`mobCount` is 1 in the client). So it
 # scatters: against six monsters each takes one, and against a lone boss all six
 # hit it, with the second and later ones at half damage, as GMS states outright.
 name: "Showdown"

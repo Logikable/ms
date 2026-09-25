@@ -1,6 +1,6 @@
 # GMS requires a shield or dagger scabbard in the off hand and gives DEF,
 # avoidability, attack and damage reduction for it. The avoidability is left
-# out: GMS gives a share of the AVOID STAT here, the accuracy check, not the
+# out: GMS gives a share of the avoid stat here, the accuracy check, not the
 # flat roll dodge_chance models. See Illusion Step for the other kind.
 #
 # The rest uses GMS's own figures: DEF and damage taken both 11% and 6% a level,

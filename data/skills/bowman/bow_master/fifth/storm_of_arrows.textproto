@@ -12,7 +12,7 @@
 # The four fall 0.83 seconds apart inside GMS's 2.5, which counts as one moment
 # here, since a respawn takes longer than that.
 #
-# The rain grows with the number of enemies the SWING hits, not with its own
+# The rain grows with the number of enemies the swing hits, not with its own
 # reach. GMS says "if currently attacking more than one enemy", and a Bow Master
 # fighting a boss hits one part of eight with Hurricane. If the rain counted its
 # own reach, Zakum and Horntail would get the fifteen-line rain meant for

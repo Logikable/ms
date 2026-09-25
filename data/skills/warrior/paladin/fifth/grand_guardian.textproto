@@ -2,7 +2,7 @@
 # light the player keeps up while the key is held, sheltering behind it while it
 # pulses.
 #
-# It is a hold that GROWS. The client has two full keydown sets,
+# It is a hold that grows. The client has two full keydown sets,
 # 5thGrandCrossLoop at 480ms and again at 720, and the four seconds of holding
 # split into 1080ms small, 480 of growing, then 2440 grown. At the 150ms pulse
 # that is 7 pulses then 16, the 23 the data states.

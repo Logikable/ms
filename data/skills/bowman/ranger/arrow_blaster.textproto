@@ -1,4 +1,4 @@
-# GMS's 4 stands. Its 120x120 hitbox is one arrow's burst and it TRAVELS: the
+# GMS's 4 stands. Its 120x120 hitbox is one arrow's burst and it travels: the
 # shot is aimed, so the box sweeps along a platform instead of covering one
 # patch. The reach rule is for boxes that stay put (see Skill.max_enemies).
 #
@@ -6,7 +6,7 @@
 # turret left behind that fires on its own. One row in the book and one SP
 # ladder, because it is one skill.
 #
-# The turret is a BUFF, not an auto mode. GMS places it with the Interact key
+# The turret is a buff, not an auto mode. GMS places it with the Interact key
 # mid-cast and gives it u = 20+2x seconds, so the player puts it up, loses it
 # and puts it up again, and pays the 800ms to place it. An auto mode has no such
 # timer and would fire all fight for free. See Buff.own_cast_delay_ms.

@@ -1,5 +1,5 @@
 # The twelfth strike, counting the one Greater Vessel of Light gives. It doesn't
-# speed up Divine Judgment's brand, which counts SWINGS of Blast on each enemy,
+# speed up Divine Judgment's brand, which counts swings of Blast on each enemy,
 # not strikes per swing.
 name: "Blast - Extra Strike"
 description:

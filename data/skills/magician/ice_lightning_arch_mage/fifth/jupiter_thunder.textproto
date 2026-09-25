@@ -4,7 +4,7 @@
 # more.
 #
 # GMS's wording is the worst in the book, and none of it works read literally.
-# "Stunned #attackCount times" means eight LINES of one shock, not eight shocks.
+# "Stunned #attackCount times" means eight lines of one shock, not eight shocks.
 # The current isn't periodic and isn't a burn: it fires once per shock, four
 # lines at once. What the client actually holds: 30 shocks (`x`) on a 330ms beat
 # (`subTime`; the shock's hit animation runs 360ms, so shocks land back to
@@ -20,17 +20,17 @@
 #
 # The stun is one of the three statuses this game tracks on monsters. Nothing
 # here has a schedule to interrupt, so what it gives is that the enemy is
-# AFFLICTED, which Storm Magic checks, and that other lightning then does 12%
+# afflicted, which Storm Magic checks, and that other lightning then does 12%
 # more, as GMS states, excluding this skill by name. Bosses are never stunned,
 # so in the fight it was built for only the 12% remains.
 #
-# The four seconds are OUR choice: GMS states no stun duration in the common
+# The four seconds are our choice: GMS states no stun duration in the common
 # block, and a missing number there means the client hardcodes one. Each shock
 # applies its own, and the thirty come 330ms apart, so the mark lasts the whole
 # barrage and four seconds after, whatever the number. It really only decides
 # how long the rest of the book gets the 12% afterwards.
 #
-# The 3.4s refunded per unused shock matters on MAPS, not bosses. Against a boss
+# The 3.4s refunded per unused shock matters on maps, not bosses. Against a boss
 # the orb uses all thirty and refunds nothing; on a map it kills what it rides
 # and outlasts the crowd, so the leftover shocks come off the next cooldown.
 name: "Jupiter Thunder"

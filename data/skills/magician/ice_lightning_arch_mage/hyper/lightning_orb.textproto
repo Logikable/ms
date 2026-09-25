@@ -1,4 +1,4 @@
-# A HELD swing: an orb that zaps everything around it every 150ms while the key
+# A held swing: an orb that zaps everything around it every 150ms while the key
 # is held, then bursts. Twelve pulses take two full seconds; 960ms is the
 # earliest it can be released, which fits five pulses and the burst.
 #

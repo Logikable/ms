@@ -7,7 +7,7 @@
 # several times over.
 #
 # It hits one enemy, so Arrow Stream wins any map with a crowd. What keeps this
-# ahead on a single target is that both Final Attacks roll once per SWING: eight
+# ahead on a single target is that both Final Attacks roll once per swing: eight
 # rolls a second against Arrow Stream's two.
 name: "Hurricane"
 description:

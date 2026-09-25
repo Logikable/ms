@@ -3,7 +3,7 @@
 #
 # Two halves, which GMS keeps separate. The Bishop's own is flat: 33% final
 # damage at max, whatever their INT or party. Everyone else's grows with the
-# BISHOP's INT and is then capped to a share of what the Bishop kept: one
+# Bishop's INT and is then capped to a share of what the Bishop kept: one
 # blessing split across everyone in the zone, so a party of two gets 17% each
 # and a party of three 11%. See AllyIntLever.
 #

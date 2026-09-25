@@ -1,7 +1,7 @@
 # The Bishop's second class node: two angels for thirty seconds on a two-minute
 # cooldown, one giving damage and one dealing it.
 #
-# The Angel of Benevolence RE-GRANTS instead of staying up: GMS gives a
+# The Angel of Benevolence re-grants instead of staying up: GMS gives a
 # four-second buff every five seconds it is out, so the damage is up four
 # seconds in five, 20% of the cooldown instead of 25%. See Buff.duty_seconds;
 # folding that into the numbers would make the card say 80% where GMS says 100%.
@@ -13,7 +13,7 @@
 # 77,000%, or 642%/s over the cooldown, well under Spirit of Snow's 1,715%/s, as
 # fits a node that also carries a buff this big.
 #
-# The mark is worth about a twentieth of a percent, and that is right. ONE LINE
+# The mark is worth about a twentieth of a percent, and that is right. One line
 # uses it up (GMS's footnotes count this in hits), so seven marks a cast boost
 # seven lines out of the fourteen hundred a Bishop lands in the same two
 # minutes. The angel can't use its own marks: GMS gives it no element, and only

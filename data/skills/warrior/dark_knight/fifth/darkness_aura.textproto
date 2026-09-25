@@ -2,7 +2,7 @@
 # forty seconds, and one dark slash released from it whenever the player
 # chooses.
 #
-# Here the slash is the SWING, and the aura goes up with it. GMS takes two
+# Here the slash is the swing, and the aura goes up with it. GMS takes two
 # presses, one for each, but the slash lands once per cast wherever it falls in
 # the window, so nothing is lost by paying both animations at once:
 # base_delay_ms is 5thDarknessAura's 600ms plus 5thDarknessAuraEnd's 570.

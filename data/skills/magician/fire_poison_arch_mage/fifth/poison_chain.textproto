@@ -29,7 +29,7 @@
 # more here than in GMS. On a boss, where this skill matters, there is nothing
 # to spread to.
 #
-# This poison is NOT a burn. GMS says plainly it doesn't trigger Elemental
+# This poison is not a burn. GMS says plainly it doesn't trigger Elemental
 # Drain, so it is a pulse, not a `dot`, and DoT Punisher's orb count and Fervent
 # Drain's final damage don't count it.
 name: "Poison Chain"

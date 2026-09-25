@@ -18,7 +18,7 @@
 # own 660ms plus Mist Eruption's cooldown is always longer than a second.
 #
 # The clouds' lifetime isn't published. Ten seconds is the length of the burn
-# they lay, which is the same thing, since the cloud IS the poison.
+# they lay, which is the same thing, since the cloud is the poison.
 name: "Poison Nova"
 description:
   "Releases a poisonous cloud that spreads in all directions, striking "

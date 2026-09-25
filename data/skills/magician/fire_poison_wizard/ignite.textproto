@@ -1,5 +1,5 @@
 # GMS leaves a wall of fire that lasts a few seconds and strikes on its own
-# clock. Nothing here stays on the ground, so this is what the WHOLE wall is
+# clock. Nothing here stays on the ground, so this is what the whole wall is
 # worth: a Final Attack after the fire spell that lit it, at GMS's (10+4x)%
 # chance of (30+x)% a hit.
 #

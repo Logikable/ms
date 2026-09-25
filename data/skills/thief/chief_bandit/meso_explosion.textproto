@@ -6,7 +6,7 @@
 # meso that drops is thrown at once. For the same reason GMS's cap of 15 on the
 # ground has nothing to cap.
 #
-# GMS's normal-enemy bonus is POINTS on a line, not a share: 2+floor(x/6)%,
+# GMS's normal-enemy bonus is points on a line, not a share: 2+floor(x/6)%,
 # which is 5 at max and 10 on a two-line meso. Stepped evenly to that top, so
 # only the start moves.
 name: "Meso Explosion"
