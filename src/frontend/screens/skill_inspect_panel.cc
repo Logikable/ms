@@ -25,45 +25,46 @@
 namespace ms {
 namespace {
 
-// The narrowest the card lays out at. Descriptions carry GMS's own sentences,
-// so it is wide enough to read them a clause at a time; a narrower skill keeps
-// the width and spends the slack on its value column.
+// The narrowest width the card uses. Descriptions use GMS's own sentences, so
+// it is wide enough to read them a clause at a time; a skill needing less keeps
+// this width and gives the extra to its value column.
 constexpr int kMinContentWidth = 58;
-// The border either side and the scroll bar's column, which the card holds
-// open whether or not there is anything to scroll.
+// The border on each side and the scroll bar's column, which the card keeps
+// whether or not there is anything to scroll.
 constexpr int kCardChrome = 3;
-// Effect rows indent past the one-space border gutter, so they read as
+// Effect rows are indented past the one-space border gutter, so they read as
 // belonging to the "Level N" heading above them.
 constexpr int kEffectIndent = 3;
 // The gap between a label and its value.
 constexpr int kLabelGap = 2;
-// What a value keeps when a label is too wide for the card to seat them both.
-// Past this the label takes a row of its own instead.
+// The minimum width a value keeps when a label is too wide for both to fit.
+// Beyond this the label gets a row of its own.
 constexpr int kMinValueWidth = 8;
 
-// A percentage lever and how it reads. The sign is the lever's DIRECTION, not
-// its stored value: one that cancels damage is stored positive and shown as a
-// subtraction. kSigned is for a lever that can be spent as well as bought.
+// A percentage field and how it is displayed. The sign shows the field's
+// direction, not its stored value: one that reduces damage is stored positive
+// and shown as a subtraction. kSigned is for a field that can be negative as
+// well as positive.
 enum Sign { kPlus, kMinus, kBare, kSigned };
 
-// Slack for the floor a whole-number lever takes: a per-level step that cannot
-// be written exactly lands a hair under the level it climbs to.
+// Tolerance for flooring a whole-number field: a per-level step that can't be
+// represented exactly lands slightly under the level it should reach.
 constexpr double kWholeEpsilon = 1e-9;
 
 struct PercentLever {
   const char* label;
   double (SkillEffect::*fn)() const;
   Sign sign;
-  // What the percentage is charged against where it is not the whole effect:
-  // a per-orb bargain is worth five times what its row says.
+  // What the percentage applies to when it isn't the whole effect: a per-orb
+  // bonus is worth five times what its row says.
   const char* unit;
-  // Whether the lever only ever pays out in whole numbers, so the page floors
-  // it as the game does. Left off by every row but the one that needs it.
+  // Whether the field only takes whole numbers, so the page floors it as the
+  // game does. Only the row that needs it sets it.
   bool whole;
 };
 
-// Percentage levers in display order. Damage is not here -- an attack's own
-// percentage is its identity and gets a line of its own, above these.
+// Percentage fields in display order. Damage isn't here: an attack's own
+// percentage defines it and gets its own line above these.
 const PercentLever kPercentLevers[] = {
     {"Max HP", &SkillEffect::max_hp_pct, kPlus, ""},
     {"Max MP", &SkillEffect::max_mp_pct, kPlus, ""},
@@ -99,66 +100,67 @@ const PercentLever kPercentLevers[] = {
     {"Mastery", &SkillEffect::mastery, kBare, ""},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus, ""},
     {"Dodge Chance", &SkillEffect::dodge_chance, kPlus, ""},
-    // What the barrier takes off whatever is hitting: a price the monster
-    // pays, so it reads as a subtraction.
+    // What the barrier removes from whatever is hitting. The monster pays it,
+    // so it is shown as a subtraction.
     {"Enemy ATT", &SkillEffect::enemy_attack_pct, kMinus, ""},
     {"Enemy ATT", &SkillEffect::enemy_attack_pct_when_scarred, kMinus,
      " while Scarred"},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
-    // Maple Warrior's, and the only row charged against what the player spent
-    // rather than against a total the game knows.
+    // Maple Warrior's, and the only row based on what the player spent rather
+    // than a total the game computes.
     {"Stats from AP", &SkillEffect::ap_stat_pct, kPlus, ""},
-    // Maple World Goddess's Blessing's, and a share of that row rather than of
-    // anything the character has -- so it names the skill it multiplies.
+    // Maple World Goddess's Blessing's, a percentage of that row rather than of
+    // anything the character has, so it names the skill it multiplies.
     {"Maple Warrior", &SkillEffect::ap_stat_bonus_pct, kPlus, ""},
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
     {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
-    // The offensive one, also the monster's price. Named for the enemy to
-    // keep it apart from the row above, which is the character's own.
+    // The offensive one, also paid by the monster. Named for the enemy to keep
+    // it apart from the row above, which is the character's own.
     {"Enemy Elem Resist", &SkillEffect::ier_pct, kMinus, ""},
     {"Buff Duration", &SkillEffect::buff_duration_pct, kPlus, ""},
-    // The one lever a skill can take away instead of grant: Reckless Hunt
-    // sells DEF for damage, and a row that hid the price would be a lie.
+    // The one field a skill can reduce instead of grant: Reckless Hunt trades
+    // DEF for damage, and a row that hid the cost would be misleading.
     {"Defense", &SkillEffect::def_pct, kSigned, ""},
-    // Pick Pocket's, rolled once per line the swing lands -- see the note on
-    // the field. Bare, because it is a chance rather than a gain.
+    // Pick Pocket's, rolled once per line the attack lands (see the field's
+    // note). Shown without a sign because it is a chance rather than a gain.
     {"Meso Drop Chance", &SkillEffect::meso_drop_chance, kBare, ""},
-    // The share of that chance this swing gives up: a price, and it reads as
-    // one. Its Final Attack twin is FinalAttackCutRow's.
+    // The share of that chance this attack gives up: a cost, and shown as one.
+    // Its Final Attack counterpart is in FinalAttackCutRow.
     {"Meso Drop Chance", &SkillEffect::meso_drop_cut, kMinus, ""},
-    // Last, and the only rows here that are not about a fight -- the same
-    // place they take on the stats page, for the same reason.
+    // Last, and the only rows here not about fighting, the same place they have
+    // on the stats page, for the same reason.
     {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},
     {"Item Drop Rate", &SkillEffect::item_drop_pct, kPlus, ""},
     {"Additional EXP", &SkillEffect::exp_pct, kPlus, ""},
 };
 
-// The levers that are a plain count rather than a share. Both are doubles: one
-// for a half point granted, the other for the fraction its ladder climbs.
+// Fields that are plain counts rather than percentages. Both are doubles: one
+// for a half point granted, the other for the fraction its per-level ladder
+// climbs by.
 const PercentLever kNumberLevers[] = {
     {"Status Resist", &SkillEffect::status_resistance, kPlus, ""},
-    // Whole levels, carried as a fraction so the ladder can step. Floored for
-    // the page exactly as it is floored where it is read.
+    // Whole levels, stored as a fraction so the ladder can step. Floored for
+    // display exactly as it is floored where it is used.
     {"Skill Levels", &SkillEffect::skill_level_bonus, kPlus, "", true},
-    // Named for what it buys rather than the clock, so the row states the
-    // effect too -- nothing else on the page says the skill revives. It
-    // SHORTENS as the skill is levelled.
+    // Named for what it gives rather than the timer, so the row also states the
+    // effect, since nothing else on the page says the skill revives. It
+    // shortens as the skill levels up.
     {"Revives Every", &SkillEffect::revive_cooldown_seconds, kBare, "s"},
-    // Named for the clock rather than the revival: the skill stating it
-    // revives nobody, it shortens the wait of the pact that does.
+    // Named for the timer rather than the revival: this skill doesn't revive
+    // anyone; it shortens the cooldown of the pact that does.
     {"Revive Cooldown", &SkillEffect::revive_cooldown_cut_seconds, kMinus, "s"},
 };
 
 struct FlatLever {
   const char* label;
   double (SkillEffect::*fn)() const;
-  // What the number counts, when it is not the stat itself. "" for a plain
-  // total; a stage or a per-character-level grant needs saying.
+  // What the number counts, when it isn't the stat itself. "" for a plain
+  // total; a stage or a per-character-level grant needs a unit.
   const char* unit;
-  // Whether `unit` is a thing being counted, and so takes an "s" for any
-  // number but one. "per level" is not -- it says when, not how many.
+  // Whether `unit` is something counted, and so takes an "s" for any number but
+  // one. "per level" isn't; it says when, not how many.
   bool countable;
 };
 
@@ -167,14 +169,14 @@ const FlatLever kFlatLevers[] = {
     {"ATT", &SkillEffect::attack, "", false},
     {"MATT", &SkillEffect::magic_attack, "", false},
     {"ATT", &SkillEffect::attack_per_combo_orb, " per Combo Orb", false},
-    // Glacial Fury's pair. The magic attack is an ICE swing's alone, which the
-    // row says because nothing else on the page does.
+    // Glacial Fury's pair. The magic attack applies only to ice attacks, which
+    // the row says because nothing else on the page does.
     {"Freeze Stacks", &SkillEffect::freeze_stack_cap_bonus, "", false},
     {"Ice MATT", &SkillEffect::magic_attack_per_freeze_stack,
      " per Freeze Stack", false},
     {"DEF", &SkillEffect::def_per_combo_orb, " per Combo Orb", false},
-    // Stated as ORBS rather than a percentage: the percentage is whatever the
-    // character's own per-orb bargain says today.
+    // Shown as orbs rather than a percentage, since the percentage depends on
+    // the character's own per-orb bonus.
     {"Final Damage", &SkillEffect::final_dmg_combo_orbs, " Combo Orbs' worth",
      false},
     {"STR", &SkillEffect::str, "", false},
@@ -186,29 +188,27 @@ const FlatLever kFlatLevers[] = {
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},
     {"Attack Speed", &SkillEffect::attack_speed, " stage", true},
-    // The same row: what the card has to say about a stage is what it is
-    // worth, and the cap it answers to is the stats page's business.
+    // The same row: the card shows what a stage is worth, and the cap it is
+    // subject to belongs on the stats page.
     {"Attack Speed", &SkillEffect::uncapped_attack_speed, " stage", true},
 };
 
-// The value of a lever at learned level L, in the same shape the stats
-// themselves are folded with.
+// The value of a field at learned level L, in the same form the stats use.
 double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
                  int level) {
   return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
 }
 
-// The same, for a lever counted in whole numbers: the ladder is walked as a
+// The same for a field counted in whole numbers: the ladder is computed as a
 // fraction and floored where it is read, as everywhere else.
 int FlatAt(const Skill& skill, double (SkillEffect::*fn)() const, int level) {
   return WholeValue(PercentAt(skill, fn, level));
 }
 
-// A fraction as a percentage to one decimal, a whole number left whole. ROUNDS
-// rather than truncating: summed per-level steps land a hair under the round
-// figure, and "15.9%" where the data says 16% is simply wrong. A lever too
-// small for that decimal gets a second one, or "0%" would say the point bought
-// nothing.
+// A fraction as a percentage to one decimal, with whole numbers left whole. It
+// rounds rather than truncates: summed per-level steps land slightly under the
+// round figure, and "15.9%" where the data says 16% is wrong. A value too small
+// for one decimal gets a second, or "0%" would suggest the point gave nothing.
 std::string FormatPercent(double frac) {
   int places = frac != 0.0 && std::fabs(frac) < 0.0005 ? 2 : 1;
   double scale = places == 2 ? 10000.0 : 1000.0;
@@ -222,8 +222,8 @@ std::string FormatPercent(double frac) {
   return s + "%";
 }
 
-// "4th", for the swing an upgrade lands on. The teens are written out anyway,
-// against the day one of these runs to eleven.
+// "4th", for the attack an upgrade applies on. The teens are handled anyway, in
+// case one of these ever reaches eleven.
 std::string Ordinal(int n) {
   std::string suffix = "th";
   if (n % 100 < 11 || n % 100 > 13) {
@@ -244,13 +244,13 @@ std::string EmpoweredTarget(const EmpoweredForm& form) {
   return form.skill_name().empty() ? "attack" : form.skill_name();
 }
 
-// A row of the card before the card knows how wide it is: a label and its
-// value, laid out once the widest of each is known.
+// A card row before the card knows its width: a label and its value, laid out
+// once the widest of each is known.
 struct Row {
   enum Kind {
     kEffect,  // label and value, in the card's two columns
     kProse,   // one paragraph, wrapped to the card and indented a space
-    kWhole,   // an element that is its own row: a heading, an empty state
+    kWhole,   // an element that is a whole row: a heading or an empty state
     kRule,    // a section divider; the bar crosses one it scrolls beside
   };
   Kind kind = kEffect;
@@ -259,8 +259,8 @@ struct Row {
   ftxui::Element element;
 };
 
-// An effect row. A value with nothing in it writes no row at all -- there is
-// nothing to say about a lever the skill does not carry.
+// An effect row. An empty value writes no row, since there is nothing to say
+// about a field the skill doesn't have.
 Row EffectRow(std::string label, std::string value) {
   return {Row::kEffect, std::move(label), std::move(value), nullptr};
 }
@@ -269,8 +269,8 @@ Row WholeRow(ftxui::Element element) {
   return {Row::kWhole, "", "", std::move(element)};
 }
 
-// Breaks a " / " list across lines without splitting an ENTRY: "One-Handed
-// Sword / Two-Handed Axe" broken between the words names the wrong weapon.
+// Breaks a " / " list across lines without splitting an entry: "One-Handed
+// Sword / Two-Handed Axe" broken between words would name the wrong weapon.
 std::vector<std::string> WrapList(const std::string& text, int width) {
   const std::string kSeparator = " / ";
   std::vector<std::string> lines;
@@ -303,8 +303,8 @@ std::vector<std::string> WrapList(const std::string& text, int width) {
 }
 
 // Breaks `text` into lines that fit `width`, splitting only between words. A
-// word longer than the column overhangs rather than being cut. A list breaks
-// by entry instead -- see WrapList.
+// word longer than the column overflows rather than being cut. Lists break by
+// entry instead (see WrapList).
 std::vector<std::string> WrapText(const std::string& text, int width) {
   if (text.find(" / ") != std::string::npos) {
     return WrapList(text, width);
@@ -335,8 +335,8 @@ std::vector<std::string> WrapText(const std::string& text, int width) {
   return lines;
 }
 
-// The weapons a skill demands, as "Dagger" or "Sword / Axe". Empty when it can
-// be swung with anything, which is what most skills want.
+// The weapons a skill requires, as "Dagger" or "Sword / Axe". Empty when any
+// weapon works, which is true of most skills.
 std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
   std::vector<EquipType> demanded;
   for (int type : types) {
@@ -345,15 +345,15 @@ std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
   return FormatWeaponList(demanded);
 }
 
-// What the skill asks for before it can be swung. The two read as a pair: a
-// weapon in hand and a skill already learned are the same kind of condition,
-// so they are laid out alike.
+// What the skill requires before it can be used. The two read as a pair: a
+// weapon in hand and a skill already learned are the same kind of condition, so
+// they are laid out alike.
 std::vector<Row> RequirementRows(const Skill& skill) {
   std::vector<Row> rows;
   rows.push_back(EffectRow("Required Weapon",
                            RequiredWeapons(skill.required_equip_type())));
-  // The level a Hyper Skill opens at, which is the gate it carries in place of
-  // a skill below it.
+  // The level a Hyper Skill unlocks at, which is its requirement instead of a
+  // prerequisite skill.
   if (skill.required_level() > 0) {
     rows.push_back(
         EffectRow("Required Level", std::to_string(skill.required_level())));
@@ -361,16 +361,16 @@ std::vector<Row> RequirementRows(const Skill& skill) {
   if (!skill.has_required_skill()) {
     return rows;
   }
-  // Built from the requirement rather than typed beside it, so the sentence
-  // and the rule the skills tab enforces cannot drift apart.
+  // Built from the requirement rather than typed separately, so the text and
+  // the rule the skills tab enforces can't drift apart.
   std::string required = skill.required_skill().skill_name() + " Lv. " +
                          std::to_string(skill.required_skill().level()) + "+";
   rows.push_back(EffectRow("Required Skill", required));
   return rows;
 }
 
-// What this skill takes over from, for the ones stating the whole of an
-// earlier skill. Without the row the two read as though they stack.
+// What this skill replaces, for skills that include all of an earlier skill.
+// Without this row the two would look like they stack.
 std::vector<Row> ReplacesRows(const Skill& skill) {
   if (skill.supersedes_skill_name().empty()) {
     return {};
@@ -378,10 +378,10 @@ std::vector<Row> ReplacesRows(const Skill& skill) {
   return {EffectRow("Replaces", skill.supersedes_skill_name())};
 }
 
-// The group a skill shares its levers with. A weaker warning than the row
-// above: these stack with everything else and only outbid each other. A group
-// is named for the skill the rest stands in for, so the row is left off that
-// one -- "Sharp Eyes does not stack with Sharp Eyes" says nothing.
+// The group whose effects this skill doesn't stack with. A weaker warning than
+// the row above: these stack with everything else and only override each other.
+// A group is named after the skill the others stand in for, so that skill gets
+// no row, since "Sharp Eyes does not stack with Sharp Eyes" says nothing.
 std::vector<Row> ExclusiveGroupRows(const Skill& skill) {
   if (skill.exclusive_group().empty() ||
       skill.exclusive_group() == skill.name()) {
@@ -390,14 +390,14 @@ std::vector<Row> ExclusiveGroupRows(const Skill& skill) {
   return {EffectRow("Does Not Stack With", skill.exclusive_group())};
 }
 
-// A plain number, to one decimal, with a whole number left whole. The same
-// rounding FormatPercent does and for the same reason.
+// A plain number to one decimal, with whole numbers left whole. The same
+// rounding as FormatPercent, for the same reason.
 std::string FormatNumber(double value, int decimals = 1) {
   char buf[32];
   snprintf(buf, sizeof(buf), "%.*f", decimals, value);
   std::string s = buf;
-  // A whole number is written whole, and a shorter fraction keeps only the
-  // digits it needs: 0.35 stays 0.35 where 70.0 is just 70.
+  // A whole number is shown whole, and a shorter fraction keeps only the digits
+  // it needs: 0.35 stays 0.35 while 70.0 becomes 70.
   if (s.find('.') != std::string::npos) {
     while (s.back() == '0') {
       s.pop_back();
@@ -409,8 +409,8 @@ std::string FormatNumber(double value, int decimals = 1) {
   return s;
 }
 
-// How far one attack reaches and how often. The swing and each own-clock half
-// say it in the same words, so two that reach differently are told apart.
+// How many enemies one attack hits. The attack and each own-clock half use the
+// same wording, so two with different reach can be told apart.
 std::string ReachText(int enemies) {
   return std::to_string(enemies) + (enemies == 1 ? " enemy" : " enemies");
 }
@@ -419,8 +419,8 @@ std::string ReachText(int enemies, double clock) {
   return ReachText(enemies) + " every " + FormatNumber(clock, 2) + "s";
 }
 
-// How often an own-clock half comes round: seconds of its own, or a count of
-// the character's own attacks. It names one clock or the other.
+// How often an own-clock half triggers: its own interval in seconds, or a count
+// of the character's own attacks. It names one or the other.
 std::string ModeClockText(const AutoMode& mode) {
   if (mode.attacks_per_cast() > 0) {
     return " every " + std::to_string(mode.attacks_per_cast()) + " attacks";
@@ -428,14 +428,14 @@ std::string ModeClockText(const AutoMode& mode) {
   return " every " + FormatNumber(mode.cast_interval_seconds(), 2) + "s";
 }
 
-// Whether a half fires at all, which is whether it names a clock. One naming
-// neither reads as not firing, which is the reading the fight takes.
+// Whether a half triggers at all, which is whether it names a clock. One naming
+// neither is treated as not triggering, as the fight treats it.
 bool ModeFires(const AutoMode& mode) {
   return mode.cast_interval_seconds() > 0.0 || mode.attacks_per_cast() > 0;
 }
 
-// How often a pulse comes round, as the tail of the row stating it: its own
-// clock, or the swing it rides.
+// How often a pulse triggers, as the end of its row: its own interval, or the
+// attack it follows.
 std::string PulseClockText(const BuffPulse& pulse) {
   if (!pulse.paced_by_skill_name().empty()) {
     return " with every " + pulse.paced_by_skill_name();
@@ -443,8 +443,8 @@ std::string PulseClockText(const BuffPulse& pulse) {
   return " every " + FormatNumber(pulse.cast_interval_seconds(), 2) + "s";
 }
 
-// The wait before a skill can be swung again. What a landed hit takes off
-// rides the same row: it is one clock, and a second row read as two.
+// The wait before a skill can be used again. What a landed hit reduces it by is
+// on the same row, since it is one timer and a second row would look like two.
 std::string CooldownText(const Skill& skill, int level) {
   std::string wait = FormatNumber(CooldownAt(skill, level)) + "s";
   if (skill.buff().cooldown_reduction_seconds() > 0.0) {
@@ -454,16 +454,16 @@ std::string CooldownText(const Skill& skill, int level) {
   return wait;
 }
 
-// Appends `from` to `into`. The row builders here all return vectors, and a
-// row is a move rather than a copy.
+// Appends `from` to `into`. The row builders all return vectors, and a row is
+// moved rather than copied.
 void Append(std::vector<Row> from, std::vector<Row>& into) {
   for (Row& row : from) {
     into.push_back(std::move(row));
   }
 }
 
-// `rows` with the silent ones dropped. Here rather than at layout, so a block
-// of nothing but those reads as empty and takes no divider or heading.
+// `rows` without the empty ones. Done here rather than at layout, so a block of
+// only empty rows counts as empty and gets no divider or heading.
 std::vector<Row> Speaking(std::vector<Row> rows) {
   std::vector<Row> kept;
   for (Row& row : rows) {
@@ -475,8 +475,8 @@ std::vector<Row> Speaking(std::vector<Row> rows) {
   return kept;
 }
 
-// What a scattered swing throws. A count that widens with the burns laid
-// states its band and what widens it, so a reader knows where a fight lands.
+// What a scattered attack throws. A count that grows with the burns applied
+// shows its range and what increases it, so a reader knows where a fight lands.
 std::string ScatterText(const Scatter& scatter) {
   std::string text = std::to_string(scatter.hits());
   if (scatter.hits_per_dot() > 0.0) {
@@ -499,10 +499,10 @@ std::string ScatterText(const Scatter& scatter) {
 
 std::vector<Row> ReachRows(const Skill& skill) {
   std::vector<Row> rows;
-  // A skill with a clock of its own states it where it states its reach: the
-  // two together are its shape. Only a clock the weapon cannot hurry is
-  // stated -- an ordinary swing is scaled by the speed stage, so one figure
-  // would be wrong for half the weapons that swing it.
+  // A skill with its own timer shows it alongside its reach, since together
+  // they describe its shape. Only a timer attack speed can't shorten is shown:
+  // an ordinary attack is scaled by the speed stage, so one number would be
+  // wrong for half the weapons using it.
   int enemies = std::max(1, skill.max_enemies());
   double clock = skill.cast_interval_seconds();
   if (clock <= 0.0 && skill.fixed_delay() && skill.base_delay_ms() > 0) {
@@ -511,22 +511,23 @@ std::vector<Row> ReachRows(const Skill& skill) {
   if (clock > 0.0) {
     rows.push_back(EffectRow("Attacks", ReachText(enemies, clock)));
   } else if (skill.max_enemies() > 1) {
-    // An arrow that gains as it travels states the gain beside the reach, the
-    // two being one fact: the reach is how far the gain compounds.
+    // An arrow that gains damage as it travels shows the gain beside its reach,
+    // since the two are one fact: the reach is how far the gain compounds.
     std::string reach = std::to_string(skill.max_enemies());
     if (skill.pierce_gain_pct() > 0.0) {
       reach += ", +" + FormatPercent(skill.pierce_gain_pct()) + " each";
     }
     rows.push_back(EffectRow("Enemies Hit", reach));
   }
-  // A scattered swing takes its own row: the reach above is how far it
-  // spreads before doubling up, and the cut is what doubling up costs.
+  // A scattered attack gets its own row: the reach above is how far it spreads
+  // before hitting targets twice, and the reduction is what hitting twice
+  // costs.
   if (skill.scatter().hits() > 0) {
     rows.push_back(EffectRow("Scattered", ScatterText(skill.scatter())));
   }
-  // Each own-clock half states its reach beside the swing's: an aura landing
-  // 20 strikes on 3 enemies beside a volley reaching 10 would otherwise read
-  // as one number being twice the other.
+  // Each own-clock half shows its reach beside the attack's. Otherwise an aura
+  // hitting 3 enemies 20 times beside a volley reaching 10 would look like one
+  // number being twice the other.
   for (const AutoMode& mode : skill.auto_mode()) {
     if (!ModeFires(mode)) {
       continue;
@@ -538,29 +539,29 @@ std::vector<Row> ReachRows(const Skill& skill) {
   return rows;
 }
 
-// Which attack this skill upgrades, how often, and how far the upgraded swing
-// carries when that is not the swing it stands in for.
+// Which attack this skill upgrades, how often, and how far the upgraded attack
+// reaches when that differs from the attack it replaces.
 std::vector<Row> EmpoweredRows(const Skill& skill) {
   std::vector<Row> rows;
-  // A skill upgrading an attack says which and how often. An empty name is a
-  // skill upgrading its own attack, which has no name to give.
+  // A skill upgrading an attack says which and how often. An empty name means
+  // the skill upgrades its own attack, which has no separate name.
   for (const EmpoweredForm& form : skill.empowered_form()) {
     if (form.casts_per_trigger() <= 0) {
       continue;
     }
-    // An upgrade with no rate on it is unconditional -- "Empowers" already
-    // says so, and a rate is what tells the other shape apart from it.
+    // An upgrade with no rate is unconditional; "Empowers" already says so, and
+    // the rate is what distinguishes the other case.
     std::string how = form.casts_per_trigger() == 1
                           ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
     rows.push_back(EffectRow("Empowers", how + EmpoweredTarget(form)));
-    // A mark on each enemy is a different promise from a count on the swing
-    // -- five that one enemy took, not five swings.
+    // A mark on each enemy is different from a count on the attack: five hits
+    // on one enemy, not five attacks.
     if (form.brands_each_enemy()) {
       rows.push_back(EffectRow("Marks", "Each Enemy Hit"));
     }
-    // Only a form stating a reach of its own gets the row: one saying nothing
-    // goes as far as what it replaces, and repeating that is noise.
+    // Only a form with its own reach gets the row. One that states none reaches
+    // as far as what it replaces, and repeating that is noise.
     if (!form.brands_each_enemy() && form.max_enemies() > 1) {
       rows.push_back(
           EffectRow("Empowered Enemies", std::to_string(form.max_enemies())));
@@ -569,8 +570,8 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
   return rows;
 }
 
-// The element a tag names, for a row that has to say which swings something
-// reaches. Only the two the page already draws can appear here.
+// The element a tag names, for a row that has to say which attacks something
+// affects. Only the two the page already shows can appear here.
 std::string TagName(SkillTag tag) {
   switch (tag) {
     case SKILL_TAG_ICE:
@@ -582,8 +583,8 @@ std::string TagName(SkillTag tag) {
   }
 }
 
-// The element a swing is, where the page names one. Every other tag marks a
-// family nothing here reads yet and names no element to print.
+// The attack's element, where the page names one. Every other tag marks a
+// category nothing here uses yet and has no element to show.
 SkillTag ElementOf(const Skill& skill) {
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE ||
@@ -595,18 +596,19 @@ SkillTag ElementOf(const Skill& skill) {
   return SKILL_TAG_UNSPECIFIED;
 }
 
-// Everything about a skill that reads the same at every level.
+// Everything about a skill that is the same at every level.
 //
-// That a swing freezes, stuns or marks is the DESCRIPTION's to say: a row here
-// answers "how much", and the pacing band stretches every status duration.
-// What a mark is WORTH to the rest of the book does have a number.
+// That an attack freezes, stuns or marks is for the description to say: rows
+// here answer "how much", and the game's speed scaling stretches every status
+// duration. What a mark is worth to the rest of the skill book does have a
+// number.
 std::vector<Row> ElementRows(const Skill& skill) {
   std::vector<Row> rows;
   if (ElementOf(skill) != SKILL_TAG_UNSPECIFIED) {
     rows.push_back(EffectRow("Element", TagName(ElementOf(skill))));
   }
-  // What a stun hands the swings that collect it. The row states the TAG,
-  // since a lift with none is collected by nothing and writes no row.
+  // What a stun gives the attacks that consume it. The row states the tag,
+  // since a bonus with no tag is consumed by nothing and gets no row.
   if (skill.stun().final_dmg_pct() > 0.0 &&
       skill.stun().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
     rows.push_back(EffectRow("Stunned Enemies",
@@ -614,8 +616,9 @@ std::vector<Row> ElementRows(const Skill& skill) {
                                  " Final Damage from " +
                                  TagName(skill.stun().lifted_tag())));
   }
-  // What spending a mark hands the line that spends it. One line does, so the
-  // row says so: read as the whole swing's it would be ten times the skill.
+  // What consuming a mark gives the line that consumes it. Only one line gets
+  // it, so the row says so; read as applying to the whole attack, it would be
+  // ten times the real value.
   if (skill.mark().final_dmg_pct() > 0.0 &&
       skill.mark().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
     rows.push_back(EffectRow("Marked Enemies",
@@ -626,46 +629,46 @@ std::vector<Row> ElementRows(const Skill& skill) {
   return rows;
 }
 
-// The rows that hold at every level: what the skill asks for and how far a
-// swing reaches. No row here counts SECONDS -- the pacing band stretches every
-// duration, so a figure a player could time would not be the one printed.
+// Rows that apply at every level: what the skill requires and how far an attack
+// reaches. No row here shows seconds, since the game's speed scaling stretches
+// every duration, so a number a player could time wouldn't match the one shown.
 std::vector<Row> InvariantRows(const Skill& skill) {
   std::vector<Row> rows = RequirementRows(skill);
   Append(ReplacesRows(skill), rows);
   Append(ExclusiveGroupRows(skill), rows);
   Append(ElementRows(skill), rows);
   Append(ReachRows(skill), rows);
-  // How deep the pile goes. Here rather than at the level because the CAP
-  // never climbs: what a point buys is what one stack is worth.
+  // The maximum stack count. Shown here rather than at the level because the
+  // cap never increases; what a point buys is what one stack is worth.
   if (skill.freeze_stack_cap() > 0) {
     rows.push_back(EffectRow(
         "Freeze Stacks", "Up to " + std::to_string(skill.freeze_stack_cap())));
   }
-  // The same, for the burns the drains count: the cap never climbs either.
+  // The same for the burns the drains count, whose cap never increases either.
   if (skill.dot_count_cap() > 0) {
     rows.push_back(EffectRow("Burns Counted",
                              "Up to " + std::to_string(skill.dot_count_cap())));
   }
-  // A ring that never grows is stated once here; one that does is what a
-  // point buys, so it reads at the level -- the cooldown's split.
+  // A fixed orb count is shown once here; one that grows is what a point buys,
+  // so it goes in the level block, split the same way as the cooldown.
   if (skill.combo_orbs() > 0 && skill.combo_orbs_per_level() <= 0.0) {
     rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
   }
-  // The one clock the player can feel, because they set it: their own
-  // attacking. It is a count of swings rather than a duration.
+  // The one timer the player can feel, because they control it: their own
+  // attacks. It is a count of attacks rather than a duration.
   if (skill.attacks_per_cast() > 0) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
   }
-  // The other counted clock: what the player leaves dead behind them.
+  // The other counted timer: how many monsters the player kills.
   if (skill.kills_per_cast() > 0) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.kills_per_cast()) + " Defeats"));
   }
   Append(EmpoweredRows(skill), rows);
-  // How long the player swings something else afterwards, which is what a
-  // skill this good costs. One that shortens is not invariant and waits for
-  // the level block.
+  // How long the player uses other attacks afterwards, which is the cost of a
+  // skill this strong. A cooldown that shortens with level isn't invariant and
+  // goes in the level block.
   if (skill.cooldown_seconds() > 0.0 &&
       skill.cooldown_seconds_per_level() == 0.0) {
     rows.push_back(EffectRow("Cooldown", CooldownText(skill, 1)));
@@ -673,10 +676,10 @@ std::vector<Row> InvariantRows(const Skill& skill) {
   return Speaking(std::move(rows));
 }
 
-// A swing's damage: the per-strike percentage, the strikes, and what the two
-// come to on one enemy -- the total being what skills are compared on.
+// An attack's damage: the per-line percentage, the lines, and the total on one
+// enemy, since skills are compared by the total.
 std::string SwingText(double per_hit, int lines, int casts = 1) {
-  // An unset lines means one strike, the same reading the damage chain takes.
+  // An unset line count means one line, as the damage formula reads it.
   if (lines <= 0) {
     lines = 1;
   }
@@ -686,8 +689,8 @@ std::string SwingText(double per_hit, int lines, int casts = 1) {
   if (lines == 1 && casts == 1) {
     return FormatPercent(per_hit);
   }
-  // Written in GMS's own order -- so much damage, so many lines, so many
-  // strikes -- because the total alone hides which of the three moved.
+  // In GMS's order (damage, lines, then strikes), because the total alone hides
+  // which of the three changed.
   std::string text = FormatPercent(per_hit) + " x" + std::to_string(lines);
   if (casts > 1) {
     text += " x" + std::to_string(casts);
@@ -700,14 +703,14 @@ std::string DamageText(const Skill& skill, int level) {
                    SkillLinesAt(skill, level), SkillCasts(skill));
 }
 
-// What the same swing lands on anything that is not a boss. Stated as the
-// WHOLE swing: the bonus adds per LINE, so "+180%" beside a 900% swing would
+// What the same attack deals to anything that isn't a boss. Shown as the whole
+// attack: the bonus is added per line, so "+180%" beside a 900% attack would
 // read as 1080% when it is twice that.
 std::string NormalMonsterText(const Skill& skill, int level) {
   double bonus = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
   double damage = PercentAt(skill, &SkillEffect::skill_pct, level);
-  // Nothing to be the other reading OF. Meso Explosion states its points on a
-  // thrown coin rather than on a swing, and OwnEffectRows prints that pair.
+  // Nothing to compare against. Meso Explosion shows its points on a thrown
+  // coin rather than an attack, and OwnEffectRows prints that pair.
   if (bonus <= 0.0 || damage <= 0.0) {
     return "";
   }
@@ -715,8 +718,8 @@ std::string NormalMonsterText(const Skill& skill, int level) {
                    SkillCasts(skill));
 }
 
-// One clause onto the list, comma-separated: a boost granting several has to
-// name each.
+// Adds one clause to a comma-separated list, since a boost granting several
+// things has to name each.
 void AppendGain(const std::string& text, std::string& gains) {
   if (text.empty()) {
     return;
@@ -727,19 +730,19 @@ void AppendGain(const std::string& text, std::string& gains) {
   gains += text;
 }
 
-// What a boost adds to the shape of the swing it names: strikes, reach, the
-// wait, the clock.
+// What a boost adds to the shape of the attack it names: lines, reach, cooldown
+// and timer.
 std::string StructureBoostText(const SkillBoost& boost, int level) {
-  // Read exactly as the line ladder is, so the level a skill widens at is the
-  // level its data names.
+  // Computed exactly as the line ladder is, so the level where a skill gains
+  // reach is the level its data says.
   constexpr double kEnemyEpsilon = 1e-9;
   std::string gains;
   if (boost.lines() > 0) {
     gains = "+" + std::to_string(boost.lines()) +
             (boost.lines() == 1 ? " Strike" : " Strikes");
   }
-  // Apart from the line above because these are different strikes: "+1
-  // Strike" alone would be read as the swing's.
+  // Separate from the line above because these are different strikes: "+1
+  // Strike" alone would be read as the attack's own.
   if (boost.extra_hit_lines() > 0) {
     AppendGain("+" + std::to_string(boost.extra_hit_lines()) +
                    (boost.extra_hit_lines() == 1 ? " Strike" : " Strikes") +
@@ -755,19 +758,19 @@ std::string StructureBoostText(const SkillBoost& boost, int level) {
         "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies"),
         gains);
   }
-  // The share off the wait, as GMS writes it -- the seconds it comes to are
-  // on the target's own page, which states its whole ladder.
+  // The cooldown reduction as a percentage, as GMS states it. The seconds it
+  // amounts to are on the target skill's own page, which shows its full ladder.
   if (boost.cooldown_pct() > 0.0) {
     AppendGain("-" + FormatPercent(boost.cooldown_pct()) + " Cooldown", gains);
   }
-  // The new clock rather than the change to it: what replaces cannot be read
-  // as a delta, and the target's own page states the same figure the same way.
+  // The new timer rather than the change: a replacement can't be read as a
+  // difference, and the target's own page shows the same figure the same way.
   if (boost.attacks_per_cast() > 0) {
     AppendGain("every " + std::to_string(boost.attacks_per_cast()) + " attacks",
                gains);
   }
-  // The hits it hands that swing, read as the swing's own are. NAMED, what it
-  // adds being a strike of its own rather than more of the swing.
+  // The hits it gives that attack, shown like the attack's own. Named, since
+  // what it adds is a separate strike rather than more of the attack.
   for (const SwingHit& hit : boost.extra_hit()) {
     std::string landed = SwingText(
         hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1),
@@ -781,8 +784,9 @@ std::string StructureBoostText(const SkillBoost& boost, int level) {
   return gains;
 }
 
-// What a boost adds to the mark the named skill leaves and the buff it stands
-// as. Apart from the lever table: neither is the swing, and each has a clock.
+// What a boost adds to the mark the named skill leaves and the buff it acts as.
+// Separate from the field table, since neither is the attack and each has a
+// timer.
 std::string MarkBoostText(const SkillBoost& boost, int level) {
   std::string gains;
   double dot_pct =
@@ -792,8 +796,8 @@ std::string MarkBoostText(const SkillBoost& boost, int level) {
                    " DoT Damage per Tick",
                gains);
   }
-  // Seconds rather than a share, which is how GMS states it and the only way
-  // the row could be read: the target's page states the whole ladder.
+  // Seconds rather than a percentage, which is how GMS states it and the only
+  // readable way: the target's page shows the whole ladder.
   double dot_seconds = boost.dot_duration_seconds() +
                        boost.dot_duration_seconds_per_level() * (level - 1);
   if (dot_seconds != 0.0) {
@@ -820,21 +824,21 @@ std::string MarkBoostText(const SkillBoost& boost, int level) {
   return gains;
 }
 
-// What one skill hands another that is NOT damage: strikes, reach, a shorter
-// wait, a longer buff, or the levers it alone carries.
+// What one skill gives another that isn't damage: strikes, reach, a shorter
+// cooldown, a longer buff, or fields only it has.
 std::string BoostText(const SkillBoost& boost, int level) {
   std::string gains = StructureBoostText(boost, level);
   AppendGain(MarkBoostText(boost, level), gains);
-  // The levers the boost hands that skill alone, named because a sentence
-  // granting two cannot leave either unsaid. In the effect rows' order.
+  // The fields the boost gives only that skill, each named, since a sentence
+  // granting two can't leave either out. In the effect rows' order.
   struct BoostLever {
     const char* label;
     double (SkillEffect::*fn)() const;
   };
   const BoostLever kBoostLevers[] = {
-      // Points on the skill's own multiplier, which every strike lands, so
-      // the row says per strike. The row below is the other bargain: a share
-      // of the character's damage only this swing collects.
+      // Points on the skill's own multiplier, which every strike uses, so the
+      // row says per strike. The row below is the other kind of bonus: a share
+      // of the character's damage that only this attack gets.
       {"Damage per Strike", &SkillEffect::skill_pct},
       {"Damage", &SkillEffect::damage_pct},
       {"Final Damage", &SkillEffect::final_dmg_pct},
@@ -844,8 +848,8 @@ std::string BoostText(const SkillBoost& boost, int level) {
       {"Critical Rate", &SkillEffect::crit_rate},
       {"Final Attack Rate", &SkillEffect::final_attack_chance},
   };
-  // Written as the multiple GMS writes, not as the points it comes to: what
-  // the row means is that the target's own rate doubles, whatever that rate is.
+  // Shown as the multiplier GMS uses, not the points it amounts to: the row
+  // means the target's own rate doubles, whatever that rate is.
   if (boost.final_attack_chance_mult() > 0.0) {
     AppendGain("x" + FormatNumber(boost.final_attack_chance_mult()) +
                    " Final Attack Rate",
@@ -857,8 +861,8 @@ std::string BoostText(const SkillBoost& boost, int level) {
     if (value == 0.0) {
       continue;
     }
-    // A lever can be handed out backwards, and FormatPercent writes the minus
-    // itself, so only the plus has to be put back.
+    // A field can be granted negative, and FormatPercent writes the minus
+    // itself, so only the plus has to be added back.
     AppendGain(
         (value > 0.0 ? "+" : "") + FormatPercent(value) + " " + lever.label,
         gains);
@@ -866,8 +870,8 @@ std::string BoostText(const SkillBoost& boost, int level) {
   return gains;
 }
 
-// The opening hit's line. It lands on TOP of the swing's damage, on one of the
-// enemies it reaches, so the row says which -- or the two read as
+// The opening hit's line. It lands on top of the attack's damage, on one of the
+// enemies it reaches, so the row says which; otherwise the two would look like
 // alternatives.
 std::string LeadText(const Skill& skill, int level) {
   double per_hit = PercentAt(skill, &SkillEffect::lead_pct, level);
@@ -880,8 +884,8 @@ std::string LeadText(const Skill& skill, int level) {
     damage +=
         " x" + std::to_string(lines) + " = " + FormatPercent(per_hit * lines);
   }
-  // How many of the swing's enemies it lands on: one for the opening hit every
-  // rogue swings, more for an arrow's fragment, which bounces onto several.
+  // How many of the attack's enemies it hits: one for the opening hit every
+  // rogue lands, more for an arrow's fragment, which bounces onto several.
   int enemies = std::max(1, skill.lead_enemies());
   if (enemies == 1) {
     return damage + " (one enemy)";
@@ -889,16 +893,16 @@ std::string LeadText(const Skill& skill, int level) {
   return damage + " (" + std::to_string(enemies) + " enemies)";
 }
 
-// Times over the swing carrying these hits lands them: once per strike it is
-// told apart into, each of those being a whole swing to the fight. 1 for a
-// swing whose strikes fall together. See Skill.cast_interval_ms.
+// How many times an attack carrying these hits lands them: once per strike it
+// is split into, since each of those counts as a whole attack in the fight. 1
+// for an attack whose strikes land together. See Skill.cast_interval_ms.
 int SequencedCasts(const Skill& skill) {
   return skill.cast_interval_ms() > 0 ? SkillCasts(skill) : 1;
 }
 
-// The damage rows for hits a swing lands beside its own, each on its own line
-// with its ordinary-monster reading under it. Shared with an empowered form.
-// `swing_casts` is what the swing repeats, which these repeat with.
+// The damage rows for hits an attack lands alongside its own, each on its own
+// line with its normal-monster value below it. Shared with empowered forms.
+// `swing_casts` is how many times the attack repeats, which these repeat with.
 std::vector<Row> SwingHitRows(
     const google::protobuf::RepeatedPtrField<SwingHit>& hits, int level,
     int swing_casts = 1) {
@@ -906,13 +910,13 @@ std::vector<Row> SwingHitRows(
   for (const SwingHit& hit : hits) {
     double per_hit =
         hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
-    // A hit that crits more often says so on its OWN damage row, being a fact
-    // about this damage rather than a lever of the character's. Wrapped: the
+    // A hit with a higher crit rate says so on its own damage row, since it is
+    // a fact about this damage rather than a character stat. Wrapped, since the
     // note is the one thing that can push a damage row past its column.
     std::string text =
         SwingText(per_hit, hit.lines(), SwingHitCasts(hit) * swing_casts);
-    // A half that finds its own crowd says so: read against the swing's reach
-    // it would be wrong whichever way the two differ.
+    // A half that picks its own targets says so, since reading it against the
+    // attack's reach would be wrong whichever way the two differ.
     if (hit.max_enemies() > 0) {
       text += ", " + ReachText(hit.max_enemies());
     }
@@ -923,8 +927,8 @@ std::vector<Row> SwingHitRows(
     } else if (crit > 0.0) {
       text += " (" + FormatPercent(crit) + " crit)";
     }
-    // Final damage this half alone carries, on its own damage row for the
-    // critical rate's reason: the swing's row is the character's lever.
+    // Final damage only this half has, on its own damage row for the same
+    // reason as the crit rate: the attack's row shows the character's stat.
     double lifted = hit.base().final_dmg_pct() +
                     hit.per_level().final_dmg_pct() * (level - 1);
     if (lifted > 0.0) {
@@ -938,8 +942,8 @@ std::vector<Row> SwingHitRows(
                                SwingText(per_hit + bonus, hit.lines(),
                                          SwingHitCasts(hit) * swing_casts)));
     }
-    // A hit that heals pays per LINE of every strike, so its row reads as the
-    // damage row does: the total is the point.
+    // A hit that heals pays per line of every strike, so its row reads like the
+    // damage row: the total is what matters.
     double heal = hit.base().hp_recover_pct() +
                   hit.per_level().hp_recover_pct() * (level - 1);
     if (heal > 0.0) {
@@ -956,8 +960,8 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
                            int level, const std::string& suffix) {
   std::vector<Row> rows;
   for (const FlatLever& lever : kFlatLevers) {
-    // WholeValue rather than a cast, so the page floors a fractional ladder
-    // by the same rule the character is granted by rather than restating it.
+    // WholeValue rather than a cast, so the page floors a fractional ladder by
+    // the same rule the character gets it by instead of restating the rule.
     int value =
         WholeValue((base.*lever.fn)() + (per.*lever.fn)() * (level - 1));
     if (value == 0) {
@@ -971,8 +975,8 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
   }
   for (const PercentLever& lever : kPercentLevers) {
     double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
-    // A signed lever writes a row for anything but nothing at all; every other
-    // one is unset when it is not positive.
+    // A signed field writes a row for any value except zero; every other field
+    // is treated as unset when it isn't positive.
     bool unset =
         lever.sign == kSigned ? std::abs(value) < kWholeEpsilon : value <= 0.0;
     if (unset) {
@@ -1010,9 +1014,8 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
   return rows;
 }
 
-// A fountain states both halves: the pulse grows and the wait shortens
-// together, so showing only the pulse understates every point after the
-// first.
+// A fountain shows both halves: the pulse grows and the interval shortens
+// together, so showing only the pulse understates every point after the first.
 std::vector<Row> RegenRows(const Skill& skill, int level) {
   double regen = PercentAt(skill, &SkillEffect::regen_pct, level);
   int regen_hp = FlatAt(skill, &SkillEffect::regen_hp, level);
@@ -1021,8 +1024,8 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
   if ((regen <= 0.0 && regen_hp <= 0) || interval <= 0.0) {
     return {};
   }
-  // A fountain pouring both states both, the flat half first: it is the one
-  // the player can hold against their pool.
+  // A fountain that grants both shows both, flat amount first, since that is
+  // the one the player can compare with their pool.
   std::string poured;
   if (regen_hp > 0) {
     poured = std::to_string(regen_hp) + " HP";
@@ -1031,8 +1034,8 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
     poured += (poured.empty() ? "" : " and ") + FormatPercent(regen);
   }
   std::string text = poured + " every " + FormatNumber(interval) + "s";
-  // One more helping per step of INT, most of what a Bishop's points buy.
-  // With the pulse rather than alone, where it would read as a share.
+  // One more pulse per step of INT, most of what a Bishop's points buy. Shown
+  // with the pulse rather than alone, where it would look like a percentage.
   double step = PercentAt(skill, &SkillEffect::regen_int_step, level);
   if (step > 0.0) {
     text +=
@@ -1041,8 +1044,9 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
   return {EffectRow("HP Recovered", text)};
 }
 
-// The heal that answers nearly dying, which needs all four of its numbers to
-// mean anything: what it pours, for how long, under what, and how often.
+// The heal that triggers when nearly dead, which needs all four of its numbers
+// to mean anything: how much it heals, for how long, at what threshold, and how
+// often.
 std::vector<Row> EmergencyHealRows(const Skill& skill, int level) {
   double pct = PercentAt(skill, &SkillEffect::emergency_heal_pct, level);
   if (pct <= 0.0) {
@@ -1060,8 +1064,8 @@ std::vector<Row> EmergencyHealRows(const Skill& skill, int level) {
           EffectRow("Recovery Cooldown", FormatNumber(cooldown) + "s")};
 }
 
-// What a hold does beyond its own pulse: the closing strike, the pulse it
-// grows into, and the share of a hit it shelters from.
+// What a hold does beyond its own pulse: the final strike, the pulse it grows
+// into, and the share of a hit it blocks.
 std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
   google::protobuf::RepeatedPtrField<SwingHit> hits;
   if (skill.channel().has_finish()) {
@@ -1077,11 +1081,11 @@ std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
 }
 
 // What a hold is worth and what it costs: where it grows, how many pulses one
-// press buys, and the bank it is bought out of rather than a cooldown.
+// press gives, and the pool it draws from instead of a cooldown.
 std::vector<Row> ChannelRows(const Skill& skill, int level) {
   std::vector<Row> rows;
-  // Under the opening pulse: a count of pulses means nothing until the reader
-  // sees what arrives.
+  // Below the opening pulse, since a pulse count means nothing until the reader
+  // sees what each pulse does.
   if (skill.channel().has_grown()) {
     google::protobuf::RepeatedPtrField<SwingHit> grown;
     *grown.Add() = skill.channel().grown();
@@ -1090,8 +1094,8 @@ std::vector<Row> ChannelRows(const Skill& skill, int level) {
         EffectRow("Grows After",
                   std::to_string(skill.channel().small_pulses()) + " Pulses"));
   }
-  // A COUNT rather than a clock, and a ceiling rather than a promise -- the
-  // player lets go when it stops paying.
+  // A count rather than a timer, and a maximum rather than a guarantee: the
+  // player lets go when it stops paying off.
   std::string pulses = "Up to " + std::to_string(skill.channel().max_pulses());
   if (skill.channel().pulses_per_charge() > 0) {
     pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
@@ -1107,14 +1111,14 @@ std::vector<Row> ChannelRows(const Skill& skill, int level) {
   return rows;
 }
 
-// What the skill itself does when it goes off: its damage, its healing, and
-// the shapes a plain lever row cannot state.
+// What the skill itself does when it triggers: its damage, its healing, and the
+// effects a plain field row can't express.
 std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   bool held = skill.channel().max_pulses() > 0;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
-    // A hold's damage row is ONE pulse, so it says so: read as the whole
-    // thing it would be out by the pulse count.
+    // A hold's damage row is one pulse, so it says so; read as the whole hold,
+    // it would be off by the pulse count.
     rows.push_back(EffectRow(held ? "Damage per Pulse" : "Damage",
                              DamageText(skill, level)));
   }
@@ -1123,15 +1127,15 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   }
   Append(RegenRows(skill, level), rows);
   Append(EmergencyHealRows(skill, level), rows);
-  // What one meso is worth thrown back, read as every other swing here is:
-  // per line, times the count. Meso Mastery's points land a line apiece.
+  // What one meso is worth thrown back, shown like every other attack here: per
+  // line, times the count. Meso Mastery's points each add a line.
   double meso_hit = PercentAt(skill, &SkillEffect::meso_hit_pct, level);
   if (meso_hit > 0.0) {
     rows.push_back(EffectRow(
         "Damage per Meso",
         SwingText(meso_hit, SkillLinesAt(skill, level), SkillCasts(skill))));
-    // The other reading of the row above, straight under it: GMS pays a
-    // thrown coin extra POINTS, which are legible only as their total.
+    // The other reading of the row above, directly below it: GMS gives a thrown
+    // coin extra points, which only make sense as their total.
     double normal = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
     if (normal > 0.0) {
       rows.push_back(
@@ -1140,50 +1144,50 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
                               SkillCasts(skill))));
     }
   }
-  // A share of what the hit it COPIES dealt: a 70% shadow behind a 210% line
-  // lands 147%. The row says "of each hit", the bare percentage reading as a
-  // flat figure to everyone.
+  // A share of what the copied hit dealt: a 70% shadow behind a 210% line deals
+  // 147%. The row says "of each hit", since a bare percentage looks like a flat
+  // figure to everyone.
   double mirror = PercentAt(skill, &SkillEffect::mirror_line_pct, level);
   if (mirror > 0.0) {
     rows.push_back(
         EffectRow("Shadow Damage", FormatPercent(mirror) + " of each hit"));
   }
-  // A strike on every swing the character already lands more than once.
+  // An extra strike on every attack the character already lands more than once.
   int strikes = FlatAt(skill, &SkillEffect::bonus_attack_lines, level);
   if (strikes > 0) {
     rows.push_back(EffectRow("Extra Strike", "+" + std::to_string(strikes) +
                                                  " on every multi-hit skill"));
   }
-  // Dispel's whole effect, and a promise kept -- nothing in the game inflicts
-  // what it lifts yet. Flat: the points buy nothing more.
+  // Dispel's whole effect, shown even though nothing in the game inflicts
+  // conditions yet. Flat, since more points don't add anything.
   if (skill.base().cures_conditions()) {
     rows.push_back(EffectRow("Cures", "All Conditions"));
   }
-  // The barrier opened onto bosses. Flat for the same reason Dispel's row is:
-  // the switch is thrown once and no level throws it further.
+  // Lets the barrier work on bosses. Flat for the same reason as Dispel's row:
+  // it is an on/off switch, and no level turns it further.
   if (skill.base().enemy_attack_reaches_boss()) {
     rows.push_back(EffectRow("Enemy ATT", "Also Reduced on Bosses"));
   }
-  // Straight under the damage it is the other reading of, so the two totals
-  // stand one over the other.
+  // Directly under the damage it is the other reading of, so the two totals
+  // line up.
   std::string normal = NormalMonsterText(skill, level);
   if (!normal.empty()) {
     rows.push_back(EffectRow("Normal Monsters", normal));
   }
-  // The other hit the same swing lands, with its ordinary-monster reading
-  // under it, exactly as the swing's own two rows above.
+  // The other hit the same attack lands, with its normal-monster value below
+  // it, like the attack's own two rows above.
   Append(SwingHitRows(skill.extra_hit(), level, SequencedCasts(skill)), rows);
   if (held) {
     Append(ChannelFinishRows(skill, level), rows);
   }
-  // Under the swing's own damage, because it is the extra the swing opens with
-  // rather than a second attack.
+  // Below the attack's own damage, because it is the extra hit the attack opens
+  // with rather than a second attack.
   rows.push_back(EffectRow("Opening Hit", LeadText(skill, level)));
   return rows;
 }
 
-// The burn a swing leaves, as ONE row: the tick, its interval and its
-// duration. None of the three says anything on its own.
+// The burn an attack leaves, as one row: the tick damage, its interval and its
+// duration, since none of the three means anything alone.
 std::string DotText(const Dot& dot, int level) {
   double per_tick =
       dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
@@ -1192,8 +1196,8 @@ std::string DotText(const Dot& dot, int level) {
   std::string text = SwingText(per_tick, dot.lines()) + " every " +
                      FormatNumber(dot.interval_seconds(), 2) + "s for " +
                      FormatNumber(burns_for) + "s";
-  // What a carried poison has and a swing's burn does not: it is rolled for,
-  // and it piles up.
+  // What a carried poison has that an attack's burn doesn't: it is rolled for,
+  // and it stacks.
   double chance = dot.chance() + dot.chance_per_level() * (level - 1);
   if (chance > 0.0) {
     text = FormatPercent(std::min(1.0, chance)) + " chance of " + text;
@@ -1207,9 +1211,9 @@ std::string DotText(const Dot& dot, int level) {
   return text;
 }
 
-// The chance every swing has to land harder on one enemy. Chance and damage
-// are one fact and share a line, as a Final Attack's do; the recovery takes
-// its own, being what the player gets rather than what the enemy takes.
+// The chance every attack has to hit one enemy harder. Chance and damage are
+// one fact and share a line, like a Final Attack's. The recovery gets its own
+// row, since it is what the player gets rather than what the enemy takes.
 std::vector<Row> ProcRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Proc& proc = skill.proc();
@@ -1231,9 +1235,9 @@ std::vector<Row> ProcRows(const Skill& skill, int level) {
   return rows;
 }
 
-// Chance and damage are one fact, not two levers, so they share a line. Taken
-// as a pair of EFFECTS rather than off the skill: a buff can grant one while
-// it stands and states its ladder there.
+// Chance and damage are one fact, not two fields, so they share a line. Taken
+// as a pair of effects rather than from the skill, because a buff can grant one
+// while active and state its ladder there.
 std::vector<Row> FinalAttackRows(const SkillEffect& base,
                                  const SkillEffect& per, int level,
                                  int max_enemies, const std::string& label) {
@@ -1242,9 +1246,9 @@ std::vector<Row> FinalAttackRows(const SkillEffect& base,
   if (proc <= 0.0) {
     return {};
   }
-  // A crowd of its own has to be said, or a player comparing it with another
-  // reads it as worth several times more or less. Clipped to a comma so the
-  // note does not push the row past its column.
+  // A separate target count has to be stated, or a player comparing it with
+  // another would think it worth several times more or less. Cut at a comma so
+  // the note doesn't push the row past its column.
   std::string reach;
   if (max_enemies == 1) {
     reach = ", one enemy";
@@ -1260,10 +1264,10 @@ std::vector<Row> FinalAttackRows(const SkillEffect& base,
       FormatPercent(proc) + " for " + SwingText(damage, strikes) + reach)};
 }
 
-// The burn the swing leaves, and the strike it sets off beside itself.
+// The burn the attack leaves, and the side strike it triggers.
 std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
   std::vector<Row> rows;
-  // Under the swing's own damage, since it is what that swing left behind.
+  // Below the attack's own damage, since it is what that attack left behind.
   if (skill.dot().interval_seconds() > 0.0) {
     rows.push_back(EffectRow("DoT", DotText(skill.dot(), level)));
   }
@@ -1271,8 +1275,8 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
                          skill.final_attack_max_enemies(),
                          skill.final_attack_label()),
          rows);
-  // The strike the swing sets off beside itself. Its wait rides the damage
-  // row, and its reach is stated only where it differs from the swing's.
+  // The side strike the attack triggers. Its cooldown goes on the damage row,
+  // and its reach is shown only where it differs from the attack's.
   if (skill.has_side_strike()) {
     const SideStrike& side = skill.side_strike();
     int casts = std::max(1, side.casts());
@@ -1282,8 +1286,8 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
     if (side.max_enemies() > 0 && side.max_enemies() != skill.max_enemies()) {
       text += ", " + std::to_string(side.max_enemies()) + " enemies";
     }
-    // Only where the strike really waits. One with no wait of its own goes out
-    // with every swing, and "every 0s" says that to nobody.
+    // Only when the strike really has a cooldown. One without triggers on every
+    // attack, and "every 0s" tells nobody anything.
     if (side.cooldown_seconds() > 0.0) {
       text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
     }
@@ -1295,8 +1299,9 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
           EffectRow(side.label() + " Normal",
                     SwingText(per_hit + normal, side.lines(), casts)));
     }
-    // A side strike scatters on its own row for the same reason the swing's
-    // does, and under its own name: the reach above is how far it spreads.
+    // A side strike that scatters gets its own row, for the same reason the
+    // attack does, and under its own name: the reach above is how far it
+    // spreads.
     if (side.scatter().hits() > 0) {
       rows.push_back(
           EffectRow(side.label() + " Scattered", ScatterText(side.scatter())));
@@ -1305,13 +1310,13 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
   return rows;
 }
 
-// The damage of every half that fights on a clock of its own, and of every
-// swing this skill puts in the place of another.
+// The damage of every half with its own timer, and of every attack this skill
+// substitutes for another.
 std::vector<Row> OwnClockRows(const Skill& skill, int level) {
   std::vector<Row> rows;
-  // Each own-clock half's damage, under the swing's own so they read as one
-  // skill with several ways of hurting things, each under the name its reach
-  // row above carries.
+  // Each own-clock half's damage, below the attack's own, so they read as one
+  // skill with several ways of dealing damage, each under the name its reach
+  // row above uses.
   for (const AutoMode& mode : skill.auto_mode()) {
     if (!ModeFires(mode)) {
       continue;
@@ -1321,15 +1326,16 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
                                     mode.per_level().skill_pct() * (level - 1),
                                 mode.lines(), mode.casts())));
   }
-  // The upgraded attack's damage beside the permanent bonus below it: one
-  // skill strengthening another twice over, so both halves read together. Its
-  // normal-monster reading follows, as the ordinary attack's does.
+  // The upgraded attack's damage next to the permanent bonus below it: one
+  // skill strengthening another in two ways, so both are read together. Its
+  // normal-monster value follows, as with the ordinary attack.
   for (const EmpoweredForm& form : skill.empowered_form()) {
     if (form.casts_per_trigger() <= 0) {
       continue;
     }
-    // One form is "Empowered Damage" and needs no more; several have to say
-    // which swing each belongs to, so they take the upgraded skill's name.
+    // A single form is "Empowered Damage" and needs nothing more; several have
+    // to say which attack each belongs to, so they use the upgraded skill's
+    // name.
     std::string label = skill.empowered_form_size() > 1
                             ? EmpoweredTarget(form)
                             : std::string("Empowered Damage");
@@ -1342,30 +1348,31 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
       rows.push_back(EffectRow("Empowered Normal",
                                SwingText(per_hit + normal, form.lines())));
     }
-    // What the upgraded swing lands beside itself, under the swing it belongs
-    // to -- the explosion at the end of an arrow's flight, the mark it spends.
+    // What the upgraded attack lands alongside itself, under the attack it
+    // belongs to: the explosion at the end of an arrow's flight, or the mark it
+    // consumes.
     Append(SwingHitRows(form.extra_hit(), level), rows);
   }
   return rows;
 }
 
 // A heading over one half of a skill that has two. Orange and green are the
-// skill list's tags for active and passive, so the halves are told apart by
-// the colours the player learned there. Only the HEADING is coloured.
+// skill list's tags for active and passive, so the halves use the colours the
+// player already knows. Only the heading is coloured.
 Row SectionRow(const std::string& label, ftxui::Color color) {
   return WholeRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
-// What one list of boosts hands other skills, one sentence a grant.
-// `own_card` heads them rather than naming the skill in each row, which is
-// what a boost node wants.
+// What one list of boosts gives other skills, one sentence per grant.
+// `own_card` puts a heading above them instead of naming the skill in each row,
+// which suits a boost node.
 std::vector<Row> BoostRows(
     const google::protobuf::RepeatedPtrField<SkillBoost>& boosts, int level,
     bool own_card) {
   std::vector<Row> rows;
-  // Label what, value how much, as every other row here. ONE row per skill
-  // named however many times: a node's damage, the enemy it adds at 20 and the
-  // defence it ignores at 40 are three grants on one row.
+  // Label for what, value for how much, like every other row here. One row per
+  // skill however many times it is named: a node's damage, the extra enemy at
+  // level 20 and the defence ignored at 40 are three grants on one row.
   std::map<std::string, std::string> gained;
   std::vector<std::string> named;
   for (const SkillBoost& granted : boosts) {
@@ -1376,8 +1383,8 @@ std::vector<Row> BoostRows(
     if (gains.empty()) {
       continue;
     }
-    // A grant aimed at the empowered form alone takes its own row: merged
-    // into the parent's it would read as the parent gaining it.
+    // A grant for the empowered form only gets its own row, since merged into
+    // the parent's row it would look like the parent gets it.
     std::string target = granted.reach() == BOOST_REACH_EMPOWERED
                              ? EmpoweredSkillName(granted.skill_name())
                              : granted.skill_name();
@@ -1386,9 +1393,9 @@ std::vector<Row> BoostRows(
     }
     AppendGain(gains, gained[target]);
   }
-  // A boost node is nothing but its boosts, so it takes the heading however
-  // many skills it names: "Boosts" said once buys every row the seven columns
-  // the word costs. A Hyper Skill names one skill and says so in the row.
+  // A boost node is nothing but its boosts, so it gets the heading however many
+  // skills it names; saying "Boosts" once saves the seven columns on every row.
+  // A Hyper Skill names one skill and says so in the row.
   if (named.size() > 1 || own_card) {
     rows.push_back(SectionRow("Boosts", kGreen));
     for (const std::string& name : named) {
@@ -1402,9 +1409,9 @@ std::vector<Row> BoostRows(
   return rows;
 }
 
-// The wound a skill leaves and the heavier press it opens. Two headings, both
-// needed: the player has to be told the press has a second form, what fills
-// the wound that opens it, and that the form costs a longer wait.
+// The wound a skill leaves and the stronger attack it enables. Two headings,
+// both needed: the player has to learn that the attack has a second form, what
+// causes the wound that enables it, and that the form has a longer cooldown.
 std::vector<Row> WoundRows(const Skill& skill, int level) {
   const Wound& wound = skill.wound();
   std::vector<Row> rows;
@@ -1441,7 +1448,7 @@ std::vector<Row> WoundRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Cooldown", FormatNumber(form.cooldown_seconds()) + "s"));
   }
-  // Everything but the damage, which the row above already states.
+  // Everything but the damage, which the row above already shows.
   SkillEffect base = form.base();
   SkillEffect per = form.per_level();
   base.clear_skill_pct();
@@ -1460,8 +1467,8 @@ std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
   return rows;
 }
 
-// The shell a buff stands as: the hits it swallows whole, and what it does
-// about the ones it cannot. Empty for every buff that is not one.
+// The shield a buff provides: the hits it fully absorbs, and what it does about
+// the ones it can't. Empty for every buff that isn't a shield.
 std::vector<Row> ShieldRows(const Shield& shield, int level) {
   std::vector<Row> rows;
   int hits = ShieldHitsAt(shield, level);
@@ -1470,8 +1477,8 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
   }
   rows.push_back(EffectRow("Blocks", std::to_string(hits) + " attacks"));
   if (shield.boss_damage_taken_pct() > 0.0) {
-    // Named for what it covers rather than for what it is: a player reading
-    // this wants to know it is the boss hits the shell cannot swallow.
+    // Named for what it covers rather than what it is: a player reading this
+    // wants to know it applies to the boss hits the shield can't absorb.
     rows.push_back(
         EffectRow("Damage Taken (Boss)",
                   "-" + FormatPercent(shield.boss_damage_taken_pct())));
@@ -1479,9 +1486,9 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
   return rows;
 }
 
-// The strike a pulse goes out on: its own damage and reach, and nothing of the
-// clock above, since it lands once and only when that clock stops. The levers
-// are the pulse's row to state, riding the whole of what it does.
+// The final strike a pulse ends with: its own damage and reach, and nothing
+// about the timer above, since it lands once, only when that timer ends. The
+// fields belong on the pulse's row, which covers everything it does.
 std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
   if (!pulse.has_final_strike()) {
     return {};
@@ -1494,7 +1501,7 @@ std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
     text += " on " + ReachText(burst.max_enemies());
   }
   std::vector<Row> rows = {EffectRow(burst.label(), text)};
-  // What it states over and above the pulse's own, which it already keeps.
+  // What it adds beyond the pulse's own, which it already keeps.
   SkillEffect base = burst.base();
   SkillEffect per = burst.per_level();
   base.clear_skill_pct();
@@ -1503,9 +1510,9 @@ std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
   return rows;
 }
 
-// What the buff bleeds. A pulse borrowing the swing's reach says its damage and
-// clock on ONE row, the two being one fact; one reaching enemies of its own
-// says so in an Attacks row and keeps the damage row for damage.
+// What the buff deals over time. A pulse using the attack's reach shows its
+// damage and interval on one row, since they are one fact; one with its own
+// targets shows them in an Attacks row and keeps the damage row for damage.
 std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
   if (!Pulses(pulse)) {
     return {};
@@ -1516,14 +1523,15 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
       SwingText(per_hit, pulse.lines(), std::max(1, pulse.casts()));
   if (pulse.max_pulses() > 0) {
     damage += ", " + std::to_string(pulse.max_pulses()) + " times";
-    // The one it goes out on is not one of the count, so it is not folded into
-    // it: a player reading nine wants the tenth said out loud.
+    // The final strike isn't part of the count, so it isn't folded in: a player
+    // reading nine wants the tenth stated.
     if (pulse.final_repeat_strike()) {
       damage += ", then once more";
     }
   }
-  // Whatever else the pulse carries rides its own strikes, not the character
-  // -- Burning Soul Blade's sword crits half again as often as its owner does.
+  // Anything else the pulse carries applies to its own strikes, not the
+  // character: Burning Soul Blade's sword crits half again as often as its
+  // owner.
   SkillEffect base = pulse.base();
   SkillEffect per = pulse.per_level();
   base.clear_skill_pct();
@@ -1537,8 +1545,8 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
     rows.push_back(EffectRow(
         "Attacks", ReachText(pulse.max_enemies()) + PulseClockText(pulse)));
   }
-  // What surviving one is worth to the next. Stated as the damage it WALKS
-  // TO: the top of the ramp is what a boss takes for most of a cast.
+  // What each pulse that lands adds to the next. Shown as the damage it builds
+  // up to, since the top of the ramp is what a boss takes for most of a cast.
   double step = pulse.skill_pct_per_repeat() +
                 pulse.skill_pct_per_repeat_per_level() * (level - 1);
   if (step > 0.0 && pulse.max_repeats() > 0) {
@@ -1546,14 +1554,14 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
         "Per Stack", "+" + FormatPercent(step) + ", up to " +
                          FormatPercent(per_hit + step * pulse.max_repeats())));
   }
-  // The strikes a tick throws whatever the crowd is. Stated WHOLE: the total
-  // is what a lone boss takes, and spreading is what a crowd does to it.
+  // The strikes a tick lands whatever the number of enemies. Shown as the
+  // total, since that is what a lone boss takes, and a crowd only spreads it.
   if (pulse.fixed_strikes().hits() > 0) {
     rows.push_back(EffectRow(
         "Plus", SwingText(per_hit, pulse.fixed_strikes().hits()) + ", spread"));
   }
-  // What a crowd is worth to the rain, whose strikes grow with the swing. The
-  // cap belongs on the row, or the ladder reads as unbounded.
+  // What extra enemies add to the rain, whose strikes grow with the attack. The
+  // cap goes on the row, or the ladder would look unlimited.
   if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {
     rows.push_back(EffectRow(
         "Per Extra Enemy",
@@ -1562,14 +1570,14 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
             ", up to +" + std::to_string(pulse.max_extra_lines())));
   }
   Append(FinalStrikeRows(pulse, level), rows);
-  // Last, because they ride everything above them: the levers a pulse states
-  // are the turret's, the strike it goes out on included.
+  // Last, because they apply to everything above: the fields a pulse states are
+  // the turret's, including its final strike.
   Append(std::move(levers), rows);
   return rows;
 }
 
-// The party's fountain, stated as the character's own is. Its own builder
-// rather than a lever row: neither half says anything alone.
+// The party's healing, shown like the character's own. It has its own builder
+// rather than a field row, since neither half means anything alone.
 std::vector<Row> PartyRegenRows(const SkillEffect& half, const Buff& buff) {
   if (half.regen_pct() <= 0.0 || half.regen_interval_seconds() <= 0.0) {
     return {};
@@ -1589,12 +1597,12 @@ std::vector<Row> PartyRegenRows(const SkillEffect& half, const Buff& buff) {
   return {EffectRow("HP Recovered", text)};
 }
 
-// The value a lever table writes for one field, by the label it writes it
-// under -- so a ceiling can be stated in the units its own lever is stated in.
+// The value a field table writes for each field, keyed by its label, so a cap
+// can be shown in the same units as its field.
 std::map<std::string, std::string> LeverValuesByLabel(const SkillEffect& at) {
   std::map<std::string, std::string> values;
   for (const Row& row : LeverRows(at, SkillEffect(), 1, "")) {
-    // The sign belongs to a grant, not to a ceiling being quoted.
+    // The sign belongs to a grant, not to a quoted cap.
     values[row.label] = row.value.empty() || row.value.front() != '+'
                             ? row.value
                             : row.value.substr(1);
@@ -1602,16 +1610,16 @@ std::map<std::string, std::string> LeverValuesByLabel(const SkillEffect& at) {
   return values;
 }
 
-// What the CASTER's INT adds to the party's share, one row a lever: the rate
-// and the ceiling. Rendered at a single step, the row stating a RATE -- the
-// total depends on the caster's own INT, which is the point.
+// What the caster's INT adds to the party's share, one row per field: the rate
+// and the cap. Shown at a single step, so the row states a rate; the total
+// depends on the caster's own INT, which is the point.
 std::vector<Row> AllyIntLeverRows(const Buff& buff, int level) {
   std::map<std::string, std::string> own =
       LeverValuesByLabel(EffectAt(buff.base(), buff.per_level(), level));
   std::map<std::string, std::string> ceiling;
   std::vector<Row> rows;
   for (const AllyIntLever& lever : buff.ally_int_lever()) {
-    // The fountain states its own growth beside its pulse, above.
+    // The fountain shows its own growth beside its pulse, above.
     if (lever.int_step() <= 0.0 || lever.effect().regen_pct() > 0.0) {
       continue;
     }
@@ -1638,9 +1646,9 @@ std::vector<Row> AllyIntLeverRows(const Buff& buff, int level) {
   return rows;
 }
 
-// What the rest of the party gets while the buff stands, in the party screens'
-// colour. Under the buff's heading rather than at the foot of the card,
-// because these lapse with it.
+// What the rest of the party gets while the buff is active, in the party
+// screens' colour. Under the buff's heading rather than at the bottom of the
+// card, because these end with it.
 std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   SkillEffect base = buff.ally_base();
   SkillEffect per = buff.ally_per_level();
@@ -1648,8 +1656,8 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   base.clear_heal_pct();
   per.clear_heal_pct();
   std::vector<Row> levers = LeverRows(base, per, level, "");
-  // A party shell stands over everybody as one, so what it blocks is stated
-  // for them as for the caster. One that is not says nothing here.
+  // A party shield covers everyone as one, so what it blocks is shown for them
+  // as for the caster. A non-party shield shows nothing here.
   std::vector<Row> shield = buff.shield().party()
                                 ? ShieldRows(buff.shield(), level)
                                 : std::vector<Row>();
@@ -1663,7 +1671,7 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   }
   Append(std::move(levers), rows);
   Append(AllyIntLeverRows(buff, level), rows);
-  // Last of the three, being the half of the grant that is not a lever.
+  // Last of the three, since it is the part of the grant that isn't a field.
   Append(PartyRegenRows(
              EffectAt(buff.ally_base(), buff.ally_per_level(), level), buff),
          rows);
@@ -1671,9 +1679,9 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   return rows;
 }
 
-// The forms a buff can be raised in, a heading and a pulse apiece. BOTH are
-// stated: the player never picks between them -- the fight does -- so what the
-// card owes them is the pair side by side.
+// The forms a buff can take, each with a heading and a pulse. Both are shown:
+// the player never chooses between them (the fight does), so the card shows the
+// pair side by side.
 std::vector<Row> StanceRows(const Buff& buff, int level) {
   std::vector<Row> rows;
   for (const Stance& stance : buff.stance()) {
@@ -1688,10 +1696,10 @@ std::vector<Row> StanceRows(const Buff& buff, int level) {
   return rows;
 }
 
-// The swing a buff loads, headed by its name and what one raising pays for. A
-// block of its own: it is a separate press with its own damage, reach and
-// levers, and the count is what the player reads first. A load another skill
-// spends names whose press fires it.
+// The attack a buff loads, headed by its name and what one activation provides.
+// It gets its own block because it is a separate press with its own damage,
+// reach and fields, and the count is what the player reads first. A load that
+// another skill uses names the skill that fires it.
 std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
   if (magazine.charges() <= 0) {
     return {};
@@ -1720,16 +1728,16 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
         "Spends",
         std::to_string(magazine.charges_per_swing()) + " per attack"));
   }
-  // What the bank fills to with NO buff raised: the passive half, stated here
-  // because it holds whether or not the buff ever goes up.
+  // What the magazine refills to with no buff active: the passive half, shown
+  // here because it applies whether or not the buff is ever used.
   if (magazine.recharge_seconds() > 0.0 && magazine.recharge_max() > 0) {
     rows.push_back(EffectRow(
         "Prepared", std::to_string(magazine.recharge_max()) + " every " +
                         FormatNumber(magazine.recharge_seconds()) +
                         "s, passively"));
   }
-  // Whatever else it carries rides its own strikes rather than the character:
-  // the cartridge crits every time, its owner does not.
+  // Anything else it carries applies to its own strikes, not the character: the
+  // cartridge always crits, while its owner doesn't.
   SkillEffect base = magazine.base();
   SkillEffect per = magazine.per_level();
   base.clear_skill_pct();
@@ -1738,8 +1746,8 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
   return rows;
 }
 
-// How long the buff stands, for its heading. A window the burns lengthen
-// states its band and the rule that moves it, as ScatterText does.
+// How long the buff lasts, for its heading. A duration the burns extend shows
+// its range and the rule that changes it, as ScatterText does.
 std::string BuffWindowText(const Buff& buff, int level) {
   double seconds =
       buff.duration_seconds() + buff.duration_seconds_per_level() * (level - 1);
@@ -1752,24 +1760,25 @@ std::string BuffWindowText(const Buff& buff, int level) {
          FormatNumber(buff.duration_seconds_per_dot()) + "s per DoT";
 }
 
-// The buff's heading: how long it stands, and what raises it where no
-// Cooldown row can say so.
+// The buff's heading: how long it lasts, and what triggers it when no Cooldown
+// row can say so.
 std::string BuffHeading(const Buff& buff, int level) {
-  // A buff bought with landed hits says so in its heading: that count is the
-  // whole of what it costs, and there is no Cooldown row to carry it.
+  // A buff paid for with landed hits says so in its heading, since that count
+  // is its whole cost and there is no Cooldown row for it.
   std::string charge =
       buff.charge_lines() > 0
           ? " every " + std::to_string(buff.charge_lines()) + " hits"
           : "";
-  // A shared buff says so here rather than in a Your Party section: it grants
-  // the party nothing of its own -- everyone raises the same one in turn.
+  // A shared buff says so here rather than in a Your Party section, since it
+  // gives the party nothing of its own; everyone activates the same one in
+  // turn.
   std::string shared = buff.party_shared() ? ", shared with your party" : "";
-  // A buff only the wound form raises says which press pays for it, or the
-  // heading reads as though both did.
+  // A buff only the wound form triggers says which attack triggers it, or the
+  // heading would suggest both do.
   std::string form = buff.needs_wound_form() ? ", after the wounded form" : "";
-  // A buff a swing ROLLS for says what the roll is and what it needs, the
-  // same way a charged one says its count: there is no Cooldown row on one
-  // that waits for nothing else.
+  // A buff an attack rolls for states the roll and what it needs, as a charged
+  // buff states its count, since there is no Cooldown row on one that waits for
+  // nothing else.
   double chance =
       buff.raise_chance() + buff.raise_chance_per_level() * (level - 1);
   if (chance > 0.0) {
@@ -1781,22 +1790,22 @@ std::string BuffHeading(const Buff& buff, int level) {
   return "Active for " + BuffWindowText(buff, level) + charge + shared + form;
 }
 
-// What a timed buff grants, headed by how long it stands. The wait for the
-// next one is the skill's own Cooldown row, above; no row here says "while
-// up", the heading saying it once for all of them.
+// What a timed buff grants, headed by its duration. The wait for the next one
+// is the skill's own Cooldown row above. No row here says "while active"; the
+// heading says it once for all of them.
 std::vector<Row> BuffRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Buff& buff = skill.buff();
   if (LongestBuffDuration(buff) <= 0.0) {
     return rows;
   }
-  // A buff with forms carries no length of its own: each form heads its own
-  // block below, and one heading for both would have to lie about one of them.
+  // A buff with forms has no duration of its own: each form heads its own block
+  // below, and one heading for both would be wrong about one of them.
   if (buff.stance().empty()) {
     rows.push_back(SectionRow(BuffHeading(buff, level), kGold));
   }
-  // The heal is handed over once, when the buff goes up -- so it is stated on
-  // its own rather than among the levers that hold for as long as it stands.
+  // The heal is given once, when the buff is activated, so it is shown
+  // separately from the fields that apply for as long as it lasts.
   SkillEffect base = buff.base();
   SkillEffect per = buff.per_level();
   double heal = base.heal_pct() + per.heal_pct() * (level - 1);
@@ -1806,48 +1815,49 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
-  // A buff gathered in helpings grants its levers once per helping, so the
-  // count has to be on the card or the rows below read as the whole grant.
+  // A buff gathered in charges grants its fields once per charge, so the count
+  // must be on the card or the rows below would look like the whole grant.
   std::string per_stage = "";
   if (buff.stacks() > 1) {
     rows.push_back(EffectRow(
         "Stacks", std::to_string(buff.stacks()) + ", each on its own clock"));
     per_stage = " each";
   }
-  // A shedding buff grants its levers once per stage standing, so the count
-  // has to be on the card or the rows below it read as the whole grant.
+  // A buff that loses stages grants its fields once per remaining stage, so the
+  // count must be on the card or the rows below would look like the whole
+  // grant.
   if (buff.stages() > 1) {
     rows.push_back(EffectRow(
         "Stages", std::to_string(buff.stages()) + ", one lost every " +
                       FormatNumber(buff.stage_interval_seconds()) + "s"));
     per_stage = " each";
   }
-  // The summon this buff dismisses while it stands. A statement rather than a
-  // number, like the Element row: there is no figure to put on it.
+  // The summon this buff dismisses while active. A statement rather than a
+  // number, like the Element row, since there is no figure to show.
   if (!buff.silences_skill_name().empty()) {
     rows.push_back(EffectRow("Dismisses", buff.silences_skill_name()));
   }
-  // A buff that grants in bursts says so, or every row below would read as
-  // held for the whole window the heading just stated.
+  // A buff that grants in bursts says so, or every row below would look like it
+  // applies for the whole duration the heading states.
   if (buff.duty_seconds() > 0.0 && buff.duty_interval_seconds() > 0.0) {
     rows.push_back(EffectRow(
         "Granted", FormatNumber(buff.duty_seconds()) + "s of every " +
                        FormatNumber(buff.duty_interval_seconds()) + "s"));
   }
   Append(LeverRows(base, per, level, per_stage), rows);
-  // The share paid only for company, named in the row rather than headed:
-  // one line of a buff the rest of which stands alone.
+  // The part granted only in a party, named in the row rather than under a
+  // heading, since it is one line of a buff that otherwise works alone.
   Append(LeverRows(buff.with_party_base(), buff.with_party_per_level(), level,
                    " in a party"),
          rows);
-  // A Final Attack the buff hands over for as long as it stands. Under the
-  // buff's own heading, which has already said how long that is.
+  // A Final Attack the buff grants while active. Under the buff's own heading,
+  // which already says how long that is.
   Append(FinalAttackRows(base, per, level, skill.final_attack_max_enemies(),
                          skill.final_attack_label()),
          rows);
   Append(ShieldRows(buff.shield(), level), rows);
-  // Named in the row rather than headed: these stand under the buff's own
-  // heading, which has already said they last only as long as it does.
+  // Named in the row rather than under a heading: these are under the buff's
+  // own heading, which already says they last only as long as it does.
   Append(BoostRows(buff.boost(), level, false), rows);
   Append(PulseRows(buff.pulse(), level), rows);
   Append(StanceRows(buff, level), rows);
@@ -1856,9 +1866,9 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   return rows;
 }
 
-// What the skill simply KEEPS: an attack states this apart from the levers
-// riding its swing, and a passive states everything here. What a chance pays
-// lands here too -- nothing about it lapses.
+// What the skill grants permanently. An attack shows this separately from the
+// fields that apply to its attacks, and a passive shows everything here. What a
+// chance pays also goes here, since none of it ends.
 std::vector<Row> PermanentRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   if (skill.kind() == SKILL_KIND_ATTACK) {
@@ -1873,7 +1883,7 @@ std::vector<Row> PermanentRows(const Skill& skill, int level) {
   return rows;
 }
 
-// A weapon bonus reads as the lever it grants with the weapons it needs in
+// A weapon bonus shows the field it grants with the required weapons in
 // brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.
 std::vector<Row> WeaponBonusRows(const Skill& skill) {
   std::vector<Row> rows;
@@ -1887,8 +1897,8 @@ std::vector<Row> WeaponBonusRows(const Skill& skill) {
   return rows;
 }
 
-// The share of the character's Final Attack this swing gives up. Apart from
-// the lever table because it has to NAME what it cuts: "Final Attack Rate
+// The share of the character's Final Attack this attack gives up. Separate from
+// the field table because it has to name what it reduces: "Final Attack Rate
 // -60%" tells a Night Lord nothing. See Skill::final_attack_label.
 std::vector<Row> FinalAttackCutRow(const Skill& skill, int level) {
   double cut = PercentAt(skill, &SkillEffect::final_attack_chance_cut, level);
@@ -1900,16 +1910,16 @@ std::vector<Row> FinalAttackCutRow(const Skill& skill, int level) {
                     "-" + FormatPercent(cut))};
 }
 
-// Everything the skill grants at `level`. Empty for a skill whose real effect
-// is something this game has no notion of.
+// Everything the skill grants at `level`. Empty for a skill whose actual effect
+// the game doesn't model.
 std::vector<Row> EffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   Append(OwnEffectRows(skill, level), rows);
   Append(ExtraAttackRows(skill, level), rows);
-  // A skill grants three different things and only one is the character's for
-  // good: what rides the swing, what stands while a buff is up, and what it
-  // keeps. Each is headed where another is present, "Ignore DEF" otherwise
-  // being one row meaning three things.
+  // A skill grants three kinds of things, and only one is permanent: what
+  // applies to its attack, what applies while a buff is active, and what it
+  // always keeps. Each gets a heading when another is present, since otherwise
+  // "Ignore DEF" would be one row meaning three things.
   std::vector<Row> swing =
       skill.kind() == SKILL_KIND_ATTACK
           ? LeverRows(SwingLeversOf(skill.base()),
@@ -1918,7 +1928,7 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   Append(FinalAttackCutRow(skill, level), swing);
   std::vector<Row> permanent = PermanentRows(skill, level);
   std::vector<Row> buff = BuffRows(skill, level);
-  // Read before either is handed over, since Append takes its rows by value.
+  // Checked before either is appended, since Append takes its rows by value.
   bool has_swing = !swing.empty();
   bool has_buff = !buff.empty();
   if (has_swing) {
@@ -1926,8 +1936,9 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
     Append(std::move(swing), rows);
   }
   Append(std::move(buff), rows);
-  // A skill paid only for shielding somebody heads its own half whatever else
-  // is on the page: a player maxing it and seeing nothing move reads why.
+  // A skill whose only value is shielding others gets its own section whatever
+  // else is on the page, so a player maxing it and seeing nothing change can
+  // see why.
   std::vector<Row> ally =
       LeverRows(skill.ally_base(), skill.ally_per_level(), level, "");
   if (!permanent.empty() &&
@@ -1936,14 +1947,14 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
         skill.requires_party() ? "Passive, in a Party" : "Passive", kGreen));
   }
   Append(std::move(permanent), rows);
-  // What everybody else in the party gets, in the colour the party screens
-  // are drawn in. Its own section: these are not the reader's numbers.
+  // What everyone else in the party gets, in the party screens' colour. Its own
+  // section, since these aren't the reader's numbers.
   if (!ally.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
     Append(std::move(ally), rows);
   }
-  // A wait that shortens as the skill is taught is what a point buys, so it
-  // reads at the level; one that never moves is stated once above the
+  // A cooldown that shortens as the skill levels is what a point buys, so it
+  // goes in the level block; one that never changes is shown once above the
   // divider.
   if (skill.cooldown_seconds() > 0.0 &&
       skill.cooldown_seconds_per_level() != 0.0) {
@@ -1957,9 +1968,9 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   return Speaking(std::move(rows));
 }
 
-// One "Level N" heading and the effects under it. `cost` is the step's price
-// in V Points, 0 for a level nobody is being quoted -- one already paid for,
-// and every SP level, where a level is a point.
+// One "Level N" heading and the effects below it. `cost` is that level's price
+// in V Points, or 0 for a level with no price shown: one already paid for, and
+// every SP level, where a level costs one point.
 std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   std::vector<Row> rows;
   std::string heading = " Level " + std::to_string(level);
@@ -1969,8 +1980,8 @@ std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   rows.push_back(WholeRow(ftxui::text(heading)));
   std::vector<Row> effects = EffectRows(skill, level);
   if (effects.empty()) {
-    // A skill whose whole effect is unmodelled still has levels to spend on,
-    // and saying so is better than a heading standing over nothing.
+    // A skill whose whole effect isn't modelled still has levels to spend on,
+    // and saying so is better than a heading over nothing.
     rows.push_back(WholeRow(EmptyState("no effect", kEffectIndent)));
   }
   for (Row& row : effects) {
@@ -1979,9 +1990,9 @@ std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   return rows;
 }
 
-// The card's rows in its two groups, borders aside and columns not yet
-// decided. The head -- name, description, the facts that hold at every level
-// -- is held on screen; the level blocks under it are what scrolls.
+// The card's rows in its two groups, without borders and before the columns are
+// decided. The top part (name, description, and facts that apply at every
+// level) stays on screen; the level blocks below it scroll.
 struct SkillRows {
   std::vector<Row> head;
   std::vector<Row> body;
@@ -2007,22 +2018,23 @@ SkillRows CardRowsFor(const Skill& skill, int level, int bonus,
     Append(std::move(invariant), rows);
   }
 
-  // Two blocks, and which two is the whole difference between the modes: the
-  // level the skill is at and what one more point buys, or the first level and
-  // the last. Both are the LENT levels; whether a point is left to spend is
-  // the learned level's business, which is why the two are asked apart.
+  // Two blocks, and which two is the only difference between the modes: the
+  // current level and what one more point gives, or the first level and the
+  // last. Both use the effective levels, including bonuses; whether a point is
+  // left to spend depends on the learned level, which is why the two are
+  // checked separately.
   int first = 1;
   int second = SkillMaxLevel(skill);
   bool has_second = second > first;
   if (levels == SkillInspectPanel::kLearned) {
     first = LevelWithBonus(skill, level, bonus);
     second = LevelWithBonus(skill, level + 1, bonus);
-    // A point that buys nothing gets no block: the lent levels can already
-    // have carried the skill to the ceiling the next one would reach.
+    // A point that gives nothing gets no block: bonus levels may already have
+    // taken the skill to the maximum the next point would reach.
     has_second = level < SkillMaxLevel(skill) && second > first;
   }
-  // The rule over the first block closes the head; the one between the blocks
-  // scrolls with them, and the bar crosses it.
+  // The rule above the first block ends the top part. The rule between the
+  // blocks scrolls with them, and the bar crosses it.
   if (first > 0 || has_second) {
     rule(card.head);
   }
@@ -2033,9 +2045,9 @@ SkillRows CardRowsFor(const Skill& skill, int level, int bonus,
     if (first > 0) {
       rule(card.body);
     }
-    // A node's next level wears its price, its levels not being one point
-    // each. Priced off the LEARNED level: the ladder charges for the step
-    // being bought, whatever the heading reads.
+    // A node's next level shows its price, since its levels don't cost one
+    // point each. Priced from the learned level, since the ladder charges for
+    // the level being bought, whatever the heading shows.
     int cost = levels == SkillInspectPanel::kLearned
                    ? VNodeStepCost(skill.v_node(), level + 1)
                    : 0;
@@ -2044,7 +2056,7 @@ SkillRows CardRowsFor(const Skill& skill, int level, int bonus,
   return card;
 }
 
-// The widest label the rows carry, which is what the label column is cut to.
+// The widest label among the rows, which sets the label column's width.
 int WidestLabel(const std::vector<Row>& rows) {
   int widest = 0;
   for (const Row& row : rows) {
@@ -2055,8 +2067,8 @@ int WidestLabel(const std::vector<Row>& rows) {
   return widest;
 }
 
-// The columns the card asks for: its indent, the widest label with a gap
-// after it, and the widest value, held to the floor a description reads at.
+// The width the card asks for: its indent, the widest label with a gap after
+// it, and the widest value, but at least the minimum a description needs.
 int NaturalContentWidth(const std::vector<Row>& rows) {
   int value = 0;
   for (const Row& row : rows) {
@@ -2068,8 +2080,8 @@ int NaturalContentWidth(const std::vector<Row>& rows) {
                   kEffectIndent + WidestLabel(rows) + kLabelGap + value);
 }
 
-// The columns inside the border, from what the rows ask and what the screen
-// allows. Both bounds are whole-card widths; zero is unbounded.
+// The width inside the border, from what the rows need and what the screen
+// allows. Both bounds are whole-card widths, and zero means no limit.
 int ContentWidth(const std::vector<Row>& rows, int min_card, int max_card) {
   int content = NaturalContentWidth(rows);
   if (min_card > 0) {
@@ -2081,23 +2093,23 @@ int ContentWidth(const std::vector<Row>& rows, int min_card, int max_card) {
   return std::max(content, kEffectIndent + kMinValueWidth);
 }
 
-// Every row of both groups, for the measures that span the whole card: the
-// label column is cut once, so the head's facts and the level blocks under
-// them line up.
+// Every row of both groups, for measurements across the whole card: the label
+// column is sized once, so the top part's facts and the level blocks below line
+// up.
 std::vector<Row> AllRows(const SkillRows& card) {
   std::vector<Row> rows = card.head;
   rows.insert(rows.end(), card.body.begin(), card.body.end());
   return rows;
 }
 
-// `rows` drawn into `content` columns, labels cut to `widest_label`. A value
-// too long continues on the next line with the label blank, rather than being
-// cut mid-word.
+// `rows` drawn into `content` columns, with labels cut to `widest_label`. A
+// value too long continues on the next line with the label blank, instead of
+// being cut mid-word.
 std::vector<CardRow> LayOut(std::vector<Row> rows, int content,
                             int widest_label) {
   const std::string indent(kEffectIndent, ' ');
-  // Just enough for the widest label, unless the card is too narrow to seat
-  // that and a value worth reading -- then the long labels take their own row.
+  // Just wide enough for the widest label, unless the card is too narrow to fit
+  // that plus a readable value; then long labels get their own row.
   int label_width =
       std::min(widest_label + kLabelGap,
                std::max(1, content - kEffectIndent - kMinValueWidth));
@@ -2119,8 +2131,8 @@ std::vector<CardRow> LayOut(std::vector<Row> rows, int content,
       continue;
     }
     std::string head = row.label;
-    // A label too wide takes a row to itself rather than being cut -- half a
-    // skill's name is not one -- and the value reads under it.
+    // A label that is too wide gets its own row rather than being cut, since
+    // half a skill name isn't a name, and the value goes below it.
     if (TextColumns(head) > label_width) {
       lines.push_back(TextRow(ftxui::text(indent + head)));
       head.clear();
@@ -2134,7 +2146,7 @@ std::vector<CardRow> LayOut(std::vector<Row> rows, int content,
   return lines;
 }
 
-// The card's rows, laid out and grouped for the ScrollCard to draw.
+// The card's rows, laid out and grouped for ScrollCard to draw.
 CardRows Laid(const SkillRows& card, int content) {
   int widest = WidestLabel(AllRows(card));
   CardRows rows;
@@ -2167,8 +2179,8 @@ void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
 }
 
 void SkillInspectPanel::ScrollBy(int delta) {
-  // Laid out first: the card answers from its last render, and the budget or
-  // the skill may have moved since.
+  // Laid out first, since the card reports from its last render and the budget
+  // or the skill may have changed since.
   Render();
   card_.ScrollBy(delta);
 }
@@ -2179,7 +2191,7 @@ ftxui::Element SkillInspectPanel::Render() const {
   }
   SkillRows card = CardRowsFor(*skill_, level_, bonus_, levels_);
   int content = ContentWidth(AllRows(card), min_width_, max_width_);
-  // What the skill is, which is the first thing worth knowing about it.
+  // What kind of skill it is, the first thing worth knowing about it.
   std::string title = IsActive(*skill_) ? " Active " : " Passive ";
   return card_.Render(title, Laid(card, content), content);
 }
@@ -2198,8 +2210,8 @@ PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
                                    int max_columns) {
   PreviewCardSize size;
   SkillInspectPanel panel;
-  // Two passes: a card's height is a fact about the width it was laid out at,
-  // so the widest card sets the width and every card is measured again.
+  // Two passes: a card's height depends on the width it was laid out at, so the
+  // widest card sets the width and then every card is measured again.
   panel.SetWidthBounds(0, max_columns);
   for (int pass = 0; pass < 2; ++pass) {
     for (const Skill* skill : skills) {
