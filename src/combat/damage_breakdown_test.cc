@@ -7,18 +7,19 @@
 namespace ms {
 namespace {
 
-// A row adds its lines up, counts each cast once however many monsters and
-// lines it reached, and comes back heaviest first.
+// A row sums its lines, counts each cast once however many monsters and lines
+// it hit, and rows sort heaviest first.
 TEST(DamageBreakdownTest, RowsAddUpAndCountEachCastOnce) {
   DamageBreakdown breakdown;
-  // One swing over two monsters, two lines each, with a Final Attack on both.
+  // One attack on two monsters, two lines each, plus a Final Attack on both.
   breakdown.AddLine("Brandish", 100.0, 1);
   breakdown.AddLine("Brandish", 100.0, 1);
   breakdown.AddLine("Brandish", 100.0, 1);
   breakdown.AddLine("Brandish", 100.0, 1);
   breakdown.AddLine("Advanced Final Attack", 50.0, 1);
   breakdown.AddLine("Advanced Final Attack", 50.0, 1);
-  // A three-pulse hold filed monster by monster: casts 2-4, then 2-4 again.
+  // A three-pulse hold recorded one monster at a time: casts 2-4, then 2-4
+  // again.
   for (int mob = 0; mob < 2; ++mob) {
     for (int cast = 2; cast <= 4; ++cast) {
       breakdown.AddLine("Hurricane", 10.0, cast);
@@ -53,8 +54,8 @@ TEST(DamageBreakdownTest, NothingLandedIsNoRowsAndNoShare) {
   EXPECT_DOUBLE_EQ(BreakdownRow{}.per_line(), 0.0);
 }
 
-// Two players' rows of one name are one row of the party's; a tie keeps name
-// order.
+// Merging two players' rows with the same name gives one party row. Ties sort
+// by name.
 TEST(DamageBreakdownTest, MergeAddsUpEachSkillAcrossPlayers) {
   std::vector<PlayerBreakdown> players(2);
   players[0].rows = {{"Raging Blow", 300.0, 3, 9}, {"Puncture", 50.0, 5, 5}};

@@ -11,8 +11,8 @@
 namespace ms {
 namespace {
 
-// A drop table line of each kind. Only the rate and which side of the oneof
-// is set matter here -- BossDropRate never looks the name up.
+// One drop table line of each kind. Only the rate and which oneof field is set
+// matter here, since BossDropRate never looks up the name.
 MobDrop Equip(double per_kill) {
   MobDrop drop;
   drop.set_equip("gear");
@@ -27,15 +27,16 @@ MobDrop Item(double per_kill) {
   return drop;
 }
 
-// A rate below one is a chance per kill, so a big enough sample lands near
-// the rate and no single kill is owed anything.
+// A rate below one is a chance per kill. A large sample lands near the rate,
+// but no single kill is guaranteed a drop.
 TEST(RollDropsTest, PaysTheRateOverManyKills) {
   std::mt19937 rng(1234);
   int64_t dropped = RollDrops(0.4, 100000, rng);
   EXPECT_NEAR(dropped, 40000, 1500);
 }
 
-// The old accumulator paid the 5,000th kill, every time. A roll does not.
+// Drops are rolled, not paid out on a fixed schedule such as every 5,000th
+// kill.
 TEST(RollDropsTest, DoesNotPayOnASchedule) {
   std::mt19937 rng(7);
   bool differed = false;
@@ -45,7 +46,7 @@ TEST(RollDropsTest, DoesNotPayOnASchedule) {
   EXPECT_TRUE(differed) << "twenty batches all paid exactly the mean";
 }
 
-// A rate above one owes a drop outright and rolls only what is left over.
+// A rate above one pays its whole part every time and rolls only the remainder.
 TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
   std::mt19937 rng(99);
   for (int trial = 0; trial < 10; ++trial) {
@@ -55,8 +56,8 @@ TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
   }
 }
 
-// A boss's table is paid once, so drop gear buys a piece of gear a better
-// chance at falling and never a second copy of it.
+// A boss table is paid once per clear, so drop rate raises the chance of a gear
+// drop but never past certain, and never adds a second copy.
 TEST(BossDropRateTest, GearTakesTheChanceAndNeverTheCertainty) {
   EXPECT_DOUBLE_EQ(BossDropRate(Equip(1.0), 2.0), 1.0);
   EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.4), 1.0), 0.8);
@@ -66,8 +67,8 @@ TEST(BossDropRateTest, GearTakesTheChanceAndNeverTheCertainty) {
   EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.5), 0.0), 0.5);
 }
 
-// A token or a soul shard stacks, so the rate buys copies: a certain drop at
-// 250% rate is two outright and a coin flip for a third.
+// Tokens and soul shards stack, so drop rate adds copies. A certain drop at
+// 250% rate gives two outright and a coin flip for a third.
 TEST(BossDropRateTest, AStackableTakesTheCopies) {
   EXPECT_DOUBLE_EQ(BossDropRate(Item(1.0), 1.5), 2.5);
   EXPECT_DOUBLE_EQ(BossDropRate(Item(1.0), 2.0), 3.0);
@@ -93,8 +94,8 @@ TEST(RollDropsTest, NothingComesOfNothing) {
   EXPECT_EQ(RollDrops(0.5, 0, rng), 0);
 }
 
-// The roll has to average what the curve says the economy pays, or the sims
-// measure one game and the player plays another.
+// The roll must average what the meso curve says, or the sims would measure a
+// different economy from the one the player sees.
 TEST(RollMesoTest, AveragesTheExpectedAmount) {
   Mob mob;
   mob.set_level(70);
@@ -104,8 +105,8 @@ TEST(RollMesoTest, AveragesTheExpectedAmount) {
   EXPECT_NEAR(total / expected, 1.0, 0.01);
 }
 
-// Each paying kill lands inside the band's range -- a fifth either side of the
-// mean -- rather than on the mean itself.
+// Each paying kill lands within a fifth either side of the band's mean, not on
+// the mean itself.
 TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
   Mob mob;
   mob.set_level(70);  // band mean 6.0, so 4.8 to 7.2 times the level
@@ -125,8 +126,8 @@ TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
   EXPECT_TRUE(paid_off_the_mean) << "every drop paid the band mean exactly";
 }
 
-// Both halves of the module read one drop chance, so a test that only compares
-// them to each other would pass at any rate. This one measures it.
+// Both halves of the module read the same drop chance, so a test that only
+// compares them would pass at any rate. This one measures the rate directly.
 TEST(RollMesoTest, PaysSixKillsInTen) {
   Mob mob;
   mob.set_level(70);
@@ -141,13 +142,14 @@ TEST(RollMesoTest, PaysSixKillsInTen) {
   EXPECT_NEAR(static_cast<double>(paid) / kKills, 0.60, 0.02);
 }
 
-// Drop rate buys a better chance of a drop, not a bigger one, and it stops
-// buying anything once every kill already pays.
+// Drop rate raises the chance of a meso drop, not its size, and stops helping
+// once every kill pays.
 TEST(MesoDropChanceTest, RisesWithDropRateAndCapsAtEveryKill) {
   EXPECT_DOUBLE_EQ(MesoDropChance(0.0), 0.60);
   EXPECT_DOUBLE_EQ(MesoDropChance(0.50), 0.90);
   EXPECT_DOUBLE_EQ(MesoDropChance(2.0), 1.0);
-  // A rate nothing granted, and one no arithmetic should have produced.
+  // A negative or NaN rate should never happen, and falls back to the base
+  // chance.
   EXPECT_DOUBLE_EQ(MesoDropChance(-1.0), 0.60);
   EXPECT_DOUBLE_EQ(MesoDropChance(std::numeric_limits<double>::quiet_NaN()),
                    0.60);
@@ -165,12 +167,12 @@ TEST(RollMesoTest, DropRatePaysMoreKills) {
     }
   }
   EXPECT_NEAR(static_cast<double>(paid) / kKills, 0.90, 0.02);
-  // Capped, so every kill pays and none of them pays twice.
+  // Capped, so every kill pays and none pays twice.
   EXPECT_GT(RollMeso(mob, 500, 2.0, rng), 500 * 6.0 * 70 * 4.8);
 }
 
-// The chance moves and the amount does not: what a paying kill is worth is the
-// band's business, and drop rate has none of it.
+// Drop rate changes the chance only. The amount a paying kill gives comes from
+// the mob's level band.
 TEST(ExpectedMesoPerKillTest, DropRateScalesTheChanceOnly) {
   Mob mob;
   mob.set_level(70);
@@ -188,8 +190,8 @@ TEST(RollMesoTest, ALevelOneMobPaysAFlatMeso) {
   EXPECT_NEAR(total, 36000, 1000);
 }
 
-// The 6.0 in each of these is the Heroic world rate, written out rather than
-// folded into the number so a change to it reads as itself.
+// The 6.0 in each of these is the Heroic world rate, written out so a change to
+// it is easy to spot.
 TEST(ExpectedMesoPerKillTest, LevelOneMobDropsFlatBase) {
   Mob mob;
   mob.set_level(1);
@@ -205,8 +207,9 @@ TEST(ExpectedMesoPerKillTest, ScalesByLevelBandMean) {
   EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 6.0 * 0.60 * 21 * 2.5);
 }
 
-// What the inspect panel shows as a mob's meso, which is the amount a drop is
-// worth rather than the per-kill mean -- the 60% is a row of its own there.
+// The meso amount the inspect panel shows for a mob. This is what one drop is
+// worth, not the per-kill average; the panel shows the 60% chance on its own
+// row.
 TEST(MeanMesoPerDropTest, LeavesTheDropChanceOut) {
   Mob mob;
   mob.set_level(10);

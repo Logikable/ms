@@ -24,7 +24,7 @@
 namespace ms {
 namespace {
 
-// `count` lines whose damage counts up from `base`, so a test can say which
+// `count` lines with damage counting up from `base`, so a test can tell which
 // row it is reading and which write put the number there.
 std::vector<DamageNumber> Numbers(int count, int64_t base) {
   std::vector<DamageNumber> lines;
@@ -44,7 +44,7 @@ Mob MakeMob(const std::string& name, int max_hp, int64_t exp) {
   return mob;
 }
 
-// Two arms then a body, small enough that a swing or two clears each.
+// Two arms then a body, weak enough that an attack or two clears each.
 Boss TwoPhaseBoss(int time_limit = 300) {
   Boss boss;
   boss.set_name("Zakum");
@@ -71,7 +71,7 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   return boss;
 }
 
-// The two things a rewarded fight can drop, by the keys its table names.
+// The two items a rewarding fight can drop, keyed as its table names them.
 std::map<std::string, ItemPrototype> DropItems() {
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
@@ -91,8 +91,7 @@ std::map<std::string, EquipPrototype> DropEquips() {
   return {{"mark", mark}};
 }
 
-// The same fight with something to pay: a fixed purse, a certain drop and one
-// that has to be rolled for.
+// The same fight with rewards: fixed meso, a certain drop, and a rolled one.
 Boss RewardingBoss(double mark_chance = 0.5) {
   Boss boss = TwoPhaseBoss();
   BossDifficulty* normal = boss.mutable_difficulties(0);
@@ -120,7 +119,7 @@ std::unique_ptr<GameState> MakeState(int arm_hp = 1, int body_hp = 1) {
   return state;
 }
 
-// Puts `rate` whole percents of Item Drop Rate on the character's head.
+// Gives the character `rate` percent Item Drop Rate on their hat.
 void WearDropGear(GameState& state, int rate) {
   EquipPrototype hat;
   hat.set_name("Lucky Hat");
@@ -130,7 +129,7 @@ void WearDropGear(GameState& state, int rate) {
   state.character.Equip(0);
 }
 
-// Runs the fight to its end, or until it plainly is not going to end.
+// Runs the fight to its end, or until it is clearly never going to end.
 void RunToEnd(BossRun& run, GameState& state, double step = 0.1,
               int max_steps = 20000) {
   for (int i = 0; i < max_steps && !run.done(); ++i) {
@@ -138,13 +137,13 @@ void RunToEnd(BossRun& run, GameState& state, double step = 0.1,
   }
 }
 
-// Zakum's own arena: the arms down the middle, a floor of three under them
-// and a ledge over each end.
+// Zakum's arena: the arms down the middle, a floor of three spots under them,
+// and a ledge above each end.
 BossPhase ZakumArenaPhase() {
   BossPhase phase;
   phase.set_arena_width(7);
   phase.set_arena_height(6);
-  // The floor's middle first: that is where the phase starts them.
+  // The middle of the floor first, since the phase starts the player there.
   const int kSpots[5][2] = {{3, 5}, {0, 3}, {6, 3}, {0, 5}, {6, 5}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase.add_player_spots();
@@ -154,14 +153,14 @@ BossPhase ZakumArenaPhase() {
   return phase;
 }
 
-// Indices into ZakumArenaPhase's spots, in the order it writes them.
+// Indices into ZakumArenaPhase's spots, in the order it lists them.
 constexpr int kFloorMiddle = 0;
 constexpr int kLedgeLeft = 1;
 constexpr int kLedgeRight = 2;
 constexpr int kFloorLeft = 3;
 constexpr int kFloorRight = 4;
 
-// The same arena, as a fight that can be walked around in.
+// The same arena, as a fight the player can walk around in.
 Boss WalkableBoss() {
   Boss boss = TwoPhaseBoss();
   BossDifficulty* normal = boss.mutable_difficulties(0);
@@ -175,7 +174,8 @@ Boss WalkableBoss() {
   return boss;
 }
 
-// Left and right walk the floor, and a press with nothing that way stays put.
+// Left and right walk along the floor. A press with nothing in that direction
+// does nothing.
 TEST(BossRunTest, TheFloorWalksLeftAndRightAndStopsAtItsEnds) {
   BossPhase phase = ZakumArenaPhase();
   EXPECT_EQ(NextPlayerSpot(phase, kFloorMiddle, -1, 0), kFloorLeft);
@@ -184,7 +184,7 @@ TEST(BossRunTest, TheFloorWalksLeftAndRightAndStopsAtItsEnds) {
   EXPECT_EQ(NextPlayerSpot(phase, kFloorRight, 1, 0), kFloorRight);
 }
 
-// The ledge over each end is up from the floor beneath it and down again.
+// Each ledge is up from the floor spot beneath it, and down leads back.
 TEST(BossRunTest, TheLedgesAreUpFromTheFloorTheyStandOver) {
   BossPhase phase = ZakumArenaPhase();
   EXPECT_EQ(NextPlayerSpot(phase, kFloorLeft, 0, -1), kLedgeLeft);
@@ -195,8 +195,8 @@ TEST(BossRunTest, TheLedgesAreUpFromTheFloorTheyStandOver) {
       << "nothing over the ledge";
 }
 
-// Stepping off a ledge inward is the middle of the floor: it is nearer that
-// way than the ledge across the arena, and the arms stand between them.
+// Stepping sideways off a ledge toward the centre lands in the middle of the
+// floor. It is nearer than the far ledge, which is across the arms.
 TEST(BossRunTest, LeavingALedgeSidewaysLandsInTheMiddle) {
   BossPhase phase = ZakumArenaPhase();
   EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, 1, 0), kFloorMiddle);
@@ -204,13 +204,13 @@ TEST(BossRunTest, LeavingALedgeSidewaysLandsInTheMiddle) {
   EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, -1, 0), kLedgeLeft);
 }
 
-// Horntail's arena: six spots down the two edges, around a dragon that fills
-// the middle.
+// Horntail's arena: six spots down the two edges, around a dragon filling the
+// middle.
 BossPhase HorntailArenaPhase() {
   BossPhase phase;
   phase.set_arena_width(9);
   phase.set_arena_height(6);
-  // The bottom-left corner first: that is where the phase starts them.
+  // The bottom-left corner first, since the phase starts the player there.
   const int kSpots[6][2] = {{0, 4}, {0, 0}, {8, 0}, {0, 2}, {8, 2}, {8, 4}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase.add_player_spots();
@@ -220,9 +220,8 @@ BossPhase HorntailArenaPhase() {
   return phase;
 }
 
-// A corner behaves like a corner: across the top is the far top corner, not
-// the spot under the tail, which is nearer along the arrow but nowhere near
-// the way it points.
+// From a corner, pressing across goes to the far corner, not the spot under the
+// tail. That spot is nearer, but not in the direction pressed.
 TEST(BossRunTest, APressIgnoresWhatIsFurtherAcrossThanAlong) {
   BossPhase phase = HorntailArenaPhase();
   constexpr int kBottomLeft = 0;
@@ -237,15 +236,15 @@ TEST(BossRunTest, APressIgnoresWhatIsFurtherAcrossThanAlong) {
   EXPECT_EQ(NextPlayerSpot(phase, kMiddleLeft, 0, 1), kBottomLeft);
 }
 
-// The two ledges are as far from the middle of the floor as each other, and a
-// press with no one answer moves nobody.
+// The two ledges are the same distance from the middle of the floor, so a press
+// that could mean either moves nobody.
 TEST(BossRunTest, APressWithTwoAnswersMovesNobody) {
   EXPECT_EQ(NextPlayerSpot(ZakumArenaPhase(), kFloorMiddle, 0, -1),
             kFloorMiddle);
 }
 
-// The run walks the player, and every phase starts them where it says --
-// where they walked to in the last one was in a different arena.
+// Walking is remembered within a phase. Each new phase starts the player where
+// it says, since the last phase was a different arena.
 TEST(BossRunTest, WalkingIsRememberedWithinAPhaseAndResetByTheNext) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = WalkableBoss();
@@ -259,12 +258,12 @@ TEST(BossRunTest, WalkingIsRememberedWithinAPhaseAndResetByTheNext) {
 
   RunToEnd(run, *state);
   EXPECT_TRUE(run.won());
-  // Phase 2 stood them back in the middle of its own floor on the way in.
+  // Phase 2 put them back in the middle of its own floor.
   EXPECT_EQ(run.player_spot().x(), 3);
   EXPECT_EQ(run.player_spot().y(), 5);
 }
 
-// A phase that names nowhere to stand keeps the player where it put them.
+// A phase with no spots keeps the player where it put them.
 TEST(BossRunTest, AFightWithNoSpotsDoesNotWalk) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();
@@ -274,8 +273,8 @@ TEST(BossRunTest, AFightWithNoSpotsDoesNotWalk) {
   EXPECT_EQ(run.player_spot().y(), 1);
 }
 
-// The arena is measured off everywhere the player may stand as well as the
-// bars, so a phase that asks for no room of its own still holds all of it.
+// The arena's size covers every spot the player can stand on as well as the
+// bars, so a phase that asks for no room still fits them all.
 TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();
@@ -300,8 +299,8 @@ TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
 
   run.Advance(*state, kBossCountdownSeconds - 0.5);
   EXPECT_EQ(run.state(), BossRunState::kCountdown);
-  // The monsters are already on screen, at full HP and with the clock unspent:
-  // the three seconds are for looking at what is about to be fought.
+  // The monsters are already on screen at full HP, and the clock hasn't
+  // started. The three seconds are for looking at what's about to be fought.
   ASSERT_EQ(run.slots().size(), 2u);
   EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, 1.0);
   EXPECT_DOUBLE_EQ(run.phase_hp_fraction(), 1.0);
@@ -312,9 +311,8 @@ TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
   EXPECT_DOUBLE_EQ(run.countdown_left(), 0.0);
 }
 
-// Each arm gets a bar of its own, standing where its own spawn's spot says.
-// The arena is measured off the spots when the phase asks for no room of its
-// own.
+// Each arm gets its own bar, placed where its spawn's spot says. When the phase
+// asks for no room, the arena is sized to fit the spots.
 TEST(BossRunTest, EveryArmGetsItsOwnBarWhereItsPhasePutsIt) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -330,16 +328,15 @@ TEST(BossRunTest, EveryArmGetsItsOwnBarWhereItsPhasePutsIt) {
   EXPECT_EQ(run.slots()[1].x, 4);
   EXPECT_EQ(run.player_spot().x(), 2);
   EXPECT_EQ(run.player_spot().y(), 1);
-  // No margin: the arena is the cell furthest right, and the row under it the
-  // player stands in.
+  // No margin: the arena ends at the rightmost cell, with the player's row
+  // under it.
   EXPECT_EQ(run.arena_width(), 5);
   EXPECT_EQ(run.arena_height(), 2);
 }
 
-// Vellum's step: a monster given an interval walks its row on the run's own
-// clock, never landing where it already stands, and never leaving the arena or
-// the row it spawned on. The bar beside it, which was given no interval, stays
-// where it was put.
+// Vellum's walk: a monster with an interval moves along its row on the run's
+// clock. It never lands where it already stands, and never leaves the arena or
+// its row. The bar beside it, with no interval, stays put.
 TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -347,7 +344,7 @@ TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
       boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
   arms->mutable_walk()->set_interval_ms(30000);
   arms->mutable_walk()->set_range(ArenaWalk::RANGE_ROW);
-  // A second spawn that was told nothing, to stand still beside it.
+  // A second spawn with no walk settings, which should stand still.
   Spawn* still = boss.mutable_difficulties(0)->mutable_phases(0)->add_spawns();
   still->set_mob("arm");
   still->add_spots()->set_x(3);
@@ -374,9 +371,9 @@ TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
       << "it walked between only one cell and its home";
 }
 
-// The step is drawn off the clock, not rolled: two runs of the same fight put
-// the monster on the same cell at the same second, which is what lets a party
-// draw it in the same place with nothing sent between them.
+// Steps are derived from the clock, not rolled. Two runs of the same fight put
+// the monster on the same cell at the same time, so party members see it in the
+// same place without sending anything.
 TEST(BossRunTest, TheWalkIsTheSameOnEveryClientAndOnlyMovesOnTheBeat) {
   std::unique_ptr<GameState> first_state = MakeState(1000000000, 1);
   std::unique_ptr<GameState> second_state = MakeState(1000000000, 1);
@@ -392,21 +389,21 @@ TEST(BossRunTest, TheWalkIsTheSameOnEveryClientAndOnlyMovesOnTheBeat) {
   second.Advance(*second_state, kBossCountdownSeconds);
   int home = first.slots()[0].x;
 
-  // A whole interval but for a moment: still standing where it started.
+  // Just short of a whole interval: still where it started.
   first.Advance(*first_state, 29.0);
   EXPECT_EQ(first.slots()[0].x, home);
   first.Advance(*first_state, 1.5);
   EXPECT_NE(first.slots()[0].x, home);
 
-  // The other run walks there in one step and lands on the same cell.
+  // The other run gets there in one step and lands on the same cell.
   second.Advance(*second_state, 30.5);
   EXPECT_EQ(second.slots()[0].x, first.slots()[0].x);
   EXPECT_EQ(second.slots()[1].x, first.slots()[1].x);
 }
 
-// Papulatus's roam: a monster whose walk steps rather than paces moves one
-// cell at a time, in any of the four directions, and never onto a cell the
-// player may stand on.
+// Papulatus's roam: a monster whose walk steps instead of pacing moves one cell
+// at a time in any of the four directions, and never onto a cell the player can
+// stand on.
 TEST(BossRunTest, ASteppingMonsterRoamsTheRoomAndKeepsOffThePlayersCells) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -443,12 +440,12 @@ TEST(BossRunTest, ASteppingMonsterRoamsTheRoomAndKeepsOffThePlayersCells) {
     last_x = slot.x;
     last_y = slot.y;
   }
-  // Everywhere but the three cells the player holds.
+  // Every cell except the three the player can stand on.
   EXPECT_EQ(seen.size(), 12u);
 }
 
-// A walk held to its own row: one cell left or right, never up or down, so a
-// monster pacing over the player's heads does not come down among them.
+// A walk kept to its own row: one cell left or right, never up or down, so a
+// monster pacing above the players never comes down among them.
 TEST(BossRunTest, ARowStepMonsterKeepsToItsOwnRow) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -476,8 +473,8 @@ TEST(BossRunTest, ARowStepMonsterKeepsToItsOwnRow) {
   EXPECT_EQ(seen.size(), 5u) << "it paced the whole row";
 }
 
-// Two runs of the same stepping fight walk the monster the same way, and a
-// run that is stepped in one go lands where one stepped beat by beat does.
+// Two runs of the same stepping fight move the monster the same way. A run
+// advanced in one go ends where one advanced beat by beat does.
 TEST(BossRunTest, TheRoamIsTheSameOnEveryClientHoweverItIsStepped) {
   std::unique_ptr<GameState> beat_state = MakeState(1000000000, 1);
   std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
@@ -501,9 +498,9 @@ TEST(BossRunTest, TheRoamIsTheSameOnEveryClientHoweverItIsStepped) {
   EXPECT_EQ(leap.slots()[0].y, beat.slots()[0].y);
 }
 
-// Damien's dash: every dash interval the walk gives up its beat and the
-// monster runs a cell at a time, the whole length, one way -- and a run
-// stepped in one go lands where one stepped beat by beat does.
+// Damien's dash: every dash interval, the monster skips its walk step and runs
+// a cell at a time, the full length, in one direction. A run advanced in one go
+// ends where one advanced beat by beat does.
 TEST(BossRunTest, ADashRunsItsCellsOneWayOnItsOwnClock) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
@@ -522,11 +519,11 @@ TEST(BossRunTest, ADashRunsItsCellsOneWayOnItsOwnClock) {
   run.Advance(*state, kBossCountdownSeconds);
   leap.Advance(*leap_state, kBossCountdownSeconds);
 
-  // The walk's own beat is a long way off, so nothing but the dash moves him.
+  // The next walk step is a long way off, so only the dash moves him.
   run.Advance(*state, 9.9);
   ASSERT_EQ(run.slots()[0].x, 0) << "he moved before his dash was due";
-  // Against the left wall, so the dash turns round rather than standing
-  // still, and carries him a cell every 120ms.
+  // He's against the left wall, so the dash turns around instead of standing
+  // still, and moves him a cell every 120ms.
   for (int cell = 1; cell <= 4; ++cell) {
     run.Advance(*state, 0.12);
     EXPECT_EQ(run.slots()[0].x, cell) << "cell " << cell;
@@ -539,8 +536,8 @@ TEST(BossRunTest, ADashRunsItsCellsOneWayOnItsOwnClock) {
   EXPECT_EQ(leap.slots()[1].x, run.slots()[1].x);
 }
 
-// A dash into a wall stops at it: the cells it has left are lost, not walked
-// somewhere else, and the walk picks up from where it stopped.
+// A dash into a wall stops there. The remaining cells are lost, not spent
+// elsewhere, and the walk continues from where he stopped.
 TEST(BossRunTest, ADashStopsAtTheWallAndStaysThere) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -559,17 +556,17 @@ TEST(BossRunTest, ADashStopsAtTheWallAndStaysThere) {
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
 
-  // Two cells of room and four cells of dash: he ends the fight's tenth
-  // second against the far wall.
+  // Two cells of room and four cells of dash: at the fight's tenth second he's
+  // against the far wall.
   run.Advance(*state, 11.0);
   EXPECT_EQ(run.slots()[0].x, 2);
   run.Advance(*state, 5.0);
   EXPECT_EQ(run.slots()[0].x, 2) << "the wall did not stop the dash";
 }
 
-// The Guardian Angel Slime's jump: she leaves the row she paces, hangs there
-// for the whole of the hang, comes back down onto the cell she left, and a run
-// stepped in one go lands where one stepped beat by beat does.
+// The Guardian Angel Slime's jump: she leaves her row, stays up for the whole
+// hang time, then lands back on the cell she left. A run advanced in one go
+// ends where one advanced beat by beat does.
 TEST(BossRunTest, AJumpLeavesTheRowAndLandsOnTheCellItLeft) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
@@ -599,8 +596,8 @@ TEST(BossRunTest, AJumpLeavesTheRowAndLandsOnTheCellItLeft) {
   run.Advance(*state, 0.2);
   EXPECT_EQ(run.slots()[0].y, 0) << "she stayed up past the hang";
   EXPECT_EQ(run.slots()[0].x, column) << "she landed off the cell she left";
-  // The step she owed at 30s went with the jump rather than falling due the
-  // moment she landed.
+  // The step due at 30s was used up by the jump, instead of firing the moment
+  // she landed.
   run.Advance(*state, 5.0);
   EXPECT_EQ(run.slots()[0].x, column) << "the walk did not give up its beat";
 
@@ -609,8 +606,8 @@ TEST(BossRunTest, AJumpLeavesTheRowAndLandsOnTheCellItLeft) {
   EXPECT_EQ(leap.slots()[0].x, run.slots()[0].x);
 }
 
-// A jump is a clock of its own: a monster that only jumps still does, where a
-// walk interval is what the drift loop used to be entered on.
+// A jump runs on its own clock, so a monster that only jumps (with no walk
+// interval) still jumps.
 TEST(BossRunTest, AMonsterThatOnlyJumpsStillJumps) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -630,13 +627,13 @@ TEST(BossRunTest, AMonsterThatOnlyJumpsStillJumps) {
   run.Advance(*state, 0.6);
   EXPECT_EQ(run.slots()[0].y, 0);
   EXPECT_EQ(run.slots()[0].x, column) << "a monster with no walk moved";
-  // And the next one falls due on its own interval, not on the landing.
+  // The next jump comes on its own interval, not timed from the landing.
   run.Advance(*state, 4.5);
   EXPECT_EQ(run.slots()[0].y, 3);
 }
 
-// A dead bar holds its slot for a beat and then leaves it empty: the arms
-// beside it never move.
+// A dead bar keeps its slot for a moment, then leaves it empty. The arms beside
+// it never move.
 TEST(BossRunTest, ADeadBarFadesAndItsSlotStaysEmpty) {
   std::unique_ptr<GameState> state = MakeState(1, 1000000000);
   Boss boss = TwoPhaseBoss();
@@ -669,15 +666,15 @@ TEST(BossRunTest, TheBodyArrivesAfterTheArmsAndTheClearPaysItsExp) {
   EXPECT_TRUE(run.won());
   EXPECT_TRUE(run.done());
   EXPECT_EQ(run.phase(), 2);
-  // The arms are worth nothing, so every point of it is the body's.
+  // The arms give no EXP, so all of it is from the body.
   EXPECT_GT(state->character.proto().exp() + state->character.proto().level(),
             before);
   EXPECT_EQ(state->character.proto().meso(), 0)
       << "a boss should pay no field meso";
 }
 
-// A phase naming no track plays the one named above it; a fight naming none,
-// or a difficulty that does not exist, plays nothing.
+// A phase with no track plays the last one named at or above it. A fight with
+// none, or a difficulty that doesn't exist, plays nothing.
 TEST(BossRunTest, APhasePlaysTheLastTrackNamedAtOrAboveIt) {
   Boss boss = TwoPhaseBoss();
   EXPECT_EQ(BossRun("zakum", boss, 0).bgm(), "");
@@ -697,8 +694,7 @@ TEST(BossRunTest, APhasePlaysTheLastTrackNamedAtOrAboveIt) {
   EXPECT_EQ(own.bgm(), "body");
 }
 
-// The clock is the only thing that can beat the player, since nothing hits
-// back yet.
+// Running out of time is the only way the player can lose.
 TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss(5);
@@ -711,8 +707,8 @@ TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   EXPECT_EQ(run.phase(), 1);
 }
 
-// A win holds its last beat, but an abort does not: the player asked to leave
-// and there is nothing left to watch.
+// A win holds its last moment on screen, but an abort doesn't. The player chose
+// to leave, so there's nothing left to watch.
 TEST(BossRunTest, AbortingEndsItWithNoClosingBeat) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -722,7 +718,7 @@ TEST(BossRunTest, AbortingEndsItWithNoClosingBeat) {
   EXPECT_EQ(run.state(), BossRunState::kAborted);
   EXPECT_TRUE(run.done());
 
-  // A finished run does not step again.
+  // A finished run doesn't advance.
   double left = run.seconds_left();
   run.Advance(*state, 10.0);
   EXPECT_DOUBLE_EQ(run.seconds_left(), left);
@@ -737,8 +733,8 @@ TEST(BossRunTest, ADifficultyThatDoesNotExistIsOverBeforeItStarts) {
   EXPECT_TRUE(run.done());
 }
 
-// The whole point of the reward table: a clear pays it, and the run remembers
-// what it paid so the card can name it.
+// A clear pays the reward table, and the run remembers what it paid so the
+// clear card can list it.
 TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
@@ -750,7 +746,8 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(run.reward().meso, 3062500);
   EXPECT_EQ(run.reward().exp, 4611597);
   EXPECT_EQ(run.reward().honor, kBossClearHonor);
-  // The prize, on top of what the levels the fight's EXP paid for are worth.
+  // The reward, on top of what the levels gained from the fight's EXP are
+  // worth.
   EXPECT_EQ(
       state->character.honor(),
       kBossClearHonor + HonorForLevels(1, state->character.proto().level()));
@@ -760,8 +757,8 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 1);
 }
 
-// A practice run is the fight and nothing else. The clock still stands, being
-// what the player came to beat.
+// A practice run is only the fight. It still keeps time, since beating the
+// clock is the point.
 TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
@@ -782,7 +779,7 @@ TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }
 
-// Once, not once per phase and not once per beat held afterwards.
+// Paid once: not once per phase, and not again while the win is on screen.
 TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
@@ -797,8 +794,8 @@ TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
 }
 
-// The honor is the day's prize, so a fight the calendar does not hold back
-// pays none of it however often it is cleared.
+// Honor is a daily reward, so a fight with no daily lockout pays none, however
+// often it is cleared.
 TEST(BossRunTest, AFightWithNoLockoutPaysNoHonor) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
@@ -812,7 +809,7 @@ TEST(BossRunTest, AFightWithNoLockoutPaysNoHonor) {
   EXPECT_EQ(state->character.honor(), 0);
 }
 
-// What the clear card reads: the fight's own clock, count-in aside.
+// The clear card shows the fight's own time, not counting the countdown.
 TEST(BossRunTest, AClearRemembersHowLongItTook) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
@@ -826,9 +823,9 @@ TEST(BossRunTest, AClearRemembersHowLongItTook) {
       boss.difficulties(0).time_limit_seconds() - run.seconds_left());
 }
 
-// The breakdown is every line the player landed, overkill and all, over the
-// seconds they fought: the count-in and the gap between phases are not
-// fighting.
+// The breakdown counts every line the player landed, including overkill, over
+// the seconds they fought. The countdown and the gaps between phases don't
+// count.
 TEST(BossRunTest, TheBreakdownCountsEveryLineOverTheFightingSeconds) {
   std::unique_ptr<GameState> state = MakeState(40, 200);
   Boss boss = TwoPhaseBoss();
@@ -862,8 +859,8 @@ TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   EXPECT_TRUE(run.reward().items.empty());
 }
 
-// Drop rate buys gear a chance and never a copy: the mark the table
-// guarantees is one mark however much drop gear is worn.
+// Drop rate raises the chance of gear but never adds a copy. The mark the table
+// guarantees is still one mark, however much drop gear is worn.
 TEST(BossRunTest, DropRateDoesNotDoubleACertainPieceOfGear) {
   std::unique_ptr<GameState> state = MakeState();
   WearDropGear(*state, 200);
@@ -879,8 +876,8 @@ TEST(BossRunTest, DropRateDoesNotDoubleACertainPieceOfGear) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
 }
 
-// A stackable does take the copies: at 250% drop the certain shard is two
-// outright and a coin flip for a third.
+// A stackable does get extra copies: at 250% drop rate, the certain shard is
+// two outright and a coin flip for a third.
 TEST(BossRunTest, DropRateStacksACertainShard) {
   std::unique_ptr<GameState> state = MakeState();
   WearDropGear(*state, 150);
@@ -898,9 +895,8 @@ TEST(BossRunTest, DropRateStacksACertainShard) {
             run.reward().items[0].count);
 }
 
-// The card lists the prizes apart from the rest, at the rate they fell at, so
-// it can say which of its rows is what the player came for and lead with the
-// rarest of them.
+// The card lists prizes separately from other drops, with their drop rate, so
+// it can mark which rows the player came for and show the rarest first.
 TEST(BossRunTest, AClearMarksWhichDropsArePrizesAndAtWhatRate) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
@@ -914,8 +910,8 @@ TEST(BossRunTest, AClearMarksWhichDropsArePrizesAndAtWhatRate) {
   EXPECT_DOUBLE_EQ(run.reward().items[1].chance, 1.0);
 }
 
-// A token is a prize too: the shop trades it for a piece of gear, so it is
-// listed with the gear rather than with what every clear pays.
+// A token counts as a prize too, since the shop trades it for gear. It's listed
+// with the gear, not with the drops every clear pays.
 TEST(BossRunTest, ATokenIsAPrize) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
@@ -928,8 +924,8 @@ TEST(BossRunTest, ATokenIsAPrize) {
   EXPECT_TRUE(run.reward().items[0].prize);
 }
 
-// A drop that misses its roll is not on the card. Over many runs it lands
-// about half the time, which is what the table asks for.
+// A drop that fails its roll isn't on the card. Over many runs it lands about
+// half the time, as the table says.
 TEST(BossRunTest, AChanceDropIsRolledFor) {
   int landed = 0;
   for (int i = 0; i < 200; ++i) {
@@ -938,7 +934,7 @@ TEST(BossRunTest, AChanceDropIsRolledFor) {
     BossRun run("zakum", boss, 0);
     RunToEnd(run, *state);
     ASSERT_TRUE(run.won());
-    // The shard is certain, so anything above one row is the accessory.
+    // The shard is certain, so a second row must be the accessory.
     if (run.reward().items.size() == 2u) {
       ++landed;
       EXPECT_EQ(run.reward().items[0].name, "Condensed Power Crystal");
@@ -948,8 +944,8 @@ TEST(BossRunTest, AChanceDropIsRolledFor) {
   EXPECT_LT(landed, 140);
 }
 
-// A landing on a monster writes numbers over that monster, and nothing is
-// written over a monster nothing hit.
+// Hitting a monster shows damage numbers over it, and a monster nothing hit
+// shows none.
 TEST(BossRunTest, ASwingWritesNumbersOverWhatItHit) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -973,8 +969,8 @@ TEST(BossRunTest, ASwingWritesNumbersOverWhatItHit) {
 
 // Each row above a monster keeps the newest number written to it. A short
 // attack landing after a tall one takes the bottom rows and leaves the rest of
-// the tall one standing -- this is the whole of the rule, in the shape the
-// screen reads it.
+// the tall one showing. This is the whole rule, in the form the screen reads
+// it.
 TEST(BossRunTest, AShortAttackTakesTheBottomRowsAndLeavesTheRest) {
   std::vector<DamageWrite> writes;
   writes.push_back({7, Numbers(10, 100), 0.0, 0.25});
@@ -985,14 +981,14 @@ TEST(BossRunTest, AShortAttackTakesTheBottomRowsAndLeavesTheRest) {
   ASSERT_EQ(column.size(), 10u) << "as tall as the tallest live write";
   for (int row = 0; row < 10; ++row) {
     ASSERT_TRUE(column[row].filled) << "row " << row;
-    // The bottom two are the last attack's, the next four the one before it,
-    // and the top four are still the first attack's.
+    // The bottom two rows are from the last attack, the next four from the one
+    // before it, and the top four still from the first.
     int64_t want = row < 2 ? 300 + row : row < 6 ? 200 + row : 100 + row;
     EXPECT_EQ(column[row].number.damage, want) << "row " << row;
   }
 
-  // The first attack's time runs out first, and the column loses exactly the
-  // rows nothing else had reached.
+  // The first attack's time runs out first, and only the rows no later attack
+  // reached disappear.
   writes[0].age = kDamageStackSeconds;
   column = DamageColumn(writes, 7);
   ASSERT_EQ(column.size(), 6u);
@@ -1000,8 +996,8 @@ TEST(BossRunTest, AShortAttackTakesTheBottomRowsAndLeavesTheRest) {
   EXPECT_EQ(column[5].number.damage, 205);
 }
 
-// A strike waits its turn: the writes of one swing are filed together and come
-// up one after another, so a swing that slashes twelve times flashes.
+// A hit's numbers wait their turn. All the writes from one attack are queued
+// together and appear one after another, so an attack with twelve hits flashes.
 TEST(BossRunTest, AStrikeShowsNothingUntilItIsDue) {
   std::vector<DamageWrite> writes;
   writes.push_back({7, Numbers(1, 100), 0.0, 0.01});
@@ -1017,8 +1013,8 @@ TEST(BossRunTest, AStrikeShowsNothingUntilItIsDue) {
   EXPECT_EQ(column[0].number.damage, 200) << "and now it is the fresher one";
 }
 
-// The numbers are an animation: they age off on their own, whether or not
-// anything else is happening.
+// The numbers are an animation: they expire on their own, whether or not
+// anything else happens.
 TEST(BossRunTest, AWriteFadesAfterItsTime) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -1032,8 +1028,8 @@ TEST(BossRunTest, AWriteFadesAfterItsTime) {
   }
 }
 
-// A phase turning over takes the numbers with it: the ids they name belong to
-// the encounter that handed them out, and the arena is a different one.
+// A phase change clears the numbers. Their ids belong to the previous phase's
+// encounter, and the new arena is a different one.
 TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
   std::unique_ptr<GameState> state = MakeState(1, 1000000);
   Boss boss = TwoPhaseBoss();
@@ -1044,8 +1040,8 @@ TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
   }
   ASSERT_EQ(run.phase(), 2);
 
-  // Whatever is on screen belongs to the phase being fought. The arms left
-  // numbers, and none of them survived the turnover.
+  // Everything on screen belongs to the current phase. The arms left numbers,
+  // and none survived the change.
   ASSERT_FALSE(run.slots().empty());
   for (const DamageWrite& write : run.damage_writes()) {
     EXPECT_EQ(write.mob_id, run.slots()[0].id);
@@ -1065,8 +1061,9 @@ TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
   EXPECT_TRUE(authority.reported_.empty());
 }
 
-// A followed run reports its whole table as it goes, and ends on everyone's:
-// its own first and unnamed, then the rest as the authority says.
+// A followed run reports its whole damage table as it goes, and ends showing
+// everyone's: its own first and unnamed, then the rest as the authority lists
+// them.
 TEST(BossRunTest, AFollowedRunReportsItsBreakdownAndEndsOnEveryones) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
@@ -1120,7 +1117,7 @@ TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
   EXPECT_EQ(run.seconds_left(), 42.0);
   EXPECT_EQ(run.phase(), 1);
   ASSERT_EQ(run.members().size(), 2u);
-  // This player first, whoever the server holds first.
+  // This player comes first, whoever the server lists first.
   EXPECT_TRUE(run.members()[0].name.empty());
   EXPECT_EQ(run.members()[1].name, "Wand");
   EXPECT_EQ(run.members()[1].spot, 1);
@@ -1131,7 +1128,7 @@ TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
   EXPECT_EQ(run.phase(), 2);
 }
 
-// Everything a run has told the party, added up.
+// The total of everything a run has reported to the party.
 int64_t Landed(const std::vector<SharedLine>& lines) {
   int64_t total = 0;
   for (const SharedLine& line : lines) {
@@ -1153,13 +1150,13 @@ TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
   EXPECT_EQ(authority.reported_phase_, 0);
   EXPECT_EQ(authority.reported_spot_, 0);
   EXPECT_FALSE(authority.reported_attack_.empty());
-  // Slots, not monster ids: an id is handed out per client.
+  // Match by slot, not monster id, since each client hands out its own ids.
   for (const SharedLine& line : authority.reported_) {
     EXPECT_GE(line.slot, 0);
     EXPECT_LT(line.slot, 2);
     EXPECT_GT(line.damage, 0);
   }
-  // The same numbers the player watched, so the two cannot drift.
+  // The same numbers the player saw, so the two can't drift apart.
   int64_t drawn = 0;
   for (const DamageWrite& write : run.damage_writes()) {
     for (const DamageNumber& number : write.lines) {
@@ -1169,8 +1166,8 @@ TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
   EXPECT_GT(drawn, 0);
 }
 
-// The screen runs at kBossFightStep and the wire at kFightPublishInterval, so
-// a fight stepped at the screen's rate must not say so at the screen's rate.
+// The screen runs at kBossFightStep and the network at kFightPublishInterval,
+// so a fight advanced at the screen's rate must still report at the network's.
 TEST(BossRunTest, AFollowedRunReportsOnTheWiresBeatAndLosesNoLine) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
@@ -1183,13 +1180,13 @@ TEST(BossRunTest, AFollowedRunReportsOnTheWiresBeatAndLosesNoLine) {
     run.Advance(*state, kStep);
   }
 
-  // One report per wire beat, not one per step -- and a step is the shorter.
+  // One report per network beat, not one per step (a step is shorter).
   int beats = static_cast<int>(kSeconds * 1000 / kFightPublishInterval.count());
   EXPECT_NEAR(authority.reports_, beats, 1);
   EXPECT_LT(authority.reports_, static_cast<int>(kSeconds / kStep));
 
-  // Nothing is lost between reports: the same fight stepped a beat at a time
-  // reports every line the stepped-faster one did.
+  // No lines are lost between reports: the same fight advanced one beat at a
+  // time reports every line the faster-stepped one did.
   TestAuthority slow(2);
   BossRun paced("zakum", boss, 0, &slow);
   const double kBeat = kFightPublishInterval.count() / 1000.0;
@@ -1208,7 +1205,7 @@ TEST(BossRunTest, TheSharedRosterSaysWhatIsLeft) {
   run.Advance(*state, 0.1);
   ASSERT_EQ(run.slots().size(), 2u);
 
-  // What the party did to the first monster, which this client never swung at.
+  // The party's damage to the first monster, which this client never attacked.
   authority.fight_.hp_fractions[0] = 0.25;
   run.Advance(*state, 0.1);
   EXPECT_NEAR(run.slots()[0].hp_fraction, 0.25, 0.001);
@@ -1223,7 +1220,7 @@ TEST(BossRunTest, EverybodysNumbersAreDrawnAndHeldApart) {
   Boss boss = TwoPhaseBoss();
   TestAuthority authority(2);
   BossRun run("zakum", boss, 0, &authority);
-  // Far enough in that this player has landed a swing of their own.
+  // Far enough in that this player has landed an attack of their own.
   for (int i = 0; i < 40 && run.damage_writes().empty(); ++i) {
     run.Advance(*state, 0.1);
   }
@@ -1236,8 +1233,8 @@ TEST(BossRunTest, EverybodysNumbersAreDrawnAndHeldApart) {
   ASSERT_EQ(run.damage_stacks()[0].lines.size(), 1u);
   EXPECT_EQ(run.damage_stacks()[0].lines[0].damage, 1234);
 
-  // One stack per player per source: theirs replaces theirs, and nothing of
-  // theirs reaches mine.
+  // One stack per player per source: a player's new numbers replace their own
+  // old ones, and never touch this player's.
   authority.OtherLanded(0, 4321);
   run.Advance(*state, 0.1);
   ASSERT_EQ(run.damage_stacks().size(), 1u);
@@ -1258,8 +1255,8 @@ TEST(BossRunTest, AWalkPassesOverSomebodyElsesSpot) {
   run.Advance(*state, 0.1);
   ASSERT_EQ(run.members()[0].spot, kFloorMiddle);
 
-  // The floor's right end is taken, so walking right goes past it to the
-  // ledge over it rather than stopping short or standing on somebody.
+  // The right end of the floor is taken, so walking right skips past it to the
+  // ledge above instead of stopping short or standing on someone.
   run.MovePlayer(1, 0);
   EXPECT_EQ(run.members()[0].spot, kLedgeRight);
   run.MovePlayer(-1, 0);
@@ -1279,8 +1276,8 @@ TEST(BossRunTest, APlayerWhoLeavesGoesFromTheArena) {
   authority.OtherLanded(0, 1234);
   run.Advance(*state, 0.1);
 
-  // Their panel goes, nothing more of theirs is drawn, and the spot they
-  // stood on is somewhere to walk to again.
+  // Their panel is removed, nothing more of theirs is drawn, and the spot they
+  // stood on is free to walk to again.
   ASSERT_EQ(run.members().size(), 1u);
   for (const DamageStack& stack : run.damage_stacks()) {
     EXPECT_EQ(stack.owner, 0);
@@ -1301,16 +1298,16 @@ TEST(BossRunTest, ASharedClearPaysEachOfThemAShare) {
   run.Advance(*state, 0.1);
   ASSERT_TRUE(run.won());
   EXPECT_EQ(run.share_count(), 2);
-  // Half the purse, and the whole of the EXP and the honor.
+  // Half the meso, and all of the EXP and honor.
   EXPECT_EQ(run.reward().meso, boss.difficulties(0).meso() / 2);
   EXPECT_EQ(run.reward().exp, boss.difficulties(0).exp());
   EXPECT_EQ(run.reward().honor, kBossClearHonor);
-  // The drops are the authority's to deal. It dealt none, so none were paid,
-  // certain though the table says the shard is.
+  // The authority hands out the drops. It gave none, so none were paid, even
+  // though the table says the shard is certain.
   EXPECT_TRUE(run.reward().items.empty());
 }
 
-// A shared run rolls nothing: it pays what it was dealt, and every unit of it.
+// A shared run rolls nothing. It pays exactly the drops it was given.
 TEST(BossRunTest, ASharedClearPaysTheDropsItWasDealt) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
@@ -1330,7 +1327,7 @@ TEST(BossRunTest, ASharedClearPaysTheDropsItWasDealt) {
   EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
   EXPECT_EQ(run.reward().items[0].count, 3);
   EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 3);
-  // The mark is certain in the table and was not dealt, so it was not paid.
+  // The mark is certain in the table but wasn't given, so it wasn't paid.
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }
 

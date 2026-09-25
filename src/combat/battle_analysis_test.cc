@@ -48,7 +48,7 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStart) {
   analysis.Advance(Beat(1.0));
   EXPECT_EQ(analysis.state(), AnalysisState::kRunning);
   EXPECT_EQ(analysis.seconds(), 1.0);
-  // The beat that started it is a boundary, not a cycle.
+  // The beat that starts the measurement is a boundary, not a cycle.
   EXPECT_EQ(analysis.cycles(), 0);
 }
 
@@ -70,8 +70,8 @@ TEST(BattleAnalysisTest, TotalsAndRates) {
   EXPECT_EQ(analysis.exp_per_hour(), 2520000);
 }
 
-// Every beat after the one that started it is a cycle, including the one that
-// stops the measurement.
+// Every beat after the starting one is a cycle, including the one that stops
+// the measurement.
 TEST(BattleAnalysisTest, CountsWholeCycles) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -83,8 +83,8 @@ TEST(BattleAnalysisTest, CountsWholeCycles) {
   EXPECT_EQ(analysis.cycles(), 5);
 }
 
-// Stop rounds the measurement off on the next beat, and what the tick that
-// carries the beat paid still counts.
+// Stop ends the measurement on the next beat, and damage from the tick that
+// carries that beat still counts.
 TEST(BattleAnalysisTest, WaitsForTheBeatToStop) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -92,7 +92,7 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStop) {
   analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
   analysis.Stop();
   EXPECT_EQ(analysis.state(), AnalysisState::kWaitingToStop);
-  // The entry reads Start again, so one more press takes the stop back.
+  // The button reads Start again, so one more press cancels the stop.
   EXPECT_FALSE(analysis.stops_on_press());
 
   analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
@@ -108,14 +108,14 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStop) {
   EXPECT_EQ(analysis.kills(), 3);
   EXPECT_EQ(analysis.damage(), 300);
 
-  // The numbers stay put for the player to read.
+  // The numbers stay on screen for the player to read.
   analysis.Advance(Beat(60.0));
   EXPECT_EQ(analysis.seconds(), 3.0);
   EXPECT_EQ(analysis.kills(), 3);
 }
 
-// A stop hit by mistake is taken back: the measurement carries on with
-// everything it had.
+// Pressing Start while a stop is pending cancels the stop, and the measurement
+// carries on with everything it had.
 TEST(BattleAnalysisTest, StartTakesBackAPendingStop) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -129,14 +129,14 @@ TEST(BattleAnalysisTest, StartTakesBackAPendingStop) {
   EXPECT_EQ(analysis.kills(), 1);
   EXPECT_EQ(analysis.seconds(), 1.0);
 
-  // The beat it was waiting for is a cycle now, not the end.
+  // The beat it was waiting for now counts as a cycle, not the end.
   analysis.Advance(Beat(1.0));
   EXPECT_EQ(analysis.state(), AnalysisState::kRunning);
   EXPECT_EQ(analysis.cycles(), 1);
 }
 
-// Start on a measurement already running leaves it alone rather than throwing
-// away what it has.
+// Start while a measurement is running leaves it alone instead of discarding
+// it.
 TEST(BattleAnalysisTest, StartWhileRunningKeepsTheMeasurement) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -147,8 +147,7 @@ TEST(BattleAnalysisTest, StartWhileRunningKeepsTheMeasurement) {
   EXPECT_EQ(analysis.kills(), 1);
 }
 
-// Pressing Stop before the first beat puts the tool away rather than leaving
-// it armed.
+// Stop before the first beat cancels the tool instead of leaving it armed.
 TEST(BattleAnalysisTest, StopBeforeTheFirstBeatCancels) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -159,7 +158,7 @@ TEST(BattleAnalysisTest, StopBeforeTheFirstBeatCancels) {
   EXPECT_EQ(analysis.seconds(), 0.0);
 }
 
-// Starting again clears what the last measurement left.
+// Starting again clears the last measurement.
 TEST(BattleAnalysisTest, StartClearsTheLastMeasurement) {
   BattleAnalysis analysis;
   analysis.Start();
@@ -176,7 +175,8 @@ TEST(BattleAnalysisTest, StartClearsTheLastMeasurement) {
   EXPECT_EQ(analysis.cycles(), 0);
 }
 
-// A caller that stops feeding the tool -- the boss screen -- stops its clock.
+// When the caller stops feeding the tool (as the boss screen does), its clock
+// stops too.
 TEST(BattleAnalysisTest, TimeOnlyPassesWhenItIsFed) {
   BattleAnalysis analysis;
   analysis.Start();

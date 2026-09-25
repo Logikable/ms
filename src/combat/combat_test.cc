@@ -26,8 +26,8 @@
 namespace ms {
 namespace {
 
-// The shipped snail, swinging hard enough to be felt through a starting
-// character's DEF -- so a run that survives it survived something.
+// The real snail, hitting hard enough to get through a starting character's
+// DEF, so surviving it means something.
 Mob BitingSnailMob() {
   Mob mob = SnailMob();
   mob.set_attack(20);
@@ -42,26 +42,24 @@ void EquipSword(GameState& state, int item_drop_rate = 0) {
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
-  // Both halves, so the swing lands whatever job the starting character
-  // happens to be: the encounter math must not depend on which it is.
+  // Set both, so the attack lands whatever job the starting character is. The
+  // encounter math must not depend on the job.
   sword.mutable_base_stats()->set_attack(100);
   sword.mutable_base_stats()->set_magic_attack(100);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
 }
 
-// Levels the character to `level`. Combat is paced by level (see
-// GameSpeedFactor), so a test that means to hold the pace still has to say
-// which level it is holding it at.
+// Levels the character to `level`. Combat pace depends on level (see
+// GameSpeedFactor), so a test that relies on the pace must set the level.
 void LevelTo(GameState& state, int level) {
   while (state.character.proto().level() < level) {
     state.character.LevelUp();
   }
 }
 
-// Farms for `seconds` of game time. A single call can advance at most one
-// swing, so rewards only accrue over a loop -- as they do under the TUI's
-// ticker.
+// Farms for `seconds` of game time. One call advances at most one attack, so
+// rewards build up over a loop, as they do under the TUI's ticker.
 void Farm(GameState& state, double seconds) {
   CombatSim sim;
   for (double elapsed = 0.0; elapsed < seconds; elapsed += 1.0) {
@@ -71,8 +69,8 @@ void Farm(GameState& state, double seconds) {
 
 // --- AwardCombatRewards ---
 
-// Paying a batch of kills in one call is what offline progress does with
-// hours of them. The tally is what a caller shows the player.
+// Offline progress pays hours of kills in one call. The tally is what the
+// caller shows the player.
 TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", SnailMap()}});
@@ -87,14 +85,15 @@ TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   EXPECT_EQ(state.character.meso(), tally.meso);
   ASSERT_EQ(tally.items.size(), 1u);
   EXPECT_EQ(tally.items[0].name, "Green Snail Shell");
-  // Counted in units, not stacks: a thousand kills of a certain drop is a
-  // thousand shells however many stacks they were put into.
+  // Counted in items, not stacks: a thousand kills with a certain drop give a
+  // thousand shells, however many stacks hold them.
   EXPECT_EQ(tally.items[0].count, 1000);
   EXPECT_EQ(tally.items[0].discarded, 0);
 }
 
-// The two shares meet the purse in order: everything additive is summed and
-// the multiplier lands on the total. A 20% share under a 1.2x is 1.44x.
+// Meso bonuses apply in order: additive bonuses are summed first, then the
+// multiplier applies to the total. A 20% bonus under a 1.2x multiplier is
+// 1.44x.
 TEST(AwardCombatRewardsTest, TheMesoMultiplierLandsOnTheSummedShare) {
   int64_t meso[3] = {0, 0, 0};
   for (int pass = 0; pass < 3; ++pass) {
@@ -118,8 +117,8 @@ TEST(AwardCombatRewardsTest, TheMesoMultiplierLandsOnTheSummedShare) {
   EXPECT_EQ(meso[2], static_cast<int64_t>(meso[0] * 1.44));
 }
 
-// The Wealth Acquisition Potion is charged by the second of farming, and what
-// it pays back is a share past the cap under a multiplier.
+// The Wealth Acquisition Potion is used up per second of farming. It pays a
+// bonus past the cap, under a multiplier.
 TEST(AdvanceCombatTest, TheWealthPotionDrinksBySecondAndPaysAMultiple) {
   Mob mob = SnailMob();
   mob.set_level(kConsumableUnlockLevel);
@@ -144,19 +143,18 @@ TEST(AdvanceCombatTest, TheWealthPotionDrinksBySecondAndPaysAMultiple) {
     }
   }
 
-  // A hundred seconds at a thousand each, and the buff switched off drank
-  // nothing at all.
+  // A hundred seconds at a thousand each, and the switched-off buff used
+  // nothing.
   EXPECT_EQ(drunk[0], 0);
   EXPECT_EQ(drunk[1], 100'000);
-  // More than the 1.44x the share and the multiplier come to on their own:
-  // the drop rate rides with them, and a meso drop has to happen before it
-  // can be multiplied.
+  // More than the 1.44x from the bonus and multiplier alone, because drop rate
+  // also applies, and a meso drop has to happen before it can be multiplied.
   ASSERT_GT(earned[0], 0);
   EXPECT_GT(earned[1], static_cast<int64_t>(earned[0] * 1.44));
 }
 
-// A character standing in town is not drinking it: the drain rides the same
-// call the fight does, and that call does nothing without a map.
+// A character in town doesn't use up the potion. It drains in the same call as
+// the fight, and that call does nothing without a map.
 TEST(AdvanceCombatTest, TheWealthPotionDrinksNothingOffAMap) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   LevelTo(state, kConsumableUnlockLevel);
@@ -169,8 +167,8 @@ TEST(AdvanceCombatTest, TheWealthPotionDrinksNothingOffAMap) {
   EXPECT_EQ(state.character.meso(), 1'000'000);
 }
 
-// A kill's honor is its own: no bonus lifts it, and nothing but the kills is
-// counted here -- the mob is worth no EXP, so no level pays honor over it.
+// Honor comes from kills alone: no bonus raises it. The mob gives no EXP, so no
+// level-up adds honor here either.
 TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
   Mob mob = SnailMob();
   mob.set_exp(0);
@@ -187,8 +185,8 @@ TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
   EXPECT_EQ(state.character.honor(), tally.honor);
 }
 
-// V Points fall in Arcane River and nowhere else: the same kills on a map
-// asking no force pay none, and neither map asks for the 5th advancement.
+// V Points drop only on maps that require a force. The same kills on a normal
+// map give none, and neither map needs the 5th advancement.
 TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   Mob mob = SnailMob();
   mob.set_exp(0);
@@ -212,9 +210,9 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   EXPECT_EQ(state.character.v_points(), tally.v_points);
 }
 
-// A boss is paid for out of its fight's own table, so the body itself is
-// worth neither EXP, meso nor honor however much its mob proto still carries.
-// Its drops are its own and still fall.
+// A boss is paid from its fight's own reward table, so the boss mob itself
+// gives no EXP, meso or honor, whatever its mob proto says. Its drops still
+// fall.
 TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpMesoOrHonor) {
   Mob boss = SnailMob();
   boss.set_boss(true);
@@ -236,7 +234,7 @@ TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpMesoOrHonor) {
   EXPECT_EQ(tally.items[0].count, 1000);
 }
 
-// A full bag throws the rest away, and the tally says how many.
+// A full bag discards the rest, and the tally reports how many.
 TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", SnailMap()}});
@@ -244,7 +242,7 @@ TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
   EquipSword(state);
   CombatParams params = ComputeCombatParams(state);
 
-  // Far more than 128 slots of the item's max stack can hold.
+  // Far more than 128 slots at the item's max stack can hold.
   int64_t kills = 100000000;
   RewardTally tally = AwardCombatRewards(state, params, {kills});
 
@@ -253,7 +251,7 @@ TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
   EXPECT_EQ(tally.items[0].count + tally.items[0].discarded, kills);
 }
 
-// Two mob types dropping the same item read as one line, not two.
+// Two mob types dropping the same item show as one line, not two.
 TEST(AwardCombatRewardsTest, OneLinePerItemAcrossMobTypes) {
   Mob slime = SnailMob();
   slime.set_name("Slime");
@@ -295,8 +293,8 @@ TEST(AdvanceCombatTest, AccruesDropsWhileFarming) {
   EXPECT_EQ(state.character.stackables()[0].name(), "Green Snail Shell");
 }
 
-// A mob can hand over equipment, not just stackables. It lands in the equip
-// tab as its own item, ready to be worn.
+// A mob can drop equipment, not just stackables. It lands in the equip tab as
+// its own item, ready to wear.
 TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
   Mob mob = SnailMob();
   mob.clear_drops();
@@ -317,8 +315,8 @@ TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
 
   Farm(state, 60.0);
   ASSERT_GT(state.character.inventory().size(), 1) << "nothing dropped";
-  // Index 0 is the sword's replacement -- the swords are worn -- so look for
-  // the piece by name rather than by position.
+  // Index 0 isn't the drop, because the sword is worn, so look for the piece by
+  // name instead of by position.
   bool found = false;
   for (int i = 0; i < state.character.inventory().size(); ++i) {
     if (state.character.inventory()[i].prototype().name() == "Frozen Top") {
@@ -333,8 +331,8 @@ TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
   EXPECT_TRUE(found);
 }
 
-// A full equip tab loses what drops into it. The alternative is a queue the
-// player cannot see.
+// A full equip tab loses the drop. The alternative would be a queue the player
+// can't see.
 TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
   Mob mob = SnailMob();
   mob.clear_drops();
@@ -360,7 +358,7 @@ TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
   EXPECT_EQ(state.character.inventory().size(), filled);
 }
 
-// A drop naming something no catalog holds is skipped, not guessed at.
+// A drop naming an item missing from every catalog is skipped, not guessed at.
 TEST(AdvanceCombatTest, AnUnknownEquipDropsNothing) {
   Mob mob = SnailMob();
   mob.clear_drops();
@@ -385,18 +383,18 @@ TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
   EXPECT_GT(state.character.meso(), 0);
 }
 
-// The trial's ceiling seen from the fight: no amount of farming carries a
-// character past it. The multiplier is only here to get there quickly.
+// No amount of farming takes a character past the trial's level cap. The EXP
+// multiplier just gets there quickly.
 TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
-  // Big enough that one level at the top of the table falls inside the farm
-  // below: the last one costs 243B, and a snail pays what a snail pays.
+  // Large enough that a whole level at the top of the table fits in the farming
+  // below. The last level costs 243B, and a snail pays very little.
   state.exp_multiplier = 100000000;
   EquipSword(state);
-  // Set down one level short rather than farmed up the whole table: the
-  // ceiling is what is being tested, and the climb to it only costs time --
-  // time that grows every time the cap moves.
+  // Start one level short instead of farming up the whole table. The test is
+  // about the cap, and the climb only costs time, which grows every time the
+  // cap moves.
   LevelTo(state, kTrialLevelCap - 1);
 
   Farm(state, 20000.0);
@@ -426,12 +424,8 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
 
 // --- the level-banded pace ---
 
-// Farms `seconds` at `level` and returns how many mobs died. The character is
-// levelled by hand first so the band under test is the one in force.
-//
-// Corpses rather than EXP: EXP stops at kTrialLevelCap and most of the bands
-// sit above it, so counting kills is the only way to see the whole table. The
-// snail drops a shell every time, which makes the Etc stack the body count.
+// How many items the character holds. The snail always drops a shell, so this
+// is the kill count.
 int64_t EtcHeld(const GameState& state) {
   int64_t held = 0;
   for (const StackableItem& stack : state.character.stackables()) {
@@ -440,6 +434,9 @@ int64_t EtcHeld(const GameState& state) {
   return held;
 }
 
+// Farms `seconds` at `level` and returns how many mobs died. Kills are
+// counted instead of EXP because EXP stops at kTrialLevelCap and most bands
+// sit above it.
 int64_t KillsFarmedAt(int level, double seconds) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", SnailMap()}});
@@ -450,9 +447,8 @@ int64_t KillsFarmedAt(int level, double seconds) {
   return EtcHeld(state);
 }
 
-// Meso a level-`level` character earned per mob killed, farming level-20
-// snails for long enough that the roll averages out. The shell drops every
-// kill, so the Etc the character holds is the body count.
+// Meso per kill for a level-`level` character farming level-20 snails, long
+// enough for the roll to average out.
 double MesoPerKillAt(int level) {
   Mob mob = SnailMob();
   mob.set_level(20);
@@ -467,10 +463,9 @@ double MesoPerKillAt(int level) {
   return kills == 0 ? 0.0 : static_cast<double>(state.character.meso()) / kills;
 }
 
-// A mob pays what it is worth, whatever level the character killing it is.
-// GMS reduces the reward once the gap passes ten levels either way, which
-// guards a shared economy we do not have; we pay the mob's own worth instead.
-// Under GMS's rule the +40 gap here paid nothing at all.
+// A mob pays the same whatever the level of the character killing it. GMS cuts
+// the reward once the level gap passes ten either way, to protect a shared
+// economy we don't have. Under GMS's rule, the +40 gap here would pay nothing.
 TEST(AdvanceCombatTest, TheLevelGapDoesNotChangeWhatAMobPays) {
   Mob mob;
   mob.set_level(20);
@@ -480,9 +475,9 @@ TEST(AdvanceCombatTest, TheLevelGapDoesNotChangeWhatAMobPays) {
   EXPECT_NEAR(MesoPerKillAt(5) / expected, 1.0, 0.05);   // 15 levels under
 }
 
-// The same fight kills less per second the higher the band, because the fight
-// itself runs slower: these snails die in one hit at any of these levels, so
-// nothing but the pace has changed between them.
+// The same fight kills fewer mobs per second at higher level bands, because the
+// game runs slower. These snails die in one hit at every level tested, so only
+// the pace differs.
 TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
   int64_t at_9 = KillsFarmedAt(9, 600.0);
   int64_t at_10 = KillsFarmedAt(10, 600.0);
@@ -492,16 +487,14 @@ TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
   EXPECT_GT(at_10, at_140) << "3x band vs 10x band";
 }
 
-// The workbench's EXP bonus pays EXP and nothing else: same corpses, same
-// drops, same meso.
+// The EXP multiplier changes EXP and nothing else: same kills, drops and meso.
 //
-// Both characters are pinned just under the cap first, or the bonus changes
-// what it measures -- EXP levels the character, levelling slows the game, and
-// the boosted one ends up killing FEWER mobs in the same wall time. Neither
-// moves from there, so the multiplier is all that differs.
+// Both characters start just under the cap and stay there. Otherwise the extra
+// EXP would level the boosted character, slowing their game, and they would
+// kill fewer mobs in the same time.
 TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
-  // One seed across both runs: the purse is rolled, so two streams disagree on
-  // it however little the bonus touches them.
+  // Use one seed for both runs. Meso is rolled, so two random streams would
+  // give different amounts however little the bonus affects them.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", SnailMap()}}, {},
                   GameMode::kPlay, TestOptions{}, /*seed=*/9);
@@ -530,8 +523,8 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   EXPECT_EQ(boosted.character.meso(), plain.character.meso());
 }
 
-// Holy Symbol: the one skill paid out in EXP rather than in the fight. Meso
-// and drops are untouched, the same bargain the debug multiplier makes.
+// Holy Symbol pays out in EXP, not in the fight. Meso and drops are unchanged,
+// the same as the debug multiplier.
 TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   Skill symbol;
   symbol.set_name("Holy Symbol");
@@ -540,7 +533,7 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   symbol.set_max_level(1);
   symbol.mutable_base()->set_exp_pct(1.0);
 
-  // One seed across both runs, as above.
+  // One seed for both runs, as above.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", SnailMap()}},
                   {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
@@ -558,8 +551,8 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   blessed.current_map = "field";
   LevelTo(blessed, kTrialLevelCap - 1);
   EquipSword(blessed);
-  // The skill is a Swordman's, so its book has to be open before its one
-  // point can be spent.
+  // The skill belongs to Swordman, so the character must advance before
+  // spending its one point.
   ASSERT_TRUE(blessed.character.CanAdvanceJob());
   blessed.character.AdvanceJob(JOB_SWORDMAN);
   ASSERT_TRUE(blessed.character.LearnSkill(symbol, 1));
@@ -570,8 +563,8 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   EXPECT_EQ(blessed.character.meso(), plain.character.meso());
 }
 
-// Meso Mastery is the mirror of Holy Symbol: paid out in the purse, and the
-// fight and the EXP behind it left exactly as they were.
+// Meso Mastery is the opposite of Holy Symbol: it adds meso and leaves the
+// fight and EXP exactly as they were.
 TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   Skill mastery;
   mastery.set_name("Meso Mastery");
@@ -586,8 +579,8 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   int64_t meso[2] = {0, 0};
   int64_t exp[2] = {0, 0};
   for (int pass = 0; pass < 2; ++pass) {
-    // Both passes roll from the same stream: the drops are rolled now, so a
-    // purse twice the size has to come from the bonus rather than from luck.
+    // Both passes roll from the same stream, since drops are rolled. A doubled
+    // meso total must come from the bonus, not luck.
     GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}},
                     {{"meso_mastery", mastery}}, GameMode::kPlay, TestOptions{},
                     /*seed=*/7);
@@ -609,8 +602,8 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   EXPECT_EQ(exp[1], exp[0]);
 }
 
-// Farms `state` until the ogre kills the character, or gives up after a
-// generous stretch. Returns whether they died.
+// Farms `state` until the ogre kills the character, or gives up after a long
+// time. Returns whether they died.
 bool FarmUntilDeath(GameState& state) {
   CombatSim sim;
   for (int step = 0; step < 1000; ++step) {
@@ -652,9 +645,9 @@ TEST(AdvanceCombatTest, DyingCostsNothingButTheTrip) {
 }
 
 TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
-  // Ten minutes on a map whose mobs do land real damage, but that the
-  // character clears -- and clearing it is the only thing that heals them, so
-  // this is the whole no-regeneration design standing up over time.
+  // Ten minutes on a map whose mobs deal real damage but which the character
+  // clears. Clearing is the only thing that heals them, so this checks that the
+  // no-regeneration design holds up over time.
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", BitingSnailMob()}},
                   {{"field", SnailMap()}, {kHomeMap, HomeMap()}});
@@ -671,9 +664,9 @@ TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
   EXPECT_EQ(state.current_map, "field");
 }
 
-// Drop rate reaches both halves of what a kill pays: the items the mob lists
-// and the meso it carries. A snail always drops its shell, so a rate past one
-// is the case that proves the whole part is paid outright.
+// Drop rate raises both parts of a kill's reward: the mob's listed items and
+// its meso. A snail always drops its shell, so a rate above one shows the whole
+// number part is paid outright.
 TEST(AdvanceCombatTest, DropRatePaysMoreItemsAndMoreMeso) {
   Mob snail = SnailMob();
   snail.set_level(20);  // level 1 pays a flat meso; a band pays by the level
@@ -696,8 +689,8 @@ TEST(AdvanceCombatTest, DropRatePaysMoreItemsAndMoreMeso) {
 
   int64_t kills = EtcHeld(plain);
   ASSERT_GT(kills, 100) << "too few kills to measure a rate against";
-  // Half again as many shells for the same body count, and the same share more
-  // of the kills paying meso.
+  // Half again as many shells for the same kills, and the same increase in
+  // kills that pay meso.
   EXPECT_NEAR(static_cast<double>(EtcHeld(lucky)) / kills, 1.5, 0.05);
   EXPECT_NEAR(static_cast<double>(lucky.character.meso()) /
                   static_cast<double>(plain.character.meso()),

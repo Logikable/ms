@@ -25,8 +25,8 @@ void EquipSword(GameState& state, int item_drop_rate = 0) {
   state.character.Equip(0);
 }
 
-// A character standing on the snail field with a sword in hand, the sword
-// carrying `item_drop_rate` percent.
+// A character on the snail field holding a sword with `item_drop_rate` percent
+// drop rate.
 std::unique_ptr<GameState> SnailFarmer(int item_drop_rate = 0) {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
@@ -40,9 +40,9 @@ std::unique_ptr<GameState> SnailFarmer(int item_drop_rate = 0) {
   return state;
 }
 
-// A character on a field of boars that hit for `attack` and hold `max_hp`.
-// Between them the two levers put the character anywhere from a map they hold
-// forever to one that bleeds them dry in minutes.
+// A character on a field of boars that hit for `attack` and have `max_hp`.
+// Between them, these two settings range from a map the character can hold
+// forever to one that kills them in minutes.
 std::unique_ptr<GameState> BoarFarmer(int attack, int max_hp = 2000) {
   Mob boar;
   boar.set_name("Boar");
@@ -98,8 +98,8 @@ TEST(OfflineTest, PaysForTimeAway) {
   EXPECT_DOUBLE_EQ(report.absence, 3600.0);
 }
 
-// An absence inside the sample is not scaled at all: the whole of it is
-// stepped, so what it pays is exactly what the fight did.
+// An absence shorter than the sample is simulated in full, not scaled, so it
+// pays exactly what the fight did.
 TEST(OfflineTest, AShortAbsenceIsSteppedInFull) {
   std::unique_ptr<GameState> state = SnailFarmer();
 
@@ -110,8 +110,8 @@ TEST(OfflineTest, AShortAbsenceIsSteppedInFull) {
   EXPECT_NEAR(report.seconds, kOfflineSampleSeconds / 2.0, kOfflineStepSeconds);
 }
 
-// The rate is frozen at the level the player logged off at, so twice the
-// absence is twice the kills however many levels they climbed on the way.
+// The rate is fixed at the level the player logged off at, so twice the absence
+// gives twice the kills, however many levels they gain along the way.
 TEST(OfflineTest, TwiceTheAbsencePaysTwiceTheKills) {
   std::unique_ptr<GameState> once = SnailFarmer();
   std::unique_ptr<GameState> twice = SnailFarmer();
@@ -142,8 +142,8 @@ TEST(OfflineTest, NoTimeAwayPaysNothing) {
   EXPECT_EQ(report.kills, 0);
 }
 
-// The absence pays at the character's drop rate, not the base one: the shell
-// drops once a kill, so +100% is two a kill.
+// An absence pays at the character's drop rate, not the base one. The shell
+// drops once per kill, so +100% gives two per kill.
 TEST(OfflineTest, DropRateLiftsWhatAnAbsenceDrops) {
   std::unique_ptr<GameState> state = SnailFarmer(/*item_drop_rate=*/100);
 
@@ -154,8 +154,8 @@ TEST(OfflineTest, DropRateLiftsWhatAnAbsenceDrops) {
   EXPECT_EQ(shells.count + shells.discarded, 2 * report.kills);
 }
 
-// The potion drinks through an absence exactly as it drinks through an
-// evening watched: the character was farming the whole time either way.
+// The potion runs down during an absence the same as during play, since the
+// character was farming the whole time either way.
 TEST(OfflineTest, TheWealthPotionDrinksThroughAnAbsence) {
   std::unique_ptr<GameState> state = SnailFarmer();
   while (state->character.proto().level() < kConsumableUnlockLevel) {
@@ -174,8 +174,8 @@ TEST(OfflineTest, TheWealthPotionDrinksThroughAnAbsence) {
 
 // --- death ---
 
-// A map that kills the character stops the absence there: they are paid for
-// what they farmed before falling and are home when they come back.
+// If the map kills the character, the absence stops there. They are paid for
+// what they farmed before dying, and are back in town when they return.
 TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
   GameState state(std::map<std::string, EquipPrototype>{},
                   std::map<std::string, Scroll>{},
@@ -195,11 +195,11 @@ TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
   EXPECT_EQ(state.current_map, kHomeMap);
 }
 
-// The map nobody can hold forever: a character wins every fight on it but
-// loses a little more of their pool between beats than comes back. No sample
-// can watch that to the end, so the trend it fell along projects the moment it
-// runs out -- and the absence is paid only up to there. This boar has the
-// character dry at 2241s, well past the sample.
+// On this map the character wins every fight but loses slightly more HP between
+// beats than they regain. The sample can't run long enough to see them die, so
+// the trend in the sample is extended to predict when they would, and the
+// absence pays only up to that point. This boar runs the character dry at
+// 2241s, well past the sample.
 TEST(OfflineTest, ASlowBleedIsProjectedForwardToTheFall) {
   std::unique_ptr<GameState> state = BoarFarmer(46);
 
@@ -213,11 +213,10 @@ TEST(OfflineTest, ASlowBleedIsProjectedForwardToTheFall) {
   EXPECT_GT(report.kills, 0) << "what was farmed before the fall stands";
 }
 
-// A pool that swings and comes back to full is not draining, however the dips
-// happen to land within the sample. Read off the troughs alone this map used
-// to condemn the character after an hour, because a sample opens at full HP
-// and slides into its band -- which makes any first half look healthier than
-// any second.
+// HP that dips and comes back to full is not draining, however the dips land in
+// the sample. Judging by the low points alone once condemned the character
+// after an hour: a sample starts at full HP and settles into its range, so its
+// first half always looks healthier than its second.
 TEST(OfflineTest, APoolThatRefillsIsNeverProjectedToDie) {
   std::unique_ptr<GameState> state = BoarFarmer(40);
 
@@ -228,10 +227,9 @@ TEST(OfflineTest, APoolThatRefillsIsNeverProjectedToDie) {
   EXPECT_EQ(state->current_map, "field");
 }
 
-// A pool that comes back to full but goes within a twentieth of empty on the
-// way is not one the character is holding. The refill says nothing here: the
-// dip only has to land on a worse beat once, and an absence is hundreds of
-// them. Credited to the sample and no further.
+// HP that returns to full but drops within a twentieth of empty along the way
+// isn't safe. One unlucky beat is enough, and an absence has hundreds of them.
+// The absence is credited only up to the length of the sample.
 TEST(OfflineTest, APoolThatNearlyEmptiesIsNotCreditedPastTheSample) {
   std::unique_ptr<GameState> state = BoarFarmer(108, /*max_hp=*/50);
 
@@ -243,8 +241,8 @@ TEST(OfflineTest, APoolThatNearlyEmptiesIsNotCreditedPastTheSample) {
   EXPECT_GT(report.kills, 0) << "what was farmed before the fall stands";
 }
 
-// The projection lands where the fall actually comes: this boar has the
-// character dry at 2241s stepped in full, and the sample sees ten minutes.
+// The predicted death lands near the real one. Simulated in full, this boar
+// runs the character dry at 2241s, while the sample covers ten minutes.
 TEST(OfflineTest, TheProjectedFallLandsNearTheRealOne) {
   std::unique_ptr<GameState> state = BoarFarmer(46);
 

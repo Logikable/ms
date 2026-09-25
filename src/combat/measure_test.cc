@@ -20,8 +20,8 @@ Mob MakeMob(const std::string& name, int64_t max_hp) {
   return mob;
 }
 
-// One attack landing `damage` on one monster every `swing` seconds, reaching
-// `reach` of them at once.
+// One attack dealing `damage` to one monster every `swing` seconds, hitting up
+// to `reach` monsters at once.
 CombatParams MakeParams(const Mob* mob, double swing, double damage,
                         int reach = 1) {
   CombatParams params;
@@ -52,19 +52,19 @@ TEST(MeasureFightTest, TheRateIsTheDamageOverTheHorizon) {
   EXPECT_NEAR(played.by_attack[0].damage, played.damage, 1e-6);
 }
 
-// The crowd is what the caller asks for, whatever the map it came from holds.
+// The crowd size is whatever the caller asks for, not what the map holds.
 TEST(MeasureFightTest, TheCrowdIsTheOneAskedFor) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 10.0, /*reach=*/6);
 
   EXPECT_NEAR(MeasureFight(params, 10.0, 1).damage, 10 * 10.0, 1e-6);
   EXPECT_NEAR(MeasureFight(params, 10.0, 4).damage, 10 * 40.0, 1e-6);
-  // The swing reaches six, so a wider crowd buys it nothing more.
+  // The attack hits six, so a bigger crowd adds nothing.
   EXPECT_NEAR(MeasureFight(params, 10.0, 12).damage, 10 * 60.0, 1e-6);
 }
 
-// Two runs of one build agree exactly, which is the whole point: a sim ranking
-// a scroll wants the scroll, not the dice.
+// Two runs of the same build give the same result exactly. A sim comparing
+// scrolls needs to see the scroll's effect, not random noise.
 TEST(MeasureFightTest, TwoRunsAgreeExactly) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 25.0);
@@ -80,8 +80,8 @@ TEST(MeasureFightTest, TwoRunsAgreeExactly) {
             MeasureFight(params, 100.0).damage);
 }
 
-// A summon runs beside the swing rather than instead of it, and is reported
-// apart so a caller can say where the damage went.
+// A summon's damage is added to the attacks' damage, not substituted for it,
+// and reported separately so the caller can see where the damage came from.
 TEST(MeasureFightTest, AnOwnClockCastIsCountedApart) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 10.0);
@@ -97,8 +97,8 @@ TEST(MeasureFightTest, AnOwnClockCastIsCountedApart) {
   EXPECT_NEAR(played.damage, played.by_attack[0].damage + 50 * 30.0, 1e-6);
 }
 
-// Two summons on one clock are two rows, named and heaviest first: one bucket
-// says only that the swings are not where the damage went.
+// Two summons on one clock are reported as two named rows, heaviest first. A
+// single combined row wouldn't say which summon did the damage.
 TEST(MeasureFightTest, EveryOwnClockSourceIsNamedApart) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 10.0);
@@ -125,10 +125,8 @@ TEST(MeasureFightTest, EveryOwnClockSourceIsNamedApart) {
               played.own_clock_damage, 1e-6);
 }
 
-// What rides a swing is inside the swing's own figure and told apart within
-// it: a Final Attack and the burn the swing left are the swing's damage in
-// the sense that nothing else set them off, and not in the sense a reader
-// tuning the swing means.
+// Damage that rides on an attack, such as a Final Attack or the burn it left,
+// is included in that attack's total and also reported separately within it.
 TEST(MeasureFightTest, WhatRidesASwingIsSplitOutOfIt) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 10.0);
@@ -147,15 +145,15 @@ TEST(MeasureFightTest, WhatRidesASwingIsSplitOutOfIt) {
   Sequence played = MeasureFight(params, 100.0, 1);
   EXPECT_NEAR(played.by_attack[0].final_attack_damage, 100 * 4.0, 1e-6);
   EXPECT_NEAR(played.by_attack[0].burn_damage, 99 * 1.0, 1e-6);
-  // Both are already inside the swing's own figure, which is the whole point.
+  // Both are already included in the attack's own total.
   EXPECT_NEAR(played.by_attack[0].damage,
               100 * 10.0 + played.by_attack[0].final_attack_damage +
                   played.by_attack[0].burn_damage,
               1e-6);
 }
 
-// A buff that stands for two seconds in every ten reads as a fifth of the run,
-// which is what a pulse gated on it is worth.
+// A buff active for two seconds out of every ten reports an uptime of one
+// fifth, which is what a pulse gated on it is worth.
 TEST(MeasureFightTest, ABuffReportsTheShareItStood) {
   Mob mob = MakeMob("Snail", 10);
   CombatParams params = MakeParams(&mob, 1.0, 10.0);
@@ -172,10 +170,10 @@ TEST(MeasureFightTest, ABuffReportsTheShareItStood) {
   EXPECT_NEAR(played.buff_uptime[0], 0.2, 0.01);
 }
 
-// A hold is sized to the HP in front of it, so a dummy decides how much of one
-// the sim gets to see. At kMeasuredMobHp the orb runs all twelve pulses; stood
-// up with a real monster's HP the same swing is let go at its floor of five,
-// and the skill measures a fraction of what it is worth.
+// A hold's length depends on the target's HP, so the dummy's HP decides how
+// much of it the sim sees. Against kMeasuredMobHp the orb runs all twelve
+// pulses. Against a real monster's HP the same attack stops at its minimum of
+// five, and the skill measures at a fraction of its worth.
 TEST(MeasureFightTest, AHoldRunsItsFullLengthAgainstAMeasurementDummy) {
   auto measure = [](int64_t hp) {
     Mob mob = MakeMob("Dummy", hp);

@@ -17,9 +17,9 @@
 namespace ms {
 namespace {
 
-// A ladder whose step is a fraction climbs every few levels rather than every
-// one, and the floor is what turns it back into a whole number. GMS's own
-// ceil(L/5) -- the Decent nodes' All Stats -- is `base 1, per_level 0.2`.
+// A ladder with a fractional step goes up every few levels instead of every
+// level, and flooring turns it back into a whole number. GMS's ceil(L/5), used
+// by the Decent nodes' All Stats, is `base 1, per_level 0.2`.
 TEST(WholeValueTest, AFractionalStepClimbsEveryFewLevels) {
   const int kExpected[] = {1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3};
   for (int level = 1; level <= 11; ++level) {
@@ -27,21 +27,21 @@ TEST(WholeValueTest, AFractionalStepClimbsEveryFewLevels) {
         << "level " << level;
   }
   EXPECT_EQ(WholeValue(1.0 + 0.2 * 29), 6) << "level 30 tops out at six";
-  // GMS's other stepped shape, floor(L/N), is the same ladder with its first
-  // step in the base rather than a whole point there: `base 0.5, per_level
-  // 0.5` is floor(L/2).
+  // GMS's other stepped shape, floor(L/N), is the same ladder with half a step
+  // in the base instead of a whole point: `base 0.5, per_level 0.5` is
+  // floor(L/2).
   const int kHalves[] = {0, 1, 1, 2, 2};
   for (int level = 1; level <= 5; ++level) {
     EXPECT_EQ(WholeValue(0.5 + 0.5 * (level - 1)), kHalves[level - 1])
         << "level " << level;
   }
-  // A whole number stays itself however it was arrived at.
+  // A whole number stays the same however it was computed.
   EXPECT_EQ(WholeValue(30.0 * 9), 270);
   EXPECT_EQ(WholeValue(0.0), 0);
 }
 
-// A mob carrying just the damage-relevant fields: PDR (whole percent), the boss
-// flag, and level (for the level multiplier).
+// A mob with only the fields damage reads: PDR (whole percent), the boss flag,
+// and level (for the level multiplier).
 Mob MakeMob(int pdr = 0, bool boss = false, int level = 0) {
   Mob mob;
   mob.set_pdr(pdr);
@@ -50,31 +50,32 @@ Mob MakeMob(int pdr = 0, bool boss = false, int level = 0) {
   return mob;
 }
 
-// The level multiplier at equal attacker/mob level. Baseline() and MakeMob()
-// both sit at level 0, so every ExpectedAttackDamage below carries this factor.
+// The level multiplier at equal attacker and mob level. Baseline() and
+// MakeMob() are both level 0, so every ExpectedAttackDamage below includes this
+// factor.
 constexpr double kEqualLevel = 1.1;
 
-// What the base crit pair is worth to a character who has bought neither.
-// Every figure below carries it, the level multiplier included.
+// The value of the base crit rate and damage to a character who has bought
+// neither. Every figure below includes it, along with the level multiplier.
 constexpr double kBaseCrit = 1.0 + kBaseCritRate * kBaseCritDamage;
 
-// What a boss's elemental resistance leaves of a hit from a character who has
-// bought no more than the base share of it that everyone ignores.
+// What's left of a boss hit after its elemental resistance, for a character
+// with only the base share of resistance ignore that everyone has.
 constexpr double kBossElemental = 0.5 * (1.0 + kBaseIgnoreElementalResistance);
 
-// What the armour has left once the base share every character ignores has
-// taken its cut, which every ied figure below is built on top of.
+// The share of armour left after the base ignore every character has. Every IED
+// figure below builds on this.
 constexpr double kBaseArmourLeft = 1.0 - kBaseIgnoreDefense;
 
-// What the baseline swing below comes to before any modifier: 45 max base at
-// the melee mastery the default carries, 45 * (1 + 0.20) / 2.
+// The baseline attack below before any modifier: 45 max base at the default
+// melee mastery, 45 * (1 + 0.20) / 2.
 constexpr double kBaseline = 27.0;
 
 class OffenseTest : public ::testing::Test {
  protected:
-  // Only primary/secondary/attack set; every modifier at identity, mastery at
-  // the melee base its default carries. StatValue = 4*10+5 = 45;
-  // MaxBase = 45*100/100 = 45; expected = 45*(1+0.20)/2 = 27.
+  // Only primary, secondary and attack set; every modifier neutral, and mastery
+  // at the default melee base. StatValue = 4*10+5 = 45; MaxBase = 45*100/100 =
+  // 45; expected = 45*(1+0.20)/2 = 27.
   OffenseStats Baseline() {
     OffenseStats s;
     s.primary = 10;
@@ -124,8 +125,8 @@ TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
                    kBaseline * kEqualLevel * kBaseCrit);
 }
 
-// The character's own share against everything that is not a boss. It joins
-// the same sum plain %damage is in, which is what tells it from the swing's
+// The character's own bonus against anything that isn't a boss. It adds to the
+// same sum as plain %damage, which is how it differs from the skill's
 // normal_skill_pct below.
 TEST_F(OffenseTest, NormalPctAppliesToEverythingButABoss) {
   OffenseStats s = Baseline();
@@ -136,9 +137,9 @@ TEST_F(OffenseTest, NormalPctAppliesToEverythingButABoss) {
                    kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
 }
 
-// The mirror of boss_pct, and pointedly not in the same place: it joins the
-// swing's own percentage, so it is worth its value once per LINE. Three lines
-// of 100% carrying 50% land 450%, where 50% of plain damage would land 350%.
+// The counterpart of boss_pct, but applied in a different place: it adds to the
+// skill's own percentage, so it counts once per line. Three lines of 100% with
+// 50% land 450%, while 50% plain damage would land 350%.
 TEST_F(OffenseTest, NormalSkillPctJoinsTheSwingOnceALine) {
   OffenseStats s = Baseline();
   s.lines = 3;
@@ -147,8 +148,8 @@ TEST_F(OffenseTest, NormalSkillPctJoinsTheSwingOnceALine) {
                    kBaseline * 4.5 * kEqualLevel * kBaseCrit);
 }
 
-// A boss is what the bonus is not for, so it drops out entirely -- leaving the
-// half-elemental every boss takes as the only difference from a plain swing.
+// The bonus doesn't apply to bosses at all, so the only difference from a plain
+// attack is the halving from elemental resistance that every boss applies.
 TEST_F(OffenseTest, NormalSkillPctIsWorthNothingAgainstABoss) {
   OffenseStats s = Baseline();
   s.normal_skill_pct = 0.50;
@@ -156,8 +157,8 @@ TEST_F(OffenseTest, NormalSkillPctIsWorthNothingAgainstABoss) {
                    kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
 }
 
-// A rate of 1 is already every swing, so the base 5% has nowhere to go and the
-// figure carries the base bonus alone rather than kBaseCrit on top of it.
+// A rate of 1 already crits every attack, so the base 5% adds nothing, and the
+// figure includes only the base crit damage, not kBaseCrit on top.
 TEST_F(OffenseTest, ARateOfOneCritsEverySwingAndNoMore) {
   OffenseStats s = Baseline();
   s.crit_rate = 1.0;
@@ -194,8 +195,8 @@ TEST_F(OffenseTest, IedNegatesMobDefense) {
 
 TEST_F(OffenseTest, DefensePast100PercentFloorsDamageAtOne) {
   OffenseStats s = Baseline();
-  // Vellum's 200%: below 50% IED there is nothing left of the swing, and it
-  // must floor rather than turn.
+  // Vellum's 200%: below 50% IED nothing of the attack is left, and it must
+  // floor at 1 instead of going negative.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(200)), 1.0);
   s.ied = 0.25;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(200)), 1.0);
@@ -205,38 +206,39 @@ TEST_F(OffenseTest, DefensePast100PercentFloorsDamageAtOne) {
 }
 
 TEST_F(OffenseTest, BossElementalResistanceAndWhatIgnoresIt) {
-  // Half the hit sits behind the resistance, less the base share of it every
-  // character ignores before buying any.
+  // Half the hit is behind the resistance, less the base share every character
+  // ignores.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
                    kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
-  // A book's own share multiplies rather than subtracts points, so ignoring
-  // all of it is a swing the halving never touched -- and the base rides atop
-  // that, exactly as it does for a character who bought none.
+  // A skill's own share multiplies instead of subtracting, so ignoring all of
+  // it removes the halving entirely. The base applies on top, as it does for a
+  // character who bought none.
   OffenseStats s = Baseline();
   s.ier = 1.0;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
                    kBaseline * 0.5 * (2.0 + kBaseIgnoreElementalResistance) *
                        kEqualLevel * kBaseCrit);
-  // A normal monster has no resistance to ignore, so none of this is read.
+  // A normal monster has no resistance to ignore, so none of this applies.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false)),
                    kBaseline * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LevelMultiplierAppliesToOutput) {
-  // Attacker at level 0 against a level-5 mob: 5 levels under -> 0.88 penalty.
+  // Attacker at level 0 against a level-5 mob: 5 levels under gives a 0.88
+  // penalty.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, false, 5)),
                    kBaseline * 0.88 * kBaseCrit);
 }
 
 TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
-  // The level multiplier hits 0 at a 40-level gap; output floors to 1 damage.
+  // The level multiplier reaches 0 at a 40-level gap, and damage floors to 1.
   OffenseStats s = Baseline();  // level 0
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false, 40)), 1.0);
 }
 
 TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
-  // The same 27 the baseline swing produces, with the base crit pair and
-  // floored -- no mob, so no level multiplier and no defense.
+  // The same 27 as the baseline attack, with the base crit applied and floored.
+  // No mob, so no level multiplier and no defense.
   EXPECT_EQ(CombatPower(Baseline(), /*vs_boss=*/false), 27);
 }
 
@@ -244,10 +246,11 @@ TEST_F(OffenseTest, CombatPowerCountsOneOfBossAndNormalDamage) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.6;
   s.normal_pct = 0.3;
-  // Whichever monster the caller named, never the sum: no swing meets both.
+  // Only the monster type the caller names, never both, since no attack hits
+  // both.
   EXPECT_EQ(CombatPower(s, /*vs_boss=*/true), 43);   // kBaseline * 1.6
   EXPECT_EQ(CombatPower(s, /*vs_boss=*/false), 35);  // kBaseline * 1.3
-  // A swing at an ordinary mob ignores boss damage entirely, as it always has.
+  // An attack on an ordinary mob ignores boss damage entirely.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()),
                    kBaseline * kEqualLevel * kBaseCrit);
 }
@@ -256,9 +259,9 @@ TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
   OffenseStats s = Baseline();
   s.crit_rate = 0.5;
   s.crit_dmg = 0.25;
-  // kBaseline * (1 + 0.55 * (0.25 + 0.35)) = 35.91 -- the rate carrying the
-  // base 5% with it. GMS's flat 1.35 + 0.25 would read 43 here, pricing the
-  // crit damage as though every swing crit.
+  // kBaseline * (1 + 0.55 * (0.25 + 0.35)) = 35.91, with the rate including the
+  // base 5%. GMS's flat 1.35 + 0.25 would give 43 here, pricing crit damage as
+  // if every attack crit.
   EXPECT_EQ(CombatPower(s, /*vs_boss=*/false), 35);
 }
 
@@ -269,8 +272,8 @@ TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
 }
 
 // Unlike GMS, which leaves the weapon constant out of the figure it shows.
-// Two characters holding different weapon classes really do hit differently
-// hard, and a combat power that says otherwise is not worth reading.
+// Characters with different weapon classes really do hit differently hard, and
+// a combat power that ignored this wouldn't be worth reading.
 TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.49;
@@ -279,7 +282,8 @@ TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
 }
 
 TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
-  // Everything that depends on which attack is thrown, or at what, drops out.
+  // Everything that depends on which attack is used, or on the target, drops
+  // out.
   OffenseStats s = Baseline();
   s.skill_pct = 3.0;
   s.lines = 4;
@@ -290,8 +294,8 @@ TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
             CombatPower(Baseline(), /*vs_boss=*/false));
 }
 
-// The published table is by 4th job, so ours is by weapon with the line that
-// owns it. Spot-checked against the figures on the Damage Formula page.
+// The published table is by 4th job, so ours is by weapon and the line that
+// owns it. Spot-checked against the Damage Formula page.
 TEST(WeaponConstantTest, EachWeaponCarriesItsOwnLinesConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SWORDMAN, EQUIP_TYPE_ONE_HANDED_SWORD),
                    1.24);
@@ -304,8 +308,8 @@ TEST(WeaponConstantTest, EachWeaponCarriesItsOwnLinesConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_ROGUE, EQUIP_TYPE_CLAW), 1.75);
 }
 
-// The whole reason the constant takes a job at all: the same sword is worth
-// more to the Hero line than to the Paladin line the default comes from.
+// This is why the constant takes a job: the same sword is worth more to the
+// Hero line than to the Paladin line the default comes from.
 TEST(WeaponConstantTest, AFighterSwingsASwordHarderThanAnyoneElse) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD),
                    1.34);
@@ -315,9 +319,9 @@ TEST(WeaponConstantTest, AFighterSwingsASwordHarderThanAnyoneElse) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_TWO_HANDED_SWORD), 1.34);
 }
 
-// A line's constant belongs to the line, not to one rung of it: a Crusader is
-// still on the Hero line and a Berserker still on the Dark Knight's. Checked
-// against the 2nd job rather than against a figure, so the pair cannot drift.
+// A constant belongs to the whole line, not one job in it: a Crusader is on the
+// Hero line and a Berserker on the Dark Knight's. Checked against the 2nd job
+// instead of a number, so the two can't drift apart.
 TEST(WeaponConstantTest, AThirdJobSwingsWhatItsLineSwings) {
   const EquipType kWeapons[] = {
       EQUIP_TYPE_ONE_HANDED_SWORD,
@@ -337,8 +341,8 @@ TEST(WeaponConstantTest, AThirdJobSwingsWhatItsLineSwings) {
   }
 }
 
-// An axe is the Hero line's own weapon, so the default already is theirs and
-// no override is needed. A Page holding one is not a case GMS has.
+// An axe is the Hero line's own weapon, so the default is already theirs and
+// needs no override. GMS has no case of a Page holding one.
 TEST(WeaponConstantTest, AnAxeIsTheSameInAnyWarriorsHands) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_AXE),
                    1.44);
@@ -346,9 +350,9 @@ TEST(WeaponConstantTest, AnAxeIsTheSameInAnyWarriorsHands) {
                    1.44);
 }
 
-// A weapon its holder's line has no figure for falls back to the line that
-// does own it, rather than to nothing: a Fighter with a blunt is off-class,
-// not unarmed. Only a character holding nothing at all gets the identity.
+// A weapon with no constant for its holder's line falls back to the line that
+// owns it, not to nothing: a Fighter with a blunt weapon is off-class, not
+// unarmed. Only a character holding nothing gets 1.0.
 TEST(WeaponConstantTest, AnOffClassWeaponKeepsItsOwnConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_BLUNT),
                    1.34);
@@ -358,8 +362,8 @@ TEST(WeaponConstantTest, AnOffClassWeaponKeepsItsOwnConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_THROWING_STAR), 1.0);
 }
 
-// The constant has to come off the weapon in hand rather than off the summed
-// stats, which no longer say what is being held.
+// The constant must come from the weapon in hand, since the summed stats no
+// longer say what's being held.
 TEST(OffenseStatsForTest, TheWeaponInHandDecidesTheConstant) {
   OffenseStats offense =
       OffenseStatsFor(JOB_SPEARMAN, 30, AllocatedStats(), EquipStats(),
@@ -376,7 +380,7 @@ TEST(SkillLinesAtTest, ASkillWithNoLadderStrikesTheSameAtEveryLevel) {
   EXPECT_EQ(SkillLinesAt(skill, 30), 4);
 }
 
-// Dark Impale's ladder: two strikes bought over thirty levels, so the second
+// Dark Impale's ladder: two strikes gained over thirty levels, so the second
 // lands exactly on the level Combat Orders can reach.
 TEST(SkillLinesAtTest, TheLadderBuysAStrikeAtTheLevelItPaysFor) {
   Skill skill;
@@ -399,8 +403,8 @@ TEST(ComboOrbsAtTest, ARingWithNoLadderIsTheSameAtEveryLevel) {
   EXPECT_EQ(ComboOrbsAt(skill, 30), 5);
 }
 
-// Advanced Combo's ladder, as the textproto carries it: five orbs bought over
-// twenty levels, the fifth landing exactly on the master level.
+// Advanced Combo's ladder as the textproto has it: five orbs over twenty
+// levels, the fifth landing exactly on the master level.
 TEST(ComboOrbsAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
   Skill skill;
   skill.set_combo_orbs(5);
@@ -413,7 +417,7 @@ TEST(ComboOrbsAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
 }
 
 TEST(SkillLinesAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
-  // What the textproto actually carries, rounded where a decimal must be.
+  // The textproto's actual values, rounded where a decimal must be.
   Skill skill;
   skill.set_lines(5);
   skill.set_lines_per_level(0.0666667);
@@ -435,42 +439,42 @@ TEST(OffenseStatsForTest, TheLineLadderReachesTheDamageChain) {
                       EQUIP_TYPE_POLEARM, &skill, 16);
   EXPECT_EQ(early.lines, 5);
   EXPECT_EQ(late.lines, 6);
-  // The shadow copies whatever the swing turned out to be.
+  // The shadow copies whatever the attack turned out to be.
   EXPECT_EQ(late.mirror_lines, 6);
 }
 
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
-  // stage 4 => (20-4)/16 == 1.0; 720 is already a 30ms multiple.
+  // stage 4 => (20-4)/16 == 1.0; 720 is already a multiple of 30ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(720, 4), 0.72);
 }
 
 TEST(SwingIntervalTest, WorkedExampleStage8) {
-  // 660 * (20-8)/16 = 495 -> ceil to 510ms.
+  // 660 * (20-8)/16 = 495, rounded up to 510ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(660, 8), 0.51);
 }
 
 TEST(SwingIntervalTest, RoundsUpToNextTick) {
-  // 100 * 1.0 = 100 -> ceil(100/30)=4 ticks -> 120ms.
+  // 100 * 1.0 = 100, ceil(100/30) = 4 ticks, so 120ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(100, 4), 0.12);
 }
 
 TEST(SwingIntervalTest, ExactTickMultipleIsUnchanged) {
-  // 600 is exactly 20 ticks; ceil must not bump it.
+  // 600 is exactly 20 ticks, so rounding up must not change it.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(600, 4), 0.60);
 }
 
 TEST(SwingIntervalTest, FastestStageIsQuickest) {
-  // stage 10 => (20-10)/16 = 0.625; 800*0.625 = 500 -> ceil to 510ms.
+  // stage 10 => (20-10)/16 = 0.625; 800*0.625 = 500, rounded up to 510ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 10), 0.51);
 }
 
 TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
-  // stage 1 => 19/16 = 1.1875; 800*1.1875 = 950 -> ceil to 960ms.
+  // stage 1 => 19/16 = 1.1875; 800*1.1875 = 950, rounded up to 960ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
 }
 
-// GMS holds a magician's weapon out of the timing entirely: every cast starts
-// at the unscaled stage, however slow the staff in hand is.
+// GMS ignores a magician's weapon speed entirely: every cast starts at the
+// unscaled stage, however slow the staff.
 TEST(BaseAttackSpeedStageTest, EveryMagicianCastsAtTheUnscaledStage) {
   const Job kMagicians[] = {
       JOB_MAGICIAN, JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD,
@@ -480,7 +484,7 @@ TEST(BaseAttackSpeedStageTest, EveryMagicianCastsAtTheUnscaledStage) {
     EXPECT_EQ(BaseAttackSpeedStage(job, ATTACK_SPEED_SLOW_1),
               kUnscaledAttackSpeedStage)
         << Job_Name(job);
-    // Not a floor on a slow weapon -- a fast one is ignored just the same.
+    // Not just a floor for slow weapons: a fast one is ignored too.
     EXPECT_EQ(BaseAttackSpeedStage(job, ATTACK_SPEED_FASTEST_3),
               kUnscaledAttackSpeedStage)
         << Job_Name(job);
@@ -498,7 +502,7 @@ TEST(BaseAttackSpeedStageTest, EveryOtherJobStartsAtItsWeapon) {
 
 TEST(AttackSpeedStageTest, OrdinarySourcesStopAtTheSoftCap) {
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FAST_1, 2, 0), ATTACK_SPEED_FASTER);
-  // The weapon alone is held to it, not only what is added to the weapon.
+  // The cap applies to the weapon's own speed too, not only to bonuses on top.
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTEST_3, 0, 0),
             kAttackSpeedSoftCap);
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTER, 3, 0), kAttackSpeedSoftCap);
@@ -507,10 +511,9 @@ TEST(AttackSpeedStageTest, OrdinarySourcesStopAtTheSoftCap) {
 TEST(AttackSpeedStageTest, WhatMayPassTheCapAddsOnTopOfIt) {
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTER, 3, 1),
             ATTACK_SPEED_FASTEST_2);
-  // Worth a stage to a character sitting on the cap, and worth one to a
-  // character under it just the same.
+  // Worth one stage to a character at the cap, and one to a character under it.
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FAST_1, 0, 1), ATTACK_SPEED_FAST_2);
-  // The fastest stage the formula models is the end of it.
+  // The fastest stage the formula models is the limit.
   EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTEST_3, 2, 5),
             ATTACK_SPEED_FASTEST_3);
 }
@@ -541,8 +544,8 @@ TEST(LevelMultiplierTest, FortyOrMoreLevelsUnderIsZero) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(1, 100), 0.0);  // far under
 }
 
-// Stage 4 is the reference the whole scale is built around: a swing there takes
-// exactly as long as its animation says.
+// Stage 4 is the reference point: an attack there takes exactly as long as its
+// animation.
 TEST(SwingIntervalSecondsTest, AverageSpeedIsTheAnimationItself) {
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(780, ATTACK_SPEED_AVERAGE), 0.78);
   EXPECT_DOUBLE_EQ(
@@ -577,10 +580,10 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   EXPECT_EQ(offense.secondary, 20);
 }
 
-// Three switches in this file answer per job, and every one of them has a
-// default a new job falls through silently: a Bishop read a warrior's stats,
-// swung on weapon attack they do not have and dealt nothing at all. Walked off
-// the enum rather than listed, so the next job joins by existing.
+// The per-job switches in damage.cc each have a default that a new job falls
+// into silently: a Bishop once read a warrior's stats, attacked with weapon
+// attack they don't have, and dealt nothing. The test loops over the enum
+// instead of a list, so a new job is covered automatically.
 TEST(OffenseStatsForTest, EveryJobIsNamedByTheDamageChain) {
   AllocatedStats allocated;
   allocated.set_str(101);
@@ -590,8 +593,8 @@ TEST(OffenseStatsForTest, EveryJobIsNamedByTheDamageChain) {
   EquipStats equipped;
   equipped.set_attack(50);
   equipped.set_magic_attack(70);
-  // Held against the job's own primary stat rather than against a list: what
-  // is asked is that the damage chain and the stats page agree about a job.
+  // Checked against the job's own primary stat instead of a list: the test asks
+  // that the damage chain and the stats page agree about each job.
   const std::map<StatField, int> kValue = {{STAT_FIELD_STR, 101},
                                            {STAT_FIELD_DEX, 102},
                                            {STAT_FIELD_INT, 103},
@@ -606,12 +609,12 @@ TEST(OffenseStatsForTest, EveryJobIsNamedByTheDamageChain) {
     ASSERT_TRUE(kValue.count(primary)) << Job_Name(job) << " has no primary";
     OffenseStats offense = OffenseStatsFor(job, 1, allocated, equipped,
                                            EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-    // A job in no branch of the stat switch reads nothing at all, and one in
-    // the wrong branch reads its neighbour's stat.
+    // A job missing from the stat switch reads nothing, and one in the wrong
+    // branch reads its neighbour's stat.
     EXPECT_EQ(offense.primary, kValue.at(primary)) << Job_Name(job);
-    // The number the branch swings on, and the mastery it holds a weapon by.
-    // A magician swings on magic attack and masters a wand; everyone whose
-    // primary stat is DEX draws a bow, and the rest swing something melee.
+    // The attack stat and weapon mastery for each branch. A magician uses magic
+    // attack and a wand; everyone whose primary stat is DEX uses a bow; the
+    // rest use a melee weapon.
     bool magic = primary == STAT_FIELD_INT;
     EXPECT_EQ(offense.attack, magic ? 70 : 50) << Job_Name(job);
     Job like = JOB_SWORDMAN;
@@ -635,8 +638,8 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.80);
 }
 
-// Boss damage from gear and from a passive are the same quantity from two
-// places, so they add -- unlike IED, which meets in reverse just below.
+// Boss damage from gear and from a passive are the same stat from two sources,
+// so they add. IED, just below, combines the other way.
 TEST(OffenseStatsForTest, WornAndLearnedBossDamageAdd) {
   EquipStats equipped;
   equipped.set_boss_damage(30);
@@ -656,18 +659,14 @@ TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
   OffenseStats offense =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped,
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
-  // Summed they would be 70%; what is left of the armour is 0.70 * 0.60, less
-  // the base share again.
+  // Summed they would be 70%. Instead the armour left is 0.70 * 0.60, less the
+  // base share again.
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.70 * 0.60);
 }
 
-// Gungnir's Descent ignores 30% of a monster's defence and Heaven's Hammer
-// hits a boss 30% harder, and GMS means both only while that skill is the one
-// landing. The character's own share is already in, so the swing's meets it
-// the way a second source does.
-// Holy Magic Shell thickens from 5 blocks to 15 over its twenty levels, which
-// is faster than a level at a time -- so the count is carried as a fraction
-// and floored where it is read.
+// Holy Magic Shell grows from 5 blocks to 15 over its twenty levels, faster
+// than one per level, so the count is stored as a fraction and floored when
+// read.
 TEST(ShieldHitsAtTest, AShellThickensAsTheSkillIsTaught) {
   Shield shell;
   shell.set_hits(5.5);
@@ -677,31 +676,32 @@ TEST(ShieldHitsAtTest, AShellThickensAsTheSkillIsTaught) {
   EXPECT_EQ(ShieldHitsAt(shell, 10), 10);
   EXPECT_EQ(ShieldHitsAt(shell, 20), 15);
 
-  // A buff that is not a shell blocks nothing at any level.
+  // A buff that isn't a shell blocks nothing at any level.
   EXPECT_EQ(ShieldHitsAt(Shield(), 20), 0);
 }
 
-// GMS's own rule for the seconds a hat's potential takes off a wait, which is
-// not a plain subtraction anywhere but in the middle of the range.
+// GMS's rule for how many seconds a hat's cooldown potential removes. It's a
+// plain subtraction only in the middle of the range.
 TEST(ReducedCooldownTest, AShortWaitGivesUpAShareAndALongOneTheSeconds) {
-  // Under five seconds, nothing is taken at all.
+  // Under five seconds, nothing is removed.
   EXPECT_DOUBLE_EQ(ReducedCooldown(4.0, 2.0), 4.0);
-  // Five to ten: a twentieth of what is left per second offered, and never
-  // under five seconds.
+  // Five to ten seconds: a twentieth of the remaining time per second offered,
+  // and never below five seconds.
   EXPECT_DOUBLE_EQ(ReducedCooldown(10.0, 1.0), 9.5);
   EXPECT_DOUBLE_EQ(ReducedCooldown(10.0, 2.0), 9.0);
-  // Past ten, the seconds come off whole...
+  // Above ten, the full seconds are removed...
   EXPECT_DOUBLE_EQ(ReducedCooldown(30.0, 2.0), 28.0);
   EXPECT_DOUBLE_EQ(ReducedCooldown(12.0, 2.0), 10.0);
-  // ...until the wait would fall under ten, where half of the rest carries.
+  // ...until the cooldown would drop below ten, where only half of the rest
+  // applies.
   EXPECT_DOUBLE_EQ(ReducedCooldown(11.0, 2.0), 9.5);
-  // Nothing offered changes nothing.
+  // Offering nothing changes nothing.
   EXPECT_DOUBLE_EQ(ReducedCooldown(30.0, 0.0), 30.0);
 }
 
-// Heaven's Hammer comes back sooner the further it is taught: 29 seconds down
-// to 15 over its thirty levels, which is GMS's 30 - floor(L/2) walked as a
-// line. The step is negative and the pair never falls below nothing.
+// Heaven's Hammer's cooldown shortens as the skill levels: 29 seconds down to
+// 15 over thirty levels, GMS's 30 - floor(L/2) as a straight line. The step is
+// negative and the result never goes below zero.
 TEST(CooldownAtTest, AWaitShortensAsTheSkillIsTaught) {
   Skill hammer;
   hammer.set_cooldown_seconds(29.5);
@@ -709,22 +709,25 @@ TEST(CooldownAtTest, AWaitShortensAsTheSkillIsTaught) {
   EXPECT_DOUBLE_EQ(CooldownAt(hammer, 1), 29.5);
   EXPECT_DOUBLE_EQ(CooldownAt(hammer, 30), 15.0);
 
-  // A wait with no step holds wherever it is read, and a skill with no wait
-  // has none at any level.
+  // A cooldown with no step stays the same at every level, and a skill with no
+  // cooldown has none at any level.
   Skill flat;
   flat.set_cooldown_seconds(7.0);
   EXPECT_DOUBLE_EQ(CooldownAt(flat, 1), 7.0);
   EXPECT_DOUBLE_EQ(CooldownAt(flat, 30), 7.0);
   EXPECT_DOUBLE_EQ(CooldownAt(Skill(), 30), 0.0);
 
-  // A step steep enough to run the wait past zero leaves no wait at all,
-  // rather than handing the fight a negative one.
+  // A step steep enough to push the cooldown past zero leaves no cooldown, not
+  // a negative one.
   Skill steep;
   steep.set_cooldown_seconds(5.0);
   steep.set_cooldown_seconds_per_level(-1.0);
   EXPECT_DOUBLE_EQ(CooldownAt(steep, 20), 0.0);
 }
 
+// Gungnir's Descent ignores 30% of a monster's defence and Heaven's Hammer
+// hits a boss 30% harder, and in GMS both apply only to that skill's own
+// attack. They combine with the character's own values like a second source.
 TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   Skill gungnir;
   gungnir.set_kind(SKILL_KIND_ATTACK);
@@ -745,18 +748,17 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   OffenseStats offense =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, &gungnir, 30, passives);
-  // 30% at level 30, meeting the character's 40% in reverse rather than
-  // summing.
+  // 30% at level 30, combining multiplicatively with the character's 40%
+  // instead of adding.
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.60 * 0.70);
-  // Its elemental twin sums with the character's instead.
+  // Its elemental counterpart adds to the character's instead.
   EXPECT_DOUBLE_EQ(offense.ier, 0.15);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
   EXPECT_DOUBLE_EQ(offense.normal_pct, 0.30);
-  // Final damage multiplies where the two above do not: 1.5 x 1.2.
+  // Final damage multiplies, unlike the two above: 1.5 x 1.2.
   EXPECT_DOUBLE_EQ(offense.final_dmg_pct, 0.80);
 
-  // The swing after it carries none of them: what the character has is all it
-  // has.
+  // The next attack gets none of these, only what the character has.
   OffenseStats bare =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
@@ -769,9 +771,9 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
 
 TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {
   EXPECT_DOUBLE_EQ(CombineIgnoredDefense(0.30, 0.40), 0.58);
-  // Three halves leave an eighth rather than cancelling the armour outright,
-  // which is what summing them to 150% would do. Each source is worth less
-  // than the one before it: the second takes half of the half left standing.
+  // Three 50% sources leave an eighth of the armour, instead of removing it all
+  // as summing them to 150% would. Each source is worth less than the one
+  // before: the second removes half of the half that's left.
   double one = CombineIgnoredDefense(0.0, 0.50);
   double two = CombineIgnoredDefense(one, 0.50);
   double three = CombineIgnoredDefense(two, 0.50);
@@ -808,12 +810,12 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
       OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_BOW, &other, 1, passives);
 
-  // Damage is added to the multiplier, so it is worth its value once per line:
-  // three lines of 178% become three of 248%.
+  // Damage adds to the skill percentage, so it counts once per line: three
+  // lines of 178% become three of 248%.
   EXPECT_DOUBLE_EQ(boosted.skill_pct, 2.48);
   EXPECT_EQ(boosted.lines, 3);
-  // Each of the rest meets what the character brought the way two sources of
-  // it always meet.
+  // Each of the others combines with the character's own the way two sources of
+  // that stat always combine.
   EXPECT_DOUBLE_EQ(boosted.damage_pct, untouched.damage_pct + 1.50);
   EXPECT_DOUBLE_EQ(boosted.boss_pct, untouched.boss_pct + 0.30);
   EXPECT_DOUBLE_EQ(boosted.normal_pct, untouched.normal_pct + 0.10);
@@ -821,7 +823,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   EXPECT_DOUBLE_EQ(boosted.crit_rate, untouched.crit_rate + 0.20);
   EXPECT_DOUBLE_EQ(boosted.final_dmg_pct,
                    (1.0 + untouched.final_dmg_pct) * 1.15 - 1.0);
-  // The skill it does not name keeps every one of them.
+  // A skill it doesn't name keeps all of them.
   EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
   EXPECT_DOUBLE_EQ(untouched.damage_pct, 0.0);
   EXPECT_DOUBLE_EQ(untouched.boss_pct, 0.10);
@@ -829,15 +831,15 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   EXPECT_DOUBLE_EQ(untouched.ied, 1.0 - kBaseArmourLeft * 0.80);
 }
 
-// The mastery a bare character of `job` swings at, holding `passives`.
+// The mastery of a bare character of `job` with `passives`.
 double MasteryFor(Job job, const PassiveOffense& passives) {
   return OffenseStatsFor(job, 30, AllocatedStats(), EquipStats(),
                          EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives)
       .mastery;
 }
 
-// The whole contract: whatever rolls, the average is the damage already
-// worked out. Only that keeps the fight and the sims agreeing.
+// The key contract: whatever is rolled, the average is the expected damage
+// already computed. That keeps the fight and the sims in agreement.
 TEST(RollFactorTest, AveragesToOne) {
   SwingRolls rolls;
   rolls.lines = 4;
@@ -855,8 +857,8 @@ TEST(RollFactorTest, AveragesToOne) {
   EXPECT_NEAR(total / kRuns, 1.0, 0.005);
 }
 
-// The lines a caller is handed are the landing broken up: one per hit the
-// swing and its shadow made, summing to the factor the monster loses.
+// The lines the caller gets split up one hit: one per hit of the attack and its
+// shadow, summing to the total factor the monster loses.
 TEST(RollFactorTest, TheLinesSumToTheFactor) {
   SwingRolls rolls;
   rolls.lines = 5;
@@ -884,10 +886,10 @@ TEST(RollFactorTest, TheLinesSumToTheFactor) {
   EXPECT_TRUE(plain_seen);
 }
 
-// Every character carries a shadow's worth of copies and almost none of them
-// has a shadow. Those copies land nothing, so there is nothing to draw for
-// them -- but they are still rolled, or the fight would play out differently
-// for everyone.
+// Every character has room for shadow copies, but almost none has a shadow.
+// Those copies deal nothing, so no line is drawn for them. They are still
+// rolled, or the random stream would differ and the fight would play out
+// differently for everyone.
 TEST(RollFactorTest, ShadowCopiesWorthNothingAreNotDrawn) {
   SwingRolls rolls;
   rolls.lines = 3;
@@ -904,7 +906,7 @@ TEST(RollFactorTest, ShadowCopiesWorthNothingAreNotDrawn) {
   }
 }
 
-// A swing that rolls nothing still landed once, so it has a line to draw.
+// An attack that rolls nothing still landed once, so it has one line to draw.
 TEST(RollFactorTest, ASwingThatRollsNothingIsOneLine) {
   std::mt19937 rng(3);
   std::vector<LineRoll> lines = {{9.0, true}};
@@ -914,8 +916,8 @@ TEST(RollFactorTest, ASwingThatRollsNothingIsOneLine) {
   EXPECT_FALSE(lines[0].crit);
 }
 
-// A caller filling in nothing gets no variance, which is what lets an attack
-// built by hand land exactly the damage it was given.
+// A caller that sets nothing gets no variance, so a hand-built attack lands
+// exactly the damage it was given.
 TEST(RollFactorTest, DefaultsRollNothing) {
   std::mt19937 rng(1);
   for (int i = 0; i < 20; ++i) {
@@ -923,8 +925,8 @@ TEST(RollFactorTest, DefaultsRollNothing) {
   }
 }
 
-// One line, so the factor is the roll itself: never below the mastery floor
-// over the mean, never above a crit at full roll, and both ends reached.
+// With one line, the factor is the roll itself: never below the mastery floor
+// over the mean, never above a crit at full roll, and both ends are reached.
 TEST(RollFactorTest, StaysWithinTheFloorAndTheCrit) {
   SwingRolls rolls;
   rolls.mastery = 0.4;
@@ -945,8 +947,8 @@ TEST(RollFactorTest, StaysWithinTheFloorAndTheCrit) {
   EXPECT_GT(high, 1.7 / mean);  // so did a crit at full roll
 }
 
-// The rolls come off the stats the chain already holds, with the base crit
-// pair folded in -- what varies is the whole chance, not the bought share.
+// The rolls use the stats the damage chain already has, with the base crit
+// included, so the whole crit chance varies, not just the bought part.
 TEST(RollFactorTest, RollsForTakesTheWholeCritChance) {
   OffenseStats offense;
   offense.lines = 3;
@@ -971,7 +973,7 @@ TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   EXPECT_DOUBLE_EQ(offense.mastery, 0.20);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
-  // Not an identity: the base share of a monster's armour is everyone's.
+  // Not 0: everyone ignores the base share of a monster's armour.
   EXPECT_DOUBLE_EQ(offense.ied, kBaseIgnoreDefense);
 }
 
@@ -1036,8 +1038,8 @@ TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
   EXPECT_DOUBLE_EQ(offense.crit_rate, 0.40);
 }
 
-// The base is the line's, and the skill adds to it -- so the warrior ends a
-// 2nd job book at 70, the archer a 4th at 85 and the magician a 2nd at 75.
+// The line has a base mastery and the skill adds to it, so the warrior ends the
+// 2nd job book at 70, the archer the 4th at 85, and the magician the 2nd at 75.
 TEST(OffenseStatsForTest, MasteryAddsTheSkillToTheLineBase) {
   PassiveOffense none;
   EXPECT_DOUBLE_EQ(MasteryFor(JOB_SWORDMAN, none), 0.20);
@@ -1056,9 +1058,9 @@ TEST(OffenseStatsForTest, MasteryAddsTheSkillToTheLineBase) {
   EXPECT_DOUBLE_EQ(MasteryFor(JOB_HERO, fourth), 0.90);
 }
 
-// Adding rather than taking the better of the two is what makes the ladder
-// monotonic: a mastery skill's first level grants 12%, under every line's
-// base, and taking the better of the two would have thrown it away.
+// Adding, instead of taking the higher of the two, keeps the ladder increasing.
+// A mastery skill's first level grants 12%, below every line's base, so taking
+// the higher would throw it away.
 TEST(OffenseStatsForTest, TheFirstLevelOfAMasterySkillStillPays) {
   PassiveOffense first;
   first.mastery = 0.12;
@@ -1146,10 +1148,9 @@ TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
 }
 
 TEST(OffenseStatsForTest, SlashBlastKills83PercentFaster) {
-  // A learned attack skill scales expected damage by exactly its skill_pct
-  // versus the bare poke -- 1.83x here. At equal swing speed (Slash Blast is
-  // assumed to swing as fast as the poke for now) that is 1.83x the kills per
-  // unit time, i.e. "83% faster".
+  // A learned attack skill scales expected damage by exactly its skill_pct over
+  // the basic attack, 1.83x here. At equal attack speed that's 1.83x the kills
+  // per second, or "83% faster".
   AllocatedStats allocated;
   allocated.set_str(40);
   EquipStats equipped;
@@ -1165,7 +1166,7 @@ TEST(OffenseStatsForTest, SlashBlastKills83PercentFaster) {
                    1.83 * ExpectedAttackDamage(poke, mob));
 }
 
-// A mob that only swings: attack and level, which is all ExpectedDamageTaken
+// A mob that only attacks: attack and level, which is all ExpectedDamageTaken
 // reads.
 Mob Attacker(int attack, int level) {
   Mob mob;
@@ -1176,8 +1177,8 @@ Mob Attacker(int attack, int level) {
 
 class DamageTakenTest : public ::testing::Test {
  protected:
-  // A character of the same level as Attacker() below, with no DEF at all.
-  // Both rolls land in full: (85 + 100) / 2 * 0.85 == 78.625.
+  // A character the same level as Attacker() below, with no DEF. Both rolls
+  // land in full: (85 + 100) / 2 * 0.85 == 78.625.
   DefenseStats Naked() {
     DefenseStats defense;
     defense.level = 10;
@@ -1199,7 +1200,7 @@ TEST_F(DamageTakenTest, DefenseSubtractsFromBothRolls) {
 TEST_F(DamageTakenTest, DefenseStopsCountingAtTheCap) {
   DefenseStats defense = Naked();
   defense.def = 80;
-  // The caps bind on both rolls: (85 - 68 + 100 - 80) / 2 * 0.85.
+  // Both caps apply: (85 - 68 + 100 - 80) / 2 * 0.85.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 15.725);
 }
 
@@ -1215,8 +1216,8 @@ TEST_F(DamageTakenTest, ArmourPastTheCapIsWorthNothing) {
 TEST_F(DamageTakenTest, UnderLevellingShrinksDefense) {
   DefenseStats defense = Naked();
   defense.def = 50;
-  // Ten levels under, so only 90% of the DEF counts: 45 rather than 50, and
-  // both caps stay clear. (40 + 55) / 2 * 0.85.
+  // Ten levels under, so only 90% of the DEF counts: 45 instead of 50, still
+  // under both caps. (40 + 55) / 2 * 0.85.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 20)), 40.375);
 }
 
@@ -1224,11 +1225,11 @@ TEST_F(DamageTakenTest, DefenseEffectivenessFloorsAtHalf) {
   DefenseStats thirty = Naked();
   thirty.def = 50;
   DefenseStats fifty = thirty;
-  // Thirty levels under is the floor; twenty further down changes nothing
-  // about the DEF, so the two differ only by the level multiplier.
+  // Thirty levels under is the floor. Twenty more changes nothing about the
+  // DEF, so the two differ only by the level multiplier.
   double at_floor = ExpectedDamageTaken(thirty, Attacker(200, 40));
   double past_floor = ExpectedDamageTaken(fifty, Attacker(200, 60));
-  // 0.5 * 50 == 25 cancelled on both rolls: (145 + 175) / 2 == 160, times A.
+  // 0.5 * 50 == 25 removed from both rolls: (145 + 175) / 2 == 160, times A.
   EXPECT_DOUBLE_EQ(at_floor, 160.0 * 0.8725);
   EXPECT_DOUBLE_EQ(past_floor, 160.0 * 0.88);
 }
@@ -1236,10 +1237,10 @@ TEST_F(DamageTakenTest, DefenseEffectivenessFloorsAtHalf) {
 TEST_F(DamageTakenTest, CappedArmourWaivesThePenalty) {
   DefenseStats defense = Naked();
   defense.def = 80;
-  // Thirty levels under, where only half the DEF would normally count -- but
-  // 80 already clears the 80-point cap, so the character takes the minimum as
-  // though the penalty did not exist. Same 15.725 as at parity, scaled by the
-  // deeper level multiplier.
+  // Thirty levels under, where only half the DEF would normally count. But 80
+  // already exceeds the 80-point cap, so the character takes the minimum as if
+  // there were no penalty: the same 15.725 as at equal level, scaled by the
+  // lower level multiplier.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 40)),
                    18.5 * 0.8725);
 }
@@ -1247,7 +1248,7 @@ TEST_F(DamageTakenTest, CappedArmourWaivesThePenalty) {
 TEST_F(DamageTakenTest, LevelMultiplierEasesOffAboveTheMob) {
   DefenseStats defense = Naked();
   defense.level = 20;
-  // Ten or more levels above the mob is the 0.775 floor for A.
+  // Ten or more levels above the mob gives the 0.775 floor for A.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
                    92.5 * 0.775);
   DefenseStats further = defense;
@@ -1258,7 +1259,7 @@ TEST_F(DamageTakenTest, LevelMultiplierEasesOffAboveTheMob) {
 
 TEST_F(DamageTakenTest, LevelMultiplierClimbsInBandsBelowTheMob) {
   DefenseStats defense = Naked();
-  // Fifteen under is still the parity multiplier; sixteen crosses into the
+  // Fifteen under still uses the equal-level multiplier; sixteen enters the
   // first band.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 25)),
                    92.5 * 0.85);
@@ -1288,17 +1289,17 @@ TEST_F(DamageTakenTest, DodgingAndReductionBothLand) {
                    78.625 / 2.0 * 0.70);
 }
 
-// The barrier weakens the monster rather than the hit, so what it saves is
-// worth more the more armour the character is wearing: 40 DEF cancels the same
-// 40 points off a smaller attack.
+// The barrier weakens the monster instead of the hit, so it saves more the more
+// armour the character wears: 40 DEF removes the same 40 points from a smaller
+// attack.
 TEST_F(DamageTakenTest, TheBarrierWeakensTheMonsterBeforeTheFormula) {
   DefenseStats defense = Naked();
   defense.enemy_attack_pct = 0.30;
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
                    78.625 * 0.70);
   defense.def = 40;
-  // A 70-attack monster against 40 DEF: (19.5 + 30) / 2 * 0.85, where the
-  // unweakened pair came to 44.625.
+  // A 70-attack monster against 40 DEF: (19.5 + 30) / 2 * 0.85, compared with
+  // 44.625 unweakened.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 21.0375);
 }
 
@@ -1312,8 +1313,7 @@ TEST_F(DamageTakenTest, TheBarrierPassesABossOnlyWhenItIsOpened) {
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, boss), 78.625 * 0.70);
 }
 
-// Stripping a monster of the whole of its attack still leaves the hit GMS
-// insists on.
+// Even removing all of a monster's attack still leaves GMS's minimum hit.
 TEST_F(DamageTakenTest, TheBarrierNeverMakesACharacterUntouchable) {
   DefenseStats defense = Naked();
   defense.enemy_attack_pct = 1.0;
@@ -1325,13 +1325,13 @@ TEST_F(DamageTakenTest, EveryHitCostsAPointAndOnlyDodgingCutsPastIt) {
   defense.level = 30;
   defense.def = 200;
   // A snail against a level-30 character: the caps put the hit well under a
-  // point, and it still costs one. Armour cancels an attack, it does not make
-  // the character untouchable.
+  // point, and it still costs one. Armour reduces an attack but never makes the
+  // character untouchable.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
 
-  // Dodging it half the time costs half a point on average. Reduction can
-  // never do this -- it lands before the floor, and the floor is what a hit
-  // that arrives always costs.
+  // Dodging half the time costs half a point on average. Damage reduction can't
+  // do this, because it applies before the floor, and the floor is what any hit
+  // that lands costs.
   defense.dodge_chance = 0.5;
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.5);
 }
@@ -1347,10 +1347,9 @@ TEST_F(DamageTakenTest, AHitWorthMoreThanAPointIsNotRaisedToOne) {
   EXPECT_LT(landed, 2.0);
 }
 
-// EffectAt walks whatever the message holds rather than a list of levers a
-// caller wrote out, so what these check is the shape of the ladder: every kind
-// of field climbs, level 1 is base untouched, and a bool has no ladder to
-// climb.
+// EffectAt walks whatever fields the message has, not a hand-written list, so
+// these check the shape of the ladder: every kind of field grows with level,
+// level 1 is exactly the base, and a bool has no ladder.
 TEST(EffectAtTest, EveryKindOfLeverClimbsWithTheLevel) {
   SkillEffect base;
   base.set_attack(10);       // int32
@@ -1367,8 +1366,7 @@ TEST(EffectAtTest, EveryKindOfLeverClimbsWithTheLevel) {
   SkillEffect at_ten = EffectAt(base, per_level, 10);
   EXPECT_EQ(at_ten.attack(), 28);
   EXPECT_DOUBLE_EQ(at_ten.crit_rate(), 0.14);
-  // Untouched by per_level, so it stands at what base said however far the
-  // skill is taught.
+  // per_level doesn't set it, so it stays at the base value at any level.
   EXPECT_DOUBLE_EQ(at_ten.boss_pct(), 0.10);
 }
 
@@ -1380,7 +1378,7 @@ TEST(EffectAtTest, ABoolStandsWhereverItIsSet) {
 
   base.set_enemy_attack_reaches_boss(true);
   EXPECT_TRUE(EffectAt(base, SkillEffect(), 30).enemy_attack_reaches_boss());
-  // Level 1 is the base as it stands, bools included.
+  // Level 1 is exactly the base, bools included.
   EXPECT_TRUE(EffectAt(base, SkillEffect(), 1).enemy_attack_reaches_boss());
 }
 

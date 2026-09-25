@@ -16,7 +16,7 @@
 namespace ms {
 namespace {
 
-// A catalog holding one of each thing a boss table can name.
+// A catalog with one of each kind of thing a boss drop table can name.
 std::unique_ptr<GameState> MakeState() {
   EquipPrototype ring;
   ring.set_name("Silver Blossom Ring");
@@ -53,7 +53,8 @@ TEST(DropNameTest, ReadsWhicheverCatalogHoldsIt) {
   EXPECT_EQ(DropName(*state, Item("nothing")), "");
 }
 
-// The gear and what buys it are the prize; the shard is what the clear pays.
+// Gear, and tokens that buy gear, count as the prize. The shard is ordinary
+// clear loot.
 TEST(DropIsPrizeTest, GearAndTokensAreThePrize) {
   std::unique_ptr<GameState> state = MakeState();
   EXPECT_TRUE(DropIsPrize(*state, Equip("ring")));
