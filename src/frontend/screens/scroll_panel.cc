@@ -27,42 +27,41 @@ namespace ms {
 
 namespace {
 
-// The name gives up four columns and the rate two, which is what pays for the
-// Cost column. A name too long for what is left slides under it rather than
-// losing its tail.
+// The name gives up four columns and the rate two, which makes room for the
+// Cost column. A name too long for what is left scrolls instead of losing its
+// end.
 constexpr int kNameWidth = 12;
-constexpr int kRateWidth = 7;  // matches the "Success" header label width
-// Wide enough for the longest line any scroll writes: an armour All Stats
-// scroll, which pays a stat, HP and DEF at once.
+constexpr int kRateWidth = 7;  // matches the width of the "Success" header
+// Wide enough for the longest line any scroll has: an armour All Stats scroll,
+// which grants a stat, HP and DEF at once.
 constexpr int kStatsWidth = 30;
-// Wide enough for a four-figure cost and the two columns 📜 occupies.
+// Wide enough for a four-digit cost and the two columns 📜 takes.
 constexpr int kCostWidth = 8;
-// The Pin column: the pin glyph is two columns, right-aligned under its
-// heading like the cost is. Five wide rather than four, so a blank column
-// stands between it and the Cost -- at four the two headings read as one
-// phrase, "Cost Pin".
+// The Pin column: the pin glyph is two columns, right-aligned under its heading
+// like the cost. Five wide rather than four so a blank column separates it from
+// Cost; at four the two headings read as one phrase, "Cost Pin".
 constexpr int kPinWidth = 5;
 constexpr const char* kPinGlyph = "   \U0001F4CC";
 // Every panel keeps a blank column inside its right border. The Pin cell is
-// the last thing on a row, so the row is what has to carry it.
+// last on a row, so the row has to include it.
 constexpr int kRightGutter = 1;
 
-// The menu Enter opens on a row, in the order the player wants them: the thing
-// they came to do, the thing they might do once, and the way out.
+// The menu Enter opens on a row, in the order the player wants: the main
+// action, the occasional one, and the way out.
 enum MenuEntry { kEntryScroll, kEntryPin, kEntryClose };
 
-// Where the menu hangs: past the Name column, so it covers the stats rather
+// Where the menu opens: past the Name column, so it covers the stats rather
 // than the names the player is choosing between.
 constexpr int kMenuCol = 1 + 2 + kNameWidth + 2;
-// The cost cell, right-aligned in kCostWidth columns. The scroll glyph is two
-// of them, which is what PadLeft counts.
+// The cost cell, right-aligned in kCostWidth columns. The scroll glyph takes
+// two of them, which PadLeft counts.
 std::string CostCell(int traces) {
   return PadLeft(std::to_string(traces) + " 📜", kCostWidth);
 }
 
-// Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
-// Built from the widths rather than written out, so a column cannot drift from
-// the heading over it.
+// Two leading spaces match the "  " / "> " cursor the menu adds to entries.
+// Built from the widths rather than written out, so a column can't drift from
+// its heading.
 std::string ColumnHeader() {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
@@ -70,9 +69,9 @@ std::string ColumnHeader() {
          PadLeft("Pin", kPinWidth) + std::string(kRightGutter, ' ');
 }
 
-// What a scroll pays, in the order EquipStats lists it. Four stats that agree
-// are one "All Stats" line: that is the option's name, and spelling it out
-// costs the row four cells to say one thing.
+// What a scroll grants, in EquipStats order. Four equal stats show as one "All
+// Stats" line: that is the option's name, and spelling it out would use four
+// cells to say one thing.
 std::string ScrollStats(const Scroll& scroll) {
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
     return "Restores slot";
@@ -126,15 +125,14 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
     if (s.tier() != item_tier) {
       continue;
     }
-    // A clean slate restores a slot whoever is holding the item, so it skips
-    // the job check -- but not the tier one, which is what it costs by.
+    // A clean slate restores a slot whoever holds the item, so it skips the job
+    // check, but not the tier check, since its price depends on the tier.
     if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
       filtered.push_back(&s);
       continue;
     }
-    // A weapon scroll on a hat is not a thing GMS sells. Both sides have to
-    // name the same kind of equipment, so an item in a slot that names none
-    // is offered nothing.
+    // GMS doesn't sell weapon scrolls for hats. Both must name the same kind of
+    // equipment, so an item in a slot that names none is offered nothing.
     if (s.target() != item_target) {
       continue;
     }
@@ -163,8 +161,8 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
   ResetComponent();
 }
 
-// Pinned rows first, and within each half the order the list has always used.
-// A pin lifts a row without reshuffling anything around it.
+// Pinned rows first, and within each half the list's usual order. A pin moves a
+// row up without reordering anything around it.
 void ScrollPanel::SortRows() {
   std::stable_sort(
       ordered_.begin(), ordered_.end(),
@@ -187,9 +185,9 @@ void ScrollPanel::Resort() {
   }
 }
 
-// The item's kind, the stat and the rate. Not the scroll file: the three tiers
-// of one scroll are the same choice to a player, met at three points in their
-// climb, so a pin set at one holds at the next.
+// The item's kind, the stat and the rate, rather than the scroll file: the
+// three tiers of one scroll are the same choice to a player, met at three
+// points in their progress, so a pin set at one tier holds at the next.
 std::string ScrollPanel::PinKey(const Scroll& scroll) const {
   return std::to_string(static_cast<int>(target_target_)) + ":" +
          std::to_string(static_cast<int>(scroll.scroll_type())) + ":" +
@@ -217,8 +215,8 @@ std::string ScrollPanel::PinCellFor(int index) const {
 
 void ScrollPanel::ResetComponent() {
   ftxui::MenuOption opt;
-  // The cost is its own cell rather than part of the label, so a price the
-  // player cannot pay can be said in red without colouring the whole row.
+  // The cost is its own cell rather than part of the label, so an unaffordable
+  // price can be red without colouring the whole row.
   opt.entries_option.transform =
       [this](ftxui::EntryState state) -> ftxui::Element {
     return ftxui::hbox({
@@ -227,19 +225,19 @@ void ScrollPanel::ResetComponent() {
         ftxui::text(PinCellFor(state.index) + std::string(kRightGutter, ' ')),
     });
   };
-  // Wrapped so the list is a ring: nothing above or below it on this screen
-  // takes the arrows, so Up off the top row has nowhere to go but the bottom.
+  // Wrapped so the list is a ring: nothing else on this screen uses the arrows,
+  // so Up from the top row can only go to the bottom.
   ftxui::Component menu =
       WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
                    [this]() { return static_cast<int>(entries_.size()); });
-  // entries_ is rebuilt from ordered_ on every render so the display stays
-  // in sync with SetFilter calls.
+  // entries_ is rebuilt from ordered_ on every render so the display stays in
+  // sync with SetFilter calls.
   component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     if (!ordered_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(ordered_.size()) - 1);
     }
-    // Followed before the rows are built, so the selected one is the only row
-    // asking for a slide and it asks from the moment it was selected.
+    // Followed before the rows are built, so only the selected row scrolls, and
+    // it starts from the moment it was selected.
     clock_.Follow(selected_);
     entries_.clear();
     for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
@@ -253,22 +251,21 @@ void ScrollPanel::ResetComponent() {
         ThemedSeparator(),
         menu->Render(),
     };
-    // The balance rides in the title: it is the number every row's Cost is
-    // read against, and up there it never scrolls away with the list.
+    // The balance is in the title: every row's Cost is compared against it, and
+    // up there it never scrolls away with the list.
     ftxui::Element main =
         ThemedWindow(" Scrolls — " + FormatSpellTraces(TracesOwned()) + " ",
                      ftxui::vbox(std::move(rows)), focused_);
     if (confirm_.open()) {
-      // Over the list rather than under it: the question is about the row the
-      // cursor is on, and a window that pushed the list around while asking
-      // would move that row out from under it.
+      // Over the list rather than under it: the question is about the row under
+      // the cursor, and a window that pushed the list around would move that
+      // row away.
       return ftxui::dbox(
           {std::move(main), ftxui::center(ClearUnder(RenderConfirm()))});
     }
     if (menu_open_) {
-      // Opened a row above the selection, so the entry standing highlighted
-      // lands beside the scroll it would act on. The bag opens its menu the
-      // same way.
+      // Opened one row above the selection, so the highlighted entry sits
+      // beside the scroll it acts on. The bag opens its menu the same way.
       int header_rows = 3;  // border, column header, rule
       return ftxui::dbox(
           {std::move(main),
@@ -285,8 +282,8 @@ ftxui::Element ScrollPanel::Render(bool focused) {
 
 ConfirmChoice ScrollPanel::OnEvent(ftxui::Event event) {
   if (confirm_.open()) {
-    // Answered yes only counts when the player can pay: the window greys
-    // Confirm out, and this is what makes the key agree with the picture.
+    // Yes only counts when the player can pay: the window greys out Confirm,
+    // and this makes the key match what is shown.
     return confirm_.OnEvent(std::move(event), CanAffordSelected());
   }
   if (menu_open_) {
@@ -321,12 +318,12 @@ bool ScrollPanel::OnMenuEvent(ftxui::Event event) {
     menu_open_ = false;
     return true;
   }
-  // Swallow the rest: the menu is modal over the list behind it.
+  // Consume everything else, since the menu is modal over the list.
   return true;
 }
 
 void ScrollPanel::OpenMenu() {
-  // Rebuilt rather than relabelled: the middle entry is Pin or Unpin
+  // Rebuilt rather than relabelled, because the middle entry is Pin or Unpin
   // depending on the row it opened on.
   menu_ = ItemMenu({"Scroll", SelectedIsPinned() ? "Unpin" : "Pin", "Close"});
   menu_.Reset();
@@ -369,8 +366,8 @@ ftxui::Element ScrollPanel::CostCellFor(int index) const {
     return ftxui::text(std::string(kCostWidth, ' '));
   }
   int cost = TraceCost(*ordered_[index], target_level_);
-  // The same red the confirm window says it in, so the list answers "what can
-  // I afford" without opening every row to find out.
+  // The same red the confirm window uses, so the list shows what the player can
+  // afford without opening every row.
   return RedUnless(ftxui::text(CostCell(cost)), cost <= TracesOwned());
 }
 
@@ -391,22 +388,22 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
     what += "  ->  " + target_name_;
   }
 
-  // What the scroll does, said the same way the list says it.
+  // What the scroll does, described the same way as in the list.
   std::string effect = scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE
                            ? "Restores one lost slot"
                            : ScrollStats(scroll);
 
-  // The price alone. What the player owns is in the list's title behind this
-  // window, and doing the subtraction for them here only crowded the one
-  // number they are deciding on. Red says they cannot pay it, and the greyed
-  // Confirm below says the same -- neither needs the words for it.
+  // Only the price. What the player owns is in the list's title behind this
+  // window, and showing the subtraction here would only crowd the one number
+  // they are deciding on. Red says they can't pay, and the grey Confirm below
+  // says the same, so neither needs words.
   ftxui::Element money_row =
       RedUnless(CenteredRow("Cost " + FormatWithCommas(cost) + " \U0001F4DC"),
                 affordable);
 
-  // Three blocks with a rule between each: what is going on what, what it does
-  // and what it costs, and the answer. The middle block is the only one the
-  // player reads twice.
+  // Three blocks with a rule between each: which scroll on which item, what it
+  // does and costs, and the answer. The middle block is the only one the player
+  // reads twice.
   return DialogWindow(" Confirm ",
                       {
                           CenteredRow(what),
@@ -424,9 +421,9 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                           : "No scroll slots remaining";
     return ResultWindow(" Error ", r.equip_name, {CenteredRow(msg)});
   }
-  // A scroll that landed goes gold all the way through: border, rules and the
-  // word itself. It is the moment the traces were spent for. A failure keeps
-  // the steel-blue frame -- nothing happened worth colouring the room for.
+  // A successful scroll turns gold throughout: border, rules and the word
+  // itself. It is what the traces were spent for. A failure keeps the
+  // steel-blue frame, since nothing happened worth celebrating.
   std::string result_text = "FAILED";
   ftxui::Color text_color = kMutedYellow;
   ftxui::Color accent = kTheme;

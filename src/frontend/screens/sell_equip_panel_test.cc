@@ -13,8 +13,8 @@
 namespace ms {
 namespace {
 
-// The [Confirm]/[Cancel] mechanics belong to confirm_prompt_test; these cover
-// what this dialog says and where it opens.
+// confirm_prompt_test covers the [Confirm]/[Cancel] mechanics. These tests
+// cover what this dialog says and where its cursor starts.
 class SellEquipPanelTest : public testing::Test {
  protected:
   static std::string Render(const SellEquipPanel& panel) {
@@ -34,8 +34,8 @@ TEST_F(SellEquipPanelTest, ShowsTheNameAndWhatItSellsFor) {
   EXPECT_NE(rendered.find("1,000"), std::string::npos);
 }
 
-// The starter sword and every trace come through here. The row keeps its
-// shape rather than saying something else for nothing.
+// The starter sword and every trace are sold through here. The row keeps its
+// normal layout at a price of zero.
 TEST_F(SellEquipPanelTest, WorthlessItemSellsForZero) {
   SellEquipPanel panel;
   panel.Reset("Sword", 0);
@@ -43,9 +43,9 @@ TEST_F(SellEquipPanelTest, WorthlessItemSellsForZero) {
   EXPECT_NE(Render(panel).find("0"), std::string::npos);
 }
 
-// Enter on arrival sells. The shop keeps the sale on its buy-back shelf, so
-// the dialog is a confirmation and not a warning. Reset reopens it, which is
-// how the cursor comes back to [Confirm] between the three answers.
+// Enter right away sells. The shop keeps the sale on its buyback shelf, so the
+// dialog is a confirmation rather than a warning. Reset reopens it, which puts
+// the cursor back on [Confirm] between the three answers.
 TEST_F(SellEquipPanelTest, EnterSellsAndSteppingOffOrEscapingDoesNot) {
   SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);

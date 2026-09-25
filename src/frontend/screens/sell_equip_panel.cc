@@ -14,8 +14,8 @@ namespace ms {
 void SellEquipPanel::Reset(const std::string& item_name, int price) {
   item_name_ = item_name;
   price_ = price;
-  // On [Confirm]. A sale used to be final, which is what put the cursor on
-  // the way out; the shop's buy-back shelf keeps it now, at the price it paid.
+  // On [Confirm]: the shop's buyback shelf keeps the sale at the price it paid,
+  // so selling is never final.
   confirm_.Open(/*cancel_selected=*/false);
 }
 

@@ -1,35 +1,33 @@
-/* ShopPanel is the full-screen buying screen, reached from the Shop tab of the
- * inventory. A row of tabs over a Name / Cost list of what is on sale, with the
- * player's meso beside the title so the price column has something to be read
- * against.
+/* ShopPanel is the full-screen shop, reached from the Inventory's Shop tab: a
+ * row of tabs over a Name / Cost list of what is for sale, with the player's
+ * meso beside the title for comparing prices.
  *
- * The list holds only what this character's class can hold. What is left out is
- * left out because they could never use it, not because they cannot use it yet
- * -- a level too high still shows, in red, as something to save toward.
+ * The list has only what this character's class can use. Items are left out
+ * because the player could never use them, not because they can't use them yet:
+ * an item above their level still shows, in red, as something to save for.
  *
- * Four tabs: Weapon, Equips for everything else that is worn, Etc for the
- * stackables, and the player's own buy-back shelf. They are different lists
- * rather than more rows of one, which is what a tab is for. The ends of the bar
- * are walls, as in the bag; Left and Right step along it while the cursor is on
- * it.
+ * Four tabs: Weapon, Equips for everything else worn, Etc for stackables, and
+ * the player's own buyback shelf. They are separate lists rather than more rows
+ * of one list, which is what tabs are for. The bar stops at its ends, as in the
+ * bag, and Left and Right move along it while the cursor is on it.
  *
- * Under the first two sits a second row -- Meso and Token -- because the same
- * shelf is stocked twice over: what meso buys, and what the tokens a mob drops
- * buy. The row is drawn under every tab, blank where there is nothing to
- * choose, so the window keeps one height.
+ * Under the first two tabs is a second row, Meso and Token, because the same
+ * shelf is stocked twice: what meso buys, and what tokens dropped by mobs buy.
+ * The row is drawn under every tab, blank where there is nothing to choose, so
+ * the window keeps one height.
  *
- * A narrow panel stands to the right holding the balances of a token shelf,
- * one currency a row. They will not go in the tab bar: the equipment shelf
- * deals in seven, and five of those wear the same glyph in different colours.
- * Its columns are reserved under every tab, blank where the shelf takes meso,
- * so stepping along the pay bar does not slide the centred window sideways.
+ * A narrow panel on the right shows the balances for a token shelf, one
+ * currency per row. They don't go in the tab bar: the equipment shelf uses
+ * seven currencies, and five of them share a glyph in different colours. Its
+ * columns are reserved under every tab, blank where the shelf uses meso, so
+ * moving along the pay bar doesn't shift the centred window sideways.
  *
- * The off-hands on the Equips shelf are hidden until the 2nd advancement: one
- * belongs to a branch of one job, and a 1st job is not yet in a branch. The
- * accessories beside them fit anybody, so the shelf is never empty.
+ * The off-hands on the Equips shelf are hidden until the 2nd advancement, since
+ * each belongs to one branch of a job and a 1st job isn't in a branch yet. The
+ * accessories beside them fit anyone, so the shelf is never empty.
  *
- * The panel is a view: it moves its own cursor but never spends anything. The
- * controller reads selected_item() when the player presses Enter.
+ * The panel only displays: it moves its own cursor but never spends anything.
+ * The controller reads selected_item() when the player presses Enter.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SHOP_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SHOP_PANEL_H_
@@ -50,27 +48,27 @@
 
 namespace ms {
 
-// Tabs of the shop, in display order.
+// The shop's tabs, in display order.
 enum ShopTab : int {
   kShopWeaponTab = 0,
   kShopEquipsTab = 1,
   kShopEtcTab = 2,
-  // The player's own last 32 sales, bought back at what they paid out. Last
-  // because it is the only shelf the shop did not stock itself.
+  // The player's own last 32 sales, bought back at what they sold for. Last
+  // because it is the only shelf the shop didn't stock itself.
   kShopBuyBackTab = 3,
   kNumShopTabs = 4,
 };
 
-// The second row of tabs, which says what the shelf above it is paid for. Only
-// the weapon and equipment tabs have one: the Etc shelf and the buy-back shelf
-// deal in meso alone.
+// The second row of tabs, which says what currency the shelf above uses. Only
+// the Weapon and Equips tabs have one; the Etc shelf and the buyback shelf use
+// only meso.
 enum ShopPayTab : int {
   kShopMesoTab = 0,
   kShopTokenTab = 1,
   kNumShopPayTabs = 2,
 };
 
-// Entries of the context menu an item opens, in display order.
+// The entries of an item's context menu, in display order.
 enum ShopMenuItem : int {
   kShopMenuInspect = 0,
   kShopMenuBuy = 1,
@@ -92,105 +90,108 @@ class ShopPanel {
             std::map<std::string, ItemPrototype>&& items) = delete;
 
   // Restocks and puts the cursor back on the first item. Call when the screen
-  // opens: the stock follows the character's class. The cursor lands in the
-  // LIST -- the player came to buy something, and the bar is one key away.
+  // opens, since the stock depends on the character's class. The cursor starts
+  // in the list, since the player came to buy something and the bar is one key
+  // away.
   void Reset();
   ftxui::Element Render() const;
-  // Handles Up/Down along the list. Enter and Escape are left to the caller,
-  // which owns the screen the one opens and the other closes. Returns true if
-  // the event was consumed.
+  // Handles Up and Down along the list. Enter and Escape are left to the
+  // caller, which owns the screen one opens and the other closes. Returns true
+  // if the event was consumed.
   bool OnEvent(ftxui::Event event);
-  // The equip under the cursor, or nullptr when the Weapons tab is empty or
-  // some other tab is open. Exactly one of this and selected_stackable() ever
-  // answers, so a caller can ask both and act on whichever does.
+  // The equip under the cursor, or nullptr when the open tab isn't an equipment
+  // tab or is empty. Exactly one of this, selected_stackable() and
+  // selected_buy_back() returns something, so a caller can ask each and act on
+  // whichever does.
   const EquipPrototype* selected_item() const;
   // The stackable under the cursor, on the same terms.
   const ItemPrototype* selected_stackable() const;
-  // The buy-back row under the cursor, on the same terms again. Exactly one of
-  // the three ever answers.
+  // The buyback row under the cursor, on the same terms.
   const BuyBackEntry* selected_buy_back() const;
   // The token the selected item is bought with, or nullptr when the open shelf
-  // is paid for in meso. What tells a caller which way to charge for the row
-  // selected_item() names.
+  // uses meso. This tells a caller how to charge for the row selected_item()
+  // names.
   const ItemPrototype* selected_token() const;
-  // Where that row sits on the shelf, which is what BuyBack is asked for. The
-  // cursor position is the shelf position: the tab lists the shelf whole.
+  // The row's position on the shelf, which BuyBack takes. The cursor position
+  // is the shelf position, since the tab lists the whole shelf.
   int selected_row() const {
     return selected_;
   }
 
-  // Opens the context menu over the selected item. Does nothing while the tab
-  // bar holds the cursor, or when the shop has nothing to open it on.
+  // Opens the context menu on the selected item. Does nothing while the tab bar
+  // has the cursor, or when the shop has nothing to open it on.
   void OpenMenu();
   bool menu_open() const;
-  // Drives the context menu and says what should be on screen afterwards:
-  // kShopMenu while it stays up, kShopInspect or kShopBuy for the entry the
-  // player chose, kShop once it closes. The menu closes itself on the way out,
-  // so a caller that returns to kShop finds the list as it left it.
+  // Handles the context menu and returns the next screen: kShopMenu while it
+  // stays open, kShopInspect or kShopBuy for the chosen entry, and kShop once
+  // it closes. The menu closes itself on the way out, so a caller returning to
+  // kShop finds the list as it was.
   Screen OnMenuEvent(ftxui::Event event);
 
  private:
-  // The vertical focus zones, as in the bag: the two tab rows on top, the stock
-  // list below. They are one ring -- Up off the first item reaches the bars,
-  // and Up off the top bar reaches the last item.
+  // The vertical focus zones, as in the bag: the two tab rows on top and the
+  // stock list below. They form one ring: Up from the first item reaches the
+  // bars, and Up from the top bar reaches the last item.
   enum Zone { kZoneTabs, kZonePay, kZoneList };
 
-  // Whether the open tab has a second row of tabs to stand on. The row is drawn
-  // either way, so the window keeps one height, but an empty one is no stop.
+  // Whether the open tab has a second row of tabs to move onto. The row is
+  // drawn either way so the window keeps one height, but an empty one isn't a
+  // stop.
   bool HasPayRow() const;
-  // Where the cursor stands in that ring: the tab bar is stop 0, the pay bar
-  // stop 1 where there is one, and the stock rows are the stops after that.
+  // The cursor's position in that ring: the tab bar is stop 0, the pay bar stop
+  // 1 where there is one, and the stock rows are the stops after that.
   int CursorStop() const;
-  // Moves the cursor `delta` stops around the ring, tab bar included.
+  // Moves the cursor `delta` stops around the ring, including the tab bar.
   void MoveCursor(int delta);
-  // Steps one tab along whichever bar holds the cursor and restocks. The ends
-  // are walls, as in the bag: there is nothing past Etc, and stepping off does
-  // nothing.
+  // Moves one tab along whichever bar has the cursor and restocks. The ends
+  // stop, as in the bag: stepping past the last tab does nothing.
   void StepTab(int direction);
   void StepPayTab(int direction);
-  // Fills stock_ from whichever tab is open.
+  // Fills stock_ from the open tab.
   void Restock();
-  // Rows in the open tab. The three shelves are stock_; the buy-back tab
-  // reads the character's shelf directly, having no catalog keys of its own.
+  // The number of rows in the open tab. The three shop shelves use stock_; the
+  // buyback tab reads the character's shelf directly, since it has no catalog
+  // keys.
   int RowCount() const;
-  // Puts the window where the cursor is -- ScrollWindowStart, which keeps the
-  // selection in the middle of it.
+  // Scrolls the window to the cursor with ScrollWindowStart, which keeps the
+  // selection in the middle.
   void ScrollToCursor();
-  // The tab chips with the player's meso in what they leave.
+  // The tab chips, with the player's meso in the space they leave.
   ftxui::Element RenderTabBar() const;
-  // The balances beside the shop, as tall as the window and blank under a
-  // shelf that deals in meso. See the note at the top of the file.
+  // The balances beside the shop, as tall as the window and blank under a shelf
+  // that uses meso. See the note at the top of the file.
   ftxui::Element RenderTokenPanel() const;
   // One balance row of that panel: the currency's mark and the count.
   ftxui::Element RenderTokenBalance(const ItemPrototype& token) const;
   // The second row: Meso and Token, or a blank row under a tab that has
-  // neither. Blank rather than absent so the window is one height.
+  // neither. Blank rather than absent, so the window keeps one height.
   ftxui::Element RenderPayBar() const;
-  // The token one row is bought with, or nullptr for a row priced in meso.
+  // The token a row is bought with, or nullptr for a row priced in meso.
   const ItemPrototype* RowToken(const EquipPrototype& proto) const;
-  // Every currency the open shelf is paid in, in shelf order, or empty for a
-  // shelf paid in meso. Read off the shelf itself rather than from the slot,
-  // so a later tier that splits its tokens differently needs no change here.
-  // Answers even while the class filter has left the visible list empty.
+  // Every currency the open shelf uses, in shelf order, or empty for a meso
+  // shelf. Read from the shelf itself rather than the slot, so a later tier
+  // that splits its tokens differently needs no change here. Works even while
+  // the class filter leaves the visible list empty.
   std::vector<const ItemPrototype*> TabTokens() const;
-  // One stock row. `cursor` is the two-column gutter the cursor draws in, and
-  // `elapsed` how long this row has been selected -- zero for one that is not,
-  // which is what shows every other name from its head.
+  // One stock row. `cursor` is the two-column gutter the cursor is drawn in,
+  // and `elapsed` is how long this row has been selected: zero for an
+  // unselected row, which shows every other name from its start.
   ftxui::Element RenderEtcRow(
       const ItemPrototype& item, const std::string& cursor,
       std::chrono::steady_clock::duration elapsed) const;
   ftxui::Element RenderEquipRow(
       const EquipPrototype& proto, const std::string& cursor,
       std::chrono::steady_clock::duration elapsed) const;
-  // One buy-back row. A stackable fills the quantity column; an equip, being
-  // the one item it was, leaves it blank. Both are priced at what the sale
-  // paid for one.
+  // One buyback row. A stackable fills the quantity column, and an equip, being
+  // a single item, leaves it blank. Both are priced at what the sale paid for
+  // one.
   ftxui::Element RenderBuyBackRow(
       const BuyBackEntry& entry, const std::string& cursor,
       std::chrono::steady_clock::duration elapsed) const;
-  // The rows on screen, scroll bar beside them, or "(empty)" over blanks while
-  // the shelf is. Always kVisibleRows tall: the panel is drawn centred, so a
-  // block that shrank with the list would move the whole window up the screen.
+  // The rows on screen with the scroll bar beside them, or "(empty)" over blank
+  // rows when the shelf is empty. Always kVisibleRows tall: the panel is
+  // centred, so a block that shrank with the list would move the whole window
+  // up the screen.
   ftxui::Element RenderStock() const;
 
   const CharacterInstance& character_;
@@ -198,24 +199,24 @@ class ShopPanel {
   const std::map<std::string, ItemPrototype>& items_;
   int tab_ = kShopWeaponTab;
   int pay_ = kShopMesoTab;
-  // Catalog keys of the stock, in display order. Rebuilt by Reset(), which is
-  // the only thing that changes it -- buying does not.
+  // The catalog keys of the stock, in display order. Rebuilt by Reset(), the
+  // only thing that changes it; buying doesn't.
   std::vector<std::string> stock_;
   Zone zone_ = kZoneList;
   int selected_ = 0;
-  // The stock row drawn at the top of the window. The list is longer than the
-  // screen, so the panel keeps its own offset rather than handing the cursor to
-  // ftxui's yframe -- the context menu is anchored at a row number, and only an
-  // offset the panel owns can be turned into one.
+  // The stock row at the top of the window. The list is longer than the screen,
+  // so the panel keeps its own offset instead of using ftxui's yframe, because
+  // the context menu is placed at a row number, and only an offset the panel
+  // owns can give one.
   int first_visible_ = 0;
   ItemMenu menu_;
   bool menu_open_ = false;
-  // How long the cursor has sat on its row, for sliding a long name under the
-  // name column. Mutable because the render is where the move is noticed.
+  // How long the cursor has been on its row, for scrolling a long name. Mutable
+  // because the render is where the move is noticed.
   mutable SelectionClock name_clock_;
 
-  // The row the context menu starts on, held back far enough that the menu
-  // ends inside the window rather than stretching it.
+  // The row the context menu opens at: the cursor's row within the visible
+  // window.
   int MenuRow() const;
 };
 

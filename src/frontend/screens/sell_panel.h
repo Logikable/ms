@@ -1,11 +1,11 @@
-/* SellPanel is the modal for selling copies of a single stackable item. It
- * shows the item name and the per-item and total meso value above a shared
- * AmountSelector (a quantity textbox flanked by [1]/[MAX], over
- * [Confirm]/[Cancel]). The quantity opens at the whole stack.
+/* SellPanel is the dialog for selling copies of one stackable item. It shows
+ * the item name and the per-item and total meso value above a shared
+ * AmountSelector (a quantity box with [1] and [MAX] on either side, over
+ * [Confirm]/[Cancel]). The quantity starts at the whole stack.
  *
- * The panel owns no game state: Reset() seeds it with the item's price and
- * stack size, quantity() reports the chosen amount, and OnEvent answers with
- * the ConfirmChoice every dialog in the game answers with.
+ * The panel holds no game state: Reset() sets the item's price and stack size,
+ * quantity() reports the chosen amount, and OnEvent returns the ConfirmChoice
+ * every dialog returns.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SELL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SELL_PANEL_H_
@@ -20,8 +20,8 @@ namespace ms {
 
 class SellPanel {
  public:
-  // Seeds the panel for selling from a stack of `max` copies at `unit_price`
-  // meso each. Quantity defaults to the whole stack.
+  // Sets up the panel for selling from a stack of `max` copies at `unit_price`
+  // meso each. The quantity starts at the whole stack.
   void Reset(const std::string& item_name, int unit_price, int max);
   ftxui::Element Render() const;
   ConfirmChoice OnEvent(ftxui::Event event);

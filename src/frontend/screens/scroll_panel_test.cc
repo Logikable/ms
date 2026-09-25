@@ -22,8 +22,8 @@ namespace {
 
 class ScrollPanelTest : public PanelTest {
  protected:
-  // The rates are GMS's own, because the price table only prices those four.
-  // A made-up rate has no price and stops the panel.
+  // The rates are GMS's, because the price table only has prices for those
+  // four. A made-up rate has no price and breaks the panel.
   static std::map<std::string, Scroll> MakeScrolls() {
     std::map<std::string, Scroll> scrolls;
     Scroll& a = scrolls["AAA Scroll"];
@@ -51,8 +51,8 @@ class ScrollPanelTest : public PanelTest {
     return screen.ToString();
   }
 
-  // How tall the panel asks to be, which is what says whether a window is
-  // stacked below the list or floating over it.
+  // How tall the panel asks to be, which shows whether a window is below the
+  // list or floating over it.
   static int FitHeight(ScrollPanel& panel) {
     ftxui::Element element = panel.Render(/*focused=*/true);
     return ftxui::Screen::Create(ftxui::Dimension::Fit(element),
@@ -60,8 +60,8 @@ class ScrollPanelTest : public PanelTest {
         .dimy();
   }
 
-  // Traces the character is carrying, so a test can put the balance where it
-  // needs it before the panel reads it.
+  // Gives the character traces, so a test can set the balance before the panel
+  // reads it.
   void GiveTraces(int count) {
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
@@ -70,13 +70,13 @@ class ScrollPanelTest : public PanelTest {
   }
 
   // A level to price against, and what the two scrolls cost there. The price
-  // comes from the item, so a test that reads a Cost has to name a level.
+  // comes from the item, so a test that reads a Cost has to set a level.
   static constexpr int kSwordLevel = 100;
   static constexpr int kAaaCost = 34;  // 30% weapon, level 100 band
   static constexpr int kZzzCost = 28;  // 70% weapon, same band
 
-  // Moves the cursor onto `name` and pins it, the way the menu will. The
-  // render first is what lets the Menu take an arrow key at all.
+  // Moves the cursor onto `name` and pins it, as the menu does. Rendering first
+  // is what lets the Menu accept an arrow key.
   void PinByName(ScrollPanel* panel, const std::string& name) {
     Render(*panel);
     for (int i = 0; i < 32 && panel->selected_scroll().name() != name; ++i) {
@@ -87,9 +87,9 @@ class ScrollPanelTest : public PanelTest {
     panel->Resort();
   }
 
-  // Enter opens the menu, and Enter again on Scroll asks the CALLER to open
-  // the confirm -- the panel does not, because only the caller knows whether
-  // the item has a slot left. Tests stand in for that caller here.
+  // Enter opens the menu, and Enter again on Scroll asks the caller to open the
+  // confirm window. The panel doesn't open it itself, because only the caller
+  // knows whether the item has a slot left. The tests act as that caller.
   void OpenConfirmThroughTheMenu(ScrollPanel* panel) {
     Render(*panel);
     panel->OnEvent(ftxui::Event::Return);
@@ -103,8 +103,8 @@ class ScrollPanelTest : public PanelTest {
   ScrollPanel panel_{c_, scrolls_};
 };
 
-// AAA is SCROLL_TYPE_ATT (1) and ZZZ is SCROLL_TYPE_DEX (4), so the type sort
-// opens on AAA despite its longer odds.
+// AAA is SCROLL_TYPE_ATT (1) and ZZZ is SCROLL_TYPE_DEX (4), so sorting by type
+// starts on AAA despite its lower success rate.
 TEST_F(ScrollPanelTest, OpensOnTheFirstScrollAndNamesItsOddsAndStat) {
   EXPECT_EQ(panel_.selected(), 0);
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
@@ -114,8 +114,8 @@ TEST_F(ScrollPanelTest, OpensOnTheFirstScrollAndNamesItsOddsAndStat) {
   EXPECT_NE(drawn.find("+5 ATT"), std::string::npos);
 }
 
-// The armour scroll that raises all four stats. Four cells saying the same
-// number is what the option is named for, and it does not fit the row anyway.
+// The armour scroll that raises all four stats. Four cells with the same number
+// is what the option is named for, and it doesn't fit the row anyway.
 TEST_F(ScrollPanelTest, FourStatsThatAgreeReadAsAllStats) {
   EquipStats* stats = scrolls_["AAA Scroll"].mutable_stats();
   stats->set_attack(0);
@@ -131,7 +131,7 @@ TEST_F(ScrollPanelTest, FourStatsThatAgreeReadAsAllStats) {
   EXPECT_NE(drawn.find("+7 DEF"), std::string::npos);
 }
 
-// Four stats that disagree are four stats, whatever the scroll is called.
+// Four stats that differ are shown separately, whatever the scroll is called.
 TEST_F(ScrollPanelTest, StatsThatDisagreeStayApart) {
   EquipStats* stats = scrolls_["AAA Scroll"].mutable_stats();
   stats->set_attack(0);
@@ -143,9 +143,9 @@ TEST_F(ScrollPanelTest, StatsThatDisagreeStayApart) {
   EXPECT_NE(Render(panel).find("+2 STR"), std::string::npos);
 }
 
-// The list is the whole screen, with no tab bar over it, so the ends meet.
+// The list is the whole screen, with no tab bar above it, so it wraps.
 TEST_F(ScrollPanelTest, TheCursorWalksTheListAsARing) {
-  Render(panel_);  // populate entries_ so the menu knows its size
+  Render(panel_);  // fills entries_ so the menu knows its size
   panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected(), 1);
   EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
@@ -189,20 +189,21 @@ TEST_F(ScrollPanelTest, SetFilterRejectsAnItemWithNoScrolls) {
   proto.add_equip_job_categories(
       EQUIP_JOB_CATEGORY_PIRATE);  // no pirate scrolls
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
-  // Filter unchanged; original first entry still selected.
+  // Filter unchanged, and the original first entry still selected.
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
 }
 
 TEST_F(ScrollPanelTest, SetFilterRejectsATierMismatch) {
   EquipPrototype proto;
-  proto.set_required_level(75);  // tier 2; only ZZZ is tier 2 but it's bowman
+  proto.set_required_level(
+      75);  // tier 2; only ZZZ is tier 2, but it is for bowmen
   proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
 }
 
-// A hat lists the same job category a weapon does, so the categories alone
-// would hand it every weapon scroll in the catalog.
+// A hat lists the same job categories as a weapon, so the categories alone
+// would offer it every weapon scroll in the catalog.
 TEST_F(ScrollPanelTest, SetFilterRejectsAWeaponScrollForArmour) {
   EquipPrototype hat;
   hat.set_required_level(1);  // tier 1, where AAA lives
@@ -215,7 +216,7 @@ TEST_F(ScrollPanelTest, SetFilterRejectsAWeaponScrollForArmour) {
   EXPECT_TRUE(armour_panel.SetFilterForPrototype(hat));
 }
 
-// The one scroll that asks nothing of the item but its tier.
+// The one scroll that only checks the item's tier.
 TEST_F(ScrollPanelTest, ACleanSlateIsOfferedForEveryKindOfItem) {
   scrolls_["AAA Scroll"].set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
   scrolls_["AAA Scroll"].set_target(SCROLL_TARGET_UNSPECIFIED);
@@ -241,13 +242,12 @@ TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
 
 // --- the Cost column and the balance ---
 
-// Display columns, not bytes: the scroll glyph is four bytes wide and two
-// columns wide, which is exactly the confusion this file has to keep out of
-// the Cost column.
+// Display columns, not bytes: the scroll glyph is four bytes but two columns,
+// which is exactly the mix-up this file has to keep out of the Cost column.
 //
-// Screen::ToString keeps the colour escapes, so a styled cell puts bytes on
-// the line that occupy no columns at all. Skipping them is what lets a red
-// cost be measured against a heading that is not red.
+// Screen::ToString keeps colour escapes, so a styled cell adds bytes that take
+// no columns. Skipping them lets a red cost be measured against a heading that
+// isn't red.
 int DisplayColumns(const std::string& s) {
   int width = 0;
   for (size_t i = 0; i < s.size();) {
@@ -255,7 +255,7 @@ int DisplayColumns(const std::string& s) {
       while (i < s.size() && s[i] != 'm') {
         ++i;
       }
-      ++i;  // the 'm' that ends it
+      ++i;  // the 'm' that ends the escape
       continue;
     }
     unsigned char c = s[i];
@@ -276,7 +276,8 @@ TEST_F(ScrollPanelTest, EachRowCarriesItsTraceCost) {
 
 // --- pins ---
 
-// A pinned scroll rides at the top of the list, and says so in its own column.
+// A pinned scroll moves to the top of the list and shows the pin in its own
+// column.
 TEST_F(ScrollPanelTest, APinnedScrollSitsAtTheTop) {
   std::vector<const Scroll*> both = {&scrolls_["AAA Scroll"],
                                      &scrolls_["ZZZ Scroll"]};
@@ -291,8 +292,8 @@ TEST_F(ScrollPanelTest, APinnedScrollSitsAtTheTop) {
   EXPECT_NE(Render(panel_).find("📌"), std::string::npos);
 }
 
-// Pinning changes what is at the top, not the order of anything else: the two
-// halves of the list each keep the order they had.
+// Pinning changes what is at the top, not the order of anything else: the
+// pinned and unpinned parts each keep their order.
 TEST_F(ScrollPanelTest, PinnedScrollsKeepTheUsualOrderAmongThemselves) {
   std::map<std::string, Scroll> four;
   const int kRates[] = {100, 70, 30};
@@ -308,18 +309,18 @@ TEST_F(ScrollPanelTest, PinnedScrollsKeepTheUsualOrderAmongThemselves) {
   ScrollPanel panel(c_, four);
   panel.SetFilter({&four["s0"], &four["s1"], &four["s2"]}, kSwordLevel,
                   SCROLL_TARGET_WEAPON);
-  // Pin the 30%, the last of the three, and then the 70% above it.
+  // Pin the 30%, the last of the three, then the 70% above it.
   PinByName(&panel, "Scroll 30");
   PinByName(&panel, "Scroll 70");
 
-  // 70 before 30 among the pinned, as they were before either was pinned.
+  // 70 before 30 among the pinned, as before either was pinned.
   std::string rendered = Render(panel);
   EXPECT_LT(rendered.find("Scroll 70"), rendered.find("Scroll 30"));
   EXPECT_LT(rendered.find("Scroll 30"), rendered.find("Scroll 100"));
 }
 
-// A pin is filed under the kind of equipment it was set on, so the weapons a
-// player pins do not follow them onto their armour.
+// A pin is filed under the kind of equipment it was set on, so weapon pins
+// don't carry over to armour.
 TEST_F(ScrollPanelTest, PinsAreKeptPerKindOfEquipment) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -331,8 +332,8 @@ TEST_F(ScrollPanelTest, PinsAreKeptPerKindOfEquipment) {
   EXPECT_FALSE(panel_.SelectedIsPinned());
 }
 
-// The pin holds as the player outgrows a tier: it names the stat and the rate,
-// not the file, and the same scroll met again at the next tier is still theirs.
+// The pin holds as the player outgrows a tier: it is keyed by the stat and the
+// rate, not the file, so the same scroll at the next tier stays pinned.
 TEST_F(ScrollPanelTest, APinHoldsAcrossTiers) {
   Scroll higher = scrolls_["AAA Scroll"];
   higher.set_tier(SCROLL_TIER_2);
@@ -346,7 +347,7 @@ TEST_F(ScrollPanelTest, APinHoldsAcrossTiers) {
   EXPECT_TRUE(panel_.SelectedIsPinned());
 }
 
-// Unpinning drops it back among the rest.
+// Unpinning moves it back among the rest.
 TEST_F(ScrollPanelTest, UnpinningPutsTheScrollBack) {
   std::vector<const Scroll*> both = {&scrolls_["AAA Scroll"],
                                      &scrolls_["ZZZ Scroll"]};
@@ -362,8 +363,8 @@ TEST_F(ScrollPanelTest, UnpinningPutsTheScrollBack) {
   EXPECT_EQ(Render(panel_).find("📌"), std::string::npos);
 }
 
-// The list answers "what can I afford" on its face, in the same red the
-// confirm window uses, so a player need not open a row to find out.
+// The list shows what the player can afford, in the same red as the confirm
+// window, so they don't need to open a row to find out.
 TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -373,8 +374,8 @@ TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
   EXPECT_NE(LabelColor(panel_.Render(/*focused=*/true), "34"), kRed);
 }
 
-// The change this screen exists to show: one scroll, two prices, because the
-// price is the item's. A Cost read off the scroll alone would not move.
+// What this screen exists to show: one scroll with two prices, because the
+// price depends on the item. A Cost read from the scroll alone wouldn't change.
 TEST_F(ScrollPanelTest, TheSameScrollCostsMoreOnABetterItem) {
   std::vector<const Scroll*> one = {&scrolls_["AAA Scroll"]};
   panel_.SetFilter(one, 30, SCROLL_TARGET_WEAPON);
@@ -385,8 +386,8 @@ TEST_F(ScrollPanelTest, TheSameScrollCostsMoreOnABetterItem) {
   EXPECT_NE(Render(panel_).find("34 📜"), std::string::npos);
 }
 
-// The one that catches a byte-padded cost cell: the heading and the number
-// under it have to end in the same column.
+// This catches a cost cell padded by bytes: the heading and the number under it
+// must end in the same column.
 TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -417,7 +418,7 @@ TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
             DisplayColumns(row.substr(0, row.find("📜") + 4)));
 }
 
-// A balance leads with its mark, the way meso does everywhere else.
+// A balance starts with its mark, as meso does everywhere else.
 TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerOwns) {
   EXPECT_NE(Render(panel_).find("📜 0"), std::string::npos);
   GiveTraces(1240);
@@ -435,10 +436,10 @@ TEST_F(ScrollPanelTest, AffordabilityFollowsTheBalance) {
   EXPECT_TRUE(panel_.CanAffordSelected());
 }
 
-// The name column gave up its width to Cost, so a name past it is cut rather
-// than allowed to shove the other columns along. That it also SLIDES while
-// selected is ScrollingWindow's promise and is tested with it, in marquee_test
-// -- catching it here would mean sleeping out the marquee's pause.
+// The name column gave up width to Cost, so a longer name is cut instead of
+// pushing the other columns along. That it also scrolls while selected is
+// tested with ScrollingWindow in marquee_test, since checking it here would
+// mean waiting out the marquee's pause.
 TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
   std::map<std::string, Scroll> scrolls;
   Scroll& s = scrolls["long"];
@@ -454,20 +455,20 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
   EXPECT_EQ(rendered.find("100% Clean Slate"), std::string::npos);
 }
 
-// The panel is the first of two refusals -- the controller will not spend what
-// is not there either -- so this has to be asserted here, where the controller
-// cannot cover for it.
+// The panel is the first of two checks (the controller also won't spend what
+// isn't there), so this has to be tested here, where the controller can't cover
+// for it.
 TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
   OpenConfirmThroughTheMenu(&panel_);
   ASSERT_TRUE(panel_.IsConfirming());
-  // Answer yes with nothing to pay with. The window stays up rather than
-  // vanishing as though something happened.
+  // Confirm with nothing to pay with. The window stays open instead of closing
+  // as if something happened.
   EXPECT_EQ(panel_.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_TRUE(panel_.IsConfirming());
 
-  // And the same key answers the moment the traces are there.
+  // The same key works as soon as the traces are there.
   GiveTraces(kAaaCost);
   EXPECT_EQ(panel_.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
@@ -483,7 +484,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
   EXPECT_NE(rendered.find("34 📜"), std::string::npos) << "the cost";
 }
 
-// Rendered lines, so a test can say which row sits under which.
+// Rendered lines, so a test can check which row is under which.
 std::vector<std::string> Lines(const std::string& rendered) {
   std::vector<std::string> lines;
   size_t start = 0;
@@ -498,9 +499,9 @@ std::vector<std::string> Lines(const std::string& rendered) {
   return lines;
 }
 
-// Lines carrying a horizontal rule. A rule inside a window is drawn into that
-// window's own side borders, so it always brings a left and a right end with
-// it -- which is what tells a rule from the plain rows around it.
+// Lines containing a horizontal rule. A rule inside a window joins that
+// window's side borders, so it always has a left and a right end, which is what
+// tells it apart from ordinary rows.
 int RuleLines(const std::vector<std::string>& lines) {
   int count = 0;
   for (const std::string& line : lines) {
@@ -522,17 +523,17 @@ int LineIndex(const std::vector<std::string>& lines,
   return -1;
 }
 
-// A blank column between them. At one space the two headings read as the one
-// phrase "Cost Pin".
+// A blank column between them. With only one space the two headings read as one
+// phrase, "Cost Pin".
 TEST_F(ScrollPanelTest, TheCostAndPinHeadingsStandApart) {
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("Cost  Pin"), std::string::npos);
   EXPECT_EQ(rendered.find("Cost Pin"), std::string::npos);
 }
 
-// And the pin stays in its column rather than drifting into the gap. Right
-// edges, because the glyph is two columns and the heading is three -- the same
-// way the costs sit under "Cost".
+// The pin stays in its column rather than drifting into the gap. Right edges
+// are compared, because the glyph is two columns and the heading three, as with
+// the costs under "Cost".
 TEST_F(ScrollPanelTest, ThePinEndsWhereItsHeadingEnds) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -546,13 +547,13 @@ TEST_F(ScrollPanelTest, ThePinEndsWhereItsHeadingEnds) {
   const std::string& head = lines[header];
   const std::string& pinned = lines[row];
   int head_end = DisplayColumns(head.substr(0, head.find("Pin") + 3));
-  // Two columns for the glyph itself, which the substring stops short of.
+  // Two columns for the glyph itself, which the substring stops before.
   int pin_end = DisplayColumns(pinned.substr(0, pinned.find("📌"))) + 2;
   EXPECT_EQ(head_end, pin_end);
 }
 
-// And the column it ends in is not the last one: the panel measures its width
-// from its rows, so the Pin is what would weld itself to the border.
+// The column it ends in isn't the last one: the panel measures its width from
+// its rows, so the Pin is what would touch the border.
 TEST_F(ScrollPanelTest, NoRowWeldsItselfToTheRightBorder) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -561,8 +562,9 @@ TEST_F(ScrollPanelTest, NoRowWeldsItselfToTheRightBorder) {
       RowsTouchingTheRightBorder(panel_.Render(/*focused=*/true)).empty());
 }
 
-// Three blocks, ruled off: what is going on what, then what it does and costs,
-// then the answer. Without the rules the four rows read as one list.
+// Three blocks separated by rules: which scroll on which item, then what it
+// does and costs, then the answer. Without the rules the four rows read as one
+// list.
 TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -582,12 +584,12 @@ TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
   EXPECT_LT(effect, buttons);
 }
 
-// The window is a pop-up over the list: opening it must not make the panel
-// taller, which is what it did when it sat below.
+// The window floats over the list, so opening it must not make the panel
+// taller.
 //
-// Needs a list the window can fit inside. Against the two-scroll fixture the
-// window is the taller of the two and the panel grows whatever it is doing,
-// so the assertion would say nothing about floating.
+// This needs a list the window fits inside. With the two-scroll fixture the
+// window is taller than the list and the panel grows either way, so the check
+// would prove nothing about floating.
 TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
   std::map<std::string, Scroll> many;
   for (int i = 0; i < 10; ++i) {
@@ -609,8 +611,8 @@ TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
   EXPECT_EQ(FitHeight(panel), closed);
 }
 
-// Said in red and in the greyed Confirm, and in no words at all: the cost row
-// is the thing they cannot pay, so it is the thing that turns.
+// Shown in red and with a grey Confirm, without any words: the cost row is what
+// they can't pay, so it is what turns red.
 TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
@@ -622,8 +624,7 @@ TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
   EXPECT_NE(LabelColor(panel_.Render(/*focused=*/true), "Cost 34"), kRed);
 }
 
-// The window names the item as well as the scroll, which is the whole reason
-// it replaced a bare button row.
+// The window names the item as well as the scroll.
 TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   EquipPrototype sword;
   sword.set_name("Long Sword");
@@ -635,8 +636,8 @@ TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   EXPECT_NE(Render(panel_).find("Long Sword"), std::string::npos);
 }
 
-// A landed scroll is what the traces were spent for, so the window goes gold
-// -- border and rules alike. A failure leaves the frame alone.
+// A successful scroll is what the traces were spent for, so the window turns
+// gold, border and rules alike. A failure leaves the frame unchanged.
 TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
   ScrollResult r;
   r.equip_name = "Sword";
@@ -651,8 +652,8 @@ TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
   EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kTheme);
 }
 
-// The list shares the arrows with the item card beside it, and the one
-// holding them lights its title.
+// The list shares the arrows with the item card beside it, and the one with the
+// arrows highlights its title.
 TEST_F(ScrollPanelTest, LightsItsTitleOnlyWhileItHoldsTheArrows) {
   ftxui::Element lit = panel_.Render(/*focused=*/true);
   ftxui::Element dark = panel_.Render(/*focused=*/false);

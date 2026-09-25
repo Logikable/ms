@@ -12,8 +12,8 @@
 namespace ms {
 namespace {
 
-// The quantity textbox + [1]/[MAX] + Confirm/Cancel mechanics are covered by
-// amount_selector_test; these cover the sell-specific header and wiring.
+// amount_selector_test covers the quantity box, [1]/[MAX] and Confirm/Cancel.
+// These tests cover the sell-specific header and wiring.
 class SellPanelTest : public testing::Test {
  protected:
   static std::string Render(const SellPanel& panel) {
