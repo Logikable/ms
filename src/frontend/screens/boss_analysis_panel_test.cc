@@ -164,13 +164,16 @@ TEST(BossAnalysisPanelTest, SoloIsTheTableAloneAndItScrolls) {
 TEST(BossAnalysisPanelTest, WidestValuesFit) {
   BossAnalysisPanel panel;
   panel.Open({Player(std::string(20, 'N'),
-                     {{"Repeating Crossbow Cartridge", 9.99e15, 9999, 99999}}),
+                     {{"Repeating Crossbow Cartridge", 9.99e15, 99999, 99999}}),
               Player("Other", {})},
              5999.0);
   ftxui::Screen screen = Draw(panel);
   EXPECT_NE(RowIndexOf(screen, "9,990,000,000,000,000"), -1);
   EXPECT_NE(RowIndexOf(screen, "99,900,999,010"), -1);
   EXPECT_NE(RowIndexOf(screen, "99:59"), -1);
+  // Hurricane casts that many; the column still ends under its header.
+  ScreenPos casts = FindOnScreen(screen, "  99,999  ");
+  EXPECT_EQ(casts.x + 8, EndOf(screen, "Casts"));
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
   ftxui::Element element = panel.Render();
   element->ComputeRequirement();
