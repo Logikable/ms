@@ -1194,6 +1194,7 @@ cc_library(
         "//src:map_level",
         "//src:spawn",
         "//src/character:arcane_force",
+        "//src/character:exp_table",
         "//src/frontend:types",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",

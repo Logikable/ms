@@ -120,11 +120,19 @@ Mob SpiritMob() {
   return mob;
 }
 
+Mob FireSpiritMob() {
+  Mob mob;
+  mob.set_name("Fire Spirit");
+  mob.set_level(261);
+  return mob;
+}
+
 // One map on every band, so a test can page across the whole list: Green
 // (level 1) and Horny (level 8) on the 1-10 band, then Temple (15) on 11-30,
 // Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140, Road
-// (141) on 141-170, District (172) on 171-200, Zone (201) on 201-230 and
-// Clearing (233) on 231-260, each alone on its own.
+// (141) on 141-170, District (172) on 171-200, Zone (201) on 201-220, Rage
+// (201, asking Arcane Force) on Arcane River P1, Clearing (233) on P2 and
+// Ramparts (261, asking Sacred Power) on Grandis, each alone on its own.
 // **Adding a band to kLevelBands means adding a map here**, or paging to the
 // end lands on an empty band and the tests below say nothing.
 GameState EveryBand() {
@@ -155,9 +163,18 @@ GameState EveryBand() {
   MapData zone;
   zone.set_name("Zone");
   AddSpawn(&zone, "erda", 3);
+  MapData rage;
+  rage.set_name("Rage");
+  AddSpawn(&rage, "erda", 3);
+  rage.set_arcane_force(30);
   MapData clearing;
   clearing.set_name("Clearing");
   AddSpawn(&clearing, "spirit", 3);
+  clearing.set_arcane_force(320);
+  MapData ramparts;
+  ramparts.set_name("Ramparts");
+  AddSpawn(&ramparts, "fire_spirit", 3);
+  ramparts.set_sacred_power(30);
   return GameState({}, {}, {},
                    {{"snail", SnailMob()},
                     {"mushroom", MushroomMob()},
@@ -168,7 +185,8 @@ GameState EveryBand() {
                     {"monk", MonkMob()},
                     {"knight", KnightMob()},
                     {"erda", ErdaMob()},
-                    {"spirit", SpiritMob()}},
+                    {"spirit", SpiritMob()},
+                    {"fire_spirit", FireSpiritMob()}},
                    {{"green_field", green},
                     {"horny_field", horny},
                     {"temple", temple},
@@ -178,7 +196,9 @@ GameState EveryBand() {
                     {"road", road},
                     {"district", district},
                     {"zone", zone},
-                    {"clearing", clearing}});
+                    {"rage", rage},
+                    {"clearing", clearing},
+                    {"ramparts", ramparts}});
 }
 
 int Width(const MapSelectPanel& panel) {
@@ -618,11 +638,33 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "green_field");
 
   panel.ChangePage(kPastEveryBand);
-  EXPECT_EQ(panel.selected_map(), "clearing");
+  EXPECT_EQ(panel.selected_map(), "ramparts");
+}
+
+// Arcane River splits at 230 and Grandis stands apart, whatever the level:
+// the tab is read off the force a map asks for before its level.
+TEST(MapSelectPanelTest, TheForcesHaveTabsOfTheirOwn) {
+  GameState state = EveryBand();
+  const struct {
+    const char* map;
+    const char* band;
+  } kCases[] = {{"zone", "201-220"},
+                {"rage", "ArcaneRiverP1"},
+                {"clearing", "ArcaneRiverP2"},
+                {"ramparts", "Grandis"}};
+  for (const auto& c : kCases) {
+    SCOPED_TRACE(c.map);
+    state.current_map = c.map;
+    MapSelectPanel panel(state);
+    panel.Reset();
+    EXPECT_EQ(panel.selected_map(), c.map);
+    EXPECT_EQ(ActiveBand(panel), c.band);
+  }
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
-  // Nothing holds level 300 yet; it must not fall out of the list for that.
+  // Nothing outside the river and Grandis stands past 220; a map that does
+  // must not fall out of the list for that.
   Mob balrog;
   balrog.set_name("Balrog");
   balrog.set_level(300);
@@ -630,11 +672,11 @@ TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
   cave.set_name("Deep Cave");
   AddSpawn(&cave, "balrog", 5);
   GameState state({}, {}, {}, {{"balrog", balrog}}, {{"deep_cave", cave}});
+  state.current_map = "deep_cave";
   MapSelectPanel panel(state);
   panel.Reset();
-  GoToTheBar(&panel);
-  panel.ChangePage(kPastEveryBand);
 
+  EXPECT_EQ(ActiveBand(panel), "201-220");
   EXPECT_EQ(panel.selected_map(), "deep_cave");
   EXPECT_NE(Render(panel).find("Deep Cave"), std::string::npos);
 }
@@ -700,7 +742,7 @@ TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
-// A map inside Arcane River, whose mobs put it in the last band.
+// A map inside Arcane River, which puts it on the second river band.
 GameState ArcaneMaps() {
   MapData clearing;
   clearing.set_name("Snow Cloud Clearing");
@@ -729,6 +771,7 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
 
   GoToTheBar(&panel);
   panel.ChangePage(kPastEveryBand);
+  panel.ChangePage(-1);  // Grandis is last, and empty here
   std::string arcane = Render(panel);
   EXPECT_NE(arcane.find("Snow Cloud Clearing"), std::string::npos);
   EXPECT_NE(arcane.find("AF"), std::string::npos) << arcane;

@@ -9,6 +9,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/exp_table.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
@@ -50,35 +51,68 @@ constexpr int kCountWidth = 6;
 // as the cursor moves. Wide enough for the longest map name and one space.
 constexpr int kMobTableWidth = 1 + kMobNameWidth + kLevelWidth + kCountWidth;
 
-// The level bands the list pages through, low to high; each holds more of the
-// ladder than the one below, a level buying less further along.
+// Which force a map asks for, which decides the run of tabs it goes on: the
+// river and Grandis each have their own, apart from the level ladder.
+enum class Region { kOverworld, kArcaneRiver, kGrandis };
+
+Region RegionOf(const MapData& map) {
+  if (map.sacred_power() > 0) {
+    return Region::kGrandis;
+  }
+  return map.arcane_force() > 0 ? Region::kArcaneRiver : Region::kOverworld;
+}
+
+// The tabs the list pages through: the overworld by level, low to high, each
+// band holding more of the ladder than the one below; then Arcane River in two
+// halves; then Grandis.
 //
 // KEEP THE BANDS HOLDING SIMILAR NUMBERS OF MAPS, not similar spans of levels,
 // and resplit as content lands: the list pads every band to the tallest, so a
 // small band spends the difference on blank rows and a big one takes the
 // screen past the terminal. //src/data_test:screen_fit_test is what says so.
 struct LevelBand {
+  Region region;
   int min;
   int max;
+  // What the chip reads; null for a band named by its levels.
+  const char* label = nullptr;
 };
-constexpr LevelBand kLevelBands[] = {{1, 10},    {11, 30},   {31, 60},
-                                     {61, 100},  {101, 140}, {141, 170},
-                                     {171, 200}, {201, 230}, {231, 260}};
+constexpr LevelBand kLevelBands[] = {
+    {Region::kOverworld, 1, 10},
+    {Region::kOverworld, 11, 30},
+    {Region::kOverworld, 31, 60},
+    {Region::kOverworld, 61, 100},
+    {Region::kOverworld, 101, 140},
+    {Region::kOverworld, 141, 170},
+    {Region::kOverworld, 171, 200},
+    {Region::kOverworld, 201, 220},
+    {Region::kArcaneRiver, 1, 230, "Arcane River P1"},
+    {Region::kArcaneRiver, 231, kMaxLevel, "Arcane River P2"},
+    {Region::kGrandis, 1, kMaxLevel, "Grandis"},
+};
 constexpr int kBandCount = static_cast<int>(std::size(kLevelBands));
 
-// Band `level` belongs to. A level past the last band's top lands there rather
-// than nowhere -- content should never fall out of the list for want of a band.
-// Give it its own band when that happens.
-int BandFor(int level) {
+// Band a map of `region` at `level` belongs to. A level past its region's last
+// band lands there rather than nowhere -- content should never fall out of the
+// list for want of a band. Give it its own band when that happens.
+int BandFor(Region region, int level) {
+  int last = 0;
   for (int band = 0; band < kBandCount; ++band) {
+    if (kLevelBands[band].region != region) {
+      continue;
+    }
     if (level <= kLevelBands[band].max) {
       return band;
     }
+    last = band;
   }
-  return kBandCount - 1;
+  return last;
 }
 
 std::string BandLabel(int band) {
+  if (kLevelBands[band].label != nullptr) {
+    return kLevelBands[band].label;
+  }
   return std::to_string(kLevelBands[band].min) + "-" +
          std::to_string(kLevelBands[band].max);
 }
@@ -118,7 +152,8 @@ MapSelectPanel::MapSelectPanel(const GameState& state)
   pages_.resize(kBandCount);
   for (const std::pair<std::pair<int, std::string>, std::string>& entry :
        sorted) {
-    pages_[BandFor(entry.first.first)].push_back(entry.second);
+    pages_[BandFor(RegionOf(state_.maps.at(entry.second)), entry.first.first)]
+        .push_back(entry.second);
   }
 }
 
