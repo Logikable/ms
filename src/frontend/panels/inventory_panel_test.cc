@@ -29,22 +29,23 @@ namespace {
 
 class InventoryPanelTest : public PanelTest {
  protected:
-  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  // A ScrollPanel holds its catalog by reference, so the catalog must outlive
+  // it.
   const std::map<std::string, Scroll> no_scrolls_;
 
-  // Every entry the player can actually land on, in the order Down walks them.
-  // Disabled entries are skipped rather than merely dimmed, so what this does
-  // not contain is what the menu does not offer.
+  // Every entry the player can land on, in the order Down visits them. Disabled
+  // entries are skipped rather than just dimmed, so anything missing here is
+  // something the menu doesn't offer.
   std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
     std::vector<int> seen{menu.selected()};
-    // Bounded on purpose: no menu in the game has anywhere near this many
-    // entries, so a walk that takes this many steps is walking in circles --
-    // and an unbounded one turns a wrong constant into a hung test.
+    // The limit is deliberate: no menu in the game has anywhere near this many
+    // entries, so a walk this long is going in circles, and without a limit a
+    // wrong constant would hang the test.
     for (int step = 0; step < 32; ++step) {
       menu.Down();
-      // The walk ends where it started, the list being a ring. Watching for a
-      // cursor that stopped moving instead would never end -- except on a menu
-      // with one reachable entry, where the two are the same thing.
+      // The walk ends back where it started, since the list wraps. Waiting for
+      // the cursor to stop moving would never end, except on a menu with one
+      // reachable entry, where the two are the same.
       if (menu.selected() == seen.front()) {
         return seen;
       }
@@ -53,8 +54,8 @@ class InventoryPanelTest : public PanelTest {
     return seen;
   }
 
-  // Walks the menu to `entry`, or gives up once it has been all the way round.
-  // Bounded for the same reason ReachableMenuEntries is.
+  // Moves through the menu to `entry`, giving up after one full round, for the
+  // same reason as ReachableMenuEntries.
   static bool StepTo(ItemMenu& menu, int entry) {
     for (int step = 0; step < 32; ++step) {
       if (menu.selected() == entry) {
@@ -90,8 +91,8 @@ class InventoryPanelTest : public PanelTest {
     return proto;
   }
 
-  // Named as the catalog names a shard: in full, with the short form the
-  // Token tab's own column calls it by.
+  // Named the way the catalog names a shard: in full, with the short form the
+  // Token tab's column uses.
   ItemPrototype MakeShard(const std::string& boss) {
     ItemPrototype proto = MakeStackable(boss + "'s Soul Shard");
     proto.set_short_name(boss);
@@ -100,8 +101,8 @@ class InventoryPanelTest : public PanelTest {
   }
 
   // The same bounded screen RenderComponent uses, kept so a test can read
-  // pixels rather than the joined string. The bound is the point: the list
-  // really does overflow and scroll at this size.
+  // pixels rather than the joined string. The bound matters: the list really
+  // does overflow and scroll at this size.
   ftxui::Screen RenderToScreen(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
@@ -127,31 +128,31 @@ class InventoryPanelTest : public PanelTest {
   void FillBag(int count) {
     EquipPrototype proto = sword_;
     for (int i = 0; i < count; ++i) {
-      // Numbered, so a test can say which row the cursor is on rather than
-      // only that some row has it.
+      // Numbered, so a test can say which row the cursor is on, not just that
+      // some row has it.
       proto.set_name("Item" + std::to_string(i));
       c_.PickUp(std::make_unique<EquipInstance>(proto));
     }
   }
 
-  // The pixel the first cell of `needle` lands on, so a test can ask both what
-  // colour it came out and whether it was dimmed.
+  // The pixel where the first cell of `needle` lands, so a test can check both
+  // its colour and whether it was dimmed.
   ftxui::Pixel PixelOfRendered(ftxui::Component component,
                                const std::string& needle) {
     return ms::PixelOf(RenderToScreen(std::move(component)), needle);
   }
 
-  // The panel wired the way the main screen wires it: as one tab of a
-  // Container::Tab, which is what routes keys to it in the running game.
-  // Every other test here calls OnEvent on the panel component directly, so
-  // none of them can see a key that never gets dispatched.
+  // The panel wired as the main screen wires it: as one tab of a
+  // Container::Tab, which routes keys to it in the running game. Every other
+  // test here calls OnEvent on the panel directly, so none of them would notice
+  // a key that never gets dispatched.
   ftxui::Component InTabContainer(ftxui::Component panel) {
     return ftxui::Container::Tab({std::move(panel)}, &tab_selector_);
   }
 
-  // Walks the bar right until `tab` is open. A test asks for the tab it wants
-  // rather than counting presses, so a tab added to the bar does not have to
-  // be counted into every test that only steps past it.
+  // Moves right along the bar until `tab` is open. Tests name the tab they want
+  // instead of counting presses, so adding a tab doesn't break every test that
+  // steps past it.
   void OpenTab(const ftxui::Component& comp, const InventoryPanel& panel,
                int tab) {
     for (int step = 0; step < kNumInventoryTabs && panel.active_tab() != tab;
@@ -163,9 +164,8 @@ class InventoryPanelTest : public PanelTest {
   int tab_selector_ = 0;
 };
 
-// The Equip tab goes gold to say something arrived in it, so it may only do
-// that at an advancement that hands something over: the 1st and the 2nd. It
-// used to light at every stage, sending a 3rd or 4th job to an empty bag.
+// The Equip tab turns gold to say something arrived in it, so it may only do
+// that at an advancement that gives gear: the 1st and the 2nd.
 TEST_F(InventoryPanelTest, TheEquipTabOnlyLightsForAnAdvancementThatGives) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component root = panel.MakeComponent([]() {});
@@ -178,17 +178,16 @@ TEST_F(InventoryPanelTest, TheEquipTabOnlyLightsForAnAdvancementThatGives) {
   EXPECT_EQ(LabelColor(root->Render(), "Equip"), kYellow);
   account_.MarkSeen(EquipGiftTabKey(c_.proto().job_stage()));
 
-  // The 3rd and the 4th open no slot and unlock no tier.
+  // The 3rd and 4th open no slot and unlock no tier.
   c_.AdvanceJob(JOB_CRUSADER);
   EXPECT_EQ(LabelColor(root->Render(), "Equip"), kTheme);
   c_.AdvanceJob(JOB_HERO);
   EXPECT_EQ(LabelColor(root->Render(), "Equip"), kTheme);
 }
 
-// Container::Tab drops keys aimed at a child that reports itself unfocusable,
-// and the equip Menu says exactly that when the bag is empty -- which used to
-// take the tab bar down with it, leaving a new character unable to reach the
-// Etc or Shop tabs at all.
+// Container::Tab drops keys sent to a child that reports itself unfocusable,
+// and the equip Menu does that when the bag is empty. That must not disable the
+// tab bar, or a new character couldn't reach the Etc or Shop tabs.
 TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
   InventoryPanel panel(c_, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
@@ -200,9 +199,8 @@ TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
   EXPECT_EQ(panel.active_tab(), kEquipTab) << "Token -> Equip";
 }
 
-// Equipping the last item in the bag takes the row the cursor was standing on
-// with it. The panel used to hand focus to the equipped panel at that point;
-// now it keeps it, so the cursor has to go somewhere it can be seen.
+// Equipping the last item in the bag removes the row the cursor was on. The
+// panel keeps focus, so the cursor has to move somewhere visible.
 TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -219,7 +217,7 @@ TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
 
 // --- the tab bar and the list are one ring ---
 
-// The bar and the rows are one ring, so Up off the bar lands on the last row.
+// The bar and the rows form one ring, so Up from the bar lands on the last row.
 TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastRow) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -231,11 +229,11 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastRow) {
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
 }
 
-// The caret is the panel's own, drawn from selected_. It used to be drawn from
-// ftxui's focused entry, which only the Menu's own key handling moves -- and
-// the two jumps the panel takes itself, the tab bar to the last row and back
-// to the first, are the two the Menu never sees. On a list short enough not to
-// scroll both indices sat at 0 and agreed by luck.
+// The caret belongs to the panel and is drawn from selected_, not from ftxui's
+// focused entry, which only the Menu's own key handling moves. The panel's two
+// jumps (from the tab bar to the last row and back to the first) are the ones
+// the Menu never sees. On a list too short to scroll, both indices sit at 0 and
+// agree by chance.
 TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
   FillBag(25);
   panel_focus_ = kInventoryPanel;
@@ -256,8 +254,8 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
 
-  // Walked down rather than wrapped, so the Menu handles every step and its
-  // own idea of the focused row follows the cursor to the bottom.
+  // Moved down rather than wrapped, so the Menu handles every step and its own
+  // focused row follows the cursor to the bottom.
   comp->OnEvent(ftxui::Event::ArrowDown);
   for (int i = 0; i < 24; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
@@ -275,9 +273,9 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
 
 // --- the band under the cursor ---
 
-// The caret says where the cursor is; the band says how far the row reaches, so
-// a stat eight columns out reads back to its own name. It has to cross the
-// whole panel to do that, borders excluded.
+// The caret shows where the cursor is, and the band shows how far the row
+// reaches, so a stat eight columns away can be traced back to its name. The
+// band has to cross the whole panel, borders excluded.
 TEST_F(InventoryPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -292,13 +290,12 @@ TEST_F(InventoryPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
   EXPECT_EQ(bands[0].y, RowWithCursor(screen)) << "the band is under the caret";
   EXPECT_EQ(bands[0].first, 1) << "starts in the column inside the left border";
   // Two columns short of the right border, not one: the list reserves the
-  // innermost for its scroll bar, and that column is not part of the row.
+  // innermost column for its scroll bar, which isn't part of the row.
   EXPECT_EQ(bands[0].last, screen.dimx() - 3) << "and runs to the scroll bar";
 }
 
-// Drawn under the same test the caret is, so the two are never out of step: a
-// band on a list the arrows are not reaching claims a selection that cannot
-// move.
+// Drawn under the same condition as the caret, so the two always agree. A band
+// on a list the arrows can't reach would show a selection that can't move.
 TEST_F(InventoryPanelTest, TheBandGoesWhereverTheCaretGoes) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
@@ -317,8 +314,8 @@ TEST_F(InventoryPanelTest, TheBandGoesWhereverTheCaretGoes) {
       << "another panel holds focus";
 }
 
-// The stack tabs draw their rows themselves rather than through an ftxui::Menu,
-// so the band is a second piece of code there and needs asking about.
+// The stack tabs draw their own rows instead of using an ftxui::Menu, so their
+// band is separate code and needs its own test.
 TEST_F(InventoryPanelTest, AStackRowWearsTheBandToo) {
   c_.AddItem(MakeStackable("Mixed Block"), 5);
   panel_focus_ = kInventoryPanel;
@@ -344,8 +341,8 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   ASSERT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
-  // The cursor is drawn only in the list zone, so its absence is where the
-  // cursor went. Left still switching tabs is the other half of the answer.
+  // The cursor is drawn only in the list zone, so its absence shows where the
+  // cursor went. Left still switching tabs confirms it.
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.active_tab(), kTokenTab);
@@ -375,8 +372,8 @@ TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
   EXPECT_EQ(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 }
 
-// A tab with nothing under it is a ring of the bar and the buttons, so neither
-// key lands on a row that is not drawn.
+// A tab with nothing under it forms a ring of the bar and the buttons, so
+// neither key lands on a row that isn't drawn.
 TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -384,16 +381,16 @@ TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   ASSERT_EQ(c_.inventory().size(), 0);
   comp->OnEvent(ftxui::Event::ArrowUp);    // the bar -> the buttons
   comp->OnEvent(ftxui::Event::ArrowDown);  // and back
-  // Back on the bar, so Right switches tabs rather than moving a row.
+  // Back on the bar, so Right switches tabs instead of moving a row.
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.active_tab(), kTokenTab);
 }
 
 // --- the Token tab ---
 
-// The tab stands between Equip and Etc from the first frame, whether or not
-// the bag holds a currency yet: a bar whose tabs came and went with what the
-// player happened to be carrying would move the others under their hand.
+// The tab sits between Equip and Etc from the start, whether or not the bag
+// holds a currency yet. If tabs came and went with what the player carried, the
+// others would shift under their hand.
 TEST_F(InventoryPanelTest, TheTokenTabStandsInTheBarFromTheStart) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -402,7 +399,7 @@ TEST_F(InventoryPanelTest, TheTokenTabStandsInTheBarFromTheStart) {
   EXPECT_NE(RenderComponentText(comp).find("Token"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.active_tab(), kTokenTab) << "Equip -> Token";
-  // Empty, and saying so rather than heading two columns with no rows.
+  // Empty, and it says so instead of heading two columns with no rows.
   std::string text = RenderComponentText(comp);
   EXPECT_NE(text.find("empty"), std::string::npos);
   EXPECT_EQ(text.find("Soul Shard"), std::string::npos);
@@ -415,8 +412,8 @@ TEST_F(InventoryPanelTest, TheTokenTabStandsInTheBarFromTheStart) {
   EXPECT_EQ(panel.active_tab(), kEquipTab) << "Token -> Equip";
 }
 
-// A balance sheet rather than a shelf: neither key walks down into it, so the
-// cursor stays on the bar and the arrows keep switching tabs.
+// A balance sheet rather than a list: neither key moves into it, so the cursor
+// stays on the bar and the arrows keep switching tabs.
 TEST_F(InventoryPanelTest, TheTokenTabTakesNoCursor) {
   c_.AddItem(MakeToken("Frozen Weapon Token", "●"), 3);
   panel_focus_ = kInventoryPanel;
@@ -433,8 +430,8 @@ TEST_F(InventoryPanelTest, TheTokenTabTakesNoCursor) {
   EXPECT_TRUE(panel.on_stackable_tab()) << "the bar still has the arrows";
 }
 
-// Two columns side by side, each with its count. A shard goes by its short
-// name, its column heading having said the rest.
+// Two columns side by side, each with its counts. A shard goes by its short
+// name, since its column heading says the rest.
 TEST_F(InventoryPanelTest, TheTokenTabDrawsBothColumns) {
   c_.AddItem(MakeToken("Frozen Weapon Token", "●"), 3);
   c_.AddItem(MakeShard("Zakum"), 47);
@@ -472,15 +469,15 @@ TEST_F(InventoryPanelTest, EtcKeepsOnlyTheOrdinaryDrops) {
   EXPECT_EQ(text.find("Zakum"), std::string::npos);
   EXPECT_EQ(text.find(kSpellTraceName), std::string::npos);
 
-  // And the cursor on the one row it has names that stack, not the fourth
-  // thing the bag happens to hold.
+  // The cursor on its one row names that stack, not the fourth item the bag
+  // holds.
   comp->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(c_.stackables()[panel.selected_stack()].name(), "Red Shell");
 }
 
-// With no cursor to walk, Up and Down move the sheet itself -- by one row per
-// press, and no further than the last row. Sixteen shards against a panel that
-// can draw a handful is what the keys are for.
+// With no cursor to move, Up and Down scroll the sheet one row per press, no
+// further than the last row. Sixteen shards on a panel that shows a handful is
+// what the keys are for.
 TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
   for (const std::string& boss :
        {"Arkarium", "Crimson Queen", "Cygnus", "Damien", "Hilla", "Horntail",
@@ -495,14 +492,14 @@ TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
   ASSERT_EQ(panel.active_tab(), kTokenTab);
   ASSERT_NE(RenderComponentText(comp).find("Arkarium"), std::string::npos);
 
-  // One press, one row: the first row goes and the one after it leads.
+  // One press, one row: the first row scrolls off and the next one leads.
   comp->OnEvent(ftxui::Event::ArrowDown);
   std::string text = RenderComponentText(comp);
   EXPECT_EQ(text.find("Arkarium"), std::string::npos);
   EXPECT_NE(text.find("Crimson Queen"), std::string::npos);
 
-  // Down past the end stops at the last row rather than scrolling off it, so
-  // the way back up is not a run of dead presses.
+  // Down past the end stops at the last row instead of scrolling past it, so
+  // there are no wasted presses on the way back up.
   for (int i = 0; i < 40; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -510,15 +507,15 @@ TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_NE(RenderComponentText(comp).find("Von Bon"), std::string::npos);
 
-  // And stepping off the tab and back opens it at the top again.
+  // Leaving the tab and coming back opens it at the top again.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_NE(RenderComponentText(comp).find("Arkarium"), std::string::npos);
 }
 
-// The Token sheet is filed as it is banked into, so both columns read from
-// most to fewest without anyone pressing Sort -- which the tab still offers,
-// and which leaves an already filed sheet alone.
+// The Token sheet is sorted as items are added, so both columns read from most
+// to fewest without pressing Sort. The tab still offers Sort, which leaves a
+// sorted sheet unchanged.
 TEST_F(InventoryPanelTest, TheTokenSheetIsAlwaysFiled) {
   c_.AddItem(MakeToken("AbsoLab Coin", "◆"), 2);
   c_.AddItem(MakeToken("Frozen Weapon Token", "●"), 9);
@@ -539,8 +536,8 @@ TEST_F(InventoryPanelTest, TheTokenSheetIsAlwaysFiled) {
 
 // --- the Expand tab ---
 
-// Its label is the state Enter would leave the bag in, and it holds the far
-// right of the bar whether or not the shop has opened a fourth tab.
+// Its label is the state Enter would leave the bag in, and it stays at the far
+// right of the bar whether or not the shop has added a fourth tab.
 TEST_F(InventoryPanelTest, TheExpandTabReadsTheStateItWouldLeave) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -551,8 +548,8 @@ TEST_F(InventoryPanelTest, TheExpandTabReadsTheStateItWouldLeave) {
   EXPECT_EQ(screen.find("Expand"), std::string::npos);
 }
 
-// A door rather than a page: standing on it says so where the other tabs list
-// what the player has, and Enter goes through rather than opening a menu.
+// A door rather than a page: selecting it shows a line saying so instead of a
+// list, and Enter goes through instead of opening a menu.
 TEST_F(InventoryPanelTest, TheExpandTabSaysWhatEnterWouldDo) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
@@ -584,8 +581,8 @@ TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
   EXPECT_EQ(expands, 1) << "Enter on a page raises a menu, not the fullscreen";
 }
 
-// The bar comes round through Expand: Right off it lands on Equip, and Left
-// off Equip reaches it again.
+// The bar wraps through Expand: Right from it goes to Equip, and Left from
+// Equip goes back to it.
 TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
   c_.AddItem(MakeStackable("Ore"), 1);
   panel_focus_ = kInventoryPanel;
@@ -593,7 +590,7 @@ TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
-  // A chip the cursor is on is drawn white, so only one chip may be.
+  // The chip under the cursor is drawn white, so only one chip can be.
   EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
             ftxui::Color::White);
   EXPECT_NE(PixelOfRendered(comp, "Etc").background_color, ftxui::Color::White)
@@ -610,8 +607,8 @@ TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
 
 // --- the tab menu ---
 
-// Sort acts on the tab the player is looking at, and opening the menu does
-// not move them off it.
+// Sort acts on the tab the player is viewing, and opening the menu doesn't move
+// them off it.
 TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
   EquipPrototype wearable = sword_;
   wearable.set_name("Zzz Club");
@@ -648,7 +645,7 @@ TEST_F(InventoryPanelTest, SortFilesAStackTab) {
 }
 
 // The shop is a door rather than a list, so Enter goes through it instead of
-// raising a menu about a page there is nothing to sort.
+// opening a menu about a page with nothing to sort.
 TEST_F(InventoryPanelTest, TheShopTabIsEnteredNotAskedAbout) {
   LevelTo(UnlockLevel(Feature::kShop));
   panel_focus_ = kInventoryPanel;
@@ -670,31 +667,31 @@ TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
             std::string::npos);
 }
 
-// sword_ is a level 10 warrior weapon, so one row carries every column.
+// sword_ is a level 10 warrior weapon, so one row fills every column.
 TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   sword_.set_upgrade_slots(7);
   UnlockEverything();
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
-  // Wide enough for every column at once: at the right column's minimum the
-  // job column is one of the two the list drops.
+  // Wide enough for every column at once. At the right column's minimum width,
+  // the job column is one of the two the list drops.
   panel.SetWidth(kTestScreenWidth - 2);
   std::string drawn = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(drawn.find("Sword"), std::string::npos);
   EXPECT_NE(drawn.find("Weapon"), std::string::npos);
   EXPECT_NE(drawn.find("Lv10"), std::string::npos);
   EXPECT_NE(drawn.find("Warrior"), std::string::npos);
-  // Fresh item: nothing passed, no stars.
+  // A fresh item: no scrolls passed, no stars.
   EXPECT_NE(drawn.find("0/7"), std::string::npos);
   EXPECT_NE(drawn.find("0\u2605"), std::string::npos);
 }
 
-// A row whose item cannot be worn dims whole -- the same answer the skills tab
-// gives a skill that cannot be learned -- while the cells that say WHY stay
-// bright and red. Dimming the reason too would mute the one thing on the row
-// worth reading.
+// A row whose item can't be worn is dimmed as a whole, as the skills tab dims a
+// skill that can't be learned, while the cells that explain why stay bright
+// red. Dimming them too would hide the one thing on the row worth reading.
 TEST_F(InventoryPanelTest, AnUnwearableRowDimsAndItsReasonStaysRed) {
-  // sword_ is level 10 and Warrior only; c_ is a level 1 Beginner, so both.
+  // sword_ is level 10 and Warrior only, and c_ is a level 1 Beginner, so both
+  // cells are red.
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -711,7 +708,7 @@ TEST_F(InventoryPanelTest, AnUnwearableRowDimsAndItsReasonStaysRed) {
   EXPECT_FALSE(job.dim);
 }
 
-// And a row that can be worn is left alone: dim has to mean something.
+// A row that can be worn is not dimmed, so dimming keeps its meaning.
 TEST_F(InventoryPanelTest, AWearableRowIsNotDimmed) {
   EquipPrototype wearable;
   wearable.set_name("Plain Cape");
@@ -746,8 +743,8 @@ TEST_F(InventoryPanelTest, NoSelectionCursorOnTheTabRow) {
             std::string::npos);
 }
 
-// The other half of the rule the Etc tab already keeps: a caret on an
-// unfocused panel would claim the keys are going there.
+// The same rule the Etc tab already follows: a caret on an unfocused panel
+// would suggest the keys go there.
 TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
@@ -760,8 +757,8 @@ TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
 }
 
-// The upgrade columns arrive with the mechanics behind them: a player who
-// has never scrolled is not shown a Scroll column standing empty.
+// The upgrade columns appear with their mechanics, so a player who has never
+// scrolled doesn't see an empty Scroll column.
 TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel locked(c_, account_, panel_focus_);
@@ -794,7 +791,7 @@ TEST_F(InventoryPanelTest, ShowsAllForUniversalItem) {
 }
 
 TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
-  // Trigger a star force destroy to place a trace in inventory.
+  // Destroy an item with star force to put a trace in the bag.
   EquipPrototype proto;
   proto.set_name("Sword");
   proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -812,15 +809,14 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   ASSERT_TRUE(saw_destroy);
 
   // High enough that every upgrade entry would be on the menu for an ordinary
-  // item. What disables them here has to be the trace, not the level.
+  // item, so anything disabled here is because of the trace, not the level.
   LevelTo(UnlockLevel(Feature::kStarForce));
   InventoryPanel panel(c_, account_, panel_focus_);
   panel.OpenMenu();
-  // Recover is offered on a trace -- it is the one thing a trace is for -- so
-  // Inspect, Recover and Sell are what remain. Equip, Scroll and Star Force
-  // all need an item that still exists.
-  // Read before walking the menu: ReachableMenuEntries moves the selection,
-  // so where the menu opens has to be captured first.
+  // Recover is offered on a trace, since that is what a trace is for, so
+  // Inspect, Recover and Sell remain. Equip, Scroll and Star Force all need an
+  // item that still exists. Read the selection before walking the menu, because
+  // ReachableMenuEntries moves it.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
@@ -828,16 +824,16 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuSell), 0);
-  // The two upgrades are gone from the menu, not greyed on it. Equip stays,
-  // greyed: the player can wear one of these, just not this wreck of one.
+  // The two upgrades are removed from the menu, not greyed. Equip stays,
+  // greyed: the player can wear this kind of item, just not a destroyed one.
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
   EXPECT_NE(rendered.find("Equip"), std::string::npos);
 }
 
-// Recovery puts a destroyed item back together, so it means nothing on an item
-// that was never destroyed.
+// Recovery rebuilds a destroyed item, so it means nothing on an item that was
+// never destroyed.
 TEST_F(InventoryPanelTest, ALiveItemIsOfferedNoRecovery) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -847,14 +843,13 @@ TEST_F(InventoryPanelTest, ALiveItemIsOfferedNoRecovery) {
             std::string::npos);
 }
 
-// Neither action can do anything to a throwing star, so the menu should not
-// offer them. Scroll is the one that used to slip through: the picker always
-// includes Clean Slate scrolls, so it opened on a list of scrolls that would
-// have been refused.
+// Neither action can do anything to a throwing star, so the menu shouldn't
+// offer them. Scroll is the easy one to miss, because the picker always
+// includes Clean Slate scrolls and would open on scrolls that all get refused.
 TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
   // Levelled past both gates first. At level 1 neither entry is offered on
-  // anything at all, so the assertions below would hold for an ordinary sword
-  // and this would be a test of the gates, not of the throwing stars.
+  // anything, so the checks below would also pass for an ordinary sword and
+  // would test the gates instead of the throwing stars.
   // ASpentWeaponKeepsScrollAndStarForce is the control at the same level.
   LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(MakeThrowingStars()));
@@ -863,16 +858,16 @@ TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
-  // Still a usable menu, or the assertions above would pass on a dead one.
+  // Still a usable menu, or the checks above could pass on a broken one.
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
-  // Gone from the menu rather than greyed on it: ReachableMenuEntries cannot
-  // tell those two apart, so the rendered menu is asked as well.
+  // Removed from the menu, not greyed. ReachableMenuEntries can't tell the two
+  // apart, so the rendered menu is checked too.
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
-// Selling arrives with the shop and not before: there is nowhere to sell to
+// Selling arrives with the shop and not before, since there is nowhere to sell
 // until then.
 TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -890,8 +885,8 @@ TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuSell), 0);
 }
 
-// Multi-Sell sits under Sell on both menus and waits for the same shop, the
-// shelf a mis-sale is undone at being the shop's.
+// Multi-Sell sits under Sell on both menus and waits for the same shop, since a
+// mistaken sale is undone at the shop's buyback.
 TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.AddItem(MakeStackable("Red Shell", 7), 5);
@@ -910,7 +905,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   panel.OpenMenu();
   std::vector<int> after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
-  // Both stand on a worthless item: a stack worth nothing is still a stack the
+  // Both appear on a worthless item: a stack worth nothing is still one the
   // player wants out of the bag.
   c_.AddItem(MakeStackable("Junk", 0), 5);
   OpenTab(comp, panel, kEtcTab);
@@ -939,14 +934,14 @@ TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMultiSell);
 }
 
-// Once it is there it is there for everything: no item and no state of one
-// refuses it. Selling is the only way anything leaves the bag, so an item it
-// skipped would be an item the player cannot get rid of.
+// Once Sell is unlocked, every item and every item state offers it. Selling is
+// the only way anything leaves the bag, so an item it skipped could never be
+// got rid of.
 TEST_F(InventoryPanelTest, SellIsOfferedOnEverything) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
-  // One at a time in the first row, which is where the menu opens. Three items
-  // in the bag at once would only ever ask about the one on top.
+  // One at a time in the first row, where the menu opens. With three items in
+  // the bag at once, only the top one would ever be checked.
   std::vector<std::unique_ptr<EquipTabItem>> items;
   items.push_back(std::make_unique<EquipInstance>(sword_));
   items.push_back(std::make_unique<EquipInstance>(MakeThrowingStars()));
@@ -967,8 +962,8 @@ TEST_F(InventoryPanelTest, SellIsOfferedOnEverything) {
 
 // --- level-gated menu entries ---
 
-// A gated entry is not drawn at all, rather than drawn grey: greying it would
-// advertise an upgrade the player cannot ask about yet.
+// A gated entry isn't drawn at all, rather than drawn grey. Greying it would
+// advertise an upgrade the player can't use yet.
 TEST_F(InventoryPanelTest, ANewCharacterIsOfferedNoUpgrades) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -997,8 +992,8 @@ TEST_F(InventoryPanelTest, ScrollingArrivesAtItsLevel) {
 }
 
 TEST_F(InventoryPanelTest, StarForceArrivesAtItsLevel) {
-  // A spent weapon: an item with slots left greys the entry, and this test is
-  // about the level gate rather than that refusal.
+  // A weapon with no slots left. An item with slots left greys the entry, and
+  // this test is about the level gate, not that refusal.
   EquipPrototype proto = sword_;
   proto.set_upgrade_slots(1);
   Equip spent;
@@ -1018,9 +1013,9 @@ TEST_F(InventoryPanelTest, StarForceArrivesAtItsLevel) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuStarForce), 0);
 }
 
-// Recovery has no level of its own. A trace exists only because an item
-// exploded, which takes the 16th star, so the trace is the whole of the gate
-// -- a character holding one at level 1 is offered it.
+// Recovery has no level gate of its own. A trace exists only because an item
+// was destroyed at the 16th star, so the trace is the gate, and a character
+// holding one at level 1 is offered it.
 TEST_F(InventoryPanelTest, RecoveryFollowsTheTraceAndNotTheLevel) {
   Equip destroyed;
   destroyed.set_equip_name(sword_.name());
@@ -1031,8 +1026,8 @@ TEST_F(InventoryPanelTest, RecoveryFollowsTheTraceAndNotTheLevel) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuRecover), 0);
 }
 
-// An ordinary weapon keeps both, including one with no slots left: a spent
-// weapon is what star force is for, and a Clean Slate still applies to it.
+// An ordinary weapon keeps both, even with no slots left: a weapon with its
+// slots used is what star force is for, and a Clean Slate still applies to it.
 TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   EquipPrototype proto = sword_;
@@ -1048,9 +1043,8 @@ TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
-// An item with slots left keeps the entry too, greyed. Hiding it would have
-// made the order a secret: the player would never see what the scrolling they
-// are in the middle of is a step towards.
+// An item with slots left keeps the entry too, greyed. Hiding it would keep the
+// order secret: the player would never see what their scrolling leads to.
 TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   EquipPrototype proto = sword_;
@@ -1066,8 +1060,8 @@ TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
       << "greyed, not gone";
 }
 
-// The bag's copy of the equipped panel's rule: the entry stands between the
-// other two upgrades, and only on a piece there is a shelf to widen on.
+// The same rule as the equipped panel: the hammer entry sits between the other
+// two upgrades, and appears only on an item that has slots.
 TEST_F(InventoryPanelTest, TheHammerSitsBetweenTheOtherTwoUpgrades) {
   LevelTo(UnlockLevel(Feature::kHammer));
   EquipPrototype proto = sword_;
@@ -1082,8 +1076,8 @@ TEST_F(InventoryPanelTest, TheHammerSitsBetweenTheOtherTwoUpgrades) {
   EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
 }
 
-// The bag's copy of the cubing rule: last of the upgrades, gold until it is
-// pressed, and gone from a trace, which is not an item any more.
+// The same cubing rule as the equipped panel: last of the upgrades, gold until
+// pressed, and absent from a trace, which is no longer an item.
 TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
   LevelTo(UnlockLevel(Feature::kPotential));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1095,7 +1089,7 @@ TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
   EXPECT_LT(rendered.find("Star Force"), rendered.find("Cube"));
   EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cube"), kYellow);
 
-  // A trace is a husk rather than an item: nothing goes into it.
+  // A trace is a remnant rather than an item, so nothing can be applied to it.
   CharacterInstance wrecked = MakeCharacter(UnlockLevel(Feature::kPotential));
   Equip lost;
   lost.set_equip_name(sword_.name());
@@ -1107,8 +1101,8 @@ TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
             std::string::npos);
 }
 
-// A piece a hammer can do nothing to keeps no row, the way Scroll is hidden on
-// an item that refuses scrolls outright.
+// An item a hammer can't improve gets no entry, just as Scroll is hidden on an
+// item that refuses scrolls.
 TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {
   LevelTo(UnlockLevel(Feature::kHammer));
   EquipPrototype slotless = sword_;
@@ -1120,8 +1114,8 @@ TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {
             std::string::npos);
 }
 
-// Both hammers in, and the entry stands there dim: gone, it would read as the
-// feature going away.
+// Both hammers used, and the entry stays dim. If it vanished, it would look
+// like the feature going away.
 TEST_F(InventoryPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
   LevelTo(UnlockLevel(Feature::kHammer));
   sword_.set_upgrade_slots(1);
@@ -1142,8 +1136,8 @@ TEST_F(InventoryPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
 
 // --- the gold trail to a new upgrade ---
 
-// The far end of the trail that starts on the level-up card: the entry the
-// player has just been handed is gold until they press it.
+// The end of the trail that starts on the level-up card: the newly unlocked
+// entry is gold until the player presses it.
 TEST_F(InventoryPanelTest, ANewUpgradeIsGoldOnTheMenu) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1167,8 +1161,8 @@ TEST_F(InventoryPanelTest, PressingTheUpgradePutsItsGoldOut) {
   EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
 }
 
-// The two upgrades keep their own gold. Star force is not open at the level
-// scrolling is, so nothing about it may be lit or spent yet.
+// Each upgrade has its own gold. Star force isn't unlocked at the scrolling
+// level, so none of its gold may be lit or used up yet.
 TEST_F(InventoryPanelTest, OnlyTheUpgradeThatOpenedIsGold) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   EquipPrototype proto = sword_;
@@ -1192,8 +1186,8 @@ TEST_F(InventoryPanelTest, OnlyTheUpgradeThatOpenedIsGold) {
 
 // --- the level-gated Shop tab ---
 
-// The bar simply ends at Etc rather than showing a greyed fourth chip: a shop
-// a character cannot walk into is not a tab they should be able to land on.
+// The bar just ends at Etc instead of showing a grey fourth chip. A shop the
+// character can't enter shouldn't be a tab they can select.
 TEST_F(InventoryPanelTest, TheShopTabIsAbsentBeforeItsLevel) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1218,8 +1212,8 @@ TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
   EXPECT_TRUE(panel.on_shop_tab());
 }
 
-// The Shop tab lists nothing the player owns, so where the other tabs show a
-// list it shows the way in.
+// The Shop tab lists nothing the player owns, so instead of a list it shows how
+// to get in.
 TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1231,8 +1225,8 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
             std::string::npos);
 }
 
-// The Bank tab is the other door out of the panel, and it opens two hundred
-// levels after the shop: below that the bar simply ends at Shop.
+// The Bank tab is the other door out of the panel, and it opens at 210, long
+// after the shop. Below that the bar ends at Shop.
 TEST_F(InventoryPanelTest, BankTabArrivesLastAndSaysHowToOpenIt) {
   LevelTo(UnlockLevel(Feature::kShop));
   {
@@ -1252,8 +1246,8 @@ TEST_F(InventoryPanelTest, BankTabArrivesLastAndSaysHowToOpenIt) {
   EXPECT_NE(RenderComponent(comp).find("Hit Enter to open Bank"),
             std::string::npos);
 
-  // Nothing of the player's to descend into: the cursor stays on the bar, so
-  // Right steps off Bank onto the Expand door past it.
+  // Nothing to move into, so the cursor stays on the bar and Right moves from
+  // Bank onto the Expand door after it.
   comp->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_TRUE(panel.on_tab_bar());
   comp->OnEvent(ftxui::Event::ArrowRight);
@@ -1262,7 +1256,8 @@ TEST_F(InventoryPanelTest, BankTabArrivesLastAndSaysHowToOpenIt) {
       << "the door is the only thing past the bank";
 }
 
-// It is the last page of the bar, with only the Expand door past it.
+// Before the bank unlocks, Shop is the last page of the bar, with only the
+// Expand door after it.
 TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1276,9 +1271,9 @@ TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
       << "and then the door";
 }
 
-// Down would leave the cursor nowhere: there is no list under this tab. The
-// Etc stack matters -- without one, a Shop tab that fell through to the Etc
-// emptiness check would look inert for the wrong reason.
+// Down would leave the cursor nowhere, since this tab has no list. The Etc
+// stack matters: without one, a Shop tab that wrongly used the Etc emptiness
+// check would look inert for the wrong reason.
 TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   LevelTo(UnlockLevel(Feature::kShop));
   c_.AddItem(MakeStackable("Shell", 7), 5);
@@ -1288,12 +1283,12 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   OpenTab(comp, panel, kShopTab);
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the buttons
   comp->OnEvent(ftxui::Event::ArrowDown);  // and back, no row in between
-  // Back on the tab bar, so Left switches tabs rather than moving a row.
+  // Back on the tab bar, so Left switches tabs instead of moving a row.
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_FALSE(panel.on_shop_tab());
 }
 
-// The shop is not a stackable tab, or the sell menu would open over it.
+// The shop isn't a stack tab, or the sell menu would open over it.
 TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1317,8 +1312,8 @@ TEST_F(InventoryPanelTest, ShowsMesoCounterWithCommas) {
 }
 
 // The balances are centred in the bar, but never closer than a gutter to the
-// last chip: at the narrowest panel the game lays out, centring alone used to
-// stand them against the tabs, and a count touching a tab reads as part of it.
+// last chip. At the narrowest panel, centring alone would put them against the
+// tabs, and a count touching a tab reads as part of it.
 TEST_F(InventoryPanelTest, TheBalancesKeepClearOfTheTabs) {
   LevelTo(UnlockLevel(Feature::kShop));
   c_.AddMeso(1234567);
@@ -1340,9 +1335,9 @@ TEST_F(InventoryPanelTest, TheBalancesKeepClearOfTheTabs) {
       << "the balances are up against the tab bar: [" << bar << "]";
 }
 
-// The trace balance stands beside the meso from the level traces can first be
-// bought, and not before: below it there is no way to hold one, and a counter
-// that can only ever read zero says nothing.
+// The trace balance appears beside the meso from the level traces can first be
+// bought, not before. Below that there is no way to hold one, and a counter
+// that can only show zero says nothing.
 TEST_F(InventoryPanelTest, TheTraceBalanceArrivesWithTheShop) {
   ItemPrototype trace = MakeStackable(kSpellTraceName);
   trace.set_kind(ITEM_KIND_SPELL_TRACE);
@@ -1365,9 +1360,8 @@ TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
   EXPECT_NE(rendered.find("Snail Shell"), std::string::npos);
 }
 
-// The Equip tab has never drawn its column names over an empty bag, and the
-// stack tab matches it: names label rows, so with no rows there is nothing
-// for them to label -- only the placeholder.
+// Like the Equip tab, an empty stack tab shows only the placeholder, with no
+// column names. Names label rows, and there are no rows.
 TEST_F(InventoryPanelTest, AnEmptyEtcTabShowsAPlaceholderAndNoColumnHeader) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1431,8 +1425,8 @@ TEST_F(InventoryPanelTest, EnterOnAStackOpensItsMenu) {
   EXPECT_TRUE(opened);
 }
 
-// Nothing to descend into, so the cursor stays on the bar -- where Enter asks
-// about the tab rather than about an item that is not there.
+// Nothing to move into, so the cursor stays on the bar, where Enter opens the
+// tab menu instead of an item's.
 TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
@@ -1444,8 +1438,8 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   EXPECT_TRUE(panel.on_tab_bar());
 }
 
-// Inspect leads, because looking at a thing is what you do before deciding
-// what to do with it.
+// Inspect comes first, because looking at an item comes before deciding what to
+// do with it.
 TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1480,7 +1474,7 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
 }
 
-// A stack worth nothing is still offered for sale: selling is the only way
+// A stack worth nothing is still offered for sale. Selling is the only way
 // anything leaves the bag, so a row that refused it could never be discarded.
 TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
   c_.AddItem(MakeStackable("Junk", 0), 5);
@@ -1492,8 +1486,8 @@ TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
 }
 
-// The test screen is 20 rows, so a bag of 40 cannot fit and the list has to
-// scroll rather than run off the bottom of the window.
+// The test screen is 20 rows, so a bag of 40 can't fit and the list has to
+// scroll instead of running off the bottom of the window.
 TEST_F(InventoryPanelTest, KeepsTheCursorInViewWhenTheBagOverflows) {
   for (int i = 0; i < 40; ++i) {
     c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1505,9 +1499,9 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewWhenTheBagOverflows) {
   RenderComponent(comp);
   for (int i = 0; i < 39; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
-    // Rendered every step, because the frame scrolls at render time: walking
-    // the whole way and only then looking would not say whether the view kept
-    // up or merely caught up at the end.
+    // Rendered at every step, because the frame scrolls at render time.
+    // Checking only at the end wouldn't show whether the view kept up or only
+    // caught up.
     EXPECT_NE(RenderComponent(comp).find("> "), std::string::npos)
         << "the cursor left the window after " << i + 1 << " steps down";
   }
@@ -1530,7 +1524,7 @@ TEST_F(InventoryPanelTest, ScrollIndicatorOnlyOnOverflow) {
 }
 
 // Etc rows are plain text rather than an ftxui::Menu, so nothing marks the
-// cursor for the frame unless the panel does it itself.
+// cursor for the frame unless the panel does.
 TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
   for (int i = 0; i < 40; ++i) {
     c_.AddItem(MakeStackable("Etc " + std::to_string(i), 1), 1);
@@ -1549,8 +1543,8 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
 
 // --- cursor_row ---
 
-// What the item menu anchors to. It has to be where the cursor was actually
-// drawn, not where the selected index says it should be.
+// What the item menu is placed against. It must be where the cursor was drawn,
+// not where the selected index says it should be.
 TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   panel_focus_ = kInventoryPanel;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1563,11 +1557,10 @@ TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   EXPECT_EQ(panel.cursor_row(), RowWithCursor(screen));
 }
 
-// The bug this replaced: past the point where the list scrolls, the selected
-// index and the row on screen stop agreeing, and the old arithmetic followed
-// the index. Walked one item at a time because the frame scrolls at render
-// time -- stepping to the end and looking once cannot tell a cursor that kept
-// up from one that merely caught up.
+// Once the list scrolls, the selected index and the screen row stop matching,
+// and the row must follow the screen. Moved one item at a time because the
+// frame scrolls at render time: jumping to the end and checking once can't tell
+// a cursor that kept up from one that only caught up.
 TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
   panel_focus_ = kInventoryPanel;
   FillBag(40);
@@ -1580,17 +1573,16 @@ TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
     ASSERT_EQ(panel.cursor_row(), RowWithCursor(screen))
         << "cursor row wrong on item " << i + 1;
   }
-  // And the two really did come apart, which is the whole point: the index is
-  // well past the bottom of a twenty-row screen while the row it is drawn on
-  // is still inside the window.
+  // The two really did diverge, which is the point: the index is well past the
+  // bottom of a twenty-row screen while its row is still inside the window.
   EXPECT_GT(panel.selected(), panel.cursor_row());
   EXPECT_LT(panel.cursor_row(), 20);
 }
 
-// The equip tab draws a row two ways -- plain, or split into coloured cells
-// when the character cannot equip it -- and the mark has to ride along with
-// whichever is built. sword_ is level 10 and Warrior-only, so every test above
-// takes the coloured path; this one is something a level-1 Beginner can wear.
+// The Equip tab draws a row two ways, plain or split into coloured cells when
+// the character can't equip it, and the mark has to be on whichever is built.
+// sword_ is level 10 and Warrior-only, so every test above takes the coloured
+// path. This one uses an item a level-1 Beginner can wear.
 TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
   panel_focus_ = kInventoryPanel;
   EquipPrototype plain;
@@ -1609,9 +1601,9 @@ TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
   EXPECT_EQ(panel.cursor_row(), RowWithCursor(screen));
 }
 
-// In the game the bag is not at the top of the screen -- the equipped panel
-// sits above it. The row reported has to be the row on the SCREEN, so it has
-// to carry that offset.
+// In the game the bag isn't at the top of the screen, since the equipped panel
+// is above it. The reported row must be the screen row, so it has to include
+// that offset.
 TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
   panel_focus_ = kInventoryPanel;
   FillBag(40);
@@ -1622,7 +1614,7 @@ TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
     comp->OnEvent(ftxui::Event::ArrowDown);
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
-    // Three rows of something else above it, as the equipped panel is.
+    // Three rows of something else above it, like the equipped panel.
     ftxui::Render(screen, ftxui::vbox({
                               ftxui::text("above"),
                               ftxui::text("above"),
@@ -1634,15 +1626,15 @@ TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
   }
 }
 
-// The Etc tab hand-rolls its rows rather than using ftxui::Menu, so it needs
-// marking of its own.
+// The Etc tab draws its own rows instead of using ftxui::Menu, so it needs its
+// own marking.
 TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
   for (int i = 0; i < 30; ++i) {
     c_.AddItem(MakeStackable("Shell " + std::to_string(i)), 1);
   }
   InventoryPanel panel(c_, account_, panel_focus_);
-  // The stack list draws its cursor only while the panel holds focus, and this
-  // test compares cursor_row() against where that cursor landed.
+  // The stack list draws its cursor only while the panel has focus, and this
+  // test compares cursor_row() with where that cursor landed.
   panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1658,8 +1650,8 @@ TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
 
 // --- highlighting ---
 
-// The bag arrives at level 4, and the gold border is what sends the player to
-// it rather than leaving them to find the new panel themselves.
+// The bag arrives at level 4, and the gold border sends the player to it
+// instead of leaving them to find the new panel.
 TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
@@ -1670,9 +1662,9 @@ TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(component->Render()), kTheme);
 }
 
-// Two rules here, from two different renderers: the one under the tab bar and
-// the one under the stack list's column headers. Both have to come up gold, so
-// this asks about every rule the panel drew rather than just the first.
+// Two rules from two different renderers: the one under the tab bar and the one
+// under the stack list's column headers. Both must turn gold, so this checks
+// every rule the panel drew, not just the first.
 TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
   c_.AddItem(MakeStackable("Red Shell"), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1694,8 +1686,8 @@ TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
 
 // --- a newly unlocked tab announces itself ---
 
-// The gold outlives the four-second card: a player who was away when the shop
-// opened still finds the tab saying it is new.
+// The gold outlasts the four-second card, so a player who was away when the
+// shop opened still sees the tab marked as new.
 TEST_F(InventoryPanelTest, ANewShopTabIsWrittenInGold) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1705,7 +1697,7 @@ TEST_F(InventoryPanelTest, ANewShopTabIsWrittenInGold) {
       << "the tabs that were always there say nothing";
 }
 
-// Walking onto it is what puts it out -- the tab is "seen" when opened, not
+// Moving onto it turns the gold off: the tab counts as seen when opened, not
 // when it appears.
 TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
   LevelTo(UnlockLevel(Feature::kShop));
@@ -1716,14 +1708,14 @@ TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
 
   OpenTab(component, panel, kShopTab);
   ASSERT_TRUE(panel.on_shop_tab()) << "the walk has to actually arrive";
-  // Read unfocused: a focused active chip is black on white whatever its
-  // history, which would hide the thing under test.
+  // Read unfocused, because a focused active chip is black on white regardless,
+  // which would hide what is being tested.
   panel_focus_ = kCharPanel;
   EXPECT_EQ(LabelColor(component->Render(), "Shop"), kTheme);
 }
 
-// An advancement puts gear in the bag -- a weapon at the 1st, an off-hand at
-// the 2nd -- and the gold on the tab is what says to go and look.
+// An advancement puts gear in the bag (a weapon at the 1st, an off-hand at the
+// 2nd), and the gold on the tab says to go and look.
 TEST_F(InventoryPanelTest, TheEquipTabGoesGoldForTheGearAnAdvancementGave) {
   LevelTo(UnlockLevel(Feature::kBag));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1735,8 +1727,8 @@ TEST_F(InventoryPanelTest, TheEquipTabGoesGoldForTheGearAnAdvancementGave) {
   EXPECT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
 }
 
-// Per advancement, like the Advance tab's own key: having gone to look at the
-// 1st job's weapon is not having seen the 2nd job's off-hand.
+// Tracked per advancement, like the Advance tab's own key: having looked at the
+// 1st job's weapon doesn't mean having seen the 2nd job's off-hand.
 TEST_F(InventoryPanelTest, TheSecondAdvancementGildsTheEquipTabAgain) {
   LevelTo(UnlockLevel(Feature::kBag));
   c_.AdvanceJob(JOB_SWORDMAN);
@@ -1749,15 +1741,14 @@ TEST_F(InventoryPanelTest, TheSecondAdvancementGildsTheEquipTabAgain) {
   EXPECT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
 }
 
-// Stepping back onto the tab is what puts the gold out, exactly as it is for
-// the shop.
+// Moving back onto the tab turns the gold off, just as for the shop.
 TEST_F(InventoryPanelTest, OpeningTheEquipTabStopsItAnnouncingItself) {
   LevelTo(UnlockLevel(Feature::kBag));
   c_.AdvanceJob(JOB_SWORDMAN);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  // Read unfocused: the active chip is black on white while the panel holds
-  // focus, whatever its history, which would hide the thing under test.
+  // Read unfocused, because the active chip is black on white while the panel
+  // has focus, which would hide what is being tested.
   ASSERT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
 
   panel_focus_ = kInventoryPanel;
@@ -1767,8 +1758,8 @@ TEST_F(InventoryPanelTest, OpeningTheEquipTabStopsItAnnouncingItself) {
   EXPECT_EQ(LabelColor(component->Render(), "Equip"), kTheme);
 }
 
-// The other half of the rule: a tab already open under the cursor is one the
-// player is reading, and arriving on the panel is what tells it so.
+// The other half of the rule: a tab already open under the cursor is being
+// read, and arriving on the panel marks it seen.
 TEST_F(InventoryPanelTest, ArrivingOnThePanelReadsTheOpenTab) {
   LevelTo(UnlockLevel(Feature::kBag));
   c_.AdvanceJob(JOB_SWORDMAN);
@@ -1780,8 +1771,8 @@ TEST_F(InventoryPanelTest, ArrivingOnThePanelReadsTheOpenTab) {
   EXPECT_EQ(LabelColor(component->Render(), "Equip"), kTheme);
 }
 
-// And it stays put: the record is on the character, so it survives the panel
-// being rebuilt -- which is what a relaunch amounts to.
+// It stays off: the record is on the character, so it survives the panel being
+// rebuilt, as happens on a relaunch.
 TEST_F(InventoryPanelTest, AnOpenedShopTabStaysQuietForANewPanel) {
   LevelTo(UnlockLevel(Feature::kShop));
   account_.MarkSeen(kShopTabKey);
@@ -1803,9 +1794,9 @@ class SpareSymbolTest : public InventoryPanelTest {
   }
 };
 
-// The first copy goes on; every one after it is fed to what is already worn.
-// Only one of each area is ever equipped, so the two entries trade places
-// rather than both standing there.
+// The first copy is equipped, and every later one is fed into the worn one.
+// Only one symbol per area is ever equipped, so the two entries replace each
+// other instead of both appearing.
 TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   CharacterInstance c = Traveller();
   c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
@@ -1826,8 +1817,8 @@ TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
-// A second copy of a ring already worn is still offered Equip: it swaps for
-// the one worn rather than joining it, which is how a better copy goes on.
+// A second copy of a ring already worn still offers Equip: it swaps with the
+// worn one instead of joining it, which is how a better copy goes on.
 TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingIsStillOffered) {
   EquipPrototype ring;
   ring.set_name("Silver Blossom Ring");
@@ -1850,7 +1841,7 @@ TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingIsStillOffered) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
 }
 
-// Neither upgrade path touches a symbol, so neither is on its menu at all.
+// No upgrade applies to a symbol, so neither is on its menu.
 TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
   CharacterInstance c = Traveller();
   c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
@@ -1862,7 +1853,7 @@ TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
-// Combine leads to the dialog that asks how many to feed in.
+// Combine opens the dialog that asks how many to feed in.
 TEST_F(SpareSymbolTest, CombineOpensTheDialog) {
   CharacterInstance c = Traveller();
   c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
@@ -1876,7 +1867,7 @@ TEST_F(SpareSymbolTest, CombineOpensTheDialog) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolCombine);
 }
 
-// Ordinary gear never offers it, whatever else its menu holds.
+// Ordinary gear never offers Combine, whatever else its menu holds.
 TEST_F(SpareSymbolTest, GearNeverOffersCombine) {
   CharacterInstance c = Traveller();
   EquipPrototype sword;
@@ -1891,7 +1882,7 @@ TEST_F(SpareSymbolTest, GearNeverOffersCombine) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
-// Every tab at the narrowest the right column goes: the rows fill that width
+// Every tab at the right column's narrowest width. The rows fill that width
 // exactly, so a column measured wrong runs into the border.
 TEST_F(InventoryPanelTest, NoTabWeldsARowToTheRightBorder) {
   LevelTo(200);

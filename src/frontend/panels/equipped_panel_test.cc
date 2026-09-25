@@ -28,17 +28,18 @@ namespace ms {
 namespace {
 
 // No context menu has anywhere near this many entries, so a walk that takes
-// this many steps is walking in circles.
+// this many steps is going in circles.
 constexpr int kMenuWalkLimit = 32;
 
 class EquippedPanelTest : public PanelTest {
  protected:
-  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  // A ScrollPanel holds its catalog by reference, so the catalog must outlive
+  // it.
   const std::map<std::string, Scroll> no_scrolls_;
 
-  // Walks the menu to `entry`, or gives up once it has been all the way round.
-  // Bounded on purpose: an entry that is not reachable is a test failure, not
-  // a reason to spin.
+  // Moves through the menu to `entry`, giving up after one full round. The
+  // limit is deliberate: an unreachable entry is a test failure, not a reason
+  // to loop.
   static bool StepTo(ItemMenu& menu, int entry) {
     for (int step = 0; step < kMenuWalkLimit; ++step) {
       if (menu.selected() == entry) {
@@ -49,16 +50,16 @@ class EquippedPanelTest : public PanelTest {
     return false;
   }
 
-  // Every entry the player can actually land on, in the order Down walks them.
-  // Disabled entries are skipped rather than merely dimmed, so what this does
-  // not contain is what the menu does not offer.
+  // Every entry the player can land on, in the order Down visits them. Disabled
+  // entries are skipped rather than just dimmed, so anything missing here is
+  // something the menu doesn't offer.
   std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
     std::vector<int> seen{menu.selected()};
     for (int step = 0; step < kMenuWalkLimit; ++step) {
       menu.Down();
-      // The walk ends where it started, the list being a ring. Watching for a
-      // cursor that stopped moving instead would never end -- except on a menu
-      // with one reachable entry, where the two are the same thing.
+      // The walk ends back where it started, since the list wraps. Waiting for
+      // the cursor to stop moving would never end, except on a menu with one
+      // reachable entry, where the two are the same.
       if (menu.selected() == seen.front()) {
         return seen;
       }
@@ -67,9 +68,9 @@ class EquippedPanelTest : public PanelTest {
     return seen;
   }
 
-  // The Equipped panel of a `job` wearing a 45-attack weapon and a 25-attack
-  // projectile, rendered. Nothing is asserted here about which of the two
-  // counts -- that is what the caller reads off the rows.
+  // The rendered Equipped panel of a `job` wearing a 45-attack weapon and a
+  // 25-attack projectile. Nothing here asserts which one counts; the caller
+  // reads that from the rows.
   std::string RenderWorn(Job job, const std::string& weapon_name,
                          EquipType weapon_type, const std::string& ammo_name,
                          EquipType ammo_type) {
@@ -99,11 +100,11 @@ class EquippedPanelTest : public PanelTest {
     return RenderComponent(panel.MakeComponent([]() {}));
   }
 
-  // The panel holds a reference, so each character has to outlive its render.
+  // The panel holds a reference, so each character must outlive its render.
   std::vector<std::unique_ptr<CharacterInstance>> characters_;
 };
 
-// The single rendered line holding `needle`, escape codes and all.
+// The single rendered line containing `needle`, escape codes included.
 std::string LineWith(const std::string& rendered, const std::string& needle) {
   size_t at = rendered.find(needle);
   if (at == std::string::npos) {
@@ -115,9 +116,9 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
   return rendered.substr(begin, end - begin);
 }
 
-// On the narrowest panel the list fills its width exactly, so the columns
-// have to be measured to leave a blank one inside the right border. Nothing
-// is kept inside the left one: that column is the cursor's.
+// On the narrowest panel the list fills its width exactly, so the columns must
+// be measured to leave a blank column inside the right border. Nothing is kept
+// inside the left one, since that column is the cursor's.
 TEST_F(EquippedPanelTest, TheListKeepsAGutterInsideTheRightBorder) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -129,8 +130,8 @@ TEST_F(EquippedPanelTest, TheListKeepsAGutterInsideTheRightBorder) {
   ftxui::Element card = comp->Render();
   ftxui::Render(screen, card);
 
-  // The header row and the row under the rule. The rule itself spans the
-  // panel, as every rule in the game does.
+  // The header row and the row under the rule. The rule itself spans the panel,
+  // like every rule in the game.
   for (int y : {1, 3}) {
     const std::string& cell = screen.PixelAt(kRightColumnMin - 2, y).character;
     EXPECT_TRUE(cell.empty() || cell == " ")
@@ -153,10 +154,10 @@ TEST_F(EquippedPanelTest, ShowsTheEquippedItemAndTheSlotItIsIn) {
   EXPECT_NE(rendered.find("Weapon"), std::string::npos);
 }
 
-// A staff carries weapon and magic attack both; which one the row shows is the
-// one the wielder actually swings with. Every magician branch is asked, because
-// a list of jobs written out by hand went stale once and left the 3rd-job
-// mages reading ATT.
+// A staff carries both weapon and magic attack, and the row shows the one the
+// wearer actually uses. Every magician branch is checked, because a
+// hand-written list of jobs once went stale and left the 3rd-job mages showing
+// ATT.
 TEST_F(EquippedPanelTest, ShowsMagicAttackForEveryMagician) {
   EquipPrototype staff;
   staff.set_name("Old Wooden Staff");
@@ -201,7 +202,7 @@ TEST_F(EquippedPanelTest, ShowsWeaponAttackForEveryoneElse) {
             std::string::npos);
 }
 
-// Attack is what decides a weapon, so it comes before the main stat.
+// Attack decides a weapon, so it comes before the main stat.
 TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
   EquipPrototype claw;
   claw.set_name("Steel Guards");
@@ -222,9 +223,9 @@ TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
 }
 
 // The main-stat column follows the wearer's job, not the item: the same gear
-// reads STR to a Swordman and DEX to an Archer. The panel gets that from
-// PrimaryStatField rather than its own switch, so this is what would break if
-// the two ever disagreed.
+// shows STR to a Swordman and DEX to an Archer. The panel gets this from
+// PrimaryStatField rather than its own switch, so this catches the two
+// disagreeing.
 TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   EquipPrototype hat;
   hat.set_name("Bandana");
@@ -255,9 +256,10 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   EXPECT_EQ(worn_by_archer.find("+4 STR"), std::string::npos);
 }
 
-// Stars worn without a claw keep their number on screen but their whole row is
-// drawn dim, because the character's totals are not counting them.
-// The same refusal the bag menu honours, on the panel the stars are worn in.
+// Throwing stars can't be scrolled or starred, and the menu on this panel
+// refuses them the same way the bag's does. Stars worn without a claw still
+// show their number, but their row is dimmed because the character's totals
+// don't count them.
 TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
@@ -266,14 +268,14 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   // Past both gates, or neither entry would be offered on any item and the
-  // assertions below would say nothing about throwing stars in particular.
+  // checks below would say nothing about throwing stars.
   // ScrollAndStarForceArriveOnTime is the control.
   LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
 
   EquippedPanel panel(c_, account_, panel_focus_);
-  // The slot list is built during render, which is the order the app runs in:
+  // The slot list is built during render, matching the order the app runs in:
   // the menu opens on a row the player is already looking at.
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
@@ -284,29 +286,29 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
             0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kGearMenuInspect),
             0);
-  // Gone from the menu rather than greyed on it: ReachableMenuEntries cannot
-  // tell those two apart, so the rendered menu is asked as well.
+  // Removed from the menu, not greyed. ReachableMenuEntries can't tell the two
+  // apart, so the rendered menu is checked too.
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
-  // A rogue holding a dagger, and an archer holding a bow: neither draws the
-  // ammunition worn beside it, so neither projectile counts.
+  // A rogue with a dagger and an archer with a bow. Neither uses the ammunition
+  // worn beside the weapon, so neither projectile counts.
   std::string rogue =
       RenderWorn(JOB_ROGUE, "Reef Claw", EQUIP_TYPE_DAGGER,
                  "Steely Throwing-Knives", EQUIP_TYPE_THROWING_STAR);
   std::string archer =
       RenderWorn(JOB_ARCHER, "War Bow", EQUIP_TYPE_BOW, "Bronze Arrow",
                  EQUIP_TYPE_ARROW_FOR_CROSSBOW);
-  // Color codes sit between the dim marker and the text, so the row is checked
-  // as a whole rather than for an exact prefix.
+  // Colour codes sit between the dim marker and the text, so the whole row is
+  // checked rather than an exact prefix.
   std::string stars_row = LineWith(rogue, "Steely");
   EXPECT_NE(stars_row.find("+25 ATT"), std::string::npos);  // still shown
   EXPECT_NE(stars_row.find("\033[2m"), std::string::npos);
   EXPECT_NE(LineWith(archer, "Bronze").find("\033[2m"), std::string::npos);
-  // Each weapon is counting, so its own row is drawn plainly.
+  // Each weapon counts, so its row is drawn normally.
   EXPECT_EQ(LineWith(rogue, "Reef Claw").find("\033[2m"), std::string::npos);
   EXPECT_EQ(LineWith(archer, "War Bow").find("\033[2m"), std::string::npos);
 }
@@ -320,8 +322,8 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
             std::string::npos);
 }
 
-// An upgrade the item refuses says so with a dash instead of a zero, which
-// would read as an upgrade standing ready -- the same row the bag draws.
+// An upgrade the item can't take shows a dash instead of a zero, which would
+// look like an upgrade ready to use. The bag draws the same row.
 TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
@@ -343,8 +345,8 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
 }
 
-// The upgrade columns arrive with the mechanics behind them: a player who
-// has never scrolled is not shown a Scroll column standing empty.
+// The upgrade columns appear with their mechanics, so a player who has never
+// scrolled doesn't see an empty Scroll column.
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -381,9 +383,8 @@ TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
 
 namespace {
 
-// Throwing stars, so a test can wear two things at once and have a list worth
-// walking. The other slot the game has today; equipped() is keyed by slot, so
-// this lands below the weapon.
+// Throwing stars, so a test can wear two items and have a list worth moving
+// through. equipped() is keyed by slot, so this lands below the weapon.
 EquipPrototype MakeStars() {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
@@ -404,8 +405,8 @@ class EquippedPanelRingTest : public EquippedPanelTest {
     c_.Equip(0);
     panel_ = std::make_unique<EquippedPanel>(c_, account_, panel_focus_);
     comp_ = panel_->MakeComponent([]() {});
-    // Fills the entry list the menu walks and the wrap measures itself
-    // against; nothing has drawn this panel yet.
+    // Fills the entry list the menu walks and the wrap measures against.
+    // Nothing has drawn this panel yet.
     RenderComponent(comp_);
   }
 
@@ -413,8 +414,8 @@ class EquippedPanelRingTest : public EquippedPanelTest {
   ftxui::Component comp_;
 };
 
-// The bar stands above the list at every level, so it is the stop past either
-// end: the ring comes round through it rather than row to row.
+// The bar is above the list at every level, so it is the stop past either end:
+// the ring passes through it rather than going row to row.
 TEST_F(EquippedPanelRingTest, TheBarIsTheStopPastEitherEndOfTheList) {
   ASSERT_EQ(c_.equipped().size(), 2u);
   ASSERT_EQ(panel_->selected(), 0);
@@ -427,7 +428,7 @@ TEST_F(EquippedPanelRingTest, TheBarIsTheStopPastEitherEndOfTheList) {
   EXPECT_EQ(panel_->selected(), 0) << "the bar, then the top row";
 }
 
-// The steps that are not at an edge still belong to the menu underneath.
+// Steps away from the edges still belong to the menu underneath.
 TEST_F(EquippedPanelRingTest, WalksTheListNormallyInTheMiddle) {
   comp_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_->selected(), 1);
@@ -438,9 +439,9 @@ TEST_F(EquippedPanelRingTest, WalksTheListNormallyInTheMiddle) {
 // --- an empty list ---
 
 // Container::Tab asks its active panel whether it is focusable and drops every
-// key when the answer is no, and the ftxui::Menu behind this panel says no as
-// soon as the list is empty. Nothing here reads a key today, but a panel that
-// silently stops being dispatched to is a trap for whatever does next.
+// key when it isn't, and the ftxui::Menu behind this panel says it isn't once
+// the list is empty. Nothing here reads a key today, but a panel that silently
+// stops receiving keys is a trap for whatever does next.
 TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -449,8 +450,8 @@ TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
 }
 
 // Arrows on an empty list leave the cursor alone. The ftxui::Menu underneath
-// would move its index anyway, putting selected() at -1, which selected_slot()
-// would then read past the front of an empty slot list.
+// would move its index anyway, putting selected() at -1, and selected_slot()
+// would then read before the start of an empty slot list.
 TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -464,9 +465,9 @@ TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
-// The menu opens on whatever selected_slot() names, and on an empty list that
-// is EQUIP_SLOT_UNSPECIFIED -- a slot equipped() has no entry for, which the
-// Scroll action would look up with std::map::at and throw on.
+// The menu opens on whatever selected_slot() returns, which on an empty list is
+// EQUIP_SLOT_UNSPECIFIED. equipped() has no entry for that, and the Scroll
+// action would look it up with std::map::at and throw.
 TEST_F(EquippedPanelTest, SpaceOpensNoMenuWithNothingEquipped) {
   bool opened = false;
   EquippedPanel panel(c_, account_, panel_focus_);
@@ -520,9 +521,10 @@ int RowWithCursor(const ftxui::Screen& screen) {
   return -1;
 }
 
-// The caret says where the cursor is; the band says how far the row reaches, so
-// a stat eight columns out reads back to its own piece. It has to cross the
-// whole panel to do that, and it is drawn under the same test the caret is.
+// The caret shows where the cursor is, and the band shows how far the row
+// reaches, so a stat eight columns away can be traced back to its item. The
+// band has to cross the whole panel, and it is drawn under the same condition
+// as the caret.
 TEST_F(EquippedPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
@@ -537,7 +539,7 @@ TEST_F(EquippedPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
   EXPECT_EQ(bands[0].y, RowWithCursor(screen)) << "the band is under the caret";
   EXPECT_EQ(bands[0].first, 1) << "starts in the column inside the left border";
   // Two columns short of the right border, not one: the list reserves the
-  // innermost for its scroll bar, and that column is not part of the row.
+  // innermost column for its scroll bar, which isn't part of the row.
   EXPECT_EQ(bands[0].last, screen.dimx() - 3) << "and runs to the scroll bar";
 
   panel_focus_ = kInventoryPanel;
@@ -548,8 +550,8 @@ TEST_F(EquippedPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
       << "another panel holds focus, so nothing here is selected";
 }
 
-// What the item menu anchors to. Read from the render rather than counted up
-// from the header rows above the list, which is what the caller used to do.
+// What the item menu is placed against. It is read from the render rather than
+// counted from the header rows above the list.
 TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
@@ -563,11 +565,11 @@ TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   EXPECT_EQ(panel.cursor_row(), drawn);
 }
 
-// The list is a ring, and WrappingList turns the corner by writing selected_
-// itself -- a move the ftxui::Menu never sees, so the Menu's own idea of the
-// current row stays where the player left it. A caret drawn from that idea
-// then points at one row while Enter acts on another, which is what the
-// player sees: they wrap to the top and the caret stays at the bottom.
+// The list wraps, and WrappingList moves around the end by writing selected_
+// itself, which the ftxui::Menu never sees. The Menu's current row then stays
+// where the player left it, and a caret drawn from it would point at one row
+// while Enter acts on another: the player wraps to the top and the caret stays
+// at the bottom.
 TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
@@ -587,7 +589,7 @@ TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
   EXPECT_EQ(RowWithCursor(screen), top) << "the caret stayed behind the wrap";
 }
 
-// It follows the cursor rather than sitting at the top of the list.
+// It follows the cursor instead of staying at the top of the list.
 TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
@@ -602,9 +604,9 @@ TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
 
 // --- scrolling a panel with more gear than room ---
 
-// A character wearing nine items, named Gear1 to Gear9 for the rows they make
-// -- the slots are listed in the order the window lists them, so a test can
-// say which row it means.
+// A character wearing nine items named Gear1 to Gear9 after the rows they
+// appear in. The slots are listed in the window's order, so a test can say
+// which row it means.
 CharacterInstance MakeFullyGeared(std::mt19937& rng) {
   const EquipSlot kSlots[] = {
       EQUIP_SLOT_PRIMARY_WEAPON,
@@ -631,8 +633,8 @@ CharacterInstance MakeFullyGeared(std::mt19937& rng) {
   return geared;
 }
 
-// The panel rendered into a screen `rows` tall, which is what the half cap
-// hands it on a real terminal: fewer rows than it has gear.
+// The panel rendered into a screen `rows` tall, as the half-height cap gives it
+// on a real terminal: fewer rows than it has gear.
 std::string RenderShort(ftxui::Component component, int rows) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(rows));
@@ -640,8 +642,8 @@ std::string RenderShort(ftxui::Component component, int rows) {
   return screen.ToString();
 }
 
-// Five list rows for nine items: the ones past the bottom wait their turn
-// rather than pushing the panel past the room it was given.
+// Five list rows for nine items. The rest wait below instead of pushing the
+// panel past its space.
 TEST_F(EquippedPanelTest, AShortPanelShowsWhatFits) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
@@ -652,8 +654,8 @@ TEST_F(EquippedPanelTest, AShortPanelShowsWhatFits) {
   EXPECT_EQ(rendered.find("Gear9"), std::string::npos) << "the last one";
 }
 
-// And the list follows the cursor down to them, which is the whole point of
-// capping the panel rather than letting it run off the screen.
+// The list follows the cursor down to them, which is the reason for capping the
+// panel instead of letting it run off the screen.
 TEST_F(EquippedPanelTest, AShortPanelScrollsToTheCursor) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
@@ -671,7 +673,7 @@ TEST_F(EquippedPanelTest, AShortPanelScrollsToTheCursor) {
       << "the first row should have scrolled away";
 }
 
-// The bar is only there while there is something to scroll to.
+// The bar shows only while there is something to scroll to.
 TEST_F(EquippedPanelTest, TheScrollBarShowsOnlyOnAShortPanel) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
@@ -685,8 +687,8 @@ TEST_F(EquippedPanelTest, TheScrollBarShowsOnlyOnAShortPanel) {
 
 // --- level-gated menu entries ---
 
-// Taking something off needs somewhere to put it, and the bag is not open
-// yet. A greyed Unequip would be an invitation to a screen that is not there.
+// Unequipping needs somewhere to put the item, and the bag isn't open yet. A
+// grey Unequip would point to a screen that doesn't exist.
 TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -708,9 +710,9 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
 
 // --- the gold trail to a new upgrade ---
 
-// The first step of the trail: something has opened, and the worn weapon is
-// where the player has to go to use it. The name alone goes gold -- the
-// columns after it say what they always said.
+// The first step of the trail: something has unlocked, and the worn weapon is
+// where the player goes to use it. Only the name turns gold; the columns after
+// it are unchanged.
 TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   EquipPrototype stars;
@@ -726,8 +728,8 @@ TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
   EXPECT_EQ(LabelColor(comp->Render(), "Sword"), kYellow);
   EXPECT_NE(LabelColor(comp->Render(), "Weapon"), kYellow)
       << "the slot column is not being pointed at";
-  // The weapon alone. Everything else worn is where it always was, and gilding
-  // the lot would point at nothing in particular.
+  // Only the weapon. Everything else worn is unchanged, and making it all gold
+  // would point at nothing in particular.
   EXPECT_NE(LabelColor(comp->Render(), "Subi"), kYellow);
 }
 
@@ -740,8 +742,8 @@ TEST_F(EquippedPanelTest, NoGoldOnTheWeaponBeforeAnythingOpens) {
             kYellow);
 }
 
-// Opening the menu is the step: the player looked, so the signpost comes down
-// whether or not they went on to press anything.
+// Opening the menu completes the step: the player looked, so the gold goes out
+// whether or not they press anything.
 TEST_F(EquippedPanelTest, OpeningTheMenuPutsTheWeaponsGoldOut) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -755,8 +757,8 @@ TEST_F(EquippedPanelTest, OpeningTheMenuPutsTheWeaponsGoldOut) {
   EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow);
 }
 
-// The same trail the bag menu carries, on the panel the player is led to
-// first: the entry stays gold until they press it.
+// The same trail as the bag menu, on the panel the player is led to first: the
+// entry stays gold until they press it.
 TEST_F(EquippedPanelTest, ANewUpgradeIsGoldOnTheMenu) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -767,8 +769,8 @@ TEST_F(EquippedPanelTest, ANewUpgradeIsGoldOnTheMenu) {
   EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
 }
 
-// Pressed anywhere, spent everywhere: the player has learned what the entry
-// is, and the bag's copy of it has nothing left to teach them.
+// Pressing it in either place turns it off in both: the player has learned what
+// the entry is, and the bag's copy has nothing left to teach.
 TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -784,10 +786,9 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
 }
 
-// Star force lights its entry and nothing else. By 120 the player has been
-// opening this menu since level 40, so the weapon needs no signpost -- and a
-// second gold thing on screen would only take the eye off the row that is
-// actually new.
+// Star force lights only its menu entry. By 120 the player has been opening
+// this menu since level 40, so the weapon needs no gold, and a second gold item
+// on screen would pull the eye from the new entry.
 TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   sword_.set_upgrade_slots(1);
   Equip spent;
@@ -799,8 +800,8 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   ScrollPanel sp(c_, no_scrolls_);
   ftxui::Component comp = panel.MakeComponent([]() {});
 
-  // Scrolling's own trail walked first, or its gold would still be lit and
-  // the assertions below could not tell the two upgrades apart.
+  // Scrolling's trail is completed first, or its gold would still be lit and
+  // the checks below couldn't tell the two upgrades apart.
   LevelTo(UnlockLevel(Feature::kScrolling));
   RenderComponent(comp);
   panel.OpenMenu();
@@ -808,8 +809,8 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   panel.OnMenuEvent(ftxui::Event::Return, sp);
 
   LevelTo(UnlockLevel(Feature::kStarForce));
-  // The weapon asked first: opening the menu is what puts a weapon's gold out,
-  // so asking after would answer for the wrong reason.
+  // The weapon is checked first, because opening the menu turns its gold off,
+  // so checking afterwards would pass for the wrong reason.
   EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow)
       << "star force lit the weapon as well";
   panel.OpenMenu();
@@ -818,8 +819,8 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
 }
 
 TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
-  // A spent weapon: star force refuses an item with upgrade slots still on
-  // it, and this test is about the level gate rather than that refusal.
+  // A weapon with no slots left. Star force refuses an item with upgrade slots
+  // remaining, and this test is about the level gate, not that refusal.
   sword_.set_upgrade_slots(1);
   Equip spent;
   spent.set_equip_name(sword_.name());
@@ -843,8 +844,8 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
       std::count(star_force.begin(), star_force.end(), kGearMenuStarForce), 0);
 }
 
-// The hammer's own gate, and the piece it has nothing to do to. It sits
-// between the other two upgrades: scrolls fill the shelf, a hammer widens it.
+// The hammer's own gate, and an item it has nothing to do to. It sits between
+// the other two upgrades: scrolls use the slots, and a hammer adds one.
 TEST_F(EquippedPanelTest, TheHammerArrivesLastAndOnlyOnAPieceWithSlots) {
   sword_.set_upgrade_slots(1);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -866,8 +867,8 @@ TEST_F(EquippedPanelTest, TheHammerArrivesLastAndOnlyOnAPieceWithSlots) {
   EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
 }
 
-// Cubing's own gate, above every other upgrade, and the slot that refuses a
-// cube outright.
+// Cubing's own gate, above every other upgrade, and the slot that refuses cubes
+// outright.
 TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -885,7 +886,7 @@ TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
   EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuCube), 0);
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_LT(rendered.find("Star Force"), rendered.find("Cube"));
-  // And gold, until the player presses it: cubing is the far end of a trail
+  // It is gold until the player presses it, since cubing is the end of a trail
   // the level-up card starts.
   EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cube"), kYellow);
 }
@@ -905,8 +906,8 @@ TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
             std::string::npos);
 }
 
-// A piece a hammer can do nothing to keeps no row: the entry is hidden the way
-// Scroll is on an item that refuses scrolls outright.
+// An item a hammer can't improve gets no entry, just as Scroll is hidden on an
+// item that refuses scrolls.
 TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {
   sword_.set_upgrade_slots(0);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -920,8 +921,8 @@ TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {
             std::string::npos);
 }
 
-// Both hammers in, and the entry stands there dim: gone, it would read as the
-// feature going away.
+// Both hammers used, and the entry stays dim. If it vanished, it would look
+// like the feature going away.
 TEST_F(EquippedPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
   sword_.set_upgrade_slots(1);
   Equip state;
@@ -942,9 +943,9 @@ TEST_F(EquippedPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
       << "greyed, not gone";
 }
 
-// Every item that takes stars at all carries the entry, greyed until its
-// slots are spent. Hidden, it would have made the order a secret: a player
-// scrolling a weapon would never see what scrolling it is for.
+// Every item that can take stars has the entry, greyed until its slots are
+// used. Hiding it would keep the order secret: a player scrolling a weapon
+// would never see what the scrolling leads to.
 TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
   sword_.set_upgrade_slots(1);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -961,15 +962,15 @@ TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_NE(rendered.find("Star Force"), std::string::npos)
       << "greyed, not gone";
-  // And the gold waits with it: an entry nobody can press is not the far end
-  // of a trail.
+  // The gold waits too, since an entry nobody can press can't be the end of a
+  // trail.
   EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Star Force"), kYellow);
 }
 
 // --- highlighting ---
 
-// This panel arrives at level 3, and a card across the screen does
-// not say where to look. The gold border is what points at it.
+// This panel arrives at level 3, and a card in the middle of the screen doesn't
+// say where to look. The gold border points at it.
 TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
@@ -980,8 +981,8 @@ TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(component->Render()), kTheme);
 }
 
-// The rule under the column headers is the only one this panel has, and it is
-// there only once something is worn.
+// The rule under the column headers is this panel's only rule, and it appears
+// only once something is worn.
 TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -994,8 +995,8 @@ TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
   EXPECT_EQ(InnerRuleColor(component->Render()), kTheme);
 }
 
-// An empty panel takes a different path through Render, and level 3 is exactly
-// when this one is most likely to be empty.
+// An empty panel takes a different path through Render, and level 3 is when
+// this one is most likely to be empty.
 TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
@@ -1004,14 +1005,12 @@ TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
   EXPECT_EQ(BorderColor(component->Render()), kYellow);
 }
 
-// --- The Symbols tab ---
-
 // --- The gear preset row ---
 
 class GearPresetTest : public EquippedPanelTest {
  protected:
-  // A character at the level cubing opens at, which is the level the presets
-  // do. Holds the panel's character for the life of the test.
+  // A character at the level cubing unlocks, which is when presets unlock too.
+  // Holds the panel's character for the life of the test.
   CharacterInstance& Cuber() {
     Character proto;
     proto.set_level(kPotentialUnlockLevel);
@@ -1032,8 +1031,8 @@ class GearPresetTest : public EquippedPanelTest {
   }
 };
 
-// Below the level cubing opens at there is only one set of gear, so the row
-// is not drawn and the panel reads as it always did.
+// Below the cubing level there is only one set of gear, so the row isn't drawn
+// and the panel looks as it always did.
 TEST_F(GearPresetTest, NoRowBeforeCubing) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -1043,8 +1042,8 @@ TEST_F(GearPresetTest, NoRowBeforeCubing) {
   EXPECT_EQ(rendered.find("Drop"), std::string::npos);
 }
 
-// With the autoswap on the three are named for what they are for -- the third
-// included, unlike the allocations', because the boss drop roll reads it.
+// With the autoswap on, all three are named for their use, including the third
+// (unlike the stat allocations), because the boss drop roll reads it.
 TEST_F(GearPresetTest, NamesTheThreeWithTheAutoswapOn) {
   CharacterInstance& c = Cuber();
   c.set_autoswap_presets(true);
@@ -1056,8 +1055,7 @@ TEST_F(GearPresetTest, NamesTheThreeWithTheAutoswapOn) {
   EXPECT_NE(rendered.find("Drop"), std::string::npos);
 }
 
-// Off, they are numbered, and one of them carries the mark saying it is the
-// one being worn.
+// With it off they are numbered, and the worn one has a mark.
 TEST_F(GearPresetTest, NumbersThemWithTheAutoswapOff) {
   CharacterInstance& c = Cuber();
   c.SetSlotInUse(PresetKind::kEquip, StatPreset::kSecond);
@@ -1068,9 +1066,9 @@ TEST_F(GearPresetTest, NumbersThemWithTheAutoswapOff) {
   EXPECT_NE(rendered.find("2 \u2713"), std::string::npos);
 }
 
-// Stepping right shows what that preset wears, and a slot it has nothing of
-// its own in is drawn dimmed: the item is on the character, but it is the
-// Farm preset's.
+// Stepping right shows what that preset wears. A slot where it has nothing of
+// its own is dimmed: the item is on the character, but it belongs to the Farm
+// preset.
 TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
   CharacterInstance& c = Cuber();
   c.set_autoswap_presets(true);
@@ -1081,7 +1079,7 @@ TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   RenderComponent(component);
-  component->OnEvent(ftxui::Event::ArrowUp);  // the list -> the preset row
+  component->OnEvent(ftxui::Event::ArrowUp);  // the list to the preset row
   component->OnEvent(ftxui::Event::ArrowRight);
 
   std::string rendered = RenderComponent(component);
@@ -1094,9 +1092,9 @@ TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
       << "inherited, so it is dimmed";
 }
 
-// The tab a player finds is the gear they have on, so the list, the item menu
-// and every card comparing an item against it all speak about what is worn.
-// The autoswap names no one preset, and its first chip is Farm.
+// The tab opens on the gear the player is wearing, so the list, the item menu
+// and every item comparison card describe what is worn. The autoswap doesn't
+// pick one preset, and its first chip is Farm.
 TEST_F(GearPresetTest, OpensOnThePresetInUse) {
   CharacterInstance& c = Cuber();
   c.SetSlotInUse(PresetKind::kEquip, StatPreset::kSecond);
@@ -1112,8 +1110,8 @@ TEST_F(GearPresetTest, OpensOnThePresetInUse) {
   EXPECT_EQ(swapping.gear_preset(), StatPreset::kFirst);
 }
 
-// The row is three chips and not a ring: Left off the first stays on it, and
-// Right off the last stays there.
+// The row is three chips and doesn't wrap: Left from the first stays there, and
+// so does Right from the last.
 TEST_F(GearPresetTest, TheRowDoesNotWrap) {
   CharacterInstance& c = Cuber();
   Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
@@ -1130,8 +1128,8 @@ TEST_F(GearPresetTest, TheRowDoesNotWrap) {
   EXPECT_EQ(panel.gear_preset(), StatPreset::kThird);
 }
 
-// With the switch off the player picks which preset is worn, and Enter on the
-// chip is the whole of how: one action, so no menu is raised over it.
+// With the autoswap off the player picks which preset is worn, and Enter on the
+// chip does it. It is one action, so no menu opens.
 TEST_F(GearPresetTest, EnterWearsThePresetWithTheAutoswapOff) {
   CharacterInstance& c = Cuber();
   Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
@@ -1152,7 +1150,7 @@ TEST_F(GearPresetTest, EnterWearsThePresetWithTheAutoswapOff) {
   EXPECT_NE(RenderComponent(component).find("2 \u2713"), std::string::npos);
 }
 
-// On, there is nothing to pick: the activity is already wearing whichever
+// With the autoswap on there is nothing to pick: the activity already wears the
 // preset it names.
 TEST_F(GearPresetTest, EnterPicksNothingWithTheAutoswapOn) {
   CharacterInstance& c = Cuber();
@@ -1169,8 +1167,8 @@ TEST_F(GearPresetTest, EnterPicksNothingWithTheAutoswapOn) {
   EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst);
 }
 
-// A preset takes off only what is its own, so the entry is dimmed on a row it
-// inherits rather than taking the Farm preset's item away under it.
+// A preset can only unequip its own items, so Unequip is dimmed on an inherited
+// row instead of removing the Farm preset's item.
 TEST_F(GearPresetTest, UnequipIsDimmedOnAnInheritedRow) {
   CharacterInstance& c = Cuber();
   Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
@@ -1188,9 +1186,11 @@ TEST_F(GearPresetTest, UnequipIsDimmedOnAnInheritedRow) {
             reachable.end());
 }
 
+// --- The Symbols tab ---
+
 class SymbolTabTest : public EquippedPanelTest {
  protected:
-  // A character in Arcane River, which is what puts the second tab on the bar.
+  // A character in Arcane River, which adds the second tab to the bar.
   CharacterInstance Traveller() {
     Character proto;
     proto.set_level(200);
@@ -1212,8 +1212,8 @@ class SymbolTabTest : public EquippedPanelTest {
     ASSERT_TRUE(c.Equip(0));
   }
 
-  // Up to the tab bar and one step right, which is the Symbols tab. The walk
-  // up passes through the Gear tab's preset row, which a traveller has.
+  // Up to the tab bar and one step right, onto the Symbols tab. The way up
+  // passes through the Gear tab's preset row, which a traveller has.
   void OpenSymbolTab(const ftxui::Component& component) {
     component->OnEvent(ftxui::Event::ArrowUp);
     component->OnEvent(ftxui::Event::ArrowUp);
@@ -1221,8 +1221,8 @@ class SymbolTabTest : public EquippedPanelTest {
   }
 };
 
-// Below Arcane River there is nothing a symbol tab could hold, so the bar is
-// not drawn at all and the panel reads exactly as it always did.
+// Below Arcane River a symbol tab would have nothing to hold, so there is no
+// Symbols tab.
 TEST_F(SymbolTabTest, NoBarBeforeArcaneRiver) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
@@ -1238,9 +1238,9 @@ TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
   EXPECT_NE(rendered.find("Symbols"), std::string::npos);
 }
 
-// Expand hangs in the tab bar, which is drawn from the level the panel
-// arrives at -- so it is there with Gear the only chip, long before Symbols.
-// Its label is the state Enter would leave the panel in.
+// Expand is in the tab bar, which is drawn from the level the panel arrives, so
+// it is there with Gear as the only chip, long before Symbols. Its label is the
+// state Enter would leave the panel in.
 TEST_F(SymbolTabTest, TheExpandTabIsThereWithGearAlone) {
   EquippedPanel bare(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(bare.MakeComponent([]() {})).find("Expand"),
@@ -1256,9 +1256,9 @@ TEST_F(SymbolTabTest, TheExpandTabIsThereWithGearAlone) {
   EXPECT_EQ(rendered.find("Expand"), std::string::npos);
 }
 
-// The far right of the bar, past the Symbols tab. A door rather than a page:
-// standing on it says so where the tabs list what is worn, and the bar comes
-// round through it.
+// The far right of the bar, past the Symbols tab. It is a door rather than a
+// page: selecting it shows a line saying so instead of a list, and the bar
+// wraps through it.
 TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   CharacterInstance c = Traveller();
   EquipPrototype sword;
@@ -1272,17 +1272,17 @@ TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   ftxui::Component component =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
   RenderComponent(component);
-  component->OnEvent(ftxui::Event::ArrowUp);     // the list -> the presets
-  component->OnEvent(ftxui::Event::ArrowUp);     // the presets -> the bar
-  component->OnEvent(ftxui::Event::ArrowRight);  // Gear -> Symbols
-  component->OnEvent(ftxui::Event::ArrowRight);  // Symbols -> Expand
+  component->OnEvent(ftxui::Event::ArrowUp);     // the list to the presets
+  component->OnEvent(ftxui::Event::ArrowUp);     // the presets to the bar
+  component->OnEvent(ftxui::Event::ArrowRight);  // Gear to Symbols
+  component->OnEvent(ftxui::Event::ArrowRight);  // Symbols to Expand
   EXPECT_NE(
       RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
       std::string::npos);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(20));
   ftxui::Render(screen, component->Render());
-  // A chip the cursor is on is drawn white, so only one chip may be.
+  // The chip under the cursor is drawn white, so only one chip can be.
   EXPECT_EQ(PixelOf(screen, "Expand").background_color, ftxui::Color::White);
   EXPECT_NE(PixelOf(screen, "Symbols").background_color, ftxui::Color::White)
       << "the highlight is in one place, not two";
@@ -1294,11 +1294,11 @@ TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   component->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1) << "Enter on a page does nothing; it is not a door";
 
-  component->OnEvent(ftxui::Event::ArrowLeft);  // Gear -> Expand, coming round
+  component->OnEvent(ftxui::Event::ArrowLeft);  // Gear to Expand, wrapping
   EXPECT_NE(
       RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
       std::string::npos);
-  component->OnEvent(ftxui::Event::ArrowRight);  // Expand -> Gear again
+  component->OnEvent(ftxui::Event::ArrowRight);  // Expand to Gear again
   EXPECT_EQ(
       RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
       std::string::npos)
@@ -1306,15 +1306,15 @@ TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   EXPECT_EQ(panel.active_tab(), EquippedPanel::kGearTab);
 }
 
-// A worn symbol reads its level, how far along the next one it is, and what it
-// is worth -- in that order, which is the order the player levels it by.
+// A worn symbol shows its level, its progress to the next, and its value, in
+// the order the player levels it by.
 TEST_F(SymbolTabTest, ASymbolRowIsItsLevelExpAndForce) {
   CharacterInstance c = Traveller();
   WearSymbol(c, "Arcane Symbol: Vanishing Journey",
              EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/8, /*exp=*/12);
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  // Down off the bar, then Right onto Symbols.
+  // Down from the bar, then Right onto Symbols.
   OpenSymbolTab(component);
   std::string rendered = RenderComponent(component);
   EXPECT_NE(rendered.find("Vanishing Journey"), std::string::npos);
@@ -1322,7 +1322,7 @@ TEST_F(SymbolTabTest, ASymbolRowIsItsLevelExpAndForce) {
   EXPECT_NE(rendered.find("+100"), std::string::npos) << rendered;
 }
 
-// Worn symbols are on their own tab, so neither list shows the other's items.
+// Worn symbols have their own tab, so neither list shows the other's items.
 TEST_F(SymbolTabTest, TheTwoListsDoNotShareItems) {
   CharacterInstance c = Traveller();
   EquipPrototype sword;
@@ -1345,8 +1345,8 @@ TEST_F(SymbolTabTest, TheTwoListsDoNotShareItems) {
   EXPECT_EQ(symbols.find("Sword"), std::string::npos);
 }
 
-// The tab is there from the moment Arcane River opens, and empty until the
-// player puts their first symbol on.
+// The tab appears when Arcane River opens and stays empty until the player
+// equips their first symbol.
 TEST_F(SymbolTabTest, TheTabIsEmptyUntilASymbolIsWorn) {
   CharacterInstance c = Traveller();
   EquippedPanel panel(c, account_, panel_focus_);
@@ -1355,8 +1355,7 @@ TEST_F(SymbolTabTest, TheTabIsEmptyUntilASymbolIsWorn) {
   EXPECT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
 }
 
-// The symbol menu offers only what a symbol can be put through: it takes no
-// scrolls and no stars.
+// The symbol menu offers only what a symbol can take: no scrolls and no stars.
 TEST_F(SymbolTabTest, TheSymbolMenuLeavesTheUpgradesOff) {
   CharacterInstance c = Traveller();
   WearSymbol(c, "Arcane Symbol: Vanishing Journey",
@@ -1372,8 +1371,8 @@ TEST_F(SymbolTabTest, TheSymbolMenuLeavesTheUpgradesOff) {
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
-// Level Up is greyed until the duplicates are in, which is how the player
-// learns that combining comes first. Reachable once they are.
+// Level Up is grey until the duplicates are combined, which is how the player
+// learns that combining comes first. It becomes selectable afterwards.
 TEST_F(SymbolTabTest, LevelUpWaitsForTheDuplicates) {
   CharacterInstance waiting = Traveller();
   WearSymbol(waiting, "Arcane Symbol: Vanishing Journey",
@@ -1398,7 +1397,7 @@ TEST_F(SymbolTabTest, LevelUpWaitsForTheDuplicates) {
             reachable.end());
 }
 
-// Pressing it leads to the dialog that asks for the meso.
+// Pressing it opens the dialog that asks for the meso.
 TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
   CharacterInstance c = Traveller();
   WearSymbol(c, "Arcane Symbol: Vanishing Journey",
@@ -1416,8 +1415,8 @@ TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
 
 // --- read-only, the panel the Inspect screen lists a party member with ---
 
-// The trail is about the reader's own upgrades, so it is not drawn over
-// somebody else's weapon.
+// The trail is about the reader's own upgrades, so it isn't drawn on someone
+// else's weapon.
 TEST_F(EquippedPanelTest, ReadOnlyDrawsNoTrailToTheWeapon) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1428,9 +1427,9 @@ TEST_F(EquippedPanelTest, ReadOnlyDrawsNoTrailToTheWeapon) {
   EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow);
 }
 
-// Enter still raises whatever the caller gave -- the item's card, on that
-// screen -- and the row is still walked. What it will not do is put a preset
-// on: a party member's gear is not the reader's to switch.
+// Enter still calls whatever the caller passed (the item's card, on that
+// screen), and the rows can still be moved through. It won't equip a preset,
+// since a party member's gear isn't the reader's to switch.
 TEST_F(GearPresetTest, ReadOnlyReadsThePresetsWithoutWearingOne) {
   CharacterInstance& c = Cuber();
   Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
@@ -1443,8 +1442,8 @@ TEST_F(GearPresetTest, ReadOnlyReadsThePresetsWithoutWearingOne) {
   ftxui::Component comp = panel.MakeComponent([&opened]() { ++opened; });
   RenderComponent(comp);
 
-  comp->OnEvent(ftxui::Event::ArrowUp);     // the list -> the preset row
-  comp->OnEvent(ftxui::Event::ArrowRight);  // -> their second preset
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the list to the preset row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // to their second preset
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(panel.gear_preset(), StatPreset::kSecond)
       << "the row is still read";
@@ -1452,13 +1451,13 @@ TEST_F(GearPresetTest, ReadOnlyReadsThePresetsWithoutWearingOne) {
   EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst)
       << "a reader put a preset on somebody else";
 
-  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the list
+  comp->OnEvent(ftxui::Event::ArrowDown);  // to the list
   comp->OnEvent(ftxui::Event::Character(' '));
   EXPECT_EQ(opened, 1) << "Enter on a row raised nothing";
 }
 
-// Every row, not just the two the gutter test above reads, and with a worn
-// item in every slot so each column is as wide as it ever gets.
+// Every row, not just the two the gutter test above checks, with an item in
+// every slot so each column is at its widest.
 TEST_F(EquippedPanelTest, NoRowWeldsItselfToTheRightBorder) {
   LevelTo(200);
   UnlockEverything();
