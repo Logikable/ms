@@ -31,7 +31,7 @@ Mob SnailMob() {
   return mob;
 }
 
-// One snail, one spawn slot, so a single hit clears the whole roster.
+// One snail and one spawn slot, so a single hit clears the map.
 MapData SnailField() {
   MapData map;
   map.set_name("Snail Field");
@@ -47,16 +47,16 @@ void EquipSword(GameState& state) {
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
-  // Both halves, so the swing lands whatever job the starting character
-  // happens to be: the encounter math must not depend on which it is.
+  // Both attack stats, so the attack lands whatever the starting character's
+  // job is. The fight shouldn't depend on it.
   sword.mutable_base_stats()->set_attack(100);
   sword.mutable_base_stats()->set_magic_attack(100);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
 }
 
-// Lays the panel out the way the Tui does -- beside a filler, so it keeps its
-// own width instead of stretching to the screen.
+// Lays the panel out as the Tui does, beside a filler, so it keeps its own
+// width instead of stretching to the screen.
 ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim,
                            int panel_focus = kEquipPanel) {
   CombatPanel panel(state, sim, panel_focus);
@@ -79,8 +79,8 @@ TEST(CombatPanelTest, RendersItsColumnsWidth) {
   EquipSword(state);
   CombatSim sim;
 
-  // The top border's closing corner lands on the last column, and nothing is
-  // drawn past it.
+  // The top border's right corner is on the last column, and nothing is drawn
+  // past it.
   ftxui::Screen screen = RenderScreen(state, sim);
   EXPECT_EQ(screen.PixelAt(kLeftColumnMin - 1, 0).character, "╮");
   EXPECT_NE(screen.PixelAt(kLeftColumnMin, 0).character, "─");
@@ -111,8 +111,8 @@ TEST(CombatPanelTest, ShowsTheMapCursorOnlyWhenFocused) {
   EXPECT_NE(unfocused.find("  Snail Field"), std::string::npos);
 }
 
-// A map name a column wider than the row is cut to the row rather than
-// pushing the panel out, and slides under it while the panel holds focus.
+// A map name a column wider than the row is cut to fit instead of widening the
+// panel, and scrolls while the panel has focus.
 TEST(CombatPanelTest, ALongMapNameIsCutToItsRow) {
   const std::string kLongest = "Battlefield of Fire and Darkness";
   MapData map = SnailField();
@@ -127,7 +127,7 @@ TEST(CombatPanelTest, ALongMapNameIsCutToItsRow) {
   EXPECT_EQ(rendered.find(kLongest), std::string::npos)
       << "the whole name fits, so this test proves nothing";
   EXPECT_NE(rendered.find(kLongest.substr(0, 31)), std::string::npos);
-  // Still exactly as wide as it was, name or no name.
+  // Still exactly as wide as before, whatever the name.
   EXPECT_EQ(screen.PixelAt(kLeftColumnMin - 1, 0).character, "╮");
 }
 
@@ -136,7 +136,7 @@ TEST(CombatPanelTest, ReportsNotFightingWithoutAWeapon) {
                   {{"field", SnailField()}});
   state.current_map = "field";
   CombatSim sim;
-  sim.Advance(ComputeCombatParams(state), 1.0);  // no weapon -> inactive
+  sim.Advance(ComputeCombatParams(state), 1.0);  // no weapon, so inactive
 
   EXPECT_NE(RenderPanel(state, sim).find("Not fighting"), std::string::npos);
 }
@@ -171,8 +171,8 @@ TEST(CombatPanelTest, ThePlayersHpBarFallsAsTheyAreHit) {
                   {{"field", SnailField()}});
   state.current_map = "field";
   EquipSword(state);
-  // A mob that survives long enough to land hits, swinging hard enough to be
-  // felt through the starting character's DEF.
+  // A mob that lives long enough to attack, and hits hard enough to get through
+  // the starting character's DEF.
   Mob ogre = SnailMob();
   ogre.set_name("Ogre");
   ogre.set_max_hp(1000000);
@@ -203,7 +203,7 @@ TEST(CombatPanelTest, LabelsTheAttackBarWithTheAttackName) {
   state.current_map = "field";
   EquipSword(state);
   CombatSim sim;
-  sim.Advance(ComputeCombatParams(state), 0.1);  // no skill -> the bare poke
+  sim.Advance(ComputeCombatParams(state), 0.1);  // no skill: basic attack
 
   EXPECT_NE(RenderPanel(state, sim).find("Attack"), std::string::npos);
 }
@@ -213,8 +213,8 @@ TEST(CombatPanelTest, MergesEngagedMobsIntoOneBar) {
                   {{"field", SnailField()}});
   state.current_map = "field";
   EquipSword(state);
-  // Drive the sim directly with a 2-wide reach over two snails so both land in
-  // the engaged window and merge into one "x2" bar.
+  // Drive the sim directly with a reach of 2 over two snails, so both are
+  // engaged and merge into one "x2" bar.
   Mob snail = SnailMob();
   CombatType type;
   type.mob = &snail;
@@ -242,7 +242,7 @@ TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {
   EquipSword(state);
   CombatSim sim;
   CombatParams params = ComputeCombatParams(state);
-  // One swing kills the lone snail.
+  // One attack kills the lone snail.
   sim.Advance(params, params.attacks.front().swing_seconds);
   ASSERT_TRUE(sim.respawning());
 
@@ -254,8 +254,8 @@ TEST(CombatPanelTest, ShowsTheRespawnBeatUnderTheMobs) {
                   {{"field", SnailField()}});
   state.current_map = "field";
   EquipSword(state);
-  // A mob too fat to die, so the bar under it is the beat's and not the
-  // "Respawning..." line the cleared map would put there.
+  // A mob with too much HP to die, so the bar under it is the respawn bar and
+  // not the "Respawning..." line a cleared map would show.
   Mob ogre = SnailMob();
   ogre.set_name("Ogre");
   ogre.set_max_hp(1000000);
@@ -273,7 +273,7 @@ TEST(CombatPanelTest, ShowsTheRespawnBeatUnderTheMobs) {
   params.types = {type};
   params.attacks = {attack};
   CombatSim sim;
-  // Two steps, because Advance clamps one to a single swing.
+  // Two steps, because Advance limits one step to a single attack.
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
 
@@ -282,7 +282,7 @@ TEST(CombatPanelTest, ShowsTheRespawnBeatUnderTheMobs) {
   EXPECT_NEAR(sim.view().respawn_fraction, 0.25, 0.001);
 }
 
-// A boss has no beat, so the panel has no bar for one.
+// A boss doesn't respawn, so the panel has no respawn bar.
 TEST(CombatPanelTest, HidesTheRespawnBarWhenNothingRespawns) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});
@@ -310,15 +310,15 @@ TEST(CombatPanelTest, HidesTheRespawnBarWhenNothingRespawns) {
 }
 
 // The rows the panel actually draws, so Height() is checked against the panel
-// rather than against a copy of its own arithmetic.
+// rather than a copy of its own arithmetic.
 int DrawnRows(const GameState& state, const CombatSim& sim) {
   int focus = kEquipPanel;
   CombatPanel panel(state, sim, focus);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(20));
-  // Both fillers, as the main layout has them: the hbox keeps the panel's own
-  // width and the vbox its own height. Without them the window stretches to
-  // the screen and every row reads as drawn.
+  // Both fillers, as in the main layout: the hbox keeps the panel's own width
+  // and the vbox its own height. Without them the window stretches to the
+  // screen and every row counts as drawn.
   ftxui::Render(screen,
                 ftxui::vbox({ftxui::hbox({panel.Render(), ftxui::filler()}),
                              ftxui::filler()}));
@@ -339,8 +339,8 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   CombatPanel idle_panel(idle, no_fight, focus);
   EXPECT_EQ(idle_panel.Height(), DrawnRows(idle, no_fight));
 
-  // Two mob types, so a height that counted one bar per fight rather than one
-  // per type would still be wrong here.
+  // Two mob types, so a height counting one bar per fight instead of one per
+  // type would fail here.
   Mob slime = SnailMob();
   slime.set_name("Slime");
   slime.set_level(2);
@@ -348,8 +348,8 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   Spawn* second = two_types.add_spawns();
   second->set_mob("slime");
   second->set_count(1);
-  // A swing that reaches both of them, or only the mob at the head of the
-  // queue is engaged and there is one bar either way.
+  // An attack that reaches both of them. Otherwise only the first mob is
+  // engaged and there is one bar either way.
   Skill sweep;
   sweep.set_name("Sweep");
   sweep.set_kind(SKILL_KIND_ATTACK);
@@ -362,7 +362,7 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   state.current_map = "field";
   EquipSword(state);
   state.character.AdvanceJob(JOB_SWORDMAN);
-  // SP arrives with the levels, and only past level 10.
+  // SP comes with levels, and only after level 10.
   for (int i = 0; i < 12; ++i) {
     state.character.LevelUp();
   }
@@ -374,7 +374,7 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   CombatPanel panel(state, sim, focus);
   EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
 
-  // Clearing the roster puts one row where the mob bars were.
+  // Clearing the map puts one row where the mob bars were.
   sim.Advance(params, 100.0);
   ASSERT_TRUE(sim.respawning());
   EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
@@ -390,7 +390,7 @@ TEST(CombatPanelTest, TheRowsKeepOffTheRightBorder) {
   CombatPanel panel(state, sim, focus);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
 }
-// The charge bar's buff dots are an option, and one that ships off.
+// The charge bar's buff dots are an option, off by default.
 TEST(CombatPanelTest, BuffDotsFollowTheOption) {
   Skill rage;
   rage.set_name("Rage");

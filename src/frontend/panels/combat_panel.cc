@@ -34,9 +34,9 @@ std::string CombatPanel::MapName() const {
 }
 
 int CombatPanel::Height() const {
-  // Border, map row, rule, then either the "Not fighting" line or the two
-  // bars the player always has, one per mob type they are up against, and the
-  // respawn beat under them.
+  // Border, map row, rule, then either the "Not fighting" line or the two bars
+  // the player always has, one bar per mob type they are fighting, and the
+  // respawn bar below them.
   int rows = 2 + 1 + 1;
   if (!sim_.active()) {
     return rows + 1;
@@ -49,13 +49,13 @@ int CombatPanel::Height() const {
 }
 
 ftxui::Element CombatPanel::Render() const {
-  // The header fixes the panel's width: a cursor column plus the map name,
+  // The header sets the panel's width: a cursor column plus the map name,
   // padded to the full content width. The bars below stretch to match. The
-  // cursor is the map's -- Enter on it travels -- so it shows only when the
-  // panel holds focus, as in the equip and inventory lists.
+  // cursor belongs to the map (Enter on it travels), so it shows only while the
+  // panel has focus, as in the equip and inventory lists.
   bool focused = panel_focus_ == kCombatPanel;
-  // The longest map name is a column wider than the row holds, so it slides
-  // under it while the panel holds focus.
+  // The longest map name is a column wider than the row, so it scrolls while
+  // the panel has focus.
   name_clock_.Follow(
       static_cast<int>(std::hash<std::string>{}(state_.current_map)), focused);
   ftxui::Element header = ftxui::text(
@@ -75,15 +75,15 @@ ftxui::Element CombatPanel::Render() const {
                         focused);
   }
 
-  // The player's own bar leads, above the swing they are charging and the
-  // mobs they are charging it at -- read down the panel and it is them, their
-  // attack, then what is hitting back. Green so it cannot be mistaken for one
-  // of the red mob bars beneath it.
+  // The player's own bar comes first, above the attack they are charging and
+  // the mobs they are attacking. Read down, it goes: the player, their attack,
+  // then what is hitting back. It is green so it can't be mistaken for the red
+  // mob bars below it.
   std::string hp_label = "HP " + std::to_string(sim_.view().player_hp) + " / " +
                          std::to_string(sim_.view().player_max_hp);
-  // Charges over one swing; a full bar is the moment a hit lands. Labelled with
-  // the attack being charged ("Attack" for the bare poke, else the skill), and
-  // dotted at the ends with the buffs standing.
+  // Fills over one attack, and a full bar is when the hit lands. It is labelled
+  // with the attack being charged ("Attack" for the basic attack, otherwise the
+  // skill), with dots at the ends for the active buffs.
   std::vector<ftxui::Element> rows = {
       header,
       ThemedSeparator(),
@@ -97,10 +97,11 @@ ftxui::Element CombatPanel::Render() const {
   if (sim_.respawning()) {
     rows.push_back(ftxui::text(" Respawning..."));
   } else {
-    // One HP bar per engaged type, white the whole way across rather than
-    // dark-on-fill: kRed takes white well, and the name should not turn over a
-    // letter at a time as health drains. The level leads the name, and a "xN"
-    // trails where several of the type share the bar's average.
+    // One HP bar per engaged mob type, with white text all the way across
+    // instead of dark text on the fill. White reads well on kRed, and the name
+    // shouldn't change colour a letter at a time as health drains. The level
+    // comes before the name, and "xN" follows when several mobs of the type
+    // share the bar's average.
     for (const EngagedGroup& group : sim_.view().engaged_groups) {
       std::string label =
           "Lv." + std::to_string(group.level) + " " + group.name;
@@ -111,9 +112,9 @@ ftxui::Element CombatPanel::Render() const {
                                  label, ftxui::Color::White));
     }
   }
-  // The respawn beat closes the panel, under whatever it is about to refill.
-  // Orange because the other three bars are already spoken for, and it is the
-  // one clock here that belongs to the map rather than to a combatant.
+  // The respawn bar comes last, under the mobs it is about to refill. It is
+  // orange because the other three colours are taken, and it is the one timer
+  // here that belongs to the map rather than to a combatant.
   if (sim_.view().respawns) {
     rows.push_back(ProgressBar(static_cast<float>(sim_.view().respawn_fraction),
                                kOrange, "Respawn", ftxui::Color::White));
@@ -124,7 +125,7 @@ ftxui::Element CombatPanel::Render() const {
 }
 
 ftxui::Component CombatPanel::MakeComponent(std::function<void()> on_travel) {
-  // The Renderer(bool) overload is Focusable(), unlike Renderer() -- required
+  // The Renderer(bool) overload is Focusable(), unlike Renderer(). It is needed
   // so Container::Tab's Focused() check passes on kCombatPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });

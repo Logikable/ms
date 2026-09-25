@@ -1,11 +1,10 @@
 /* The tip pinned to the bottom-right corner for a new character: the four keys
- * the game is played with, and a note saying when it will go away.
+ * the game uses, and a note saying when it will go away.
  *
- * A panel in name only. It holds nothing, decides nothing, and never takes
- * focus -- there is nothing on it to select, and a panel in the Tab ring with
- * no selectable content goes deaf. Whether it is drawn at all is
- * HotkeysTipVisible's answer, asked by the caller, the same way the equipped
- * and bag panels are.
+ * It is a panel in name only. It holds no state and never takes focus, because
+ * there is nothing on it to select, and a panel in the Tab ring with nothing
+ * selectable stops receiving keys. HotkeysTipVisible decides whether it is
+ * drawn, and the caller checks it, as with the equipped and bag panels.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_HOTKEYS_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_HOTKEYS_PANEL_H_
@@ -14,7 +13,7 @@
 
 namespace ms {
 
-// The tip as a bordered window, sized to its own longest line.
+// The tip as a bordered window, sized to its longest line.
 ftxui::Element HotkeysPanel();
 
 }  // namespace ms

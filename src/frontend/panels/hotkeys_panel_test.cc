@@ -13,12 +13,12 @@
 namespace ms {
 namespace {
 
-// The panel's rows, read off the screen cell by cell. Not Screen::ToString --
-// that threads colour escapes between the border and the text, so a row does
-// not read as the line the player sees.
+// The panel's rows, read from the screen cell by cell. Screen::ToString would
+// put colour escapes between the border and the text, so a row wouldn't match
+// what the player sees.
 //
-// The screen is fitted to the panel, so these are its natural dimensions: a
-// row reaching its border here is a row the panel actually made room for.
+// The screen is fitted to the panel, so these are its natural dimensions: a row
+// reaching its border here is a row the panel made room for.
 std::vector<std::string> RenderRows() {
   ftxui::Element tip = HotkeysPanel();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(tip));
@@ -26,7 +26,7 @@ std::vector<std::string> RenderRows() {
   return ScreenRows(screen);
 }
 
-// The row holding `needle`, or "" if no row does.
+// The row containing `needle`, or "" if none does.
 std::string RowWith(const std::string& needle) {
   for (const std::string& row : RenderRows()) {
     if (row.find(needle) != std::string::npos) {
@@ -44,18 +44,17 @@ TEST(HotkeysPanelTest, NamesEveryKeyTheGameIsPlayedWith) {
 }
 
 TEST(HotkeysPanelTest, SaysWhenItWillGoAway) {
-  // Read off progression rather than written out, so retuning the early game
-  // cannot leave the tip promising a level it no longer retires at.
+  // Read from the progression table rather than written out, so retuning the
+  // early game can't leave the tip naming the wrong level.
   EXPECT_NE(RowWith("close at level " +
                     std::to_string(HotkeysTipRetireLevel()) + "."),
             "");
 }
 
 TEST(HotkeysPanelTest, KeepsItsLongestLineInsideTheBorder) {
-  // The arrows are three bytes apiece against one column each. Sizing this
-  // panel by byte length would leave its longest row hanging past the border,
-  // or cut a glyph in half on the way. Measured at the panel's own width, so
-  // this fails if the arrows are ever counted wrong.
+  // Each arrow is three bytes but one column. Sizing the panel by byte length
+  // would push the longest row past the border or cut a glyph in half. Measured
+  // at the panel's own width, so this fails if the arrows are counted wrong.
   std::string row = RowWith("move within a panel");
   ASSERT_NE(row, "");
   EXPECT_EQ(row.substr(0, std::string("│").size()), "│") << "opening border";
@@ -65,8 +64,8 @@ TEST(HotkeysPanelTest, KeepsItsLongestLineInsideTheBorder) {
 }
 
 TEST(HotkeysPanelTest, RetiresTheLevelAfterTheBagArrives) {
-  // The tip's whole job is the panels arriving around it, and the bag is the
-  // last of them. Tied together so neither can move without the other.
+  // The tip exists until the panels around it have arrived, and the bag is the
+  // last. They are tied together so neither can move without the other.
   EXPECT_EQ(HotkeysTipRetireLevel(), UnlockLevel(Feature::kBag) + 1);
 }
 

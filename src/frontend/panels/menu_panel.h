@@ -1,20 +1,20 @@
-/* The menu pinned to the bottom-right corner: the way into everything that is
- * not a panel of its own.
+/* The menu pinned to the bottom-right corner, leading to everything that isn't
+ * a panel of its own.
  *
- * It takes the corner over from the hotkeys tip at the level the tip retires,
- * so the corner is never empty and never holds both. Entries sit in one row,
- * Left and Right move between them, and Enter opens the one under the cursor.
+ * It replaces the hotkeys tip at the level the tip retires, so the corner is
+ * never empty and never holds both. Entries sit in one row. Left and Right move
+ * between them, and Enter opens the one under the cursor.
  *
- * Entries arrive as the character reaches them, and the row is laid out from
- * the right: Settings holds the corner from the start so the panel is never an
- * empty box, Characters arrives left of it at 210, Multiplayer at 10, Boss at
- * 110, and Dailies at the level the first Arcane Symbol can be had. Analysis
- * holds the left end throughout. A build with no multiplayer in it has no
- * Multiplayer entry at all.
+ * Entries appear as the character reaches them, and the row is laid out from
+ * the right. Settings holds the corner from the start so the panel is never
+ * empty. Multiplayer arrives at 10, Boss at 110, Dailies at the level of the
+ * first Arcane Symbol, and Characters at 210, each in its place left of
+ * Settings. Analysis is always at the left end. A build without multiplayer has
+ * no Multiplayer entry.
  *
- * An entry either opens a screen -- Boss does -- or opens a box that stands on
- * the corner and lists what it leads to. There is one box, whichever entry
- * raised it, so the two behave alike and the panel holds one cursor.
+ * An entry either opens a screen (as Boss does) or opens a box above the corner
+ * listing where it leads. There is one box whichever entry opened it, so all
+ * entries behave alike and the panel has one cursor.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
@@ -30,7 +30,7 @@
 
 namespace ms {
 
-// What the menu can open. Ordered as they are drawn, left to right.
+// What the menu can open, in drawing order from left to right.
 enum class MenuEntry {
   kAnalysis,
   kDailies,
@@ -40,22 +40,22 @@ enum class MenuEntry {
   kSettings,
 };
 
-// What the Settings box holds, top to bottom. Jukebox is only there in a
-// build that has music; see kAudioEnabled.
+// The Settings box, top to bottom. Jukebox appears only in a build with music
+// (see kAudioEnabled).
 enum class SettingsEntry {
   kJukebox,
   kKeybinds,
   kOptions,
 };
 
-// What the Multiplayer box holds, top to bottom.
+// The Multiplayer box, top to bottom.
 enum class MultiplayerEntry {
   kPlayers,
   kParty,
 };
 
-// What the Analysis box holds, top to bottom. The first entry starts the
-// measurement or stops it, whichever the tool is not already doing.
+// The Analysis box, top to bottom. The first entry starts or stops the
+// measurement, whichever the tool isn't already doing.
 enum class AnalysisEntry {
   kStartStop,
   kView,
@@ -69,50 +69,50 @@ class MenuPanel {
   MenuPanel(const GameState& state, const BattleAnalysis& analysis,
             int& panel_focus);
 
-  // Moves the cursor `delta` entries, coming out the other end.
+  // Moves the cursor `delta` entries, wrapping at the ends.
   void MoveCursor(int delta);
   ftxui::Element Render() const;
-  // The entry under the cursor. Analysis for a character with nothing else
-  // yet: it is the one entry every character has.
+  // The entry under the cursor. Analysis for a character with nothing else yet,
+  // since every character has it.
   MenuEntry selected() const;
-  // on_open fires when the player presses Enter with the panel focused.
+  // on_open fires when the player presses Enter while the panel has focus.
   ftxui::Component MakeComponent(std::function<void(MenuEntry)> on_open);
 
-  // The box: what `entry` leads to, listed in a box that stands on the panel
-  // and draws over whatever is behind it. It opens with the cursor still on
-  // the menu row below, which is what the player presses Up to leave.
+  // Opens the box listing where `entry` leads, drawn above the panel over
+  // whatever is behind it. It opens with the cursor still on the menu row, and
+  // the player presses Up to enter it.
   void OpenBox(MenuEntry entry);
   void CloseBox();
   bool box_open() const {
     return box_open_;
   }
-  // Which entry the open box hangs from. Meaningless while it is closed.
+  // The entry the open box belongs to. Meaningless while the box is closed.
   MenuEntry box_entry() const {
     return box_entry_;
   }
-  // Moves the cursor `delta` stops up the box. The menu row is a stop of the
-  // same ring, so the cursor comes back out of the box the way it went in.
+  // Moves the cursor `delta` stops up the box. The menu row is a stop in the
+  // same ring, so the cursor leaves the box the way it came in.
   void MoveBoxCursor(int delta);
   // The entry the cursor is on, or -1 while it is still on the menu row.
   int box_cursor() const {
     return box_cursor_;
   }
   // Columns between the right edge of the open box and the right edge of the
-  // panel. RenderBox() already carries it; a caller wanting to place the box
-  // itself asks here.
+  // panel. RenderBox() already applies it. A caller placing the box itself
+  // reads it here.
   int BoxRightMargin() const;
-  // Columns the open box takes, borders included. What the margin above is
-  // worked out from, so it must agree with what RenderBox draws.
+  // The width of the open box, borders included. The margin above is computed
+  // from it, so it must match what RenderBox draws.
   int BoxWidth() const;
-  // The Settings entries this build has, top to bottom.
+  // The Settings entries in this build, top to bottom.
   static std::vector<SettingsEntry> SettingsEntries();
   SettingsEntry selected_settings_entry() const;
   MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;
   ftxui::Element RenderBox() const;
 
-  // The save key that latches the Boss entry's gold, so it stops being new
-  // once the player has opened the screen it leads to.
+  // The save key that turns off the Boss entry's gold once the player has
+  // opened its screen.
   static const char* boss_seen_key() {
     return kBossSeenKey;
   }
@@ -120,16 +120,17 @@ class MenuPanel {
  private:
   static constexpr char kBossSeenKey[] = "boss";
 
-  // The entries this character has, left to right. Asked rather than stored:
-  // one arrives on a level-up, which the panel is never told about.
+  // The entries this character has, left to right. Computed each time instead
+  // of stored, because a new one can appear on a level-up the panel isn't told
+  // about.
   std::vector<MenuEntry> Entries() const;
 
-  // What `entry`'s box holds, top to bottom. Empty for an entry that opens a
-  // screen instead of a box.
+  // What `entry`'s box lists, top to bottom. Empty for an entry that opens a
+  // screen instead.
   std::vector<std::string> BoxEntries(MenuEntry entry) const;
 
-  // One row of the open box, caret and all. The render draws this and
-  // BoxWidth measures it, so the box is never cut a column short.
+  // One row of the open box, caret included. The render draws this and BoxWidth
+  // measures it, so the box is never a column short.
   static std::string BoxRow(const std::string& entry, bool on_cursor = false);
 
   const GameState& state_;
@@ -137,11 +138,11 @@ class MenuPanel {
   int& panel_focus_;
   bool box_open_ = false;
   MenuEntry box_entry_ = MenuEntry::kSettings;
-  // Which entry of the box the cursor is on, or -1 for the menu row below it.
+  // The box entry under the cursor, or -1 for the menu row below it.
   int box_cursor_ = -1;
-  // Which entry the cursor is on, as an index into Entries(). An index rather
-  // than a MenuEntry: entries arrive to the right of Analysis, so the cursor
-  // stays on the end of the row the player left it on.
+  // The entry under the cursor, as an index into Entries(). An index rather
+  // than a MenuEntry because entries appear to the right of Analysis, so the
+  // cursor stays where the player left it.
   int cursor_ = 0;
 };
 

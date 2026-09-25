@@ -1,22 +1,21 @@
-/* InventoryPanel shows the character's inventory as two tabs: Equip (equip-tab
- * items as a navigable menu) and Etc (a read-only stackable list).
+/* InventoryPanel shows the character's bag in tabs: Equip (a navigable list of
+ * equipment), Token (a read-only sheet of currencies), Etc (a list of stacks),
+ * and the Shop and Bank doors once they unlock.
  *
- * Focus moves top-to-bottom through three zones, Down descending and Up
- * ascending, matching the character panel. The top zone is the Equip/Etc tab
- * bar: there Left/Right switch tabs and the active tab is drawn white to show
- * the row is selected. Down descends into the tab's item list (only when it is
- * non-empty); there Up off the top row returns to the tab bar and Enter opens
- * the item context menu via the on_enter callback passed to MakeComponent().
- * The Etc tab has no menu actions beyond Sell.
+ * Focus moves top to bottom through two zones, as in the character panel. The
+ * top zone is the tab bar, where Left and Right switch tabs and the active tab
+ * is drawn white to show the row is selected. Down moves into the tab's list
+ * when it has rows. There, Up from the top row returns to the tab bar, and
+ * Enter opens the item's context menu through the on_enter callback passed to
+ * MakeComponent().
  *
- * The Expand tab holds the far right of the bar, past the meso counter. It is
- * a door rather than a page: standing on it draws one line saying so, and
- * Enter opens the bag up to the whole screen, on its first tab. The bar wraps
- * there -- Right off Expand comes round to Equip, and Left off Equip goes to
- * Expand.
+ * The Expand tab sits at the far right of the bar, past the meso counter. It is
+ * a door rather than a page: selecting it shows one line saying so, and Enter
+ * opens the bag to fill the screen, on its first tab. The bar wraps there:
+ * Right from Expand goes to Equip, and Left from Equip goes to Expand.
  *
- * Call MakeComponent() exactly once; the returned Component captures references
- * to internal state, so the panel object must outlive the Component.
+ * Call MakeComponent() exactly once. The returned Component holds references to
+ * internal state, so the panel must outlive it.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_INVENTORY_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_INVENTORY_PANEL_H_
@@ -49,161 +48,159 @@ class InventoryPanel {
  public:
   InventoryPanel(CharacterInstance& character, AccountInstance& account,
                  int& panel_focus);
-  // `on_enter` is Enter on a row or a tab -- the item menu, the tab's own, or
-  // the shop. `on_expand` opens the bag to the whole screen and back.
+  // `on_enter` is Enter on a row or a tab: the item menu, the tab menu, or the
+  // shop. `on_expand` opens the bag to fill the screen and closes it again.
   ftxui::Component MakeComponent(std::function<void()> on_enter,
                                  std::function<void()> on_expand = nullptr);
   void OpenMenu();
-  // Drives the item context menu and runs the chosen action, returning the
-  // next screen. `gear` is the preset the Equipped panel is SHOWING, which is
-  // where an Equip puts the item: what is looked at is what is dressed.
+  // Drives the item context menu and runs the chosen action, returning the next
+  // screen. `gear` is the preset the Equipped panel is showing, which is where
+  // Equip puts the item, so the gear on screen is the gear that changes.
   Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel,
                      StatPreset gear = StatPreset::kFirst);
 
   // The item context menu for the active tab: the equip menu on Equip, the
-  // sell menu on Etc.
+  // stack menu on Etc.
   ItemMenu& menu();
-  // The {Sort, Close} menu Enter opens on a tab. Kept apart from menu()
-  // because it is about the tab rather than about anything in it, and the two
-  // are never open at once.
+  // The {Sort, Close} menu Enter opens on a tab. Kept separate from menu()
+  // because it is about the tab, not anything in it, and the two are never open
+  // at once.
   ItemMenu& tab_menu() {
     return tab_menu_;
   }
-  // Resets it. Only ever opened on Equip or Etc -- see TabMenuEntry.
+  // Resets it. Only opened on Equip or Etc (see TabMenuEntry).
   void OpenTabMenu();
-  // Handles Up/Down/Escape/Return for it and runs the chosen action.
+  // Handles Up, Down, Escape and Return for it and runs the chosen action.
   Screen OnTabMenuEvent(ftxui::Event event);
-  // The screen row the open menu anchors under: the highlighted item's, or the
-  // row below the tab bar while the cursor is up there. Read from the RENDER,
-  // not selected(), which is a position in the data and stops agreeing once
-  // the list scrolls.
+  // The screen row the open menu is placed under: the highlighted item's, or
+  // the row below the tab bar while the cursor is there. Read from the render,
+  // not selected(), which is a position in the data and stops matching once the
+  // list scrolls.
   int cursor_row() const {
     return on_tab_bar() ? bar_box_.y_min + 2 : cursor_box_.y_min;
   }
-  // The columns the panel may take, which the layout works out from the
-  // terminal's. What a wide terminal brings goes to the Equip tab's name
-  // column; the stack tabs keep theirs.
+  // The width the panel may take, which the layout computes from the
+  // terminal's. Extra width goes to the Equip tab's name column. The stack tabs
+  // keep theirs.
   void SetWidth(int width) {
     width_ = width;
   }
   int selected() const {
     return selected_;
   }
-  // True when the Etc tab is active: the one tab of stacks whose rows the
-  // cursor walks.
+  // True when the Etc tab is active, the one stack tab with a cursor.
   bool on_stackable_tab() const;
-  // Whether the Shop tab is the active one. The shop is a screen rather than a
-  // list, so the controller asks this to tell Enter on the tab bar apart from
-  // Enter on an item.
+  // Whether the Shop tab is active. The shop is a screen rather than a list, so
+  // the controller checks this to tell Enter on the tab bar from Enter on an
+  // item.
   bool on_shop_tab() const;
-  // And the Bank tab, the other door out of the panel, on the same terms.
+  // The same for the Bank tab, the other door out of the panel.
   bool on_bank_tab() const;
-  // Whether the cursor stands up on the tab bar. The controller asks to tell
-  // Enter on a tab apart from Enter on an item, and the layout asks so the tab
-  // menu hangs at the panel's left rather than out past the item columns.
+  // Whether the cursor is on the tab bar. The controller checks it to tell
+  // Enter on a tab from Enter on an item, and the layout checks it so the tab
+  // menu opens at the panel's left instead of past the item columns.
   bool on_tab_bar() const {
     return zone_ == kZoneTabs;
   }
-  // Which tab is open, as an InventoryTab. The Multi-Sell screen opens on it,
-  // and on whichever row the cursor stands on there.
+  // The open tab, as an InventoryTab. The Multi-Sell screen opens on it, at the
+  // row the cursor is on.
   int active_tab() const {
     return active_tab_;
   }
-  // The stack the Etc cursor stands on, as an index into the character's
-  // stacks -- Etc lists only part of them, so the row is not the index. -1
-  // when the tab has no row to stand on.
+  // The stack the Etc cursor is on, as an index into the character's stacks.
+  // Etc lists only some of them, so the row number isn't the index. -1 when the
+  // tab has no rows.
   int selected_stack() const;
-  // The column the item menu hangs at, from the panel's left border: past the
-  // cursor, name and slot cells, so it covers stats rather than a name. Asked
-  // of the panel, whose width the name column follows.
+  // The column the item menu opens at, from the panel's left border: past the
+  // cursor, name and slot cells, so it covers stats rather than a name. The
+  // panel computes it because the name column follows its width.
   int menu_column() const;
 
-  // Records the active tab as opened, which puts its gold out. Called when the
-  // player steps onto a tab and when focus arrives on the panel: a tab already
-  // under the cursor has been seen as surely as one stepped onto.
+  // Marks the active tab as opened, which turns off its gold. Called when the
+  // player moves onto a tab and when the panel gets focus, since a tab already
+  // under the cursor has been seen.
   void MarkActiveTabSeen();
 
-  // Lights the border gold while a level-up is celebrated: the bag arrives at
-  // level 4, and a card in the middle of the screen does not say where to
-  // look. No clock of its own -- whoever lit it turns it off.
+  // Turns the border gold during a level-up celebration. The bag arrives at
+  // level 4, and a card in the middle of the screen doesn't say where to look.
+  // The panel keeps no timer: whoever turned it on turns it off.
   void SetHighlighted(bool highlighted) {
     highlighted_ = highlighted;
   }
 
-  // Whether the bag is currently drawn over the whole screen. Set from the
-  // render, like SetHighlighted: the screen the player is on is the
-  // controller's to know, and the panel only needs it to label the button.
+  // Whether the bag is drawn over the whole screen. Set from the render, like
+  // SetHighlighted: the controller knows which screen is showing, and the panel
+  // only needs it to label the button.
   void SetExpanded(bool expanded) {
     expanded_ = expanded;
   }
 
  private:
-  // The two menus OnMenuEvent drives, one per tab family: the equip menu on
-  // Equip, the {Inspect, Sell, Multi-Sell} menu on Etc.
+  // The two menus OnMenuEvent drives: the equip menu on Equip, and the
+  // {Inspect, Sell, Multi-Sell} menu on Etc.
   Screen OnEquipMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel,
                           StatPreset gear);
   Screen OnStackMenuEvent(ftxui::Event event);
 
-  // Whether the border is currently lit gold. Set from outside, read by the
-  // render; no part of the panel's own state machine.
+  // Whether the border is gold. Set from outside and read by the render. It
+  // isn't part of the panel's own state.
   bool highlighted_ = false;
   // See SetExpanded.
   bool expanded_ = false;
   // See SetWidth.
   int width_ = kRightColumnMin;
 
-  // The columns the Equip tab draws at the panel's width, with the mechanics
-  // the account has not unlocked left out.
+  // The columns the Equip tab draws at the panel's width, leaving out mechanics
+  // the account hasn't unlocked.
   ItemColumns Columns() const;
 
-  // The two vertical focus zones: the tab bar on top and the active tab's item
-  // list below it.
+  // The two focus zones: the tab bar on top and the active tab's list below.
   enum Zone { kZoneTabs, kZoneList };
 
-  // The tab menu's entries. It opens only on a tab that lists something --
-  // Shop and Expand are doors, and Enter goes through them instead -- so Sort
-  // always has a list to act on.
+  // The tab menu's entries. It opens only on a tab that lists something (Shop
+  // and Expand are doors, and Enter goes through them), so Sort always has a
+  // list to act on.
   enum TabMenuEntry : int { kTabMenuSort = 0, kTabMenuClose = 1 };
 
-  // Files the active tab, which is what Sort does.
+  // Sorts the active tab.
   void SortActiveTab();
-  // How many stacks the Etc tab lists, which is every stack the bag holds:
-  // the currencies are counted in the purse and are on no tab with slots.
+  // How many stacks the Etc tab lists, which is every stack in the bag.
+  // Currencies are kept in the purse and don't take slots on any tab.
   int EtcRowCount() const;
   // The Token tab: two read-only columns, the shop's currencies beside the
-  // bosses' soul shards. Nothing on it can be selected, so it takes no cursor
-  // and Enter on the bar above it opens the {Sort, Close} menu.
+  // bosses' soul shards. Nothing on it is selectable, so it has no cursor, and
+  // Enter on the bar above it opens the {Sort, Close} menu.
   ftxui::Element RenderCurrencySheet();
   // Rows on the Token tab: as many as its longer column.
   int CurrencyRowCount() const;
-  // Rows of it the panel can show at once, from the last frame's box.
+  // How many rows of the sheet fit at once, from the last frame's box.
   int CurrencySheetHeight() const;
   // Scrolls the sheet `delta` rows, which is what Up and Down do on a tab with
-  // no cursor to move. Clamped rather than wrapped: this is a position in a
-  // page, not a cursor going round a ring.
+  // no cursor. Clamped rather than wrapped, since this is a page position, not
+  // a cursor going round a ring.
   void ScrollCurrencySheet(int delta);
 
-  // What OpenMenu opens, by tab.
+  // What OpenMenu opens, for each tab.
   void OpenStackMenu();
   void OpenEquipMenu();
-  // OpenEquipMenu's three passes, in order. What the player has not REACHED is
-  // hidden before what the item refuses -- the first is about them, the second
-  // about this item -- and the gold lands last, on what is left.
+  // OpenEquipMenu's three passes, in order. What the player hasn't reached is
+  // hidden before what the item can't take (the first is about the player, the
+  // second about the item), and the gold goes on last, on what remains.
   void HideLockedFeatures();
   void HideRefusedUpgrades(const EquipInstance& equip);
   void HighlightUnusedUpgrades();
-  // The Equip tab's menu on a spare Arcane Symbol, which offers a different
-  // set from every other item.
+  // The Equip tab's menu for a spare Arcane Symbol, which offers different
+  // entries from every other item.
   void OpenSymbolMenu(const EquipInstance& symbol);
   // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
-  // One row of the Equip list, with the cursor and whatever the row has to say
-  // in red or dim. The ftxui::Menu's row transform.
+  // One row of the Equip list, with the cursor and any red or dimmed parts. The
+  // ftxui::Menu's row transform.
   ftxui::Element RenderRow(const ftxui::EntryState& state);
   // The Expand tab, drawn right-aligned in the tab row.
   ftxui::Element RenderExpandTab(bool row_selected) const;
-  // The key handlers, one per place the cursor can be: the tab bar, the Etc
-  // list, the Equip list.
+  // The key handlers, one for each place the cursor can be: the tab bar, the
+  // Etc list and the Equip list.
   bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_enter,
                      const std::function<void()>& on_expand);
@@ -211,62 +208,60 @@ class InventoryPanel {
                         const std::function<void()>& on_enter);
   bool OnEquipListEvent(const ftxui::Event& event,
                         const std::function<void()>& on_enter);
-  // The Equip tab's body, rebuilding rows_/entries_ from the equip inventory:
-  // column headers over an ftxui::Menu, which is what carries its item menu.
-  // The stack tabs go through the shared RenderStackList instead.
+  // The Equip tab's body, rebuilding rows_ and entries_ from the equip
+  // inventory: column headers over an ftxui::Menu, which drives its item menu.
+  // The stack tabs use the shared RenderStackList instead.
   ftxui::Element RenderOwnEquipList(ftxui::Component menu);
-  // Whether the active tab's item list has no rows to descend into.
+  // Whether the active tab's list has no rows to move into.
   bool ActiveTabEmpty() const;
-  // Rows in the list below the tab bar, for whichever tab is active. The bar
-  // is not one of them, and the shop tab has no list of its own at all.
+  // Rows in the list below the tab bar for the active tab. The bar isn't
+  // counted, and the Shop tab has no list.
   int ListCount() const;
-  // Where the cursor stands in the panel's one vertical ring: the tab bar is
-  // stop 0 and the list rows are the stops after it.
+  // The cursor's position in the panel's vertical ring: the tab bar is stop 0
+  // and the list rows are the stops after it.
   int CursorStop() const;
-  // Moves the cursor `delta` stops around that ring, the tab bar included. So
-  // Down off the last row returns to the bar, and Up off the bar goes to the
-  // last row -- one rule rather than a pair of edge cases.
+  // Moves the cursor `delta` stops around that ring, including the tab bar.
+  // Down from the last row returns to the bar, and Up from the bar goes to the
+  // last row, so both edges follow one rule.
   void MoveCursor(int delta);
   // The content tabs this character has unlocked, left to right. Locked tabs
-  // are absent rather than greyed, so the bar simply ends early. Expand is not
-  // one of these, being a door rather than a page.
+  // are left out rather than greyed, so the bar just ends early. Expand isn't
+  // one of these, since it is a door rather than a page.
   std::vector<int> VisibleTabs() const;
-  // Moves one stop along the bar, Expand included. The bar is a ring: Right
-  // off Expand comes round to the first tab, and Left off the first tab goes
-  // to Expand.
+  // Moves one stop along the bar, including Expand. The bar wraps: Right from
+  // Expand goes to the first tab, and Left from the first tab goes to Expand.
   void StepTab(int direction);
 
   CharacterInstance& character_;
-  // Not const: opening a tab and walking a gold trail are the account's to
-  // record, so the panel writes as well as reads.
+  // Not const, because opening a tab and following a gold trail are recorded on
+  // the account.
   AccountInstance& account_;
   int& panel_focus_;
-  Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
-  // Written by ftxui::reflect on the highlighted row each render.
+  Zone zone_ = kZoneTabs;  // which focus zone has the cursor
+  // Set by ftxui::reflect on the highlighted row each render.
   ftxui::Box cursor_box_;
-  // And on the tab bar, so a tab menu knows the row to open under.
+  // Also set on the tab bar, so a tab menu knows which row to open under.
   ftxui::Box bar_box_;
-  // And on the Token tab's scrolling frame, which is how Up and Down know how
-  // far one of them may take the sheet.
+  // Also set on the Token tab's scrolling frame, which tells Up and Down how
+  // far they may scroll the sheet.
   ftxui::Box sheet_box_;
-  // The first row of the sheet on screen.
+  // The first sheet row on screen.
   int currency_scroll_ = 0;
+  // The selected row on the Equip tab (the ftxui::Menu index).
   int selected_ = 0;
-  // When the selection last moved, for sliding a long name under its column.
-  SelectionClock
-      name_clock_;          // selected row on the Equip tab (ftxui::Menu index)
-  int selected_stack_ = 0;  // selected row of the Etc view
-  // Whether the cursor stands out on the Expand tab. Kept apart from
-  // active_tab_ because the two are different facts: the list goes on showing
-  // the tab it was showing, and Left steps back onto it.
+  // When the selection last moved, for scrolling a long name.
+  SelectionClock name_clock_;
+  int selected_stack_ = 0;  // selected row of the Etc list
+  // Whether the cursor is on the Expand tab. Kept separate from active_tab_
+  // because the list keeps showing its tab, and Left moves back onto it.
   bool on_expand_ = false;
   int active_tab_ = kEquipTab;
   std::vector<InventoryRowState> rows_;
-  std::vector<std::string>
-      entries_;         // labels derived from rows_ for ftxui::Menu
-  ItemMenu menu_;       // Equip tab context menu.
-  ItemMenu sell_menu_;  // Etc tab context menu.
-  ItemMenu tab_menu_;   // the {Sort, Close} menu Enter opens on a tab.
+  // Labels built from rows_ for ftxui::Menu.
+  std::vector<std::string> entries_;
+  ItemMenu menu_;       // Equip tab context menu
+  ItemMenu sell_menu_;  // Etc tab context menu
+  ItemMenu tab_menu_;   // the {Sort, Close} menu Enter opens on a tab
 };
 
 }  // namespace ms

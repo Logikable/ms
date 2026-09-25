@@ -27,10 +27,9 @@
 namespace ms {
 namespace {
 
-// The seen-key `tab` announces itself under, or "" for one with nothing to
-// announce. Equip has a key per advancement that HANDS SOMETHING OVER, so the
-// tab stays quiet at the 3rd and 4th rather than sending the player to look at
-// a bag nothing arrived in.
+// The seen-key for `tab`'s gold, or "" for a tab with nothing to announce. The
+// Equip tab has a key for each advancement that gives the job starter gear, so
+// it stays quiet after an advancement that put nothing in the bag.
 std::string TabKey(int tab, const CharacterInstance& character) {
   if (tab == kShopTab) {
     return kShopTabKey;
@@ -42,8 +41,8 @@ std::string TabKey(int tab, const CharacterInstance& character) {
   return "";
 }
 
-// Room for any row index under one tab, so folding the tab and the row into
-// one key cannot make two different selections collide.
+// Larger than any row index on one tab, so combining the tab and the row into
+// one key can't make two selections collide.
 constexpr int kNameClockTabStride = 4096;
 
 }  // namespace
@@ -67,17 +66,17 @@ ItemMenu& InventoryPanel::menu() {
 }
 
 std::vector<int> InventoryPanel::VisibleTabs() const {
-  // Token stands in the bar from the first frame, as Etc does. It is where a
-  // currency lives, and a bar whose tabs came and went with what the bag
-  // happened to hold would move the others under the player's hand.
+  // Token is on the bar from the start, like Etc. It is where currencies live,
+  // and if tabs came and went with what the bag held, the others would shift
+  // under the player's hand.
   std::vector<int> tabs = {kEquipTab, kTokenTab, kEtcTab};
-  // The shop is a place in the world rather than a page of the bag, and it is
-  // not open to a character who has nothing to spend and nothing to spend it
-  // on. Until then the bar simply ends at Etc.
+  // The shop is a place rather than a page of the bag, and it stays closed to a
+  // character with nothing to spend and nothing to buy. Until then the bar ends
+  // at Etc.
   if (Unlocked(Feature::kShop, character_, account_)) {
     tabs.push_back(kShopTab);
   }
-  // Shared storage, and the same: a door, and not one worth showing until
+  // The bank is shared storage and also a door. It isn't worth showing until
   // there is a second character to share with.
   if (Unlocked(Feature::kBank, character_, account_)) {
     tabs.push_back(kBankTab);
@@ -119,7 +118,7 @@ int InventoryPanel::selected_stack() const {
 
 int InventoryPanel::menu_column() const {
   // The border, then the row up to the end of the slot cell: the caret, the
-  // name and the slot, with the gaps in front of each.
+  // name and the slot, each with its leading gap.
   ItemColumns columns = Columns();
   return 1 + kItemListCursor + columns.name_width + kItemCellGap +
          columns.Width(ItemColumn::kSlot) + kItemCellGap;
@@ -135,18 +134,18 @@ bool InventoryPanel::on_bank_tab() const {
 
 bool InventoryPanel::ActiveTabEmpty() const {
   if (on_expand_) {
-    return true;  // a door has nothing under it to walk down into
+    return true;  // Expand has no list to move down into
   }
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size() == 0;
   }
   if (active_tab_ == kShopTab || active_tab_ == kBankTab) {
-    // Nothing of the player's to descend into; Enter goes through the door.
+    // Nothing to move into, so Enter goes through the door.
     return true;
   }
   if (active_tab_ == kTokenTab) {
-    // A balance sheet rather than a list: there is nothing on it to act on,
-    // so the cursor stays up on the bar.
+    // A balance sheet rather than a list. There is nothing on it to act on, so
+    // the cursor stays on the bar.
     return true;
   }
   return EtcRowCount() == 0;
@@ -193,23 +192,24 @@ void InventoryPanel::SortActiveTab() {
   } else if (active_tab_ == kEtcTab) {
     character_.SortStackTab();
   }
-  // Nothing for the Token tab: the purse re-files itself on every change, so
-  // its sheet is never out of order to begin with.
+  // Nothing to do for the Token tab: the purse re-sorts itself on every change,
+  // so it is always in order.
 }
 
 ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
-  // Its label is the state Enter would leave the bag in, the way the buff
-  // switch reads. Drawn as its own layer rather than as another chip of the
-  // bar, so it keeps the far right past the meso counter.
+  // Its label is the state Enter would leave the bag in, like the buff toggle.
+  // It is drawn as its own layer rather than as another chip, so it stays at
+  // the far right past the meso counter.
   return TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);
 }
 
-// The Etc {Sell, Close} menu, for whatever stack the cursor is on.
+// The Etc menu (Inspect, Sell, Multi-Sell, Close) for the stack under the
+// cursor.
 void InventoryPanel::OpenStackMenu() {
   sell_menu_.Reset();
-  // Multi-Sell arrives with the shop: it sells across the whole bag, and the
-  // shelf a mis-sale is undone at is the shop's. Selling one stack has never
-  // waited for it.
+  // Multi-Sell arrives with the shop, because it sells across the whole bag and
+  // a mistaken sale is undone at the shop's buyback. Selling one stack is
+  // always available.
   if (!Unlocked(Feature::kShop, character_, account_)) {
     sell_menu_.Hide(kStackMultiSell);
   }
@@ -219,9 +219,9 @@ void InventoryPanel::OpenStackMenu() {
   }
 }
 
-// What the Equip tab's menu offers on a spare Arcane Symbol. Neither upgrade
-// path touches one, and Equip and Combine trade places: only one of each area
-// is ever worn, so a second copy has nowhere to go but into the first.
+// The Equip tab's menu for a spare Arcane Symbol. No upgrade applies to one,
+// and Combine replaces Equip: only one symbol per area is ever worn, so a
+// second copy can only go into the first.
 void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuScroll);
   menu_.Hide(kMenuHammer);
@@ -237,7 +237,7 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   }
 }
 
-// The Equip tab's menu, for the item or trace the cursor is on.
+// The Equip tab's menu, for the item or trace under the cursor.
 void InventoryPanel::HideLockedFeatures() {
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
@@ -251,20 +251,21 @@ void InventoryPanel::HideLockedFeatures() {
   if (!Unlocked(Feature::kPotential, character_, account_)) {
     menu_.Hide(kMenuCube);
   }
-  // Recovery has no level of its own: owning a trace already means an item
-  // exploded at the 16th star, so the ITEM is the gate. Selling arrives with
-  // the shop, and takes no gold -- the Shop tab lighting up says it.
+  // Recovery has no level gate of its own: owning a trace already means an item
+  // was destroyed at the 16th star, so the item is the gate. Selling arrives
+  // with the shop and gets no gold, since the Shop tab lighting up already says
+  // so.
   if (!Unlocked(Feature::kShop, character_, account_)) {
     menu_.Hide(kMenuSell);
     menu_.Hide(kMenuMultiSell);
   }
 }
 
-// What the item refuses is the prototype's answer, so armour and weapons carry
-// the same entries however far along a particular drop is.
+// The prototype decides what an item can never take, so armour and weapons show
+// the same entries however far a particular drop has been upgraded.
 void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
-  // Nowhere to go is as good a reason to grey Equip as a level too low, and
-  // an item naming no slot at all is the one thing that has nowhere.
+  // Having no slot to go in is as good a reason to grey Equip as a level too
+  // low, and an item naming no slot at all is the only case with nowhere to go.
   if (!character_.CanEquip(equip.prototype()) ||
       character_.SlotToFill(equip.prototype()) == EQUIP_SLOT_UNSPECIFIED) {
     menu_.Disable(kMenuAction);
@@ -272,32 +273,31 @@ void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
   if (!Supports(equip.prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kMenuScroll);
   }
-  // A hammer widens a shelf; it cannot build one. On a piece with no slots to
-  // begin with there is nothing for it to do, so it is not on the menu.
+  // A hammer adds an upgrade slot to an item that has slots. An item with none
+  // has nothing for it to do, so the entry is hidden.
   if (!TakesUpgradeSlots(equip.prototype())) {
     menu_.Hide(kMenuHammer);
   } else if (!equip.CanHammer()) {
-    // Greyed, not gone: both hammers are in, and a row that vanished at the
-    // second one would read as the feature going away.
+    // Grey, not hidden: both hammers are used, and an entry that vanished after
+    // the second would look like the feature going away.
     menu_.Disable(kMenuHammer);
   }
-  // Where a piece is worn is what decides whether a cube goes into it, and the
-  // slots that refuse one -- the medal, the badge, the pocket -- refuse it for
-  // good.
+  // Where an item is worn decides whether it can be cubed, and the slots that
+  // refuse cubes (medal, badge, pocket) always refuse them.
   if (!equip.CanCube()) {
     menu_.Hide(kMenuCube);
   }
   if (!Supports(equip.prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kMenuStarForce);
   } else if (!equip.CanStarForce()) {
-    // Greyed, not gone: stars come after the slots are spent, and a row that
-    // stands there dim is how the player learns the order.
+    // Grey, not hidden: stars come after the scroll slots are used, and a dim
+    // entry is how the player learns the order.
     menu_.Disable(kMenuStarForce);
   }
 }
 
-// Gold on an upgrade the player has been handed but never used, which is where
-// the trail from the level-up card ends.
+// Gold on an upgrade the player has unlocked but never used, which is where the
+// trail from the level-up card ends.
 void InventoryPanel::HighlightUnusedUpgrades() {
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kMenuScroll);
@@ -327,7 +327,7 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Hide(kMenuCube);
     return;
   }
-  menu_.Hide(kMenuRecover);  // live items cannot be recovered
+  menu_.Hide(kMenuRecover);  // only traces can be recovered
   if (IsArcaneSymbol(eq->prototype())) {
     OpenSymbolMenu(*eq);
     return;
@@ -425,8 +425,8 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
     return kSymbolCombine;
   }
   if (menu_.selected() == kMenuScroll) {
-    // Followed whether or not there is a scroll to show: they pressed the
-    // entry, which is what the gold was asking them to do.
+    // Recorded whether or not there is a scroll to show: they pressed the
+    // entry, which is what the gold asked.
     FollowedToAction(Feature::kScrolling, account_);
     if (scroll_panel.SetFilterForPrototype(
             character_.inventory()[selected_].prototype())) {
@@ -469,8 +469,8 @@ ItemColumns InventoryPanel::Columns() const {
   options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
   options.star_force = Unlocked(Feature::kStarForce, character_, account_);
   options.potential = Unlocked(Feature::kPotential, character_, account_);
-  // Less the two borders: the width the panel was given is the column's, and
-  // the list is drawn inside it.
+  // Minus the two borders: the width given is the column's, and the list is
+  // drawn inside it.
   return FitItemColumns(width_ - 2, options);
 }
 
@@ -489,9 +489,9 @@ ftxui::Element InventoryPanel::RenderOwnEquipList(ftxui::Component menu) {
   return ftxui::vbox({
       EquipHeader(columns),
       PanelSeparator(highlighted_),
-      // Only the items scroll; the header row and the rule stay put.
-      // ftxui::Menu marks its selected entry, which is what the frame scrolls
-      // to, so the cursor cannot walk out of view.
+      // Only the items scroll. The header row and the rule stay in place.
+      // ftxui::Menu marks its selected entry, which the frame scrolls to, so
+      // the cursor can't move out of view.
       menu->Render() | ftxui::vscroll_indicator | ftxui::yframe | ftxui::flex,
   });
 }
@@ -504,7 +504,7 @@ int InventoryPanel::CurrencyRowCount() const {
 }
 
 int InventoryPanel::CurrencySheetHeight() const {
-  // One frame behind, which is right: a key pressed now scrolls the sheet the
+  // One frame behind, which is fine: a key pressed now scrolls the sheet the
   // player is looking at. One row until the sheet has been drawn once.
   return std::max(1, sheet_box_.y_max - sheet_box_.y_min + 1);
 }
@@ -522,19 +522,19 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
       CurrenciesOf(character_.currencies(), ITEM_KIND_SOUL_SHARD);
   int count = CurrencyRowCount();
   if (count == 0) {
-    // No headings over nothing, as on an empty Equip or Etc tab: column names
-    // are there to tell rows apart, and there are no rows to tell apart.
+    // No headings over an empty tab, as on an empty Equip or Etc tab. Column
+    // names tell rows apart, and there are no rows.
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
   int height = CurrencySheetHeight();
-  // The tab can lose rows while it is open -- the last of a token spent at the
-  // shop -- so the offset is held to what there is to show.
+  // The tab can lose rows while open (the last of a token spent at the shop),
+  // so the offset is kept within what there is to show.
   currency_scroll_ = std::max(0, std::min(count - height, currency_scroll_));
   std::vector<ftxui::Element> above;
   std::vector<ftxui::Element> window;
   std::vector<ftxui::Element> below;
-  // As long as the taller column: the two run out at different heights, and
-  // the shorter one simply leaves its half of the row blank.
+  // As many rows as the longer column. The two run out at different heights,
+  // and the shorter leaves its half of the row blank.
   for (int i = 0; i < count; ++i) {
     ftxui::Element row = RenderCurrencyRow(
         i < static_cast<int>(tokens.size()) ? &held[tokens[i]] : nullptr,
@@ -544,9 +544,9 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
                              : (i < currency_scroll_ + height ? window : below);
     part.push_back(std::move(row));
   }
-  // A frame scrolls to what is focused and centres it, so the rows that should
-  // be on screen are handed over as one block. The focus is the SCROLL
-  // POSITION here, not a selection.
+  // A frame scrolls to the focused element and centres it, so the rows that
+  // should be on screen are passed as one block. The focus here marks the
+  // scroll position, not a selection.
   ftxui::Element body = ftxui::vbox({
       ftxui::vbox(std::move(above)),
       ftxui::vbox(std::move(window)) | ftxui::focus,
@@ -555,62 +555,62 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
   return ftxui::vbox({
       CurrencyHeader(),
       PanelSeparator(highlighted_),
-      // Only the rows scroll; the header and its rule stay put.
+      // Only the rows scroll. The header and its rule stay in place.
       std::move(body) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::reflect(sheet_box_) | ftxui::flex,
   });
 }
 
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
-  // A list that emptied under the cursor has no row left to stand on, so the
-  // cursor returns to the tab bar. Left where it was, no highlight anywhere
-  // would say where the keys go.
+  // A list that emptied under the cursor has no row left to select, so the
+  // cursor returns to the tab bar. Otherwise nothing would be highlighted to
+  // show where the keys go.
   if (zone_ == kZoneList && ActiveTabEmpty()) {
     zone_ = kZoneTabs;
   }
   bool focused = panel_focus_ == kInventoryPanel;
-  // The tab rides in the key beside the row, so the same row of another tab
-  // counts as a different name and starts from its own head.
+  // The tab is part of the key along with the row, so the same row on another
+  // tab counts as a different name and starts from the beginning.
   name_clock_.Follow(
       active_tab_ * kNameClockTabStride +
           (active_tab_ == kEquipTab ? selected_ : selected_stack_),
       focused && zone_ == kZoneList);
   ftxui::Element body;
   if (on_expand_) {
-    // A door rather than a page, so where the other tabs list what the player
-    // has, this one says how to go through it.
+    // Expand is a door rather than a page, so instead of listing items it says
+    // how to go through.
     body = ftxui::vbox({CenteredRow(expanded_ ? "Hit Enter to close Inventory"
                                               : "Hit Enter to fullscreen "
                                                 "Inventory"),
                         ftxui::filler()});
   } else if (active_tab_ == kShopTab || active_tab_ == kBankTab) {
-    // Both are screens of their own, so where the other tabs list what the
-    // player has, these say how to get there. Over a filler because the
-    // window is taller than this one line and the line belongs at the top.
+    // Both are separate screens, so instead of listing items these tabs say how
+    // to get there. A filler follows because the window is taller than this
+    // line and the line belongs at the top.
     body = ftxui::vbox({CenteredRow(std::string("Hit Enter to open ") +
                                     kInventoryTabLabels[active_tab_]),
                         ftxui::filler()});
   } else if (active_tab_ == kTokenTab) {
     body = RenderCurrencySheet();
   } else if (active_tab_ == kEtcTab) {
-    // Keep the cursor in range as stacks are sold off.
+    // Keep the cursor in range as stacks are sold.
     selected_stack_ = std::min(selected_stack_, std::max(0, EtcRowCount() - 1));
-    // The stack cursor shows only while the list zone holds focus, so it never
-    // competes with the white tab-bar highlight.
+    // The stack cursor shows only while the list zone has focus, so it never
+    // competes with the tab bar's white highlight.
     body = RenderStackList(character_.stackables(), AllRows(EtcRowCount()),
                            selected_stack_, focused && zone_ == kZoneList,
                            cursor_box_, highlighted_, name_clock_.Elapsed());
   } else {
     body = RenderOwnEquipList(menu);
   }
-  // -1 while the cursor is out on Expand, so the highlight is in one place.
+  // -1 while the cursor is on Expand, so only one thing is highlighted.
   int active = -1;
   std::vector<TabSpec> specs;
   for (int tab : VisibleTabs()) {
     if (!on_expand_ && tab == active_tab_) {
       active = static_cast<int>(specs.size());
     }
-    // Asking Seen("") would answer no and leave those tabs gold forever.
+    // Seen("") would return false and leave those tabs gold forever.
     std::string key = TabKey(tab, character_);
     specs.push_back(
         {kInventoryTabLabels[tab], !key.empty() && !account_.Seen(key)});
@@ -631,10 +631,11 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
 
 ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
   int idx = state.index;
-  // Drawn from the panel's OWN cursor rather than ftxui's focused entry, which
-  // moves only when the Menu handles the key: the two jumps the panel makes
-  // for it are exactly the two the Menu never sees, so the caret went missing
-  // on arrival from the bar. The conditions after it are the Etc list's.
+  // Drawn from the panel's own cursor rather than ftxui's focused entry, which
+  // moves only when the Menu handles the key. The panel's two jumps into the
+  // list are exactly the ones the Menu never sees, so the caret would be
+  // missing on arrival from the bar. The conditions after it are for the Etc
+  // list.
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kInventoryPanel;
   if (idx < 0 || idx >= static_cast<int>(rows_.size())) {
@@ -652,9 +653,9 @@ ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
 bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
                                    const std::function<void()>& on_enter,
                                    const std::function<void()>& on_expand) {
-  // Left/Right switch tabs; Up and Down step into the list, the bar being a
-  // stop in the same ring as the rows. A tab with nothing under it is a ring
-  // of one, so both keys leave the cursor where it is.
+  // Left and Right switch tabs. Up and Down move into the list, since the bar
+  // is a stop in the same ring as the rows. A tab with nothing under it is a
+  // ring of one, so both keys leave the cursor in place.
   if (event == ftxui::Event::ArrowLeft) {
     StepTab(-1);
     return true;
@@ -665,8 +666,8 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
-    // The Token tab has no row to step down onto, so the keys that would walk
-    // a list scroll the sheet under the bar instead.
+    // The Token tab has no rows to move onto, so the list keys scroll the sheet
+    // under the bar instead.
     if (active_tab_ == kTokenTab && !on_expand_) {
       ScrollCurrencySheet(delta);
       return true;
@@ -675,14 +676,14 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
     return true;
   }
   if (IsForward(event)) {
-    // Expand and Shop are doors: Enter goes through rather than raising a menu
-    // to ask about a page there is no list under.
+    // Expand and Shop are doors: Enter goes through instead of opening a menu
+    // for a page with no list.
     if (on_expand_) {
       if (on_expand != nullptr) {
         if (!expanded_) {
-          // The door is not a page, so the wide bag opens on the first tab
-          // rather than on the button that would close it again. One step
-          // right is exactly that, the bar being a ring.
+          // Expand isn't a page, so the widened bag opens on the first tab
+          // rather than on the button that would close it. Since the bar wraps,
+          // one step right does exactly that.
           StepTab(+1);
         }
         on_expand();
@@ -692,15 +693,15 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
     }
     return true;
   }
-  // Swallow the rest, or it leaks to the hidden Equip menu and silently moves
-  // its selection while the tab bar holds focus.
+  // Consume everything else, or it reaches the hidden Equip menu and moves its
+  // selection while the tab bar has focus.
   return true;
 }
 
 bool InventoryPanel::OnStackListEvent(const ftxui::Event& event,
                                       const std::function<void()>& on_enter) {
-  // Etc: the whole ring is ours to walk, there being no ftxui::Menu under
-  // these tabs. Navigation is swallowed either way, so the hidden Equip menu
+  // Etc has no ftxui::Menu under it, so the panel moves through the whole ring
+  // itself. Navigation keys are consumed either way, so the hidden Equip menu
   // stays put.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
@@ -708,7 +709,7 @@ bool InventoryPanel::OnStackListEvent(const ftxui::Event& event,
   }
   if (IsForward(event)) {
     if (ListCount() > 0) {
-      on_enter();  // the {Sell, Close} menu
+      on_enter();  // the stack menu
     }
     return true;
   }
@@ -717,9 +718,9 @@ bool InventoryPanel::OnStackListEvent(const ftxui::Event& event,
 
 bool InventoryPanel::OnEquipListEvent(const ftxui::Event& event,
                                       const std::function<void()>& on_enter) {
-  // Take the two ends of the list and leave everything between them to the
-  // ftxui::Menu, which scrolls the view to follow its own cursor and would
-  // stop doing so if its keys were taken away.
+  // Handle the two ends of the list here and leave the rest to the ftxui::Menu,
+  // which scrolls the view to follow its own cursor and would stop if its keys
+  // were taken.
   bool up = event == ftxui::Event::ArrowUp;
   bool down = event == ftxui::Event::ArrowDown;
   if ((up && selected_ == 0) || (down && selected_ >= ListCount() - 1)) {
@@ -737,16 +738,16 @@ ftxui::Component InventoryPanel::MakeComponent(
     std::function<void()> on_enter, std::function<void()> on_expand) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
-  // Here rather than at entry-generation time: ftxui::Menu takes only
-  // std::string* entries, and this is the one hook that can return a coloured
-  // Element. It also suppresses the default inversion.
+  // Done here rather than when the entries are built, because ftxui::Menu takes
+  // only std::string* entries and this is the only hook that can return a
+  // coloured Element. It also disables the default inversion.
   opt.entries_option.transform = [this](ftxui::EntryState state) {
     return RenderRow(state);
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
-  // Focusable whether or not the list has rows: Container::Tab drops every key
-  // when its active panel says it is not, and an ftxui::Menu says no on an
-  // empty list -- which would take the tab bar down with it.
+  // Focusable whether or not the list has rows. Container::Tab drops every key
+  // when its active panel isn't focusable, and an ftxui::Menu with an empty
+  // list isn't, which would also disable the tab bar.
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer,

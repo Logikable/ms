@@ -61,7 +61,7 @@ MenuPanel::MenuPanel(const GameState& state, const BattleAnalysis& analysis,
 std::vector<MenuEntry> MenuPanel::Entries() const {
   std::vector<MenuEntry> entries;
   entries.push_back(MenuEntry::kAnalysis);
-  // The dailies are the symbols, so the entry arrives with them: below that
+  // The dailies are for the symbols, so the entry appears with them. Below that
   // level there is nothing to claim.
   if (Unlocked(Feature::kSymbols, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kDailies);
@@ -69,7 +69,7 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
   }
-  // A build that plays alone has nobody to play with, whatever the level.
+  // A single-player build has nobody to play with, whatever the level.
   if (kMultiplayerEnabled &&
       Unlocked(Feature::kMultiplayer, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kMultiplayer);
@@ -93,7 +93,7 @@ void MenuPanel::MoveCursor(int delta) {
 
 std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
-    // These open a screen or a dialog rather than a box.
+    // These open a screen or a dialog instead of a box.
     case MenuEntry::kBoss:
     case MenuEntry::kCharacters:
       return {};
@@ -126,8 +126,8 @@ void MenuPanel::CloseBox() {
 }
 
 void MenuPanel::MoveBoxCursor(int delta) {
-  // The box stands above the menu row, so the ring runs from the row up
-  // through the entries and back round. Stop 0 is the row itself.
+  // The box sits above the menu row, so the ring runs from the row up through
+  // the entries and back round. Stop 0 is the row itself.
   int count = static_cast<int>(BoxEntries(box_entry_).size());
   int at = 0;
   if (box_cursor_ >= 0) {
@@ -141,8 +141,8 @@ void MenuPanel::MoveBoxCursor(int delta) {
 }
 
 std::vector<SettingsEntry> MenuPanel::SettingsEntries() {
-  // No Jukebox in a build with no music in it: the screen would have nothing
-  // to list and nothing to play.
+  // No Jukebox in a build without music: the screen would have nothing to list
+  // or play.
   if (!kAudioEnabled) {
     return {SettingsEntry::kKeybinds, SettingsEntry::kOptions};
   }
@@ -166,9 +166,9 @@ AnalysisEntry MenuPanel::selected_analysis_entry() const {
 }
 
 int MenuPanel::BoxWidth() const {
-  // What ThemedWindow will size itself to: the wider of its title and its
-  // widest row, plus the two borders. Measured off BoxRow rather than off the
-  // label, so the caret's own columns are counted and the box is not cut.
+  // The width ThemedWindow will take: the wider of its title and its widest
+  // row, plus the two borders. Measured with BoxRow rather than the label, so
+  // the caret's columns are counted and the box isn't cut.
   int widest = static_cast<int>(EntryLabel(box_entry_).size()) + 2;
   for (const std::string& entry : BoxEntries(box_entry_)) {
     widest = std::max(widest, static_cast<int>(BoxRow(entry).size()));
@@ -178,12 +178,11 @@ int MenuPanel::BoxWidth() const {
 
 int MenuPanel::BoxRightMargin() const {
   std::vector<MenuEntry> entries = Entries();
-  // Where the word starts and how wide it is, and how wide the panel around it
-  // is. All counted from the panel's left border, which the row is laid out
-  // from.
+  // Where the word starts, how wide it is, and how wide the panel is, all
+  // counted from the panel's left border, where the row starts.
   int word = 0;
   int label = 0;
-  int at = 2;  // past the border and the column of clearance inside it
+  int at = 2;  // past the border and the blank column inside it
   for (const MenuEntry& entry : entries) {
     int width = static_cast<int>(EntryLabel(entry).size());
     if (entry == box_entry_) {
@@ -193,18 +192,18 @@ int MenuPanel::BoxRightMargin() const {
     at += width + kEntryGap;
   }
   int panel_width = at - kEntryGap + 2;
-  // The box is wider than the word, so it hangs off both sides of it evenly
-  // rather than starting where the word does.
+  // The box is wider than the word, so it overhangs both sides evenly instead
+  // of starting where the word does.
   int left = word + (label - BoxWidth()) / 2;
   // The panel is flush with the right of the screen, so a box that would hang
-  // off the edge is pulled back to it rather than being cut in half.
+  // off the edge is pulled back instead of being cut.
   return std::max(panel_width - left - BoxWidth(), 0);
 }
 
 std::string MenuPanel::BoxRow(const std::string& entry, bool on_cursor) {
-  // The caret, as the item menu and every other dropdown in the game marks
-  // its cursor: a box of labels is read down, and a lit row in the middle of
-  // one reads as a state rather than as a place.
+  // A caret, as the item menu and every other dropdown mark their cursor. A box
+  // of labels is read top to bottom, and a highlighted row in the middle would
+  // look like a state rather than a position.
   return (on_cursor ? "> " : "  ") + entry + " ";
 }
 
@@ -214,12 +213,12 @@ ftxui::Element MenuPanel::RenderBox() const {
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
     rows.push_back(ftxui::text(BoxRow(entries[i], i == box_cursor_)));
   }
-  // Cleared under, so the box covers the interior of whatever it stands on
-  // rather than letting the panel below show through it.
+  // Cleared underneath, so the box covers whatever it sits on instead of
+  // letting the panel below show through.
   ftxui::Element box = ClearUnder(ThemedWindow(
       " " + EntryLabel(box_entry_) + " ", ftxui::vbox(std::move(rows))));
-  // The margin stands the box over the word that raised it. A filler rather
-  // than blanks: nothing behind the box should be painted over.
+  // The margin places the box over the word that opened it. A filler rather
+  // than blanks, so nothing behind the box is painted over.
   return ftxui::hbox({
       std::move(box),
       ftxui::filler() |
@@ -237,15 +236,15 @@ ftxui::Element MenuPanel::Render() const {
     if (i > 0) {
       row.push_back(ftxui::text("  "));
     }
-    // No brackets: the panel is small enough that the entries read as a menu
-    // on their own, and the cursor is the inverted one.
+    // No brackets: the panel is small enough that the entries read as a menu on
+    // their own, and the cursor is shown inverted.
     ftxui::Element button = ftxui::text(EntryLabel(entries[i]));
     if (entries[i] == MenuEntry::kBoss && !state_.account.Seen(kBossSeenKey)) {
-      // Gold until the player has been there once, the same way a new tab is.
+      // Gold until the player has visited once, like a new tab.
       button = std::move(button) | ftxui::color(kYellow);
     }
-    // The cursor is in one place at a time: with the box open and the cursor
-    // in it, the entry it came from stops being the highlighted one.
+    // Only one place has the cursor. With the box open and the cursor in it,
+    // the entry it came from is no longer highlighted.
     if (focused && i == at && box_cursor_ < 0) {
       button = std::move(button) | ftxui::inverted;
     }
@@ -258,7 +257,7 @@ ftxui::Element MenuPanel::Render() const {
 
 ftxui::Component MenuPanel::MakeComponent(
     std::function<void(MenuEntry)> on_open) {
-  // The Renderer(bool) overload is Focusable(), unlike Renderer() -- required
+  // The Renderer(bool) overload is Focusable(), unlike Renderer(). It is needed
   // so Container::Tab's Focused() check passes on kMenuPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });

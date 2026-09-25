@@ -16,8 +16,8 @@
 namespace ms {
 namespace {
 
-// The levels the gated entries arrive at. Written out rather than read off
-// the progression table, so moving a gate is a decision the test notices.
+// The levels the gated entries appear at. Written out rather than read from the
+// progression table, so moving a gate is something the test notices.
 constexpr int kMultiplayerLevel = 10;
 constexpr int kBossLevel = 110;
 constexpr int kDailiesLevel = 200;
@@ -34,16 +34,15 @@ void LevelTo(GameState& state, int level) {
 }
 
 std::string Render(const MenuPanel& panel) {
-  // Wide enough for the whole row, which a clipped screen would cut the end
-  // off.
+  // Wide enough for the whole row. A narrower screen would cut off its end.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(70),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, panel.Render());
   return screen.ToString();
 }
 
-// The box as plain characters: what is being asked here is what it says and
-// where its border lands, and ToString puts a style escape between the two.
+// The box as plain characters. The tests check its text and where its border
+// lands, and ToString puts a style escape between the two.
 std::string RenderBox(const MenuPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
                                                ftxui::Dimension::Fixed(5));
@@ -51,8 +50,7 @@ std::string RenderBox(const MenuPanel& panel) {
   return ScreenText(screen);
 }
 
-// Puts the cursor on `entry` and opens the box it raises, as pressing Enter
-// on that entry does.
+// Puts the cursor on `entry` and opens its box, as pressing Enter on it does.
 void OpenBoxOn(MenuPanel& panel, MenuEntry entry) {
   while (panel.selected() != entry) {
     panel.MoveCursor(1);
@@ -60,8 +58,8 @@ void OpenBoxOn(MenuPanel& panel, MenuEntry entry) {
   panel.OpenBox(entry);
 }
 
-// Analysis holds the left end from the start, and everything else arrives
-// between it and Settings, in the order the gates open.
+// Analysis is at the left end from the start, and everything else appears
+// between it and Settings as its gate opens.
 TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -79,16 +77,16 @@ TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   EXPECT_LT(later.find("Boss"), later.find("Settings"));
   EXPECT_EQ(later.find("Dailies"), std::string::npos);
 
-  // The dailies are the symbols, so the entry waits for them and lands left
-  // of Boss.
+  // The dailies are for the symbols, so the entry waits for them and appears
+  // left of Boss.
   LevelTo(state, kDailiesLevel);
   std::string last = Render(panel);
   EXPECT_LT(last.find("Analysis"), last.find("Dailies"));
   EXPECT_LT(last.find("Dailies"), last.find("Boss"));
 }
 
-// The two that are not about this character's climb: the lobby, which opens
-// with the skills, and the character select, which opens last of all.
+// The two entries not about this character's progress: the lobby, which opens
+// with skills, and character select, which opens last.
 TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -107,8 +105,8 @@ TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
   EXPECT_LT(all.find("Characters"), all.find("Settings"));
 }
 
-// The row is the entries and nothing else: no brackets, two columns between
-// them, and a column of clearance inside each border.
+// The row holds only the entries: no brackets, two columns between them, and a
+// blank column inside each border.
 TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   GameState state = EmptyState();
   LevelTo(state, kDailiesLevel);
@@ -143,8 +141,8 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   EXPECT_EQ(panel.selected(), MenuEntry::kSettings);
 }
 
-// The cursor is a row rather than an entry, and everything arrives to the
-// right of Analysis, so it stays on the entry the player left it on.
+// The cursor is an index, and new entries appear to the right of Analysis, so
+// the cursor stays on the entry the player left it on.
 TEST(MenuPanelTest, AnArrivingEntryLeavesTheCursorWhereItWas) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -155,8 +153,8 @@ TEST(MenuPanelTest, AnArrivingEntryLeavesTheCursorWhereItWas) {
   EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
 }
 
-// Boss is gold until the player has opened the screen behind it, the same way
-// a tab handed over but never opened is.
+// Boss is gold until the player has opened its screen, like a new tab that
+// hasn't been opened.
 TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
@@ -164,7 +162,7 @@ TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   int focus = kCharPanel;  // unfocused, so nothing is inverted
   MenuPanel panel(state, analysis, focus);
 
-  // Past the border, the column of clearance, Analysis and the gap after it.
+  // After the border, the blank column, Analysis and the gap after it.
   constexpr int kBossColumn = 12;
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                ftxui::Dimension::Fixed(3));
@@ -179,8 +177,7 @@ TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   EXPECT_NE(gold, after.PixelAt(kBossColumn, 1).foreground_color);
 }
 
-// The box takes the name of the entry it hangs from, and lists what that entry
-// leads to.
+// The box is titled with the entry that opened it and lists where it leads.
 TEST(MenuPanelTest, TheBoxIsTitledByTheEntryThatRaisedIt) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -206,8 +203,8 @@ TEST(MenuPanelTest, TheBoxIsTitledByTheEntryThatRaisedIt) {
 }
 
 // The box marks its cursor with a caret, as every other dropdown does, and
-// keeps a column for it: a box measured off the label alone loses its right
-// border, which is what the panel is laid out from.
+// leaves room for it. A box measured from the label alone loses its right
+// border, which the panel is laid out from.
 TEST(MenuPanelTest, TheBoxCaretsItsCursorAndIsWideEnoughForIt) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -222,16 +219,16 @@ TEST(MenuPanelTest, TheBoxCaretsItsCursorAndIsWideEnoughForIt) {
     panel.MoveBoxCursor(1);
   }
   std::string box = RenderBox(panel);
-  // The border after the row, which is what a box measured a column short
-  // loses: the caret pushes the widest row out and the panel is laid out from
-  // that edge. Keybinds is the widest entry, so every row is padded to it.
+  // The border after the row, which a box measured a column short would lose:
+  // the caret pushes the widest row out and the panel is laid out from that
+  // edge. Keybinds is the widest entry, so every row is padded to it.
   EXPECT_NE(box.find("│> Jukebox  │"), std::string::npos);
   EXPECT_NE(box.find("│  Keybinds │"), std::string::npos);
   EXPECT_NE(box.find("│  Options  │"), std::string::npos);
 }
 
-// The entry reads Stop while the tool is measuring, so one row is both ways of
-// working it.
+// The entry reads Stop while the tool is measuring, so one row both starts and
+// stops it.
 TEST(MenuPanelTest, TheAnalysisEntryReadsStopWhileItRuns) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -245,21 +242,22 @@ TEST(MenuPanelTest, TheAnalysisEntryReadsStopWhileItRuns) {
   EXPECT_NE(running.find("Stop"), std::string::npos);
   EXPECT_EQ(running.find("Start"), std::string::npos);
 
-  // With a stop pending it reads Start again: one more press takes it back.
+  // With a stop pending it reads Start again, so one more press undoes it.
   analysis.Stop();
   EXPECT_NE(RenderBox(panel).find("Start"), std::string::npos);
 }
 
-// The box stands above the menu row, so Up walks into it and Down comes back
-// out. The entry the box was opened from gives up the cursor while it holds it.
+// The box sits above the menu row, so Up moves into it and Down comes back out.
+// The entry the box opened from loses the highlight while the box has the
+// cursor.
 TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   OpenBoxOn(panel, MenuEntry::kSettings);
-  // Up walks the box from the bottom, so the entry nearest the row is the one
-  // the cursor meets first.
+  // Up enters the box from the bottom, so the entry nearest the row comes
+  // first.
   panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), 2);
   EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kOptions);
@@ -272,8 +270,7 @@ TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), -1);
 
-  // Down off the row comes round to the top of the box, the ring closing the
-  // other way.
+  // Down from the row wraps to the top of the box.
   panel.MoveBoxCursor(-1);
   EXPECT_EQ(panel.box_cursor(), 0);
   panel.CloseBox();
@@ -281,8 +278,8 @@ TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   EXPECT_EQ(panel.box_cursor(), -1);
 }
 
-// The Multiplayer box lists Players over Party, so Up off the row meets Party
-// first.
+// The Multiplayer box lists Players above Party, so Up from the row reaches
+// Party first.
 TEST(MenuPanelTest, TheMultiplayerBoxWalksBothOfItsRows) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
@@ -300,8 +297,8 @@ TEST(MenuPanelTest, TheMultiplayerBoxWalksBothOfItsRows) {
   EXPECT_EQ(panel.box_cursor(), -1);
 }
 
-// The Analysis box has two rows, so the ring the cursor walks is three stops
-// long and Start is the bottom one.
+// The Analysis box has two rows, so the cursor's ring has three stops and Start
+// is the bottom one.
 TEST(MenuPanelTest, TheAnalysisBoxWalksBothOfItsRows) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -318,8 +315,8 @@ TEST(MenuPanelTest, TheAnalysisBoxWalksBothOfItsRows) {
   EXPECT_EQ(panel.box_cursor(), -1);
 }
 
-// The column `text` first appears in, drawn flush right the way the corner
-// lays the menu and its box out, or -1.
+// The first column `text` appears in when drawn flush right, as the corner lays
+// out the menu and its box, or -1.
 int ColumnOf(ftxui::Element element, const std::string& text) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(6));
@@ -327,7 +324,7 @@ int ColumnOf(ftxui::Element element, const std::string& text) {
   return FindOnScreen(screen, text).x;
 }
 
-// The columns the open box's two top corners stand in.
+// The columns of the open box's top-left and top-right corners.
 int BoxColumn(const MenuPanel& panel) {
   return ColumnOf(panel.RenderBox(), "╭");
 }
@@ -336,14 +333,13 @@ int BoxRightColumn(const MenuPanel& panel) {
   return ColumnOf(panel.RenderBox(), "╮");
 }
 
-// The column `word` starts at on the menu row.
+// The column where `word` starts on the menu row.
 int WordColumn(const MenuPanel& panel, const std::string& word) {
   return ColumnOf(panel.Render(), word);
 }
 
-// The box drops from the word that opened it rather than from the corner of
-// the screen, and being wider than the word it hangs off both sides of it
-// evenly.
+// The box hangs from the word that opened it, not from the screen corner, and
+// since it is wider than the word it overhangs both sides evenly.
 TEST(MenuPanelTest, TheBoxIsCentredOnTheWordThatOpenedIt) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
@@ -360,12 +356,12 @@ TEST(MenuPanelTest, TheBoxIsCentredOnTheWordThatOpenedIt) {
   ASSERT_GT(box_end, box);
   EXPECT_LT(box, word);
   EXPECT_GT(box_end, word_end);
-  // Same centre, to the column: the two overhangs match.
+  // Same centre to the column: the two overhangs match.
   EXPECT_EQ(box + box_end, word + word_end);
 }
 
-// A box on the last entry would hang off the right of the screen, so it is
-// pulled back to the edge rather than being cut in half.
+// The last entry's box would hang off the right of the screen, so it is pulled
+// back to the edge instead of being cut.
 TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
@@ -377,18 +373,18 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
   EXPECT_EQ(panel.BoxRightMargin(), 0);
   int word = WordColumn(panel, "Settings");
   ASSERT_GE(word, 0);
-  // Still over the word, only pushed left of centre by the edge.
+  // Still over the word, just pushed left of centre by the edge.
   EXPECT_LT(BoxColumn(panel), word);
   EXPECT_GT(BoxColumn(panel), 0);
 
-  // What BoxWidth reports is what the box DRAWS as. The margin is worked out
-  // from it, so a box measured a column narrow is laid out a column too far
-  // right and loses its border off the panel's edge.
+  // BoxWidth must match the drawn box. The margin is computed from it, so a box
+  // measured a column narrow would be placed a column too far right and lose
+  // its border off the panel's edge.
   EXPECT_EQ(BoxRightColumn(panel) - BoxColumn(panel) + 1, panel.BoxWidth());
 }
 
-// The list and the box an entry raises are measured apart, so both are
-// asked for the margin.
+// The list and the box are measured separately, so both are checked for the
+// margin.
 TEST(MenuPanelTest, NeitherTheListNorABoxWeldsARowToItsBorder) {
   GameState state = EmptyState();
   LevelTo(state, kDailiesLevel);
