@@ -287,6 +287,7 @@ cc_library(
         ":constants",
         ":damage",
         "//src:game_state",
+        "//src:map_force",
         "//src:spawn",
         "//src/character",
         "//src/character:arcane_force",

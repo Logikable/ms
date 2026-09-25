@@ -1340,6 +1340,10 @@ int CharacterInstance::arcane_force(Activity activity) const {
                               SlotFor(PresetKind::kHyperStats, activity)));
 }
 
+int CharacterInstance::sacred_power(Activity /*activity*/) const {
+  return 0;
+}
+
 int CharacterInstance::hyper_stat_points() const {
   return TotalHyperStatPoints(character_.level());
 }

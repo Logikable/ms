@@ -12,6 +12,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
 #include "src/character/progression.h"
+#include "src/character/sacred_power.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/format.h"
@@ -138,8 +139,9 @@ std::vector<StatLine> CombatStatLines(
            character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
            derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
   // Under a rule, none of these being about the swing: three buy the purse and
-  // the climb, and the last is Arcane River's toll. Meso Drop Rate is the SIZE
-  // of a drop and Item Drop Rate the ODDS of one, so they sit together.
+  // the climb, and the last are Arcane River's and Grandis's tolls. Meso Drop
+  // Rate is the SIZE of a drop and Item Drop Rate the ODDS of one, so they sit
+  // together.
   if (with_advanced) {
     lines.push_back(StatRule());
     // What a kill actually pays over what it would pay bare, so a potion that
@@ -151,6 +153,10 @@ std::vector<StatLine> CombatStatLines(
     lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
     lines.push_back({"Arcane Force", std::to_string(character.arcane_force())});
+    if (character.proto().level() >= kGrandisLevel) {
+      lines.push_back(
+          {"Sacred Power", std::to_string(character.sacred_power())});
+    }
   }
   return lines;
 }

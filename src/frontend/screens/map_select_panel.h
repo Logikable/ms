@@ -66,9 +66,9 @@ class MapSelectPanel {
   int CursorStop() const;
 
   ftxui::Element RenderBandBar() const;
-  // Whether the band on screen holds a map asking for Arcane Force. The
-  // column is only drawn where one does.
-  bool PageWantsArcaneForce() const;
+  // The force column's header for the band on screen: "AF" or "SAC" after the
+  // first map there asking for one, and empty where none does.
+  std::string PageForceHeader() const;
   ftxui::Element RenderMapList() const;
   ftxui::Element RenderMobTable() const;
   // The row the context menu opens on, measured from the top of the window.

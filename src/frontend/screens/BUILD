@@ -913,6 +913,7 @@ cc_library(
     hdrs = ["mob_inspect_panel.h"],
     deps = [
         "//src:game_state",
+        "//src:map_force",
         "//src:spawn",
         "//src/character:arcane_force",
         "//src/character:honor",
@@ -1189,6 +1190,7 @@ cc_library(
     hdrs = ["map_select_panel.h"],
     deps = [
         "//src:game_state",
+        "//src:map_force",
         "//src:map_level",
         "//src:spawn",
         "//src/character:arcane_force",

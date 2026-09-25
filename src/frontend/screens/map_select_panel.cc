@@ -16,6 +16,7 @@
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/game_state.h"
+#include "src/map_force.h"
 #include "src/map_level.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -29,14 +30,14 @@ namespace {
 // the rows is wider than they are, so this column is free up to that.
 constexpr int kMapNameWidth = 36;
 constexpr int kLevelWidth = 4;
-// The Arcane Force a map asks for. Blank on every map outside Arcane River,
-// which asks for none -- an empty cell says nothing is wanted, where a "-"
+// The force a map asks for, Arcane Force or Sacred Power. Blank on every map
+// asking for neither -- an empty cell says nothing is wanted, where a "-"
 // would say the map refuses something.
-constexpr int kArcaneWidth = 4;
+constexpr int kForceWidth = 4;
 
 // What a map row comes to, cursor included. The band bar is held to this, so
 // the window is sized by the maps in it rather than by the tabs over them.
-constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kArcaneWidth;
+constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kForceWidth;
 
 // Column widths of the mob table. A map's mob names top out at 21 ("Modded
 // Broken Android"); the column is wider because the map's name stands over it,
@@ -90,17 +91,17 @@ int WeightedLevel(const GameState& state, const MapData& map) {
   return static_cast<int>(MapLevel(state.mobs, map));
 }
 
-// The Arcane Force cell of a map row: what the map asks for, red where the
-// character does not carry it. Red on the cell rather than dim on the row,
-// because a map short of force can still be farmed -- it is a penalty, not a
-// locked door.
-ftxui::Element ArcaneCell(const GameState& state, const MapData& map) {
-  if (map.arcane_force() == 0) {
-    return ftxui::text(std::string(kArcaneWidth, ' '));
+// The force cell of a map row: what the map asks for, red where the character
+// does not carry it. Red on the cell rather than dim on the row, because a map
+// short of force can still be farmed -- it is a penalty, not a locked door.
+ftxui::Element ForceCell(const GameState& state, const MapData& map) {
+  MapForce force = MapForceFor(map, state.character);
+  if (force.required == 0) {
+    return ftxui::text(std::string(kForceWidth, ' '));
   }
   return RedUnless(
-      ftxui::text(PadRight(std::to_string(map.arcane_force()), kArcaneWidth)),
-      state.character.arcane_force() >= map.arcane_force());
+      ftxui::text(PadRight(std::to_string(force.required), kForceWidth)),
+      force.owned >= force.required);
 }
 
 }  // namespace
@@ -237,16 +238,17 @@ ftxui::Element MapSelectPanel::RenderBandBar() const {
   return TabBar(bands, page_, /*row_focused=*/zone_ == kZoneTabs, kMapRowWidth);
 }
 
-// Whether the band on screen holds a map that asks for Arcane Force. Outside
-// Arcane River none does, and a column of blanks under an "AF" header only
-// asks the player what it is for.
-bool MapSelectPanel::PageWantsArcaneForce() const {
+// The force column's header. Outside Arcane River and Grandis no map asks for
+// one, and a column of blanks under an "AF" header only asks the player what
+// it is for.
+std::string MapSelectPanel::PageForceHeader() const {
   for (const std::string& key : pages_[page_]) {
-    if (state_.maps.at(key).arcane_force() > 0) {
-      return true;
+    MapForce force = MapForceFor(state_.maps.at(key), state_.character);
+    if (force.required > 0) {
+      return force.abbreviation;
     }
   }
-  return false;
+  return "";
 }
 
 ftxui::Element MapSelectPanel::RenderMapList() const {
@@ -254,14 +256,12 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   rows.push_back(RenderBandBar());
   rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
-  // The cells are blank on a band no Arcane River map reaches, so the header
-  // comes off with them. The column keeps its width either way, which holds
-  // the window still as the player pages.
-  std::string arcane_header = PageWantsArcaneForce()
-                                  ? PadRight("AF", kArcaneWidth)
-                                  : std::string(kArcaneWidth, ' ');
+  // The cells are blank on a band no map asking for force reaches, so the
+  // header comes off with them. The column keeps its width either way, which
+  // holds the window still as the player pages.
+  std::string force_header = PadRight(PageForceHeader(), kForceWidth);
   rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
-                             PadRight("Lv", kLevelWidth) + arcane_header));
+                             PadRight("Lv", kLevelWidth) + force_header));
   rows.push_back(ThemedSeparator());
   if (page.empty()) {
     rows.push_back(EmptyState("empty"));
@@ -273,7 +273,7 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
     rows.push_back(HighlightRow(
-        ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}), on_cursor));
+        ftxui::hbox({ftxui::text(row), ForceCell(state_, map)}), on_cursor));
   }
   // Every band fills out to the height of the biggest one. The panel is
   // centered, so a band holding fewer maps than its neighbor would otherwise

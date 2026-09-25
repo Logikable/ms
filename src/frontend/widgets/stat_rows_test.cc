@@ -11,6 +11,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/sacred_power.h"
 #include "src/character/skill_placement.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -123,6 +124,27 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
                         "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
                         "Additional EXP", "Arcane Force"}));
   EXPECT_TRUE(lines[11].rule) << "the empty row is the rule, not a blank stat";
+}
+
+// Sacred Power joins the list where Grandis opens, and not before.
+TEST_F(StatRowsTest, SacredPowerRowOpensWithGrandis) {
+  CharacterInstance c = MakeWarrior();
+  auto has_row = [](const std::vector<StatLine>& lines) {
+    for (const StatLine& line : lines) {
+      if (line.label == "Sacred Power") {
+        return true;
+      }
+    }
+    return false;
+  };
+  EXPECT_FALSE(has_row(ExtraStatLines(c, {})));
+  Character proto = c.proto();
+  proto.set_level(kGrandisLevel);
+  CharacterInstance grandis(rng_, std::move(proto));
+  std::vector<StatLine> lines = ExtraStatLines(grandis, {});
+  ASSERT_TRUE(has_row(lines));
+  EXPECT_EQ(lines.back().label, "Sacred Power");
+  EXPECT_EQ(lines.back().value, "0");
 }
 
 // The panel's list is the same one, opened up by the advancements. The All

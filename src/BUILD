@@ -106,6 +106,31 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "map_force",
+    srcs = ["map_force.cc"],
+    hdrs = ["map_force.h"],
+    deps = [
+        "//src/character",
+        "//src/character:arcane_force",
+        "//src/character:sacred_power",
+        "//src/protos:map_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "map_force_test",
+    size = "small",
+    srcs = ["map_force_test.cc"],
+    deps = [
+        ":map_force",
+        "//src/character",
+        "//src/protos:character_proto_cc",
+        "//src/protos:map_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "map_level_test",
     size = "small",

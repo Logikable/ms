@@ -130,6 +130,23 @@ cc_test(
 )
 
 cc_library(
+    name = "sacred_power",
+    srcs = ["sacred_power.cc"],
+    hdrs = ["sacred_power.h"],
+    deps = [":arcane_force"],
+)
+
+cc_test(
+    name = "sacred_power_test",
+    size = "small",
+    srcs = ["sacred_power_test.cc"],
+    deps = [
+        ":sacred_power",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "honor",
     srcs = ["honor.cc"],
     hdrs = ["honor.h"],

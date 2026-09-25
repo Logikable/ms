@@ -761,6 +761,9 @@ class CharacterInstance {
   // What every Arcane River map measures them against -- see
   // ArcaneFactorsFor.
   int arcane_force(Activity activity = Activity::kFarming) const;
+  // Sacred Power carried, which every Grandis map measures them against --
+  // see SacredFactorsFor. Nothing carries it yet: no Sacred Symbol exists.
+  int sacred_power(Activity activity = Activity::kFarming) const;
   // Whether an item of this type contributes its attack as things stand:
   // throwing stars arm a claw and nothing else. equip_stats() applies it
   // already; it is public so the display can show an inert attack as inert.

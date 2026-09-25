@@ -20,6 +20,7 @@
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/map_force.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
@@ -2006,7 +2007,7 @@ DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
   defense.dodge_chance = derived.dodge_chance;
   defense.enemy_attack_pct = derived.enemy_attack_pct;
   defense.enemy_attack_reaches_boss = derived.enemy_attack_reaches_boss;
-  defense.arcane_taken = derived.arcane_taken_factor;
+  defense.force_taken = derived.force_taken_factor;
   return defense;
 }
 
@@ -2117,16 +2118,15 @@ CombatParams ComputeCombatParams(const GameState& state) {
 
   DerivedStats derived =
       DerivedStatsFor(state.character, state.skills, {}, state.party);
-  // What the map's Arcane Force requirement does to both sides. Written onto
+  // What the map's force requirement does to both sides. Written onto
   // derived, the one struct every builder below carries: the requirement is
   // the map's and neither side alone can answer it.
-  ArcaneFactors arcane = ArcaneFactorsFor(state.character.arcane_force(),
-                                          map_it->second.arcane_force());
-  derived.arcane_damage_factor = arcane.damage_dealt;
-  derived.arcane_taken_factor = arcane.damage_taken;
-  // V Points fall in Arcane River and nowhere else, and the force the map
-  // asks for is what says it is Arcane River.
-  params.pays_v_points = map_it->second.arcane_force() > 0;
+  ForceFactors force = MapForceFor(map_it->second, state.character).factors;
+  derived.force_damage_factor = force.damage_dealt;
+  derived.force_taken_factor = force.damage_taken;
+  // V Points fall in Arcane River and Grandis, and the force the map asks for
+  // is what says it is one of them.
+  params.pays_v_points = AsksForForce(map_it->second);
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());

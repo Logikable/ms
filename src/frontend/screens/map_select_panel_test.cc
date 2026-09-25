@@ -738,6 +738,23 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   EXPECT_EQ(Width(panel), plain_width);
 }
 
+// Grandis's maps put Sacred Power in the same column, under its own header.
+TEST(MapSelectPanelTest, GrandisHeadsTheColumnSac) {
+  MapData ramparts;
+  ramparts.set_name("Cernium Eastern City Ramparts 1");
+  AddSpawn(&ramparts, "spirit", 39);
+  ramparts.set_sacred_power(30);
+  GameState state({}, {}, {}, {{"spirit", SpiritMob()}},
+                  {{"ramparts", ramparts}});
+  MapSelectPanel panel(state);
+  panel.Reset();
+  GoToTheBar(&panel);
+  panel.ChangePage(kPastEveryBand);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("SAC"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("AF "), std::string::npos) << rendered;
+}
+
 // The band bar, the map list and the mob table beside it all sit in one
 // window fitted to the longest row of any of them.
 TEST(MapSelectPanelTest, NoRowWeldsItselfToTheRightBorder) {

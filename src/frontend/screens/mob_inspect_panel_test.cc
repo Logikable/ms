@@ -281,7 +281,7 @@ TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
 
 // V Points are the one currency a map decides, so the drop table names them
 // where they fall and leaves the row off everywhere else.
-TEST(MobInspectPanelTest, VPointsDropOnlyInArcaneRiver) {
+TEST(MobInspectPanelTest, VPointsDropOnlyWhereAForceIsAsked) {
   GameState arcane = ArcaneMap();
   MobInspectPanel river(arcane);
   river.SetMap("rage");
@@ -291,6 +291,28 @@ TEST(MobInspectPanelTest, VPointsDropOnlyInArcaneRiver) {
   MobInspectPanel field(plain);
   field.SetMap("green_field");
   EXPECT_EQ(Render(field).find("V Points"), std::string::npos);
+}
+
+// Grandis names its own force in the toll, on its own table, and pays V Points
+// as the river does. Nothing carries Sacred Power yet: 30 short is 70% dealt.
+TEST(MobInspectPanelTest, GrandisSpellsOutSacredPower) {
+  Mob spirit;
+  spirit.set_name("Fire Spirit");
+  spirit.set_level(261);
+  MapData ramparts;
+  ramparts.set_name("Cernium Eastern City Ramparts 1");
+  AddSpawn(&ramparts, "spirit", 39);
+  ramparts.set_sacred_power(30);
+  GameState state({}, {}, {}, {{"spirit", spirit}}, {{"ramparts", ramparts}});
+  MobInspectPanel panel(state);
+  panel.SetMap("ramparts");
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Sacred Power"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("Arcane Force"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find(" / 30"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Damage 70%"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Taken 1.5x"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("V Points"), std::string::npos) << rendered;
 }
 
 // A card that measures its own width has to ask for its right margin.

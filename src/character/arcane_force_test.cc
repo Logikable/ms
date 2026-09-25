@@ -112,7 +112,7 @@ TEST(ArcaneForceTest, SymbolGrantsThePrimaryStat) {
 // A map outside Arcane River asks for nothing, and nothing is what the
 // factors do to it.
 TEST(ArcaneForceTest, NoRequirementLeavesTheFightAlone) {
-  ArcaneFactors none = ArcaneFactorsFor(0, 0);
+  ForceFactors none = ArcaneFactorsFor(0, 0);
   EXPECT_DOUBLE_EQ(none.damage_dealt, 1.0);
   EXPECT_DOUBLE_EQ(none.damage_taken, 1.0);
 }
@@ -131,7 +131,7 @@ TEST(ArcaneForceTest, TheFactorTableStepsWithThePercentageMet) {
       {150, 1.50, 0.0}, {900, 1.50, 0.0},
   };
   for (const Case& c : cases) {
-    ArcaneFactors factors = ArcaneFactorsFor(c.owned, 100);
+    ForceFactors factors = ArcaneFactorsFor(c.owned, 100);
     EXPECT_DOUBLE_EQ(factors.damage_dealt, c.dealt) << c.owned;
     EXPECT_DOUBLE_EQ(factors.damage_taken, c.taken) << c.owned;
   }

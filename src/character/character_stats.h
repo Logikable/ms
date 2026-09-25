@@ -306,12 +306,12 @@ struct DerivedStats {
   // Seconds off every skill's cooldown. What is LEFT of a wait once they are
   // paid is ReducedCooldown's business, a short wait giving up a share.
   double cooldown_reduction_seconds = 0.0;
-  // What the map's Arcane Force requirement leaves of each side's damage. NOT
+  // What the map's force requirement leaves of each side's damage. NOT
   // derived from the character: DerivedStatsFor leaves both at the identity
   // and ComputeCombatParams writes them once the map is known. Here because
   // this is the struct every damage builder already carries.
-  double arcane_damage_factor = 1.0;
-  double arcane_taken_factor = 1.0;
+  double force_damage_factor = 1.0;
+  double force_taken_factor = 1.0;
   // What the passives grant, shaped like a worn item because that is how they
   // behave: sum it with equip_stats() and pass the total on. The only way a
   // skill's primary stat reaches the damage chain.

@@ -1526,7 +1526,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.ied = derived.ied;
   passives.ier = derived.ier;
   passives.skill_bonus = derived.skill_bonus;
-  passives.arcane_pct = derived.arcane_damage_factor;
+  passives.force_pct = derived.force_damage_factor;
   return passives;
 }
 

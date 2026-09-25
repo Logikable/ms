@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/game_state.h"
+#include "src/map_force.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -122,26 +123,24 @@ std::string MobInspectPanel::selected_mob() const {
   return mobs_[selected_].first;
 }
 
-// What Arcane River takes for letting the character hurt what lives here: the
-// force the map asks for against what they carry, and the two multipliers that
-// come of it. Two rows, and none at all outside Arcane River -- every other
-// map asks for nothing and takes nothing.
-void MobInspectPanel::RenderArcaneForce(
-    std::vector<ftxui::Element>& rows) const {
+// What Arcane River or Grandis takes for letting the character hurt what lives
+// here: the force the map asks for against what they carry, and the two
+// multipliers that come of it. Two rows, and none at all on a map asking for
+// neither force.
+void MobInspectPanel::RenderForce(std::vector<ftxui::Element>& rows) const {
   std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
-  if (it == state_.maps.end() || it->second.arcane_force() == 0) {
+  if (it == state_.maps.end() || !AsksForForce(it->second)) {
     return;
   }
-  int required = it->second.arcane_force();
-  int owned = state_.character.arcane_force();
-  ftxui::Element carried =
-      RedUnless(ftxui::text(std::to_string(owned)), owned >= required);
+  MapForce force = MapForceFor(it->second, state_.character);
+  ftxui::Element carried = RedUnless(ftxui::text(std::to_string(force.owned)),
+                                     force.owned >= force.required);
   rows.push_back(ftxui::hbox({
-      ftxui::text("  " + PadRight("Arcane Force", kTollLabelWidth)),
+      ftxui::text("  " + PadRight(force.name, kTollLabelWidth)),
       std::move(carried),
-      ftxui::text(" / " + std::to_string(required)),
+      ftxui::text(" / " + std::to_string(force.required)),
   }));
-  ArcaneFactors factors = ArcaneFactorsFor(owned, required);
+  const ForceFactors& factors = force.factors;
   rows.push_back(ftxui::text(
       "  " +
       PadRight("Damage " + DealtText(factors.damage_dealt), kTollLabelWidth) +
@@ -151,7 +150,7 @@ void MobInspectPanel::RenderArcaneForce(
 
 ftxui::Element MobInspectPanel::RenderMobList() const {
   std::vector<ftxui::Element> rows;
-  RenderArcaneForce(rows);
+  RenderForce(rows);
   rows.push_back(ftxui::text("  " + PadRight("Name", kMobNameWidth) +
                              PadRight("Lv", kLevelWidth) +
                              PadRight("Count", kCountWidth)));
@@ -214,11 +213,11 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
   // is a chance at a particular item.
   rows.push_back(DropRow("Meso", DropChance(MesoDropChance(0.0))));
   rows.push_back(DropRow("Honor", DropChance(kMobHonorChance)));
-  // V Points fall in Arcane River and nowhere else, so the row is the river's
-  // own -- named here because a drop table is where a player looks to find
-  // out where the currency comes from.
+  // V Points fall in Arcane River and Grandis and nowhere else -- named here
+  // because a drop table is where a player looks to find out where the
+  // currency comes from.
   std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
-  if (it != state_.maps.end() && it->second.arcane_force() > 0) {
+  if (it != state_.maps.end() && AsksForForce(it->second)) {
     rows.push_back(DropRow("V Points", DropChance(kVPointDropChance)));
   }
   for (const MobDrop& drop : mob.drops()) {

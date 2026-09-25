@@ -65,17 +65,18 @@ void LevelUpSymbol(Equip& item);
 // nothing else, so its prototype carries no base stats at all.
 EquipStats SymbolStatsFor(StatField primary, int level);
 
-// What meeting a map's Arcane Force requirement does to the fight, as two
-// multipliers. Both are 1 where nothing is asked for, which is every map
-// outside Arcane River.
-struct ArcaneFactors {
-  double damage_dealt = 1.0;  // 0.10 at nothing met, 1.50 at half again
-  double damage_taken = 1.0;  // 2.8 at nothing met, 0 at half again
+// What meeting a map's force requirement -- Arcane Force here, Sacred Power
+// in sacred_power.h -- does to the fight, as two multipliers. Both are 1 where
+// nothing is asked for.
+struct ForceFactors {
+  double damage_dealt = 1.0;
+  double damage_taken = 1.0;
 };
 
 // The factors for `owned` Arcane Force against a map asking `required`. GMS's
-// table, stepped by the whole percentage met and rounded down.
-ArcaneFactors ArcaneFactorsFor(int owned, int required);
+// table, stepped by the whole percentage met and rounded down: 0.10 dealt and
+// 2.8x taken at nothing met, 1.50 and 0x at half again.
+ForceFactors ArcaneFactorsFor(int owned, int required);
 
 }  // namespace ms
 

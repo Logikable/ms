@@ -341,6 +341,7 @@ cc_library(
         "//src/character:hyper_stats",
         "//src/character:job_branch",
         "//src/character:progression",
+        "//src/character:sacred_power",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_instance",
@@ -356,6 +357,7 @@ cc_test(
     deps = [
         ":stat_rows",
         "//src/character:consumables",
+        "//src/character:sacred_power",
         "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],

@@ -79,22 +79,22 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
   return ladder;
 }
 
-// The mobs standing in Arcane River, by data file stem. What says so is the
-// map they stand on asking for Arcane Force: Tenebris drops no symbol of its
-// own, and the level does not say so either -- Black Heaven runs to 219 and
-// asks for no force at all.
-std::set<std::string> ArcaneRiverMobs(
-    const std::map<std::string, MapData>& maps) {
-  std::set<std::string> river;
+// The mobs standing on maps asking for a force, by data file stem: Arcane
+// Force for the river, Sacred Power for Grandis. The map is what says so --
+// Tenebris drops no symbol of its own, and the level does not say so either:
+// Black Heaven runs to 219 and asks for no force at all.
+std::set<std::string> MobsAskedFor(const std::map<std::string, MapData>& maps,
+                                   int (MapData::*force)() const) {
+  std::set<std::string> asked;
   for (const std::pair<const std::string, MapData>& entry : maps) {
-    if (entry.second.arcane_force() == 0) {
+    if ((entry.second.*force)() == 0) {
       continue;
     }
     for (const Spawn& spawn : entry.second.spawns()) {
-      river.insert(spawn.mob());
+      asked.insert(spawn.mob());
     }
   }
-  return river;
+  return asked;
 }
 
 void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
@@ -127,19 +127,28 @@ void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
 }
 
 void PrintMobs(const std::map<std::string, Mob>& mobs,
-               const std::set<std::string>& river_mobs) {
+               const std::map<std::string, MapData>& maps) {
+  std::set<std::string> river_mobs = MobsAskedFor(maps, &MapData::arcane_force);
+  std::set<std::string> grandis_mobs =
+      MobsAskedFor(maps, &MapData::sacred_power);
   std::map<std::string, Mob> overworld;
   std::map<std::string, Mob> river;
+  std::map<std::string, Mob> grandis;
   std::map<std::string, Mob> bosses;
   for (const std::pair<const std::string, Mob>& entry : mobs) {
-    std::map<std::string, Mob>& ladder = entry.second.boss() ? bosses
-                                         : river_mobs.count(entry.first) > 0
-                                             ? river
-                                             : overworld;
-    ladder.insert(entry);
+    std::map<std::string, Mob>* ladder = &overworld;
+    if (entry.second.boss()) {
+      ladder = &bosses;
+    } else if (river_mobs.count(entry.first) > 0) {
+      ladder = &river;
+    } else if (grandis_mobs.count(entry.first) > 0) {
+      ladder = &grandis;
+    }
+    ladder->insert(entry);
   }
   PrintLadder("the overworld ladder", MobsByLevel(overworld));
   PrintLadder("Arcane River", MobsByLevel(river));
+  PrintLadder("Grandis", MobsByLevel(grandis));
   // The bosses share no curve with each other either -- each is its own fight
   // at its own gate -- so their growth columns say nothing. They are here for
   // the HP and attack a boss carries at its level.
@@ -210,7 +219,7 @@ int main(int argc, char** argv) {
   std::map<std::string, ms::MapData> maps =
       ms::LoadTextProtoMap<ms::MapData>(ms::EmbeddedMaps());
   if (absl::GetFlag(FLAGS_mobs)) {
-    ms::PrintMobs(mobs, ms::ArcaneRiverMobs(maps));
+    ms::PrintMobs(mobs, maps);
   }
   if (absl::GetFlag(FLAGS_maps)) {
     ms::PrintMaps(maps, mobs);

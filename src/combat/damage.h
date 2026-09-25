@@ -56,9 +56,9 @@ struct OffenseStats {
   // GMS's leading weapon constant; see WeaponConstant. 1.0 is the identity a
   // bare stat line carries, not a value any real weapon has.
   double weapon_constant = 1.0;
-  // What the map's Arcane Force requirement leaves of the swing. Lands LAST,
-  // after the level multiplier: it scales the whole hit.
-  double arcane_pct = 1.0;
+  // What the map's force requirement (Arcane Force or Sacred Power) leaves of
+  // the swing. Lands LAST, after the level multiplier: it scales the whole hit.
+  double force_pct = 1.0;
 };
 
 // What varies from one landing to the next. The expected-value chain folds
@@ -272,10 +272,10 @@ struct PassiveOffense {
   // What the book hands particular skills, keyed by display name. Only the
   // swung skill's entry is read.
   std::map<std::string, SkillBonus> skill_bonus;
-  // What the map's Arcane Force requirement leaves of the swing: 1 outside
-  // Arcane River, a tenth with no force for the map, half again with half
-  // again over it. A multiplier, hence the default of 1.
-  double arcane_pct = 1.0;
+  // What the map's force requirement leaves of the swing: 1 on a map asking
+  // none, down to a twentieth short of Sacred Power and up to half again over
+  // Arcane Force. A multiplier, hence the default of 1.
+  double force_pct = 1.0;
 };
 
 // OffenseStats from a character's job, level and summed stats. `attack_skill`
@@ -328,10 +328,10 @@ struct DefenseStats {
   // elsewhere: a weakened monster is one whose attack the DEF cancels more of.
   double enemy_attack_pct = 0.0;
   bool enemy_attack_reaches_boss = false;
-  // What the map's Arcane Force requirement does to the hit: 1 outside Arcane
-  // River, up to 2.8 with no force for the map, 0 with half again over it --
+  // What the map's force requirement does to the hit: 1 on a map asking none,
+  // up to 2.8 with no Arcane Force for the map, 0 with half again over it --
   // which the damage floor turns into GMS's 1 damage.
-  double arcane_taken = 1.0;
+  double force_taken = 1.0;
 };
 
 // Expected damage of one hit from `mob`: min and max averaged, never below 1

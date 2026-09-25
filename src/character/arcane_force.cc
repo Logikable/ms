@@ -113,12 +113,12 @@ EquipStats SymbolStatsFor(StatField primary, int level) {
   return stats;
 }
 
-ArcaneFactors ArcaneFactorsFor(int owned, int required) {
+ForceFactors ArcaneFactorsFor(int owned, int required) {
   if (required <= 0) {
-    return ArcaneFactors();
+    return ForceFactors();
   }
   int met_pct = std::max(0, owned) * 100 / required;
-  ArcaneFactors factors;
+  ForceFactors factors;
   for (const ForceRow& row : kForceTable) {
     if (met_pct >= row.met_pct) {
       factors.damage_dealt = row.dealt;

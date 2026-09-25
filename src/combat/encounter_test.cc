@@ -5061,6 +5061,32 @@ TEST(ComputeCombatParamsTest, ArcaneForceScalesBothSidesOfTheFight) {
               full.types[0].damage_to_player * 2.4, 1e-6);
 }
 
+// Grandis asks Sacred Power on its own table, and pays V Points like the river.
+// Nothing carries any yet, so 30 asked is 30 short: 70% dealt, 1.5x taken.
+TEST(ComputeCombatParamsTest, SacredPowerScalesTheFightAndPaysVPoints) {
+  MapData grandis = TwoSnailMap();
+  grandis.set_sacred_power(30);
+  GameState asked({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                  {{"field", grandis}});
+  asked.current_map = "field";
+  EquipSword(asked);
+  GameState bare({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                 {{"field", TwoSnailMap()}});
+  bare.current_map = "field";
+  EquipSword(bare);
+
+  CombatParams toll = ComputeCombatParams(asked);
+  CombatParams free = ComputeCombatParams(bare);
+  ASSERT_FALSE(toll.attacks.empty());
+  ASSERT_FALSE(free.attacks.empty());
+  EXPECT_NEAR(toll.attacks[0].damage_per_hit[0],
+              free.attacks[0].damage_per_hit[0] * 0.70, 1e-6);
+  EXPECT_NEAR(toll.types[0].damage_to_player,
+              free.types[0].damage_to_player * 1.5, 1e-6);
+  EXPECT_TRUE(toll.pays_v_points);
+  EXPECT_FALSE(free.pays_v_points);
+}
+
 // Half again over the requirement is GMS's ceiling: 150% dealt, and a monster
 // reduced to the 1 damage the floor insists on.
 TEST(ComputeCombatParamsTest, ArcaneForceOverTheRequirementCapsOut) {
