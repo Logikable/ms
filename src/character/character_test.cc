@@ -1555,6 +1555,8 @@ TEST_F(CharacterTest, ADerivedSkillReadsTheAccountsClimb) {
   Skill fairy = FairyBlessing();
   EXPECT_EQ(MakeCharacter(rng_).skill_level(fairy), 0)
       << "a level 1 account has not earned one";
+  EXPECT_EQ(MakeCharacter(rng_, NextAdvancementLevel(0)).skill_level(fairy), 1)
+      << "the Skills tab opens with the first job, and it is there at 1";
   EXPECT_EQ(MakeCharacter(rng_, /*level=*/19).skill_level(fairy), 1);
 
   CharacterInstance c = MakeCharacter(rng_, /*level=*/19);
