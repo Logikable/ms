@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-#include "third_party/miniaudio/miniaudio.h"
+#include "miniaudio/miniaudio.h"
 
 namespace ms {
 

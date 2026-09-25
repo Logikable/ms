@@ -6,11 +6,11 @@ licenses(["unencumbered"])
 
 exports_files(["LICENSE"])
 
-# Audio playback for the music player. Vendored rather than fetched so a build
-# needs no network, and chosen over SDL/OpenAL because it asks nothing of the
-# build: it decodes MP3 itself and dlopens libpulse/libasound on Linux, so
-# there is no system library for the hermetic toolchain to find and no mingw
-# import lib for the Windows cross-build.
+# Audio playback for the music player, fetched by MODULE.bazel. Chosen over
+# SDL/OpenAL because it asks nothing of the build: it decodes MP3 itself and
+# dlopens libpulse/libasound on Linux, so there is no system library for the
+# hermetic toolchain to find and no mingw import lib for the Windows
+# cross-build.
 #
 # Only MP3 decoding is turned on. The formats we do not ship are switched off
 # because every one of them is compile time we would otherwise pay on a
@@ -24,6 +24,7 @@ cc_library(
         "MA_NO_WAV",
         "MA_NO_FLAC",
     ],
+    include_prefix = "miniaudio",
     linkopts = select({
         "@platforms//os:windows": [],
         "//conditions:default": [

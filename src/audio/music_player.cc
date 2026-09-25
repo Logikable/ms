@@ -5,9 +5,9 @@
 #include <string>
 #include <string_view>
 
+#include "miniaudio/miniaudio.h"
 #include "src/audio/tracks.h"
 #include "src/build_config.h"
-#include "third_party/miniaudio/miniaudio.h"
 
 namespace ms {
 

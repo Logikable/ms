@@ -20,7 +20,7 @@ cc_library(
     deps = [
         ":tracks",
         "//src:build_config",
-        "//third_party/miniaudio",
+        "@miniaudio",
     ],
 )
 
