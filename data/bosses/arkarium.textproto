@@ -1,7 +1,6 @@
 name: "Arkarium"
 difficulties {
   name: "Normal"
-  # One body alone in the middle of his arena, like Hilla and Magnus.
   phases {
     bgm: "AltarOfAkayrum"
     spawns { mob: "arkarium" spots { x: 4 y: 4 } }
@@ -14,13 +13,10 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # The same as Horntail, Magnus and Pink Bean. He has nearly twice Pink Bean's
-  # HP and 90% PDR, so the time limit is a real part of the fight.
   time_limit_seconds: 600
   unlock_level: 180
-  # Five Intense Power Crystals at his level's price, like every boss's meso.
+  # Five Intense Power Crystals at his level's price.
   meso: 12602500
-  # Paid for the clear, flat and unaffected by EXP bonuses, like the other five.
   # Five times Pink Bean's, the same gap GMS has between the two.
   exp: 50000000
   drops {

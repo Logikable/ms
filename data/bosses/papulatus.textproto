@@ -1,17 +1,14 @@
 name: "Papulatus"
 difficulties {
-  # No Normal: GMS's Easy and Normal are at 115 and 155, both below what a
-  # character already clears by the time this unlocks.
+  # No Normal: GMS's Easy and Normal are at 115 and 155, below what a character
+  # already clears by the time this unlocks.
   name: "Chaos"
-  # The robot, standing still in the middle of a room with a ledge above each
-  # side. Three quarters of the fight is here.
   phases {
     bgm: "WhereverYouAre"
     spawns {
       mob: "chaos_papulatus_clock"
       spots { x: 4 y: 4 }
     }
-    # The floor under him, and a platform two rows up at each end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -22,16 +19,12 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # The clock is gone, the platforms with it, and its pilot is loose in the
-  # room: it moves to a neighbouring cell twice a second, anywhere the player
-  # can't stand. The floor between their spots is allowed.
   phases {
     spawns {
       mob: "chaos_papulatus"
       spots { x: 4 y: 4 }
       walk { interval_ms: 500 range: RANGE_STEP }
     }
-    # Only the floor. Nothing to climb now.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -41,17 +34,13 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty minutes, which only Princess No and Chaos Vellum also have. GMS
-  # allows thirty; this is 504B HP behind 250% PDR, the largest body in the
-  # game, and the time limit is the real obstacle.
+  # GMS allows thirty minutes; twenty makes the timer part of the fight.
   time_limit_seconds: 1200
-  # Level 200, where everything up to Seren unlocks.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for this fight, divided by seven,
-  # since GMS clears Chaos once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears Chaos once a week and this game once a day.
   meso: 18900000
-  # GMS pays this on the body itself; here the clear pays it, flat and
-  # unaffected by EXP bonuses, like every other fight.
+  # GMS pays this on the body itself; here the clear pays it.
   exp: 1234200
   drops {
     equip: "papulatus_mark"

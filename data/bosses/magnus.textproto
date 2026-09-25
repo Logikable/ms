@@ -1,8 +1,6 @@
 name: "Magnus"
 difficulties {
   name: "Normal"
-  # One body alone in the middle of his arena, like Hilla: nothing else to kill,
-  # and the whole floor to move around while killing it.
   phases {
     bgm: "thefinalWar"
     spawns { mob: "magnus" spots { x: 4 y: 4 } }
@@ -15,21 +13,12 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # The same as Horntail. He has twice the HP, but his unlock level is thirty
-  # levels above Horntail's and every branch clears him in under half the time.
   time_limit_seconds: 600
-  # Unlocks before Pink Bean. His six billion HP is all in one body, while in a
-  # fight with many parts half of them are still standing when the objective
-  # falls, so he asks more than Pink Bean's larger total. When he unlocked at
-  # 170, half the branches cleared him that day, while Pink Bean at 160 took
-  # until level 168. The two are close enough that their order costs less than
-  # the ten levels between them would.
+  # Ahead of Pink Bean because he is the easier fight: unlocked at 170, half the
+  # branches cleared him that day, while Pink Bean at 160 took until 168.
   unlock_level: 160
-  # Five Intense Power Crystals at his level's price, like Zakum's, Hilla's and
-  # Horntail's meso.
+  # Five Intense Power Crystals at his level's price.
   meso: 12960000
-  # Paid for the clear, flat and unaffected by EXP bonuses, like the other
-  # three.
   exp: 5300000
   drops {
     equip: "crystal_ventus_badge"
@@ -46,8 +35,6 @@ difficulties {
 }
 difficulties {
   name: "Hard"
-  # The same single fight at GMS's Hard numbers, behind 120% PDR: the second
-  # body in the game that needs Ignore DEF before it takes any damage at all.
   phases {
     bgm: "thefinalWar"
     spawns { mob: "hard_magnus" spots { x: 4 y: 4 } }
@@ -60,17 +47,13 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Fifteen minutes, like every fight past Cygnus.
   time_limit_seconds: 900
-  # Level 200, where everything up to Seren unlocks.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for him, divided by seven, since
-  # GMS clears him once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears him once a week and this game once a day.
   meso: 13600000
-  # Paid for the clear, flat and unaffected by EXP bonuses.
   exp: 22000000
-  # The same shoulder and badge as Normal. GMS pays Hard in Tyrant gear, a set
-  # this game doesn't have.
+  # GMS pays Hard in Tyrant gear, a set this game doesn't have.
   drops {
     equip: "crystal_ventus_badge"
     per_kill: 1.0

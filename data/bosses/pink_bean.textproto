@@ -1,9 +1,6 @@
 name: "Pink Bean"
 difficulties {
   name: "Normal"
-  # The five statues, spread evenly across the arena. Ariel stands a row above
-  # the other four, matching the arch his room is built as: the statue worth
-  # three of the others is the one out of reach.
   phases {
     bgm: "FightingPinkBeen"
     spawns { mob: "solomon_the_wise" spots { x: 0 y: 3 } }
@@ -11,7 +8,6 @@ difficulties {
     spawns { mob: "ariel" spots { x: 4 y: 2 } }
     spawns { mob: "munin" spots { x: 6 y: 3 } }
     spawns { mob: "rex_the_wise" spots { x: 8 y: 3 } }
-    # The floor under the statues, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -20,7 +16,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # The bean himself, alone in the middle of the same room, low over the floor.
   phases {
     spawns { mob: "pink_bean" spots { x: 4 y: 4 } }
     player_spots { x: 4 y: 5 }
@@ -32,18 +27,13 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # The same as Horntail and Magnus. The statues are 73% of the fight and the
-  # unlock level is ten levels above them, so the time limit is about the room,
-  # not the bean.
   time_limit_seconds: 600
-  # The first unlock level where the fight isn't comfortable yet: at 170 the
-  # Shadower runs out of time, and the Paladin and the Bow Master finish with
-  # seconds to spare. Ten levels later all ten branches clear in under 7:20.
+  # At 170 the Shadower runs out of time and the Paladin and Bow Master finish
+  # with seconds to spare; ten levels later every branch clears in under 7:20.
   unlock_level: 170
-  # Five Intense Power Crystals at his level's price, like every boss's meso.
+  # Five Intense Power Crystals at his level's price.
   meso: 7022500
-  # Paid for the clear, flat and unaffected by EXP bonuses, like the other four.
-  # The five statues account for 3,300,000 of it and the bean 6,290,000.
+  # The statues account for 3,300,000 of it and the bean 6,290,000.
   exp: 9590000
   drops {
     equip: "black_bean_mark"
@@ -64,8 +54,6 @@ difficulties {
 }
 difficulties {
   name: "Chaos"
-  # The same five statues, where Normal's are, behind 160% PDR each: the room is
-  # the Ignore DEF check, and the bean behind it isn't.
   phases {
     bgm: "FightingPinkBeen"
     spawns { mob: "chaos_solomon_the_wise" spots { x: 0 y: 3 } }
@@ -73,7 +61,6 @@ difficulties {
     spawns { mob: "chaos_ariel" spots { x: 4 y: 2 } }
     spawns { mob: "chaos_munin" spots { x: 6 y: 3 } }
     spawns { mob: "chaos_rex_the_wise" spots { x: 8 y: 3 } }
-    # The floor under the statues, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -93,17 +80,14 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Fifteen minutes, like every fight past Cygnus.
   time_limit_seconds: 900
-  # Level 200, where everything up to Seren unlocks.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for him, divided by seven, since
-  # GMS clears him once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears him once a week and this game once a day.
   meso: 9150000
-  # The same as Normal. GMS gives the Chaos bean the same body EXP as the normal
-  # one, so the harder difficulty pays in gear and meso rather than levels.
+  # GMS gives the Chaos bean the same EXP as the Normal one.
   exp: 9590000
-  # Normal's four drops. Chaos adds nothing of its own in GMS either.
+  # Normal's drops. Chaos adds nothing of its own in GMS either.
   drops {
     equip: "black_bean_mark"
     per_kill: 1.0

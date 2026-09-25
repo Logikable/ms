@@ -1,10 +1,8 @@
 name: "Vellum"
 difficulties {
-  # No Normal: Root Abyss is only fought on Chaos.
+  # No Normal: GMS fights Root Abyss only on Chaos.
   name: "Chaos"
-  # One body alone in the arena, like Hilla, Magnus, Arkarium and Cygnus, and
-  # the only one that moves. He steps along his row every half minute; it is
-  # only visual and doesn't affect the player.
+  # His step along the row is only visual; it doesn't affect the player.
   phases {
     bgm: "AbyssCave"
     spawns {
@@ -21,12 +19,10 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # A third longer than the other three: twice Pierre's HP, behind 200% PDR.
   time_limit_seconds: 1200
-  # Level 200. All four Root Abyss bosses unlock together.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for this fight, divided by seven,
-  # since GMS clears Root Abyss once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears Root Abyss once a week and this game once a day.
   meso: 15000000
   drops {
     item: "piece_of_destruction"

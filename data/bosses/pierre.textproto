@@ -1,8 +1,7 @@
 name: "Pierre"
 difficulties {
-  # No Normal: Root Abyss is only fought on Chaos.
+  # No Normal: GMS fights Root Abyss only on Chaos.
   name: "Chaos"
-  # One body alone in the arena, like Hilla, Magnus, Arkarium and Cygnus.
   phases {
     bgm: "JoyfulTeaParty"
     spawns { mob: "chaos_pierre" spots { x: 4 y: 4 } }
@@ -15,12 +14,10 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Fifteen minutes, like Cygnus and most level-200 fights.
   time_limit_seconds: 900
-  # Level 200. All four Root Abyss bosses unlock together.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for this fight, divided by seven,
-  # since GMS clears Root Abyss once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears Root Abyss once a week and this game once a day.
   meso: 11550000
   drops {
     item: "piece_of_mockery"

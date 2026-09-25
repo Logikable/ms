@@ -1,9 +1,6 @@
 name: "Zakum"
 difficulties {
   name: "Normal"
-  # The eight arms stand in two columns down the middle of the arena, one spot
-  # each. The lanes on either side belong to the player, who fights from the
-  # floor or from a ledge.
   phases {
     bgm: "WelcomeToTheHell"
     spawns {
@@ -17,8 +14,6 @@ difficulties {
       spots { x: 5 y: 3 }
       spots { x: 5 y: 4 }
     }
-    # The arena floor and the two ledges above its ends, where the map puts
-    # them. The arms stand between the lanes rather than in them.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -29,13 +24,11 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # The body alone, low over the floor the player crosses.
   phases {
     spawns {
       mob: "zakum"
       spots { x: 4 y: 4 }
     }
-    # No ledges: the body fills the arena and the floor is all there is.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -46,13 +39,10 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
-  # GMS unlocks Normal Zakum at 110, which is also his arms' level.
   unlock_level: 110
-  # GMS pays this as Intense Power Crystals, a drop nobody keeps: five of them
-  # at the Heroic price, given as the meso they would sell for.
+  # GMS pays Intense Power Crystals, a drop nobody keeps; this is five of them
+  # at the Heroic price, as meso.
   meso: 3062500
-  # Paid for the clear rather than for the body that ends it, like every boss's
-  # EXP: flat, and unaffected by EXP bonuses.
   exp: 4750740
   drops {
     equip: "aquatic_letter_eye_accessory"
@@ -69,7 +59,6 @@ difficulties {
 }
 difficulties {
   name: "Chaos"
-  # The eight arms and the body again, where Normal's are.
   phases {
     bgm: "WelcomeToTheHell"
     spawns {
@@ -107,17 +96,14 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Fifteen minutes, like every fight past Cygnus.
   time_limit_seconds: 900
-  # Level 200, where everything up to Seren unlocks.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for him, divided by seven, since
-  # GMS clears him once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears him once a week and this game once a day.
   meso: 11550000
-  # GMS pays no EXP for Chaos Zakum at all, for the arms or the body, so neither
-  # does this game. He is fought for the gear.
+  # GMS pays no EXP for Chaos Zakum, for the arms or the body.
   exp: 0
-  # Normal's three drops. Chaos adds nothing of its own in GMS either.
+  # Normal's drops. Chaos adds nothing of its own in GMS either.
   drops {
     equip: "aquatic_letter_eye_accessory"
     per_kill: 1.0

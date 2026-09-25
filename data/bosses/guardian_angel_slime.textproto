@@ -1,9 +1,6 @@
 name: "Guardian Angel Slime"
 difficulties {
   name: "Normal"
-  # She moves along the row above the player's heads like Damien and Lotus, and
-  # every thirty seconds she jumps up to the gallery row and comes back down two
-  # thirds of a second later, onto the cell she left.
   phases {
     bgm: "GuardianSlime-Battle"
     spawns {
@@ -24,21 +21,18 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty-five minutes, like Lotus and Damien. GMS allows thirty, and her HP is
-  # three times Lotus's, but this fight isn't meant to be lost to the timer.
+  # GMS allows thirty minutes.
   time_limit_seconds: 1500
-  # Her own level. GMS unlocks her at 210 alongside the Black Heaven fights; ten
-  # levels later shows she is the step above them.
+  # GMS unlocks her at 210 with the Black Heaven fights; ten levels later marks
+  # her as the step above them.
   unlock_level: 220
-  # Five Intense Power Crystals at GMS's price for this fight, divided by seven
-  # (GMS clears her once a week and this game once a day), rounded to the
-  # nearest 50k.
+  # Five Intense Power Crystals at GMS's price, divided by seven (GMS clears her
+  # once a week, this game once a day), rounded to the nearest 50k.
   meso: 33100000
-  # No EXP: GMS lists none for her, as with Lotus.
+  # GMS lists no EXP for her.
   exp: 0
-  # Half the clears: the only boss drop that isn't guaranteed. GMS gives her
-  # ring from a chest the party opens afterwards and rolls it there; only the
-  # roll is kept here, not the chest.
+  # GMS rolls her ring from a chest opened after the fight; only the roll is
+  # kept here.
   drops {
     equip: "guardian_angel_ring"
     per_kill: 0.5
@@ -49,8 +43,7 @@ difficulties {
   }
 }
 difficulties {
-  # Defined but not built: 90T, eighteen times Normal, on a body GMS fights at
-  # level 250. No time limit, unlock level or reward until the fight is built.
+  # Not built yet: no time limit, unlock level or reward until it is.
   name: "Chaos"
   coming_soon: true
   phases {

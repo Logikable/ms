@@ -1,8 +1,6 @@
 name: "Cygnus"
 difficulties {
   name: "Normal"
-  # One body alone in her arena, like Hilla, Magnus and Arkarium: nothing else
-  # to kill, and the whole floor to move around while killing it.
   phases {
     bgm: "CygnusGarden"
     spawns { mob: "cygnus" spots { x: 4 y: 4 } }
@@ -15,15 +13,11 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Half again what the fights below her allow. She is the hardest fight at
-  # level 200, and Root Abyss has the same time limit.
   time_limit_seconds: 900
-  # Level 200, where Root Abyss unlocks too.
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price for her, divided by seven, since
-  # GMS clears her once a week and this game once a day.
+  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
+  # clears her once a week and this game once a day.
   meso: 10300000
-  # Paid for the clear, flat and unaffected by EXP bonuses, like the others.
   exp: 204000000
   # The token buys whichever of the four shoulders the character's branch can
   # wear. A branch-specific shoulder can't be a drop, since four would drop for

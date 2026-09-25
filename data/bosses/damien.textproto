@@ -1,8 +1,6 @@
 name: "Damien"
 difficulties {
   name: "Normal"
-  # He moves along the row above the player's heads one cell at a time, and the
-  # whole floor is the player's.
   phases {
     bgm: "Demian Spine"
     spawns {
@@ -18,9 +16,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # Blade drawn, with the same movement, but every thirty seconds he charges
-  # across the room: four cells one way, a cell every 120ms, stopping at the
-  # wall.
   phases {
     bgm: "Demian True"
     spawns {
@@ -41,19 +36,14 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Twenty-five minutes, which only Lotus also has. GMS allows thirty; this is
-  # 1.2T HP behind 300% PDR, and the time limit is the real obstacle.
+  # GMS allows thirty minutes; twenty-five makes the timer part of the fight.
   time_limit_seconds: 1500
-  # The same level as Lotus.
   unlock_level: 210
-  # Five Intense Power Crystals at GMS's price for this fight, divided by seven
-  # (GMS clears Damien once a week and this game once a day), rounded to the
-  # nearest 50k.
+  # Five Intense Power Crystals at GMS's price, divided by seven (GMS clears him
+  # once a week, this game once a day), rounded to the nearest 50k.
   meso: 24150000
-  # GMS pays this on the second body; here the clear pays it, flat and
-  # unaffected by EXP bonuses, like every other fight.
+  # GMS pays this on the second body; here the clear pays it.
   exp: 22000000
-  # One coin per clear, the currency for AbsoLab gear.
   drops {
     item: "absolab_coin"
     per_kill: 1.0
@@ -64,8 +54,7 @@ difficulties {
   }
 }
 difficulties {
-  # Defined but not built: 36T over the same two bodies, thirty times Normal. No
-  # time limit, unlock level or reward until the fight is built.
+  # Not built yet: no time limit, unlock level or reward until it is.
   name: "Hard"
   coming_soon: true
   phases {
