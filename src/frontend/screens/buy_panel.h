@@ -1,24 +1,24 @@
-/* BuyPanel is the modal for buying copies of a single shop item -- the sell
- * dialog seen from the other side of the counter. It shows the item name and
- * the per-item and total cost above a shared AmountSelector.
+/* BuyPanel is the dialog for buying copies of one shop item, the reverse of the
+ * sell dialog. It shows the item name and the per-item and total cost above a
+ * shared AmountSelector.
  *
- * Two things differ from selling. The quantity opens at one rather than at the
- * whole amount, because a shopper picks a number rather than reaching for "as
- * many as I can afford" -- [MAX] is still there for the player who is. And the
- * total is a cost rather than a gain, so it turns red and takes Confirm down
- * with it once it passes what the player holds.
+ * Two things differ from selling. The quantity starts at one instead of the
+ * whole amount, because a shopper picks a number rather than "as many as I can
+ * afford"; [MAX] is still there for that. And the total is a cost rather than a
+ * gain, so it turns red and disables Confirm once it exceeds what the player
+ * has.
  *
- * The panel owns no game state: Reset() seeds it with the item's price and the
- * balance it is counted against, quantity() reports the chosen amount, and
- * OnEvent answers with the ConfirmChoice every dialog answers with.
+ * The panel holds no game state: Reset() sets the item's price and the balance
+ * to count against, quantity() reports the chosen amount, and OnEvent returns
+ * the ConfirmChoice every dialog returns.
  *
- * A cap of zero -- nothing affordable, or nowhere to put it -- draws a red
- * reason under the total, since the dialog otherwise says only "0" and leaves
- * the player to guess which of the two it was.
+ * A cap of zero (nothing affordable, or no room) draws a red reason under the
+ * total, since otherwise the dialog only shows "0" and the player has to guess
+ * which it was.
  *
- * A price is not always meso. An item off the shop's token shelf is priced in
- * the token it names, and the dialog then counts in that instead -- the same
- * arithmetic against a different balance, with the token's own mark on it.
+ * A price isn't always in meso. An item on the shop's token shelf is priced in
+ * its token, and the dialog counts in that instead: the same arithmetic against
+ * a different balance, with the token's own mark.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BUY_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BUY_PANEL_H_
@@ -35,16 +35,16 @@ namespace ms {
 
 class BuyPanel {
  public:
-  // The most that can be bought in one go, whatever the balance and the bag
-  // allow. A spell trace stacks to 30,000 and is bought by the stack, so the
-  // ceiling has to clear a full one.
+  // The most that can be bought at once, whatever the balance and bag allow. A
+  // spell trace stacks to 30,000 and is bought by the stack, so the limit has
+  // to allow a full one.
   static constexpr int kMaxQuantity = 30000;
 
-  // Seeds the panel for buying `item_name` at `unit_price` each against
+  // Sets up the panel for buying `item_name` at `unit_price` each against
   // `balance`, with `room` in the bag and `owned` already held. `token` is the
-  // currency, or nullptr for meso. Quantity opens at one and is capped by
-  // whichever ceiling bites first, so the shop is never offered a number it
-  // would refuse.
+  // currency, or nullptr for meso. The quantity starts at one and is capped by
+  // whichever limit is lowest, so the shop is never offered a number it would
+  // refuse.
   void Reset(const std::string& item_name, int unit_price, int64_t balance,
              int room, int owned, const ItemPrototype* token = nullptr);
   ftxui::Element Render() const;
@@ -56,27 +56,27 @@ class BuyPanel {
  private:
   // What the current quantity would cost, in whichever currency it is priced.
   int64_t total() const;
-  // Why the dialog can offer nothing, or "" while it can offer something. A
-  // cap of zero is the same dead end whichever ceiling closed it, so the row
-  // that says which is the only thing telling a full bag from an empty purse.
+  // Why the dialog can offer nothing, or "" while it can offer something. A cap
+  // of zero looks the same whichever limit caused it, so this row is the only
+  // thing telling a full bag from an empty purse.
   std::string Reason() const;
-  // One amount as the dialog draws it: the mark, then the number, which is the
-  // half that reddens when the player cannot pay it.
+  // One amount as the dialog draws it: the currency mark, then the number,
+  // which turns red when the player can't pay.
   ftxui::Element Amount(int64_t value, bool red) const;
-  // Whether the current quantity is one the player could actually go through
-  // with: at least one, and within the balance.
+  // Whether the player could actually buy the current quantity: at least one,
+  // and within the balance.
   bool Affordable() const;
 
   std::string item_name_;
   int unit_price_ = 0;
   int owned_ = 0;
   int room_ = 0;
-  // The most this dialog may be confirmed for, which is zero when a ceiling
-  // has closed it. Kept because the reason row asks whether one has.
+  // The most this dialog can confirm, which is zero when a limit has closed it.
+  // Kept because the reason row checks it.
   int cap_ = 0;
   int64_t balance_ = 0;
-  // The catalog outlives every dialog, so the panel holds the prototype rather
-  // than a copy of its mark and colour.
+  // The catalog outlives every dialog, so the panel keeps the prototype instead
+  // of a copy of its mark and colour.
   const ItemPrototype* token_ = nullptr;
   AmountSelector selector_;
 };

@@ -15,15 +15,14 @@
 namespace ms {
 namespace {
 
-// The two border columns, and the gutter either side of the text between them.
+// The two border columns and the gutter on each side of the text between them.
 constexpr int kCardChrome = 4;
 
-// What an owned buff's price row says in place of the price. It keeps the row
-// rather than dropping it: a player who bought one is owed the news.
+// What an owned buff's price row shows instead of a price. The row stays rather
+// than disappearing, since a player who bought the buff should be told.
 constexpr char kOwnedText[] = "Unlocked permanently";
 
-// Every row of `info` that has to fit inside the border, for the measuring
-// below.
+// Every row of `info` that has to fit inside the border, for measuring.
 std::vector<std::string> CardLines(const ConsumableInfo& info) {
   std::vector<std::string> lines = {info.name};
   for (const char* effect : info.effects) {
@@ -74,8 +73,8 @@ ftxui::Element BuffInfoPanel::Render() const {
     return ThemedWindow(" Buff Info ", EmptyState("no buff"));
   }
   const int content = Columns() - 2;
-  // Every row is centred on the card's one width, which the widest line of the
-  // widest buff sets.
+  // Every row is centred on the card's single width, which the widest line of
+  // the widest buff sets.
   auto row = [content](const std::string& text) {
     return CenteredRow(text) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content);
   };
@@ -84,9 +83,9 @@ ftxui::Element BuffInfoPanel::Render() const {
     rows.push_back(row(effect));
   }
   rows.push_back(ThemedSeparator());
-  // A bought buff is never charged again, so its rent is a fact about the buff
-  // rather than a price this player pays: it dims, and the row under it says
-  // so outright.
+  // A bought buff is never charged again, so its rent is only a fact about the
+  // buff, not a price this player pays: it is dimmed, and the row below says
+  // so.
   ftxui::Element rent = row(ConsumableRentText(type_));
   if (owned_) {
     rent = std::move(rent) | ftxui::dim;

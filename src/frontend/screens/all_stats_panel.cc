@@ -16,10 +16,10 @@
 namespace ms {
 namespace {
 
-// One stat in one column; a blank line is blank space, which squares off a row
-// with an odd number of stats. The value's RIGHT edge is fixed and the gap
-// before it gives way -- Attack is written "(base+bonus) total", so a padded
-// label leaves it nothing to give and it runs into the gutter.
+// One stat in one column. A blank line is blank space, which evens out a row
+// with an odd number of stats. The value's right edge is fixed and the gap
+// before it shrinks. Attack is shown as "(base+bonus) total", so padding the
+// label would leave it no room and push it into the gutter.
 std::string ColumnText(const StatLine& line) {
   if (line.label.empty()) {
     return std::string(AllStatsPanel::kColumnWidth, ' ');
@@ -27,7 +27,7 @@ std::string ColumnText(const StatLine& line) {
   int gap =
       AllStatsPanel::kColumnWidth - 2 - static_cast<int>(line.value.size());
   // PadRight truncates, so a value long enough to reach the label cuts into it
-  // rather than breaking the column the whole screen is built on.
+  // instead of breaking the column layout the whole screen depends on.
   return " " + PadRight(line.label, std::max(0, gap)) + line.value + " ";
 }
 
@@ -40,15 +40,15 @@ AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
 }
 
 bool AllStatsPanel::ShowsPresetBar() const {
-  // Nothing to pick between while the character reads one allocation for
-  // everything: the screen shows whichever they have in use. Their own switch,
-  // not the reader's -- a party member's sheet carries it.
+  // Nothing to pick between while the character uses one allocation for
+  // everything, so the screen shows the one in use. This is the character's own
+  // setting, not the reader's, since a party member's sheet includes it.
   if (!character_.autoswap_presets()) {
     return false;
   }
-  // The player's own screen asks the account, which knows about characters
-  // besides this one. A party member's sheet is the whole of what we have of
-  // them, so their own level answers for it.
+  // The player's own screen checks the account, which knows about their other
+  // characters. A party member's sheet is all we have of them, so their own
+  // level decides.
   if (account_ == nullptr) {
     return character_.proto().level() >= kHyperStatUnlockLevel;
   }
@@ -59,7 +59,7 @@ bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
   if (!ShowsPresetBar()) {
     return false;
   }
-  // Clamped at the ends, as every tab bar in the game is.
+  // Stops at the ends, like every tab bar in the game.
   if (event == ftxui::Event::ArrowLeft) {
     preset_ = Activity::kFarming;
     return true;
@@ -73,10 +73,10 @@ bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
 
 ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
   std::vector<ftxui::Element> rows;
-  // Each group between rules fills its left column top to bottom before it
-  // starts the right one, so the list is read down a column rather than
-  // zigzagged across the screen. A group with an odd count leaves the gap at
-  // the bottom right, where nothing follows it.
+  // Each group between rules fills its left column top to bottom before
+  // starting the right one, so the list reads down a column instead of
+  // zigzagging across the screen. A group with an odd count leaves the gap at
+  // the bottom right, where nothing follows.
   for (size_t start = 0; start < lines.size();) {
     if (lines[start].rule) {
       rows.push_back(ThemedSeparator());
@@ -103,9 +103,8 @@ ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
 
 ftxui::Element AllStatsPanel::RenderBody() const {
   const Character& p = character_.proto();
-  // The same heading the Character panel carries, name row included, so the
-  // screen behind it reads as the same character rather than as a table of
-  // numbers.
+  // The same heading as the Character panel, name row included, so this screen
+  // reads as the same character rather than a table of numbers.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
   std::vector<ftxui::Element> rows = {
       CenteredRow(character_.username()),
@@ -115,7 +114,7 @@ ftxui::Element AllStatsPanel::RenderBody() const {
       ThemedSeparator(),
   };
   // Between the heading and the stats, so it reads as a heading of its own:
-  // whose numbers these are. The row holds the screen's only cursor, so it is
+  // whose numbers these are. The row has the screen's only cursor, so it is
   // drawn focused.
   if (ShowsPresetBar()) {
     std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};

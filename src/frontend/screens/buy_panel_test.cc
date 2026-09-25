@@ -23,9 +23,9 @@ std::string Render(const BuyPanel& panel) {
   return screen.ToString();
 }
 
-// Whether any cell on the row holding `needle` is painted `color`. Reads the
-// screen's pixels rather than its escape codes: ftxui collapses colours into
-// whatever palette it believes the terminal has, and a test process has no
+// Whether any cell on the row containing `needle` has colour `color`. Reads the
+// screen's pixels instead of its escape codes, because ftxui maps colours to
+// whatever palette it thinks the terminal has, and a test process has no
 // terminal, so the escape codes describe the fallback rather than the colour.
 bool RowIsColored(const BuyPanel& panel, const std::string& needle,
                   ftxui::Color color) {
@@ -36,8 +36,8 @@ bool RowIsColored(const BuyPanel& panel, const std::string& needle,
   for (int y = 0; y < screen.dimy(); ++y) {
     std::string row;
     for (int x = 0; x < screen.dimx(); ++x) {
-      // Unpainted cells hold an empty string, not a space; dropping them would
-      // join text that is not actually adjacent.
+      // Unpainted cells hold an empty string, not a space. Dropping them would
+      // join text that isn't actually adjacent.
       const std::string& ch = screen.PixelAt(x, y).character;
       row += ch.empty() ? " " : ch;
     }
@@ -54,9 +54,9 @@ bool RowIsColored(const BuyPanel& panel, const std::string& needle,
   return false;
 }
 
-// The colour of the cell holding `cell`, on the row holding `row_needle`. A row
-// is searched as bytes and read as columns, which are not the same thing: a
-// border or a currency mark is one column and three bytes.
+// The colour of the cell containing `cell`, on the row containing `row_needle`.
+// A row is searched as bytes and read as columns, which differ: a border or a
+// currency mark is one column but three bytes.
 ftxui::Color CellColor(const BuyPanel& panel, const std::string& row_needle,
                        const std::string& cell) {
   ftxui::Element element = panel.Render();
@@ -89,13 +89,13 @@ ftxui::Color CellColor(const BuyPanel& panel, const std::string& row_needle,
   return ftxui::Color::Default;
 }
 
-// A bag with more room than any of these tests is about, so the cap under
-// test is the one that bites.
+// A bag with more room than any of these tests needs, so the cap under test is
+// the one that applies.
 constexpr int kRoomy = 100000;
 
-// A shopper picks a number; the sell dialog's "all of it" default would be an
-// odd thing to open a purchase on. Zero owned is an answer too -- a row that
-// appeared only sometimes would read as the dialog having glitched.
+// A shopper picks a number, so the sell dialog's "all of it" default would be
+// odd for a purchase. Zero owned is shown too, since a row that appeared only
+// sometimes would look like a glitch.
 TEST(BuyPanelTest, OpensAtOneAndSaysNoneAreOwned) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
@@ -103,8 +103,8 @@ TEST(BuyPanelTest, OpensAtOneAndSaysNoneAreOwned) {
   EXPECT_NE(Render(panel).find("Owned: 0"), std::string::npos);
 }
 
-// Opening at one is not the same as offering only one: every other quantity
-// dialog carries the shortcuts, and [MAX] here is "as many as I can afford".
+// Starting at one doesn't mean offering only one: every other quantity dialog
+// has the shortcuts, and [MAX] here means "as many as I can afford".
 TEST(BuyPanelTest, HasTheQuickPickShortcuts) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
@@ -126,7 +126,7 @@ TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {
   EXPECT_NE(rendered.find("Total: 🪙 30,000"), std::string::npos);
 }
 
-// The cap is what stops the player building a total the shop would refuse.
+// The cap stops the player building a total the shop would refuse.
 TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/25000, /*room=*/kRoomy, /*owned=*/0);
@@ -135,8 +135,8 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
   EXPECT_EQ(panel.quantity(), 2) << "25,000 buys two at 10,000";
 }
 
-// A player who cannot afford one still gets the dialog, and it says why
-// rather than refusing to open.
+// A player who can't afford one still gets the dialog, and it says why instead
+// of refusing to open.
 TEST(BuyPanelTest, AnUnaffordableItemOpensAtZero) {
   BuyPanel panel;
   panel.Reset("Gladius", 20000, /*meso=*/500, /*room=*/kRoomy, /*owned=*/0);
@@ -158,8 +158,8 @@ TEST(BuyPanelTest, ConfirmBuysAnAffordableAmountAndEscapeDoesNot) {
   EXPECT_EQ(panel.quantity(), 1);
 }
 
-// Backspacing to nothing is the one way to reach zero with meso in hand, and
-// zero is not a purchase.
+// Backspacing to empty is the only way to reach zero with meso in hand, and
+// zero isn't a purchase.
 TEST(BuyPanelTest, ZeroIsNotSomethingToConfirm) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
@@ -180,10 +180,10 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
   EXPECT_EQ(panel.quantity(), 3);
 }
 
-// A full bag reads like an unaffordable item: the dialog opens and says no,
-// rather than offering a number that would be refused. [1] is no way around
-// it -- a button that set one anyway would hand Confirm an amount the shop
-// only refuses, which is a purchase that silently does nothing.
+// A full bag behaves like an unaffordable item: the dialog opens and says no
+// instead of offering a number that would be refused. [1] doesn't get around
+// it, since a button that set one anyway would give Confirm an amount the shop
+// refuses, a purchase that silently does nothing.
 TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
   panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
@@ -195,16 +195,16 @@ TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
 }
 
-// Both dead ends draw the same 0, so the row naming the one that closed is
-// all that tells a bag with no slot from a purse with no meso.
+// Both dead ends show the same 0, so the reason row is all that tells a full
+// bag from a purse with no meso.
 TEST(BuyPanelTest, AClosedDialogSaysWhichCeilingClosedIt) {
   BuyPanel panel;
   panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
   EXPECT_NE(Render(panel).find("Bag full"), std::string::npos);
   EXPECT_EQ(CellColor(panel, "Bag full", "B"), kRed);
 
-  // The purse only when the bag is not the problem: an item with nowhere to go
-  // is not bought by earning more.
+  // The purse is named only when the bag isn't the problem, since earning more
+  // won't help an item with nowhere to go.
   panel.Reset("Machete", 10, /*meso=*/9, /*room=*/kRoomy, /*owned=*/0);
   EXPECT_NE(Render(panel).find("Not enough meso"), std::string::npos);
 
@@ -214,8 +214,8 @@ TEST(BuyPanelTest, AClosedDialogSaysWhichCeilingClosedIt) {
   EXPECT_EQ(Render(panel).find("Not enough"), std::string::npos);
 }
 
-// Neither the balance nor the bag is the only ceiling: the field itself stops,
-// at a full stack of spell traces.
+// The balance and the bag aren't the only limits: the field itself stops at a
+// full stack of spell traces.
 TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
   BuyPanel panel;
   panel.Reset("Machete", 1, /*meso=*/100000000, /*room=*/kRoomy, /*owned=*/0);
@@ -223,12 +223,12 @@ TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
   for (int i = 0; i < 6; ++i) {
     panel.OnEvent(ftxui::Event::Character('9'));
   }
-  // The literal rather than the constant: a test that reads the limit off the
-  // thing under test cannot notice the limit changing.
+  // The literal rather than the constant, since a test that reads the limit
+  // from the code under test can't notice the limit changing.
   EXPECT_EQ(panel.quantity(), 30000);
 }
 
-// The limit is a ceiling, not a floor: it does not raise a cap the balance or
+// The limit is a ceiling, not a floor: it doesn't raise a cap the balance or
 // the bag has already set lower.
 TEST(BuyPanelTest, TheQuantityLimitYieldsToATighterCap) {
   BuyPanel panel;
@@ -242,8 +242,8 @@ TEST(BuyPanelTest, TheQuantityLimitYieldsToATighterCap) {
 
 // --- what the player already has ---
 
-// The question a shopper asks before the price: buying a second of something
-// is a different decision from buying a first.
+// The question a shopper asks before the price: buying a second of something is
+// a different decision from buying the first.
 TEST(BuyPanelTest, ShowsHowManyAreAlreadyOwned) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/3);
@@ -255,9 +255,9 @@ TEST(BuyPanelTest, ShowsHowManyAreAlreadyOwned) {
   EXPECT_LT(owned, price) << "above the price, which is the later question";
 }
 
-// The shop never stocks a free item, but the buy-back shelf does -- a trace,
-// or anything the shop does not sell, sold for nothing and comes back for it.
-// The balance cannot cap what costs nothing.
+// The shop never stocks a free item, but the buyback shelf can: a trace, or
+// anything the shop doesn't sell, sells for nothing and is bought back for
+// nothing. The balance can't cap what costs nothing.
 TEST(BuyPanelTest, AFreeItemCanBeTakenWithNoMeso) {
   BuyPanel panel;
   panel.Reset("Sword Trace", /*unit_price=*/0, /*meso=*/0, /*room=*/1,
@@ -277,7 +277,7 @@ ItemPrototype WeaponToken() {
   return token;
 }
 
-// Same arithmetic, different balance: the dialog counts tokens and draws the
+// Same arithmetic, different balance: the dialog counts tokens and shows the
 // token's own mark where the coin would be.
 TEST(BuyPanelTest, ATokenPriceIsCountedInTokens) {
   ItemPrototype token = WeaponToken();
@@ -287,14 +287,14 @@ TEST(BuyPanelTest, ATokenPriceIsCountedInTokens) {
   panel.OnEvent(ftxui::Event::Backspace);
   panel.OnEvent(ftxui::Event::Character('9'));
   EXPECT_EQ(panel.quantity(), 3) << "three tokens buy three";
-  // Read cell by cell: the mark is coloured, so ToString threads escapes
+  // Read cell by cell, because the mark is coloured and ToString puts escapes
   // between it and the number.
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("🪙"), std::string::npos) << "no meso on this shelf";
   EXPECT_NE(rendered.find("each"), std::string::npos);
 }
 
-// A shelf priced in tokens names the token it is short of, not meso.
+// A shelf priced in tokens names the token the player is short of, not meso.
 TEST(BuyPanelTest, AShortTokenBalanceNamesTheToken) {
   ItemPrototype token = WeaponToken();
   BuyPanel panel;
@@ -304,8 +304,8 @@ TEST(BuyPanelTest, AShortTokenBalanceNamesTheToken) {
             std::string::npos);
 }
 
-// Red is the reason, and a currency is not a reason -- so the mark stays its
-// own colour while the number it is beside goes red.
+// Red means the reason, and a currency isn't a reason, so the mark keeps its
+// own colour while the number beside it turns red.
 TEST(BuyPanelTest, AnUnaffordableTokenTotalReddensTheNumberOnly) {
   ItemPrototype token = WeaponToken();
   BuyPanel panel;

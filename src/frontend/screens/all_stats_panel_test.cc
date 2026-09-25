@@ -34,12 +34,13 @@ class AllStatsPanelTest : public PanelTest {
     return CharacterInstance(rng_, std::move(proto));
   }
 
-  // The panel holds the catalog by reference, so it has to outlive the panel:
-  // a `{}` at the call would dangle.
+  // The panel holds the catalog by reference, so it must outlive the panel; a
+  // `{}` at the call would dangle.
   const std::map<std::string, Skill> no_skills_;
 
-  // The panel's rows as plain characters, one per column, read off the screen
-  // grid -- the borders are box-drawing, so byte offsets do not line up.
+  // The panel's rows as plain characters, one per column, read from the screen
+  // grid, since the borders are box-drawing characters and byte offsets don't
+  // line up.
   static std::vector<std::string> Rows(ftxui::Element element) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                  ftxui::Dimension::Fixed(24));
@@ -51,7 +52,7 @@ class AllStatsPanelTest : public PanelTest {
     return rows;
   }
 
-  // The row holding `label` in its left column, or "" if no row does.
+  // The row with `label` in its left column, or "" if none has it.
   static std::string RowWith(ftxui::Element element, const std::string& label) {
     for (const std::string& row : Rows(std::move(element))) {
       if (row.compare(1, label.size(), label) == 0) {
@@ -65,12 +66,12 @@ class AllStatsPanelTest : public PanelTest {
 TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, no_skills_);
-  // The pairings the layout comes to. Reading the left label and finding the
-  // right one on the same row is the whole assertion.
+  // The pairs the layout produces. Finding the left label and the right one on
+  // the same row is the whole check.
   //
-  // This character is a 1st job, whose Character panel holds the four percent
-  // rows back until the 2nd. They are here regardless: the gate is on the
-  // panel, and this screen is where all of them always are.
+  // This character is a 1st job, whose Character panel holds back the four
+  // percent rows until the 2nd. They appear here anyway: the gate is on the
+  // panel, and this screen always shows everything.
   EXPECT_NE(RowWith(panel.Render(), "STR").find("INT"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Ignore DEF"),
@@ -87,18 +88,18 @@ TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Item Drop Rate").find("Arcane Force"),
             std::string::npos);
-  // Eleven combat stats, so the right column runs a row short and the gap is
-  // at the bottom of it.
+  // Eleven combat stats, so the right column is a row short and the gap is at
+  // its bottom.
   EXPECT_EQ(RowWith(panel.Render(), "Normal Damage").find_last_not_of(' '),
             static_cast<size_t>(AllStatsPanel::kColumnWidth) - 2);
-  // The rule breaks the columns too: Meso Drop Rate opens the group under it
-  // in the left column rather than filling the gap Normal Damage left.
+  // The rule breaks the columns too: Meso Drop Rate starts the group below it
+  // in the left column instead of filling the gap Normal Damage left.
   EXPECT_LT(RowWith(panel.Render(), "Meso Drop Rate").find("Meso Drop Rate"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth));
 }
 
-// HP and MP are drawn as gauges on the Character panel. A number for them here
-// said nothing the bar does not, so this screen is the AP stats only.
+// HP and MP are drawn as gauges on the Character panel. A number here would add
+// nothing, so this screen shows only the AP stats.
 TEST_F(AllStatsPanelTest, DoesNotShowThePools) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, no_skills_);
@@ -123,7 +124,7 @@ TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
   EXPECT_NE(rendered.find("Frostbite"), std::string::npos);
   EXPECT_NE(rendered.find("Lv 60 I/L Wizard"), std::string::npos);
   EXPECT_NE(rendered.find("Combat Power"), std::string::npos);
-  // This screen is for reading: no AP to spend and nothing to spend it on.
+  // This screen is for reading: no AP and nothing to spend it on.
   EXPECT_EQ(rendered.find("AP"), std::string::npos);
   EXPECT_EQ(rendered.find("[+]"), std::string::npos);
 }
@@ -138,10 +139,9 @@ TEST_F(AllStatsPanelTest, AnAddedToStatCarriesItsBreakdown) {
   EXPECT_NE(RenderElement(panel.Render()).find("(40+5) 45"), std::string::npos);
 }
 
-// Defense is the one stat written "(base+bonus) total", so it is the only one
-// that can outgrow a value column -- and when it did, it ran into the gutter
-// and a column past every other value on the screen. The gap before a value
-// gives way now, not the column.
+// A stat shown as "(base+bonus) total" can be longer than its value column, and
+// it must not run into the gutter past every other value. The gap before the
+// value shrinks instead of the column moving.
 TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   Character proto;
   proto.set_level(15);
@@ -161,7 +161,7 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   EquipPrototype wand;
   wand.set_name("Wand");
   wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  // Chosen to write "(800+200) 1000", which fills the column to its edge.
+  // Chosen to show "(800+200) 1000", which fills the column to its edge.
   wand.mutable_base_stats()->set_magic_attack(800);
   c.PickUp(std::make_unique<EquipInstance>(wand));
   c.Equip(0);
@@ -172,8 +172,8 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   ASSERT_NE(magic.find("(800+200) 1000"), std::string::npos)
       << "the value the case is built on changed: " << magic;
 
-  // The long value sits in the left column and stops at its edge: the stat it
-  // pairs with still starts the second column, and the row ends where every
+  // The long value stays in the left column and stops at its edge: the stat
+  // paired with it still starts the second column, and the row ends where every
   // other row does.
   EXPECT_EQ(magic.find("Critical Rate"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth) + 1)
@@ -182,8 +182,8 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
       << "[" << magic << "]";
 }
 
-// A 4th job at the level Hyper Stats open at, with a different STR level in
-// each allocation.
+// A 4th job at the Hyper Stats level, with a different STR level in each
+// allocation.
 TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
   Character proto;
   proto.set_level(140);
@@ -207,14 +207,14 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
   EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+60) 60"),
             std::string::npos);
 
-  // Clamped at both ends, like every tab bar in the game.
+  // Stops at both ends, like every tab bar in the game.
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
   EXPECT_EQ(panel.preset(), Activity::kBossing);
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
   EXPECT_EQ(panel.preset(), Activity::kFarming);
 }
 
-// Below the level there is nothing to pick between, and no row.
+// Below the level there is nothing to pick between, so there is no row.
 TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, no_skills_);
@@ -222,8 +222,8 @@ TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
-// Somebody else's sheet has no account behind it, so the level written on it
-// answers for the row.
+// Someone else's sheet has no account behind it, so the level on the sheet
+// decides whether the row appears.
 TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   Character proto;
   proto.set_level(140);
@@ -244,8 +244,8 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   EXPECT_FALSE(below.OnEvent(ftxui::Event::ArrowRight));
 }
 
-// With their switch off there is one allocation in play, so the screen shows
-// it and offers nothing to pick between.
+// With the autoswap off there is one allocation in play, so the screen shows it
+// and offers nothing to pick.
 TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
   Character proto;
   proto.set_level(140);
@@ -257,7 +257,7 @@ TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
-// A card that measures its own width has to ask for its right margin.
+// A card that measures its own width has to include its right margin.
 TEST_F(AllStatsPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, /*account=*/nullptr, no_skills_);

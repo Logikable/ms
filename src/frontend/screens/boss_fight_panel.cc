@@ -23,10 +23,10 @@
 namespace ms {
 namespace {
 
-// The border a panel draws and the column of clearance it keeps inside it,
-// both sides: what a name laid on a bar has to fit inside.
+// The border and the blank column inside it, on both sides: the space a name
+// drawn on a bar has to fit inside.
 constexpr int kPanelClearance = 4;
-// The two rows of border a panel spends before it draws anything.
+// The two border rows a panel uses before drawing anything.
 constexpr int kPanelBorder = 2;
 
 // A whole percent, rounded down so a bar with anything left never reads 0.
@@ -45,9 +45,9 @@ std::vector<std::string> BarLines(const std::string& text, int rows) {
   return lines;
 }
 
-// How many rows every monster bar in the phase takes: one, unless a name in it
-// needs two. One number for the whole phase, so the arena's rows stay square
-// and a part that dies cannot change the height of the row it stood in.
+// How many rows every monster bar in the phase takes: one, unless a name needs
+// two. One number for the whole phase, so the arena's rows stay even and a part
+// that dies can't change the height of its row.
 int MobBarRows(const std::vector<BossSlot>& slots) {
   int rows = 1;
   for (const BossSlot& slot : slots) {
@@ -58,9 +58,9 @@ int MobBarRows(const std::vector<BossSlot>& slots) {
   return rows;
 }
 
-// A monster's bar: what is left of it, with its name wrapped over the fill the
-// way the player's swing is. The percent goes in the title, where the name
-// will not fit and a number reads as a badge on the frame.
+// A monster's bar: its remaining HP, with its name wrapped over the fill like
+// the player's attack name. The percent goes in the title, since the name won't
+// fit there and a number reads well as a badge on the frame.
 ftxui::Element MobBar(const BossSlot& slot, int rows) {
   ftxui::Element bar = ProgressBar(static_cast<float>(slot.hp_fraction), kRed,
                                    BarLines(slot.name, rows));
@@ -69,22 +69,22 @@ ftxui::Element MobBar(const BossSlot& slot, int rows) {
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
-// A count of seconds as the marquee reads clocks. The run counts in doubles;
-// everything that slides takes a duration.
+// Seconds as a duration for the marquee. The run counts in doubles, and
+// everything that scrolls takes a duration.
 std::chrono::steady_clock::duration Since(double seconds) {
   return std::chrono::duration_cast<std::chrono::steady_clock::duration>(
       std::chrono::duration<double>(seconds));
 }
 
-// One player's panel: whatever they are winding up, under their name. No HP --
-// nothing in a boss fight hits back yet. `self` is the player at this screen,
-// whose panel is the bright one and the one the count-in stands on.
+// One player's panel: whatever they are charging, under their name. No HP,
+// since bosses don't attack players. `self` is the player at this screen, whose
+// panel is bright and shows the countdown.
 ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
                            bool self, bool buff_dots) {
   std::string label = member.attack_name;
   if (self && run.state() == BossRunState::kCountdown) {
-    // The count-in stands where the swing name will: it is the one thing on
-    // screen that is about to change, so it belongs where the eye already is.
+    // The countdown sits where the attack name will be: it is the one thing on
+    // screen about to change, so it belongs where the eye already is.
     label = std::to_string(
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
@@ -92,9 +92,9 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
   ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
                                    accent, BarLines(label, kPlayerBarRows),
                                    buff_dots ? member.buff_count : 0);
-  // Everybody else is named; the player is not, since they know. A name longer
-  // than the plate slides under it on the run's own clock -- there is no
-  // cursor here to start one, so it slides all fight.
+  // Everyone else is named; the player is not, since they know who they are. A
+  // name longer than the panel scrolls on the run's own clock. There is no
+  // cursor here to start it, so it scrolls all fight.
   std::string title =
       self ? "You"
            : ScrollingWindow(member.name, kBossPanelWidth - kPanelClearance,
@@ -103,9 +103,9 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
-// Somewhere the player may stand and is not. Dim and unframed, the size of a
-// bar so the arena's cells stay square: what it says is that the walk goes
-// this far, not that anything is standing here.
+// A spot the player could stand on but doesn't. Dim, unframed and the size of a
+// bar so the arena's cells stay even. It shows how far movement goes, not that
+// anything is there.
 ftxui::Element EmptySpot(int rows) {
   return ftxui::vbox({
              ftxui::filler(),
@@ -116,8 +116,7 @@ ftxui::Element EmptySpot(int rows) {
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows);
 }
 
-// Whether somebody is standing on the spot at `index`, which is what makes it
-// not one of the empty ones.
+// Whether someone is standing on the spot at `index`, which makes it not empty.
 bool Stood(const std::vector<FightMember>& members, int index) {
   for (const FightMember& member : members) {
     if (member.spot == index) {
@@ -127,27 +126,27 @@ bool Stood(const std::vector<FightMember>& members, int index) {
   return false;
 }
 
-// One panel and the cell it stands in.
+// One panel and its cell.
 struct ArenaCell {
   int x = 0;
   int y = 0;
 };
 
-// Numbers drawn straight onto the screen rather than built out of rows: how
-// many there is room for is not known until the arena has placed everything
-// else, and SetBox runs after the rows would have been built.
+// Numbers drawn directly onto the screen instead of built from rows, because
+// how many fit isn't known until the arena has placed everything else, and
+// SetBox runs after rows would have been built.
 //
-// The box is every row they could take and the arena says which to draw, so a
-// row holding a bar costs that one number. Stacked UPWARDS from the last row:
-// what landed first sits at the bottom.
+// The box covers every row they could take, and the arena says which to draw,
+// so a row holding a bar costs only that one number. Stacked upwards from the
+// last row, so the earliest hit is at the bottom.
 class DamageNumbersNode : public ftxui::Node {
  public:
-  // A party member's stack: one attack of theirs on one monster, flashing a
-  // strike at a time. Drawn faint, well under the player's own numbers.
+  // A party member's stack: one of their attacks on one monster, showing one
+  // strike at a time. Drawn faint, well below the player's own numbers.
   explicit DamageNumbersNode(const DamageStack& stack) : faint_(true) {
-    // Only the strike showing now is drawn, but the box is the tallest and
-    // widest any of them takes: a stack that changed shape as it flashed
-    // would be placed somewhere new every frame.
+    // Only the current strike is drawn, but the box is as tall and wide as the
+    // largest strike, since a stack that changed shape as it flashed would move
+    // every frame.
     std::pair<int, int> showing = stack.StrikeAt(stack.age);
     rows_ = std::max(1, stack.TallestStrike());
     for (int i = 0; i < static_cast<int>(stack.lines.size()); ++i) {
@@ -161,9 +160,9 @@ class DamageNumbersNode : public ftxui::Node {
     }
   }
 
-  // The player's own column above one monster. Every row of it is drawn: a row
-  // holds whichever number is standing there now, and an empty one holds a gap
-  // the rows above it keep their place over.
+  // The player's own column above one monster. Every row is drawn: a row holds
+  // whichever number is there now, and an empty row holds a gap so the rows
+  // above keep their place.
   explicit DamageNumbersNode(const std::vector<DamageRow>& column) {
     rows_ = std::max(1, static_cast<int>(column.size()));
     for (const DamageRow& row : column) {
@@ -174,8 +173,8 @@ class DamageNumbersNode : public ftxui::Node {
     }
   }
 
-  // Which of the numbers to draw, one flag per row. Nothing until the arena
-  // has said, so a stack it never placed draws nothing.
+  // Which numbers to draw, one flag per row. Nothing is drawn until the arena
+  // sets this, so a stack it never placed draws nothing.
   void DrawRows(std::vector<bool> rows) {
     drawn_ = std::move(rows);
   }
@@ -208,7 +207,7 @@ class DamageNumbersNode : public ftxui::Node {
     if (number.text.empty()) {
       return;
     }
-    // Right-aligned, so the digits of every row line up under one another.
+    // Right-aligned, so the digits of every row line up.
     int left = box_.x_max - static_cast<int>(number.text.size()) + 1;
     for (std::size_t i = 0; i < number.text.size(); ++i) {
       int x = left + static_cast<int>(i);
@@ -228,30 +227,30 @@ class DamageNumbersNode : public ftxui::Node {
 
   std::vector<Number> numbers_;
   std::vector<bool> drawn_;
-  // The rows the box holds, which is the tallest strike rather than what is
-  // drawn this frame. A shorter strike stands on the last of them and leaves
-  // the rest untouched.
+  // The rows in the box, which is the tallest strike rather than what is drawn
+  // this frame. A shorter strike uses the last of them and leaves the rest
+  // untouched.
   int rows_ = 1;
   int width_ = 1;
   bool faint_ = false;
 };
 
-// One party member's stack and the panel it belongs beside.
+// One party member's stack and the panel it goes beside.
 struct ArenaStack {
   std::size_t owner = 0;  // index into the arena's panels: the monster it hit
   int preference = 0;     // which side of that panel to try first
   std::shared_ptr<DamageNumbersNode> node;
 };
 
-// The player's own column of numbers and the monster bar it stands over.
+// The player's own column of numbers and the monster bar it sits over.
 struct ArenaColumn {
   std::size_t owner = 0;
   std::shared_ptr<DamageNumbersNode> node;
 };
 
-// The sides of a bar a party member's stack can stand on, in the order the
-// arena tries them. A stack's own preference rotates the list, so two landing
-// on one monster do not both reach for the same side first.
+// The sides of a bar where a party member's stack can go, in the order the
+// arena tries them. Each stack's own preference rotates the list, so two stacks
+// on one monster don't both try the same side first.
 enum class Side { kBelow, kLeft, kRight };
 constexpr Side kSides[] = {Side::kBelow, Side::kLeft, Side::kRight};
 
@@ -261,12 +260,12 @@ bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
 }
 
 // The arena's layout: each panel centred in its cell of a `columns` x `rows`
-// grid. A GRID rather than stretched gaps, because the cells must line up DOWN
-// the screen as well as across: a row of two would otherwise share its spare
-// room differently from a row of three.
+// grid. A grid rather than stretched gaps, because cells must line up down the
+// screen as well as across; otherwise a row of two would share its spare room
+// differently from a row of three.
 //
-// Panels keep the size they asked for, and where the cells are too narrow they
-// are pushed right in order so they touch rather than overlap.
+// Panels keep the size they asked for, and where cells are too narrow they are
+// pushed right in order so they touch instead of overlapping.
 class ArenaNode : public ftxui::Node {
  public:
   ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
@@ -286,8 +285,8 @@ class ArenaNode : public ftxui::Node {
     for (const ArenaStack& stack : stacks_) {
       children_.push_back(stack.node);
     }
-    // Last, so it is drawn over anything that reached its rows: the clock is
-    // the one thing on this screen that must always be readable.
+    // Last, so it is drawn over anything that reached its rows: the clock must
+    // always be readable.
     clock_ = children_.size();
     children_.push_back(std::move(clock));
   }
@@ -297,7 +296,7 @@ class ArenaNode : public ftxui::Node {
     std::map<int, int> row_width;
     int tallest = 0;
     // The numbers are measured too, since they are children, but they ask the
-    // arena for nothing: they stand in the room the bars left over.
+    // arena for nothing. They go in the space the bars leave.
     for (const ftxui::Element& child : children_) {
       child->ComputeRequirement();
     }
@@ -310,8 +309,8 @@ class ArenaNode : public ftxui::Node {
     }
     requirement_.min_y = tallest * static_cast<int>(row_width.size()) +
                          children_[clock_]->requirement().min_y;
-    // It is the arena: it takes the room it is offered rather than the room
-    // its bars happen to need.
+    // It is the arena, so it takes the space it is offered rather than the
+    // space its bars need.
     requirement_.flex_grow_x = 1;
     requirement_.flex_grow_y = 1;
   }
@@ -319,8 +318,8 @@ class ArenaNode : public ftxui::Node {
   void SetBox(ftxui::Box box) override {
     ftxui::Node::SetBox(box);
     ftxui::Box clock = PlaceClock(box);
-    // The bars are laid out under the clock, as they were when it sat in a row
-    // of its own. Only the numbers reach up into its rows.
+    // The bars are laid out below the clock. Only the numbers reach up into its
+    // rows.
     ftxui::Box body = box;
     body.y_min = std::min(clock.y_max + 1, box.y_max);
     std::map<int, std::vector<std::size_t>> by_row;
@@ -335,21 +334,21 @@ class ArenaNode : public ftxui::Node {
   }
 
  private:
-  // Where a stack could stand, and how many of its rows would show there.
+  // Where a stack could go, and how many of its rows would show there.
   struct Spot {
     ftxui::Box box;
     int rows = 0;
   };
 
-  // Where a cell's centre falls, as a share of the box it is drawn in.
+  // Where a cell's centre falls, as a proportion of the box it is drawn in.
   static int CentreOf(int cell, int cells, int low, int high) {
     double span = static_cast<double>(high - low + 1) / cells;
     return low + static_cast<int>((cell + 0.5) * span);
   }
 
-  // Stands the clock across the top of the arena, centred. Its box is handed
-  // back so nothing is placed under it: a stack may share its rows, but not a
-  // cell of the clock itself, border included.
+  // Places the clock centred across the top of the arena. Its box is returned
+  // so nothing is placed under it: a stack may share its rows, but not any cell
+  // of the clock itself, border included.
   ftxui::Box PlaceClock(ftxui::Box box) {
     const ftxui::Element& clock = children_[clock_];
     int width = std::min(clock->requirement().min_x, box.x_max - box.x_min + 1);
@@ -368,8 +367,8 @@ class ArenaNode : public ftxui::Node {
     int height = children_[row.front()]->requirement().min_y;
     int top = CentreOf(y, rows_, box.y_min, box.y_max) - height / 2;
     top = std::clamp(top, box.y_min, std::max(box.y_min, box.y_max - height));
-    // Filled from the left: the first panel takes its own place, and each one
-    // after it stands where the cell asks or against its neighbour.
+    // Filled from the left: the first panel takes its own place, and each later
+    // one goes where its cell asks or against its neighbour.
     int taken = box.x_min;
     for (std::size_t i : row) {
       int width = children_[i]->requirement().min_x;
@@ -383,8 +382,8 @@ class ArenaNode : public ftxui::Node {
     }
   }
 
-  // Stands the numbers: the player's own columns over their monsters first,
-  // since that space is theirs, then the party's in what is left beside the
+  // Places the numbers: the player's own columns over their monsters first,
+  // since that space is theirs, then the party's in the space left beside the
   // bars.
   void PlaceNumbers(ftxui::Box box, ftxui::Box clock) {
     std::vector<ftxui::Box> taken;
@@ -396,9 +395,9 @@ class ArenaNode : public ftxui::Node {
     for (const ArenaColumn& column : numbers_) {
       PlaceColumn(box, column, taken);
     }
-    // The rows over a monster's bar are THIS player's whether or not they hold
-    // a number now, so a party member's stack does not jump aside the moment
-    // the player lands a swing.
+    // The rows over a monster's bar belong to this player whether or not they
+    // hold a number now, so a party member's stack doesn't jump aside the
+    // moment the player lands a hit.
     std::vector<ftxui::Box> reserved = taken;
     for (std::size_t i = 0; i < mobs_; ++i) {
       reserved.push_back({panel_box_[i].x_min, panel_box_[i].x_max, box.y_min,
@@ -409,9 +408,9 @@ class ArenaNode : public ftxui::Node {
     }
   }
 
-  // Stands the player's column over the monster it was dealt to, bottom row
-  // against the bar. A row falling outside the arena or onto something else is
-  // simply NOT DRAWN: these numbers belong over what they were dealt to.
+  // Places the player's column over the monster it hit, with the bottom row
+  // against the bar. A row outside the arena or on top of something else is not
+  // drawn, since these numbers belong over their target.
   void PlaceColumn(ftxui::Box arena, const ArenaColumn& column,
                    std::vector<ftxui::Box>& taken) {
     ftxui::Box owner = panel_box_[column.owner];
@@ -434,9 +433,9 @@ class ArenaNode : public ftxui::Node {
     column.node->SetBox({left, left + width - 1, top, top + height - 1});
   }
 
-  // Stands a party member's stack in the first free space its own preference
-  // reaches for. One that fits nowhere whole takes the side showing the most
-  // of it.
+  // Places a party member's stack in the first free space its preference
+  // reaches. One that fits nowhere whole takes the side that shows the most of
+  // it.
   void PlaceBeside(ftxui::Box arena, const ArenaStack& stack,
                    std::vector<ftxui::Box>& taken,
                    const std::vector<ftxui::Box>& reserved) {
@@ -455,9 +454,9 @@ class ArenaNode : public ftxui::Node {
         break;
       }
     }
-    // The rows that fit are the box's last ones, since the stack is read
-    // upwards: what a cramped side costs is the tail of the stack. The rows
-    // above them hang off the top of the spot and are never drawn.
+    // The rows that fit are the box's last ones, since the stack reads upwards:
+    // a cramped side loses the top of the stack. The rows above hang off the
+    // top of the spot and are never drawn.
     int height = stack.node->requirement().min_y;
     std::vector<bool> drawn(height, false);
     for (int row = height - best.rows; row < height; ++row) {
@@ -481,9 +480,9 @@ class ArenaNode : public ftxui::Node {
     return false;
   }
 
-  // The room `side` of `owner` offers a stack of `want`, inside `arena` and
+  // The space `side` of `owner` offers a stack of `want`, inside `arena` and
   // clear of `blocked`. Rows are dropped from the far end until it fits, so a
-  // cramped side shows part of the stack rather than nothing.
+  // cramped side shows part of the stack instead of nothing.
   static Spot SpotOn(Side side, ftxui::Box owner, ftxui::Requirement want,
                      ftxui::Box arena, const std::vector<ftxui::Box>& blocked) {
     Spot spot;
@@ -498,8 +497,8 @@ class ArenaNode : public ftxui::Node {
                   : owner.y_min + (owner.y_max - owner.y_min + 1 - height) / 2;
     if (side != Side::kBelow &&
         (left < arena.x_min || left + width - 1 > arena.x_max)) {
-      // Sideways, the width is what the arena has to hold: a stack that runs
-      // off the edge names a number the player cannot read.
+      // Sideways, the width must fit inside the arena: a stack that runs off
+      // the edge shows a number the player can't read.
       return spot;
     }
     left = std::clamp(left, arena.x_min,
@@ -520,33 +519,32 @@ class ArenaNode : public ftxui::Node {
   std::vector<ArenaCell> cells_;
   int columns_ = 1;
   int rows_ = 1;
-  // How many of the children are panels. The stacks follow them, and the clock
-  // is the last child of all.
+  // How many of the children are panels. The stacks come after them, and the
+  // clock is the very last child.
   std::size_t panels_ = 0;
   std::size_t clock_ = 0;
   // How many of those panels are monster bars. They come first, so the bar
   // under a reserved column is one of the first `mobs_` boxes.
   std::size_t mobs_ = 0;
-  // Where each panel was put, kept because a Node does not hand its box back
+  // Where each panel was placed. Kept because a Node doesn't expose its box,
   // and the stacks have to be placed clear of them.
   std::vector<ftxui::Box> panel_box_;
   std::vector<ArenaColumn> numbers_;
   std::vector<ArenaStack> stacks_;
 };
 
-// The clock, which the arena stands across its own top row rather than taking
-// a strip of the screen for.
+// The clock, which the arena places across its own top row instead of giving it
+// a separate strip of the screen.
 ftxui::Element ClockPanel(const BossRun& run) {
   return ThemedWindow("", CenteredRow(FormatClock(run.seconds_left())));
 }
 
 // The arena: every bar of the phase in the cell the fight gave it, the player
-// among them, and the clock over them all, spread over the whole of the
-// screen under the heading.
+// among them, and the clock above, filling the screen below the heading.
 ftxui::Element Arena(const BossRun& run, bool buff_dots) {
   const std::vector<BossSlot>& slots = run.slots();
   // One height for every panel in the phase, monsters and player alike, so a
-  // row of bars sits on one line however many rows their names took.
+  // row of bars lines up however many rows their names took.
   int rows = kPanelBorder + std::max(MobBarRows(slots), kPlayerBarRows);
   int height = std::max(run.arena_height(), run.player_spot().y() + 1);
   ftxui::Elements panels;
@@ -561,8 +559,8 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
     cells.push_back({slot.x, slot.y});
   }
-  // The monster bars come first, and the arena counts on it: the column over
-  // each of them is kept clear for that monster's swing.
+  // The monster bars come first, and the arena relies on that: the column over
+  // each is kept clear for the player's hits on that monster.
   std::size_t mobs = panels.size();
   std::vector<ArenaSpot> spots = run.player_spots();
   const std::vector<FightMember>& members = run.members();
@@ -573,8 +571,8 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
     panels.push_back(EmptySpot(rows));
     cells.push_back({spots[i].x(), spots[i].y()});
   }
-  // The player at this screen is the first of them, and is drawn last so that
-  // a panel pushed aside for room is somebody else's.
+  // The player at this screen is first in the list and drawn last, so a panel
+  // pushed aside for room is someone else's.
   for (std::size_t i = members.size(); i > 0; --i) {
     const FightMember& member = members[i - 1];
     ArenaSpot standing;
@@ -585,8 +583,8 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
     cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
   }
-  // After the panels, so numbers are placed knowing where every bar stands --
-  // including the one whose monster they belong to.
+  // After the panels, so the numbers are placed knowing where every bar is,
+  // including the one their monster is on.
   std::vector<ArenaColumn> numbers;
   for (const std::pair<const int, std::size_t>& slot : panel_of_slot) {
     std::vector<DamageRow> column =
@@ -615,9 +613,9 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
 }  // namespace
 
 std::string FightHeading(const BossRun& run) {
-  // Practice leads the heading rather than trailing it: the tail is the phase
-  // and the percent, which move, and what this run is worth should not have to
-  // be found among them.
+  // Practice comes first in the heading rather than last: the end holds the
+  // phase and the percent, which change, and what this run is worth shouldn't
+  // have to be found among them.
   std::string practice = run.practice() ? "Practice - " : "";
   switch (run.state()) {
     case BossRunState::kWon:
@@ -627,8 +625,8 @@ std::string FightHeading(const BossRun& run) {
     case BossRunState::kAborted:
       return practice + run.title() + " - Left";
     default: {
-      // The phase is named only by a fight that has more than one: "P1" on a
-      // boss fought in one room says nothing the player could not see.
+      // The phase is shown only for a fight with more than one: "P1" on a
+      // one-room boss adds nothing.
       std::string phase =
           run.phase_count() > 1 ? " - P" + std::to_string(run.phase()) : "";
       return practice + run.title() + phase + " - " +
@@ -638,9 +636,9 @@ std::string FightHeading(const BossRun& run) {
 }
 
 ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
-  // The arena takes everything under the heading, the clock included: what it
-  // does with the room is the phase's own business, and a fight drawn small in
-  // the middle of a wide screen is not what standing in an arena looks like.
+  // The arena takes everything below the heading, clock included. A fight drawn
+  // small in the middle of a wide screen doesn't look like standing in an
+  // arena.
   return ftxui::vbox({
       ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
                   FightHeading(run)),

@@ -1,11 +1,10 @@
-/* BuffInfoPanel is the Buffs tab's counterpart to SkillInspectPanel: one buff's
- * name, what it is worth a line at a time, and the two prices it can be had
- * for -- the rent charged every time it procs, and what buying it outright
- * costs.
+/* BuffInfoPanel is the Buffs tab's version of SkillInspectPanel: one buff's
+ * name, its effects one line at a time, and its two prices: the rent charged
+ * each time it triggers, and the cost of buying it outright.
  *
  * Every card is the same width, measured from the widest line of the widest
- * buff in the table, so walking the tab does not resize the window under the
- * cursor. Its height is its own: a buff with fewer effects is a shorter card.
+ * buff, so moving through the tab doesn't resize the window. Its height is its
+ * own: a buff with fewer effects has a shorter card.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BUFF_INFO_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BUFF_INFO_PANEL_H_
@@ -19,13 +18,13 @@ namespace ms {
 
 class BuffInfoPanel {
  public:
-  // Seeds the card: which buff, and whether this character has bought it. An
-  // owned buff is never charged again, so its prices read differently.
+  // Sets the card's buff and whether this character has bought it. An owned
+  // buff is never charged again, so its prices read differently.
   void SetBuff(ConsumableType type, bool owned);
 
   ftxui::Element Render() const;
 
-  // The columns the card takes, borders included. The same for every buff.
+  // The width the card takes, borders included. The same for every buff.
   static int Columns();
 
  private:
@@ -33,11 +32,11 @@ class BuffInfoPanel {
   bool owned_ = false;
 };
 
-// What one proc of `type` costs, as the card and the tab both state it --
-// "🪙 1,000 per second while farming". Empty for a type no buff describes.
+// The cost of one trigger of `type`, as the card and the tab show it: "🪙 1,000
+// per second while farming". Empty for a type no buff describes.
 std::string ConsumableRentText(ConsumableType type);
 
-// And what buying it outright costs: "🪙 100,000,000 to unlock permanently".
+// The cost of buying it outright: "🪙 100,000,000 to unlock permanently".
 std::string ConsumablePermanentText(ConsumableType type);
 
 }  // namespace ms

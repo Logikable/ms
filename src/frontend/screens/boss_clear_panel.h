@@ -1,8 +1,9 @@
-/* The card a cleared boss fight ends on: what was beaten, and what it paid.
+/* The card shown when a boss fight is cleared: what was beaten, and what it
+ * paid.
  *
- * A view like the fight screen beside it -- it holds nothing and decides
- * nothing. Gold rather than the game's steel blue, the way the level-up card
- * is: a clear is news, and a daily boss is news the player waited a day for.
+ * It only displays, like the fight screen, and holds no state. It is gold
+ * instead of the game's steel blue, like the level-up card, because a clear is
+ * news, and a daily boss is news the player waited a day for.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BOSS_CLEAR_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BOSS_CLEAR_PANEL_H_
@@ -14,10 +15,10 @@
 
 namespace ms {
 
-// The card for `title` paying `reward`, its buttons (`prompt`) inside the
-// border so the whole of what is read sits in one box. `seconds` is how long
-// the clear took, carried by the title row: "Normal Zakum in 2:47".
-// `show_honor` is HonorVisible -- the clear pays honor either way.
+// The card for `title` paying `reward`, with its buttons (`prompt`) inside the
+// border so everything to read is in one box. `seconds` is how long the clear
+// took, shown on the title row: "Normal Zakum in 2:47". `show_honor` is
+// HonorVisible; the clear pays honor either way.
 ftxui::Element BossClearPanel(const std::string& title, double seconds,
                               const BossReward& reward, ftxui::Element prompt,
                               bool show_honor);

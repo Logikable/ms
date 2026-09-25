@@ -22,7 +22,7 @@ PlayerBreakdown Player(const std::string& name,
   return {name, name, std::move(rows)};
 }
 
-// Two players, the lighter one listed first so the panel has to sort them.
+// Two players, with the lower one listed first so the panel has to sort them.
 std::vector<PlayerBreakdown> Party() {
   return {
       Player("Light", {{"Blast", 100.0, 10, 20}, {"Raging Blow", 50.0, 5, 5}}),
@@ -46,13 +46,13 @@ ftxui::Screen Draw(const BossAnalysisPanel& panel) {
   return screen;
 }
 
-// The column one past the end of `needle` on the first row holding it.
+// The column just past the end of `needle` on the first row containing it.
 int EndOf(const ftxui::Screen& screen, const std::string& needle) {
   ScreenPos pos = FindOnScreen(screen, needle);
   return pos.x + static_cast<int>(needle.size());
 }
 
-// The column past the last character inside row `y`'s right border.
+// The column after the last character inside row `y`'s right border.
 int TextEnd(const ftxui::Screen& screen, int y) {
   for (int x = screen.dimx() - 1; x >= 0; --x) {
     std::string cell = ScreenRow(screen, y, x, x + 1);
@@ -77,7 +77,7 @@ TEST(BossAnalysisPanelTest, PartyColumnsLineUpUnderTheirHeaders) {
   EXPECT_NE(RowIndexOf(screen, "Total Damage: 1,000 "), -1);
   EXPECT_NE(RowIndexOf(screen, "Damage/min: 333 "), -1);
 
-  // Heaviest first, All on top, the caret a space clear of the name.
+  // Highest first, All on top, and the caret one space before the name.
   int all = RowIndexOf(screen, "> All");
   ASSERT_NE(all, -1);
   EXPECT_LT(all, RowIndexOf(screen, "Heavy"));
@@ -86,7 +86,7 @@ TEST(BossAnalysisPanelTest, PartyColumnsLineUpUnderTheirHeaders) {
   EXPECT_NE(rows[RowIndexOf(screen, "Heavy")].find("85.00%"),
             std::string::npos);
 
-  // A rule under both headers, and the shared columns in one place.
+  // A rule under both headers, and the shared columns in the same place.
   int name = RowIndexOf(screen, "Name");
   int skill = RowIndexOf(screen, "Skill");
   EXPECT_TRUE(IsRule(rows[name + 1]));
@@ -97,7 +97,7 @@ TEST(BossAnalysisPanelTest, PartyColumnsLineUpUnderTheirHeaders) {
   EXPECT_EQ(TextEnd(screen, skill),
             TextEnd(screen, RowIndexOf(screen, "Blast")));
 
-  // All's table merges Raging Blow and leads with it.
+  // All's table merges Raging Blow and lists it first.
   EXPECT_LT(RowIndexOf(screen, "Raging Blow"), RowIndexOf(screen, "Blast"));
   EXPECT_NE(rows[RowIndexOf(screen, "Raging Blow")].find("850"),
             std::string::npos);
@@ -130,7 +130,7 @@ TEST(BossAnalysisPanelTest, PlayersPickTheTableAndTabHandsTheArrowsOver) {
   EXPECT_NE(RowIndexOf(screen, "> Puncture"), -1);
   EXPECT_EQ(RowIndexOf(screen, "> Heavy"), -1) << "one caret on screen";
 
-  // A new player starts their table from the top.
+  // A newly selected player's table starts from the top.
   panel.OnEvent(ftxui::Event::TabReverse);
   panel.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel.player_cursor(), 2);
@@ -160,7 +160,7 @@ TEST(BossAnalysisPanelTest, SoloIsTheTableAloneAndItScrolls) {
   EXPECT_EQ(RowIndexOf(screen, "Skill 0 "), -1);
 }
 
-// The widest numbers each column was sized for still leave the gutter.
+// The widest values each column was sized for still leave the gutter.
 TEST(BossAnalysisPanelTest, WidestValuesFit) {
   BossAnalysisPanel panel;
   panel.Open({Player(std::string(20, 'N'),
@@ -171,7 +171,7 @@ TEST(BossAnalysisPanelTest, WidestValuesFit) {
   EXPECT_NE(RowIndexOf(screen, "9,990,000,000,000,000"), -1);
   EXPECT_NE(RowIndexOf(screen, "99,900,999,010"), -1);
   EXPECT_NE(RowIndexOf(screen, "99:59"), -1);
-  // Hurricane casts that many; the column still ends under its header.
+  // Hurricane casts that many, and the column still ends under its header.
   ScreenPos casts = FindOnScreen(screen, "  99,999  ");
   EXPECT_EQ(casts.x + 8, EndOf(screen, "Casts"));
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());

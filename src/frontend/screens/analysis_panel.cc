@@ -29,16 +29,16 @@ std::string StatusText(AnalysisState state) {
   return "";
 }
 
-// The pacing knob as the player reads it: "10x", or "2.5x" if it ever lands
-// off a whole number.
+// The slowdown factor as the player reads it: "10x", or "2.5x" if it is ever
+// not a whole number.
 std::string SlowdownText(double factor) {
   char buf[16];
   snprintf(buf, sizeof(buf), "%gx", factor);
   return buf;
 }
 
-// One row of the panel: the label against the left edge, the value against the
-// right, with a column of clearance inside each border.
+// One row of the panel: the label on the left, the value on the right, with a
+// blank column inside each border.
 ftxui::Element DataRow(const std::string& label, const std::string& value,
                        int width) {
   int gap = width - static_cast<int>(value.size());
@@ -71,7 +71,7 @@ ftxui::Element AnalysisPanel::Render() const {
       {"Game Slowdown Factor",
        SlowdownText(GameSpeedFactor(state_.character.proto().level()))},
   };
-  // The measurement itself, under a rule: the two rows above say what the tool
+  // The measurement itself, under a rule. The two rows above say what the tool
   // is doing, and these ten say what it found.
   std::vector<std::pair<std::string, std::string>> found = {
       {"Time", FormatElapsed(analysis_.seconds())},

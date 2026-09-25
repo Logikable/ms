@@ -24,7 +24,7 @@ std::string Render(const AnalysisPanel& panel) {
   return screen.ToString();
 }
 
-// One minute of farming, so every rate is a round multiple of what it is fed.
+// One minute of farming, so every rate is a round multiple of its input.
 void MeasureAMinute(BattleAnalysis& analysis) {
   analysis.Start();
   AnalysisSample beat;
@@ -45,7 +45,7 @@ TEST(AnalysisPanelTest, TheClockIsHoursMinutesSeconds) {
   EXPECT_EQ(FormatElapsed(0.0), "00:00:00");
   EXPECT_EQ(FormatElapsed(59.9), "00:00:59");
   EXPECT_EQ(FormatElapsed(3661.0), "01:01:01");
-  // Hours are not wrapped: a run left overnight says so.
+  // Hours don't wrap, so a run left overnight says so.
   EXPECT_EQ(FormatElapsed(360000.0), "100:00:00");
 }
 
@@ -96,8 +96,8 @@ TEST(AnalysisPanelTest, TheStatusRowSaysWhatTheToolIsDoing) {
             std::string::npos);
 }
 
-// The slowdown row is why the damage per second reads low, so it names the
-// factor the character's own level is running at.
+// The slowdown row explains why damage per second reads low, so it shows the
+// factor for the character's own level.
 TEST(AnalysisPanelTest, TheSlowdownRowFollowsTheLevel) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -111,8 +111,8 @@ TEST(AnalysisPanelTest, TheSlowdownRowFollowsTheLevel) {
   EXPECT_NE(Render(panel).find("10x"), std::string::npos);
 }
 
-// The window fits itself to its widest row, so a rate that grew a digit is
-// what would push the numbers into the frame.
+// The window fits its widest row, so a rate that gained a digit would push the
+// numbers into the border.
 TEST(AnalysisPanelTest, TheRatesKeepOffTheRightBorder) {
   GameState state = EmptyState();
   BattleAnalysis analysis;

@@ -19,9 +19,10 @@
 namespace ms {
 namespace {
 
-// Each column as wide as its widest value: a skill name, 9,999 trillion
-// damage, 100.00%, 99,999 casts (Hurricane), 999 trillion a line, 99,999 lines.
-// Players share the first three, so a name sits over a skill.
+// Each column is as wide as its widest value: a skill name, 9,999 trillion
+// damage, 100.00%, 99,999 casts (Hurricane), 999 trillion per line and 99,999
+// lines. Players share the first three columns, so a name lines up over a
+// skill.
 constexpr int kNameWidth = 28;
 constexpr int kDamageWidth = 21;
 constexpr int kShareWidth = 7;
@@ -33,14 +34,14 @@ constexpr char kCursorHere[] = "> ";
 constexpr char kCursorAway[] = "  ";
 constexpr int kRowWidth = 2 + kNameWidth + 2 + kDamageWidth + 2 + kShareWidth +
                           2 + kCastsWidth + 2 + kPerLineWidth + 2 + kLinesWidth;
-// The row and the blank column inside the right border, where the table's
+// The row plus the blank column inside the right border, where the table's
 // scroll bar goes.
 constexpr int kContentWidth = kRowWidth + 1;
 
-// Rows a window spends on itself: two borders, a header and its divider.
+// Rows a window uses for itself: two borders, a header and its divider.
 constexpr int kTableChrome = 4;
 constexpr int kTotalsHeight = 3;
-// The Players panel spends the same, and the All row on top of that.
+// The Players panel uses the same, plus the All row.
 constexpr int kPlayersChrome = kTableChrome + 1;
 
 std::string Damage(double damage) {
@@ -53,15 +54,15 @@ std::string Share(double share) {
   return text;
 }
 
-// The first three columns, which the Players panel and the table share.
+// The first three columns, shared by the Players panel and the table.
 std::string LeadColumns(const std::string& name, const std::string& damage,
                         const std::string& share) {
   return PadRight(name, kNameWidth) + kGap + PadLeft(damage, kDamageWidth) +
          kGap + PadLeft(share, kShareWidth);
 }
 
-// `columns` behind the cursor's mark, padded out to the row: the caret only
-// where the arrows are, the band wherever `banded`.
+// `columns` after the cursor's mark, padded to the row width: the caret only
+// where the arrows are, and the band wherever `banded`.
 ftxui::Element Row(const std::string& columns, bool caret, bool banded) {
   std::string row = (caret ? kCursorHere : kCursorAway) + columns;
   return HighlightRow(ftxui::text(PadRight(row, kRowWidth)), banded);
@@ -154,8 +155,8 @@ ftxui::Element BossAnalysisPanel::Render() const {
   return ftxui::vbox(std::move(windows));
 }
 
-// The party's numbers, each straight after its label and padded to its widest
-// so nothing moves between fights.
+// The party's totals, each right after its label and padded to its widest, so
+// nothing moves between fights.
 ftxui::Element BossAnalysisPanel::RenderTotals() const {
   double per_minute = 0.0;
   if (seconds_ > 0.0) {

@@ -50,12 +50,12 @@ class BankPanelTest : public PanelTest {
     return ScreenText(screen);
   }
 
-  // Down onto the first row of whichever half holds the cursor.
+  // Down onto the first row of whichever half has the cursor.
   void ToList() {
     panel_->MoveRow(1);
   }
 
-  // Right until the cursor is on the named stop of the top row.
+  // Right until the cursor is on the given stop of the top row.
   void ToStop(int times) {
     for (int i = 0; i < times; ++i) {
       panel_->MoveCursor(1);
@@ -73,7 +73,7 @@ class BankPanelTest : public PanelTest {
   std::unique_ptr<BankPanel> panel_;
 };
 
-// The cursor opens on the bag's Equip chip, Tab crosses to the bank, and each
+// The cursor starts on the bag's Equip chip, Tab moves to the bank, and each
 // half keeps its own tab and row.
 TEST_F(BankPanelTest, TabCrossesAndEachHalfKeepsItsPlace) {
   EXPECT_EQ(panel_->zone(), BankZone::kBag);
@@ -110,8 +110,8 @@ TEST_F(BankPanelTest, TheTopRowWalksChipsThenBalances) {
   EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab) << "round the ring";
 }
 
-// Down enters the list and Up off its first row comes back to the chip of the
-// tab being shown, not to wherever the cursor left the top row.
+// Down enters the list, and Up from its first row returns to the chip of the
+// tab being shown, not wherever the cursor was on the top row.
 TEST_F(BankPanelTest, UpOffTheListReturnsToTheOpenTabsChip) {
   ToStop(2);  // the meso cell
   panel_->MoveRow(1);
@@ -142,8 +142,8 @@ TEST_F(BankPanelTest, MovingAnEquipCrossesAndBackAgain) {
   EXPECT_EQ(c_.inventory().size(), 1);
 }
 
-// A whole stack row crosses at once, and the row that slid up is where the
-// cursor lands.
+// A whole stack row moves at once, and the cursor lands on the row that moved
+// up.
 TEST_F(BankPanelTest, MovingAStackTakesTheWholeRow) {
   panel_->MoveCursor(1);  // the Etc chip
   ToList();
@@ -158,9 +158,9 @@ TEST_F(BankPanelTest, MovingAStackTakesTheWholeRow) {
   EXPECT_EQ(panel_->cursor().index, 0);
 }
 
-// A symbol is bound to the character who raised it, so it never reaches the
-// account's shelf. Only the way in is guarded: one banked before the rule
-// stood still comes home.
+// A symbol is bound to the character who levelled it, so it can never go into
+// the account's bank. Only the way in is checked, so one banked before the rule
+// existed can still come back out.
 TEST_F(BankPanelTest, ASymbolWillNotGoIntoTheBank) {
   EquipPrototype symbol;
   symbol.set_name("Arcane Symbol: Vanishing Journey");
@@ -191,7 +191,7 @@ TEST_F(BankPanelTest, AFullTabRefusesAndSaysWhich) {
   EXPECT_EQ(panel_->MoveSelected(), "Bank full.");
   EXPECT_EQ(c_.inventory().size(), 1) << "and nothing left the bag";
 
-  // And the other way: a bag with no slot left refuses what the bank offers.
+  // The other way: a full bag refuses what the bank offers.
   while (!c_.inventory().full()) {
     c_.PickUp(std::make_unique<EquipInstance>(sword_));
   }
@@ -212,7 +212,8 @@ TEST_F(BankPanelTest, BalancesCrossBothWays) {
   EXPECT_EQ(c_.CountItem(kSpellTraceName), 500);
   EXPECT_EQ(bank().CountCurrency(kSpellTraceName), 400);
 
-  // More than is held is clamped to what is there, and nothing is conjured.
+  // Asking for more than is held is clamped to what is there, and nothing is
+  // created.
   panel_->NextZone();
   ToStop(2);
   panel_->MoveCurrency(BankCurrency::kMeso, 99999999);
@@ -235,7 +236,7 @@ TEST_F(BankPanelTest, SortFilesTheHalfTheCursorIsIn) {
 }
 
 // Both halves draw, both are labelled, and the screen fits the shortest
-// terminal the game is laid out for.
+// terminal the game supports.
 TEST_F(BankPanelTest, BothHalvesDrawAndTheScreenFits) {
   std::string screen = Text();
   EXPECT_NE(screen.find("Inventory"), std::string::npos);
@@ -287,8 +288,8 @@ TEST_F(BankPanelTest, InspectReachesTheItemInEitherHalf) {
   EXPECT_EQ(panel_->selected_equip()->name(), "Sword");
 }
 
-// Two windows side by side, each fitted to its own rows: a full purse is the
-// widest thing either of them says.
+// Two windows side by side, each fitted to its own rows. A full purse is the
+// widest thing either shows.
 TEST_F(BankPanelTest, NeitherHalfWeldsARowToItsRightBorder) {
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel_->Render()).empty());
 }

@@ -22,10 +22,10 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price,
   balance_ = balance;
   owned_ = owned;
   token_ = token;
-  // Capped so the field cannot be typed to an amount the shop would refuse:
-  // the balance, the bag's room, and the four digits the field takes. A price
-  // of zero puts no ceiling on the balance -- the shop stocks no free item,
-  // but the buy-back shelf carries what went for nothing.
+  // Capped so the field can't reach an amount the shop would refuse: the
+  // balance, the bag's room, and the field's digit limit. A price of zero puts
+  // no limit on the balance. The shop stocks nothing free, but the buyback
+  // shelf has items that sold for nothing.
   int64_t affordable = kMaxQuantity;
   if (unit_price > 0) {
     affordable = balance / unit_price;
@@ -43,14 +43,14 @@ int64_t BuyPanel::total() const {
 }
 
 bool BuyPanel::Affordable() const {
-  // A quantity of zero is not a purchase, so Confirm has nothing to honour --
-  // the same reason it goes down when the total runs past the balance.
+  // A quantity of zero isn't a purchase, so there is nothing to confirm, just
+  // as when the total exceeds the balance.
   return total() <= balance_ && selector_.value() > 0;
 }
 
-// The bag before the purse: a player with neither has to clear a slot whatever
-// they do about the meso, and naming the currency for an item that has nowhere
-// to go would send them off to earn what they could not spend.
+// The bag is checked before the purse. A player short of both has to free a
+// slot whatever they do about meso, and naming the currency for an item that
+// has nowhere to go would send them to earn meso they couldn't use.
 std::string BuyPanel::Reason() const {
   if (cap_ > 0) {
     return "";
@@ -61,8 +61,8 @@ std::string BuyPanel::Reason() const {
   return token_ == nullptr ? "Not enough meso" : "Not enough " + token_->name();
 }
 
-// The mark keeps its own colour whatever the number does: red is the reason
-// the player cannot pay, and a currency is not a reason (colors.h).
+// The currency mark keeps its own colour whatever the number does. Red means
+// the player can't pay, and the currency isn't the reason (colors.h).
 ftxui::Element BuyPanel::Amount(int64_t value, bool red) const {
   if (token_ == nullptr) {
     return RedUnless(ftxui::text(FormatMeso(value)), !red);
@@ -82,17 +82,17 @@ ftxui::Element BuyPanel::Render() const {
   std::vector<ftxui::Element> rows = {
       CenteredRow(item_name_),
       ThemedSeparator(),
-      // Above the price, because it is the question asked first: a player
-      // deciding whether to buy another wants to know how many they have
-      // before working out what it costs. Shown at zero as well -- "none yet"
-      // is an answer, and a row that came and went would be read as a glitch.
+      // Above the price, because it is the first question: a player deciding
+      // whether to buy another wants to know how many they have before looking
+      // at the cost. Shown at zero too, since "none yet" is an answer and a row
+      // that came and went would look like a glitch.
       CenteredRow("Owned: " + std::to_string(owned_)),
       CenteredRow(ftxui::hbox(
           {Amount(unit_price_, /*red=*/false), ftxui::text(" each")})),
       CenteredRow(std::move(total_row)),
   };
-  // Drawn only where there is nothing to offer: with a price the player can
-  // meet it would be a caption to a number that already reads.
+  // Drawn only when nothing can be bought. With a price the player can pay, it
+  // would just caption a number that already explains itself.
   std::string reason = Reason();
   if (!reason.empty()) {
     rows.push_back(CenteredRow(ftxui::text(reason) | ftxui::color(kRed)));
@@ -104,8 +104,8 @@ ftxui::Element BuyPanel::Render() const {
 
 ConfirmChoice BuyPanel::OnEvent(ftxui::Event event) {
   ConfirmChoice choice = selector_.OnEvent(std::move(event));
-  // Re-asked after every keystroke rather than at render time, so Confirm is
-  // already inert by the time the player can press it -- Render only draws.
+  // Rechecked after every keystroke rather than at render time, so Confirm is
+  // already disabled by the time the player can press it. Render only draws.
   selector_.set_confirm_enabled(Affordable());
   return choice;
 }

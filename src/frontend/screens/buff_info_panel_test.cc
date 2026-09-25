@@ -20,8 +20,8 @@ class BuffInfoPanelTest : public PanelTest {
     return RenderElement(panel.Render());
   }
 
-  // The rows and columns the card asks for, read off its requirement: the
-  // test screen is bigger than any card, so a rendered string cannot say.
+  // The rows and columns the card asks for, read from its requirement. The test
+  // screen is bigger than any card, so a rendered string can't tell.
   static ftxui::Requirement SizeOf(ConsumableType type, bool owned = false) {
     BuffInfoPanel panel;
     panel.SetBuff(type, owned);
@@ -41,14 +41,14 @@ TEST_F(BuffInfoPanelTest, ShowsTheNameTheEffectsAndBothPrices) {
             std::string::npos);
 }
 
-// The boss buff is charged by the entry rather than by the second.
+// The boss buff is charged per entry, not per second.
 TEST_F(BuffInfoPanelTest, ABossBuffIsPricedPerEntry) {
   std::string rendered = RenderBuff(CONSUMABLE_TYPE_EXTREME_GREEN_POTION);
   EXPECT_NE(rendered.find("1,000,000 per boss entry"), std::string::npos);
   EXPECT_NE(rendered.find("+1 Attack Speed"), std::string::npos);
 }
 
-// The totem's whole worth is the one line about the beat it plants.
+// The totem's value is its one line: the respawn time it sets.
 TEST_F(BuffInfoPanelTest, TheTotemStatesTheBeatItPlants) {
   std::string rendered = RenderBuff(CONSUMABLE_TYPE_WILD_TOTEM);
   EXPECT_NE(rendered.find("Wild Totem"), std::string::npos);
@@ -57,7 +57,7 @@ TEST_F(BuffInfoPanelTest, TheTotemStatesTheBeatItPlants) {
             std::string::npos);
 }
 
-// Bought outright, the price row says so instead of quoting a price again.
+// Once bought outright, the price row says so instead of repeating a price.
 TEST_F(BuffInfoPanelTest, AnOwnedBuffHasNothingLeftToBuy) {
   std::string rendered =
       RenderBuff(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, /*owned=*/true);
@@ -65,9 +65,9 @@ TEST_F(BuffInfoPanelTest, AnOwnedBuffHasNothingLeftToBuy) {
   EXPECT_EQ(rendered.find("to unlock permanently"), std::string::npos);
 }
 
-// Every card is the same width, whoever owns the buff, and no taller than the
-// buff needs: the two borders, the name and its rule, the second rule and the
-// two price rows, and one row for each effect.
+// Every card is the same width whoever owns the buff, and only as tall as the
+// buff needs: two borders, the name and its rule, the second rule and the two
+// price rows, and one row per effect.
 TEST_F(BuffInfoPanelTest, EveryCardIsOneWidthAndAsTallAsItsBuff) {
   for (const ConsumableInfo& info : AllConsumables()) {
     for (bool owned : {false, true}) {
@@ -84,8 +84,8 @@ TEST_F(BuffInfoPanelTest, AnUnknownBuffRendersAPlaceholder) {
             std::string::npos);
 }
 
-// Every buff: the card fits itself to its longest effect line, and the
-// catalog is what decides how long that is.
+// Every buff: the card fits its longest effect line, and the catalog decides
+// how long that is.
 TEST_F(BuffInfoPanelTest, NoBuffCardTouchesItsRightBorder) {
   for (int i = 1; i <= ConsumableType_MAX; ++i) {
     if (!ConsumableType_IsValid(i)) {

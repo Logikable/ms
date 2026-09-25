@@ -24,10 +24,10 @@
 namespace ms {
 namespace {
 
-// Each half, borders included, and the rows its list shows at once. Both
-// fixed, and sized so the two halves together come to the shortest terminal
-// the game is laid out for: a window that grew with what was put in it would
-// move the other one's border.
+// The width of each half, borders included, and the rows its list shows at
+// once. Both are fixed, sized so the two halves together fit the shortest
+// terminal the game supports. A window that grew with its contents would move
+// the other one's border.
 constexpr int kHalfWidth = 110;
 constexpr int kHalfRows = 9;
 
@@ -40,8 +40,8 @@ enum TopStop : int {
   kNumTopStops = 4,
 };
 
-// Where a menu hangs inside its half: past the name a row leads with, so it
-// covers what an item is worth rather than which item it is.
+// Where a menu opens inside its half: past the name at the start of a row, so
+// it covers the item's value rather than which item it is.
 constexpr int kMenuColumn = 40;
 
 }  // namespace
@@ -95,10 +95,10 @@ void BankPanel::NextZone() {
 void BankPanel::MoveCursor(int delta) {
   Half& side = here();
   if (side.in_list) {
-    return;  // Left and Right say nothing in a list of items.
+    return;  // Left and Right do nothing in a list of items
   }
   side.top = StepCursor(side.top, delta, kNumTopStops);
-  // Standing on a chip is what opens that tab: there is no second key for it.
+  // Moving onto a chip opens that tab; there is no separate key for it.
   if (side.top == kEquipChip || side.top == kEtcChip) {
     side.etc_tab = side.top == kEtcChip;
   }
@@ -106,9 +106,9 @@ void BankPanel::MoveCursor(int delta) {
 
 void BankPanel::MoveRow(int delta) {
   Half& side = here();
-  // The top row is stop 0 of one ring and the list rows are the stops after
-  // it, so Down off the last row returns to the bar and Up off the bar goes
-  // to the last row.
+  // The top row is stop 0 of one ring and the list rows are the stops after it,
+  // so Down from the last row returns to the bar and Up from the bar goes to
+  // the last row.
   int rows = RowCount(zone_);
   int stop = side.in_list ? ClampedRow(zone_) + 1 : 0;
   int next = StepCursor(stop, delta, 1 + rows);
@@ -117,8 +117,8 @@ void BankPanel::MoveRow(int delta) {
     side.row = next - 1;
     return;
   }
-  // Coming back up lands on the chip of the tab being shown rather than
-  // wherever the cursor left the row.
+  // Coming back up lands on the chip of the tab being shown, not wherever the
+  // cursor was on the top row.
   side.top = side.etc_tab ? kEtcChip : kEquipChip;
 }
 
@@ -156,8 +156,8 @@ void BankPanel::MoveCurrency(BankCurrency currency, int64_t amount) {
   }
   BankInstance& bank = account_.mutable_bank();
   const bool from_bag = zone_ == BankZone::kBag;
-  // Taken from one side before it is given to the other, so a purse that
-  // refuses cannot hand over what it still holds.
+  // Taken from one side before being given to the other, so a purse that
+  // refuses can't hand over what it still holds.
   bool taken = from_bag ? (meso ? character_.SpendMeso(amount)
                                 : character_.SpendItem(kSpellTraceName, amount))
                         : (meso ? bank.SpendMeso(amount)
@@ -188,8 +188,8 @@ std::string BankPanel::MoveSelected() {
   if (!error.empty()) {
     return error;
   }
-  // The row that slid up into this place is the next item; when the tab has
-  // run out there is nothing to stand on and the cursor climbs to the chip.
+  // The row that moved up into this place is the next item. When the tab is
+  // empty there is nothing to select, and the cursor moves up to the chip.
   Half& side = here();
   int rows = RowCount(zone_);
   if (rows == 0) {
@@ -224,8 +224,8 @@ std::string BankPanel::MoveEquip() {
 std::string BankPanel::MoveStack() {
   int index = ClampedRow(zone_);
   BankInstance& bank = account_.mutable_bank();
-  // The whole stack crosses, so both ends are asked for room enough for all
-  // of it: a move that left half a stack behind would be a split, not a move.
+  // The whole stack moves, so both sides must have room for all of it. Moving
+  // only part of a stack would be a split, not a move.
   if (zone_ == BankZone::kBag) {
     const StackableItem& stack = character_.stackables()[index];
     if (bank.RoomFor(stack.prototype()) < stack.count()) {
@@ -323,8 +323,9 @@ ftxui::Element BankPanel::RenderTopRow(BankZone zone) const {
       zone == BankZone::kBag ? character_.CountItem(kSpellTraceName)
                              : bank.CountCurrency(kSpellTraceName),
       character_, account_, balance_cursor);
-  // A chip is lit only while the cursor is on it: a tab that is merely OPEN
-  // keeps the theme invert, so the two halves never claim the cursor at once.
+  // A chip is lit only while the cursor is on it. A tab that is merely open
+  // keeps the theme's inversion, so the two halves never both appear to have
+  // the cursor.
   bool on_chip = here_now && side.top <= kEtcChip;
   return RenderBagTabBar(tabs, side.etc_tab ? kEtcChip : kEquipChip, balances,
                          on_chip, /*highlighted=*/false, ftxui::text(""),
@@ -337,8 +338,8 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
   const bool focused = zone == zone_ && side.in_list;
   int rows = RowCount(zone);
   int cursor = ClampedRow(zone);
-  // The half and the tab both ride in the key, so the same row of another
-  // list counts as a different name and starts from its own head.
+  // The half and the tab are both part of the key, so the same row in another
+  // list counts as a different name and starts from the beginning.
   if (focused) {
     name_clock_.Follow((zone == BankZone::kBank ? 2 : 0) * kHalfStride +
                            (side.etc_tab ? kHalfStride : 0) + cursor,
@@ -371,7 +372,7 @@ ftxui::Element BankPanel::RenderHalf(BankZone zone) const {
   ftxui::Element body =
       ftxui::vbox({
           RenderTopRow(zone),
-          // The header, its rule and the rows, which are all the list is.
+          // The header, its rule and the rows, which make up the list.
           RenderList(zone) |
               ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kHalfRows + 2),
       }) |
@@ -381,10 +382,10 @@ ftxui::Element BankPanel::RenderHalf(BankZone zone) const {
 }
 
 int BankPanel::MenuRow() const {
-  // Both boxes are where the render PUT them, in screen coordinates, and the
-  // menu floats from the panel's own corner -- so the panel's own top comes
-  // off. One row back from the cursor, so the highlighted entry lands beside
-  // what the menu is about rather than below it.
+  // Both boxes are where the render placed them, in screen coordinates, and the
+  // menu is placed from the panel's own corner, so the panel's top is
+  // subtracted. One row back from the cursor, so the highlighted entry sits
+  // beside what the menu is about rather than below it.
   int row = here().in_list ? cursor_box_.y_min - 1 : bar_box_.y_min + 1;
   return row - panel_box_.y_min;
 }
@@ -394,9 +395,9 @@ int BankPanel::MenuColumn() const {
 }
 
 ftxui::Element BankPanel::Render() const {
-  // Reflected so a menu can be put beside a row inside it: what the lists
-  // report is where they landed on the SCREEN, and a floating menu is placed
-  // from the panel's own corner.
+  // Reflected so a menu can be placed beside a row inside it. The lists report
+  // where they landed on the screen, and a floating menu is placed from the
+  // panel's own corner.
   ftxui::Element screen = ftxui::vbox({
                               RenderHalf(BankZone::kBag),
                               RenderHalf(BankZone::kBank),

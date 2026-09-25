@@ -1,12 +1,12 @@
-/* The Battle Analysis overlay: what the stretch being measured is worth.
+/* The Battle Analysis overlay: what the measured period earned.
  *
- * Status first, then how far behind GMS's clock the game is running, then the
- * ten numbers -- what was earned, and the rate each came in at. Every rate is
- * per real second or hour, and the slowdown row is why the damage per second
- * reads lower than the numbers flying off the monsters suggest.
+ * Status first, then how much slower than GMS the game is running, then the ten
+ * numbers: what was earned, and the rate of each. Every rate is per real second
+ * or hour, and the slowdown row explains why damage per second reads lower than
+ * the numbers shown over the monsters suggest.
  *
- * The panel is a view. It reads the tool and never works it: starting and
- * stopping happen on the menu box this overlay was opened from.
+ * The panel only displays. It reads the tool and never controls it: starting
+ * and stopping are on the menu box this overlay was opened from.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_ANALYSIS_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_ANALYSIS_PANEL_H_
@@ -19,9 +19,8 @@
 
 namespace ms {
 
-// Seconds as HH:mm:ss, for a measurement's own clock. Hours are not wrapped: a
-// measurement left running overnight should say so rather than starting again
-// at zero.
+// Seconds as HH:mm:ss, for a measurement's own clock. Hours don't wrap, so a
+// measurement left running overnight says so instead of starting again at zero.
 std::string FormatElapsed(double seconds);
 
 class AnalysisPanel {
@@ -31,8 +30,8 @@ class AnalysisPanel {
   ftxui::Element Render() const;
 
  private:
-  // Columns inside the window's border. Wide enough for the longest status and
-  // for a damage total in the trillions.
+  // The width inside the window's border. Wide enough for the longest status
+  // and for a damage total in the trillions.
   static constexpr int kContentWidth = 40;
 
   const GameState& state_;

@@ -1,19 +1,18 @@
-/* BankPanel is the screen an item crosses between a character and the
- * account: the character's bag on top, the account's bank below it.
+/* BankPanel is the screen for moving items between a character and the account:
+ * the character's bag on top and the account's bank below it.
  *
- * The two halves are drawn the same way and out of the same widgets, because
- * they hold the same two tabs -- an Equip tab and an Etc tab, 128 slots
- * apiece. Tab and Shift+Tab move between them, and each half keeps its own
- * open tab and its own row, so coming back lands where you left.
+ * The two halves are drawn the same way with the same widgets, because they
+ * have the same two tabs, Equip and Etc. Tab and Shift+Tab move between the
+ * halves, and each half keeps its own open tab and row, so coming back lands
+ * where you left.
  *
- * Each half's top row is a ring of four stops: the two tab chips, then the
- * meso and the spell traces. Landing on a chip opens that tab; Enter on a
- * balance asks how much of it to move. Down drops into the open tab's list and
- * Up off its first row comes back to the chip of the tab being shown.
+ * Each half's top row is a ring of four stops: the two tab chips, then meso and
+ * spell traces. Moving onto a chip opens that tab. Enter on a balance asks how
+ * much to move. Down moves into the open tab's list, and Up from its first row
+ * returns to the chip of the tab being shown.
  *
- * The panel is a view over both containers and moves things between them, but
- * it raises no dialog of its own: the controller reads the cursor and does the
- * asking.
+ * The panel shows both containers and moves items between them, but it opens no
+ * dialogs itself: the controller reads the cursor and does the asking.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BANK_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BANK_PANEL_H_
@@ -35,27 +34,27 @@
 
 namespace ms {
 
-// The two halves, in the order Tab walks them.
+// The two halves, in the order Tab moves through them.
 enum class BankZone {
   kBag,
   kBank,
 };
 
-// The two balances that cross on a line of their own rather than as a row.
+// The two balances, which move on a line of their own instead of as a row.
 enum class BankCurrency {
   kMeso,
   kSpellTraces,
 };
 
-// What the cursor is standing on, whichever half it is in.
+// What the cursor is on, in whichever half.
 struct BankCursor {
   enum class Kind {
     // A tab chip. Enter opens the {Sort, Close} menu.
     kTab,
     kCurrency,
-    // A row of the open tab, `index` naming its place in that half's own list.
+    // A row of the open tab, with `index` its position in that half's list.
     kRow,
-    // The open tab has nothing to stand on.
+    // The open tab has nothing to select.
     kNothing,
   };
   Kind kind = Kind::kTab;
@@ -63,15 +62,15 @@ struct BankCursor {
   int index = 0;
 };
 
-// The entries of the menu Enter raises on a row.
+// The entries of the menu Enter opens on a row.
 enum BankMenuItem : int {
   kBankMenuInspect = 0,
   kBankMenuMove = 1,
   kBankMenuClose = 2,
 };
 
-// And of the one it raises on a tab chip, which is about the tab rather than
-// about anything on it.
+// The entries of the menu Enter opens on a tab chip, which is about the tab
+// rather than anything in it.
 enum BankTabMenuItem : int {
   kBankTabMenuSort = 0,
   kBankTabMenuClose = 1,
@@ -79,18 +78,18 @@ enum BankTabMenuItem : int {
 
 class BankPanel {
  public:
-  // `items` is the item catalog, which the spell trace balance needs: a
-  // purse is keyed by prototype and a character with none of a currency has
-  // no copy of it to hand over.
+  // `items` is the item catalog, which the spell trace balance needs: a purse
+  // is keyed by prototype, and a character with none of a currency has no copy
+  // of it to hand over.
   BankPanel(CharacterInstance& character, AccountInstance& account,
             const std::map<std::string, ItemPrototype>& items);
 
-  // Both halves on their Equip tab, the cursor on the bag's chip.
+  // Both halves on their Equip tab, with the cursor on the bag's chip.
   void Reset();
 
-  // Tab and Shift+Tab, which swap the halves -- with two of them the two keys
-  // do the same thing. Left and Right walk a half's top row, Up and Down go
-  // into its list and along it.
+  // Tab and Shift+Tab, which switch halves; with two halves both keys do the
+  // same thing. Left and Right move along a half's top row, and Up and Down
+  // move into and along its list.
   void NextZone();
   void MoveCursor(int delta);
   void MoveRow(int delta);
@@ -99,27 +98,27 @@ class BankPanel {
     return zone_;
   }
   BankCursor cursor() const;
-  // Whether the half holding the cursor is showing its Etc tab.
+  // Whether the half with the cursor is showing its Etc tab.
   bool on_etc_tab() const;
 
   ftxui::Element Render() const;
 
-  // Moves what the cursor is on to the other half, and returns the sentence
-  // to raise when it could not go: one of the two halves full, or an item
-  // bound to the character holding it. Empty on success, and on a cursor with
-  // no item under it.
+  // Moves the item under the cursor to the other half, and returns the message
+  // to show when it can't: one half is full, or the item is bound to the
+  // character holding it. Empty on success, and when no item is under the
+  // cursor.
   std::string MoveSelected();
-  // Moves `amount` of a currency from the half holding the cursor to the
-  // other. Clamped to what that half has.
+  // Moves `amount` of a currency from the half with the cursor to the other,
+  // clamped to what that half has.
   void MoveCurrency(BankCurrency currency, int64_t amount);
-  // What the half holding the cursor has of `currency`, which is what the
-  // amount dialog opens on.
+  // How much of `currency` the half with the cursor has, which the amount
+  // dialog starts from.
   int64_t held(BankCurrency currency) const;
-  // Files the open tab of the half holding the cursor.
+  // Sorts the open tab of the half with the cursor.
   void SortActiveTab();
 
-  // The menu Enter raises on a row, and the {Sort, Close} one it raises on a
-  // chip. Never open at once, so which is up is one flag.
+  // The menu Enter opens on a row, and the {Sort, Close} menu it opens on a
+  // chip. They are never open at once, so one flag says which is up.
   void OpenMenu();
   void OpenTabMenu();
   void CloseMenu() {
@@ -133,21 +132,21 @@ class BankPanel {
   bool tab_menu_open() const {
     return tab_menu_open_;
   }
-  // Which entry the open menu's cursor is on.
+  // The entry under the open menu's cursor.
   int menu_selected() const;
-  // The item the cursor is on, for the inspect card. Null on anything else.
+  // The item under the cursor, for the inspect card. Null on anything else.
   const EquipTabItem* selected_equip() const;
   const StackableItem* selected_stack() const;
 
  private:
-  // One half's own state: which tab it shows, where its cursor stands on the
-  // top row, and which row it last stood on.
+  // One half's own state: which tab it shows, where its cursor is on the top
+  // row, and which row it was last on.
   struct Half {
     bool etc_tab = false;
     // A stop on the top row: the two chips, then the two balances.
     int top = 0;
     int row = 0;
-    // Whether the cursor has dropped out of the top row into the list.
+    // Whether the cursor has moved from the top row into the list.
     bool in_list = false;
   };
 
@@ -160,34 +159,34 @@ class BankPanel {
     return half(zone_);
   }
 
-  // Rows the named half's open tab has.
+  // The number of rows in the named half's open tab.
   int RowCount(BankZone zone) const;
-  // Where a cursor row lands, clamped to what is there.
+  // The cursor row, clamped to the rows that exist.
   int ClampedRow(BankZone zone) const;
 
-  // The two halves of MoveSelected, one per tab.
+  // The two parts of MoveSelected, one per tab.
   std::string MoveEquip();
   std::string MoveStack();
 
-  // One half, as a bordered window: its top row, then the open tab's list.
+  // One half as a bordered window: its top row, then the open tab's list.
   ftxui::Element RenderHalf(BankZone zone) const;
-  // That half's top row, and the list under it.
+  // That half's top row, and the list below it.
   ftxui::Element RenderTopRow(BankZone zone) const;
   ftxui::Element RenderList(BankZone zone) const;
 
-  // Where the open menu hangs: the screen row of the cursor's own row, or the
-  // row under the top row when the cursor is up there, and the column within
-  // whichever half that is.
+  // Where the open menu goes: the screen row of the cursor's row, or the row
+  // below the top row when the cursor is there, and the column within that
+  // half.
   int MenuRow() const;
   int MenuColumn() const;
-  // Where `zone` should report its cursor row: the shared box for the half
-  // holding the cursor, and a scratch one for the other.
+  // Where `zone` should report its cursor row: the shared box for the half with
+  // the cursor, and a scratch box for the other.
   ftxui::Box& CursorBox(BankZone zone) const;
 
   CharacterInstance& character_;
   AccountInstance& account_;
-  // The spell trace prototype, looked up once: a balance moving between two
-  // purses needs it, and neither purse has a copy while it holds none.
+  // The spell trace prototype, looked up once. Moving the balance between two
+  // purses needs it, and a purse holding none has no copy.
   const ItemPrototype* spell_trace_ = nullptr;
 
   BankZone zone_ = BankZone::kBag;
@@ -199,13 +198,13 @@ class BankPanel {
   bool menu_open_ = false;
   bool tab_menu_open_ = false;
 
-  // When the selection last moved, for sliding a long name under its column.
-  // Room for any row of either tab of either half in the one key.
+  // For the selection clock, which scrolls a long name: large enough that every
+  // row of either tab of either half gets its own key.
   static constexpr int kHalfStride = 4096;
   mutable SelectionClock name_clock_;
-  // Where the cursor's row and the half's top row landed, read from the
-  // RENDER: a menu opens beside the row the player can see, and a position in
-  // the data stops agreeing with that once the list scrolls.
+  // Where the cursor's row and the half's top row were drawn, read from the
+  // render. A menu opens beside the row the player can see, and a position in
+  // the data stops matching that once the list scrolls.
   mutable ftxui::Box cursor_box_;
   mutable ftxui::Box scratch_box_;
   mutable ftxui::Box bar_box_;
