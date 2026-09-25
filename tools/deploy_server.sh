@@ -4,9 +4,9 @@
 #
 #   tools/deploy_server.sh
 #
-# The server is drained before it is replaced -- it stops taking connections
-# and plays out whatever fights are running -- so an update never cuts a
-# party's fight short. The binary is statically linked, so the box's glibc
+# The server is drained before it is replaced: it stops taking connections
+# and sends every player away with a maintenance notice, so a fight running
+# at the time is cut short. The binary is statically linked, so the box's glibc
 # need not match the machine that built it.
 #
 # The deploy is not finished until a client built from this tree can get in.
