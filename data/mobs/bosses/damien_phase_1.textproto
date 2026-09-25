@@ -1,5 +1,5 @@
-# The first of two bodies, and the larger: seven parts in ten of the fight.
-# GMS names both "Damien" -- the bar says which phase of the fight it is.
+# The first of two bodies and the larger, seven tenths of the fight. GMS names
+# both "Damien"; the bar says which phase it is.
 name: "Damien"
 level: 210
 attack: 22000

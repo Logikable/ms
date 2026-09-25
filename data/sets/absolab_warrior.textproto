@@ -1,12 +1,12 @@
 name: EQUIP_SET_NAME_ABSOLAB_WARRIOR
-# Eight slots, all of them filled: six pieces of armour, and the weapon whose
-# version a class picks. Written once per branch because every piece of it
-# belongs to one class, the way the Root Abyss set below is.
+# Eight slots, all filled: six armour pieces and the weapon in the version a
+# class picks. There is one file per branch because every piece belongs to one
+# class, like the Root Abyss set.
 #
-# GMS's set spans seven, because the Armor and the Pants are one overall
-# there. The tiers are spread over eight here and add up to the same totals:
-# all stats +30, HP/MP +1,500 and +20%, ATT/MATT +135, DEF +200, boss +30%,
-# and two 10% shares of ignored defence, which combine to GMS's 19%.
+# GMS's set has seven slots, because Armor and Pants are one overall there. Here
+# the tiers are spread over eight and add up to the same totals: all stats +30,
+# HP/MP +1,500 and +20%, ATT/MATT +135, DEF +200, boss +30%, and two 10% Ignore
+# DEF shares that combine to GMS's 19%.
 complete_pieces: 8
 members {
   slot: EQUIP_SLOT_HAT
@@ -36,8 +36,8 @@ members {
   slot: EQUIP_SLOT_SHOULDER
   items { name: "AbsoLab Knight Shoulder" }
 }
-# Named as a family rather than by name: the branch's weapons are one piece
-# with a version per line, and a player wears exactly one of them.
+# Named as a family: the branch's weapons are one piece with a version per job,
+# and a player wears exactly one.
 members {
   slot: EQUIP_SLOT_PRIMARY_WEAPON
   family: "AbsoLab Warrior Weapon"
@@ -72,8 +72,8 @@ tiers {
     boss_pct: 0.10
   }
 }
-# The first of the two ignored-defence shares. They are separate sources, so
-# they combine rather than sum: 10% and 10% is 19%, which is GMS's own total.
+# The first of the two Ignore DEF shares. They are separate sources, so they
+# multiply rather than add: 10% and 10% make 19%, GMS's own total.
 tiers {
   pieces: 5
   effect {

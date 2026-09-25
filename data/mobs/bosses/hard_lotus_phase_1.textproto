@@ -1,5 +1,5 @@
-# Hard's first body, twenty-one times the one Normal opens on. GMS names all
-# three "Lotus" -- the bar says which phase of the fight it is.
+# Hard's first body, twenty-one times Normal's. GMS names all three "Lotus"; the
+# bar says which phase it is.
 name: "Lotus"
 level: 210
 attack: 22000

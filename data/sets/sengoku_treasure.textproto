@@ -1,6 +1,6 @@
 name: EQUIP_SET_NAME_SENGOKU_TREASURE
-# Three slots, all three filled the day Princess No opens: she drops the whole
-# set in one clear, so this is the only set a player never assembles.
+# Three slots, all filled the day Princess No opens: she drops the whole set in
+# one clear, so this is the one set a player never has to collect.
 complete_pieces: 3
 members {
   slot: EQUIP_SLOT_RING
@@ -27,9 +27,9 @@ tiers {
     damage_pct: 0.03
   }
 }
-# The ring and the belt are the player's to spare; the shoulder is not, since
-# the Boss Accessory Set asks for that slot too. Wearing all three trades that
-# set's ninth piece for this one's %Damage.
+# The ring and belt slots are free to spare; the shoulder is not, because the
+# Boss Accessory Set wants that slot too. Wearing all three gives up that set's
+# ninth piece for this one's %Damage.
 tiers {
   pieces: 3
   effect {

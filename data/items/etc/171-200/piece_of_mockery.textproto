@@ -1,6 +1,6 @@
-# A currency rather than litter: it sells for nothing, and one falls from every
-# clear. The triangle says which stage of the game it belongs to and the colour
-# which piece of the Root Abyss set it buys, so one glyph reads on both axes.
+# A currency, not loot: it sells for nothing, and every clear drops one. The
+# triangle marks its stage of the game and the colour marks which Root Abyss
+# piece it buys.
 name: "Piece of Mockery"
 kind: ITEM_KIND_TOKEN
 description: "A sliver of the mirror Chaos Pierre wears for a face, still wearing your own."

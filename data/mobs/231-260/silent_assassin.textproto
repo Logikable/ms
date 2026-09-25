@@ -4,5 +4,6 @@ attack: 19463
 max_hp: 622956400
 exp: 670940
 pdr: 10
-# Tenebris hands out no Arcane Symbol of its own, so nothing here drops one --
-# the force these maps ask for is carried in from the six areas below.
+# Tenebris has no Arcane Symbol of its own, so this mob drops nothing. The force
+# its maps ask for comes from the six areas before it. V Points come from the
+# map, not the mob.

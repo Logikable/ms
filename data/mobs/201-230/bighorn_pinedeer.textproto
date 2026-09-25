@@ -1,12 +1,12 @@
-# Chu Chu Island opens with another era step: 2.3x the Lv206 Erda's HP over
-# five levels. GMS's own number -- see raging_erda.
+# Chu Chu Island starts another era step: 2.3x the HP of the level-206 Erda five
+# levels below. This is GMS's own number (see raging_erda).
 name: "Bighorn Pinedeer"
 level: 211
 attack: 14063
 max_hp: 122820000
 exp: 253673
 pdr: 10
-# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
-# that the dailies are what really level a symbol. A duplicate is worth one
-# EXP toward the next rung -- see arcane_force.h.
+# The area's Arcane Symbol, at GMS's drop rate. It is so rare that dailies are
+# what really level a symbol. A duplicate counts as one toward the next level
+# (see arcane_force.h).
 drops { equip: "symbol_chu_chu_island" per_kill: 0.0001 }

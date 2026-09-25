@@ -1,10 +1,10 @@
-# The head of a band that is on the game's curve rather than on GMS's own
-# numbers. Leafre's dragon nests were written for their own era and sag a
-# fifth under it; every mob from here to 168 sits on x1.053 HP / x1.038 EXP /
-# x1.029 attack per level, the shape the ladder has held since level 98.
+# The first mob of a band set on this game's curve instead of GMS's numbers.
+# Leafre's dragon nests were made for an older era and sit a fifth under the
+# curve. Every mob from here to 168 follows x1.053 HP, x1.038 EXP and x1.029
+# attack per level, the shape the ladder has kept since level 98.
 #
-# HP is lifted by the same share as EXP, so the EXP a kill pays per point of
-# HP stays GMS's -- lifting EXP alone would have made these maps cheap.
+# HP rises by the same share as EXP, so EXP per HP stays GMS's. Raising EXP
+# alone would have made these maps too cheap.
 name: "Jr. Newtie"
 level: 145
 attack: 3391

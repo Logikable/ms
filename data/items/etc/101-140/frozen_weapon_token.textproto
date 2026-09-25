@@ -1,5 +1,5 @@
-# A currency rather than litter: it sells for nothing, and the shop asks for it
-# by the mark below instead of by meso.
+# A currency, not loot: it sells for nothing, and the shop prices things in it
+# by the mark below.
 name: "Frozen Weapon Token"
 kind: ITEM_KIND_TOKEN
 description:

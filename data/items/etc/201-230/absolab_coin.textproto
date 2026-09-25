@@ -1,6 +1,6 @@
-# A currency rather than litter: it sells for nothing, and one falls from every
-# clear. The diamond says which stage of the game it belongs to, as the circle
-# says Frozen and the triangle Root Abyss and Cygnus.
+# A currency, not loot: it sells for nothing, and every clear drops one. The
+# diamond marks its stage of the game, as the circle marks Frozen and the
+# triangle Root Abyss and Cygnus.
 name: "AbsoLab Coin"
 kind: ITEM_KIND_TOKEN
 description:

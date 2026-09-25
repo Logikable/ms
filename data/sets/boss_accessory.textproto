@@ -1,7 +1,7 @@
 name: EQUIP_SET_NAME_BOSS_ACCESSORY
-# Nine slots, all of them filled since Pink Bean, so every tier pays. Some of
-# them name two items apiece: a later boss drops an alternate for a slot an
-# earlier one already filled, and either piece fills the slot.
+# Nine slots, all filled since Pink Bean, so every tier pays. Some slots name
+# two items: a later boss drops an alternative for a slot an earlier one filled,
+# and either piece counts.
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -48,8 +48,8 @@ members {
   slot: EQUIP_SLOT_SHOULDER
   items { name: "Royal Black Metal Shoulder" }
   # The four Cygnus shoulders are one piece with a version per branch, so the
-  # slot asks for one of them rather than listing four a player can only ever
-  # wear one of.
+  # slot asks for any of them instead of listing four when a player can only
+  # wear one.
   family: "Cygnus Shoulder"
 }
 members {
