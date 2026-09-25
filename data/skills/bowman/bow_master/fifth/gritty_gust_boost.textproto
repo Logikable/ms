@@ -1,6 +1,6 @@
-# Gritty Gust is a Hyper Skill here rather than a fifth-job one. A node aiming
-# at a hyper is settled ground -- the Dark Knight's Nightshade Explosion and
-# the Paladin's Smite Shield are the others.
+# Gritty Gust is a Hyper Skill here, not a 5th job one. Other nodes already
+# target hypers: the Dark Knight's Nightshade Explosion and the Paladin's Smite
+# Shield.
 name: "Gritty Gust Boost"
 description: "Strengthens Gritty Gust and Speed Mirage."
 kind: SKILL_KIND_PASSIVE

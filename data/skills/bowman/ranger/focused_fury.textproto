@@ -1,10 +1,10 @@
-# GMS splits this in two: a permanent 20 points of status resistance and a
-# buff that builds to another 100 while the Ranger keeps attacking. A Ranger
-# who is attacking is every Ranger, so the two are one figure here -- which is
-# where the 6 a level comes from.
+# GMS splits this in two: a permanent 20 status resistance, and a buff that
+# builds another 100 while the Ranger keeps attacking. A Ranger is always
+# attacking, so here the two are one figure, which is where the 6 a level comes
+# from.
 #
-# Nothing in this game inflicts a status or an element, so neither figure is
-# read anywhere. Both are on the stats page so the SP is not spent blind.
+# Nothing in this game inflicts a status or element, so neither figure is used.
+# Both are on the stats page so the SP isn't spent blind.
 name: "Focused Fury"
 description: "Permanently increases Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE

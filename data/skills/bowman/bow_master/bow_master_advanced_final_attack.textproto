@@ -1,16 +1,14 @@
-# GMS states the whole of the Final Attack rather than a delta over the
-# Hunter's, so this supersedes it. The base has to clear 40% for that: Final
-# Attack: Bow already reaches it, and a level-1 buy that fired less often would
-# be a point spent going backwards. GMS starts at 41%, and this at 41.5% for
-# the same reason -- half a point over it, so the ladder climbs by a clean 1.5%.
+# GMS states the whole Final Attack, not an increase over the Hunter's, so this
+# supersedes it. Its base must beat 40%, which Final Attack: Bow already
+# reaches, or the first point would be a step back. GMS starts at 41%; this
+# starts at 41.5% so the ladder climbs by an even 1.5%.
 #
-# The bow it demands is the Hunter's, so the pair lapse together: a Bow Master
-# holding something neither will fire off keeps neither.
+# It needs the Hunter's bow, so both stop together: a Bow Master holding a
+# weapon neither fires with gets neither.
 #
-# The extra hit lands on ONE of the enemies the swing reached, not on each
-# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
-# and its readout names the target it picks -- "attacks the boss with the
-# highest HP first".
+# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# Attack has no mobCount or hitbox of its own, and its text names its target:
+# "attacks the boss with the highest HP first".
 name: "Advanced Final Attack"
 description:
   "Permanently increases Attack Power. Greatly increases activation rate and "

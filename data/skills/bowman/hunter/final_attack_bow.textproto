@@ -1,11 +1,10 @@
-# The warriors' Final Attack under another name and the same numbers: chance
-# is 2*L%, damage a single hit of (100 + 5*floor(L/2))%. The even step below
-# ends a hair under the top of the staircase and is never more than 2.5% out.
+# The warriors' Final Attack under another name, with the same numbers: chance
+# 2*L%, damage one hit of (100 + 5*floor(L/2))%. Rounding down to the even level
+# ends just under the top and is never more than 2.5% off.
 #
-# The extra hit lands on ONE of the enemies the swing reached, not on each
-# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
-# and its readout names the target it picks -- "attacks the boss with the
-# highest HP first".
+# The extra hit lands on ONE enemy the swing reached, not on each. GMS's Final
+# Attack has no mobCount or hitbox of its own, and its text names its target:
+# "attacks the boss with the highest HP first".
 name: "Final Attack: Bow"
 description:
   "Chance to deal an additional hit after landing a direct attack skill."

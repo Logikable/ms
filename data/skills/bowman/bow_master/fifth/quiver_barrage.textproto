@@ -1,21 +1,20 @@
-# Every arrowhead at once, and a flaming one on top of them. The buff is the
-# quiet half -- 15% final damage and 20% attack for 40 seconds -- and the
-# flaming arrows are the whole of the damage.
+# Every arrowhead at once, plus a flaming one. The buff is the small half (15%
+# final damage and 20% attack for 40 seconds); the flaming arrows are all the
+# damage.
 #
-# One trigger fires six arrows, each its own attack of nine lines on six
-# enemies, and the six are consecutive rather than spread: GMS's "Duration: 5
-# sec." is how long an arrow hunts for a target, which is why namuwiki prizes
-# the long flight for farming. Namu prints the total outright, 534,600%, and
-# that is 6 arrows x 18 volleys x 9 lines x 550% exactly.
+# One trigger fires six arrows, each one attack of nine lines on six enemies,
+# one after another. GMS's "Duration: 5 sec." is how long an arrow hunts for a
+# target, which is why namuwiki praises it for farming. Namu gives the total,
+# 534,600%, which is exactly 6 arrows x 18 volleys x 9 lines x 550%.
 #
-# The stock is eighteen volleys on a 2-second re-trigger, so it runs dry at 36
-# seconds of the 40-second buff -- the tooltip's own warning that the attack
-# stops while the buff still stands. GMS fires it "upon attack"; this game's
-# swing clock never idles, so that is simply the 2 seconds.
+# It has eighteen volleys on a 2-second re-trigger, so it runs out at 36 seconds
+# of the 40-second buff; the tooltip itself warns the attack stops while the
+# buff is still up. GMS fires it "upon attack", and this game's swing never
+# pauses, so that is simply every 2 seconds.
 #
-# The attack percentage joins the same pool Marksmanship's does. GMS writes
-# this one indiePadR against Marksmanship's plain padR, but one pool is what
-# this game has, and namuwiki's own spec table sums the pair to 45% too.
+# The attack % goes in the same pool as Marksmanship's. GMS writes this one as
+# indiePadR and Marksmanship's as padR, but this game has one pool, and
+# namuwiki's table also sums the pair to 45%.
 name: "Quiver Barrage"
 description:
   "Fire every type of arrowhead at once, including a special flaming arrowhead "

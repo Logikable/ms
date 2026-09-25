@@ -1,22 +1,22 @@
-# The bird does not gain an attack -- it is replaced. The client keeps this
-# skill's whole animation set under a `summon` node, and the 6th job skill that
-# reads it says "while Fury of the Wild is summoned", so for forty seconds the
-# Phoenix or the Frostprey IS this.
+# The bird doesn't gain an attack; it is replaced. The client keeps this skill's
+# animations under a `summon` node, and the 6th job skill that uses it says
+# "while Fury of the Wild is summoned", so for forty seconds the Phoenix or
+# Frostprey IS this.
 #
-# 3.42 seconds is not published anywhere. It is twice the 1.71 the two birds
-# are held at, which is what their animations say: theirs runs 1170ms and this
-# one 2310ms, near enough exactly double. `attackAfter` is not the period --
-# both birds state 450 against a real 1710.
+# 3.42 seconds isn't published anywhere. It is twice the 1.71 used for the two
+# birds, which matches their animations: theirs run 1170ms and this one
+# 2310ms, almost exactly double. `attackAfter` is not the period: both birds
+# state 450 against a real 1710.
 #
-# Reach is GMS's 10 and stays there: the summon's attack box is 730x240, and
-# floor(730/70) is 10 on the nose.
+# Reach is GMS's 10: the summon's attack box is 730x240, and floor(730/70) is
+# exactly 10.
 #
-# Damage is GMS's 450 + 15x, seven lines: 465% at level 1 and 900% at 30. A
-# pulse on its own clock gets no Final Attack and no Shadow Partner, the rule
-# every summon here follows -- nothing the character did not swing is doubled.
+# Damage is GMS's 450 + 15x on seven lines: 465% at level 1 and 900% at 30. A
+# pulse on its own clock gets no Final Attack and no Shadow Partner, like every
+# summon here: nothing the character didn't swing is doubled.
 #
-# Every explorer archer holds a bird by their third book, so GMS's "only while
-# one is summoned" needs no gate.
+# Every explorer archer has a bird by their 3rd job, so GMS's "only while one is
+# summoned" needs no gate.
 name: "Fury of the Wild"
 description:
   "Fills your summoned bird with an older, wilder power, and for a while it "

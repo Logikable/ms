@@ -1,6 +1,6 @@
-# GMS's figures exactly: 5+L% of the monster's DEF ignored and 1+L% damage, at
-# the 20 levels it masters at. The Ranger's version buys attack instead, which
-# is a percentage of the whole pile; this one buys damage.
+# GMS's exact figures: 5+L% Ignore DEF and 1+L% damage over its 20 levels. The
+# Ranger's version gives attack, a percentage of all attack; this one gives
+# damage.
 name: "Marksmanship"
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "

@@ -1,6 +1,6 @@
 # 660ms is the animation's own, from the frame data. Nine strikes across twelve
-# enemies every fifteen seconds, and the only wide swing the book has: Piercing
-# Arrow II reaches eight and Snipe one.
+# enemies every fifteen seconds, and the book's only wide swing: Piercing Arrow
+# II hits eight and Snipe one.
 name: "High Speed Shot"
 description:
   "Fires off a focused shot that pierces all enemies within range."

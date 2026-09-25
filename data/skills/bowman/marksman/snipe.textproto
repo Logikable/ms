@@ -1,10 +1,10 @@
-# The bossing swing: one enemy, nine strikes, and every one of them a
-# critical. GMS aims it at the highest Max HP in range, which is what the
-# fight already does with a single-target swing.
+# The bossing swing: one enemy, nine strikes, every one critical. GMS aims it at
+# the highest Max HP in range, which is what the fight already does for a
+# single-target swing.
 #
-# The mark it leaves is spent by Empowered Snipe, so what it is worth is
-# written there -- three ordinary Snipes precede every empowered one, so the
-# mark is always standing when that swing lands.
+# Empowered Snipe uses up the mark it leaves, so the mark's value is written
+# there. Three normal Snipes come before each empowered one, so the mark is
+# always up when that swing lands.
 name: "Snipe"
 description:
   "Fire a carefully-aimed shot that inflicts massive damage. Marks the "

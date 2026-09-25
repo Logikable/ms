@@ -1,6 +1,6 @@
-# Carries final damage where the Hunter's Bow Mastery is bare mastery. That is
-# the trade between the two branches: the Crossbowman's damage is steady and
-# multiplies everything, the Hunter's arrives as a second Final Attack.
+# Carries final damage where the Hunter's Bow Mastery is only mastery. That is
+# the trade between the branches: the Crossbowman's damage is steady and
+# multiplies everything; the Hunter's comes as a second Final Attack.
 name: "Crossbow Mastery"
 description: "Increases Crossbow Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE

@@ -1,8 +1,8 @@
-# The line's mastery skill, at 20 levels rather than GMS's 30 and landing on
-# GMS's own top figures -- 70% mastery, +60 attack and 16% critical damage.
+# The line's mastery skill, with 20 levels instead of GMS's 30 but GMS's top
+# figures: 70% mastery, +60 attack and 16% critical damage.
 #
-# It does not supersede Bow Mastery and must not: masteries take the better of
-# two rather than the sum, so this simply outbids the Hunter's 50% on its own.
+# It must not supersede Bow Mastery: masteries take the better of the two, not
+# the sum, so this simply beats the Hunter's 50%.
 name: "Bow Expert"
 description: "Increases Bow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE

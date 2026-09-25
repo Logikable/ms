@@ -1,8 +1,8 @@
-# 120ms rather than the 540ms animation: a buff is raised from a skill
-# sequence, which paces every skill in it alike.
+# 120ms, not the 540ms animation: buffs are cast from a skill sequence, which
+# paces every skill in it the same way.
 #
-# Forty seconds of the two levers a Bow Master wants most against a boss, on a
-# wait twice as long -- so the fight spends a third of it holding this up.
+# Forty seconds of the two levers a Bow Master wants most against a boss, with a
+# cooldown twice that, so it is up for a third of a fight.
 name: "Concentration"
 description:
   "Steel yourself for battle to increase damage."

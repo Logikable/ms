@@ -1,9 +1,8 @@
-# GMS masters this at 4. Stretched to 10 to help pay the book's 120, landing on
-# GMS's own top figures, the same treatment ranger/marksmanship.textproto
-# gets.
+# GMS maxes this at 4. Stretched to 10 levels to help fill the book's 120,
+# ending at GMS's top figures, like ranger/marksmanship.textproto.
 #
-# The crit-on-dodge second and the knockback resistance are left out: one is a
-# window this game has no clock for, and the other is a thing no mob does.
+# The crit after a dodge and the knockback resistance are left out: the first is
+# a window this game has no timer for, and no mob knocks back.
 name: "Evasion Boost"
 description:
   "Grants a chance to dodge enemy attacks. Also permanently increases Max HP."

@@ -1,11 +1,10 @@
-# The one hyper of the three that leaves the fragment alone, which the data
-# already does: the fragment is the opening hit, and it lands on the two
-# enemies it names however wide the arrow goes.
+# The one hyper of the three that leaves the fragment alone, as the data already
+# does: the fragment is the first hit, and it lands on the two enemies it names
+# however wide the arrow goes.
 #
 # The empowered form's explosion is not that fragment. GMS gives it the same
-# reach as the arrow it ends -- ten to the arrow's ten -- so it follows the
-# arrow out to twelve here, as an extra hit always reaches whatever the swing
-# reached.
+# reach as the arrow, ten to the arrow's ten, so here it follows the arrow out
+# to twelve, as an extra hit always reaches whatever the swing reached.
 name: "Piercing Arrow - Spread"
 description:
   "Increases the max number of enemies hit by Piercing Arrow, Piercing Arrow "

@@ -1,5 +1,5 @@
-# The recharging swing and the summon that fires while it recharges, both at
-# the wider tier: neither is a single-target shot.
+# The recharging swing and the summon that fires while it recharges, both at the
+# wider tier: neither hits a single target.
 name: "Bolt Burst Boost"
 description: "Strengthens Bolt Burst and Frostprey."
 kind: SKILL_KIND_PASSIVE

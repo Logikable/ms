@@ -1,13 +1,13 @@
-# A toggle in GMS with no wait behind it, so an archer holds it forever: what
-# it really is, is an attack on a clock of its own.
+# A toggle in GMS with no cooldown, so an archer keeps it on forever: really an
+# attack on its own clock.
 #
-# 400 + 16x% on one enemy, and GMS's `nbdR` of 20% against anything that is
-# not a boss -- a share of the archer's damage, not points on the arrow.
+# 400 + 16x% on one enemy, plus GMS's `nbdR` of 20% against non-bosses, which is
+# a share of the archer's damage, not points on the arrow.
 #
-# GMS states no rate for it anywhere a player can read. The invisible half of
-# the skill carries 90 strikes over the 60 seconds it stands for, which is one
-# every two thirds of a second; the user timed a video and agreed. That is 22
-# ticks, so it lands square on the clock.
+# GMS doesn't state its rate anywhere a player can read. The skill's hidden half
+# has 90 strikes over its 60 seconds, one every two thirds of a second, and the
+# user timed a video that agreed. That is 22 ticks, so it lands exactly on the
+# clock.
 name: "Guided Arrow"
 description: "Creates spirit arrows that pursue and attack nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK

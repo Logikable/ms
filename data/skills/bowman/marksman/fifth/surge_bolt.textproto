@@ -1,14 +1,14 @@
 # The follow-up shot, written as a swing of its own. GMS offers it during
-# Piercing Arrow, Snipe, High Speed Shot and the cartridge -- a window the
-# player presses inside of -- and none of those is a thing the fight has: a
-# swing here is chosen by rate and lands whole. What survives is the cooldown,
-# which is what actually paces it.
+# Piercing Arrow, Snipe, High Speed Shot and the cartridge, as a window the
+# player presses in, and the fight has no such windows: a swing here is picked
+# by rate and lands whole. What is left is the cooldown, which is what really
+# paces it.
 #
-# Twelve strikes twice over rather than twenty-four: GMS states a Strike Count
-# beside the attack count, and two bundles of twelve is what it fires.
+# Twelve strikes twice, not twenty-four: GMS states a Strike Count beside the
+# attack count, and it fires two bundles of twelve.
 #
-# No hitbox at all in the client, so the stated ten stands -- the same case as
-# Storm of Arrows, where a missing box means the count is the reach.
+# The client has no hitbox for it, so the stated ten stands, as with Storm of
+# Arrows, where a missing hitbox means the count is the reach.
 name: "Surge Bolt"
 description:
   "Concentrate and deploy a powerful spirit arrow."

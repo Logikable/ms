@@ -1,8 +1,8 @@
-# 120ms rather than the 960ms animation: a buff is raised from a skill
-# sequence, which paces every skill in it alike.
+# 120ms, not the 960ms animation: buffs are cast from a skill sequence, which
+# paces every skill in it the same way.
 #
-# Four levers for forty seconds on a wait three times as long, which is the
-# widest buff either archer gets -- the Bow Master's Concentration buys two.
+# Four levers for forty seconds with a cooldown three times that, the broadest
+# buff either archer gets; the Bow Master's Concentration has two.
 name: "Bullseye Shot"
 description:
   "Hone in on the enemy's weak spot for a devastating shot."

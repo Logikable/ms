@@ -1,11 +1,11 @@
-# GMS masters this at 30 and reaches 80 DEX, 30% avoidability and 20% less
-# damage taken. Compressed to 10 levels landing on all three, so a point is
-# worth three times what GMS pays for one and the skill is no stronger.
+# GMS maxes this at 30 with 80 DEX, 30% avoidability and 20% less damage taken.
+# Compressed to 10 levels ending at all three, so each point is worth three of
+# GMS's and the skill is no stronger.
 #
-# The avoidability is the flat kind -- GMS calls it a Bonus Avoidability
-# Chance, a roll that cancels the whole hit -- which is what dodge_chance is.
-# It meets Evasion Boost's the way two rolls meet, so the pair come to 51%
-# rather than 60%. The knockback resistance is left out: no mob knocks back.
+# The avoidability is the flat kind (GMS's Bonus Avoidability Chance, a roll
+# that cancels the whole hit), which is what dodge_chance is. It combines with
+# Evasion Boost's as two separate rolls, so together they give 51%, not 60%.
+# Knockback resistance is left out: no mob knocks back.
 name: "Illusion Step"
 description:
   "Greatly increases your DEX and Avoidability, and reduces damage taken."

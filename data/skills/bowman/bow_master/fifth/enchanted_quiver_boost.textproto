@@ -1,7 +1,7 @@
-# GMS names Quiver Cartridge, which Enchanted Quiver supersedes -- a boost
-# keyed by the superseded name reaches nothing, so it aims at the arrowhead a
-# Bow Master actually fires. Its strike pursues one enemy, hence the critical
-# rate rather than a wider swing.
+# GMS names Quiver Cartridge, which Enchanted Quiver supersedes. A boost keyed
+# to the superseded name reaches nothing, so this targets the arrowhead a Bow
+# Master actually fires. Its arrow chases one enemy, so the tier is critical
+# rate, not more enemies.
 name: "Enchanted Quiver Boost"
 description: "Strengthens Enchanted Quiver and Phoenix."
 kind: SKILL_KIND_PASSIVE

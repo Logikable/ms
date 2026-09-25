@@ -1,5 +1,5 @@
-# Hurricane alone, unlike the Reinforce above it: GMS aims this one at the
-# swing and leaves the blasters out.
+# Hurricane only, unlike the Reinforce above: GMS targets the swing and leaves
+# the blasters out.
 name: "Hurricane - Boss Rush"
 description:
   "Increases damage when attacking Boss Monsters with Hurricane."

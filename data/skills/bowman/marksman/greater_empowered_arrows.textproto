@@ -1,22 +1,22 @@
 # One passive, one ladder, two swings upgraded: every fourth Piercing Arrow II
-# and every fourth Snipe. GMS states each form's damage on this skill's page
-# rather than on the swing's, which is why both ladders climb with this one.
+# and every fourth Snipe. GMS states each form's damage on this skill's page,
+# not the swing's, which is why both ladders climb with this one.
 #
-# The Marked Target buff is folded into the passive, as every buff a player
-# simply keeps up is here -- so the two permanent halves read as one: 4+8% of
-# final damage, and 13% of ignored defence meeting 20% in reverse for 30.4%.
+# The Marked Target buff is folded into the passive, like every buff a player
+# keeps up all the time, so the two permanent halves become one: 4+8% final
+# damage, and 13% Ignore DEF combined with 20% for 30.4%.
 #
-# Snipe's mark rides Empowered Snipe rather than Snipe, and can: three ordinary
-# Snipes precede every empowered one, so the mark is always standing when the
+# Snipe's mark is on Empowered Snipe, not Snipe, and that works: three normal
+# Snipes come before each empowered one, so the mark is always up when the
 # empowered shot lands.
 #
-# Empowered Snipe's ignored defence climbs to the 25% Snipe itself reaches. It
-# used to carry Snipe's own ladder, which is written over thirty levels and only
-# got twenty here, so the empowered shot ignored less than the ordinary one.
+# Empowered Snipe's Ignore DEF climbs to the 25% Snipe itself reaches. It used
+# to copy Snipe's ladder, which GMS spreads over thirty levels and gets only
+# twenty here, so the empowered shot ignored less than the normal one.
 #
-# It supersedes nothing, and needs to: Empowered Arrows aims both its halves at
-# Piercing Arrow, which Piercing Arrow II has already taken the place of, so it
-# goes quiet on its own the moment the swing it names stops being swung.
+# It supersedes nothing, and doesn't need to: Empowered Arrows targets Piercing
+# Arrow, which Piercing Arrow II has already replaced, so it stops on its own
+# once that swing is no longer used.
 name: "Greater Empowered Arrows"
 description:
   "Enhances the strength of your Empowered Arrows. Empowered Piercing Arrow "

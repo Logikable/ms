@@ -1,6 +1,6 @@
-# The bossing half of the pair Reinforce opens: the same two swings and the
-# same mark, against a boss alone. Sums with what the character's gear already
-# pays, both being shares of the same damage.
+# The bossing half of the pair Reinforce starts: the same two swings and the
+# same mark, against bosses only. Adds to the gear's boss damage, since both are
+# the same kind of damage %.
 name: "Snipe - Boss Rush"
 description:
   "Increases boss damage of Snipe, Empowered Snipe, and of Snipe's additional "

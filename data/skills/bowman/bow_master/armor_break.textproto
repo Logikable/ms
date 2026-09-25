@@ -1,6 +1,6 @@
-# 35 + floor(L/2)% and 6 + L%, straight from GMS. The ignored defence pays
-# against a boss and nowhere else: no map mob sets any physical defence, so a
-# player farming sees only the final damage.
+# 35 + floor(L/2)% and 6 + L%, straight from GMS. The Ignore DEF only matters
+# against bosses: no map mob has physical defense, so while farming only the
+# final damage shows.
 name: "Armor Break"
 description:
   "Pierces the enemy's defenses with the sharpness of a bowman that sees "

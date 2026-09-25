@@ -1,5 +1,5 @@
-# GMS gives 2 DEX a level over 10 levels. Spread over 5 at 4 apiece, which
-# ends in the same place -- 20 -- for half the points, as Agile Arms does.
+# GMS gives 2 DEX a level over 10 levels. Here it is spread over 5 at 4 each,
+# the same 20 total for half the points, like Agile Arms.
 name: "Agile Bows"
 description: "Increases Attack Speed and DEX."
 kind: SKILL_KIND_PASSIVE

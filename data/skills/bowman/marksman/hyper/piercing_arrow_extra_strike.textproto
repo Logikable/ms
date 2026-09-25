@@ -1,9 +1,9 @@
-# One strike for the arrow and one for what it throws off: five lines to six,
-# and the fragment's four to five. The empowered form gains both the same way
-# -- six to seven, and its explosion's ten to eleven.
+# One strike for the arrow and one for its fragment: five lines to six, and the
+# fragment's four to five. The empowered form gains both the same way: six to
+# seven, and its explosion's ten to eleven.
 #
-# Only the Crossbowman's arrow gains nothing beside itself: the fragment is
-# Piercing Arrow II's mechanic, and GMS names it only there.
+# Only the Crossbowman's arrow gains nothing extra: the fragment belongs to
+# Piercing Arrow II, and GMS names it only there.
 name: "Piercing Arrow - Extra Strike"
 description:
   "Increases the number of attacks of Piercing Arrow, Piercing Arrow II, "

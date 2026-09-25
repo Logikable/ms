@@ -1,5 +1,5 @@
-# Mastery and nothing else, unlike the warriors' Weapon Mastery, which also
-# buys speed and crit. What the Hunter gets in its place is Quiver Cartridge.
+# Mastery only, unlike the warriors' Weapon Mastery, which also gives speed and
+# crit. The Hunter gets Quiver Cartridge instead.
 name: "Bow Mastery"
 description: "Increases Bow Mastery."
 kind: SKILL_KIND_PASSIVE

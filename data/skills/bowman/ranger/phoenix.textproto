@@ -1,12 +1,11 @@
-# A summon that also raises DEF for good, which is why every skill kind now has
-# its levers read rather than only the passives -- GMS marks the permanent half
-# "[Passive Effects: ...]" and hangs it off the active.
+# A summon that also raises DEF permanently. GMS marks that half "[Passive
+# Effects: ...]" and attaches it to the active skill.
 #
-# 1.71 seconds is not on the wiki. It is the delay the Korean DPM calculator
-# holds the summon at, beside the damage figure for level 10 exactly.
+# 1.71 seconds isn't on the wiki. It is the delay the Korean DPM calculator uses
+# for the summon, next to the damage figure for exactly level 10.
 #
-# The DEF it grants is dead by design, like every other percentage of DEF in
-# the game -- see SkillEffect.def_pct.
+# The DEF it grants is useless by design, like every % DEF in the game (see
+# SkillEffect.def_pct).
 name: "Phoenix"
 description:
   "Summons a Phoenix to deal Fire damage on its own. Permanently increases "

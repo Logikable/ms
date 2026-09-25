@@ -1,5 +1,5 @@
-# +2% critical rate a level, to 40% at max. This is where an archer's critical
-# rate comes from, on top of the 5% every character starts with.
+# +2% critical rate a level, 40% at max. This is where an archer's critical rate
+# comes from, on top of the 5% every character starts with.
 name: "Critical Shot"
 description: "Increases Critical Rate."
 kind: SKILL_KIND_PASSIVE

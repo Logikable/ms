@@ -1,8 +1,8 @@
-# GMS's readout ends "Final damage increases by 15% with each enemy pierced,
-# and damage is doubled" -- one mechanic, not two: the arrow compounds x1.15
-# per enemy, so the sixth takes 1.15^5 = 2.01x the first, which is the
-# doubling. The swing draws the order it goes through them in, nothing here
-# having a position. Worth +46% on a full six and nothing at all on one mob.
+# GMS's text ends "Final damage increases by 15% with each enemy pierced, and
+# damage is doubled". That is one mechanic, not two: each enemy multiplies by
+# 1.15, so the sixth takes 1.15^5 = 2.01x the first, the doubling. The swing
+# picks the order, since nothing has a position. Worth +46% on a full six and
+# nothing on one mob.
 name: "Piercing Arrow"
 description: "Fire an arrow. Its effect increases with each enemy it hits."
 kind: SKILL_KIND_ATTACK

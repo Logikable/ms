@@ -1,13 +1,14 @@
-# A second Final Attack, which is what GMS's readout describes: a chance for
-# an extra arrow worth a multiple of a plain shot. Each source is folded as its
-# own chance times damage and the two are summed, so stating it this way
-# composes with Final Attack: Bow rather than fighting it.
+# A second Final Attack, as GMS's text describes: a chance of an extra arrow
+# worth a multiple of a normal shot. Each source counts as its own chance times
+# damage and the two are added, so written this way it combines with Final
+# Attack: Bow instead of competing with it.
 #
-# GMS gates the arrowheads on a later skill and lets you swap between them.
-# There is nothing to swap here, so what is left is the one arrowhead, levelled.
+# GMS unlocks the arrowheads with a later skill and lets you switch between
+# them. There is nothing to switch here, so only one arrowhead is kept, with
+# levels.
 #
-# The arrow "pursues the enemy" and states no mobCount, so it lands on ONE of
-# the enemies the swing reached -- the same shape as Final Attack.
+# The arrow "pursues the enemy" and states no mobCount, so it lands on ONE enemy
+# the swing reached, like Final Attack.
 name: "Quiver Cartridge"
 description: "Uses a special arrowhead."
 kind: SKILL_KIND_PASSIVE

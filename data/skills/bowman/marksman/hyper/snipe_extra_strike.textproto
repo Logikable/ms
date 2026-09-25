@@ -1,7 +1,6 @@
-# Nine strikes to ten, and the mark spent by the empowered shot from five to
-# six. The mark rides Empowered Snipe rather than Snipe -- see Greater
-# Empowered Arrows -- which is what the boost following the skill into its
-# form reaches.
+# Nine strikes to ten, and the empowered shot's mark hits from five to six. The
+# mark is on Empowered Snipe, not Snipe (see Greater Empowered Arrows), and the
+# boost follows the skill into its form to reach it.
 name: "Snipe - Extra Strike"
 description:
   "Increases the number of attacks of Snipe, Empowered Snipe, and of Snipe's "

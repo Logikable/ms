@@ -1,6 +1,6 @@
-# One boost covers both halves of Arrow Blaster: the turret carries its
-# parent's name, which is what the lookup is keyed by. The enemy at 20 is the
-# volley's alone -- the turret takes its count from the AutoMode.
+# One boost covers both halves of Arrow Blaster, because the turret carries its
+# parent's name and boosts are looked up by name. The enemy tier at 20 only
+# helps the volley; the turret takes its count from the AutoMode.
 name: "Arrow Blaster Boost"
 description: "Strengthens Arrow Blaster and Arrow Stream."
 kind: SKILL_KIND_PASSIVE

@@ -1,13 +1,13 @@
-# GMS states the whole of the arrowhead rather than a delta over the Hunter's,
-# so this supersedes Quiver Cartridge instead of stacking on it. Level 1
-# already clears that skill's best -- 33% against 30, 224% against 220 -- so
-# the point that buys this is never a step backwards.
+# GMS states the whole arrowhead, not an increase over the Hunter's, so this
+# supersedes Quiver Cartridge instead of stacking with it. Level 1 already beats
+# that skill's best (33% vs 30%, 224% vs 220%), so buying it is never a step
+# back.
 #
-# The arrow pursues one enemy, as Quiver Cartridge's does.
+# The arrow chases one enemy, like Quiver Cartridge's.
 #
-# The blood arrowhead is left out. It heals a share of the pool on a chance,
-# which the Berserker's lever already does, and GMS makes the two arrowheads
-# alternatives rather than a pair.
+# The blood arrowhead is left out. It heals part of the HP pool on a chance,
+# which the Berserker's lever already does, and in GMS the two arrowheads are
+# alternatives, not a pair.
 name: "Enchanted Quiver"
 description:
   "Equips specialized arrowheads. Also permanently increases Final Damage."

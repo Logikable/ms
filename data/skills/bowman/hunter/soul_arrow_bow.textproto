@@ -1,5 +1,5 @@
-# GMS spends this skill on not consuming arrows, and grants the attack as an
-# aside. There are no arrows to consume here, so the aside is the whole skill.
+# In GMS this skill is mostly about not using up arrows, with the attack as an
+# extra. There are no arrows here, so the attack is the whole skill.
 name: "Soul Arrow: Bow"
 description: "Increases Attack Power."
 kind: SKILL_KIND_PASSIVE

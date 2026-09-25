@@ -1,21 +1,19 @@
 # GMS's 4 stands. Its 120x120 hitbox is one arrow's burst and it TRAVELS: the
-# shot is aimed, so the box sweeps a platform rather than covering a patch of
-# ground. The reach rule reads a box that stands somewhere -- see
-# Skill.max_enemies.
+# shot is aimed, so the box sweeps along a platform instead of covering one
+# patch. The reach rule is for boxes that stay put (see Skill.max_enemies).
 #
-# Two attacks out of one skill: the volley the player holds the key for, and
-# the turret they leave behind firing by itself. One row in the book and one SP
+# Two attacks from one skill: the volley the player holds the key for, and the
+# turret left behind that fires on its own. One row in the book and one SP
 # ladder, because it is one skill.
 #
-# The turret is a BUFF, not an auto mode. GMS installs it with the Interact
-# key mid-cast and gives it u = 20+2x seconds, so it is something the player
-# puts up, loses and puts up again -- and the 800ms install is theirs to pay.
-# An auto mode has no clock of that shape: it would fire for the whole fight
-# for nothing. See Buff.own_cast_delay_ms.
+# The turret is a BUFF, not an auto mode. GMS places it with the Interact key
+# mid-cast and gives it u = 20+2x seconds, so the player puts it up, loses it
+# and puts it up again, and pays the 800ms to place it. An auto mode has no such
+# timer and would fire all fight for free. See Buff.own_cast_delay_ms.
 #
-# Neither half answers to attack speed. The volley is a key-down skill, which
-# GMS paces itself, and the turret is a summon, which nothing has ever hurried.
-# So a Ranger gets nothing from Agile Bows, exactly as in GMS.
+# Neither half uses attack speed. The volley is a key-down skill, which GMS
+# paces itself, and the turret is a summon, which nothing speeds up. So a Ranger
+# gets nothing from Agile Bows, just as in GMS.
 name: "Arrow Blaster"
 description:
   "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
@@ -31,7 +29,7 @@ hits_per_attack_count: 7
 base { skill_pct: 1.24 }
 per_level { skill_pct: 0.03 }
 buff {
-  # GMS u = 20+2x with x the level, so 22 at 1 and 60 at 20.
+  # GMS u = 20+2x with x the level: 22 at 1 and 60 at 20.
   duration_seconds: 22.0
   duration_seconds_per_level: 2.0
   own_cast_delay_ms: 800

@@ -1,10 +1,10 @@
 # GMS: "+1 attack to all multi-hit skills. Does not apply to Summon, 5th Job
-# Common, or certain skills." Every one of those exclusions falls out of what a
-# swing is here -- a summon fires on its own clock, and a Final Attack has no
-# line count -- so the lever needs no list of its own.
+# Common, or certain skills." Each exclusion follows from how swings work here:
+# a summon fires on its own clock and a Final Attack has no line count, so the
+# lever needs no list.
 #
-# The strike is worth most where the swing is shortest: a tenth more of Snipe's
-# nine, a fifth more of Piercing Arrow II's five.
+# The extra strike is worth most on the shortest swings: a ninth more on Snipe's
+# nine lines, a fifth more on Piercing Arrow II's five.
 name: "Bolt Surplus"
 description:
   "Increases the number of attacks for all multi-hit skills and Final Damage."

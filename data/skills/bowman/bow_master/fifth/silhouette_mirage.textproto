@@ -1,20 +1,20 @@
-# A double that shoots for the character. GMS spawns one every 50 seconds up
-# to two, spends one to soak a hit worth half the character's HP, and fires
-# five illusory bullets whenever an attack lands with an enemy near.
+# A double that shoots for the character. GMS makes one every 50 seconds up to
+# two, uses one up to block a hit worth half the character's HP, and fires five
+# bullets whenever an attack lands near an enemy.
 #
-# Only the bullets are kept. The damage reduction is a survival lever this
-# game does not price, and the number of doubles standing feeds nothing else:
-# one or two, the volley is five bullets either way. With the reduction gone
-# no double is ever spent, so a skill kept toggled on has both of them up
-# before any fight starts -- the 50-second wait and the cap of two go too.
+# Only the bullets are kept. This game doesn't value the damage reduction, and
+# nothing else depends on how many doubles stand; the volley is five bullets
+# either way. Without the reduction no double is ever used up, so a skill left
+# on has both before any fight starts, and the 50-second wait and cap of two are
+# dropped.
 #
-# One enemy a bullet. GMS states no mobCount and the box is degenerate,
-# (-20,0) to (0,0), so there is no cap for the reach rule to lift -- the same
-# reading Inhuman Speed's afterimage takes. The five ride one target here,
-# which is a boss exactly and a farm generously understated.
+# One enemy per bullet. GMS states no mobCount and the hitbox is empty, (-20,0)
+# to (0,0), so the reach rule has nothing to work with; Inhuman Speed's
+# afterimage is read the same way. All five hit one target here, exact against a
+# boss and an undercount when farming.
 #
-# GMS fires them "when using an attack skill", and the swing clock never idles
-# while a monster stands, so the 7.5-second re-trigger is simply the rate.
+# GMS fires them "when using an attack skill", and the swing never pauses while
+# a monster stands, so the 7.5-second re-trigger is the rate.
 name: "Silhouette Mirage"
 description:
   "Evades enemy attacks by moving fast enough to create illusory doubles of "

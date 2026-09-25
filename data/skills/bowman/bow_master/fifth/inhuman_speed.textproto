@@ -1,26 +1,22 @@
-# The afterimage's rate is the one number GMS never prints. Every language
-# says only "fires at set intervals", and the client does NOT hold it: neither
-# 400031020 nor 400031021 has a `summon` node, which is the mark of a pulse
-# clocked server-side -- see periodic_intervals. So the rate is the user's own
-# observation, one attack a second, and `subTime 180` is not it. An earlier
-# reading took that 180 for the tick and had the afterimage firing five times
-# as fast.
+# GMS never prints the afterimage's rate. Every language says only "fires at set
+# intervals", and the client doesn't hold it either: neither 400031020 nor
+# 400031021 has a `summon` node, which marks a pulse timed by the server (see
+# periodic_intervals). So the rate is the user's own observation, one attack a
+# second. `subTime 180` is not the rate; reading it that way once made the
+# afterimage fire five times too fast.
 #
-# GMS gives the buff 30 seconds and the afterimages 3, then hands them 3 more
-# for every second their attacks land, up to the buff. A Bow Master never
-# stops attacking, so the window is the buff: the ramp is dropped and the
-# afterimages fire for the whole 30.
+# GMS gives the buff 30 seconds and the afterimages 3, adding 3 more for each
+# second their attacks land, up to the buff's length. A Bow Master never stops
+# attacking, so the afterimages simply fire for the whole 30.
 #
-# One enemy a volley. GMS states no mobCount for this skill, and while the box
-# is wide enough for 24 by the reach rule, that rule floors a stated cap
-# rather than lifting an absent one -- the arrow is fired at an enemy ahead.
+# One enemy per volley. GMS states no mobCount, and though the hitbox fits 24 by
+# the reach rule, that rule only lowers a stated cap, it doesn't create one.
 #
-# The passive half counts ten of the character's own attacks, and nothing here
-# says what one is worth: Hurricane's own hits_per_attack_count divides it, so
-# a rate written in swings holds whatever they are swinging and moves on its
-# own if Hurricane ever changes. Its afterimage stands `q` = 1 second and
-# strikes once a second, so it gets ONE attack of 3 lines -- GMS states a
-# lifetime and an attackCount and never a repeat count.
+# The passive counts ten of the character's own attacks. Hurricane's
+# hits_per_attack_count defines an attack, so the rate follows Hurricane if it
+# ever changes. Its afterimage lasts `q` = 1 second and strikes once a second,
+# so it gets one attack of 3 lines. GMS states a lifetime and an attackCount but
+# never a repeat count.
 name: "Inhuman Speed"
 description:
   "Causes you to attack so quickly you produce afterimages. Unaffected by "
