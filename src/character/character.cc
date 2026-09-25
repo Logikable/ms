@@ -198,16 +198,6 @@ int CorrectPool(std::string_view what, int delta, int* pool) {
   return *pool - was;
 }
 
-// SP granted for advancing into `job`. Every book costs exactly what its levels
-// pay, so advancing grants nothing. A job whose skills can't be made to match
-// its levels would set a bonus here.
-int JobAdvancementSpBonus(Job job) {
-  switch (job) {
-    default:
-      return 0;
-  }
-}
-
 // HP and MP gained per level. GMS varies it per class with no published table,
 // so these are round numbers chosen to give each branch its feel: warriors
 // tough, mages frail with a large MP pool, and the rest in between.
@@ -1033,9 +1023,6 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   if (AdvancementGrantsAp(stage)) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
-  // Advancing grants SP only for a job that sets JobAdvancementSpBonus.
-  // Normally levels pay all the SP.
-  (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
   // A worn Arcane Symbol grants the wearer's primary stat, and the job just
   // changed which stat that is.
   RecomputeEquipStats();

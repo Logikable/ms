@@ -831,12 +831,16 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
 }
 
 // A Shadower at level 100 has no advancement to take.
+// Level 260 unlocks the 6th stage, but no job has one yet.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/260);
   c.AdvanceJob(JOB_ROGUE);
   c.AdvanceJob(JOB_BANDIT);
   c.AdvanceJob(JOB_CHIEF_BANDIT);
   c.AdvanceJob(JOB_SHADOWER);
+  EXPECT_TRUE(c.CanAdvanceJob());
+  c.AdvanceJob(JOB_SHADOWER);
+  EXPECT_EQ(c.proto().job_stage(), 5);
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
