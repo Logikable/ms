@@ -14,7 +14,6 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_EARRINGS
 upgrade_slots: 5
-# Dropped by Hard Hilla, never stocked. Priced by what a clear of hers is
-# worth beside the other late fights: her meso alone would leave the 190 gate
-# paying half what the 180 one does.
+# Dropped by Hard Hilla and never stocked. Like all boss gear, it sells for
+# nothing.
 sell_price: 0

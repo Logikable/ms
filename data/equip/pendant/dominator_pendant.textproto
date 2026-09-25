@@ -8,15 +8,14 @@ base_stats {
   attack: 3
   magic_attack: 3
   def: 100
-  # GMS's own +10% to each pool. Sums with what a passive grants rather than
-  # compounding with it -- see EquipStats.max_hp_pct.
+  # GMS's own +10% to each pool. Adds to what a passive grants rather than
+  # multiplying with it (see EquipStats.max_hp_pct).
   max_hp_pct: 10
   max_mp_pct: 10
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_PENDANT
 upgrade_slots: 5
-# Dropped by Arkarium, never stocked, at the rung his 180 gate puts it on.
-# A boss accessory is priced by the earliest gate that drops it: 110 500k,
-# 130 750k, 150 1M, 160 1.5M, 170 2M, 180 2.5M, 190 3M.
+# Dropped by Arkarium and never stocked. Like all boss gear, it sells for
+# nothing.
 sell_price: 0

@@ -12,6 +12,6 @@ unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 token_item: "captivating_fragment"
 token_price: 15
-# Bought with fifteen fragments, never with meso, so no shop price sets this.
-# A spare is thrown away rather than sold, as every boss drop is.
+# Bought with fifteen fragments, never with meso. Like every boss drop, a spare
+# sells for nothing.
 sell_price: 0

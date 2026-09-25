@@ -12,6 +12,6 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_EYE_ACCESSORY
 upgrade_slots: 5
-# Dropped by Pink Bean, never stocked, at the top of the ladder his accessories
-# sit on: Zakum 500k, Hilla 750k, Horntail 1M, Magnus 1.5M.
+# Dropped by Pink Bean and never stocked. Like all boss gear, it sells for
+# nothing.
 sell_price: 0

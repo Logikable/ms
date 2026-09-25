@@ -1,7 +1,6 @@
 # The Root Abyss hat for this branch, bought with what Chaos Crimson Queen
-# drops. One of four: the piece a class wears is its own, so the
-# set is written four times over rather than once around a
-# universal armour.
+# drops. One of four, since each class wears its own piece, so the set is
+# defined four times rather than once around a universal item.
 name: "Royal Dunwitch Hat"
 required_level: 150
 base_stats {

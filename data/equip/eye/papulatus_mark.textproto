@@ -12,6 +12,7 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_EYE_ACCESSORY
 upgrade_slots: 5
-# Dropped by Papulatus, never stocked. The third piece for a slot the Aquatic
-# Letter and the Black Bean Mark already fill, and the best of the three.
+# Dropped by Papulatus and never stocked: the third item for a slot the Aquatic
+# Letter and the Black Bean Mark already fill, and the best of the three. Like
+# all boss gear, it sells for nothing.
 sell_price: 0

@@ -1,6 +1,6 @@
-# The AbsoLab hat for this branch, bought with the coins Damien and Lotus
-# drop. One of four: the piece a class wears is its own, so the set is written
-# four times over rather than once around a universal armour.
+# The AbsoLab hat for this branch, bought with the coins Damien and Lotus drop.
+# One of four, since each class wears its own piece, so the set is defined four
+# times rather than once around a universal item.
 name: "AbsoLab Knight Helm"
 required_level: 160
 base_stats {

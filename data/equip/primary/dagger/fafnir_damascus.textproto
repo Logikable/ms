@@ -1,6 +1,6 @@
-# The Root Abyss weapon for this line, bought with what Chaos Vellum drops.
-# Two tiers above the Frozen weapon it replaces: the attack alone is a third
-# more, and it carries boss damage and ignored defence of its own.
+# The Root Abyss weapon for this line, bought with what Chaos Vellum drops. Two
+# tiers above the Frozen weapon it replaces: a third more attack, plus boss
+# damage and ignored defence of its own.
 name: "Fafnir Damascus"
 required_level: 150
 base_stats {

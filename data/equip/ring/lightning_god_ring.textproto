@@ -5,9 +5,9 @@ base_stats {
   dex: 12
   int: 12
   luk: 12
-  # GMS summons the Lightning God while the ring is worn, for 16 attack over a
-  # duration. Nothing here summons anything, so the buff is the ring's own
-  # stat and never lapses.
+  # In GMS the ring summons the Lightning God while worn, for 16 attack over a
+  # duration. Nothing here summons anything, so the bonus is the ring's own stat
+  # and never runs out.
   attack: 16
   magic_attack: 16
   max_hp: 150

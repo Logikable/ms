@@ -1,6 +1,6 @@
-# The head of the crossbow ladder. An arrow carries far less attack than the
-# star of the same tier -- a claw is nothing without what it throws, while a
-# bow already hits for more on its own.
+# The first crossbow arrow. An arrow has far less attack than the throwing star
+# of the same tier, since a claw is nothing without what it throws, while a bow
+# already hits harder on its own.
 name: "Bronze Arrow for Crossbow"
 required_level: 10
 base_stats {
