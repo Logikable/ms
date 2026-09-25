@@ -236,25 +236,9 @@ namespace {
 // the SP schedule ends and the books are finished, then every twentieth, and
 // the cap itself last -- past 140 a level buys HP, MP and AP and nothing else,
 // so the rungs need not be as close together.
-constexpr int kMilestones[] = {10,
-                               20,
-                               30,
-                               40,
-                               50,
-                               60,
-                               70,
-                               80,
-                               90,
-                               100,
-                               110,
-                               120,
-                               130,
-                               140,
-                               160,
-                               180,
-                               200,
-                               220,
-                               kTrialLevelCap};
+constexpr int kMilestones[] = {
+    10,  20,  30,  40,  50,  60,  70,  80,  90,  100,
+    110, 120, 130, 140, 160, 180, 200, 220, 240, kTrialLevelCap};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
 
 // The rank a character rolls the ability up to before holding anything.

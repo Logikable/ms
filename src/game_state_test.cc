@@ -1056,17 +1056,16 @@ TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
               static_cast<int>(AllConsumables().size()));
     EXPECT_EQ(sheet.consumables().active_size(),
               static_cast<int>(AllConsumables().size()));
-    // The five areas the cap opens, worn, and not the sixth: proof the climb
-    // really ran rather than a level being written onto a blank sheet.
+    // Every area the cap opens, worn: the climb really ran rather than a
+    // level being written onto a blank sheet.
     ASSERT_GT(sheet.equip_presets().presets_size(), 0);
     const EquipPreset& worn = sheet.equip_presets().presets(0);
     for (EquipSlot symbol :
          {EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
           EQUIP_SLOT_SYMBOL_LACHELEIN, EQUIP_SLOT_SYMBOL_ARCANA,
-          EQUIP_SLOT_SYMBOL_MORASS}) {
+          EQUIP_SLOT_SYMBOL_MORASS, EQUIP_SLOT_SYMBOL_ESFERA}) {
       EXPECT_EQ(worn.equipped().count(symbol), 1u) << EquipSlot_Name(symbol);
     }
-    EXPECT_EQ(worn.equipped().count(EQUIP_SLOT_SYMBOL_ESFERA), 0u);
     EXPECT_GT(sheet.inner_ability().presets_size(), 0);
   }
 }
@@ -1141,7 +1140,9 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 // has not. A ceiling character stands in the river, and the river is what the
 // Arcane Force is read against.
 TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
-  GameState state = MakeMaxState(kTrialLevelCap);
+  // Below Esfera's 235, so one area is still shut.
+  const int kLevel = 230;
+  GameState state = MakeMaxState(kLevel);
   int worn = 0;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
@@ -1149,14 +1150,13 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
       continue;
     }
     ++worn;
-    EXPECT_LE(entry.second->prototype().arcane_symbol().area_level(),
-              kTrialLevelCap)
+    EXPECT_LE(entry.second->prototype().arcane_symbol().area_level(), kLevel)
         << entry.second->prototype().name();
     EXPECT_EQ(SymbolLevel(entry.second->equip_state()), 10)
         << entry.second->prototype().name();
   }
   // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every
-  // area open at the cap, and Esfera's 235 is not.
+  // area open at 230, and Esfera's 235 is not.
   EXPECT_EQ(worn, 5);
   EXPECT_EQ(state.character.arcane_force(), 5 * SymbolArcaneForce(10));
 }
