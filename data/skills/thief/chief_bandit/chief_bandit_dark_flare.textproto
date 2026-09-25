@@ -1,6 +1,6 @@
-# The Hermit's, to the number -- GMS gives both branches 200+8x% on three
-# enemies, and both pulse at the same 900ms, for the reason written
-# there. A dagger hangs in the air where a shuriken does.
+# Identical to the Hermit's: GMS gives both branches 200+8x% on three enemies,
+# and both pulse every 900ms, for the reason given there. A dagger hangs in the
+# air instead of a shuriken.
 name: "Dark Flare"
 description:
   "Release dark energy to summon a large dagger, which attacks enemies "

@@ -1,6 +1,6 @@
 # GMS's own figures: critical rate 5+2x%, ending at 25%, and critical damage
-# 1+ceil(x/3)%, ending at 5% -- the same 5% Critical Throw ends on, reached in
-# a third of the levels.
+# 1+ceil(x/3)%, ending at 5%, the same 5% Critical Throw ends at in a third of
+# the levels.
 name: "Critical Edge"
 description: "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE

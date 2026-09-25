@@ -1,7 +1,8 @@
-# Pure defense, 10 a point. GMS stops it at 9; one more point rounds the
-# magician's book to the same 60 every other job pays.
-# The wiki names Magic Guard Lv. 3 as a prerequisite. Nothing here gates one
-# skill behind another, so saying it would only describe a rule we don't have.
+# Pure defense, 10 a point. GMS stops at 9; one more point brings the magician's
+# book to the same 60 every other job gets.
+#
+# The wiki lists Magic Guard Lv. 3 as a prerequisite. This file sets no
+# required_skill, so the description leaves it out.
 name: "Magic Armor"
 description: "Uses magic to increase DEF."
 kind: SKILL_KIND_PASSIVE

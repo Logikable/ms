@@ -1,6 +1,5 @@
-# GMS gives 2 LUK a level over 10 levels. Spread over 5 at 4 apiece, which ends
-# in the same place -- 20 -- for half the points, as every other Agile skill
-# does.
+# GMS gives 2 LUK a level over 10 levels. Here it is spread over 5 at 4 each,
+# the same 20 total for half the points, like every other Agile skill.
 name: "Agile Daggers"
 description: "Increases Attack Speed and LUK."
 kind: SKILL_KIND_PASSIVE

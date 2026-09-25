@@ -1,6 +1,6 @@
-# GMS gives x% critical damage over 10 levels. Five levels here at 2% apiece,
-# ending where GMS does. The potion half and the knockback half both go: this
-# game has neither.
+# GMS gives x% critical damage over 10 levels. Five levels here at 2% each,
+# ending where GMS does. The potion and knockback halves are dropped: this game
+# has neither.
 name: "Alchemic Adrenaline"
 description: "Permanently increases your Critical Damage."
 kind: SKILL_KIND_PASSIVE

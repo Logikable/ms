@@ -1,10 +1,9 @@
-# Magic attack and Buff Duration. The lever lengthens a buff and not the wait
-# under it, which is what makes a percentage granting nothing on its own worth
-# having. The V matrix stands outside it: GMS marks every node
-# notIncBuffDuration, and BuffDurationFor asks v_node rather than each file.
+# Magic attack and Buff Duration. Buff Duration lengthens a buff but not its
+# cooldown, which is what makes a stat that gives nothing alone worth having.
+# The V matrix is outside it: GMS marks every node notIncBuffDuration, and
+# BuffDurationFor checks v_node instead of each file.
 #
-# GMS's knockback resistance is dropped -- nothing here knocks a character
-# back.
+# GMS's knockback resistance is dropped: nothing here knocks a character back.
 name: "Buff Mastery"
 description:
   "Permanently increases Magic ATT and increases the duration of all buffs on "

@@ -1,7 +1,6 @@
-# The mastery skill, over 20 levels rather than GMS's 10 so that the book costs
-# the 90 the Bandit's levels pay out. The mastery runs 12% to 50%, the same
-# climb every other 20-level mastery makes, and the final damage ends on GMS's
-# own 9%.
+# The mastery skill, over 20 levels instead of GMS's 10 so the book costs the 90
+# SP the Bandit's levels give. Mastery goes from 12% to 50%, the same climb as
+# every other 20-level mastery, and final damage ends at GMS's 9%.
 name: "Dagger Mastery"
 description: "Increases Dagger Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE

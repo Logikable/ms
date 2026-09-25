@@ -1,18 +1,17 @@
-# A HELD swing: an orb that zaps everything around
-# it every 150ms for as long as the key is down, then bursts. Twelve pulses is
-# a full two seconds; 960ms is the shortest it can be let go after, which five
-# pulses and the burst fit inside.
+# A HELD swing: an orb that zaps everything around it every 150ms while the key
+# is held, then bursts. Twelve pulses take two full seconds; 960ms is the
+# earliest it can be released, which fits five pulses and the burst.
 #
-# Fourteen enemies against GMS's fifteen, off a 500x400 sphere -- seven abreast
+# Fourteen enemies against GMS's fifteen, from a 500x400 sphere: seven across
 # over two storeys. See Skill.max_enemies.
 #
-# It picks its fourteen when the hold opens and never again, so the fight holds
-# it only as long as the pulses still have somewhere to land -- against a boss
-# that is the whole two seconds, and on a map it is the floor. See Channel.
+# It picks its fourteen targets when the hold starts and never again, so the
+# fight holds it only while the pulses still have targets: against a boss that
+# is the full two seconds, and on a map the minimum. See Channel.
 #
-# Lightning, so it spends the pile an ice swing left and hits harder for every
-# stack it went in holding. GMS's line about attack reflection is dropped with
-# the rest of what this game has no notion of.
+# It is lightning, so it uses up the stacks an ice swing left and hits harder
+# for each. GMS's line about attack reflection is dropped with everything else
+# this game doesn't have.
 name: "Lightning Orb"
 description:
   "Creates a large, unstable sphere of electricity to continuously zap "

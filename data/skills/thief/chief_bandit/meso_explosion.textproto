@@ -1,14 +1,14 @@
-# GMS's own figures: 40+3x% twice per meso per enemy. What it throws is the
-# mesos Pick Pocket knocked onto the ground, never the ones in the purse -- so
-# it costs the character nothing but the coins they would not have collected.
+# GMS's own figures: 40+3x% twice per meso per enemy. It throws the mesos Pick
+# Pocket drops on the ground, never the ones in the purse, so it costs the
+# character only coins they wouldn't have picked up.
 #
-# A passive here, because there is no ground to stand on and no meso to walk
-# over: every meso that drops is thrown the moment it does. GMS's cap of 15 on
-# the ground has nothing to cap for the same reason.
+# A passive here, because there is no ground and no mesos to walk over: every
+# meso that drops is thrown at once. For the same reason GMS's cap of 15 on the
+# ground has nothing to cap.
 #
-# GMS's normal-enemy bargain is stated as POINTS on a line rather than a share
-# -- 2+floor(x/6)%, which is 5 at the master level and 10 on a two-line meso.
-# Walked evenly to that end, so only where it starts moves.
+# GMS's normal-enemy bonus is POINTS on a line, not a share: 2+floor(x/6)%,
+# which is 5 at max and 10 on a two-line meso. Stepped evenly to that top, so
+# only the start moves.
 name: "Meso Explosion"
 description: "Fling Mesos, dropped by Pick Pocket, to damage enemies."
 kind: SKILL_KIND_PASSIVE

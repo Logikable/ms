@@ -1,9 +1,8 @@
-# GMS masters this at 4 for 40% critical rate and 70% magic mastery; the same
-# ceilings over ten levels, four points of crit and two of mastery a level.
+# GMS maxes this at 4 for 40% critical rate and 70% magic mastery; here the same
+# tops over ten levels, four points of crit and two of mastery a level.
 #
-# The mastery does not stack with Spell Mastery's 50% -- no mastery stacks with
-# another. The character simply holds the better one, which from level 2 is
-# this.
+# The mastery doesn't stack with Spell Mastery's 50%; no masteries stack. The
+# character uses the better one, which is this from level 2.
 name: "Holy Focus"
 description: "Permanently increases your Critical Rate and Magic Mastery."
 kind: SKILL_KIND_PASSIVE

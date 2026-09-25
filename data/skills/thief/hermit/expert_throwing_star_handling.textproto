@@ -1,5 +1,5 @@
 # GMS's own figures: 9+2x% final damage over 10 levels, and a flat 20% critical
-# rate that does not climb. The requirement is GMS's own too.
+# rate that doesn't climb. The requirement is also GMS's.
 name: "Expert Throwing Star Handling"
 description:
   "The Thief's secret technique increases Final Damage and Critical Rate."

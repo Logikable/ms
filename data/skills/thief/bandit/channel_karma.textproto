@@ -1,8 +1,8 @@
-# GMS runs 11+x attack over 19 levels, ending at 30. The same 12 to 30 over 10
-# levels here.
+# GMS gives 11+x attack over 19 levels, ending at 30. Here it is the same 12 to
+# 30 over 10 levels.
 #
-# The knockback resistance it also grants is dropped: nothing in this game
-# knocks the player anywhere.
+# Its knockback resistance is dropped: nothing in this game knocks the player
+# back.
 name: "Channel Karma"
 description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE

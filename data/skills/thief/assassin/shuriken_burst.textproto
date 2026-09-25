@@ -1,14 +1,14 @@
-# GMS throws it in two parts: 400+8x% at one enemy, and on striking them a
-# detonation of 45+3x% six times over six. The detonation is the swing here
-# and the opening throw is its lead hit -- see fight.h. Folding the two into
-# one column would have handed the bystanders a shuriken only the target takes.
+# GMS throws it in two parts: 400+8x% at one enemy, then on hit an explosion of
+# 45+3x% six times on six. Here the explosion is the swing and the first throw
+# is its lead hit (see lead_enemies in fight.h). Merging them into one column
+# would give bystanders a shuriken only the target takes.
 #
-# The Assassin's only attack, so it carries no cooldown: the pair the wizards
-# alternate between is what a cooldown is for, and there is no pair here.
+# The Assassin's only attack, so it has no cooldown: a cooldown is for
+# alternating a pair, as magicians do, and there is no pair here.
 #
-# Two enemies against GMS's six. The detonation's own box is 200x220 -- a burst
-# at the struck monster's feet, wide enough for it and one neighbour, whatever
-# GMS lets it count. See Skill.max_enemies.
+# Two enemies against GMS's six. The explosion's own box is 200x220, a burst at
+# the struck monster's feet wide enough for it and one neighbour, whatever GMS
+# lets it count. See Skill.max_enemies.
 name: "Shuriken Burst"
 description:
   "Throw exploding shurikens that ricochet to nearby enemies on hit. "

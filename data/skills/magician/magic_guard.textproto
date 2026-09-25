@@ -1,6 +1,5 @@
-# Sends 15+7x% of a hit to the MP pool instead of the HP pool. Nothing here
-# tracks MP, so it lands as plain reduction alongside damage_taken_pct -- which
-# is real now that monsters hit back.
+# Sends 15+7x% of a hit to MP instead of HP. Nothing here tracks MP, so it
+# counts as plain damage reduction alongside damage_taken_pct.
 name: "Magic Guard"
 description:
   "A portion of the damage dealt to you affects your MP instead of your HP."

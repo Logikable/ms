@@ -1,9 +1,9 @@
-# The mastery skill, over 20 levels rather than GMS's 10 so that the book costs
-# the 90 the Assassin's levels pay out. The mastery runs 12% to 50%, the same
-# climb every other 20-level mastery makes.
+# The mastery skill, over 20 levels instead of GMS's 10 so the book costs the 90
+# SP the Assassin's levels give. Mastery goes from 12% to 50%, the same climb as
+# every other 20-level mastery.
 #
-# GMS also raises the number of throwing stars a claw carries. Stars here are
-# an equipped item that never runs out, so there is no count to raise.
+# GMS also raises how many throwing stars a claw holds. Stars here are an
+# equipped item that never runs out, so there is no count to raise.
 name: "Claw Mastery"
 description: "Increases Claw Mastery."
 kind: SKILL_KIND_PASSIVE

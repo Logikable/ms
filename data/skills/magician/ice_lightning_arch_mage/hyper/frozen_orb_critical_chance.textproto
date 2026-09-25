@@ -1,5 +1,5 @@
-# The critical rate rides Frozen Orb's own swing and hands nothing to the one
-# after it, exactly as the skill's other levers do.
+# The critical rate applies to Frozen Orb's own swing only, like the skill's
+# other levers.
 name: "Frozen Orb - Critical Chance"
 description: "Increases Frozen Orb critical chance bonus."
 kind: SKILL_KIND_PASSIVE
