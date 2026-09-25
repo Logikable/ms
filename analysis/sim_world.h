@@ -1,8 +1,5 @@
-/* Loads the game's catalogs once and builds characters on them.
- *
- * Every sim that plays the game forward starts the same way: read the data
- * compiled into the binary, then build a GameState on it. Doing that here means
- * a catalog added to the game reaches every sim at once.
+/* Loads the game's catalogs once and builds characters on them, so a catalog
+ * added to the game reaches every sim at once.
  */
 #ifndef MS_ANALYSIS_SIM_WORLD_H_
 #define MS_ANALYSIS_SIM_WORLD_H_
@@ -42,10 +39,9 @@ struct Catalogs {
 
 Catalogs LoadCatalogs();
 
-// Returns a fresh level 1 character in a world built from `catalogs`. `seed`
-// fixes the random stream, since rewards are rolled and an unseeded sweep would
-// hide real changes in noise. Includes equip sets, which make up most of the
-// value of top-tier gear. Callers assign the bosses they fight themselves.
+// Returns a fresh level 1 character in a world built from `catalogs`, with
+// equip sets. `seed` fixes the random stream. Callers assign the bosses they
+// fight themselves.
 GameState NewState(const Catalogs& catalogs, unsigned int seed);
 
 // Returns the character --mode=max seeds at `level` in the branch `advancement`

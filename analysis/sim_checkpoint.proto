@@ -5,16 +5,9 @@ package ms;
 import "src/protos/character.proto";
 
 // A climb saved partway up, so a run asking about higher levels doesn't have to
-// replay the lower ones.
-//
-// This isn't a save file and the game never loads it. It holds the sim's own
-// bookkeeping (where the player is in their day, what each fight has cost so
-// far, every milestone the tables have collected) alongside the character. A
-// checkpoint written by a different build is refused rather than resumed; see
+// replay the lower ones. Not a save file: it holds the sim's own bookkeeping
+// alongside the character. A checkpoint from a different build is refused; see
 // CheckpointStamp.
-//
-// It lives in //analysis because a tuning tool's file doesn't belong in the
-// game's protos.
 
 // The player's state for one fight.
 message CheckpointFight {

@@ -1,9 +1,6 @@
 /* The lobby holds every party waiting to fight and the rules for creating,
- * joining and leaving them.
- *
- * It knows nothing about sockets. The server passes in each client request
- * and gets back whether it succeeded, then asks which players to update. This
- * keeps the rules testable without a network.
+ * joining and leaving them. It knows nothing about sockets, so the rules are
+ * testable without a network.
  */
 #ifndef MS_SERVER_LOBBY_H_
 #define MS_SERVER_LOBBY_H_

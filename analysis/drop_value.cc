@@ -39,9 +39,8 @@ EquipStats Minus(const EquipStats& a, const EquipStats& b) {
 }
 
 // Damage against the yardstick with `stats` in place of what the character
-// wears. Uses the closed form, as GearShopper does, since ranking a drop only
-// depends on the stats, and a played fight per drop per look would cost too
-// much.
+// wears, by the closed form, as GearShopper does. A played fight per drop would
+// cost too much.
 double PowerWith(const GameState& state, const DropBasis& basis,
                  const EquipStats& stats) {
   return WorthOf(state, basis.yard, stats, PassiveOffenseFor(basis.derived));
@@ -94,10 +93,9 @@ DropBasis DropBasisFor(const GameState& state, double power_per_meso,
   basis.yard = held.For(state);
   basis.power = PowerWith(state, basis, basis.worn);
   basis.power_per_meso = power_per_meso;
-  // Scan the shelf once rather than once per token, since what a token buys
-  // doesn't change while a rate is read. Values use the basis as built so far,
-  // which is everything but the tokens. That is enough, since nothing on the
-  // shelf is bought with a token that is itself bought with tokens.
+  // Scan the shelf once rather than once per token. Nothing on the shelf is
+  // bought with a token that is itself bought with tokens, so the basis without
+  // tokens is enough.
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;

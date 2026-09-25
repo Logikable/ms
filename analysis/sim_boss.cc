@@ -17,11 +17,9 @@
 namespace ms {
 namespace {
 
-// Time step for simulated fights. Coarser than the screen's 60 frames a second,
-// because a sim runs a fight thousands of times. An attack's delay is most of a
-// second, so twenty steps per second still lands each attack close to where it
-// falls. Measured drift against 1/60 is at most two seconds on a two-minute
-// kill.
+// Time step for simulated fights. Coarser than the screen's 60 a second because
+// a sim runs a fight thousands of times; measured drift is at most two seconds
+// on a two-minute kill.
 constexpr double kStepSeconds = 1.0 / 20.0;
 
 // Total HP of every monster in a phase.
@@ -37,11 +35,9 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
   return hp;
 }
 
-// When a losing player gives up. Nobody watches a boss they've taken three
-// percent off until time runs out, and a sim that waits spends most of its time
-// there. So once progress shows the fight can't be finished within the limit,
-// they leave. Not checked before kFirstLook, so an opening spent moving between
-// spots isn't mistaken for a rout.
+// When a losing player gives up: once progress shows the fight can't be
+// finished within the limit. Not checked before kFirstLook, so an opening spent
+// moving isn't mistaken for a rout.
 constexpr double kGiveUpFactor = 1.5;
 constexpr double kFirstLook = 120.0;
 

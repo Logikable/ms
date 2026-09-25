@@ -1,28 +1,16 @@
 /* Ranks purchases by the damage they add against the character's target fight.
  *
- * Combat power used to be the measure here. Comparing a character against
- * itself is fine, but combat power has no target: ignored defence depends on
- * the monster, so CombatPower leaves it out, and every caller that needed it
- * added it back by hand. One of those hand-written versions had a
- * divide-by-zero that valued every cube at nothing for any character below a
- * defence wall.
+ * ExpectedAttackDamage takes the monster, so ignored defence, the boss flag,
+ * elemental resistance and the level gap are read directly. Combat power has no
+ * target and leaves ignored defence out.
  *
- * So the target is passed in instead. ExpectedAttackDamage is the game's own
- * damage chain and takes the monster, so ignored defence, the boss flag,
- * elemental resistance and the level gap are read directly rather than
- * approximated.
+ * The closed form can't see cooldowns, buff uptime or summons, so the fight is
+ * played once per pass, producing a profile: every attack that landed, weighted
+ * by how often. Each candidate is scored through the closed form on each
+ * strand.
  *
- * Timing came next. A closed-form formula over one attack can't see cooldowns,
- * buff uptime or summons, so purchases were ranked only on the character's main
- * attack. Simulating a fight per candidate would fix that but costs too much.
- * So the fight is played once per pass, producing a profile: every attack that
- * landed, weighted by how often. Each candidate is then scored through the
- * closed form on each strand, at the old cost.
- *
- * One gap remains: interactions. The weights are solved for the character as
- * they are, so a candidate raising a stat that one of their buffs multiplies is
- * scored at the buff's current uptime, not at what the stat would then be
- * worth.
+ * The weights are solved for the character as they are, so a candidate raising
+ * a stat one of their buffs multiplies is scored at the buff's current uptime.
  */
 #ifndef MS_ANALYSIS_YARDSTICK_H_
 #define MS_ANALYSIS_YARDSTICK_H_
@@ -38,12 +26,8 @@
 namespace ms {
 
 // One part of what a character does in a fight: an attack, and how often it
-// landed per second.
-//
-// `per_second` is solved rather than counted: the measured damage the attack
-// dealt divided by what the closed form says one landing is worth. That way it
-// captures what the closed form can't: how much of the fight its cooldown
-// allowed, how many enemies it reached, and which buffs were up.
+// landed per second. Solved rather than counted, so it captures cooldown
+// uptime, enemies reached and buffs.
 struct Strand {
   const Skill* swing = nullptr;
   int level = 0;
@@ -68,20 +52,15 @@ struct Yardstick {
 Yardstick YardstickFor(const GameState& state);
 
 // Damage `stats` and `passives` deal over the whole fight against the
-// yardstick: every strand's damage chain at the rate it's used. Every candidate
-// on the shelf is ranked by this, and drops that don't sell are valued in it.
-//
-// Every caller must go through this function. Cube and star offers are sorted
-// against each other, and a caller computing its own damage would give numbers
-// in different units, as once happened.
+// yardstick. Every caller must go through this: cube and star offers are sorted
+// against each other, and a caller computing its own damage gives different
+// units.
 double WorthOf(const GameState& state, const Yardstick& yard,
                const EquipStats& stats, const PassiveOffense& passives);
 
-// The yardstick kept across one shopping pass. Computing one plays a fight, far
-// too expensive to do per purchase, and it only changes when the kit changes:
-// what is worn, what is learned, and what the target is. Stars, scrolls and
-// cubes change the numbers without changing the plan. Use one per character;
-// never share it.
+// The yardstick kept across one shopping pass. It only changes when what is
+// worn, learned or targeted does; stars, scrolls and cubes change the numbers
+// without changing the plan. One per character; never share it.
 class HeldYardstick {
  public:
   const Yardstick& For(const GameState& state);

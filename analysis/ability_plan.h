@@ -1,27 +1,12 @@
 /* Chooses a character's Inner Ability lines and spends honor on rerolls.
  *
- * A climb that never spends honor measures a weaker character than a real
- * player would have. The three Rare All Stats lines everyone starts with are
- * exactly what rerolls are meant to replace. There are two questions, and only
- * the first has a measured answer.
+ * A line's value is measured: the character holding one line of it, against the
+ * same character holding none. That lets the two presets want different lines.
  *
- * A line's value is measured, like maps and skills: the character holding one
- * line of it, against the same character holding none. That settles Attack
- * against Magic Attack without a hand-kept table, and lets the two presets want
- * different lines, which is the point of having two.
- *
- * Which lines to lock through a reroll is a strategy, shaped by one rule: only
- * the top line has the ability's own rank. Lines two and three roll a rank
- * below, so a preset has exactly one strong line and two fillers, and the real
- * question is which line ends up on top.
- *
- * So the plan runs in three phases. Lock nothing while climbing ranks: a lock
- * doesn't help when the character needs a rank, and it makes every roll cost
- * more. Keep locking nothing until the rank's best line lands on top, since a
- * locked top line is never rerolled and locking the wrong one ends the chase
- * for good. Once it lands, lock it and the best filler, and reroll the third
- * until no line is dead weight. Then stop and leave the pool to the other
- * preset.
+ * Only the top line has the ability's own rank, so the plan runs in three
+ * phases. Lock nothing while climbing ranks, since a lock makes every roll cost
+ * more. Keep locking nothing until the rank's best line lands on top. Then lock
+ * it and the best filler, and reroll the third until no line is dead weight.
  */
 #ifndef MS_ANALYSIS_ABILITY_PLAN_H_
 #define MS_ANALYSIS_ABILITY_PLAN_H_

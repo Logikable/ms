@@ -1,14 +1,10 @@
 /* Where a sim's checkpoints live, and the stamp that keeps them valid.
  *
- * A checkpoint from before the change being measured would silently answer the
- * wrong question. So a file is only read back by the binary that wrote it.
- * Every shipped textproto is compiled into that binary, so its identity covers
- * the data as well as the code: changing a mob's HP invalidates every
- * checkpoint.
+ * A file is only read back by the binary that wrote it. Every shipped textproto
+ * is compiled in, so changing a mob's HP invalidates every checkpoint too.
  *
- * Checkpoints live under the system temp directory, not the tree. The whole
- * directory is emptied as soon as its stamp stops matching, so a stale file is
- * never left around to be picked up by hand.
+ * They live under the system temp directory, and the whole directory is emptied
+ * as soon as its stamp stops matching.
  */
 #ifndef MS_ANALYSIS_CHECKPOINT_H_
 #define MS_ANALYSIS_CHECKPOINT_H_

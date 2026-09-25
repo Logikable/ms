@@ -1,20 +1,12 @@
 /* Values drops in meso, the currency everything else is priced in.
  *
  * Most late-game drops sell for nothing: tokens, soul shards, symbol
- * duplicates, boss gear. Valued at their shop price, they're all worth zero, so
- * +100% item drop rate would measure no better than none, and no plan would
- * ever buy a drop line.
- *
- * Their real worth is what the character would otherwise spend to buy the same
- * combat power. The gear shopper already knows that rate: the best combat power
- * per meso on its shelf. Inverted, it turns power into meso, which puts a drop
- * and a star in the same currency.
+ * duplicates, boss gear. Their real worth is what the character would otherwise
+ * spend for the same combat power, which is the gear shopper's best power per
+ * meso, inverted.
  *
  * Every case has one shape: the value of what the drop leads to, minus what
- * finishing it still costs, divided by how many drops that takes. A gear drop
- * takes one and costs nothing more. A token takes as many as the shelf asks. A
- * symbol duplicate takes a whole level's worth, and the level-up charges meso
- * too.
+ * finishing it still costs, divided by how many drops that takes.
  */
 #ifndef MS_ANALYSIS_DROP_VALUE_H_
 #define MS_ANALYSIS_DROP_VALUE_H_

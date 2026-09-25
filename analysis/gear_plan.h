@@ -1,18 +1,11 @@
 /* Spends a character's meso on their gear, the way a player does.
  *
- * This is the other half of sim_gear: that file puts the best gear on a
- * character and measures its worth; this one measures what it costs and whether
- * the climb ever pays for it. A sim measuring acquisition needs both, since the
- * value of top gear says nothing about when a player gets it.
+ * Every slot that could be scrolled and every item that could take another star
+ * is priced against what it would add, and the best is bought. So the shopper
+ * stops where the price stops being worth paying.
  *
- * What to buy next is decided, not listed. Every slot that could be scrolled
- * and every item that could take another star is priced against what it would
- * add, and the best is bought. So the shopper stops where the price stops being
- * worth paying, and its choices follow any change to a price or stat table.
- *
- * Spell Traces are charged as meso rather than kept. The shop is their only
- * source and only scrolling spends them, so a stack of them is just stored
- * meso.
+ * Spell Traces are charged as meso rather than kept, since the shop is their
+ * only source and only scrolling spends them.
  */
 #ifndef MS_ANALYSIS_GEAR_PLAN_H_
 #define MS_ANALYSIS_GEAR_PLAN_H_
@@ -103,17 +96,15 @@ class GearShopper {
   }
 
   // Time left in the run and the current income, which decide what a %meso or
-  // %drop potential line is worth (see CubeIncome). Set at each look, alongside
-  // the buff decisions. Without it, the shopper ignores income lines and values
-  // cubes on combat power alone.
+  // %drop potential line is worth (see CubeIncome). Without it, cubes are
+  // valued on combat power alone.
   void SetIncome(const CubeIncome& income) {
     income_ = income;
   }
 
   // Spends what the character can spare on what they wear, buying the best
-  // value on offer repeatedly until nothing left is affordable or worthwhile.
-  // First sells bag items that are worth nothing to keep: the sale is income,
-  // and the space keeps the next drop from landing in a full bag.
+  // value on offer until nothing is affordable or worthwhile. First sells bag
+  // items worth nothing to keep, so the next drop doesn't land in a full bag.
   GearSpend Spend(GameState& state);
 
   // Everything this shopper has bought over its lifetime, where the character's
@@ -129,10 +120,8 @@ class GearShopper {
     return yard_;
   }
 
-  // Damage a meso buys on this shelf, from the best offer of the last pass.
-  // This rate turns unsellable drops into meso (see //analysis:drop_value).
-  // Zero until the shopper has priced a round, which values drops at nothing
-  // rather than guessing.
+  // Damage a meso buys on this shelf, from the best offer of the last pass; see
+  // //analysis:drop_value. Zero until the shopper has priced a round.
   double power_per_meso() const {
     return income_.power_per_meso;
   }
@@ -159,9 +148,7 @@ class GearShopper {
     // Expected meso cost, including attempts that fail.
     int64_t cost = 0;
     // Damage it would add against the target fight (see //analysis:yardstick).
-    // Both cost and gain are kept, so the choice is a comparison rather than a
-    // rule. A double because damage at the cap runs into billions, beyond the
-    // int this once was.
+    // A double because damage at the cap runs into billions.
     double gain = 0.0;
   };
 
@@ -190,9 +177,8 @@ class GearShopper {
   std::optional<Candidate> SymbolOffer(GameState& state, const Basis& basis,
                                        EquipSlot slot);
   // Cube offers for every slot that takes one, priced against `best`: the
-  // combat power a meso buys elsewhere on the shelf. Income lines are converted
-  // at this rate to rank against damage lines, which is why this is its own
-  // pass.
+  // combat power a meso buys elsewhere on the shelf. Income lines convert at
+  // this rate.
   std::vector<Candidate> CubeOffers(GameState& state, double best);
 
   // The scroll `slot`'s item wants, measured once per item and cached.
@@ -226,10 +212,9 @@ class GearShopper {
   GearPlan plan_;
   GearSpend life_;
   CubeIncome income_;
-  // The yardstick every offer in a pass is judged against. Kept rather than
-  // recomputed per offer, since computing it plays a fight and nothing a pass
-  // buys (a star, a scroll, a cube, a symbol level) changes which attacks the
-  // character relies on. See HeldYardstick.
+  // The yardstick every offer in a pass is judged against. Computing it plays a
+  // fight, and nothing a pass buys changes which attacks the character relies
+  // on.
   HeldYardstick yard_;
   // Random stream for cube valuations. Separate from the character's, so
   // measuring what a cube might roll never changes what the game rolls.

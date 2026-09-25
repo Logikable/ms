@@ -1,19 +1,10 @@
 /* Decides potion buffs the way a player would: which to switch on, and which to
  * stop renting and buy outright.
  *
- * Switching on is arithmetic. A buff pays a rate and costs a rate, and the
- * current encounter says which is larger. So the Wealth Acquisition Potion goes
- * on as soon as the map pays more than the thousand meso a second it costs, and
- * off again on a map that doesn't.
- *
- * Buying depends on the time left. The permanent price is only worth paying
- * when the savings over the rest of the run clear it with room to spare. That
- * is what separates the two buffs: a potion paid by the second earns back its
- * 100m in a day, while one charged per boss entry is limited by lockouts to a
- * handful of entries a day.
- *
- * This doesn't decide how a fight goes; the potions' effects belong to the
- * game. It only decides what the player does about them and totals the cost.
+ * A buff goes on when the current encounter pays more than it costs. Buying is
+ * worth it only when the savings over the rest of the run clear the price with
+ * room to spare. It doesn't decide how a fight goes; it decides what the player
+ * does about the potions and totals the cost.
  */
 #ifndef MS_ANALYSIS_BUFF_PLAN_H_
 #define MS_ANALYSIS_BUFF_PLAN_H_
@@ -38,9 +29,8 @@ enum class BuffMode {
 // What the player knows when deciding.
 struct BuffPolicy {
   BuffMode mode = BuffMode::kAuto;
-  // Seconds of the run still ahead. Only as accurate as the run's own horizon:
-  // exact under --total_days, otherwise the give-up clock, which is far longer
-  // than the real climb. A buy decision against a horizon nobody reaches always
+  // Seconds of the run still ahead. Exact under --total_days; otherwise the
+  // give-up clock, far longer than the real climb, so a buy decision always
   // says yes.
   double seconds_left = 0.0;
   // Boss entries per second over the run so far. The Extreme Green Potion is
@@ -65,10 +55,9 @@ struct BuffSpend {
 // //analysis:meso_rate for the currency.
 struct BuffYield {
   Crowd crowd;
-  // The same crowd's kill rate measured twice more: at the normal spawn
-  // interval and at the Wild Totem's halved one. No arithmetic on `crowd` can
-  // replace this pair. The totem doubles how often the map spawns mobs, and a
-  // character who wasn't waiting on spawns kills no more than before.
+  // The same crowd's kill rate at the normal spawn interval and at the Wild
+  // Totem's halved one. No arithmetic on `crowd` can replace this pair: a
+  // character who wasn't waiting on spawns kills no more with the totem.
   absl::Span<const double> kills_without_totem;
   absl::Span<const double> kills_with_totem;
 };

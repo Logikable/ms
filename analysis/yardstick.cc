@@ -73,10 +73,8 @@ CombatParams AimedParams(const GameState& state, int* enemies) {
   return params;
 }
 
-// How long to play the fight, in the stretched clock MeasureFight uses. Long
-// enough to hold the slowest cooldown in the character's book twice. A window
-// shorter than a cooldown sees the skill as always up or never up, and the
-// point of playing the fight is to measure each attack's real share.
+// How long to play the fight, in MeasureFight's stretched clock: twice the
+// slowest cooldown in the book, or the skill looks always up or never up.
 double ProfileWindow(const GameState& state) {
   constexpr double kFloorSeconds = 30.0;
   double cycle = 0.0;
@@ -101,19 +99,15 @@ const Skill* SkillNamed(const GameState& state, const std::string& name) {
 }
 
 // Smallest share of the fight's damage an attack needs to get its own strand.
-// Every candidate is scored through every strand, thousands of times a pass,
-// and an attack worth one percent can't change the ranking. Dropped attacks are
-// folded into the proportional credit given to own-clock damage.
+// Dropped attacks are folded into the credit given to own-clock damage.
 constexpr double kStrandFloor = 0.01;
 
 // Everything the character actually does to `target`, and how often. Each
-// strand's rate is solved rather than counted: the damage the attack dealt in
-// the played fight divided by what the closed form says one landing is worth.
-// That is what carries the timing into a form candidates can be scored through.
+// strand's rate is the damage the attack dealt divided by what the closed form
+// says one landing is worth.
 //
-// Damage on its own clock (summons, periodic effects) is credited across the
-// strands in proportion. It scales with the character rather than any one
-// attack, so crediting it all to the main attack would overrate that attack.
+// Own-clock damage (summons, periodic effects) is credited across the strands
+// in proportion, since it scales with the character rather than any one attack.
 std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   int enemies = 1;
   CombatParams params = AimedParams(state, &enemies);

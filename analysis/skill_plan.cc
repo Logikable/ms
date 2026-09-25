@@ -24,10 +24,8 @@ bool IsNode(const Skill& skill) {
   return skill.v_node() != V_NODE_KIND_UNSPECIFIED;
 }
 
-// Level increases worth pricing a node at, relative to its current level. These
-// are the ladder's own band edges, read from the step costs rather than
-// restated here, plus the most the pool could pay for, which reaches a perk
-// above the nearest edge.
+// Level increases worth pricing a node at: the ladder's own band edges, read
+// from the step costs, plus the most the pool could pay for.
 std::vector<int> NodeRungs(const CharacterInstance& character,
                            const Skill& skill) {
   std::vector<int> rungs;
@@ -47,9 +45,8 @@ std::vector<int> NodeRungs(const CharacterInstance& character,
 }
 
 // One skill's best purchase, as last priced. For an unpriced offer, `score` is
-// its value before the last purchase. That is an upper bound on its value now,
-// since a further level never pays more than the previous one did, and it lets
-// the search skip pricing offers that are clearly behind.
+// its value before the last purchase: an upper bound now, since a further level
+// never pays more than the previous one did.
 struct Offer {
   const Skill* skill = nullptr;
   int levels = 0;
@@ -65,19 +62,13 @@ using PriceOffer = std::function<void(GameState&, double held, Offer*)>;
 // Makes the purchase an offer describes, once the search has chosen it.
 using TakeOffer = std::function<void(GameState&, const Offer&)>;
 
-// The greedy loop both pools share: buy the best value per point, repeatedly,
-// until nothing left pays.
+// The greedy loop both pools share: buy the best value per point until nothing
+// left pays.
 //
 // It's lazy, which is the only reason either allocation is affordable: pricing
-// an offer plays a fight, and the catalog holds hundreds of skills. A stale
-// score is kept as an upper bound and only the leader is re-priced. Offers it
-// drops behind are already fresh, and offers it stays ahead of can't overtake
-// it.
-//
-// The bound holds while each purchase makes the others worth less, which is the
-// usual case. When one purchase makes another worth more, the order can come
-// out wrong. That tradeoff is deliberate: an exact sweep would cost ten times
-// as much, for precision no decision here needs.
+// an offer plays a fight. A stale score is kept as an upper bound and only the
+// leader is re-priced. When one purchase makes another worth more, the order
+// can come out wrong; an exact sweep would cost ten times as much.
 void SpendGreedily(GameState& state, const SkillRate& rate,
                    std::vector<Offer>& offers, const PriceOffer& price,
                    const TakeOffer& take) {
@@ -233,10 +224,8 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
                           ToggleChoice* choice) {
   std::string roster = ToggleRoster(state);
   if (choice != nullptr && choice->roster == roster) {
-    // The toggles settled on last time are still on (the character keeps them),
-    // so this is the same allocation, run once instead of twice. A character
-    // with no toggles lands here on the first look, which is right: there's
-    // nothing to try both ways.
+    // The toggles settled on last time are still on, so this is the same
+    // allocation, run once instead of twice.
     SpendBook(state, rate);
     return;
   }
@@ -267,10 +256,9 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
   state.character.RestoreFrom(off_book, state.equips, state.items);
 }
 
-// Empties the matrix back into the pool. GMS resets a node for free and refunds
-// every point, so this can be a fresh plan rather than an addition: called
-// again after gear changes, it decides from scratch instead of building on a
-// ranking made for a weaker character.
+// Empties the matrix back into the pool. GMS resets a node for free, so after
+// gear changes this decides from scratch rather than building on a ranking made
+// for a weaker character.
 void RefundMatrix(GameState& state) {
   Character proto = state.character.ToProto();
   int64_t refund = 0;

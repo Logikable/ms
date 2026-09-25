@@ -1,70 +1,45 @@
 /* progression_sim: what a character reaches by the level cap. Reports how long
  * the climb takes, what it paid, and what the character is wearing at the end.
  *
- * It uses the real engine, but skips ahead rather than ticking. Nothing that
- * decides a character's earnings changes between two steps of the same level on
- * the same map. So the map is played for a few respawn intervals to measure its
- * rate, and the whole stretch until something does change (the next level, or
- * the player's next look) is passed to AwardCombatRewards at once. Every kill
- * in it is still rolled for drops as a step would roll it. What's lost is HP
- * drift within a stretch, on a map PickMap has already seen the character
- * survive.
+ * It uses the real engine but skips ahead rather than ticking. Nothing that
+ * decides earnings changes between two steps of the same level on the same map,
+ * so the map is played for a few respawn intervals to measure its rate, and the
+ * stretch until the next level or look is passed to AwardCombatRewards at once.
+ * Every kill is still rolled for drops. What's lost is HP drift within a
+ * stretch.
  *
- * The engine can't supply what the player does between fights, so the sweep
- * plays that:
+ * The sweep plays what the player does between fights:
  *
  *   - every AP on the job's primary stat, and every SP into whichever
  *     skill measures best on the map being farmed;
- *   - honor spent rerolling both Inner Ability presets, once the
- *     character is high enough to have one;
+ *   - honor spent rerolling both Inner Ability presets;
  *   - the whole Etc tab sold at each level;
- *   - the daily symbol claim, once a day;
- *   - the best weapon they can use and afford, bought as soon as it's
- *     within reach, with its type measured rather than assumed;
+ *   - the daily symbol claim;
+ *   - the best weapon they can use and afford, its type measured;
  *   - remaining meso spent on scrolls and stars, weapon first;
- *   - and the map that pays the most EXP per second among those they
- *     survive.
+ *   - and the map that pays the most among those they survive.
  *
- * The map is measured, not guessed: each candidate is played for a few respawn
- * intervals with the character as they are, and a map that kills them is
- * excluded.
- *
- * None of this happens on leveling up, because it's the player's doing, not the
- * character's, and the player isn't always there. They open the game a handful
- * of times a day, in sessions rather than on a timer, and less often as the
- * climb slows; see LooksPerDay. The character farms the whole time either way.
- * `--attention=0` has the player act at every level instead, the lower bound
- * this sim used to report.
+ * The player opens the game a handful of times a day, less often as the climb
+ * slows (see LooksPerDay), and the character farms the whole time.
+ * `--attention=0` has the player act at every level instead.
  *
  * Three sections, each behind its own flag:
  *
  *   --playtime  how long each branch takes to each level, and what it
- *               earned on the way. The climb alone.
+ *               earned on the way.
  *   --ledger    where the meso went and what the character has to show
- *               for it: the weapon's slots and stars, and how much of
- *               each set they wear. Two columns cover potions: what
- *               was spent renting and what permanent unlocks cost;
- *               --buffs picks off, rent or buy for comparison.
+ *               for it; --buffs picks off, rent or buy for potions.
  *   --boss_report
- *               where each fight falls across the branches: the level of
- *               the first clear, the playtime at it, and how far the
- *               branches that never won got. Read it with --total_days,
- *               which gives every branch one time budget for the climb
- *               and the days after; otherwise an unbeatable fight is
- *               only one the run stopped short of.
+ *               the level and playtime of each fight's first clear, and
+ *               how far the branches that never won got. Read it with
+ *               --total_days, which gives every branch one time budget.
  *
- * The sweep climbs the branches that take a 4th advancement. The rest stop at
- * their 2nd or 3rd job and were never built to reach the cap; --branch picks
- * any one of them when the question is about it.
+ * The sweep climbs the branches that take a 4th advancement; --branch picks any
+ * one. A run far slower than usual is a bug to chase.
  *
- * The whole sweep runs one branch per core. A run far slower than usual is a
- * bug to chase, not a wait to sit through.
- *
- * --checkpoint_at saves each climb at a level and starts the next run there,
- * which helps while tuning something above that level. A resumed run is
- * identical to a full climb, down to the last rolled drop. Each file is stamped
- * with the binary that wrote it and named for the flags that shaped the climb,
- * so a rebuild or a flag change invalidates it.
+ * --checkpoint_at saves each climb at a level and resumes the next run there,
+ * identical to a full climb. Files are stamped with the binary and named for
+ * the flags that shaped the climb.
  *
  *   bazelisk run //analysis:progression_sim
  *   bazelisk run //analysis:progression_sim -- --detail
@@ -156,10 +131,8 @@ ABSL_FLAG(double, give_up_hours, 2000.0,
           "Playtime after which a branch is written off as stuck.");
 ABSL_FLAG(bool, detail, false,
           "Also print the map and the weapon each level was spent on.");
-// Fixes the random stream for every run of this sim. Rewards are rolled, so an
-// unseeded run would print a slightly different table each time and hide real
-// changes in noise. Change it to see how much of a number is the seed and how
-// much is the game.
+// Fixes the random stream, so a real change isn't hidden in roll noise. Change
+// it to see how much of a number is the seed.
 ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
 ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
 ABSL_FLAG(std::string, buffs, "auto",
@@ -229,9 +202,7 @@ namespace ms {
 namespace {
 
 // Levels the table reports running totals at: every tenth up to 140, where the
-// SP schedule ends and the books are complete, then every twentieth, and the
-// cap last. Past 140 a level only gives HP, MP and AP, so the steps can be
-// wider.
+// SP schedule ends, then every twentieth, and the cap last.
 constexpr int kMilestones[] = {
     10,  20,  30,  40,  50,  60,  70,  80,  90,  100,
     110, 120, 130, 140, 160, 180, 200, 220, 240, kTrialLevelCap};
@@ -255,10 +226,8 @@ void SpendPoints(CharacterInstance& character) {
   }
 }
 
-// Spends whatever the ranking left. A point the greedy declines is one it found
-// no measurable gain for, such as a utility skill or one that helps survival
-// rather than damage. Leaving it in the pool would be worse than spending it in
-// catalog order.
+// Spends whatever the ranking left. A declined point is one with no measurable
+// gain, such as a utility skill; spending it in catalog order beats leaving it.
 void LearnTheRest(GameState& state) {
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     while (state.character.LearnSkill(entry.second)) {
@@ -272,9 +241,7 @@ void LearnTheRest(GameState& state) {
 constexpr double kBookSeconds = 10.0;
 
 // How many cycles of the slowest cooldown a ranking window covers. One is
-// enough to see a buff go up and come down, and so to value a lever that
-// extends it. A second cycle showed nothing new, and the ranking window is half
-// of a progression run's cost.
+// enough to see a buff go up and come down; the window is half a run's cost.
 constexpr double kBookCycles = 1.0;
 
 // Seconds in a day, which a daily reset waits out. The game is idle, so a day
@@ -286,16 +253,12 @@ constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
 // always 24 hours and rolls over with the sim's boss day.
 constexpr int64_t kSimEpoch = 1767225600 + kBossResetHour * 60 * 60;
 
-// How long to play a character out. A window shorter than a buff's cycle can't
-// see it go up or come down, so a lever that extends a buff would measure
-// exactly zero. A window about buffs must fit the slowest cycle.
+// How long to play a character out. A window shorter than a buff's cycle
+// measures a lever that extends the buff at exactly zero.
 //
-// It's based on the character's book, not the buffs they've learned. The book
-// doesn't change during a decision but the learned list does, so SpendBook
-// would otherwise compare its two candidates over different windows.
-//
-// `seconds` is in game seconds while MeasureFight counts stretched seconds, so
-// the window is scaled on the way out.
+// It's based on the character's book, not the learned buffs, so SpendBook's two
+// candidates are compared over the same window. `seconds` is in game seconds
+// and is stretched on the way out for MeasureFight.
 double WindowFor(const GameState& state, double seconds) {
   double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
@@ -308,11 +271,9 @@ double WindowFor(const GameState& state, double seconds) {
          GameSpeedFactor(state.character.proto().level());
 }
 
-// Meso value of one point of damage on the map: what the mobs pay when killed
-// divided by what killing them costs, each type weighted by how many are
-// present at once. A measured fight can't count kills, since measuring
-// deliberately keeps every monster's HP from dropping, so kills are derived
-// from damage at the cost of one.
+// Meso value of one point of damage on the map: what the mobs pay divided by
+// what killing them costs, weighted by how many of each are present. A measured
+// fight keeps HP from dropping, so kills are derived from damage.
 double MesoPerDamage(const GameState& state, const DropBasis& basis,
                      const CombatParams& params, double item_drop_pct) {
   double paid = 0.0;
@@ -330,13 +291,9 @@ double MesoPerDamage(const GameState& state, const DropBasis& basis,
   return body > 0.0 ? paid / body : 0.0;
 }
 
-// Meso per second the character earns on the map. It includes damage (kills are
-// what attacks buy) and the drop and meso levers, which add income without
-// changing damage.
-//
-// It doesn't include the respawn cap: a character already killing mobs as fast
-// as they respawn gains nothing from more damage, and this still counts the
-// damage. BuffYield handles that with a played fight.
+// Meso per second the character earns on the map, counting damage and the drop
+// and meso levers. It ignores the respawn cap; BuffYield handles that with a
+// played fight.
 double CrowdRateOver(GameState& state, const DropBasis& basis, double seconds) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
@@ -361,10 +318,8 @@ double CrowdRate(GameState& state, const DropBasis& basis) {
   return CrowdRateOver(state, basis, kBookSeconds);
 }
 
-// What one clear of `difficulty` pays. The meso is flat, unaffected by %meso,
-// while drops use the drop rate. Most of a boss's drops sell for nothing, so
-// each is valued at what the character would otherwise spend for the same
-// combat power. See //analysis:drop_value.
+// What one clear of `difficulty` pays: flat meso, unaffected by %meso, plus
+// drops at the drop rate, valued via //analysis:drop_value.
 double BossPayout(const GameState& state, const DropBasis& basis,
                   const BossDifficulty& difficulty, double item_drop_pct) {
   double paid = difficulty.meso();
@@ -393,10 +348,8 @@ double BossPayout(const GameState& state, const DropBasis& basis,
   return paid;
 }
 
-// Meso per second from the target fight: a clear's payout divided by how long
-// it takes. One enemy with its own defence is a different question from a
-// crowd; the attack that clears twelve mobs rarely kills the one that matters.
-// In meso, like the crowd rate, so the book can weigh the two.
+// Meso per second from the target fight: a clear's payout over how long it
+// takes. In meso, like the crowd rate, so the book can weigh the two.
 double BossRateOver(GameState& state, const DropBasis& basis, double seconds) {
   std::pair<std::string, int> fight;
   if (!AimedFight(state, &fight)) {
@@ -426,14 +379,10 @@ double BossRate(GameState& state, const DropBasis& basis) {
   return BossRateOver(state, basis, kBookSeconds);
 }
 
-// Ranks the book on both rates at once. A book built for only one isn't a build
-// anyone plays: ranked on the map alone, the Hero reaches Hilla with nothing
-// that kills her.
-//
-// Both are meso per second, so a point can be weighed on either. It uses the
-// geometric mean rather than a sum, because a sum lets a build that can't hurt
-// a boss score well on the map alone. If one rate has nothing to measure, the
-// other is used alone.
+// Ranks the book on both rates at once: ranked on the map alone, the Hero
+// reaches Hilla with nothing that kills her. The geometric mean, not a sum, so
+// a build that can't hurt a boss can't score on the map alone. If one rate has
+// nothing to measure, the other is used alone.
 double BookRate(GameState& state, const DropBasis& basis) {
   double crowd = CrowdRate(state, basis);
   double boss = BossRate(state, basis);
@@ -446,10 +395,8 @@ double BookRate(GameState& state, const DropBasis& basis) {
   return std::sqrt(crowd * boss);
 }
 
-// Where a run's meso came from and went. The purse shows how much moved; this
-// shows what moved it. Combat income no named source claims is counted as mob
-// drops, so the rows always add up to the purse, even when a new source is
-// added without its own line.
+// Where a run's meso came from and went. Combat income no named source claims
+// is counted as mob drops, so the rows always add up to the purse.
 struct Ledger {
   int64_t etc_sales = 0;
   int64_t boss_clears = 0;
@@ -462,10 +409,8 @@ struct Ledger {
   }
 };
 
-// Tracks income and spending separately. The balance alone says little, since a
-// climb that just bought a weapon looks poor. So the tables report everything
-// ever paid to the character and everything the shop ever took, and the
-// difference is what they hold.
+// Tracks income and spending separately: a climb that just bought a weapon
+// looks poor on its balance alone.
 struct Purse {
   int64_t earned = 0;
   int64_t spent = 0;
@@ -541,9 +486,8 @@ struct Probe {
 };
 
 // Plays `map` for a few respawn intervals with the character as they are, and
-// reports what it pays. Nothing is banked: the fight runs directly from
-// CombatParams rather than through AdvanceCombat, so the probe costs the
-// character no EXP, meso or HP.
+// reports what it pays. The fight runs straight from CombatParams rather than
+// AdvanceCombat, so the probe costs no EXP, meso or HP.
 Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
                int beats, double step) {
   std::string held = state.current_map;
@@ -576,10 +520,9 @@ Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
     kills /= horizon;
   }
   probe.exp_per_second = exp / horizon;
-  // The character's own levers are included rather than left out as affecting
-  // every map equally, because drop rate doesn't. It raises a map's Etc drops
-  // without limit and its meso drop only up to certain, so the best map at
-  // +100% differs from the best at 0%.
+  // The character's own levers are included because drop rate doesn't affect
+  // every map equally: it raises Etc drops without limit but the meso drop only
+  // to certain.
   probe.meso_per_second =
       MesoPerSecondFor(state, CrowdFor(state, basis, params, killed));
   return probe;
@@ -632,25 +575,18 @@ struct WeaponScout {
   int settled_at = 0;
 };
 
-// How many levels a chosen weapon type is trusted for. Scouting is expensive
-// (ten weapon types, each used for a simulated minute), and the answer defines
-// the branch: a Paladin doesn't stop being a Paladin between Lv61 and Lv65.
-// It's re-scouted at every advancement regardless, which is when it actually
-// changes.
+// How many levels a chosen weapon type is trusted for. Scouting tries ten
+// weapon types for a simulated minute each. It's re-scouted at every
+// advancement regardless.
 constexpr int kScoutEveryLevels = 5;
 
-// The state the last map choice was made in: level and worn gear. Choosing a
-// map probes every hunting ground with a played fight, and the answer only
-// changes when the character can reach further up the ladder. Stars and scrolls
-// aren't included: they change at nearly every look, and leveling triggers a
-// new choice anyway.
+// The state the last map choice was made in: level and worn gear. Stars and
+// scrolls change at nearly every look, so they're left out.
 struct MapChoice {
   int level = 0;
   std::string worn;
   // The character's damage when the money map was last chosen. At the cap the
-  // level stops changing but stars and cubes don't, so the endgame's hourly
-  // look re-picks on damage growth instead, the same rule used to re-measure
-  // the Hyper Stat table.
+  // level stops changing, so the endgame re-picks on damage growth instead.
   int power = 0;
 };
 
@@ -665,14 +601,10 @@ std::string WornNames(const GameState& state) {
   return worn;
 }
 
-// What the book and the matrix were last planned against. Both are planned the
-// same way, pricing every purchase against a played fight until nothing is
-// worth buying, which makes planning the most expensive thing a look does. If
-// two looks agree on every field below, a second plan would buy nothing new, so
-// it's skipped.
-//
-// Node levels are deliberately left out of `skills`: the matrix plan is half of
-// what this gates, and a key its own output changes would gate nothing.
+// What the book and the matrix were last planned against. Planning is the most
+// expensive thing a look does, so if two looks agree on every field, the second
+// plan is skipped. Node levels are left out: a key the matrix plan's own output
+// changes would gate nothing.
 struct PlanKey {
   std::string worn;    // one line per slot, with the item's name
   std::string skills;  // book skill levels, V nodes excluded
@@ -742,9 +674,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   ledger.etc_sales += SellDrops(state.character);
   purse.Note(state.character);
   // Wear dropped gear before buying, so the weapon measurement sees the rest of
-  // the outfit in place. Spare symbols are absorbed at the same time: a
-  // duplicate takes a bag row until absorbed, and what it adds is what the
-  // shopper then pays to level.
+  // the outfit. Spare symbols are absorbed at the same time to free bag rows.
   WearBestFromBag(state.character);
   CollectSymbols(state.character);
   int level = state.character.proto().level();
@@ -761,25 +691,16 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - state.character.meso());
   // Plan the book after the weapon, since a point's value depends on the weapon
-  // in hand. The weapon is chosen on what the branch is built for, which keeps
-  // the two from steering each other into a corner.
-  //
-  // Only replan when something changed that could reorder them. Planning runs
-  // several times a day, and replanning an unchanged character reproduces the
-  // plan it already has. See PlanKey.
+  // in hand. Only replan when the PlanKey changed.
   if (!(PlanKeyFor(state) == planned)) {
     DropBasis basis =
         DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
     SpendBookWithToggles(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
         &toggles);
-    // Plan the matrix after the book, on the same rate. It has its own pool and
-    // ladder, and none of it is worth anything until the skills it boosts are
-    // bought.
-    //
-    // Only replan from scratch when gear, book or fight changed, since those
-    // are what carry a character over a defence wall. Otherwise new points are
-    // added on top: a full plan is most of a climb's cost.
+    // Plan the matrix after the book, on the same rate. Only replan from
+    // scratch when gear, book or fight changed, since those carry a character
+    // over a defence wall; otherwise new points are added on top.
     PlanKey now = PlanKeyFor(state);
     SpendVMatrix(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
@@ -903,9 +824,8 @@ struct TokenProgress {
   // of whether a climb ever gets the tier it buys.
   int level = 0;
   // Kills of mobs that carry it, and the log of the chance that all of them
-  // came up empty. A single climb either gets the token or doesn't, which says
-  // little at a rate this low. The kills behind it say how likely that outcome
-  // was, which is the number worth reading.
+  // came up empty. At a rate this low, that says more than whether one climb
+  // got it.
   int64_t kills = 0;
   double log_miss = 0.0;
 };
@@ -998,16 +918,9 @@ struct Yield {
 };
 
 // Plays the encounter for a few respawn intervals without banking anything, and
-// reports the rate it settled at.
-//
-// Nothing that decides that rate changes between two steps of the same level on
-// the same map, so it holds until one of those changes. That lets the climb
-// skip ahead rather than step: measure once, then pass a whole stretch's kills
-// to AwardCombatRewards at once.
-//
-// It gives up the HP drift within a stretch (HP wanders over an evening, and
-// this can't see the character die of it) in exchange for about sixty times the
-// speed.
+// reports the rate it settled at. The rate holds until the level or map
+// changes, so the climb measures once and awards a whole stretch. It gives up
+// HP drift within a stretch for about sixty times the speed.
 Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
                    double step) {
   Yield yield;
@@ -1156,12 +1069,9 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   return outcome.seconds;
 }
 
-// How often the player opens the game, and when. Not at fixed intervals: a day
-// is a few sessions (a look before work, a long gap, an evening checking every
-// half hour), and both thin out as the climb slows.
-//
-// The character farms throughout either way. This only decides when the player
-// is there to sell, spend, change map, advance and fight a boss.
+// How often the player opens the game: a few sessions a day, thinning out as
+// the climb slows. This only decides when the player is there to sell, spend,
+// change map, advance and fight a boss.
 constexpr double kLookGap = 30.0 * 60.0;  // between looks inside one session
 
 // Looks per day by level, interpolated between anchors. A new character is
@@ -1320,13 +1230,9 @@ BuffPolicy BuffPolicyFor(const Session& run) {
   return policy;
 }
 
-// Makes the buff decisions for the current encounter. The rates come from the
-// yield already measured, so the potions need no fight of their own.
-//
-// The totem is the exception. Its value is the extra kills a halved spawn
-// interval gives, which only a fight can show, so the encounter is played again
-// with the shorter interval. A character who wasn't waiting on respawns gets
-// the same rate back and leaves the totem unused.
+// Makes the buff decisions for the current encounter from the yield already
+// measured. The totem needs a second fight at the halved spawn interval, since
+// only a fight shows whether the character was waiting on respawns.
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   BuffYield rates;
@@ -1357,10 +1263,9 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
   PlanBuffs(run.state, BuffPolicyFor(run), rates, &run.climb.ledger.buffs);
 }
 
-// Gives the shopper what it needs to value %meso and %drop potential lines.
-// Those earn a rate rather than damage, and only the current encounter says
-// what the rate is. The Crowd holds its own copies, since the shopper keeps it
-// between looks and the fight it came from doesn't survive.
+// Gives the shopper what it needs to value %meso and %drop potential lines. The
+// Crowd holds its own copies, since the fight it came from doesn't survive
+// between looks.
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
   Crowd crowd = CrowdFor(run.state,
@@ -1388,10 +1293,9 @@ struct ClimbCursor {
   std::vector<double> carry;
 };
 
-// Upgrade progress on worn gear: how many pieces take upgrades at all, how many
-// have every slot used, and total stars across them. Reported rather than
-// compared to a target, because the shopper has none; where it stopped is the
-// answer.
+// Upgrade progress on worn gear: pieces that take upgrades, pieces with every
+// slot used, and total stars. The shopper has no target, so where it stopped is
+// the answer.
 struct GearReached {
   int pieces = 0;
   int scrolled = 0;
@@ -1471,15 +1375,12 @@ int PowerNow(const GameState& state) {
 }
 
 // How much stronger the character must get before the worth table is
-// re-measured. The ranking of line types changes with the kit: Inner Ability
-// unlocks at 160 with five of the twelve hyper points, and a line's value when
-// spending the last honor differs from its value when spending the first.
+// re-measured, since the ranking of line types changes with the kit.
 constexpr double kRemeasureGrowth = 1.5;
 
-// Whether any slot holds a different item than at the last allocation. A new
-// piece triggers a new allocation whatever the power reading says, since a
-// weapon two tiers up changes what every stat is worth. Compares names only, so
-// stars and scrolls don't count; they change at nearly every look.
+// Whether any slot holds a different item than at the last allocation; a new
+// weapon changes what every stat is worth. Compares names only, since stars and
+// scrolls change at nearly every look.
 bool GearChanged(Session& run) {
   std::string worn;
   for (const std::pair<const EquipSlot, const EquipInstance*>& item :
@@ -1529,14 +1430,11 @@ void SpendHyperPoints(Session& run, bool regeared) {
 }
 
 // Spends collected honor on the bossing Inner Ability preset only: there's one
-// pool, and a character this early can't finish both. The farming table is
-// measured anyway, since it's one more pass and shows whether that's still the
-// right call.
+// pool, and a character this early can't finish both.
 //
-// New gear doesn't force a re-measure here, though it does for Hyper Stats. A
-// fresh table can name a different target line, restarting a chase that a dry
-// pool then leaves half done. Tested both ways: forcing it cost a Cygnus clear
-// and gained nothing the Hyper Stats didn't.
+// New gear doesn't force a re-measure here, though it does for Hyper Stats: a
+// fresh table can name a different target line and restart a chase that a dry
+// pool leaves half done. Forcing it cost a Cygnus clear and gained nothing.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
@@ -1641,8 +1539,7 @@ void CloseForToday(Session& run,
 
 // Attempts every open fight worth trying, wears what dropped, and returns
 // whether any was fought. A loss costs only playtime: the daily limit is used
-// by beating a boss, not by attempting it, so a player who loses tries again
-// rather than waiting for the reset.
+// by a clear, not an attempt.
 bool TakeOnBosses(Session& run, int level, bool levelled) {
   if (!absl::GetFlag(FLAGS_dailies)) {
     return false;
@@ -1985,9 +1882,7 @@ void Restock(Session& run) {
 }
 
 // The player opens the game. The potion plan and the shopper's income come
-// before gear: a buff that pays for itself in a day multiplies every meso the
-// rest of the run earns, and a star bought first is bought with the slower
-// income.
+// before gear: a buff that pays for itself multiplies every later meso.
 void TakeLook(Session& run, const CombatParams& params, const Yield& yield) {
   PlanBuffsFor(run, params, yield);
   SetShopperIncome(run, params, yield);
@@ -2210,11 +2105,9 @@ void FarmAtCap(Session& run) {
   NoteEndgame(run, began, earned_at_cap, spent_at_cap);
 }
 
-// Every flag that affects how a character climbs. A checkpoint written under
-// one setting says nothing about another, so the settings go in the file name:
-// two settings keep two files rather than one silently standing in for the
-// other. Flags that only affect printing or what happens after the cap are left
-// out.
+// Every flag that affects how a character climbs, for the checkpoint's file
+// name, so two settings keep two files. Flags that only affect printing or what
+// happens after the cap are left out.
 std::string ClimbSettings() {
   return absl::StrCat(
       absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_probe_beats), ";",
@@ -2655,10 +2548,8 @@ void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log) {
               100.0 * log.best_seconds / clock, rate, log.best_power);
 }
 
-// How much of each fight's time limit the branch needed. A boss is either
-// beaten within its limit or not, so the margin is what matters: a clear at
-// nine tenths of the limit could be lost to the next balance change. Read from
-// the climb, so the character has the AP, book and gear a player really would.
+// How much of each fight's time limit the branch needed: a clear at nine tenths
+// of the limit could be lost to the next balance change.
 void PrintBossReadiness(const Catalogs& catalogs,
                         const std::vector<Job>& branches,
                         const std::vector<Climb>& climbs) {
@@ -2855,10 +2746,8 @@ const FightRow* HardestFight(const Catalogs& catalogs,
   return hardest;
 }
 
-// How long a build is played to measure its throughput. It's the time limit of
-// an endgame fight, as for almost everything past Lotus: long enough for every
-// cooldown to come around several times, so it measures sustained damage rather
-// than an opening burst.
+// How long a build is played to measure its throughput: an endgame fight's time
+// limit, long enough for every cooldown to come around several times.
 constexpr double kDpmSeconds = 30.0 * 60.0;
 
 // Damage per minute one branch's final build deals to `fight`, or 0 if it can't
@@ -2879,9 +2768,8 @@ double FinalDpm(const Catalogs& catalogs, const FightRow& fight,
 }
 
 // Every branch's final build against the hardest fight, measured rather than
-// fought: its parts last the whole time limit, so a branch that never won still
-// shows a throughput. Played for kDpmSeconds rather than through WindowFor,
-// since a boss runs in real seconds at any level.
+// fought, so a branch that never won still shows a throughput. Played for
+// kDpmSeconds, since a boss runs in real seconds at any level.
 void PrintFinalDpm(const Catalogs& catalogs,
                    const std::vector<FightRow>& fights,
                    const std::vector<Job>& branches,
@@ -2917,9 +2805,7 @@ void PrintFinalDpm(const Catalogs& catalogs,
 }
 
 // When each fight happens in a character's life: the level of the first clear,
-// or the playtime for fights that unlock at the cap. This is what --total_days
-// runs are for: a fight nobody beats within the month isn't just late, and how
-// far they got says whether it needs tuning or is a wall.
+// or the playtime for fights that unlock at the cap.
 void PrintBossTimeline(const Catalogs& catalogs,
                        const std::vector<Job>& branches,
                        const std::vector<Climb>& climbs) {
@@ -2937,16 +2823,10 @@ void PrintBossTimeline(const Catalogs& catalogs,
   }
 }
 
-// What each branch's ignored defence leaves of its target fight's defence.
-//
-// Defence multiplies the whole attack, and once ignored defence stops
-// cancelling it, the factor clamps at zero and every line floors at 1 damage.
-// So a small number here isn't slightly behind: a branch at 0% isn't really
-// fighting the boss.
-//
-// This is the character's ignored defence, not any one skill's. A skill with
-// its own ignored defence faces a different number, and its branch can clear
-// fights this table says it can't.
+// What each branch's ignored defence leaves of its target fight's defence. Once
+// defence is no longer cancelled, every line floors at 1 damage, so a branch at
+// 0% isn't really fighting the boss. This is the character's ignored defence; a
+// skill with its own faces a different number.
 void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
                   const std::vector<Climb>& climbs) {
   std::printf(
@@ -2982,8 +2862,6 @@ void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
 
 // Cubing results: what each branch paid, how many cubes rolled something worth
 // keeping, and for the branch printed in full, the lines on every cubed piece.
-// Bought against kept is the key figure: a cube buys a chance, not an outcome,
-// so the gap is meso that bought nothing.
 void PrintCubing(const std::vector<Job>& branches,
                  const std::vector<Climb>& climbs) {
   std::printf(
@@ -3070,9 +2948,8 @@ void PrintMesoLedger(const std::vector<Job>& branches,
 }
 
 // The branch that got least far through the boss roster: the unbeaten share of
-// every fight the game opens, summed. A fight never reached counts in full, so
-// this measures how much of the game is closed to them rather than how close
-// one fight came.
+// every fight the game opens, summed, with a fight never reached counting in
+// full.
 int WeakestBranch(const Catalogs& catalogs, const std::vector<Climb>& climbs) {
   std::vector<FightRow> fights = LiveFights(catalogs);
   int weakest = 0;
@@ -3092,10 +2969,9 @@ int WeakestBranch(const Catalogs& catalogs, const std::vector<Climb>& climbs) {
 
 // Every skill the character has levels in, hypers marked, in book order.
 void PrintBook(const GameState& state) {
-  // Read from the character's own skill map rather than the catalog. Skills are
-  // keyed there by name, and several branches still use their own copy of a
-  // skill name (two Endures, three Final Attacks), so walking the catalog would
-  // list one per job and call them all learned.
+  // Read from the character's own skill map, keyed by name. Several branches
+  // have their own copy of a skill name (two Endures, three Final Attacks), so
+  // walking the catalog would call them all learned.
   std::vector<std::pair<int, std::string>> learned;
   for (const std::pair<const std::string, int32_t>& held :
        state.character.proto().skill_levels()) {
@@ -3421,10 +3297,8 @@ void Run() {
   }
 
   // The Frozen table skips branches that stop at their 2nd job (only reachable
-  // through --branch). Those aren't real player builds, and they behave
-  // differently: a 2nd job finds the top maps too risky and stays put, where a
-  // 3rd job earns a third more by moving up, and the cape only drops from mobs
-  // up there.
+  // through --branch): a 2nd job stays off the top maps, and the cape only
+  // drops up there.
   PrintFrozenDrops(branches, typical);
   PrintTokenOdds(branches.data(), typical, count);
   PrintTargets(branches, runs);

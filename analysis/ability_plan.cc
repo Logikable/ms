@@ -14,11 +14,8 @@
 namespace ms {
 namespace {
 
-// The line type worth the most at `rank`: the one line the chase aims for.
-//
-// Only the top slot carries the ability's own rank (lines two and three roll a
-// rank below), so this is the best line the preset can ever hold. Everything
-// else is filler.
+// The line type worth the most at `rank`: the one line the chase aims for. Only
+// the top slot rolls at the ability's own rank, so everything else is filler.
 AbilityLineType BestTypeAt(const AbilityWorth& worth, AbilityRank rank) {
   AbilityLineType best = ABILITY_LINE_TYPE_UNSPECIFIED;
   double most = 0.0;
@@ -60,8 +57,7 @@ std::vector<int> BestSlots(const AbilityPreset& preset,
 
 // Whether this preset is finished: rank reached, target line on top, and no
 // dead weight below it. The last check stops a finished preset from being
-// rerolled away. Only two lines can be locked, so one always rolls, and the
-// last roll leaves whatever it gave.
+// rerolled away.
 bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
              const AbilityWorth& worth) {
   if (preset.rank() < climb_to || !GoalLanded(preset, worth)) {
@@ -76,13 +72,10 @@ bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
 }
 
 // Sets which lines to lock for the next reroll. Unlocks every line first, since
-// a third lock is refused and swapping in the other order would keep the line
-// meant to be dropped.
+// a third lock is refused.
 //
-// Locks nothing while climbing ranks, since a lock doesn't help reach a rank
-// and makes every roll cost more. Also locks nothing until the target line is
-// on top, because a locked top line is never rerolled and locking the wrong one
-// ends the chase. Once it lands, it's locked along with the best filler.
+// Locks nothing while climbing ranks, or until the target line is on top: a
+// locked top line is never rerolled, so locking the wrong one ends the chase.
 void HoldForChase(CharacterInstance& character, StatPreset preset,
                   AbilityRank climb_to, const AbilityWorth& worth) {
   const AbilityPreset lines = character.ability(preset);

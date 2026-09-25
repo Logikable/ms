@@ -1,12 +1,8 @@
 /* frame_sim: what one frame of the game costs.
  *
- * The game loop does two things each tick: it steps the fight and draws the
- * screen. This times each part for a max-level character on the map they'd be
- * farming, so the numbers are the worst case rather than a level 1's.
- *
- * Compare the microseconds against the tick the game actually redraws on, the
- * marquee step. The ticker wakes on it, steps the fight and posts a redraw, and
- * nothing in the loop runs faster.
+ * Times the fight step and the screen draw for a max-level character on the map
+ * they'd be farming. Compare the microseconds against the marquee step, the
+ * tick the game actually redraws on.
  */
 #include <chrono>
 #include <cstdio>

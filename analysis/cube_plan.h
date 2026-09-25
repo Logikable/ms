@@ -1,18 +1,10 @@
 /* Values a cube on one worn piece the way the shopper values a scroll or a
- * star: expected combat power for the meso it costs.
+ * star: expected combat power for the meso it costs. GearShopper ranks it
+ * against everything else, so there is no fixed order of pieces.
  *
- * There is no goal or order of pieces here. A player who cubes their weapon
- * before their belt does so because the weapon's lines are worth more. That is
- * a comparison, not a rule, so this computes what one cube is expected to add
- * and lets GearShopper rank it against everything else.
- *
- * The value is marginal and keep-better: a cube is worth how much the reroll
- * beats the item's current lines, averaged over draws, and never less than
- * zero. That values the rank ladder correctly even though it looks like it
- * needs a plan, because the ladder is geometric: each cube on the way to
- * Legendary is worth the same. It undervalues goals that need two specific
- * lines, such as the -3s hat and the meso-and-drop accessory; both are meant to
- * lose.
+ * The value is marginal and keep-better: how much the reroll beats the item's
+ * current lines, averaged over draws, never below zero. It undervalues goals
+ * that need two specific lines, such as the -3s hat; both are meant to lose.
  *
  * A %meso or %drop line earns income rather than power, so it is valued over
  * the rest of the run instead (see CubeIncome).
@@ -51,9 +43,7 @@ struct CubeIncome {
   // encounter, which values income lines at zero.
   std::function<double(double meso_bonus, double drop_pct)> rate;
   // Combat power a meso buys elsewhere on the shelf. Only the ranking depends
-  // on this: a line pays for itself when its income over the horizon beats the
-  // cube's price, which needs no rate. So a stale value can misrank but never
-  // misdecide.
+  // on this, so a stale value can misrank but never misdecide.
   double power_per_meso = 0.0;
 };
 
@@ -73,10 +63,9 @@ struct CubeBasis {
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard);
 
-// A run of cubes on one slot, and what it's expected to leave. It's priced as a
-// run rather than a single cube because a character below a boss's defence wall
-// gains nothing from any one roll but has a real chance over dozens. Priced one
-// at a time, the slot that most needs cubing would never get one.
+// A run of cubes on one slot, and what it's expected to leave. Priced as a run
+// because a character below a boss's defence wall gains nothing from any one
+// roll but has a real chance over dozens.
 struct CubeProgram {
   int cubes = 0;      // cubes in the run
   double gain = 0.0;  // expected gain of the run's best roll
@@ -87,10 +76,9 @@ struct CubeProgram {
   }
 };
 
-// The run on `slot` with the best value per meso, out of a ladder of lengths.
-// The whole ladder comes from one sample: a run of N leaves the best of N
-// draws, and the chance that the best of N is the i-th of a sorted sample of m
-// is (i/m)^N - ((i-1)/m)^N. So a long run costs no more to price than one cube.
+// The run on `slot` with the best value per meso, out of a ladder of lengths,
+// all from one sample: the chance the best of N draws is the i-th of a sorted
+// sample of m is (i/m)^N - ((i-1)/m)^N.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             EquipSlot slot, const CubeIncome& income,
                             std::mt19937& rng);
@@ -102,13 +90,9 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
                  const Potential& rolled, const CubeIncome& income);
 
 // Whether the shopper is likely to replace what `slot` holds: a higher-level
-// piece the character can already wear and afford. A weapon must match the type
-// in hand, since a Lv140 sword doesn't replace a Lv120 axe.
-//
-// Listed is not reachable: a tier priced in tokens counts only once a token is
-// in the bag, so a character locked out of the fight that drops them cubes what
-// they have. The gain is discounted rather than refused, because meso spent
-// cubing still helps the climb toward the replacement.
+// piece the character can wear and afford. A weapon must match the type in
+// hand. A tier priced in tokens counts only once a token is in the bag. The
+// gain is discounted rather than refused, since cubing still helps the climb.
 bool Replaceable(const GameState& state, EquipSlot slot);
 
 }  // namespace ms

@@ -1,9 +1,5 @@
 /* Runs a boss fight from a sim: the same fight the screen runs, stepped to the
  * end without display.
- *
- * Shared by sims that put a character in front of a boss (one asks whether a
- * build can win, another what a daily clear pays), so both run the fight the
- * same way.
  */
 #ifndef MS_ANALYSIS_SIM_BOSS_H_
 #define MS_ANALYSIS_SIM_BOSS_H_
@@ -29,15 +25,13 @@ struct BossOutcome {
   double seconds = 0.0;
   // Fraction of the fight's starting HP still left when it ended; 0 for a
   // clear. Unreached phases count in full, so a build that died in the first of
-  // three phases reads near 1.0. The point is how close a loss was, since a
-  // near miss is worth retrying and a rout isn't.
+  // three phases reads near 1.0.
   double left = 0.0;
 };
 
 // Fights `difficulty_index` of `boss_key` and returns the outcome, collecting
-// the clear's rewards. Uses the same BossRun the screen steps, on the fight's
-// own clock, and gives up once the fight is clearly lost. Reads the boss from
-// `state`, so the caller must have filled state.bosses.
+// the clear's rewards. Gives up once the fight is clearly lost. The caller must
+// have filled state.bosses.
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
                       int difficulty_index);
 
@@ -70,15 +64,12 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
                                                         int level);
 
 // The fight every plan aims at: the hardest one open to the character, or the
-// next to open if none are. A player spends points and cubes on the boss ahead,
-// not the one they beat last month. Returns false if the catalog has no fight
-// they could ever reach.
+// next to open if none are. Returns false if the catalog has no fight they
+// could ever reach.
 bool AimedFight(const GameState& state, std::pair<std::string, int>* fight);
 
 // Defence of the aimed fight, as a fraction; 0 with no fight, which values
-// ignored-defence levers at nothing. This ties the requirement to the boss
-// ladder rather than a hand-kept number: Lotus's 300% demands three times what
-// Cygnus's 100% does.
+// ignored-defence levers at nothing.
 double AimedDefence(const GameState& state);
 
 }  // namespace ms

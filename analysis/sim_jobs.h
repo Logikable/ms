@@ -1,13 +1,7 @@
-/* The jobs a sim sweeps, and the climb that brings one to a level.
- *
- * Every sim here studies a finished character, and every one reaches it the
- * same way: along the branch's own advancement path, spending each level's AP
- * on the job's stat and each level's SP on whatever the book sells. That climb
- * lives here so four sims can't drift apart.
- *
- * This file has no list of jobs. A branch is a job at the end of its own path,
- * which the game's stage table already says, so a new branch is swept as soon
- * as it exists.
+/* The jobs a sim sweeps, and the climb that brings one to a level: along the
+ * branch's own advancement path, AP on the job's stat, SP on whatever the book
+ * sells. A branch is a job at the end of its own path, so a new one is swept as
+ * soon as it exists.
  */
 #ifndef MS_ANALYSIS_SIM_JOBS_H_
 #define MS_ANALYSIS_SIM_JOBS_H_
@@ -42,9 +36,7 @@ int StageOf(Job branch);
 std::vector<Job> EveryBranch();
 
 // The branches a character at `level` could be in: those at the deepest stage
-// the level has reached, since nobody at 130 is still a Crusader. A level past
-// every stage that first reaches a branch uses the deepest one that does, so
-// level 200 measures the 4th jobs.
+// the level has reached. Level 200 measures the 4th jobs.
 std::vector<Job> BranchesAt(int level);
 
 // Parses a branch as --job spells it ("dark_knight"). Dies on anything else
@@ -54,12 +46,10 @@ Job ParseBranch(const std::string& name, int min_stage = 1);
 
 // Levels the character to `level` the way a player does: each advancement as
 // offered, every AP on the primary stat, and every SP on whatever it buys.
-// Which skill goes first is arbitrary, since a book costs what its levels pay
-// out and the end of a stage looks the same either way.
 //
 // With `spend_sp` false, points stay in the pool for a caller to place itself.
-// That matters partway through a stage, where the pool can't buy the whole book
-// and which skills get the points shapes the character.
+// That matters partway through a stage, where the pool can't buy the whole
+// book.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             bool spend_sp = true);
 

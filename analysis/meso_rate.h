@@ -1,14 +1,11 @@
 /* Meso earned per second of play, the unit every plan here ranks in.
  *
- * Damage doesn't need a separate measure. A faster kill means another kill's
- * meso, so a meso rate already includes damage. It also includes what a damage
- * rate misses: the drop and meso levers, which add income without changing
- * damage. That's why nothing here measures damage directly.
+ * A faster kill means another kill's meso, so a meso rate already includes
+ * damage, plus the drop and meso levers a damage rate misses.
  *
- * There are two channels. A mob's meso drop is a 60% chance that drop rate
- * raises to certain and no further, so a rate based on it alone caps at +66.7%.
- * Etc items sold from the same kill have no such cap. A plan comparing a drop
- * line against a star needs to see both.
+ * A mob's meso drop is a 60% chance that drop rate raises to certain and no
+ * further, so it alone caps at +66.7%. Etc items sold from the same kill have
+ * no such cap.
  */
 #ifndef MS_ANALYSIS_MESO_RATE_H_
 #define MS_ANALYSIS_MESO_RATE_H_
@@ -26,17 +23,14 @@
 
 namespace ms {
 
-// Returns what one kill pays, with drops already valued: the meso drop, whose
-// chance caps at 100%, plus everything else, whose rate doesn't cap. `drops`
-// comes from //analysis:drop_value. The character's %meso is left out, since it
-// multiplies every mob equally.
+// What one kill pays, with drops already valued (see //analysis:drop_value).
+// The character's %meso is left out, since it multiplies every mob equally.
 double MesoPerKill(const Mob& mob, double drops, double item_drop_pct);
 
-// The mobs the character is fighting and how fast they die, with all catalog
+// The mobs the character is fighting and how fast they die, with catalog
 // lookups resolved so a plan can keep the rate between looks. Parallel to
-// CombatParams::types, including a boss body, so a kill rate measured against
-// those needs no reindexing. A boss pays nothing here, since it pays from its
-// own reward table.
+// CombatParams::types, boss body included. A boss pays nothing here, since it
+// pays from its own reward table.
 struct Crowd {
   std::vector<Mob> mobs;
   // Parallel to `mobs`: what one kill's drops are worth, and kills per second.

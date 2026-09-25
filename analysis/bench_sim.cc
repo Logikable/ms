@@ -1,25 +1,15 @@
 /* bench_sim: the controlled bench. Every branch is held at the same numbers, so
  * a gap between two can be attributed to a cause.
  *
- * progression_sim can't answer this, by design: every character it produces got
- * there differently. Here the gear is written rather than earned, the charm
- * flags (--bonus_stat, --bonus_attack, --bonus_boss_pct, --bonus_ied) give
- * every branch the same amount of one lever, and --boss_pdr sets a property of
- * the target. Sweep one and see how the field responds. That is how ignored
- * defence was shown to be the whole of the Lv230 class spread: the ten branches
- * spread 1.50x at 0% defence and 2.76x at 300%.
+ * The gear is written rather than earned, the charm flags (--bonus_stat,
+ * --bonus_attack, --bonus_boss_pct, --bonus_ied) give every branch the same
+ * amount of one lever, and --boss_pdr sets a property of the target. Sweep one
+ * and see how the field responds. Nothing here is a forecast; what a branch
+ * actually reaches is progression_sim's question.
  *
- * So don't read anything here as a forecast. The DPS column is what a branch
- * would do with gear this file wrote for it, which no one actually reached. For
- * example, the max character gets one ignored-defence line by fiat, while the
- * played character ends up with whatever the shopper bought. What a branch
- * actually achieves is progression_sim's question.
- *
- * By default DPS is measured against a lone mob of the character's own level on
- * an otherwise empty map, so only the character and weapon are compared: no
- * crowd for a wide skill to exploit, and no spawn cap to hide a difference.
- * --enemies and --boss ask the other two questions, and the header says which
- * was asked.
+ * By default DPS is measured against a lone mob of the character's own level,
+ * so no crowd or spawn cap hides a difference. --enemies and --boss ask the
+ * other two questions.
  *
  *   bazelisk run //analysis:bench_sim -- --level=140 --enemies=8
  *   bazelisk run //analysis:bench_sim -- --level=230 --max --boss \
@@ -233,10 +223,8 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct, int ied_pct) {
   return proto;
 }
 
-// The catalogs plus this sim's dummy, at the character's own level so the level
-// multiplier matches fighting their own tier. No PDR or boss flag unless the
-// flags ask. Its HP is the measurement's, since the dummy must look unkillable
-// to a held attack.
+// The catalogs plus this sim's dummy, at the character's own level. Its HP is
+// the measurement's, since the dummy must look unkillable to a held attack.
 Catalogs LoadCatalogsWithDummy(int level) {
   Catalogs c = LoadCatalogs();
   Mob dummy;
@@ -262,13 +250,10 @@ bool Bossing() {
   return absl::GetFlag(FLAGS_boss) || !absl::GetFlag(FLAGS_fight).empty();
 }
 
-// The fight --boss asks about: one phase with only the dummy.
-//
-// It's passed to ComputeBossParams rather than built here, which is the point.
-// A boss fight runs at 1x where a map is stretched, halves reach, targets the
-// healthiest part first, and uses the bossing preset. Approximating it with a
-// boss-flagged mob on a farming character measured a different character than
-// progression_sim did, by 49% on a Bishop.
+// The fight --boss asks about: one phase with only the dummy. Passed to
+// ComputeBossParams rather than built here, so it runs at 1x, halves reach,
+// targets the healthiest part first and uses the bossing preset, as a real boss
+// fight does.
 BossDifficulty DummyFight() {
   BossDifficulty difficulty;
   difficulty.set_name("Dummy");
@@ -325,10 +310,9 @@ CombatParams ParamsFor(GameState& state, const Fight& fight) {
                            BossObjectivePhase(state.mobs, fight.data));
 }
 
-// How long one spending decision is played out. Twice the slowest cooldown the
-// character has, if that's longer than the flag. A node on a two-minute
-// cooldown looks like free damage in any window too short for it to come back,
-// and a shopper ranking on that window buys the wrong thing.
+// How long one spending decision is played out: twice the slowest cooldown, if
+// that's longer than the flag. A node on a two-minute cooldown looks like free
+// damage in a window too short for it to come back.
 double PlanWindow(const GameState& state) {
   double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
@@ -361,9 +345,8 @@ double PlanRate(GameState& state, const Fight& fight) {
 // those fights has none.
 constexpr char kAbsoLabToken[] = "absolab_coin";
 
-// The best weapon of `type` a character at `level` can wear. Chosen by type
-// rather than catalog key so the table below needn't change when a tier is
-// added; that's why a build says "claw", not "dark_gigantic". `below_absolab`
+// The best weapon of `type` a character at `level` can wear. By type rather
+// than catalog key, so the table below survives a new tier. `below_absolab`
 // stops at the tier below the one Lotus and Damien pay for.
 std::string BestOfType(const Catalogs& catalogs, EquipType type, int level,
                        bool below_absolab) {
@@ -403,10 +386,8 @@ struct Result {
   double dps = 0.0;
   std::string swing;  // the attack the fight chose against a lone mob
   double swing_seconds = 0.0;
-  // Everything behind the two headline numbers, for --detail.
-  //
-  // The weapon is read from the character rather than the weapon table, since
-  // --endowed buys its weapon and an unaffordable shelf is part of the answer.
+  // Everything behind the two headline numbers, for --detail. The weapon is
+  // read from the character, since --endowed buys its weapon.
   std::string weapon;
   int primary = 0;
   int attack = 0;
@@ -580,10 +561,8 @@ GameState MaxState(const Catalogs& catalogs, int level, Job branch) {
 // the character ends up with depends on tier, not count.
 constexpr int kTokensGiven = 999;
 
-// Every token shelf below AbsoLab's, paid for, since a player has that gear by
-// the time they face Lotus. Only tokens some shelf is priced in: the bag holds
-// 128 rows a tab, and one of everything would leave no room for the gear the
-// shopper is about to buy.
+// Every token shelf below AbsoLab's, paid for. Only tokens some shelf is priced
+// in: a bag tab holds 128 rows, and one of everything would leave no room.
 void GiveTokens(GameState& state) {
   std::set<std::string> shelves;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -614,10 +593,9 @@ AbilityRank AbilityRankWanted() {
   return rank;
 }
 
-// Spends the endowed character's resources in the order that makes each step
-// worthwhile: the matrix first, since Hyper Stats and cubes are bought around
-// the nodes, then the two allocations, then the shelf. Repeated --rounds times,
-// because each of the four changes the value of the others.
+// Spends the endowed character's resources: the matrix first, since Hyper Stats
+// and cubes are bought around the nodes, then the two allocations, then the
+// shelf. Repeated --rounds times, because each changes the value of the others.
 GearSpend SpendEverything(GameState& state, const Fight& fight) {
   SkillRate rate = [&fight](GameState& inner) {
     return PlanRate(inner, fight);
@@ -647,10 +625,8 @@ GearSpend SpendEverything(GameState& state, const Fight& fight) {
 }
 
 // The endowed character: every branch gets the same meso, honor and V Points,
-// wears everything that drops or sells below AbsoLab, and spends it all however
-// it likes. What --max grants by fiat this one has to buy, so a branch that
-// can't turn meso into damage scores lower here than there, which is what this
-// mode measures.
+// wears everything below AbsoLab, and spends it all however it likes. A branch
+// that can't turn meso into damage scores lower here than under --max.
 GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
                 const Build& build, const Fight& fight) {
   state.current_map = kDummyMap;
@@ -662,9 +638,8 @@ GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
   state.character.AddHonor(absl::GetFlag(FLAGS_honor));
   state.character.AddVPoints(absl::GetFlag(FLAGS_v_points));
   GiveTokens(state);
-  // The weapon comes first and is given, not bought. The tier above the shop's
-  // is a drop no shelf sells, so shopping would leave every branch four tiers
-  // short. It's also first because it needs bag space, and because Outfit then
+  // The weapon is given, not bought: the tier above the shop's is a drop no
+  // shelf sells. It goes first because it needs bag space, and so Outfit
   // measures the shelf against the weapon in hand.
   Wear(state, BestOfType(catalogs, build.weapon, level,
                          /*below_absolab=*/true));
@@ -760,10 +735,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
     return result;
   }
 
-  // A boss fight uses the character's bossing preset (its hyper stats, Inner
-  // Ability and gear), and that's the only preset the Extreme Green Potion's
-  // attack speed applies under. Using farming here geared every branch for the
-  // wrong fight.
+  // A boss fight uses the bossing preset, and the Extreme Green Potion's attack
+  // speed applies only under it.
   bool boss = Bossing();
   Activity activity = boss ? Activity::kBossing : Activity::kFarming;
 
@@ -780,15 +753,11 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
 
   CombatParams params = ParamsFor(state, fight);
   int enemies = absl::GetFlag(FLAGS_enemies);
-  // Remove the map's pacing stretch, so the figure is at 1x and two levels
-  // compare directly. A boss fight is already 1x: ComputeBossParams pins it
-  // there, since a fight the player watches needs neither the stretch nor a
-  // respawn delay.
+  // Remove the map's pacing stretch so two levels compare at 1x.
+  // ComputeBossParams already pins a boss fight there.
   double speed = boss ? 1.0 : GameSpeedFactor(level);
-  // The window is given in game seconds but MeasureFight counts stretched
-  // seconds, so it's stretched to match; at 200 a ten-minute window is 6000 of
-  // them. Passing the flag raw would make --seconds mean a different length at
-  // every level. See GameSpeedFactor.
+  // --seconds is in game seconds but MeasureFight counts stretched seconds, so
+  // it is stretched to match. See GameSpeedFactor.
   Sequence played =
       MeasureFight(params, absl::GetFlag(FLAGS_seconds) * speed, enemies);
   if (played.main_attack < 0 || played.seconds <= 0.0) {
@@ -818,10 +787,9 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
 // The stat line behind one row, under --detail. Everything the damage chain
 // read, so a suspicious figure can be traced to its cause.
 void PrintDetail(const Build& build, const Result& result) {
-  // The shadow's lines are already in the damage; without this the count next
-  // to it would be half what really landed. Its percentage is what one shadow
-  // line deals, not its share: a 70% shadow behind a 210% line deals 147%, and
-  // a bare 70% next to "210%" would read as a flat figure.
+  // The shadow's lines are already in the damage, so they are counted too. Its
+  // percentage is what one shadow line deals: a 70% shadow behind a 210% line
+  // deals 147%.
   char shadow_buf[48] = "";
   if (result.mirror_pct > 0.0) {
     std::snprintf(shadow_buf, sizeof(shadow_buf), " + %d shadow @ %.0f%%",

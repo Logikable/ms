@@ -2,22 +2,15 @@
  * kill and pays, and what that comes to on each map once spawn counts are
  * included.
  *
- * There are two tables. The first lists mobs in level order with how fast HP,
- * EXP and attack grew per level since the mob below. A ladder that follows a
- * curve keeps those steady; a mob off the curve shows as a spike, followed by a
- * dip on the next mob. Attack has its own curve and can be out of step with the
- * other two, since how hard a mob is to kill and how hard it hits are set
- * separately.
+ * The first table lists mobs in level order with how fast HP, EXP and attack
+ * grew per level since the mob below. A mob off the curve shows as a spike,
+ * then a dip on the next. It is printed four times, because the overworld,
+ * Arcane River, Grandis and the bosses span the same levels without sharing a
+ * curve.
  *
- * That table is printed four times, because four ladders span the same levels
- * without sharing a curve: the overworld, Arcane River, Grandis, and the
- * bosses. Comparing across them is meaningless. Black Heaven next to the river
- * would read as a 65% drop in HP per level, which it isn't.
- *
- * The second table weights each map by its spawn counts, which is what a player
- * actually meets, and carries the counts through to a kill rate. EXP/HP is the
- * column to read: spawn count caps kills per second, so a map with twice the HP
- * at its level pays about half the EXP per second.
+ * The second table weights each map by its spawn counts. EXP/HP is the column
+ * to read: spawn count caps kills per second, so a map with twice the HP at its
+ * level pays about half the EXP per second.
  *
  *   bazelisk run //analysis:mob_curve_sim
  *   bazelisk run //analysis:mob_curve_sim -- --maps=false
@@ -76,10 +69,9 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
   return ladder;
 }
 
-// Mobs on maps that require a force, by data file stem: Arcane Force for the
-// river, Sacred Power for Grandis. Only the map says so. Tenebris drops no
-// symbol of its own, and level doesn't tell either: Black Heaven runs to 219
-// and requires no force.
+// Mobs on maps that require a force, by data file stem. Only the map says so:
+// Tenebris drops no symbol of its own, and Black Heaven runs to 219 without
+// one.
 std::set<std::string> MobsAskedFor(const std::map<std::string, MapData>& maps,
                                    int (MapData::*force)() const) {
   std::set<std::string> asked;

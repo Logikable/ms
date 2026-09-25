@@ -1,15 +1,9 @@
 /* ability_sim: what an Inner Ability goal costs in honor.
  *
- * It answers two questions. The first is exact: a rank-up is a coin flip with
- * known odds, so the honor to climb the ranks is the reset price divided by the
- * chance of success. The second isn't, because lines are rolled without
- * replacement and a reset's cost depends on which lines are locked, so the goal
- * is played out.
- *
- * Which lines to lock is the whole strategy, and the order matters more than it
- * looks. A reset with two locked lines costs twice one with none, so the line
- * left for the expensive end should be the likeliest of the three. Both orders
- * are played and printed side by side.
+ * Climbing the ranks is exact: a rank-up is a coin flip with known odds. A line
+ * goal is played out, since lines roll without replacement and a reset's cost
+ * depends on the locks. A reset with two locked lines costs twice one with
+ * none, so both lock orders are played and printed side by side.
  *
  *   bazelisk run //analysis:ability_sim
  *   bazelisk run //analysis:ability_sim -- --goal=boss_damage:unique
@@ -122,10 +116,8 @@ enum class Style {
   kHoldLower,
 };
 
-// Whether locking the top line would block the goal. Only the top line has the
-// ability's own rank, so a wanted line at that rank can only go there, and a
-// locked top line at that rank is never rerolled. Locking anything else there
-// would block it for good.
+// Whether locking the top line would block the goal. A wanted line at the
+// ability's own rank can only roll on top, and a locked top line never rerolls.
 bool TopSlotIsSpokenFor(const AbilityPreset& preset,
                         const std::vector<Want>& goal) {
   for (const Want& want : goal) {

@@ -1,12 +1,8 @@
 /* The server's copy of one party's boss fight.
  *
- * Each client runs its own CombatSim, as in solo play, and reports the damage
- * it deals. This class holds the shared mob HP, so a boss dies once no matter
- * how many players hit it. It also owns the phase, the timer and player
- * positions, and clients follow its values rather than their own.
- *
- * It knows nothing about sockets or the combat engine. To the server, a fight
- * is HP pools, a timer, and pauses between phases.
+ * Each client runs its own CombatSim and reports the damage it deals. This
+ * holds the shared mob HP, so a boss dies once however many players hit it,
+ * plus the phase, the timer and player positions, which clients follow.
  */
 #ifndef MS_SERVER_FIGHT_H_
 #define MS_SERVER_FIGHT_H_

@@ -13,10 +13,8 @@ namespace {
 
 typedef std::vector<std::vector<double>> Matrix;
 
-// Solves `a` x = `b` by Gaussian elimination with partial pivoting. Both are
-// taken by value because elimination modifies them. There is one row per star,
-// so never more than thirty. Returns empty for a singular system, which would
-// mean a star with no way out.
+// Solves `a` x = `b` by Gaussian elimination with partial pivoting. Returns
+// empty for a singular system, which would mean a star with no way out.
 std::vector<double> Solve(Matrix a, std::vector<double> b) {
   int n = static_cast<int>(b.size());
   for (int column = 0; column < n; ++column) {

@@ -49,9 +49,8 @@ EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
 }
 
 // Damage against the yardstick with `stats` in place of what the character
-// wears. Uses the closed form over the yardstick's strands rather than a played
-// fight. It leaves out the Max HP a star gives, which would need an exchange
-// rate against damage that nothing defines.
+// wears, by the closed form. It leaves out the Max HP a star gives, which has
+// no exchange rate against damage.
 double PowerWith(const GameState& state, const Yardstick& yard,
                  const DerivedStats& derived, const EquipStats& stats) {
   return WorthOf(state, yard, stats, PassiveOffenseFor(derived));
@@ -130,9 +129,7 @@ bool CanCoverBoom(const CharacterInstance& character,
 }
 
 // Spares worth keeping of a piece: the expected booms on the longest star run
-// the character could afford. Income decides it, not a constant, so a piece
-// that drops faster than the meso to boom it should be sold. At least one while
-// it can boom at all.
+// the character could afford, and at least one while it can boom at all.
 int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
                        int stars) {
   if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
@@ -200,9 +197,7 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
 }
 
 // The upgrade slot `slot`'s item could fill next, or the hammer that opens one
-// if none is left. A hammer is only offered when no slot is open, since it's
-// the wrong buy while one is unused, and it's priced together with the scroll
-// that fills it.
+// if none is left, priced together with the scroll that fills it.
 std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     GameState& state, const Basis& basis, EquipSlot slot, int level,
     int open_slots, bool can_hammer) {
@@ -262,10 +257,8 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   Candidate offer;
   offer.slot = slot;
   offer.star = true;
-  // The expected price of getting the star, not of one attempt. Every attempt
-  // is paid for whether it succeeds or not, and that gap is most of why late
-  // stars are poor buys. Past 15 stars, the copies consumed by booms are the
-  // larger part.
+  // The expected price of getting the star, not of one attempt. Past 15 stars
+  // the copies consumed by booms are the larger part.
   offer.cost =
       static_cast<int64_t>(run.meso + run.booms * SpareCost(item->prototype()));
   // Worn stats already include the item's current stars, so only the gap is on
@@ -397,10 +390,9 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
     Candidate offer;
     offer.slot = entry.first;
     offer.cube = true;
-    // Price and value the whole run, so a slot needing a dozen rolls to show a
-    // line is ranked on the dozen's cost. Cubes are bought one at a time; the
-    // next pass reprices the rest of the run against whatever the last roll
-    // left.
+    // Price and value the whole run, so a slot needing a dozen rolls is ranked
+    // on the dozen's cost. Cubes are bought one at a time; the next pass
+    // reprices the rest.
     offer.cost = run.cost;
     offer.gain = run.gain;
     if (offer.gain > 0) {
@@ -598,10 +590,9 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
       continue;
     }
     const EquipPrototype& proto = item->prototype();
-    // Never sell a spare of a worn symbol, since it's a duplicate that levels
-    // the worn one. A symbol not worn falls through to the allowance and keeps
-    // one copy; otherwise symbols from unreachable areas would pile up a bag
-    // row at a time.
+    // Never sell a spare of a worn symbol: it levels the worn one. An unworn
+    // symbol keeps one copy through the allowance, or symbols from unreachable
+    // areas would pile up.
     if (IsArcaneSymbol(proto) &&
         WornStars(state.character, proto.name()) >= 0) {
       ++i;

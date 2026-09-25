@@ -1,12 +1,8 @@
 /* Tracks every trade in progress: who is trading, what each side offers, and
  * the rules for opening and leaving a trade.
  *
- * A trade opens when one player requests it and the other requests back. The
- * invited player gets a notification. There is no decline; they either
- * request back or the requester gives up.
- *
- * Like the lobby, this knows nothing about sockets or fights. The server
- * passes in whether a player is fighting, and afterwards asks who to update.
+ * A trade opens when one player requests it and the other requests back. There
+ * is no decline. The server passes in whether a player is fighting.
  */
 #ifndef MS_SERVER_TRADE_H_
 #define MS_SERVER_TRADE_H_

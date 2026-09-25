@@ -133,10 +133,9 @@ int StageOf(Job branch) {
   if (path.empty() || path.back() != branch) {
     return 0;
   }
-  // Count the stage where the branch is first reached, not the path length. A
-  // line with its own 5th job names the same branch twice (Dark Knight is both
-  // the 4th and 5th step), and counting the whole path would file it under a
-  // stage no level reaches.
+  // Count the stage where the branch is first reached: a line with its own 5th
+  // job names the branch twice, and the path length is a stage no level
+  // reaches.
   for (int stage = 0; stage < static_cast<int>(path.size()); ++stage) {
     if (path[stage] == branch) {
       return stage + 1;

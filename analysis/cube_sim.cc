@@ -1,14 +1,9 @@
 /* cube_sim: what a potential goal costs in cubes.
  *
- * Every question here has the same shape: start from an item with no potential,
- * cube until it has what's wanted, and count the cubes. Climbing the ranks is
- * most of the cost, so each goal is printed next to the cost of reaching the
- * rank it needs. The difference is the cost of waiting for the lines
- * themselves.
- *
- * The distributions are long-tailed, so the median and the tail are printed
- * with the mean. When a goal's mean is twice its median, plan on the median and
- * budget for the tail.
+ * Each goal cubes an item from no potential until it has what's wanted, printed
+ * next to the cost of reaching the rank it needs. The distributions are
+ * long-tailed: when a mean is twice its median, plan on the median and budget
+ * for the tail.
  *
  *   bazelisk run //analysis:cube_sim
  *   bazelisk run //analysis:cube_sim -- --item_level=200 --trials=50000
@@ -236,9 +231,9 @@ void PrintAccessoryLines(int item_level, int trials, int cap,
   PrintCost(drop.name, drop_cost);
   PrintCost(both.name, both_cost);
   // The farming set: eight accessories, one wanted line each. Five meso lines
-  // reach the 100% cap and three drop lines give 60%. Spreading them over eight
-  // pieces costs half as much as doubling up on five, because a piece needing
-  // two named lines needs the second to roll as a prime line.
+  // reach the 100% cap and three drop lines give 60%. A piece needing two named
+  // lines needs the second to roll as a prime line, so doubling up costs twice
+  // as much.
   std::printf(
       "\n  8 pieces, one wanted line each -- 5 meso and 3 drop:"
       "\n    %.0f cubes on average, against %.0f for the same lines"

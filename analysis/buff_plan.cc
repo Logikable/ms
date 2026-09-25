@@ -19,10 +19,8 @@
 namespace ms {
 namespace {
 
-// How much a permanent unlock's savings must exceed its price before buying.
-// Twice rather than once, because the meso could have gone on gear instead, and
-// a buff that only breaks even on the run's last day isn't worth a star off the
-// weapon.
+// How much a permanent unlock's savings must exceed its price. Twice, because
+// the meso could have gone on gear instead.
 constexpr double kBuyMargin = 2.0;
 
 // Meso per second gained by switching the Wealth Acquisition Potion on.
@@ -39,9 +37,8 @@ double WealthPotionGain(GameState& state, const BuffYield& yield) {
 }
 
 // Meso per second gained by placing the totem: the extra kills, valued at the
-// character's %meso and drop rate. The EXP and other drops from those kills
-// aren't needed for the decision: the rent pays for itself in meso alone or not
-// at all.
+// character's %meso and drop rate. The rent pays for itself in meso alone or
+// not at all.
 double WildTotemGain(GameState& state, const BuffYield& yield) {
   if (yield.kills_with_totem.empty()) {
     return 0.0;

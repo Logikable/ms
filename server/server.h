@@ -1,13 +1,12 @@
 /* The multiplayer server. It tracks every connected client and handles their
  * messages.
  *
- * Everything runs on one thread. All sockets are non-blocking and share one
- * poll, so a slow client delays nobody, and fights step in the same loop
- * without locks.
+ * Everything runs on one thread with non-blocking sockets on one poll, so
+ * fights step in the same loop without locks.
  *
- * Accounts live in memory. A new player gets an id and a token, and an
- * unknown id is adopted, so a restart does not cost anyone their identity.
- * The token only stops one live client from claiming another's id.
+ * Accounts live in memory. An unknown id is adopted, so a restart does not cost
+ * anyone their identity. The token only stops one live client from claiming
+ * another's id.
  */
 #ifndef MS_SERVER_SERVER_H_
 #define MS_SERVER_SERVER_H_

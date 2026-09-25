@@ -61,9 +61,8 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
 }
 
 // Stats the character wears and is granted with `totals` in place of the worn
-// potentials. Returns the two halves WorthOf takes, not a folded OffenseStats.
-// Folding one here once measured cubes without the attack while stars were
-// measured with it, even though BuyBest sorts them together.
+// potentials. Returns the two halves WorthOf takes, not a folded OffenseStats,
+// so cubes are measured on the same terms as stars.
 void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
                PassiveOffense* out_passives) {
@@ -133,10 +132,8 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
   CubeBasis basis;
-  // Use the bossing preset, because the target fight is what this valuation
-  // aims at. DerivedStatsFor defaults to the farming preset, which read the
-  // wrong hyper stats and Inner Ability for ignored defence. A character over
-  // the defence wall then valued cubes as if under it, at nothing.
+  // Use the bossing preset: DerivedStatsFor defaults to farming, whose Hyper
+  // Stats and Inner Ability differ on ignored defence.
   basis.derived = DerivedStatsFor(state.character, state.skills, {}, {},
                                   Activity::kBossing);
   const EquipStats sources[] = {state.character.equip_stats(),
@@ -204,10 +201,9 @@ double MarginalGain(const GameState& state, const CubeBasis& basis,
 }
 
 // Total gain left by runs of each length, summed over kCubeRuns. Runs are
-// played out rather than rolls counted independently, because each cube rolls
-// against what the last one left. Keeping a better roll can raise the item's
-// rank, and the line that clears a defence wall may only exist at a higher
-// rank. Counting independent rolls would never see that.
+// played out because each cube rolls against what the last one left: a kept
+// roll can raise the rank, and the line that clears a defence wall may only
+// exist there.
 std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
                                  const CubePricing& pricing,
                                  const Potential& current,
@@ -223,13 +219,9 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
           CubePotential(held, CubeType::kRed, pricing.group, rng);
       double gain = GainOf(state, basis, pricing.level, pricing.others,
                            pricing.now, pricing.standing, rolled, income);
-      // Keep-better, as GMS offers: a roll worse than the item's current lines
-      // is declined, and the cube only bought the chance.
-      //
-      // A higher rank is kept even when damage doesn't change. Under a defence
-      // wall every roll is worth nothing, since both sides deal the 1-damage
-      // floor, so a run judged on damage alone would never climb a rank or
-      // reach the line that clears the wall.
+      // Keep-better, as GMS offers. A higher rank is kept even when damage
+      // doesn't change: under a defence wall every roll deals the 1-damage
+      // floor, so a run judged on damage alone would never climb.
       if (gain > best_gain ||
           (gain >= best_gain && rolled.rank() > held.rank())) {
         best_gain = gain;
@@ -267,10 +259,8 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
 
-  // Try one cube first; usually that decides it. A longer run only beats a
-  // single cube per meso when the single cube is worth nothing, which only
-  // happens under a defence wall. So the expensive part below is skipped
-  // whenever one roll already pays.
+  // Try one cube first. A longer run only beats it per meso when the single
+  // cube is worth nothing, which happens only under a defence wall.
   double marginal =
       MarginalGain(state, basis, pricing, current, income, rng) * share;
   if (marginal > 0.0) {
@@ -321,20 +311,15 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
     return true;
   }
   // Accept a higher rank even when damage didn't change, on the same terms
-  // BestCubeProgram used to price the run. Under a defence wall every roll is
-  // worth nothing, and a rule reading damage alone would throw away the rank-up
-  // the run was bought for. The two must agree, or the shopper pays for a
-  // program and then declines every result; that once happened with 2,484
-  // cubes.
+  // BestCubeProgram priced the run. The two must agree, or the shopper pays for
+  // a program and then declines every result.
   return gain >= 0.0 &&
          rolled.rank() > item->equip_state().main_potential().rank();
 }
 
-// Whether the character could ever buy `proto`, as opposed to whether the
-// catalog lists it. A tier priced in tokens only counts once one of the tokens
-// has dropped. The AbsoLab weapon costs coins only Damien and Lotus give, so to
-// a character who can't clear them it isn't the next weapon, and they keep the
-// one in hand.
+// Whether the character could ever buy `proto`. A tier priced in tokens only
+// counts once one of the tokens has dropped, so a character who can't clear
+// Damien or Lotus keeps the weapon in hand.
 bool WithinReach(const GameState& state, const EquipPrototype& proto) {
   if (proto.token_price() <= 0) {
     return true;
