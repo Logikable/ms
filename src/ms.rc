@@ -6,13 +6,13 @@
 // than one that describes itself, and a fresh static mingw build starts with
 // no reputation of its own to argue with.
 //
-// The version tracks the release tag: lv230.3 is 230,3,0,0. Bump both on each
+// The version tracks the release tag: lv230.4 is 230,4,0,0. Bump both on each
 // ship. Resource 1 is VS_VERSION_INFO, spelled as its number so the file needs
 // no Windows headers and no preprocessor.
 
 1 VERSIONINFO
-FILEVERSION 230, 3, 0, 0
-PRODUCTVERSION 230, 3, 0, 0
+FILEVERSION 230, 4, 0, 0
+PRODUCTVERSION 230, 4, 0, 0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS 0x40004L    // VOS_NT_WINDOWS32
@@ -25,12 +25,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Logikable"
             VALUE "FileDescription", "MapleStory"
-            VALUE "FileVersion", "lv230.3"
+            VALUE "FileVersion", "lv230.4"
             VALUE "InternalName", "ms"
             VALUE "LegalCopyright", "Copyright (C) 2026 Logikable"
             VALUE "OriginalFilename", "ms.exe"
             VALUE "ProductName", "MapleStory"
-            VALUE "ProductVersion", "lv230.3"
+            VALUE "ProductVersion", "lv230.4"
         END
     END
     BLOCK "VarFileInfo"
