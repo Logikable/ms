@@ -28,8 +28,6 @@ difficulties {
   # Five Intense Power Crystals at GMS's price for this fight, divided by seven,
   # since GMS clears Root Abyss once a week and this game once a day.
   meso: 15000000
-  # No EXP for the clear. When the level cap was 200 a character here had
-  # nowhere to put it, and these four are fought for their drops.
   drops {
     item: "piece_of_destruction"
     per_kill: 1.0

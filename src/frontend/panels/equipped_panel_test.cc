@@ -1223,7 +1223,7 @@ class SymbolTabTest : public EquippedPanelTest {
 
 // Below Arcane River a symbol tab would have nothing to hold, so there is no
 // Symbols tab.
-TEST_F(SymbolTabTest, NoBarBeforeArcaneRiver) {
+TEST_F(SymbolTabTest, NoSymbolsTabBeforeArcaneRiver) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   EXPECT_EQ(RenderComponent(component).find("Symbols"), std::string::npos);

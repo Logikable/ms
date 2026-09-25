@@ -1422,7 +1422,7 @@ TEST_F(SkillInspectPanelTest, AttackSpeedCountsItsStages) {
 
 // Magic Guard has a single field. The card still has to show what the skill
 // does, or its levels sit over an empty block.
-TEST_F(SkillInspectPanelTest, ShowsLeversCombatDoesNotReadYet) {
+TEST_F(SkillInspectPanelTest, ShowsASkillWithASingleField) {
   Skill skill;
   skill.set_name("Magic Guard");
   skill.set_kind(SKILL_KIND_PASSIVE);
