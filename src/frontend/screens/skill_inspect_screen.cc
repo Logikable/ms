@@ -61,6 +61,8 @@ bool SkillInspectScreen::OnEvent(const ftxui::Event& event) {
       tab_ = StepCursor(tab_, delta, boosted_.size());
       // A new skill, so a new card: from its top.
       other_.ResetScroll();
+    } else {
+      card.ScrollXBy(delta);
     }
     return true;
   }

@@ -180,7 +180,8 @@ TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
 }
 
 // The scroll screen hands the card a flex box wider than it asked for. The
-// rule has to follow the border out, and the bar has to stay against it.
+// rule has to follow the border out to the bar, and the bar has to stay
+// against the border.
 TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
   ScrollCard card;
   card.SetMaxRows(6);
@@ -189,17 +190,25 @@ TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
                                                ftxui::Dimension::Fixed(6));
   ftxui::Render(screen, card.Render(" T ", std::move(rows), 8) | ftxui::flex);
-  std::vector<std::string> lines;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string line;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      line += screen.PixelAt(x, y).character;
-    }
-    lines.push_back(line);
-  }
-  EXPECT_EQ(lines[2], "├──────────────────┤") << "the rule reaches both";
+  // The rule runs out to the bar, which crosses it against the border.
+  EXPECT_EQ(screen.PixelAt(0, 2).character, "├");
+  EXPECT_EQ(screen.PixelAt(17, 2).character, "─") << "the rule reaches the bar";
+  EXPECT_EQ(screen.PixelAt(19, 2).character, "│");
   EXPECT_EQ(screen.PixelAt(19, 1).character, "│");
   EXPECT_EQ(screen.PixelAt(18, 1).character, "┃") << "the bar, on the border";
+}
+
+// A rule inside the body gives way to the bar while it is drawn, so the bar
+// reads as one line rather than several cut apart by the rules.
+TEST(ScrollCardTest, TheBarCrossesARuleInTheBody) {
+  ScrollCard card;
+  card.SetMaxRows(5);
+  std::vector<CardRow> rows = NumberedRows(6);
+  rows[1] = RuleRow(ftxui::separator());
+  std::vector<std::string> lines = Draw(card, Body(std::move(rows)), 8);
+  ASSERT_EQ(lines.size(), 5u);
+  EXPECT_EQ(lines[2].rfind("├────────", 0), 0u) << lines[2];
+  EXPECT_TRUE(HasBar({lines[2]})) << "the bar stands on the rule: " << lines[2];
 }
 
 TEST(ScrollCardTest, MeasuresTheRowsWhenGivenNoWidth) {

@@ -2470,23 +2470,39 @@ TEST_F(SkillInspectPanelTest, ACardTooTallForItsBudgetIsCutAndSaysSo) {
       << "and the last row of the card is off the bottom of it";
 }
 
-// Down walks the card under the window. There is no cursor to follow, so the
-// page itself is what moves.
-TEST_F(SkillInspectPanelTest, ScrollingWalksTheCardUnderTheWindow) {
+// The row the level blocks start on, which is where the scrolling part of the
+// card begins: everything above it is held on screen.
+int FirstLevelRow(const std::vector<std::string>& lines) {
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (RowText(lines[i]).rfind(" Level ", 0) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+// Down walks the level blocks under the window, and the name, description and
+// every-level facts over them hold still. There is no cursor to follow, so
+// the page itself is what moves.
+TEST_F(SkillInspectPanelTest, ScrollingWalksTheLevelsUnderTheHead) {
   Skill skill = IronBody();
   SkillInspectPanel panel;
   panel.SetSkill(&skill, 5, 0);
   int tall = CardRows(panel);
   std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  int body = FirstLevelRow(full);
+  ASSERT_GT(body, 1);
   panel.SetMaxRows(tall - 3);
 
   panel.ScrollBy(1);
   std::vector<std::string> lines = Lines(RenderElement(panel.Render()));
-  EXPECT_EQ(RowText(lines[1]), RowText(full[2])) << "one row down the card";
+  EXPECT_EQ(RowText(lines[1]), RowText(full[1])) << "the head holds";
+  EXPECT_EQ(RowText(lines[body - 1]), RowText(full[body - 1]));
+  EXPECT_EQ(RowText(lines[body]), RowText(full[body + 1])) << "one row down";
 
   panel.ScrollBy(2);
   lines = Lines(RenderElement(panel.Render()));
-  EXPECT_EQ(RowText(lines[1]), RowText(full[4]));
+  EXPECT_EQ(RowText(lines[body]), RowText(full[body + 3]));
 }
 
 // Held at both ends rather than wrapped: with nothing selected to follow,
@@ -2497,25 +2513,56 @@ TEST_F(SkillInspectPanelTest, ScrollingStopsAtBothEndsInsteadOfWrapping) {
   panel.SetSkill(&skill, 5, 0);
   int tall = CardRows(panel);
   std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  int body = FirstLevelRow(full);
+  ASSERT_GT(body, 1);
   panel.SetMaxRows(tall - 3);
 
   for (int i = 0; i < 50; ++i) {
     panel.ScrollBy(1);
   }
   std::vector<std::string> foot = Lines(RenderElement(panel.Render()));
-  // Three rows are off the top, and the last row of the card is now the last
-  // row of the window.
-  EXPECT_EQ(RowText(foot[1]), RowText(full[4]));
+  // Three rows of the levels are off the top, and the last row of the card is
+  // now the last row of the window.
+  EXPECT_EQ(RowText(foot[body]), RowText(full[body + 3]));
   EXPECT_EQ(RowText(foot[tall - 5]), RowText(full[tall - 2]));
 
   panel.ScrollBy(1);
-  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(foot[1]));
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[body]),
+            RowText(foot[body]));
 
   for (int i = 0; i < 50; ++i) {
     panel.ScrollBy(-1);
   }
-  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]))
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[body]),
+            RowText(full[body]))
       << "back at the top";
+}
+
+// The rule between the two level blocks scrolls with them, so the bar crosses
+// it rather than being cut in two; the rules in the head reach the border.
+TEST_F(SkillInspectPanelTest, TheBarCrossesTheRuleBetweenTheLevels) {
+  Skill skill = IronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+  panel.SetMaxRows(tall - 1);
+  ftxui::Element card = panel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
+  ftxui::Render(screen, card);
+  int right = screen.dimx() - 1;
+  std::vector<int> rules;
+  for (int y = 1; y + 1 < screen.dimy(); ++y) {
+    if (screen.PixelAt(0, y).character == "\u251c") {
+      rules.push_back(y);
+    }
+  }
+  ASSERT_GE(rules.size(), 2u) << "a head rule and the one between the levels";
+  EXPECT_EQ(screen.PixelAt(right, rules.front()).character, "\u2524")
+      << "a head rule reaches the border";
+  EXPECT_EQ(screen.PixelAt(right, rules.back()).character, "\u2502")
+      << "the bar's column stands between the last rule and the border";
+  EXPECT_NE(screen.PixelAt(right - 1, rules.back()).character, "\u2500")
+      << "and the rule gives way to the bar";
 }
 
 // Nothing off screen, nothing to indicate -- but the column the bar would take
@@ -2615,10 +2662,15 @@ TEST_F(SkillInspectPanelTest, ResetScrollReturnsToTheHeadOfTheCard) {
   std::vector<std::string> full = Lines(RenderElement(panel.Render()));
   panel.SetMaxRows(tall - 3);
 
+  int body = FirstLevelRow(full);
+  ASSERT_GT(body, 1);
+
   panel.ScrollBy(2);
-  ASSERT_NE(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]));
+  ASSERT_NE(RowText(Lines(RenderElement(panel.Render()))[body]),
+            RowText(full[body]));
   panel.ResetScroll();
-  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]));
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[body]),
+            RowText(full[body]));
 }
 
 // A card that measures its own width has to ask for its right margin. On

@@ -4,9 +4,9 @@
  *
  * A card is built of three groups. The head and the foot are always drawn
  * whole; the body between them is what scrolls, and the bar down the right
- * edge runs beside the body alone. That way no rule crosses the bar -- a
- * card cut into sections by rules would otherwise read as several bars -- and
- * what names the card stays on screen while the reader moves through it.
+ * edge runs beside the body alone, so what names the card stays on screen
+ * while the reader moves through it. A rule inside the body gives way to the
+ * bar rather than crossing it -- a bar cut by rules reads as several bars.
  *
  * The bar is drawn only while there is something to scroll. Its column is held
  * open from the moment the card has a row budget at all, so a card does not
@@ -33,7 +33,8 @@ namespace ms {
 
 // One row of a card. A separator is drawn the full width, the bar's column
 // included: a rule held to the text column stops short of the border and
-// reads as a notch.
+// reads as a notch. The one exception is a rule in the body while the bar is
+// drawn, where the bar's cell takes that column.
 struct CardRow {
   ftxui::Element element;
   bool separator = false;
