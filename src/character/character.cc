@@ -47,33 +47,31 @@ namespace {
 constexpr int kApPerLevel = 5;
 constexpr int kApJobAdvancementBonus = 5;
 constexpr int kSpPerLevel = 3;
-// What levels 101-140 pay instead, so the 4th job's book comes to 200.
+// SP per level for levels 101-140, so the 4th job's book totals 200.
 constexpr int kFourthJobSpPerLevel = 5;
-// The last level that pays SP at all. The 4th job's band runs to the 5th
-// advancement, but its book is bought out 60 levels short of that, so the
-// levels above pay in Hyper SP, HP, MP and AP.
+// The last level that pays SP. The 4th job lasts until the 5th advancement, but
+// its book is fully paid 60 levels earlier, so the levels after that pay Hyper
+// SP, HP, MP and AP instead.
 constexpr int kLastSpLevel = 140;
 
-// The Hyper SP ladder: a point at 140 and every fifth level to 195. Twelve in
-// all, one per Hyper Skill, so what the page asks for is the ORDER they are
-// taken in -- the unlock levels cluster rather than falling one to a point.
+// Hyper SP is paid at 140 and every fifth level to 195: twelve points, one per
+// Hyper Skill. So the page really asks what order to learn them in, since the
+// unlock levels are bunched rather than one per point.
 constexpr int kFirstHyperSpLevel = 140;
 constexpr int kLastHyperSpLevel = 195;
 constexpr int kHyperSpLevelStep = 5;
 
-// What a job's primary stat is worth on advancing into it: it climbs to here
-// from kBaseStat, and the AP that pays for the difference comes out of the
-// pool. See ResetStatsForJob.
+// A job's primary stat after advancing into it. It rises from kBaseStat, and
+// the AP for the difference comes out of the pool. See ResetStatsForJob.
 constexpr int kAdvancementPrimaryStat = 25;
 
-// The four stats AP buys, which are the ones an advancement redistributes.
-// HP and MP live in the same message but are granted by leveling.
+// The four stats AP buys, which an advancement redistributes. HP and MP are in
+// the same message but come from levelling.
 constexpr StatField kApStatFields[] = {STAT_FIELD_STR, STAT_FIELD_DEX,
                                        STAT_FIELD_INT, STAT_FIELD_LUK};
 
-// The stats to take AP back off, in the order they should give it up: the
-// primary last, because a character stripped of it is one the player cannot
-// play, and the rest are cheaper to lose.
+// The stats to take AP back from, in order. The primary stat is last, because a
+// character without it can't be played and the others are cheaper to lose.
 std::vector<StatField> StripOrder(StatField primary) {
   std::vector<StatField> order;
   for (StatField field : kApStatFields) {
@@ -117,16 +115,16 @@ void SetApStat(AllocatedStats* stats, StatField field, int value) {
   }
 }
 
-// Character levels at which each job advancement (1st..6th) unlocks. A level's
-// SP goes to the highest stage whose threshold it has passed: levels 11-30
-// feed stage 1, 31-60 feed stage 2, and so on.
+// Character levels at which each job advancement (1st to 6th) unlocks. A
+// level's SP goes to the highest stage whose threshold it has passed: levels
+// 11-30 pay stage 1, 31-60 stage 2, and so on.
 constexpr int kAdvancementLevels[] = {10, 30, 60, 100, 200, 260};
 static_assert(sizeof(kAdvancementLevels) / sizeof(kAdvancementLevels[0]) ==
                   kMaxJobStage,
               "kMaxJobStage must name the last stage there is a level for");
 
-// The job stage a level-up's SP feeds -- the count of advancement thresholds
-// the level has passed. 0 at level 10 and below, before 1st-job SP starts.
+// The job stage a level-up's SP goes to: how many advancement thresholds the
+// level has passed. 0 at level 10 and below, before 1st-job SP starts.
 int SpStageForLevel(int level) {
   int stage = 0;
   for (int threshold : kAdvancementLevels) {
@@ -137,16 +135,16 @@ int SpStageForLevel(int level) {
   return stage;
 }
 
-// Whether advancing INTO `stage` hands over AP. The 3rd and the 4th do. Both
-// AdvanceJob and ExpectedTotalAp ask this rather than spelling the stages out,
-// so a save can never be "corrected" against a rule the game stopped using.
+// Whether advancing into `stage` grants AP. The 3rd and 4th do. AdvanceJob and
+// ExpectedTotalAp both call this rather than listing the stages, so a save is
+// never "corrected" against a rule the game no longer uses.
 bool AdvancementGrantsAp(int stage) {
   return stage == 3 || stage == 4;
 }
 
-// SP a level-up pays. Every book costs exactly what its levels hand over: 60
-// for 11-30, 90 for 31-60, 120 for 61-100, 200 for 101-140 -- the 4th job pays
-// five a level, which is all that makes its book bigger.
+// SP a level-up pays. Every book costs exactly what its levels pay: 60 for
+// 11-30, 90 for 31-60, 120 for 61-100 and 200 for 101-140. The 4th job pays
+// five a level, which is the only reason its book is bigger.
 int SpForLevel(int level) {
   int stage = SpStageForLevel(level);
   if (stage < 1 || level > kLastSpLevel) {
@@ -163,9 +161,9 @@ int HyperSpForLevel(int level) {
   return (level - kFirstHyperSpLevel) % kHyperSpLevelStep == 0 ? 1 : 0;
 }
 
-// What the levels up to `level` paid into `stage`'s book and the Hyper pool.
-// The LEVELS' alone -- an advancement hands over no SP -- so each says what a
-// character must hold between their pool and what they spent.
+// What levels up to `level` paid into `stage`'s book and the Hyper pool. Only
+// levels count, since advancing grants no SP. Each total is what a character
+// should have between their pool and what they spent.
 int ExpectedSpForStage(int level, int stage) {
   int total = 0;
   for (int l = 1; l <= level; ++l) {
@@ -184,25 +182,25 @@ int ExpectedHyperSp(int level) {
   return total;
 }
 
-// Brings one pool to what the levels say, and says how far it moved. Short,
-// and the difference is handed over; over, and it comes off the POOL alone --
-// which Hyper Skill to un-buy is not a choice to make for the player.
+// Brings one pool to what the levels say it should be, and returns how far it
+// moved. If short, the difference is added. If over, it comes out of the pool
+// only, because choosing which Hyper Skill to unlearn is the player's call.
 int CorrectPool(std::string_view what, int delta, int* pool) {
   if (delta == 0) {
     return 0;
   }
-  // Logged even though it is fixed, for the reason ReconcileAp logs: a pool
-  // that does not balance is either a save from older rules or a bug in the
-  // granting, and the second one is invisible if this quietly tidies up.
+  // Logged even though it is fixed, for the same reason as in ReconcileAp: a
+  // pool that doesn't balance is either a save from older rules or a bug in how
+  // points are granted, and a bug would go unnoticed if this silently fixed it.
   LOG(WARNING) << what << " is off by " << delta << "; correcting";
   int was = *pool;
   *pool = std::max(0, *pool + delta);
   return *pool - was;
 }
 
-// SP granted for advancing into `job`. Every book costs exactly what its
-// levels pay out, so the advancement hands over nothing; a job whose skills
-// cannot be made to total their band sets a bonus here.
+// SP granted for advancing into `job`. Every book costs exactly what its levels
+// pay, so advancing grants nothing. A job whose skills can't be made to match
+// its levels would set a bonus here.
 int JobAdvancementSpBonus(Job job) {
   switch (job) {
     default:
@@ -210,9 +208,9 @@ int JobAdvancementSpBonus(Job job) {
   }
 }
 
-// What a level-up grants in HP and MP. GMS varies it per class with no
-// published table, so these are round numbers chosen to give each branch its
-// character: warriors bulky, mages frail with a deep pool, the rest between.
+// HP and MP gained per level. GMS varies it per class with no published table,
+// so these are round numbers chosen to give each branch its feel: warriors
+// tough, mages frail with a large MP pool, and the rest in between.
 struct LevelUpGain {
   int hp;
   int mp;
@@ -247,8 +245,8 @@ EquipJobCategory JobToCategory(Job job) {
   return EQUIP_JOB_CATEGORY_UNSPECIFIED;
 }
 
-// One equip-tab entry rebuilt from its saved state, or null if the catalogs no
-// longer describe it.
+// Rebuilds one equip-tab entry from its saved state, or returns null if the
+// catalogs no longer have it.
 std::unique_ptr<EquipTabItem> RestoreEquipItem(
     const Equip& state,
     const std::map<std::string, const EquipPrototype*>& by_name) {
@@ -260,8 +258,8 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
   return EquipItemFromState(*proto->second, state);
 }
 
-// The four beginner books. Every job in a line answers to the one it grew
-// out of, however far along the line it is.
+// The four beginner books. Every job in a line maps to the 1st job it came
+// from, however far along the line it is.
 JobAdvancement FirstAdvancement(Job job) {
   switch (BranchOf(job)) {
     case JobBranch::kWarrior:
@@ -277,7 +275,7 @@ JobAdvancement FirstAdvancement(Job job) {
   }
 }
 
-// The ten 2nd job books. A 3rd job still holds the one below it.
+// The ten 2nd job books. Later jobs still hold the one below them.
 JobAdvancement SecondAdvancement(Job job) {
   switch (job) {
     case JOB_FIGHTER:
@@ -325,7 +323,7 @@ JobAdvancement SecondAdvancement(Job job) {
   }
 }
 
-// The ten 3rd job books, one per job -- the top of every line the game has.
+// The ten 3rd job books, one per job.
 JobAdvancement ThirdAdvancement(Job job) {
   switch (job) {
     case JOB_BERSERKER:
@@ -363,7 +361,7 @@ JobAdvancement ThirdAdvancement(Job job) {
   }
 }
 
-// The 4th job books. One per 3rd job, and all ten are written now.
+// The 4th job books, one per 3rd job.
 JobAdvancement FourthAdvancement(Job job) {
   switch (job) {
     case JOB_DARK_KNIGHT:
@@ -391,9 +389,8 @@ JobAdvancement FourthAdvancement(Job job) {
   }
 }
 
-// The 5th advancement. Reaching one is not a job change -- a Dark Knight stays
-// a Dark Knight and simply opens another book -- so every 4th job answers with
-// its own name again.
+// The 5th advancement. It isn't a job change: a Dark Knight stays a Dark Knight
+// and just opens another book, so every 4th job maps to its own name again.
 JobAdvancement FifthAdvancement(Job job) {
   switch (job) {
     case JOB_DARK_KNIGHT:
@@ -424,9 +421,8 @@ JobAdvancement FifthAdvancement(Job job) {
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
-  // A character keeps every book below the one they are in, so each stage
-  // answers for the whole line: a Berserker still holds their Swordman and
-  // Spearman skills.
+  // A character keeps every book below their current one, so each stage covers
+  // the whole line: a Berserker still has their Swordman and Spearman skills.
   switch (stage) {
     case 1:
       return FirstAdvancement(job);
@@ -536,8 +532,8 @@ int NextAdvancementLevel(int stage) {
 }
 
 int ExpectedTotalAp(int level, int job_stage) {
-  // The Beginner's free STR is granted as a stat rather than as AP, so it is
-  // on the books from level 1 as something already spent.
+  // The Beginner's free STR is given as a stat rather than as AP, so it counts
+  // as already spent from level 1.
   int total = kApPerLevel * std::max(0, level - 1) + kBeginnerStr - kBaseStat;
   for (int stage = 1; stage <= job_stage; ++stage) {
     if (AdvancementGrantsAp(stage)) {
@@ -548,12 +544,13 @@ int ExpectedTotalAp(int level, int job_stage) {
 }
 
 std::vector<std::string> StarterEquipsFor(Job job) {
-  // One weapon per 1st job so an advancement is playable at once, plus
-  // whatever it draws from. The Rogue gets three, dagger or claw deciding what
-  // they can swing; the Archer gets arrows for the bow alone.
+  // Each 1st job gets one weapon so it is playable right away, plus anything
+  // the weapon needs. The Rogue gets three items, and holding a dagger or a
+  // claw decides which skills they can use. The Archer gets arrows for the bow.
   //
-  // A 2nd job gets its off-hand and NO weapon: it can afford the tier, so a
-  // free one would undercut the choice, but nothing else fills the new slot.
+  // A 2nd job gets its secondary and no weapon. It can afford a weapon of its
+  // tier, so a free one would undercut that choice, but nothing else fills the
+  // new secondary slot.
   switch (job) {
     case JOB_SWORDMAN:
       return {"long_sword"};
@@ -590,8 +587,8 @@ std::vector<std::string> StarterEquipsFor(Job job) {
 
 std::vector<EquipType> ExpectedWeapons(Job job) {
   switch (job) {
-    // The 1st jobs, each naming what StarterEquipsFor hands it. The Rogue is
-    // handed both, and which is held decides what they can swing.
+    // The 1st jobs, each listing what StarterEquipsFor gives it. The Rogue gets
+    // both weapons, and which one they hold decides what they can use.
     case JOB_SWORDMAN:
       return {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD};
     case JOB_MAGICIAN:
@@ -600,12 +597,13 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
       return {EQUIP_TYPE_BOW};
     case JOB_ROGUE:
       return {EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW};
-    // The warrior branches, each with a pair its skills name by hand.
+    // The warrior branches, each with the pair of weapon types its skills name.
     case JOB_FIGHTER:
     case JOB_CRUSADER:
     case JOB_HERO:
-      // Both hands of each, which reads as "Sword / Axe". Nothing shipped is a
-      // one-handed axe yet; the books name the type, so this does too.
+      // Both one- and two-handed versions, which displays as "Sword / Axe".
+      // There are no one-handed axes in the game yet, but the skill books name
+      // the type, so this does too.
       return {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
               EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE};
     case JOB_PAGE:
@@ -625,8 +623,8 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
     case JOB_SNIPER:
     case JOB_MARKSMAN:
       return {EQUIP_TYPE_CROSSBOW};
-    // Every mage line, however it casts: the staff is the magician's weapon
-    // and no branch of them has a second one.
+    // Every mage line, however it casts: the staff is the magician's weapon and
+    // no branch has a second one.
     case JOB_FIRE_POISON_WIZARD:
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_CLERIC:
@@ -679,8 +677,7 @@ JobAdvancement AdvancementForSecondary(EquipType type) {
 
 StatField PrimaryStatField(Job job) {
   switch (BranchOf(job)) {
-    // The beginner swings on STR, which is the warrior's stat and the one
-    // their starting gear carries.
+    // The beginner uses STR, the warrior's stat, which their starting gear has.
     case JobBranch::kBeginner:
     case JobBranch::kWarrior:
       return STAT_FIELD_STR;
@@ -698,8 +695,8 @@ StatField PrimaryStatField(Job job) {
 
 StatField SecondaryStatField(Job job) {
   switch (BranchOf(job)) {
-    // Each branch's pair, swapped: the warrior and the archer share STR and
-    // DEX, the magician and the thief LUK and DEX.
+    // Each branch's pair, swapped: warriors and archers share STR and DEX, and
+    // magicians and thieves share LUK and DEX.
     case JobBranch::kBeginner:
     case JobBranch::kWarrior:
     case JobBranch::kRogue:
@@ -714,15 +711,15 @@ StatField SecondaryStatField(Job job) {
   return STAT_FIELD_UNSPECIFIED;
 }
 
-// One job leading to the next, for the two advancements that narrow rather
-// than fork.
+// One job leading to the next, for the advancements that offer one choice
+// instead of several.
 struct Successor {
   Job from;
   Job to;
 };
 
 // The 3rd advancement: one branch per 2nd job, so the picker offers a single
-// choice rather than a set.
+// choice.
 constexpr Successor kThirdJobs[] = {
     {JOB_SPEARMAN, JOB_BERSERKER},
     {JOB_FIGHTER, JOB_CRUSADER},
@@ -736,8 +733,7 @@ constexpr Successor kThirdJobs[] = {
     {JOB_BANDIT, JOB_CHIEF_BANDIT},
 };
 
-// The 4th, and all ten are written. Nothing is written past one, so a 4th job
-// is offered nothing at all.
+// The 4th advancement: one per 3rd job.
 constexpr Successor kFourthJobs[] = {
     {JOB_BERSERKER, JOB_DARK_KNIGHT},
     {JOB_WHITE_KNIGHT, JOB_PALADIN},
@@ -751,7 +747,7 @@ constexpr Successor kFourthJobs[] = {
     {JOB_CHIEF_BANDIT, JOB_SHADOWER},
 };
 
-// The single job `table` leads on to from `job`, or nothing.
+// The single job `job` advances to in `table`, or nothing.
 std::vector<Job> Successors(const Successor* table, int count, Job job) {
   for (int i = 0; i < count; ++i) {
     if (table[i].from == job) {
@@ -762,12 +758,12 @@ std::vector<Job> Successors(const Successor* table, int count, Job job) {
 }
 
 std::vector<Job> JobChoicesForStage(Job job, int stage) {
-  // The four explorer branches, ordered by the stat each lives on, so the list
-  // reads down STR/DEX/INT/LUK as the stat panel does.
+  // The four explorer branches, ordered by main stat so the list reads
+  // STR/DEX/INT/LUK like the stat panel.
   if (stage == 1) {
     return {JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE};
   }
-  // From here on the choice is a function of the job already held.
+  // From here on the choices depend on the current job.
   if (stage == 2 && job == JOB_SWORDMAN) {
     return {JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN};
   }
@@ -790,8 +786,8 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
                       static_cast<int>(sizeof(kFourthJobs) / sizeof(Successor)),
                       job);
   }
-  // The 5th offers the job the character already holds: it opens a book rather
-  // than renaming anybody, so there is nothing to choose between.
+  // The 5th advancement offers the job the character already has. It opens a
+  // book rather than changing the job, so there is nothing to choose.
   if (stage == 5 && FifthAdvancement(job) != JOB_ADVANCEMENT_UNSPECIFIED) {
     return {job};
   }
@@ -862,9 +858,9 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
     case JOB_ADVANCEMENT_SHADOWER_V:
       return 5;
-    // None of these is a stage anybody advances into, so none has one.
-    // Nothing keyed by stage -- the SP pools, the skills tab's numbered pages
-    // -- reaches a common node, the beginner book or a link skill.
+    // No one advances into any of these, so none has a stage. Nothing keyed by
+    // stage (SP pools, the skills tab's numbered pages) applies to a common
+    // node, the beginner book or a link skill.
     case JOB_ADVANCEMENT_COMMON:
     case JOB_ADVANCEMENT_BEGINNER:
     case JOB_ADVANCEMENT_LINK:
@@ -873,9 +869,9 @@ int StageForAdvancement(JobAdvancement advancement) {
   }
 }
 
-// What Burning pays: how many characters have to stand above this one, and
-// how many levels a level-up grants once they do. The ceiling is the level of
-// the last of them -- the lowest character the tier counts.
+// One Burning tier: how many characters must be above this one, and how many
+// levels each level-up grants once they are. The ceiling is the level of the
+// last character the tier counts, which is the lowest of them.
 struct BurnTier {
   int above = 0;
   int levels = 0;
@@ -884,8 +880,8 @@ constexpr BurnTier kBurnTiers[] = {{1, 2}, {3, 3}, {10, 5}};
 
 LevelGains GainsForLevels(int from_level, int to_level) {
   LevelGains gains;
-  // Walks the levels ARRIVED at, which is what LevelUp grants against. Keep
-  // the two reading the same way: a test holds real gains against this.
+  // Goes through the levels reached, which is what LevelUp grants against. Keep
+  // the two consistent: a test checks real gains against this.
   for (int level = from_level + 1; level <= to_level; ++level) {
     gains.ap += kApPerLevel;
     gains.sp += SpForLevel(level);
@@ -914,7 +910,8 @@ void CharacterInstance::EnsureInnerAbility() {
     if (lines.lines_size() == 0) {
       lines = DefaultAbilityPreset();
     } else if (lines.rank() == ABILITY_RANK_UNSPECIFIED) {
-      // A rankless preset prices no reset, so nothing could ever reroll it.
+      // A preset with no rank has no reset price, so it could never be
+      // rerolled.
       lines.set_rank(kDefaultAbilityRank);
     }
   }
@@ -923,20 +920,21 @@ void CharacterInstance::EnsureInnerAbility() {
 void CharacterInstance::LevelUp() {
   character_.set_level(character_.level() + 1);
   character_.set_ap(character_.ap() + kApPerLevel);
-  // HP and MP are granted at the job held right now, so levels earned as a
-  // Beginner keep the Beginner rate -- advancing later does not backdate them.
+  // HP and MP are granted at the current job, so levels gained as a Beginner
+  // keep the Beginner rate. Advancing later doesn't change them.
   LevelUpGain gain = LevelUpGainFor(character_.job());
   AllocatedStats* stats = character_.mutable_allocated_stats();
   stats->set_hp(stats->hp() + gain.hp);
   stats->set_mp(stats->mp() + gain.mp);
-  // The new level's band decides both how much SP it pays and which stage's
-  // book it goes to (none below 11).
+  // The new level decides how much SP it pays and which stage's book gets it
+  // (none below 11).
   int stage = SpStageForLevel(character_.level());
   if (stage >= 1) {
     (*character_.mutable_sp_by_stage())[stage] +=
         SpForLevel(character_.level());
   }
-  // Its own pool, on its own ladder: a Hyper Skill is not any stage's.
+  // Hyper SP has its own pool and its own ladder, since Hyper Skills belong to
+  // no stage.
   character_.set_hyper_sp(character_.hyper_sp() +
                           HyperSpForLevel(character_.level()));
 }
@@ -986,8 +984,8 @@ void CharacterInstance::ToggleScrollPin(const std::string& key) {
 
 void CharacterInstance::AddExp(int64_t amount,
                                const std::vector<int>& other_levels) {
-  // At the cap the EXP is dropped rather than banked, so a character who kept
-  // fighting there is not sitting on a windfall the day the cap is lifted.
+  // At the cap, EXP is thrown away rather than stored, so a character who kept
+  // fighting there doesn't get a windfall when the cap is raised.
   if (character_.level() >= kTrialLevelCap) {
     return;
   }
@@ -997,8 +995,8 @@ void CharacterInstance::AddExp(int64_t amount,
     if (character_.exp() < threshold) {
       break;
     }
-    // One threshold buys however many levels Burning hands over. The EXP left
-    // over rides along to the level arrived at.
+    // One threshold gives however many levels Burning grants. The leftover EXP
+    // carries over to the new level.
     character_.set_exp(character_.exp() - threshold);
     int arrived = std::min(LevelAfterBurning(character_.level(), other_levels),
                            kTrialLevelCap);
@@ -1019,8 +1017,9 @@ int LevelAfterBurning(int level, const std::vector<int>& other_levels) {
     if (static_cast<int>(above.size()) < tier.above) {
       break;
     }
-    // Every tier the account fills is tried and the best answer wins: a slower
-    // tier reaching further beats a faster one stopped at its own ceiling.
+    // Every tier the account qualifies for is tried and the best result wins: a
+    // slower tier that goes further beats a faster one that stops at its
+    // ceiling.
     int ceiling = std::min(above[tier.above - 1], kBurningLevel);
     arrived = std::max(arrived, std::min(level + tier.levels, ceiling));
   }
@@ -1034,17 +1033,18 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   if (AdvancementGrantsAp(stage)) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
-  // Each advancement opens a new skill set, so it comes with SP for that stage.
+  // Advancing grants SP only for a job that sets JobAdvancementSpBonus.
+  // Normally levels pay all the SP.
   (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
   // A worn Arcane Symbol grants the wearer's primary stat, and the job just
-  // changed which one that is.
+  // changed which stat that is.
   RecomputeEquipStats();
 }
 
 void CharacterInstance::ResetStatsForJob(Job job) {
-  // Everything above the base was bought with AP, the Beginner's free 13 STR
-  // included -- refunded rather than stranded, so a character lands exactly
-  // where a fresh one of the new job would. Worked from the stats on hand.
+  // Everything above base was bought with AP, including the Beginner's free 13
+  // STR. It is refunded rather than wasted, so the character ends up exactly
+  // where a new character of this job would. Worked out from the current stats.
   AllocatedStats* stats = character_.mutable_allocated_stats();
   int pool = character_.ap();
   for (StatField field : kApStatFields) {
@@ -1070,9 +1070,9 @@ int CharacterInstance::ReconcileAp() {
   if (delta == 0) {
     return 0;
   }
-  // Logged even though it is fixed: a character whose books do not balance is
-  // either a save from older rules or a bug in the granting, and the second
-  // one is invisible if this quietly tidies up after it.
+  // Logged even though it is fixed: a character whose AP doesn't balance is
+  // either a save from older rules or a bug in how AP is granted, and a bug
+  // would go unnoticed if this silently fixed it.
   LOG(WARNING) << "Character AP is off by " << delta << " at level "
                << character_.level() << ", job stage " << character_.job_stage()
                << "; correcting";
@@ -1080,8 +1080,8 @@ int CharacterInstance::ReconcileAp() {
     character_.set_ap(character_.ap() + delta);
     return delta;
   }
-  // Owed back. The pool goes first, so a character who had spent nothing keeps
-  // every stat they did buy.
+  // AP to take back. The pool goes first, so a character who had nothing
+  // unspent keeps every stat they bought.
   int owed = -delta;
   int from_pool = std::min(owed, character_.ap());
   character_.set_ap(character_.ap() - from_pool);
@@ -1095,25 +1095,24 @@ int CharacterInstance::ReconcileAp() {
     SetApStat(stats, field, ApStatValue(*stats, field) - take);
     owed -= take;
   }
-  // Anything still owed had nowhere to come from: every stat is at its base
-  // and the pool is empty, which is a fresh character's worth and the closest
-  // to right this can get.
+  // Anything still owed can't be taken: every stat is at its base and the pool
+  // is empty. That is a new character's state and the closest this can get.
   return delta;
 }
 
 namespace {
 
-// Every skill of `book` that could still take a point: below its max, its
-// requirement met, its level reached. Asked once PER POINT, so a skill the
-// last point unlocked joins the list.
+// Every skill of `book` that could still take a point: below its max, with its
+// requirement met and its level reached. It is called once per point, so a
+// skill unlocked by the last point is included.
 std::vector<const Skill*> TakersIn(const CharacterInstance& character,
                                    const std::map<std::string, Skill>& skills,
                                    JobAdvancement book, bool hyper) {
   std::vector<const Skill*> takers;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // A derived skill is never a taker: nothing buys its levels, so a spare
-    // point cannot go there. See Skill.account_levels_per_level.
+    // A derived skill never takes points, since nothing buys its levels. See
+    // Skill.account_levels_per_level.
     if (!ListedIn(skill, book) || skill.hyper() != hyper ||
         skill.account_levels_per_level() > 0 ||
         character.skill_level(skill) >= SkillMaxLevel(skill) ||
@@ -1131,9 +1130,9 @@ std::vector<const Skill*> TakersIn(const CharacterInstance& character,
 int CharacterInstance::ReconcileSkills(
     const std::map<std::string, Skill>& skills) {
   int moved = 0;
-  // Walked over the catalog rather than over the learned levels, because a
-  // display name repeats across branches -- two Endures, ten Maple Warriors --
-  // and the book the character holds is what says which one they learned.
+  // Goes through the catalog rather than the learned levels, because a display
+  // name repeats across branches and the book the character holds says which
+  // one they learned.
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& taught = entry.second;
     JobAdvancement book = BookHeldFor(taught);
@@ -1144,9 +1143,10 @@ int CharacterInstance::ReconcileSkills(
     if (spare <= 0) {
       continue;
     }
-    // Logged even though it is fixed, for the reason ReconcileAp logs: a book
-    // that no longer fits is either a save from older data or a bug in the
-    // granting, and the second is invisible if this quietly tidies up.
+    // Logged even though it is fixed, for the same reason as in ReconcileAp: a
+    // book that no longer fits is either a save from older data or a bug in how
+    // points are granted, and a bug would go unnoticed if this silently fixed
+    // it.
     LOG(WARNING) << taught.name() << " is taught to " << skill_level(taught)
                  << " of a maximum " << SkillMaxLevel(taught)
                  << "; cutting it back and re-spending " << spare;
@@ -1156,9 +1156,9 @@ int CharacterInstance::ReconcileSkills(
       std::vector<const Skill*> takers =
           TakersIn(*this, skills, book, taught.hyper());
       if (takers.empty()) {
-        // Nowhere in the book to put it. A book costs exactly what its levels
-        // pay out, so there always should be -- the point goes back to the
-        // pool that bought it rather than being lost.
+        // There's nowhere in the book to put it. Since a book costs exactly
+        // what its levels pay, this shouldn't happen; the point goes back to
+        // the pool that paid for it rather than being lost.
         if (taught.v_node() != V_NODE_KIND_UNSPECIFIED) {
           character_.set_v_points(
               character_.v_points() +
@@ -1178,10 +1178,10 @@ int CharacterInstance::ReconcileSkills(
 }
 
 int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
-  // What the character has spent, per pool. Walked over the CATALOG, a
-  // display name repeating across branches and the book held saying which one
-  // was learned. A Vengeance form is skipped, its level living on its own
-  // row.
+  // What the character has spent from each pool. It goes through the catalog,
+  // since a display name repeats across branches and the book held says which
+  // one was learned. A Vengeance form is skipped, since its level is stored on
+  // another row.
   std::map<int, int> spent;
   int hyper_spent = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
@@ -1199,9 +1199,8 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
   }
   int level = character_.level();
   int moved = 0;
-  // Only the stages a level-up can pay into. A book past the last of them --
-  // the 5th job's -- has no income to balance against, so there is nothing
-  // there to correct.
+  // Only stages a level-up can pay into. Books after the last one (the 5th
+  // job's) have no SP income, so there is nothing to correct.
   for (int stage = 1; stage <= SpStageForLevel(kLastSpLevel); ++stage) {
     int pool = sp(stage);
     int delta = ExpectedSpForStage(level, stage) - pool - spent[stage];
@@ -1219,9 +1218,9 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
 }
 
 bool CharacterInstance::CanAdvanceJob() const {
-  // The stage the character would move into, and the level it opens at. An
-  // advancement with no choices defined is not offered -- that is what stops
-  // this from claiming a 2nd job exists before the jobs behind it do.
+  // The next stage and the level it unlocks at. An advancement with no choices
+  // defined isn't offered, so this never claims a 2nd job exists before its
+  // jobs do.
   int stage = character_.job_stage();
   if (stage >= kMaxJobStage) {
     return false;
@@ -1302,9 +1301,9 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
     return;
   }
   if (kind == PresetKind::kEquip) {
-    // Gear presets are not moved: the first holds a whole body and the others
-    // hold what differs from it, so swapping two would leave the character
-    // wearing one preset's overrides and nothing else. Nothing offers it.
+    // Gear presets are not swapped. The first holds every slot and the others
+    // only hold what differs from it, so swapping two would leave the character
+    // wearing only one preset's overrides. Nothing offers this.
     return;
   }
   if (kind == PresetKind::kHyperStats) {
@@ -1313,7 +1312,7 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
     stats.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
   } else if (kind == PresetKind::kLinkSkills) {
     LinkSkills& link = *character_.mutable_link_skills();
-    PresetOf(link, StatPresetAt(kNumStatPresets - 1));  // grows the list
+    PresetOf(link, StatPresetAt(kNumStatPresets - 1));  // creates every preset
     link.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
   } else {
     InnerAbility& ability = *character_.mutable_inner_ability();
@@ -1402,7 +1401,8 @@ bool CharacterInstance::AllocateHyperStat(HyperStatField field,
   if (level + amount > max_hyper_stat_level()) {
     return false;
   }
-  // Every level of the run is priced, since each one costs more than the last.
+  // Each level in the range is priced separately, since each costs more than
+  // the last.
   int price = HyperStatTotalCost(level + amount) - HyperStatTotalCost(level);
   if (price > hyper_stat_points_left(preset)) {
     return false;
@@ -1418,8 +1418,8 @@ bool CharacterInstance::RefundHyperStat(HyperStatField field, StatPreset preset,
   if (amount <= 0 || amount > level) {
     return false;
   }
-  // The points come back by themselves: what is left is the pool less what
-  // the allocation holds, so lowering the level is the whole refund.
+  // The points refund themselves: points left are the pool minus what the
+  // allocation holds, so lowering the level is the whole refund.
   SetHyperStatLevel(PresetOf(*character_.mutable_hyper_stats(), preset), field,
                     level - amount);
   return true;
@@ -1442,8 +1442,8 @@ void CharacterInstance::ResetVMatrix(
     if (level <= 0) {
       continue;
     }
-    // Priced from the ground up, which is what the climb to that level cost:
-    // the ladder is the same whichever order the points went in.
+    // Priced from level 0, which is what reaching that level cost. The ladder
+    // is the same whatever order the points were spent in.
     character_.set_v_points(character_.v_points() +
                             VNodeCost(skill.v_node(), 0, level));
     levels.erase(skill.name());
@@ -1454,7 +1454,7 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
   HyperStatPreset& allocation =
       PresetOf(*character_.mutable_hyper_stats(), preset);
   int moved = 0;
-  // The stats to walk, in enum order, so two saves in the same state are
+  // The stats to check, in enum order, so two saves in the same state are
   // corrected the same way.
   std::vector<int> fields;
   for (const std::pair<const int, int>& entry : allocation.levels()) {
@@ -1465,8 +1465,8 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
     HyperStatField field = static_cast<HyperStatField>(key);
     int level = allocation.levels().at(key);
     int allowed = std::min(std::max(0, level), max_hyper_stat_level());
-    // A stat the data no longer names, or one this character's level has
-    // closed, keeps nothing.
+    // A stat the data no longer has, or one this character's level has locked,
+    // keeps nothing.
     if (!HyperStatField_IsValid(key) ||
         !HyperStatUnlocked(field, character_.level())) {
       allowed = 0;
@@ -1477,9 +1477,9 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
     moved += HyperStatTotalCost(level) - HyperStatTotalCost(allowed);
     SetHyperStatLevel(allocation, field, allowed);
   }
-  // What is left may still outspend the pool -- a save from a level cap that
-  // has since come down. The highest level goes first: it is the dearest one,
-  // so the fewest of them are taken.
+  // What remains may still cost more than the pool, for example in a save from
+  // before a level cap was lowered. The highest level is removed first, since
+  // it is the most expensive, so the fewest levels are lost.
   while (HyperStatPointsSpent(allocation) > hyper_stat_points()) {
     int dearest = 0;
     int at = 0;
@@ -1512,8 +1512,8 @@ int CharacterInstance::ReconcileHyperStats() {
 
 bool CharacterInstance::HasAdvancement(JobAdvancement advancement) const {
   if (advancement == JOB_ADVANCEMENT_BEGINNER) {
-    // Everybody's first book, and nobody ever puts it down: a Night Lord
-    // still holds Blessing of the Fairy.
+    // Everyone's first book, and it is never lost: a Night Lord still has
+    // Blessing of the Fairy.
     return true;
   }
   if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
@@ -1523,8 +1523,8 @@ bool CharacterInstance::HasAdvancement(JobAdvancement advancement) const {
   if (stage <= 0 || stage > character_.job_stage()) {
     return false;
   }
-  // The stage is one the character has reached; the question left is whether
-  // it is their own branch of it.
+  // The character has reached this stage; what's left is whether it is their
+  // own branch.
   return AdvancementForJobStage(character_.job(), stage) == advancement;
 }
 
@@ -1533,8 +1533,8 @@ bool CharacterInstance::MeetsSkillRequirement(const Skill& skill) const {
     return true;
   }
   const SkillRequirement& required = skill.required_skill();
-  // Learned levels are keyed by display name, which is exactly what the
-  // requirement names -- so this needs no catalog to resolve.
+  // Learned levels are keyed by display name, which is what the requirement
+  // names, so no catalog lookup is needed.
   google::protobuf::Map<std::string, int32_t>::const_iterator it =
       character_.skill_levels().find(required.skill_name());
   int level = it == character_.skill_levels().end() ? 0 : it->second;
@@ -1570,13 +1570,13 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (amount <= 0) {
     return false;
   }
-  // A Vengeance form is bought by buying the skill it stands in for. Its own
-  // name holds no level at all, so a point spent here would vanish.
+  // A Vengeance form is bought by buying the skill it replaces. Its own name
+  // holds no level, so a point spent here would be lost.
   if (!skill.replaces_skill_name().empty()) {
     return false;
   }
-  // A V Matrix node is bought with V Points and held to its kind's ladder, so
-  // none of the SP rules below reach it.
+  // A V Matrix node is bought with V Points and follows its kind's ladder, so
+  // the SP rules below don't apply.
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return LearnVNode(skill, amount);
   }
@@ -1592,9 +1592,9 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (skill_level(skill) + amount > SkillMaxLevel(skill)) {
     return false;
   }
-  // A Hyper Skill is bought out of the character's own pool. Everything above
-  // holds for it too: it names the advancement whose book it belongs to, so a
-  // Paladin cannot buy a Dark Knight's.
+  // A Hyper Skill is bought from the character's Hyper pool. The checks above
+  // apply to it too: it names the advancement whose book it is in, so a Paladin
+  // can't buy a Dark Knight's.
   if (amount > SpFor(skill)) {
     return false;
   }
@@ -1639,8 +1639,8 @@ bool CharacterInstance::HoldsLinkSkill(const Skill& skill,
   if (skill.link_line() == JOB_UNSPECIFIED || link_skills_off_) {
     return false;
   }
-  // Their own line's is theirs whatever they have equipped, and takes none of
-  // the twelve. GMS's rule, and the reason no preset holds it.
+  // The character's own line's link skill is always active and doesn't use one
+  // of the twelve slots. That is GMS's rule, and why no preset lists it.
   if (BranchOf(skill.link_line()) == BranchOf(character_.job())) {
     return true;
   }
@@ -1689,10 +1689,10 @@ bool CharacterInstance::UnequipLinkSkill(const std::string& name,
 
 int CharacterInstance::ReconcileLinkSkills(
     const std::map<std::string, Skill>& skills) {
-  // Whether a name is one this character could be carrying: a link skill the
-  // catalog still has, of a line that is not their own. The catalog is keyed
-  // by file stem and a preset by display name, so this reads the entries
-  // rather than looking one up.
+  // Whether a name could be equipped by this character: a link skill still in
+  // the catalog, from another line. The catalog is keyed by file name and a
+  // preset by display name, so this scans the entries instead of looking one
+  // up.
   auto equippable = [this, &skills](const std::string& name) {
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
@@ -1729,8 +1729,8 @@ bool CharacterInstance::ReachesVNode(const Skill& skill) const {
   if (!v_matrix_unlocked()) {
     return false;
   }
-  // A common node belongs to no job at all, so every matrix holds it. Every
-  // other names the 5th advancement whose job may buy it.
+  // A common node belongs to no job, so every matrix can hold it. Any other
+  // node names the 5th advancement whose job may buy it.
   return ListedIn(skill, JOB_ADVANCEMENT_COMMON) || HasBookFor(skill);
 }
 
@@ -1750,8 +1750,9 @@ int CharacterInstance::LevelsAffordable(const Skill& skill) const {
   if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {
     return std::min(SpFor(skill), room);
   }
-  // Walked up the ladder rather than divided: a node's levels are not one
-  // price, so how many the pool buys depends on where the node stands.
+  // Steps up the ladder rather than dividing, because a node's levels don't all
+  // cost the same, so how many the pool buys depends on the node's current
+  // level.
   int levels = 0;
   while (levels < room && VNodeCostFor(skill, levels + 1) <= v_points()) {
     ++levels;
@@ -1789,7 +1790,7 @@ bool CharacterInstance::AttackCounts(const EquipPrototype& proto,
                                      StatPreset preset) const {
   EquipType drawn_by = WeaponDrawing(proto.equip_type());
   if (drawn_by == EQUIP_TYPE_UNSPECIFIED) {
-    return true;  // not ammunition, so nothing has to draw it
+    return true;  // not ammunition, so it always counts
   }
   return weapon_type(preset) == drawn_by;
 }
@@ -1803,7 +1804,7 @@ void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {
 
 bool CharacterInstance::IsWearing(const std::string& item_name,
                                   StatPreset preset) const {
-  // By display name, the way a save names what it holds: the character carries
+  // Matched by display name, as a save names items: the character holds
   // prototypes, not the catalog keys they were loaded under.
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        equipped(preset)) {
@@ -1817,7 +1818,7 @@ bool CharacterInstance::IsWearing(const std::string& item_name,
 std::string CharacterInstance::WornOfFamily(const std::string& family,
                                             StatPreset preset) const {
   if (family.empty()) {
-    return "";  // an ordinary item names no family, and would match every one
+    return "";  // an ordinary item has no family, and "" would match every one
   }
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        equipped(preset)) {
@@ -1830,9 +1831,9 @@ std::string CharacterInstance::WornOfFamily(const std::string& family,
 
 std::string CharacterInstance::WornOfMember(const EquipSetMember& member,
                                             StatPreset preset) const {
-  // A member names the items that fill its slot, the family any of several
-  // fill, or both. One slot counts once however many of them are on, so the
-  // first answer is the answer.
+  // A member lists the items that fill its slot, a family of items, or both.
+  // One slot counts once however many of them are worn, so the first match
+  // decides.
   for (const std::string& name : member.items().name()) {
     if (IsWearing(name, preset)) {
       return name;
@@ -1880,7 +1881,7 @@ EquipInstance* CharacterInstance::WornIn(StatPreset preset, EquipSlot slot) {
     return &it->second;
   }
   if (preset == StatPreset::kFirst) {
-    return nullptr;  // nothing behind the first preset to inherit from
+    return nullptr;  // the first preset inherits from nothing
   }
   std::map<EquipSlot, EquipInstance>& base = worn_[IndexOf(StatPreset::kFirst)];
   it = base.find(slot);
@@ -1898,16 +1899,16 @@ std::optional<EquipInstance> CharacterInstance::TakeWorn(StatPreset preset,
   std::map<EquipSlot, EquipInstance>& own = worn_[IndexOf(preset)];
   std::map<EquipSlot, EquipInstance>::iterator it = own.find(slot);
   if (it == own.end()) {
-    return std::nullopt;  // nothing of its own there, inherited or empty
+    return std::nullopt;  // inherited or empty
   }
   EquipInstance taken = std::move(it->second);
   own.erase(it);
   return taken;
 }
 
-// One preset's worn totals. An attack that does not count is dropped HERE, at
-// the one place equipment becomes stats, so the damage chain, combat power and
-// the stat panel cannot disagree about the same stars.
+// One preset's worn totals. An attack that doesn't count is dropped here, where
+// equipment becomes stats, so the damage formula, combat power and the stat
+// panel always agree.
 void CharacterInstance::RecomputePreset(StatPreset preset) {
   const int index = IndexOf(preset);
   std::vector<EquipStats> list;
@@ -1919,8 +1920,8 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
     const EquipInstance& item = *kv.second;
     AddPotential(item.potential(), item.prototype().required_level(),
                  potential_totals_[index]);
-    // A symbol's stats are not on its prototype: it grants its level in the
-    // WEARER's primary stat. Its Arcane Force totals in the same pass.
+    // A symbol's stats aren't on its prototype: it grants its level in the
+    // wearer's primary stat. Its Arcane Force is added in the same pass.
     if (IsArcaneSymbol(item.prototype())) {
       int level = SymbolLevel(item.equip_state());
       arcane_force_[index] += SymbolArcaneForce(level);
@@ -1938,17 +1939,16 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
   }
   equip_stats_[index] = SumEquipStats(absl::MakeSpan(list));
   symbol_stats_[index] = SumEquipStats(absl::MakeSpan(symbols));
-  // The set bonus is worked out from the same gear and changes with it, so the
-  // two are recomputed together and nothing can update one without the other.
+  // The set bonus comes from the same gear and changes with it, so both are
+  // recomputed together.
   RecomputeSetBonuses(preset);
 }
 
 namespace {
 
-// Whether `own` wears the same item as `inherited` somewhere else in the
-// family `slot` belongs to. What decides that a preset leaves an inherited
-// slot EMPTY: no preset may show the same ring twice, and a preset's own copy
-// is the one it keeps.
+// Whether `own` has the same item as `inherited` in another slot of `slot`'s
+// family. If so, the preset leaves the inherited slot empty: no preset may show
+// the same ring twice, and the preset keeps its own copy.
 bool OwnCopyElsewhere(const std::map<EquipSlot, EquipInstance>& own,
                       EquipSlot slot, const EquipInstance& inherited) {
   for (EquipSlot other : SlotFamily(slot)) {
@@ -1992,7 +1992,7 @@ int CharacterInstance::SpareSymbols(EquipSlot slot) const {
 
 std::vector<int> CharacterInstance::SpareSymbolWorths(EquipSlot slot) const {
   std::vector<int> worths;
-  // Backwards, which is the order CombineSymbols takes them in.
+  // Backwards, which is the order CombineSymbols uses them in.
   for (int i = inventory_.size() - 1; i >= 0; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
     if (spare != nullptr && IsArcaneSymbol(spare->prototype()) &&
@@ -2011,15 +2011,15 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
   }
   ms::Equip state = symbol->equip_state();
   int taken = 0;
-  // Backwards, so removing one does not slide the ones still to be looked at.
+  // Backwards, so removing one doesn't shift the ones not yet checked.
   for (int i = inventory_.size() - 1; i >= 0 && taken < count; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
     if (spare == nullptr || !IsArcaneSymbol(spare->prototype()) ||
         spare->prototype().equip_slot() != slot) {
       continue;
     }
-    // What a sacrificed symbol carries is added rather than lost: a claimed
-    // stack is packed into levels, and every duplicate under them counts.
+    // A consumed symbol's EXP is added, not lost: its levels are converted back
+    // into EXP, and every duplicate absorbed into them counts.
     state.set_symbol_exp(state.symbol_exp() +
                          SymbolWorth(spare->equip_state()));
     inventory_.remove_equip(i);
@@ -2037,7 +2037,7 @@ bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube,
   if (item == nullptr || !item->Cube(cube, rng_)) {
     return false;
   }
-  // The lines are worn stats, so the totals have just moved.
+  // The lines are worn stats, so the totals have changed.
   RecomputeEquipStats();
   return true;
 }
@@ -2058,8 +2058,8 @@ bool CharacterInstance::CubeWornUpTo(EquipSlot slot, CubeType cube,
   return item->potential().rank() >= want;
 }
 
-// Takes a cube's price, or leaves the purse alone and says no. Asked of the
-// item too: a cube that has nowhere to go is not charged for.
+// Pays for a cube, or returns false and spends nothing. It also checks the
+// item, so a cube that can't be used isn't charged.
 bool CharacterInstance::PayForCube(const EquipInstance& item) {
   if (!item.CanCube() || kCubeCost > character_.meso()) {
     return false;
@@ -2102,7 +2102,7 @@ bool CharacterInstance::TakePotential(EquipSlot slot,
     return false;
   }
   item->SetPotential(potential);
-  // The lines are worn stats, so the totals have just moved.
+  // The lines are worn stats, so the totals have changed.
   RecomputeEquipStats();
   return true;
 }
@@ -2122,11 +2122,10 @@ bool CharacterInstance::LevelUpSymbol(EquipSlot slot, StatPreset preset) {
   }
   character_.set_meso(character_.meso() - cost);
   ms::LevelUpSymbol(state);
-  // Rebuilt rather than written through: an item's state is its own, and a
-  // symbol's ladder is the one thing outside it that moves.
+  // Rebuilt rather than edited in place: an item's state is its own, and a
+  // symbol's level is the one outside thing that changes.
   *symbol = EquipInstance(symbol->prototype(), state);
-  // The level is what a symbol's force and stats are read off, so both have
-  // just moved.
+  // A symbol's force and stats come from its level, so both have changed.
   RecomputeEquipStats();
   return true;
 }
@@ -2140,14 +2139,14 @@ bool CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
 }
 
 void CharacterInstance::ClearEquipInventory() {
-  // Backwards, so removing one does not slide the ones still to go.
+  // Backwards, so removing one doesn't shift the ones not yet checked.
   for (int i = inventory_.size() - 1; i >= 0; --i) {
     inventory_.remove_equip(i);
   }
 }
 
 int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
-  // Nothing about the item matters: every copy takes one slot, whatever it is.
+  // The item doesn't matter: every copy takes one slot.
   (void)proto;
   return inventory_.room();
 }
@@ -2158,8 +2157,8 @@ int64_t CharacterInstance::CountItem(const ItemPrototype& proto) const {
 }
 
 int64_t CharacterInstance::CountItem(const std::string& name) const {
-  // The purse first, and the bag only for a name it does not hold. Nothing is
-  // ever in both, and a currency the character has none of answers zero from
+  // Check the purse first, and the bag only for names not in the purse. Nothing
+  // is in both, and a currency the character has none of returns zero from
   // either.
   if (currencies_.Holds(name)) {
     return currencies_.Count(name);
@@ -2175,9 +2174,9 @@ bool CharacterInstance::SpendItem(const std::string& name, int64_t count) {
 }
 
 int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
-  // Matched on NAME, which identifies an equip everywhere it crosses a
-  // boundary. Every preset's own items count: a copy set aside for bossing is
-  // owned as much as the one being farmed in.
+  // Matched by name, which identifies an equip everywhere. Every preset's own
+  // items count: a copy kept for bossing is owned as much as the one used for
+  // farming.
   int owned = 0;
   for (const std::map<EquipSlot, EquipInstance>& gear : worn_) {
     for (const std::pair<const EquipSlot, EquipInstance>& item : gear) {
@@ -2187,9 +2186,9 @@ int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
     }
   }
   for (int i = 0; i < inventory_.size(); ++i) {
-    // Traces are excluded twice: equip_instance() answers nullptr, and the
-    // name carries a suffix that would not match. Explicit rather than resting
-    // on the suffix, which is a display decision.
+    // Traces are excluded two ways: equip_instance() returns nullptr, and the
+    // name has a suffix that wouldn't match. The check is explicit rather than
+    // relying on the suffix, which is only for display.
     const EquipInstance* item = inventory_.equip_instance(i);
     if (item != nullptr && item->name() == proto.name()) {
       ++owned;
@@ -2199,7 +2198,7 @@ int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
 }
 
 int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
-  // Nothing caps a currency: it is a number in the save, not a row in a bag.
+  // A currency has no limit: it is a number in the save, not a row in a bag.
   if (IsCurrency(proto)) {
     return INT_MAX;
   }
@@ -2245,7 +2244,7 @@ void CharacterInstance::AddMeso(int64_t amount) {
 
 namespace {
 
-// Whether `list` names `type`, and where. -1 for one it does not hold.
+// The index of `type` in `list`, or -1 if it isn't there.
 int IndexOfConsumable(const google::protobuf::RepeatedField<int>& list,
                       ConsumableType type) {
   for (int i = 0; i < list.size(); ++i) {
@@ -2306,8 +2305,9 @@ int64_t CharacterInstance::ChargeConsumable(ConsumableType type, double procs) {
     return 0;
   }
   consumable_debt_ += info->price * procs;
-  // Nudged before the floor: three ticks of a thousand a second come to
-  // 999.999... in binary, and a debt a hair under a whole meso is a whole one.
+  // A nudge before the floor: three ticks at a thousand a second add up to
+  // 999.999... in binary, and a debt just under a whole meso should count as
+  // one.
   constexpr double kMesoEpsilon = 1e-6;
   int64_t owed =
       static_cast<int64_t>(std::floor(consumable_debt_ + kMesoEpsilon));
@@ -2365,13 +2365,13 @@ int64_t CharacterInstance::SellEquip(int index) {
   if (index < 0 || index >= inventory_.size()) {
     return 0;
   }
-  // A trace is the record of a destroyed item, not a copy of it, so it is
-  // worth what the record is worth. Selling one is how the player throws it
-  // away once they have given up on recovering it.
+  // A trace records a destroyed item and isn't a copy of it, so it sells for
+  // what the record is worth. Selling one is how the player gets rid of it
+  // after giving up on recovering it.
   bool is_trace = inventory_.equip_instance(index) == nullptr;
   int64_t earned = is_trace ? 0 : SellPrice(inventory_[index].prototype());
-  // SavedState rather than equip_state: the shelf has to be able to tell a
-  // trace from a live item when it hands the row back.
+  // SavedState rather than equip_state, so the shelf can tell a trace from a
+  // live item when it gives the row back.
   BuyBackEntry entry;
   *entry.mutable_equip() = inventory_[index].SavedState();
   entry.set_unit_price(earned);
@@ -2382,9 +2382,9 @@ int64_t CharacterInstance::SellEquip(int index) {
 }
 
 void CharacterInstance::RecordSale(BuyBackEntry entry) {
-  // Newest first, so the row the player wants is the one they land on. The
-  // shelf is 32 long, so walking the new entry up it costs nothing worth a
-  // deque.
+  // Newest first, so the row the player wants is the first one. The shelf has
+  // only kBuyBackSlots rows, so moving the new entry to the front is cheap
+  // enough without a deque.
   *character_.add_buy_backs() = std::move(entry);
   for (int i = character_.buy_backs_size() - 1; i > 0; --i) {
     character_.mutable_buy_backs()->SwapElements(i, i - 1);
@@ -2401,8 +2401,8 @@ bool CharacterInstance::BuyBack(
   if (index < 0 || index >= character_.buy_backs_size()) {
     return false;
   }
-  // Copied out before anything is removed: `entry` is a reference into the
-  // shelf, and taking the row off leaves it pointing at the next one.
+  // Copied before anything is removed: `entry` would be a reference into the
+  // shelf, and removing the row would leave it pointing at the next one.
   const BuyBackEntry entry = character_.buy_backs(index);
   if (entry.has_equip()) {
     return BuyBackEquip(index, entry, equips);
@@ -2415,8 +2415,8 @@ bool CharacterInstance::BuyBackEquip(
     const std::map<std::string, EquipPrototype>& equips) {
   std::unique_ptr<EquipTabItem> item =
       RestoreEquipItem(entry.equip(), IndexByDisplayName(equips));
-  // Nothing to hand back: the item has since left data/, exactly as a save
-  // naming it would find on load.
+  // Can't return an item that has since been removed from data/, just as
+  // loading a save naming it would drop it.
   if (item == nullptr || entry.unit_price() > character_.meso() ||
       inventory_.full()) {
     return false;
@@ -2444,9 +2444,8 @@ bool CharacterInstance::BuyBackStack(
   }
   character_.set_meso(character_.meso() - cost);
   AddItem(*proto->second, count);
-  // Part of a row leaves the rest of it on the shelf, in its own place: the
-  // shelf is a history, and taking some of a sale back does not make it a
-  // newer one.
+  // Buying back part of a row leaves the rest in its place on the shelf. The
+  // shelf is a history, and buying some back doesn't make it a newer sale.
   int left = entry.stack().count() - count;
   if (left > 0) {
     character_.mutable_buy_backs(index)->mutable_stack()->set_count(left);
@@ -2457,19 +2456,19 @@ bool CharacterInstance::BuyBackStack(
 }
 
 bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
-  // Presence, not size: the shop stocks one item for nothing, and a price of
-  // zero is what it charges rather than a refusal to sell.
+  // Checks whether a price exists, not its size: a price of zero means the item
+  // is free, not that it isn't sold.
   if (count <= 0 || !proto.has_shop_price()) {
     return false;
   }
-  // Priced in one go rather than a copy at a time, so a purchase the character
-  // cannot finish never takes the meso for the part it could.
+  // The whole cost is checked at once rather than per copy, so a purchase the
+  // character can't finish never charges for part of it.
   int64_t cost = static_cast<int64_t>(count) * proto.shop_price();
   if (cost > character_.meso()) {
     return false;
   }
-  // Room is checked up front for the same reason the price is: a purchase the
-  // bag cannot hold must not take the meso for the part of it that would fit.
+  // Space is checked first for the same reason: a purchase the bag can't hold
+  // must not charge for the part that would fit.
   if (count > RoomFor(proto)) {
     return false;
   }
@@ -2482,14 +2481,13 @@ bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
 
 bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
                                      const ItemPrototype& token, int count) {
-  // A mark is what makes an item a currency, so an item without one buys
-  // nothing however many of it the caller passes.
+  // A mark is what makes an item a currency, so a token without one buys
+  // nothing.
   if (count <= 0 || proto.token_price() <= 0 || token.currency_mark().empty()) {
     return false;
   }
-  // Room first, then the whole price in one go: SpendItem is all or nothing,
-  // so a purchase the character cannot finish never spends the tokens for the
-  // part of it they could.
+  // Space first, then the whole price at once. SpendItem is all or nothing, so
+  // a purchase the character can't finish never spends tokens on part of it.
   if (count > RoomFor(proto)) {
     return false;
   }
@@ -2529,11 +2527,11 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
   if (family.size() == 1) {
     return family.front();
   }
-  // A copy of this same item already worn takes the slot it is in, ahead of
-  // any free one: no two of the four rings are the same ring, so the second
-  // copy is a swap for the first rather than a fifth ring. Against what the
-  // preset shows rather than what it owns -- a ring it inherits is on the
-  // character just as much as one of its own.
+  // A copy of the same item already worn takes precedence over any free slot.
+  // No two of the four rings may be the same ring, so the second copy replaces
+  // the first instead of becoming a fifth ring. This checks what the preset
+  // shows, not what it owns, since an inherited ring is worn just as much as
+  // its own.
   for (EquipSlot slot : family) {
     const EquipInstance* worn = WornAt(preset, slot);
     if (worn != nullptr && worn->prototype().name() == proto.name()) {
@@ -2545,8 +2543,8 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
       return slot;
     }
   }
-  // Every one of them is worn. The first goes back to the bag, which is the
-  // slot a player who wants a different one gone can empty for themselves.
+  // Every slot is full. The first slot's item goes back to the bag; a player
+  // who wants a different one replaced can empty that slot themselves.
   return family.front();
 }
 
@@ -2563,9 +2561,9 @@ bool CharacterInstance::Equip(int inventory_index, StatPreset preset) {
   std::unique_ptr<EquipTabItem> ptr = inventory_.remove_equip(inventory_index);
   EquipInstance item = std::move(static_cast<EquipInstance&>(*ptr));
 
-  // If the preset had an item of its own there, put it in the vacated
-  // position. An inherited one is not displaced: it belongs to another preset,
-  // which goes on wearing it.
+  // If the preset had its own item in that slot, put it where the new one was.
+  // An inherited item isn't displaced: it belongs to another preset, which
+  // keeps wearing it.
   std::optional<EquipInstance> displaced = TakeWorn(preset, slot);
   if (displaced.has_value()) {
     inventory_.add(std::make_unique<EquipInstance>(*std::move(displaced)),
@@ -2585,8 +2583,8 @@ CharacterInstance CharacterInstance::Wearing(
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return probe;
   }
-  // Rebuilt from the state rather than copied, so a trace prices as the item
-  // it is a trace of.
+  // Rebuilt from the state rather than copied, so a trace is priced as the item
+  // it came from.
   probe.worn_[IndexOf(preset)].insert_or_assign(
       slot, EquipInstance(item.prototype(), item.equip_state()));
   probe.RecomputeEquipStats();
@@ -2629,9 +2627,9 @@ ScrollOutcome CharacterInstance::ScrollInventory(int index,
   return item->Scroll(scroll, rng_);
 }
 
-// Takes the price of one attempt, or leaves the purse alone and says no. GMS
-// charges for the roll, not for the star, so a failure and a destroy cost the
-// same as a success -- this is why the top of the ladder is expensive.
+// Pays for one attempt, or returns false and spends nothing. GMS charges for
+// the attempt, not the star, so a failure or destroy costs the same as a
+// success. That is why the top of the ladder is expensive.
 bool CharacterInstance::PayForStarForce(const EquipInstance& item) {
   int64_t cost = StarForceCost(item.prototype().required_level(), item.stars());
   if (cost > character_.meso()) {
@@ -2652,9 +2650,9 @@ StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot,
   }
   StarForceOutcome outcome = item->StarForce(rng_);
   if (outcome == kStarForceDestroy) {
-    // equip_state() captures the item BEFORE the destroy attempt -- stars at
-    // the doomed level, not stars+1. The trace is left where the item was
-    // worn: an inherited one was only ever the single item.
+    // equip_state() captures the item before the destroy attempt, with stars at
+    // the level it was destroyed at, not stars+1. The trace goes in the bag,
+    // even for an inherited item, since there was only ever one item.
     inventory_.add(
         std::make_unique<EquipTrace>(item->prototype(), item->equip_state()));
     if (!TakeWorn(preset, slot).has_value()) {
@@ -2683,8 +2681,8 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
   return outcome;
 }
 
-// Takes a hammer's price, or leaves the purse alone and says no. Asked of the
-// item as well: a hammer that will not go in is not charged for.
+// Pays for a hammer, or returns false and spends nothing. It also checks the
+// item, so a hammer that can't be used isn't charged.
 bool CharacterInstance::PayForHammer(const EquipInstance& item) {
   if (!item.CanHammer() || kGoldenHammerCost > character_.meso()) {
     return false;
@@ -2698,8 +2696,9 @@ bool CharacterInstance::HammerEquipped(EquipSlot slot, StatPreset preset) {
   if (item == nullptr || !PayForHammer(*item) || !item->Hammer()) {
     return false;
   }
-  // Nothing a hammer opens is worn yet, but the worn totals are rebuilt after
-  // every change to a worn item, and one exception is how they drift.
+  // Nothing a hammer adds changes worn stats yet, but the worn totals are
+  // rebuilt after every change to a worn item, and one exception is how they
+  // drift apart.
   RecomputeEquipStats();
   return true;
 }
@@ -2758,9 +2757,9 @@ bool CharacterInstance::MeetsLevel(const EquipPrototype& proto) const {
 }
 
 bool CharacterInstance::MeetsJob(const EquipPrototype& proto) const {
-  // A secondary asks for one branch of one job category, so it is asked
-  // first: the category below would let every warrior hold every warrior
-  // off-hand, and the three of them are not interchangeable.
+  // A secondary belongs to one branch of one job category, so that is checked
+  // first. The category check alone would let every warrior use every warrior
+  // secondary, and the three aren't interchangeable.
   JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
   if (owner != JOB_ADVANCEMENT_UNSPECIFIED) {
     return HasAdvancement(owner);
@@ -2782,9 +2781,9 @@ bool CharacterInstance::MeetsJob(const EquipPrototype& proto) const {
 
 Character CharacterInstance::ToProto() const {
   Character saved = character_;
-  // Rebuilt from scratch rather than kept in step as items move: these fields
-  // are written here and nowhere else, so there is one place for them to be
-  // wrong rather than a dozen.
+  // Rebuilt from scratch rather than kept in sync as items move. These fields
+  // are only written here, so there is one place for them to be wrong rather
+  // than many.
   saved.clear_inventory();
   saved.clear_legacy_equipped();
   saved.mutable_equip_presets()->clear_presets();
@@ -2815,13 +2814,13 @@ void CharacterInstance::RestoreFrom(
     const Character& saved, const std::map<std::string, EquipPrototype>& equips,
     const std::map<std::string, ItemPrototype>& items) {
   character_ = saved;
-  // A save written before characters had names, or before Inner Ability
-  // existed. Assigning over character_ drops what the constructor seeded, so
-  // both doors have to ask again.
+  // Handles a save from before characters had names or Inner Ability existed.
+  // Assigning over character_ loses what the constructor set up, so both
+  // loading paths have to call these again.
   EnsureUsername();
   EnsureInnerAbility();
-  // The item fields are the live containers' business from here; leaving
-  // copies behind would let the two drift and ToProto pick the stale one.
+  // From here the live containers own the items. Leaving copies in the proto
+  // would let the two drift apart and ToProto might use the stale one.
   character_.clear_inventory();
   character_.clear_legacy_equipped();
   character_.clear_stacks();
