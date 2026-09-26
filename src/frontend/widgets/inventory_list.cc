@@ -165,7 +165,7 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
   // (colors.h).
   bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
   if (!blocked) {
-    return HighlightRow(Row(std::move(lead), {ftxui::text(cursor + label.text)},
+    return HighlightRow(Row(std::move(lead), {ItemRowElement(cursor, label)},
                             std::move(tail), body_width),
                         on_cursor);
   }
@@ -179,6 +179,9 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
     }
     ftxui::Element cell =
         ftxui::text(label.text.substr(span.offset, span.bytes));
+    if (column == ItemColumn::kPotential) {
+      cell |= PotentialCellColor(label.potential_rank);
+    }
     // The cell that explains the block stays bright red while the rest dims,
     // since it is the one thing on the row worth reading.
     bool why = (column == ItemColumn::kLevel && !row.level_ok) ||

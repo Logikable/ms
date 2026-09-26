@@ -1,9 +1,11 @@
 #include "src/frontend/widgets/item_row.h"
 
+#include <algorithm>
 #include <chrono>
 #include <string>
 
 #include "src/character/character.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_columns.h"
@@ -65,12 +67,14 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   cells.potential = PotentialCell(state.main_potential(),
                                   proto.required_level(), PrimaryStatField(job),
                                   SecondaryStatField(job), potential_width);
+  cells.potential_rank = state.main_potential().rank();
   return cells;
 }
 
 ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
                           std::chrono::steady_clock::duration elapsed) {
   ItemRowText row;
+  row.potential_rank = cells.potential_rank;
   for (int i = 0; i < kNumItemColumns; ++i) {
     ItemColumn column = static_cast<ItemColumn>(i);
     if (!columns.Shows(column)) {
@@ -87,6 +91,34 @@ ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
     row.span[i] = {start, static_cast<int>(row.text.size()) - start};
   }
   return row;
+}
+
+ftxui::Decorator PotentialCellColor(PotentialRank rank) {
+  return rank == POTENTIAL_RANK_UNSPECIFIED ? ftxui::nothing
+                                            : ftxui::color(RarityColor(rank));
+}
+
+ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
+                              ftxui::Decorator name) {
+  const std::string& text = row.text;
+  CellSpan name_span = row.Span(ItemColumn::kName);
+  CellSpan potential = row.Span(ItemColumn::kPotential);
+  size_t name_end = std::min(
+      static_cast<size_t>(name_span.offset + name_span.bytes), text.size());
+  size_t potential_start =
+      potential.bytes == 0
+          ? text.size()
+          : std::max(name_end, static_cast<size_t>(potential.offset));
+  size_t potential_end = std::min(
+      potential_start + static_cast<size_t>(potential.bytes), text.size());
+  return ftxui::hbox({
+      ftxui::text(cursor + text.substr(0, name_end)) | name,
+      ftxui::text(text.substr(name_end, potential_start - name_end)),
+      ftxui::text(
+          text.substr(potential_start, potential_end - potential_start)) |
+          PotentialCellColor(row.potential_rank),
+      ftxui::text(text.substr(potential_end)),
+  });
 }
 
 }  // namespace ms

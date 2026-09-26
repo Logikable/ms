@@ -316,19 +316,14 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kEquipPanel;
   std::string cursor = on_cursor ? "> " : "  ";
-  ftxui::Element row = ftxui::text(cursor + state.label);
-  if (idx >= 0 && idx < static_cast<int>(led_.size()) && led_[idx]) {
-    // Only the name, not the whole row, since the name is the item being
-    // pointed at. Split on the byte count RebuildRows kept, because a name may
-    // hold multibyte characters, so its column width doesn't give its length.
-    size_t bytes =
-        std::min(static_cast<size_t>(name_bytes_[idx]), state.label.size());
-    row = ftxui::hbox({
-        ftxui::text(cursor + state.label.substr(0, bytes)) |
-            ftxui::color(kYellow),
-        ftxui::text(state.label.substr(bytes)),
-    });
+  if (idx < 0 || idx >= static_cast<int>(row_texts_.size())) {
+    return HighlightRow(ftxui::text(cursor + state.label), on_cursor);
   }
+  // Only the name goes gold, not the whole row, since the name is the item
+  // being pointed at.
+  ftxui::Element row =
+      ItemRowElement(cursor, row_texts_[idx],
+                     led_[idx] ? ftxui::color(kYellow) : ftxui::nothing);
   if (idx == selected_) {
     // Records where this row lands so the item menu can open beside it.
     row = std::move(row) | ftxui::reflect(cursor_box_);
@@ -355,7 +350,7 @@ void EquippedPanel::RebuildRows() {
                      panel_focus_ == kEquipPanel && zone_ == kZoneList);
   entries_.clear();
   inactive_.clear();
-  name_bytes_.clear();
+  row_texts_.clear();
   led_.clear();
   // Checked once for the whole list rather than per row, since it is a fact
   // about the character and only the worn weapon's row uses it. Never shown on
@@ -363,7 +358,7 @@ void EquippedPanel::RebuildRows() {
   bool lead = !read_only_ && LeadToWeapon(character_, account_);
   for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
     inactive_.push_back(row.inactive || row.inherited);
-    name_bytes_.push_back(row.text.Span(ItemColumn::kName).bytes);
+    row_texts_.push_back(row.text);
     led_.push_back(lead && row.slot == EQUIP_SLOT_PRIMARY_WEAPON);
     entries_.push_back(row.text.text);
   }

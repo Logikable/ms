@@ -16,6 +16,7 @@
 #include <chrono>
 #include <string>
 
+#include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/protos/equip.pb.h"
@@ -36,6 +37,9 @@ struct ItemCells {
   std::string scroll;
   std::string stars;
   std::string potential;
+  // Colours the potential cell. UNSPECIFIED, an item never cubed, leaves it
+  // plain.
+  PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
 
   const std::string& Get(ItemColumn column) const;
 };
@@ -51,6 +55,7 @@ struct CellSpan {
 struct ItemRowText {
   std::string text;
   CellSpan span[kNumItemColumns];
+  PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
 
   CellSpan Span(ItemColumn column) const {
     return span[static_cast<int>(column)];
@@ -77,6 +82,14 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
 ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
                           std::chrono::steady_clock::duration elapsed =
                               std::chrono::steady_clock::duration::zero());
+
+// `cursor` and `row` as one line, the potential cell in its rank's text colour.
+// `name` decorates the cursor and the name cell.
+ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
+                              ftxui::Decorator name = ftxui::nothing);
+
+// The text colour of a potential cell of `rank`: none for UNSPECIFIED.
+ftxui::Decorator PotentialCellColor(PotentialRank rank);
 
 }  // namespace ms
 

@@ -204,9 +204,9 @@ class EquippedPanel {
   // See SetReadOnly.
   bool read_only_ = false;
   std::vector<std::string> entries_;
-  // Parallel to entries_: the byte length of each row's name cell, so the name
-  // can be coloured separately from the columns after it.
-  std::vector<int> name_bytes_;
+  // Parallel to entries_: each row's cells, so the name and potential can be
+  // coloured apart from the rest.
+  std::vector<ItemRowText> row_texts_;
   // Parallel to entries_: whether the row's name is gold. The worn weapon's is,
   // while an upgrade waits that the player hasn't come to look at.
   std::vector<bool> led_;

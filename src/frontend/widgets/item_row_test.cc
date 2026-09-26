@@ -4,6 +4,9 @@
 
 #include <string>
 
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/text_columns.h"
@@ -154,6 +157,29 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   EXPECT_EQ(cells.scroll, "-");
   EXPECT_EQ(cells.stars, "-");
   EXPECT_EQ(cells.potential, "-           ");
+  EXPECT_EQ(cells.potential_rank, POTENTIAL_RANK_UNSPECIFIED);
+}
+
+// The potential cell's text takes its rank's colour; the rest of the row and
+// every background stay as they were.
+TEST(ItemRowElementTest, ColoursThePotentialText) {
+  ItemCells cells = SwordCells();
+  cells.potential_rank = POTENTIAL_RANK_LEGENDARY;
+  ItemRowText row = FormatItemRow(EveryColumn(), cells);
+  ftxui::Screen screen(200, 1);
+  ftxui::Render(screen, ItemRowElement("> ", row));
+  int potential = 2 + static_cast<int>(row.text.find("+12% ATT"));
+  EXPECT_EQ(screen.PixelAt(potential, 0).foreground_color,
+            RarityColor(POTENTIAL_RANK_LEGENDARY));
+  EXPECT_EQ(screen.PixelAt(potential, 0).background_color, ftxui::Color());
+  EXPECT_EQ(screen.PixelAt(2, 0).foreground_color, ftxui::Color());
+  EXPECT_EQ(screen.ToString().find("> Sword"), 0u);
+
+  cells.potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  screen = ftxui::Screen(200, 1);
+  ftxui::Render(screen,
+                ItemRowElement("> ", FormatItemRow(EveryColumn(), cells)));
+  EXPECT_EQ(screen.PixelAt(potential, 0).foreground_color, ftxui::Color());
 }
 
 }  // namespace

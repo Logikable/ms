@@ -150,6 +150,7 @@ cc_library(
     srcs = ["item_row.cc"],
     hdrs = ["item_row.h"],
     deps = [
+        ":chrome",
         ":format",
         ":game_names",
         ":item_columns",
@@ -158,6 +159,7 @@ cc_library(
         "//src/item",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
+        "@ftxui//:dom",
     ],
 )
 
@@ -166,11 +168,14 @@ cc_test(
     size = "small",
     srcs = ["item_row_test.cc"],
     deps = [
+        ":chrome",
         ":item_columns",
         ":item_row",
         ":marquee",
         ":text_columns",
         "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )
