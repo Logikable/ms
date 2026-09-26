@@ -9,7 +9,6 @@
 #ifndef MS_SERVER_LOBBY_H_
 #define MS_SERVER_LOBBY_H_
 
-#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -54,11 +53,10 @@ class Lobby {
   LobbyResult Kick(const std::string& account_id, const std::string& target);
   LobbyResult Promote(const std::string& account_id, const std::string& target);
   // Takes the party out of the list and into the fight `request` names.
-  // Leader only, and refused unless every member may fight it. `now` is the
-  // moment the ask arrived, as a Unix time: a boss on a reset clock is only
-  // open to a party nobody has already taken it with.
-  LobbyResult Start(const std::string& account_id, const StartFight& request,
-                    int64_t now);
+  // Leader only, and refused unless every member may fight it. Clears are not
+  // checked: each game counts resets on its own clock, which the server's
+  // would contradict, and the leader's game already gates the pick.
+  LobbyResult Start(const std::string& account_id, const StartFight& request);
 
   // Puts a party whose fight is over back in the list. Everyone's ready goes
   // with it: what they said yes to was that fight.
@@ -108,8 +106,7 @@ class Lobby {
   // Whether every member of `party` may fight what `request` names, and why
   // not. Nobody is named: the leader is told what stands in the party's way,
   // and who it was is the party's own business.
-  LobbyResult CheckFight(const Party& party, const StartFight& request,
-                         int64_t now) const;
+  LobbyResult CheckFight(const Party& party, const StartFight& request) const;
   // Drops the member `account_id` from `party` and hands the party on if they
   // were leading it. Records who was promoted. Returns false when that left
   // the party empty, which is when the caller has to erase it.

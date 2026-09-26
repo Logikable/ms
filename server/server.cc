@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
-#include <ctime>
 #include <map>
 #include <memory>
 #include <optional>
@@ -27,13 +25,6 @@
 
 namespace ms {
 namespace {
-
-// The moment as the reset clock reads it. A fight on a daily is checked
-// against the wall clock, and the loop runs on a steady one that does not
-// know what day it is.
-int64_t WallNow() {
-  return static_cast<int64_t>(std::time(nullptr));
-}
 
 // What a player is told when their build is not the server's.
 constexpr char kUpdateMessage[] =
@@ -675,8 +666,7 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       result = lobby_.Leave(session.account_id);
       break;
     case ClientMessage::kStartFight:
-      result =
-          lobby_.Start(session.account_id, message.start_fight(), WallNow());
+      result = lobby_.Start(session.account_id, message.start_fight());
       break;
     case ClientMessage::kSetReady:
       result = lobby_.SetReady(session.account_id, message.set_ready().ready());
