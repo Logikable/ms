@@ -15,6 +15,9 @@ enum KeyAction {
   KEY_ACTION_CANCEL = 6;
   KEY_ACTION_NEXT_PANEL = 7;
   KEY_ACTION_PREV_PANEL = 8;
+  // Turns the music off or back on. No screen reads it; the key is consumed
+  // where it is pressed.
+  KEY_ACTION_MUTE = 9;
 }
 
 // One action and the keys that trigger it, in slot order. A key is stored by
@@ -27,8 +30,8 @@ message Keybind {
   repeated string keys = 2;
 }
 
-// Every binding the player has. The first key of every action is fixed, so a
-// save that has lost one still leaves the game playable.
+// All of the player's bindings. The first key of an action with a default key
+// can't be changed, so a save that loses one is still playable.
 message Keybinds {
   repeated Keybind binds = 1;
 }

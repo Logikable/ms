@@ -40,6 +40,10 @@ void KeybindsPanel::MoveRow(int delta) {
   message_.clear();
   // The Close button is one more stop after the actions.
   row_ = StepCursor(row_, delta, kKeyActionCount + 1);
+  // Leaving Mute's first slot for a row whose first slot is locked.
+  if (!on_close() && KeyMap::Locked(selected_action(), slot_)) {
+    slot_ = 1;
+  }
 }
 
 void KeybindsPanel::MoveSlot(int delta) {
@@ -47,8 +51,8 @@ void KeybindsPanel::MoveSlot(int delta) {
   if (on_close()) {
     return;
   }
-  // Slot 0 is locked, so the two after it are what the cursor walks between.
-  slot_ = std::clamp(slot_ + delta, 1, kKeySlots - 1);
+  int first = KeyMap::Locked(selected_action(), 0) ? 1 : 0;
+  slot_ = std::clamp(slot_ + delta, first, kKeySlots - 1);
 }
 
 KeyAction KeybindsPanel::selected_action() const {
@@ -114,7 +118,8 @@ ftxui::Element KeybindsPanel::RenderRow(KeyAction action, int row,
     if (selected && capturing_) {
       label = kCapturing;
     }
-    cells.push_back(RenderCell(label, KeyMap::Locked(slot), selected, width));
+    cells.push_back(
+        RenderCell(label, KeyMap::Locked(action, slot), selected, width));
   }
   return ftxui::hbox(std::move(cells));
 }

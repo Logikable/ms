@@ -69,6 +69,32 @@ TEST(KeyMapTest, ALockedKeyCannotBeTakenOrCleared) {
   EXPECT_EQ(keys.Label(KEY_ACTION_CANCEL, 0), "Esc");
 }
 
+// Mute has no default key, so all three slots are the player's, and a save
+// keeps the first.
+TEST(KeyMapTest, MuteHasNoDefaultAndItsFirstSlotIsOpen) {
+  Keybinds binds;
+  KeyMap keys(&binds);
+  EXPECT_EQ(keys.Label(KEY_ACTION_MUTE, 0), "");
+  EXPECT_FALSE(KeyMap::Locked(KEY_ACTION_MUTE, 0));
+  EXPECT_TRUE(KeyMap::Locked(KEY_ACTION_UP, 0));
+  EXPECT_EQ(keys.Bind(KEY_ACTION_MUTE, 0, ftxui::Event::m),
+            BindOutcome::kBound);
+  EXPECT_EQ(keys.Label(KEY_ACTION_MUTE, 0), "M");
+  EXPECT_EQ(keys.ActionOf(ftxui::Event::m), KEY_ACTION_MUTE);
+  // No screen reads Mute, so M is not rewritten into anything.
+  EXPECT_EQ(keys.Translate(ftxui::Event::m), ftxui::Event::m);
+
+  KeyMap reloaded(&binds);
+  EXPECT_EQ(reloaded.Label(KEY_ACTION_MUTE, 0), "M");
+
+  // Binding M elsewhere takes it off Mute's first slot too.
+  keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::m);
+  EXPECT_EQ(keys.Label(KEY_ACTION_MUTE, 0), "");
+  keys.Bind(KEY_ACTION_MUTE, 0, ftxui::Event::m);
+  keys.Unbind(KEY_ACTION_MUTE, 0);
+  EXPECT_EQ(keys.Label(KEY_ACTION_MUTE, 0), "");
+}
+
 TEST(KeyMapTest, AKeyTheGameHasNoNameForIsRefused) {
   Keybinds binds;
   KeyMap keys(&binds);
@@ -192,6 +218,32 @@ TEST(TranslateKeysTest, CapturingLetsTheRawKeyThrough) {
   capturing = false;
   wrapped->OnEvent(ftxui::Event::Character(' '));
   EXPECT_EQ(spy->last, ftxui::Event::Return);
+}
+
+// A command's key is reported and never reaches the tree, except while a key
+// is being captured.
+TEST(TranslateKeysTest, ACommandsKeyIsConsumed) {
+  Keybinds binds;
+  KeyMap keys(&binds);
+  keys.Bind(KEY_ACTION_MUTE, 0, ftxui::Event::m);
+  bool capturing = false;
+  int mutes = 0;
+  std::shared_ptr<KeySpy> spy = std::make_shared<KeySpy>();
+
+  ftxui::Component wrapped = TranslateKeys(
+      spy, keys, [&capturing]() { return capturing; },
+      [&mutes](KeyAction action) {
+        if (action == KEY_ACTION_MUTE) {
+          ++mutes;
+        }
+      });
+  EXPECT_TRUE(wrapped->OnEvent(ftxui::Event::m));
+  EXPECT_EQ(mutes, 1);
+  EXPECT_EQ(spy->last, ftxui::Event::Custom) << "the tree heard M";
+  capturing = true;
+  wrapped->OnEvent(ftxui::Event::m);
+  EXPECT_EQ(mutes, 1);
+  EXPECT_EQ(spy->last, ftxui::Event::m);
 }
 
 // Types into a TextField, standing in for the name row of the character panel.

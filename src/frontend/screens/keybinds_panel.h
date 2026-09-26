@@ -1,8 +1,8 @@
 /* The Keybinds screen: one row per action, three key slots apiece.
  *
- * The first slot of every row is the key the game shipped with. It is drawn
- * dim and the cursor steps over it: a player who could clear it could lock
- * themselves out of the screen they cleared it from.
+ * The first slot of a row with a default key holds that key. It is dimmed and
+ * the cursor skips it, since a player who could clear it could lock themselves
+ * out of this screen. A row with no default, like Mute, has all three open.
  *
  * Enter on a slot puts it in capture mode, where the next key pressed is the
  * one it takes. Escape on a slot clears it, and Escape on a slot that is
@@ -32,9 +32,9 @@ class KeybindsPanel {
   // Moves the cursor `delta` rows, coming out the other end. The Close button
   // is the row past the last action.
   void MoveRow(int delta);
-  // Moves the cursor `delta` slots along its row, past the locked one and
-  // stopping at the ends -- a row is short enough to see, so a cursor that
-  // came out the other end would read as a jump. Does nothing on Close.
+  // Moves the cursor `delta` slots along its row, skipping a locked one and
+  // stopping at the ends, since a row is short enough that wrapping would look
+  // like a jump. Does nothing on Close.
   void MoveSlot(int delta);
   ftxui::Element Render() const;
 

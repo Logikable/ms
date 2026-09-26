@@ -50,6 +50,19 @@ TEST_F(KeybindsPanelTest, TheCursorStepsOverTheLockedSlotAndStopsAtTheEnds) {
   EXPECT_EQ(panel_.selected_slot(), 2);
 }
 
+// Mute's first slot has no default, so the cursor can reach it, and leaving
+// the row for a locked one steps back off it.
+TEST_F(KeybindsPanelTest, TheCursorReachesMutesFirstSlot) {
+  panel_.MoveRow(-2);
+  ASSERT_EQ(panel_.selected_action(), KEY_ACTION_MUTE);
+  EXPECT_NE(Render().find("Mute/Unmute"), std::string::npos);
+  panel_.MoveSlot(-1);
+  EXPECT_EQ(panel_.selected_slot(), 0);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.selected_action(), KEY_ACTION_PREV_PANEL);
+  EXPECT_EQ(panel_.selected_slot(), 1);
+}
+
 TEST_F(KeybindsPanelTest, RowsRingThroughTheCloseButton) {
   EXPECT_EQ(panel_.selected_action(), KEY_ACTION_UP);
   EXPECT_FALSE(panel_.on_close());

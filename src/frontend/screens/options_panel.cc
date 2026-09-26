@@ -20,6 +20,8 @@ std::string OptionName(Option option) {
       return "Autoswap Presets";
     case Option::kBuffIndicators:
       return "Buff Indicators";
+    case Option::kMute:
+      return "Mute";
     case Option::kMapBgmVolume:
       return "Map BGM Volume";
     case Option::kBossBgmVolume:
@@ -68,6 +70,8 @@ bool OptionsPanel::IsOn(Option option) const {
       return account_.autoswap_presets();
     case Option::kBuffIndicators:
       return account_.buff_indicators();
+    case Option::kMute:
+      return account_.mute();
     case Option::kMapBgmVolume:
     case Option::kBossBgmVolume:
       return false;
@@ -84,6 +88,7 @@ int OptionsPanel::VolumeOf(Option option) const {
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
+    case Option::kMute:
       return 0;
   }
   return 0;
@@ -102,6 +107,9 @@ void OptionsPanel::Toggle() {
       return;
     case Option::kBuffIndicators:
       account_.SetBuffIndicators(!account_.buff_indicators());
+      return;
+    case Option::kMute:
+      account_.SetMute(!account_.mute());
       return;
     case Option::kMapBgmVolume:
     case Option::kBossBgmVolume:
@@ -124,6 +132,7 @@ void OptionsPanel::Adjust(int delta) {
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
+    case Option::kMute:
       return;
   }
 }
