@@ -1,13 +1,15 @@
 /* The player's key bindings.
  *
- * Every action has three slots. The first holds the game's default key and
- * can't be changed, so a save can never make the game unplayable; the other two
- * belong to the player. A key does only one thing: binding it removes it from
- * whatever had it.
+ * Every action has three slots. For an action the game gives a default key,
+ * the first holds it and can't be changed, so a save can never make the game
+ * unplayable; the other two belong to the player. An action with no default,
+ * like Mute, gives the player all three. A key does only one thing: binding it
+ * removes it from whatever had it.
  *
  * The rest of the frontend doesn't need to know about this. A bound key is
  * rewritten to its action's own event (Up to ArrowUp, Confirm to Return) before
- * any panel sees it, so panels keep comparing against ftxui's events.
+ * any panel sees it, so panels keep comparing against ftxui's events. An action
+ * with no such event is a command: its key is consumed and reported instead.
  */
 #ifndef MS_SRC_FRONTEND_KEYBINDS_H_
 #define MS_SRC_FRONTEND_KEYBINDS_H_
@@ -25,11 +27,11 @@ namespace ms {
 
 // The actions, in the order the Keybinds screen lists them.
 inline constexpr KeyAction kKeyActions[] = {
-    KEY_ACTION_UP,         KEY_ACTION_DOWN,      KEY_ACTION_LEFT,
-    KEY_ACTION_RIGHT,      KEY_ACTION_CONFIRM,   KEY_ACTION_CANCEL,
-    KEY_ACTION_NEXT_PANEL, KEY_ACTION_PREV_PANEL};
-inline constexpr int kKeyActionCount = 8;
-// Keys one action can have. The first is locked.
+    KEY_ACTION_UP,         KEY_ACTION_DOWN,       KEY_ACTION_LEFT,
+    KEY_ACTION_RIGHT,      KEY_ACTION_CONFIRM,    KEY_ACTION_CANCEL,
+    KEY_ACTION_NEXT_PANEL, KEY_ACTION_PREV_PANEL, KEY_ACTION_MUTE};
+inline constexpr int kKeyActionCount = 9;
+// Keys one action can have. The first is locked if the action has a default.
 inline constexpr int kKeySlots = 3;
 
 // The action's display name: "Move Up", "Confirm", "Switch Panel".
@@ -87,11 +89,13 @@ class KeyMap {
   std::string Label(KeyAction action, int slot) const;
   // The label of a key, bound or not. Empty for a key the game has no name for.
   std::string LabelOf(const ftxui::Event& key) const;
-  // Rewrites a bound key to the event the game reads it as. Unbound keys are
-  // returned unchanged.
+  // Rewrites a bound key to the event the game reads it as. Unbound keys, and
+  // keys bound to a command, are returned unchanged.
   ftxui::Event Translate(const ftxui::Event& key) const;
+  // The action `key` is bound to, or KEY_ACTION_UNSPECIFIED.
+  KeyAction ActionOf(const ftxui::Event& key) const;
   // Puts `key` in `slot` and removes it from anywhere else it was bound,
-  // including this action's other slot.
+  // including this action's other slots.
   BindOutcome Bind(KeyAction action, int slot, const ftxui::Event& key);
   // Empties `slot`. A locked slot keeps its key.
   void Unbind(KeyAction action, int slot);
@@ -99,13 +103,18 @@ class KeyMap {
   // bind.
   KeyAction ReservedFor(const ftxui::Event& key) const;
 
-  // Whether `slot` is the locked slot.
-  static bool Locked(int slot) {
-    return slot == 0;
+  // Whether `action`'s `slot` holds a default key the player can't change.
+  static bool Locked(KeyAction action, int slot) {
+    return slot == 0 && DefaultKey(action, 0) != ftxui::Event::Custom;
   }
-  // The event `action` becomes once a key is rewritten.
+  // The event `action` becomes once a key is rewritten, or Event::Custom for a
+  // command.
   static ftxui::Event CanonicalEvent(KeyAction action);
-  // The default key for `action`, in its locked first slot.
+  // Whether `action` is handled where its key is pressed rather than rewritten.
+  static bool IsCommand(KeyAction action) {
+    return CanonicalEvent(action) == ftxui::Event::Custom;
+  }
+  // The default key for `action`'s `slot`, or Event::Custom if it has none.
   static ftxui::Event DefaultKey(KeyAction action, int slot);
 
  private:
@@ -122,11 +131,13 @@ class KeyMap {
   std::map<std::string, KeyAction> by_input_;
 };
 
-// Wraps `child` so every key it receives is one the game names. `capturing` is
-// checked first: while the Keybinds screen waits for a key, the raw key passes
-// through unchanged.
-ftxui::Component TranslateKeys(ftxui::Component child, const KeyMap& keys,
-                               std::function<bool()> capturing);
+// Wraps `child` so every key it receives is one the game names. A command's
+// key goes to `command` instead and never reaches `child`. `capturing` is
+// checked first: while the Keybinds screen waits for a key, or a text field is
+// open, the raw key passes through unchanged.
+ftxui::Component TranslateKeys(
+    ftxui::Component child, const KeyMap& keys, std::function<bool()> capturing,
+    std::function<void(KeyAction)> command = nullptr);
 
 }  // namespace ms
 

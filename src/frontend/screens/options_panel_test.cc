@@ -110,8 +110,8 @@ TEST_F(OptionsPanelTest, LeavesRoomForSettingsStillToCome) {
   ftxui::Element card = panel_.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
-  // Two borders, six list rows, the rule above the bottom row, and Close.
-  EXPECT_EQ(screen.dimy(), 10);
+  // Two borders, eight list rows, the rule above the bottom row, and Close.
+  EXPECT_EQ(screen.dimy(), 12);
 }
 
 class OptionsAudioTest : public OptionsPanelTest {
@@ -126,6 +126,19 @@ class OptionsAudioTest : public OptionsPanelTest {
 // The music source is chosen on the Jukebox screen, not with a switch here.
 TEST_F(OptionsAudioTest, NoJukeboxSwitch) {
   EXPECT_EQ(Render().find("Jukebox"), std::string::npos);
+}
+
+// Mute sits above the volumes, ships off, and leaves them as they were.
+TEST_F(OptionsAudioTest, MuteShipsOffAndEnterThrowsIt) {
+  SelectOption(Option::kMute);
+  ASSERT_EQ(panel_.selected_option(), Option::kMute);
+  EXPECT_LT(Render().find("Mute"), Render().find("Map BGM Volume"));
+  EXPECT_FALSE(account_.mute());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.mute());
+  EXPECT_EQ(account_.map_bgm_volume(), kDefaultBgmVolume);
+  panel_.Toggle();
+  EXPECT_FALSE(account_.mute());
 }
 
 TEST_F(OptionsAudioTest, BothVolumesShowAtTen) {

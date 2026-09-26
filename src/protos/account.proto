@@ -97,6 +97,10 @@ message Options {
   // map and in a boss fight. Off by default.
   bool buff_indicators = 7;
 
+  // Whether the music is silenced. Off by default. The two volumes are kept, so
+  // unmuting brings them back.
+  bool mute = 8;
+
   // Field 5 was a shuffle switch on the Options screen, replaced by
   // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on
   // costs the player one keypress on the Jukebox screen, while reading it would

@@ -1,8 +1,8 @@
 /* The Keybinds screen: one row per action, with three key slots each.
  *
- * The first slot of every row is the default key. It is dimmed and the cursor
- * skips it, since a player who could clear it could lock themselves out of this
- * screen.
+ * The first slot of a row with a default key holds that key. It is dimmed and
+ * the cursor skips it, since a player who could clear it could lock themselves
+ * out of this screen. A row with no default, like Mute, has all three open.
  *
  * Enter on a slot starts capture mode, where the next key pressed is the one it
  * takes. Escape on a slot clears it, and Escape on an empty slot leaves the
@@ -32,7 +32,7 @@ class KeybindsPanel {
   // Moves the cursor `delta` rows, wrapping at the ends. The Close button is
   // the row after the last action.
   void MoveRow(int delta);
-  // Moves the cursor `delta` slots along its row, skipping the locked one and
+  // Moves the cursor `delta` slots along its row, skipping a locked one and
   // stopping at the ends, since a row is short enough that wrapping would look
   // like a jump. Does nothing on Close.
   void MoveSlot(int delta);

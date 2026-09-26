@@ -276,8 +276,13 @@ ftxui::Component Tui::MakeRoot(ftxui::ScreenInteractive& screen) {
       });
   // Outermost, so the whole tree (ftxui's own menus included) receives the
   // game's key events rather than the terminal's.
-  return TranslateKeys(handler, keys_,
-                       [this]() { return controller_.capturing_key(); });
+  return TranslateKeys(
+      handler, keys_, [this]() { return controller_.capturing_key(); },
+      [this](KeyAction action) {
+        if (action == KEY_ACTION_MUTE) {
+          state_.account.SetMute(!state_.account.mute());
+        }
+      });
 }
 
 void Tui::Run() {
@@ -1346,9 +1351,10 @@ void Tui::UpdateMusic() {
   // A boss fight takes over the screen and the volume; the map underneath isn't
   // where the player is. The volume follows the fight whatever is playing, so a
   // jukebox track during a boss is still at boss volume.
-  music_player_.SetVolume(controller_.boss_run() != nullptr
-                              ? state_.account.boss_bgm_volume()
-                              : state_.account.map_bgm_volume());
+  int volume = controller_.boss_run() != nullptr
+                   ? state_.account.boss_bgm_volume()
+                   : state_.account.map_bgm_volume();
+  music_player_.SetVolume(state_.account.mute() ? 0 : volume);
   music_director_.Update(state_.account.jukebox_mode(), NormalTrack());
 }
 

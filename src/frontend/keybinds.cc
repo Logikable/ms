@@ -16,8 +16,11 @@ namespace {
 class KeyTranslator : public ftxui::ComponentBase {
  public:
   KeyTranslator(ftxui::Component child, const KeyMap& keys,
-                std::function<bool()> capturing)
-      : keys_(keys), capturing_(std::move(capturing)) {
+                std::function<bool()> capturing,
+                std::function<void(KeyAction)> command)
+      : keys_(keys),
+        capturing_(std::move(capturing)),
+        command_(std::move(command)) {
     Add(std::move(child));
   }
 
@@ -25,12 +28,20 @@ class KeyTranslator : public ftxui::ComponentBase {
     if (capturing_ != nullptr && capturing_()) {
       return ftxui::ComponentBase::OnEvent(event);
     }
+    KeyAction action = keys_.ActionOf(event);
+    if (action != KEY_ACTION_UNSPECIFIED && KeyMap::IsCommand(action)) {
+      if (command_ != nullptr) {
+        command_(action);
+      }
+      return true;
+    }
     return ftxui::ComponentBase::OnEvent(keys_.Translate(event));
   }
 
  private:
   const KeyMap& keys_;
   std::function<bool()> capturing_;
+  std::function<void(KeyAction)> command_;
 };
 
 }  // namespace
@@ -53,6 +64,8 @@ std::string KeyActionName(KeyAction action) {
       return "Switch Panel";
     case KEY_ACTION_PREV_PANEL:
       return "Previous Panel";
+    case KEY_ACTION_MUTE:
+      return "Mute/Unmute";
     default:
       return "";
   }
@@ -196,8 +209,8 @@ ftxui::Event KeyMap::CanonicalEvent(KeyAction action) {
 }
 
 ftxui::Event KeyMap::DefaultKey(KeyAction action, int slot) {
-  // Only the locked slot has a default key. The other two belong to the player
-  // and start empty.
+  // Only the first slot can have a default key, and a command has none. The
+  // rest belong to the player and start empty.
   if (slot == 0) {
     return CanonicalEvent(action);
   }
@@ -222,12 +235,13 @@ void KeyMap::Normalize() {
     Keybind* row = ordered.add_binds();
     row->set_action(action);
     Keybind* saved = Row(action);
-    // The locked slot holds the game's key; the next two hold whatever the save
+    // A locked slot holds the game's key; the others hold whatever the save
     // has, which is nothing for a new character.
-    row->add_keys(catalog_.IdOf(DefaultKey(action, 0)));
-    for (int slot = 1; slot < kKeySlots; ++slot) {
+    for (int slot = 0; slot < kKeySlots; ++slot) {
       std::string id;
-      if (saved != nullptr && slot < saved->keys_size()) {
+      if (Locked(action, slot)) {
+        id = catalog_.IdOf(DefaultKey(action, slot));
+      } else if (saved != nullptr && slot < saved->keys_size()) {
         id = saved->keys(slot);
       }
       row->add_keys(id);
@@ -249,7 +263,7 @@ void KeyMap::Normalize() {
       ftxui::Event key = catalog_.EventOf(id);
       bool known = !catalog_.LabelOf(id).empty();
       bool reserved = ReservedFor(key) != KEY_ACTION_UNSPECIFIED;
-      if (!known || taken[id] || (reserved && !Locked(slot))) {
+      if (!known || taken[id] || (reserved && !Locked(row->action(), slot))) {
         row->set_keys(slot, "");
         continue;
       }
@@ -284,20 +298,28 @@ std::string KeyMap::LabelOf(const ftxui::Event& key) const {
 }
 
 ftxui::Event KeyMap::Translate(const ftxui::Event& key) const {
-  if (key.is_mouse()) {
+  KeyAction action = ActionOf(key);
+  if (action == KEY_ACTION_UNSPECIFIED || IsCommand(action)) {
     return key;
+  }
+  return CanonicalEvent(action);
+}
+
+KeyAction KeyMap::ActionOf(const ftxui::Event& key) const {
+  if (key.is_mouse()) {
+    return KEY_ACTION_UNSPECIFIED;
   }
   std::map<std::string, KeyAction>::const_iterator it =
       by_input_.find(key.input());
   if (it == by_input_.end()) {
-    return key;
+    return KEY_ACTION_UNSPECIFIED;
   }
-  return CanonicalEvent(it->second);
+  return it->second;
 }
 
 KeyAction KeyMap::ReservedFor(const ftxui::Event& key) const {
   for (int i = 0; i < kKeyActionCount; ++i) {
-    if (DefaultKey(kKeyActions[i], 0) == key) {
+    if (Locked(kKeyActions[i], 0) && DefaultKey(kKeyActions[i], 0) == key) {
       return kKeyActions[i];
     }
   }
@@ -305,7 +327,7 @@ KeyAction KeyMap::ReservedFor(const ftxui::Event& key) const {
 }
 
 BindOutcome KeyMap::Bind(KeyAction action, int slot, const ftxui::Event& key) {
-  if (Locked(slot) || slot < 0 || slot >= kKeySlots) {
+  if (Locked(action, slot) || slot < 0 || slot >= kKeySlots) {
     return BindOutcome::kReserved;
   }
   std::string id = catalog_.IdOf(key);
@@ -320,8 +342,8 @@ BindOutcome KeyMap::Bind(KeyAction action, int slot, const ftxui::Event& key) {
   // it.
   for (int i = 0; i < binds_->binds_size(); ++i) {
     Keybind* row = binds_->mutable_binds(i);
-    for (int s = 1; s < kKeySlots; ++s) {
-      if (row->keys(s) == id) {
+    for (int s = 0; s < kKeySlots; ++s) {
+      if (!Locked(row->action(), s) && row->keys(s) == id) {
         row->set_keys(s, "");
       }
     }
@@ -336,7 +358,7 @@ BindOutcome KeyMap::Bind(KeyAction action, int slot, const ftxui::Event& key) {
 }
 
 void KeyMap::Unbind(KeyAction action, int slot) {
-  if (Locked(slot) || slot < 0 || slot >= kKeySlots) {
+  if (Locked(action, slot) || slot < 0 || slot >= kKeySlots) {
     return;
   }
   Keybind* row = Row(action);
@@ -348,9 +370,10 @@ void KeyMap::Unbind(KeyAction action, int slot) {
 }
 
 ftxui::Component TranslateKeys(ftxui::Component child, const KeyMap& keys,
-                               std::function<bool()> capturing) {
-  return std::make_shared<KeyTranslator>(std::move(child), keys,
-                                         std::move(capturing));
+                               std::function<bool()> capturing,
+                               std::function<void(KeyAction)> command) {
+  return std::make_shared<KeyTranslator>(
+      std::move(child), keys, std::move(capturing), std::move(command));
 }
 
 }  // namespace ms
