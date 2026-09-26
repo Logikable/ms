@@ -6,4 +6,4 @@ equip_slot: EQUIP_SLOT_SYMBOL_ARTERIA
 # Symbols level by absorbing duplicates instead.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-sacred_symbol { meso_cost_base: 20.4 boss: "malefic_star" boss_name: "Malefic Star" }
+sacred_symbol { meso_cost_base: 20.4 boss: "malefic_star" boss_name: "Malefic Star" area_level: 280 }

@@ -6,4 +6,4 @@ equip_slot: EQUIP_SLOT_SYMBOL_SHANGRI_LA
 # Symbols level by absorbing duplicates instead.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-sacred_symbol { meso_cost_base: 18.6 boss: "kaling" boss_name: "Kaling" }
+sacred_symbol { meso_cost_base: 18.6 boss: "kaling" boss_name: "Kaling" area_level: 275 }

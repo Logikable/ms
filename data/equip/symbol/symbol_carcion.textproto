@@ -6,4 +6,4 @@ equip_slot: EQUIP_SLOT_SYMBOL_CARCION
 # Symbols level by absorbing duplicates instead.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-sacred_symbol { meso_cost_base: 22.2 boss: "limbo" boss_name: "Limbo" }
+sacred_symbol { meso_cost_base: 22.2 boss: "limbo" boss_name: "Limbo" area_level: 285 }

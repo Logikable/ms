@@ -947,6 +947,7 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
       EQUIP_SLOT_SYMBOL_CERNIUM, EQUIP_SLOT_SYMBOL_ARCUS,
       EQUIP_SLOT_SYMBOL_ODIUM,   EQUIP_SLOT_SYMBOL_SHANGRI_LA,
       EQUIP_SLOT_SYMBOL_ARTERIA, EQUIP_SLOT_SYMBOL_CARCION};
+  int area_level = kGrandisLevel;
   for (EquipSlot slot : kSacredSlots) {
     EquipPrototype symbol;
     symbol.set_name("Sacred " + std::to_string(slot));
@@ -954,6 +955,8 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
     symbol.set_required_level(kGrandisLevel);
     symbol.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
     symbol.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+    symbol.mutable_sacred_symbol()->set_area_level(area_level);
+    area_level += 5;
     catalog[symbol.name()] = symbol;
   }
   return catalog;
@@ -1160,11 +1163,11 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
   EXPECT_EQ(state.character.sacred_power(), 0) << "Grandis opens at 260";
 }
 
-// At Grandis's level every Sacred Symbol is worn maxed, the three with no map
-// yet included.
-TEST(GameStateTest, MaxModeMaxesTheSacredSymbols) {
+// Sacred Symbols follow GMS's area levels, five apart from 260, so at 260 a
+// max character wears Cernium alone, at level 5.
+TEST(GameStateTest, MaxModeWearsTheSacredSymbolsItsLevelOpened) {
   GameState state = MakeMaxState(kGrandisLevel);
-  EXPECT_EQ(state.character.sacred_power(), 6 * 110);
+  EXPECT_EQ(state.character.sacred_power(), 50);
 }
 
 // Every pool is spent: AP into the job's main stat, SP into its book, and both

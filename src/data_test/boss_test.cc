@@ -85,6 +85,8 @@ TEST_F(BossDataTest, SacredSymbolsNameRealBosses) {
       continue;
     }
     const SacredSymbolInfo& info = entry.second.sacred_symbol();
+    // Unset would read as open at every level.
+    EXPECT_GE(info.area_level(), kGrandisLevel) << entry.first;
     keys.insert(info.boss());
     std::map<std::string, Boss>::const_iterator boss =
         bosses_.find(info.boss());

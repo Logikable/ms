@@ -315,6 +315,10 @@ message SacredSymbolInfo {
   // That boss's name as the symbol's card shows it, since the boss may not
   // exist to be asked.
   string boss_name = 3;
+  // The level GMS opens this symbol's area at, 260 for Cernium up to 285 for
+  // Carcion. Only a max character reads it; this game's Grandis maps all open
+  // at 260.
+  int32 area_level = 4;
 }
 
 // The definition of an item type, loaded from data/ at startup and shared

@@ -953,15 +953,18 @@ void BuyMaxConsumables(GameState& state) {
 // for the maps the same levels unlocked.
 constexpr int kMaxModeSymbolLevel = 10;
 
-// Whether a max character of `level` wears `proto`, and at what level: Arcane
-// Symbols once their area opens, Sacred Symbols maxed from the level they ask.
-// 0 for one they don't wear.
+// A max character's Sacred Symbols: 50 Sacred Power each, past Cernium's 30.
+constexpr int kMaxModeSacredLevel = 5;
+
+// Whether a max character of `level` wears `proto`, and at what level: each
+// kind once its area opens, Sacred Symbols by GMS's area levels. 0 for one they
+// don't wear.
 int MaxModeSymbolLevel(const EquipPrototype& proto, int level) {
   if (IsArcaneSymbol(proto) && proto.arcane_symbol().area_level() <= level) {
     return kMaxModeSymbolLevel;
   }
-  if (IsSacredSymbol(proto) && proto.required_level() <= level) {
-    return kMaxSacredSymbolLevel;
+  if (IsSacredSymbol(proto) && proto.sacred_symbol().area_level() <= level) {
+    return kMaxModeSacredLevel;
   }
   return 0;
 }
