@@ -457,6 +457,12 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              Activity preset = Activity::kFarming,
                              std::optional<StatPreset> gear = std::nullopt);
 
+// The damage share worn Sacred Symbols add against `boss` (a data file stem),
+// at every difficulty: kSacredMaxBossDamagePct from each maxed one naming it.
+// DerivedStatsFor can't add it, since it doesn't know the fight.
+double SymbolBossDamagePct(const CharacterInstance& character,
+                           const std::string& boss, StatPreset gear);
+
 // The offensive part of the derived stats, in the shape combat/damage.h wants,
 // so only this function has to keep them in step.
 PassiveOffense PassiveOffenseFor(const DerivedStats& derived);

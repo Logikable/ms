@@ -9,9 +9,9 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
@@ -219,7 +219,7 @@ void InventoryPanel::OpenStackMenu() {
   }
 }
 
-// The Equip tab's menu for a spare Arcane Symbol. No upgrade applies to one,
+// The Equip tab's menu for a spare symbol. No upgrade applies to one,
 // and Combine replaces Equip: only one symbol per area is ever worn, so a
 // second copy can only go into the first.
 void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
@@ -328,7 +328,7 @@ void InventoryPanel::OpenEquipMenu() {
     return;
   }
   menu_.Hide(kMenuRecover);  // only traces can be recovered
-  if (IsArcaneSymbol(eq->prototype())) {
+  if (IsSymbol(eq->prototype())) {
     OpenSymbolMenu(*eq);
     return;
   }

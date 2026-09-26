@@ -19,12 +19,12 @@
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
-#include "src/character/arcane_force.h"
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
+#include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
@@ -1023,7 +1023,7 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   if (AdvancementGrantsAp(stage)) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
-  // A worn Arcane Symbol grants the wearer's primary stat, and the job just
+  // A worn symbol grants the wearer's primary stat, and the job just
   // changed which stat that is.
   RecomputeEquipStats();
 }
@@ -1326,8 +1326,8 @@ int CharacterInstance::arcane_force(Activity activity) const {
                               SlotFor(PresetKind::kHyperStats, activity)));
 }
 
-int CharacterInstance::sacred_power(Activity /*activity*/) const {
-  return 0;
+int CharacterInstance::sacred_power(Activity activity) const {
+  return sacred_power_[IndexOf(SlotFor(PresetKind::kEquip, activity))];
 }
 
 int CharacterInstance::hyper_stat_points() const {
@@ -1901,6 +1901,7 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
   std::vector<EquipStats> list;
   std::vector<EquipStats> symbols;
   arcane_force_[index] = 0;
+  sacred_power_[index] = 0;
   potential_totals_[index] = PotentialTotals();
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        resolved_[index]) {
@@ -1908,12 +1909,17 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
     AddPotential(item.potential(), item.prototype().required_level(),
                  potential_totals_[index]);
     // A symbol's stats aren't on its prototype: it grants its level in the
-    // wearer's primary stat. Its Arcane Force is added in the same pass.
-    if (IsArcaneSymbol(item.prototype())) {
+    // wearer's primary stat. Its force is added in the same pass.
+    if (IsSymbol(item.prototype())) {
       int level = SymbolLevel(item.equip_state());
-      arcane_force_[index] += SymbolArcaneForce(level);
-      EquipStats granted =
-          SymbolStatsFor(PrimaryStatField(character_.job()), level);
+      int force = SymbolForce(item.prototype(), level);
+      if (IsSacredSymbol(item.prototype())) {
+        sacred_power_[index] += force;
+      } else {
+        arcane_force_[index] += force;
+      }
+      EquipStats granted = SymbolStatsFor(
+          item.prototype(), PrimaryStatField(character_.job()), level);
       symbols.push_back(granted);
       list.push_back(std::move(granted));
       continue;
@@ -1982,9 +1988,9 @@ std::vector<int> CharacterInstance::SpareSymbolWorths(EquipSlot slot) const {
   // Backwards, which is the order CombineSymbols uses them in.
   for (int i = inventory_.size() - 1; i >= 0; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
-    if (spare != nullptr && IsArcaneSymbol(spare->prototype()) &&
+    if (spare != nullptr && IsSymbol(spare->prototype()) &&
         spare->prototype().equip_slot() == slot) {
-      worths.push_back(SymbolWorth(spare->equip_state()));
+      worths.push_back(SymbolWorth(spare->prototype(), spare->equip_state()));
     }
   }
   return worths;
@@ -1993,7 +1999,7 @@ std::vector<int> CharacterInstance::SpareSymbolWorths(EquipSlot slot) const {
 int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
                                       StatPreset preset) {
   EquipInstance* symbol = WornIn(preset, slot);
-  if (count <= 0 || symbol == nullptr || !IsArcaneSymbol(symbol->prototype())) {
+  if (count <= 0 || symbol == nullptr || !IsSymbol(symbol->prototype())) {
     return 0;
   }
   ms::Equip state = symbol->equip_state();
@@ -2001,14 +2007,14 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
   // Backwards, so removing one doesn't shift the ones not yet checked.
   for (int i = inventory_.size() - 1; i >= 0 && taken < count; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
-    if (spare == nullptr || !IsArcaneSymbol(spare->prototype()) ||
+    if (spare == nullptr || !IsSymbol(spare->prototype()) ||
         spare->prototype().equip_slot() != slot) {
       continue;
     }
     // A consumed symbol's EXP is added, not lost: its levels are converted back
     // into EXP, and every duplicate absorbed into them counts.
     state.set_symbol_exp(state.symbol_exp() +
-                         SymbolWorth(spare->equip_state()));
+                         SymbolWorth(spare->prototype(), spare->equip_state()));
     inventory_.remove_equip(i);
     ++taken;
   }
@@ -2096,11 +2102,11 @@ bool CharacterInstance::TakePotential(EquipSlot slot,
 
 bool CharacterInstance::LevelUpSymbol(EquipSlot slot, StatPreset preset) {
   EquipInstance* symbol = WornIn(preset, slot);
-  if (symbol == nullptr || !IsArcaneSymbol(symbol->prototype())) {
+  if (symbol == nullptr || !IsSymbol(symbol->prototype())) {
     return false;
   }
   ms::Equip state = symbol->equip_state();
-  if (!SymbolCanLevelUp(state)) {
+  if (!SymbolCanLevelUp(symbol->prototype(), state)) {
     return false;
   }
   int64_t cost = SymbolLevelUpCost(symbol->prototype(), SymbolLevel(state));
@@ -2108,7 +2114,7 @@ bool CharacterInstance::LevelUpSymbol(EquipSlot slot, StatPreset preset) {
     return false;
   }
   character_.set_meso(character_.meso() - cost);
-  ms::LevelUpSymbol(state);
+  ms::LevelUpSymbol(symbol->prototype(), state);
   // Rebuilt rather than edited in place: an item's state is its own, and a
   // symbol's level is the one outside thing that changes.
   *symbol = EquipInstance(symbol->prototype(), state);

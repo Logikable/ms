@@ -9,12 +9,12 @@
 #include <string>
 #include <vector>
 
-#include "src/character/arcane_force.h"
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
+#include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
@@ -3980,6 +3980,32 @@ TEST_F(SymbolTest, WornSymbolsGrantForceAndThePrimaryStat) {
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND), 1);
   EXPECT_EQ(c_.arcane_force(), 130);
   EXPECT_EQ(c_.equip_stats().str(), 1300);
+}
+
+// A Sacred Symbol's force goes to Sacred Power, and its stat is final like an
+// Arcane one's. Levelling it charges its own curve: 29 duplicates and 36.5M.
+TEST_F(SymbolTest, ASacredSymbolFeedsSacredPower) {
+  CharacterInstance c_ = MakeHero(rng_);
+  Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 1);
+  EquipPrototype cernium;
+  cernium.set_name("Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+  Equip ready;
+  ready.set_symbol_exp(29);
+  c_.PickUp(std::make_unique<EquipInstance>(cernium, ready));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.arcane_force(), 30);
+  EXPECT_EQ(c_.sacred_power(), 10);
+  EXPECT_EQ(c_.equip_stats().str(), 300 + 500);
+  EXPECT_EQ(c_.symbol_stats().str(), 300 + 500);
+
+  c_.AddMeso(40'000'000);
+  ASSERT_TRUE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_CERNIUM));
+  EXPECT_EQ(c_.proto().meso(), 40'000'000 - 36'500'000);
+  EXPECT_EQ(c_.sacred_power(), 20);
+  EXPECT_EQ(c_.arcane_force(), 30);
+  EXPECT_EQ(c_.equip_stats().str(), 300 + 700);
 }
 
 TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {

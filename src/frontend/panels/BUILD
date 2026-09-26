@@ -63,8 +63,8 @@ cc_library(
     hdrs = ["equipped_panel.h"],
     deps = [
         "//src/character",
-        "//src/character:arcane_force",
         "//src/character:progression",
+        "//src/character:symbol",
         "//src/frontend:panel_widths",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",
@@ -90,6 +90,7 @@ cc_test(
     deps = [
         ":equipped_panel",
         "//src/character:progression",
+        "//src/character:sacred_power",
         "//src/frontend:panel_widths",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/testing:screen_text",
@@ -110,8 +111,8 @@ cc_library(
     hdrs = ["inventory_panel.h"],
     deps = [
         "//src/character",
-        "//src/character:arcane_force",
         "//src/character:progression",
+        "//src/character:symbol",
         "//src/frontend:panel_widths",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",

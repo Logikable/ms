@@ -199,7 +199,9 @@ TEST_F(EquippedListTest, TheHeadersFitTheRightColumnMinimum) {
         ItemColumn::kStars, ItemColumn::kPotential}) {
     EXPECT_TRUE(columns.Shows(column));
   }
-  EXPECT_LE(TextColumns(kSymbolHeader) + kItemListGutter + 2, kRightColumnMin);
+  EXPECT_LE(
+      TextColumns(SymbolHeader(SymbolKind::kSacred)) + kItemListGutter + 2,
+      kRightColumnMin);
 }
 
 }  // namespace

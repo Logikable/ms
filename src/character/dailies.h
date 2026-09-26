@@ -1,9 +1,9 @@
 /* The daily claim: what a character can collect each day, and collecting it.
  *
- * Currently that is Arcane Symbols. Owning one unlocks every area at or below
- * it, because characters progress through the areas in order: anyone who
- * reached Lachelein passed through Vanishing Journey and Chu Chu Island,
- * whether or not they kept a symbol from either.
+ * Currently that is Arcane Symbols; Sacred Symbols have no daily. Owning one
+ * unlocks every area at or below it, because characters progress through the
+ * areas in order: anyone who reached Lachelein passed through Vanishing Journey
+ * and Chu Chu Island, whether or not they kept a symbol from either.
  *
  * A day's symbols come packed into one item per area instead of twenty separate
  * copies, which would take twenty bag rows. Feeding the packed item to a worn
@@ -43,9 +43,9 @@ bool ClaimDailies(CharacterInstance& character,
                   const std::map<std::string, EquipPrototype>& equips,
                   int64_t now);
 
-// A symbol containing `copies` of itself, levelled up as far as they go. Twenty
-// copies make a level 2 symbol holding 7.
-Equip PackedSymbol(int copies);
+// A `proto` symbol containing `copies` of itself, levelled up as far as they
+// go. Twenty Arcane copies make a level 2 symbol holding 7.
+Equip PackedSymbol(const EquipPrototype& proto, int copies);
 
 }  // namespace ms
 

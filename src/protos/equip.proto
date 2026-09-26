@@ -146,6 +146,15 @@ enum EquipSlot {
   // Scrolled with its own scrolls, which add the attack type the wearer's job
   // uses. No heart items exist yet.
   EQUIP_SLOT_HEART = 31;
+
+  // Grandis's areas, one slot each for the same reason as Arcane River's, and
+  // in the order the areas open.
+  EQUIP_SLOT_SYMBOL_CERNIUM = 32;
+  EQUIP_SLOT_SYMBOL_ARCUS = 33;
+  EQUIP_SLOT_SYMBOL_ODIUM = 34;
+  EQUIP_SLOT_SYMBOL_SHANGRI_LA = 35;
+  EQUIP_SLOT_SYMBOL_ARTERIA = 36;
+  EQUIP_SLOT_SYMBOL_CARCION = 37;
 }
 
 // The rank of a potential and of each of its lines. It has the same four ranks
@@ -280,8 +289,8 @@ message EquipStats {
   int32 meso_rate = 15;
 }
 
-// What an Arcane Symbol needs beyond an ordinary equip. Only the six symbols
-// set it, so its presence is what marks an item as a symbol.
+// What an Arcane Symbol needs beyond an ordinary equip. Only the six Arcane
+// Symbols set it, so its presence is what marks one.
 message ArcaneSymbolInfo {
   // The main term in the cost of a level-up: 10,000 x floor[(this + 0.1 x
   // level) x duplicates]. It rises by area, from 8 in Vanishing Journey to 18
@@ -291,6 +300,21 @@ message ArcaneSymbolInfo {
   // to 235 for Esfera. A player gets the symbol from the level at which they
   // can first reach the map that gives it.
   int32 area_level = 2;
+}
+
+// What a Sacred Symbol needs beyond an ordinary equip; see ArcaneSymbolInfo.
+message SacredSymbolInfo {
+  // The main term in the cost of a level-up: 100,000 x floor[(this - 0.6 x
+  // level) x duplicates]. GMS states it to a tenth, from 13.2 in Cernium to
+  // 22.2 in Carcion.
+  double meso_cost_base = 1;
+  // The boss that caps this symbol's area, by data file stem. A maxed symbol
+  // adds kSacredMaxBossDamagePct against it, and nothing while the boss isn't
+  // in the game.
+  string boss = 2;
+  // That boss's name as the symbol's card shows it, since the boss may not
+  // exist to be asked.
+  string boss_name = 3;
 }
 
 // The definition of an item type, loaded from data/ at startup and shared
@@ -329,11 +353,14 @@ message EquipPrototype {
   // set can't name one directly. Empty for items in no set and for items a set
   // names directly.
   string set_family = 14;
-  // Set only on the six Arcane Symbols. A symbol levels up by absorbing
-  // duplicates instead of through scrolls or stars, and its stats depend on its
-  // level and the wearer's job. So its base_stats are empty and SymbolStatsFor
-  // computes them.
-  ArcaneSymbolInfo arcane_symbol = 15;
+  // Set only on the twelve symbols. A symbol levels up by absorbing duplicates
+  // instead of through scrolls or stars, and its stats depend on its level and
+  // the wearer's job. So its base_stats are empty and SymbolStatsFor computes
+  // them.
+  oneof symbol {
+    ArcaneSymbolInfo arcane_symbol = 15;
+    SacredSymbolInfo sacred_symbol = 16;
+  }
 }
 
 // The per-copy state of one dropped item, saved to disk. It refers to its
@@ -346,7 +373,7 @@ message Equip {
   EquipStats scroll_stats = 4;
   int32 stars = 5;
   bool trace = 6;
-  // An Arcane Symbol's level; zero on everything else. A new copy is level 1,
+  // A symbol's level; zero on everything else. A new copy is level 1,
   // which SymbolLevel reads from the zero here, so drops don't need to set it.
   int32 symbol_level = 7;
   // Duplicates absorbed toward the next level. Whatever is left after a

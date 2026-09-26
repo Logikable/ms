@@ -2,112 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "src/protos/character.pb.h"
-#include "src/protos/equip.pb.h"
-
 namespace ms {
 namespace {
-
-EquipPrototype VanishingJourney() {
-  EquipPrototype proto;
-  proto.mutable_arcane_symbol()->set_meso_cost_base(8);
-  return proto;
-}
-
-TEST(ArcaneForceTest, ASymbolClimbsTenAForceALevel) {
-  EXPECT_EQ(SymbolArcaneForce(1), 30);
-  EXPECT_EQ(SymbolArcaneForce(8), 100);
-  EXPECT_EQ(SymbolArcaneForce(kMaxSymbolLevel), 220);
-}
-
-// GMS's level^2 + 11, and nothing past the max level.
-TEST(ArcaneForceTest, DuplicatesPerLevel) {
-  EXPECT_EQ(SymbolExpToNextLevel(1), 12);
-  EXPECT_EQ(SymbolExpToNextLevel(19), 372);
-  EXPECT_EQ(SymbolExpToNextLevel(kMaxSymbolLevel), 0);
-  int total = 0;
-  for (int level = 1; level < kMaxSymbolLevel; ++level) {
-    total += SymbolExpToNextLevel(level);
-  }
-  EXPECT_EQ(total, 2679) << "the whole ladder from 1 to 20";
-}
-
-TEST(ArcaneForceTest, LevelUpCostRisesWithTheLevel) {
-  // 10,000 x floor[(8 + 0.1) x 12].
-  EXPECT_EQ(SymbolLevelUpCost(VanishingJourney(), 1), 970000);
-  // 10,000 x floor[(8 + 1.9) x 372].
-  EXPECT_EQ(SymbolLevelUpCost(VanishingJourney(), 19), 36820000);
-  EXPECT_EQ(SymbolLevelUpCost(VanishingJourney(), kMaxSymbolLevel), 0);
-  // The area is what makes a later symbol expensive: Esfera charges more than
-  // twice as much for the same duplicates.
-  EquipPrototype esfera;
-  esfera.mutable_arcane_symbol()->set_meso_cost_base(18);
-  EXPECT_GT(SymbolLevelUpCost(esfera, 1),
-            SymbolLevelUpCost(VanishingJourney(), 1));
-}
-
-// A new drop sets nothing, so its zero must read as level 1.
-TEST(ArcaneForceTest, AFreshCopyIsLevelOne) {
-  Equip item;
-  EXPECT_EQ(SymbolLevel(item), 1);
-  EXPECT_FALSE(SymbolCanLevelUp(item));
-}
-
-TEST(ArcaneForceTest, LevellingCarriesTheExcess) {
-  Equip item;
-  item.set_symbol_exp(20);
-  ASSERT_TRUE(SymbolCanLevelUp(item));
-  LevelUpSymbol(item);
-  EXPECT_EQ(SymbolLevel(item), 2);
-  EXPECT_EQ(item.symbol_exp(), 8) << "20 taken, 12 spent";
-  // Level 2 needs 15, which the 8 left over doesn't cover.
-  EXPECT_FALSE(SymbolCanLevelUp(item));
-}
-
-// What a spare symbol is worth fed to another: itself, its levels, and its
-// extra EXP. The packing a daily claim does must unpack to what went in: twenty
-// copies make a level 2 with 7 EXP.
-TEST(ArcaneForceTest, AWorthCountsTheLevelsBankedInIt) {
-  Equip fresh;
-  EXPECT_EQ(SymbolWorth(fresh), 1);
-
-  Equip banked;
-  banked.set_symbol_exp(4);
-  EXPECT_EQ(SymbolWorth(banked), 5);
-
-  Equip packed;
-  packed.set_symbol_level(2);
-  packed.set_symbol_exp(7);
-  EXPECT_EQ(SymbolWorth(packed), 20) << "1 + 12 + 7";
-
-  Equip maxed;
-  maxed.set_symbol_level(kMaxSymbolLevel);
-  EXPECT_EQ(SymbolWorth(maxed), 2680) << "the whole ladder, plus itself";
-}
-
-TEST(ArcaneForceTest, TheCapRefusesAnotherLevel) {
-  Equip item;
-  item.set_symbol_level(kMaxSymbolLevel);
-  item.set_symbol_exp(9999);
-  EXPECT_FALSE(SymbolCanLevelUp(item));
-  LevelUpSymbol(item);
-  EXPECT_EQ(SymbolLevel(item), kMaxSymbolLevel);
-}
-
-// Ten of the wearer's primary stat per point of Arcane Force, and nothing in
-// any other stat.
-TEST(ArcaneForceTest, SymbolGrantsThePrimaryStat) {
-  EquipStats str = SymbolStatsFor(STAT_FIELD_STR, 1);
-  EXPECT_EQ(str.str(), 300);
-  EXPECT_EQ(str.dex(), 0);
-  EXPECT_EQ(str.attack(), 0);
-  EXPECT_EQ(SymbolStatsFor(STAT_FIELD_INT, kMaxSymbolLevel).int_(), 2200);
-  EXPECT_EQ(SymbolStatsFor(STAT_FIELD_LUK, 5).luk(), 700);
-  // A job with no stat to grant gets nothing, instead of the grant going to
-  // some arbitrary stat.
-  EXPECT_TRUE(
-      SymbolStatsFor(STAT_FIELD_UNSPECIFIED, 5).SerializeAsString().empty());
-}
 
 // A map outside Arcane River requires nothing, and the factors leave the fight
 // unchanged.
@@ -141,9 +37,9 @@ TEST(ArcaneForceTest, TheFactorTableStepsWithThePercentageMet) {
 TEST(ArcaneForceTest, ThePercentageRoundsDown) {
   EXPECT_DOUBLE_EQ(ArcaneFactorsFor(38, 130).damage_dealt, 0.30);
   EXPECT_DOUBLE_EQ(ArcaneFactorsFor(39, 130).damage_dealt, 0.60);
-  // A level 1 symbol is exactly what the first Vanishing Journey map requires.
-  EXPECT_DOUBLE_EQ(ArcaneFactorsFor(SymbolArcaneForce(1), 30).damage_dealt,
-                   1.00);
+  // A level 1 symbol's 30 is exactly what the first Vanishing Journey map
+  // requires.
+  EXPECT_DOUBLE_EQ(ArcaneFactorsFor(30, 30).damage_dealt, 1.00);
 }
 
 }  // namespace

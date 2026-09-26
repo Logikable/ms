@@ -191,6 +191,12 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_SYMBOL_ARCANA:
     case EQUIP_SLOT_SYMBOL_MORASS:
     case EQUIP_SLOT_SYMBOL_ESFERA:
+    case EQUIP_SLOT_SYMBOL_CERNIUM:
+    case EQUIP_SLOT_SYMBOL_ARCUS:
+    case EQUIP_SLOT_SYMBOL_ODIUM:
+    case EQUIP_SLOT_SYMBOL_SHANGRI_LA:
+    case EQUIP_SLOT_SYMBOL_ARTERIA:
+    case EQUIP_SLOT_SYMBOL_CARCION:
       return false;
   }
   return false;

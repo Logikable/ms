@@ -8,8 +8,8 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character/arcane_force.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
@@ -27,6 +27,7 @@ namespace ms {
 namespace {
 
 const char* const kTabLabels[] = {"Gear", "Symbols"};
+const char* const kSymbolKindLabels[] = {"Arcane", "Sacred"};
 
 }  // namespace
 
@@ -75,9 +76,10 @@ std::vector<EquippedRow> EquippedPanel::Rows(
   if (on_expand_) {
     return {};  // Expand has no list to move down into
   }
-  return active_tab_ == kSymbolTab ? SymbolRows(character_, selected_, slide)
-                                   : EquippedRows(character_, selected_, slide,
-                                                  Columns(), gear_preset_);
+  if (active_tab_ == kSymbolTab) {
+    return SymbolRows(character_, symbol_kind_, selected_, slide);
+  }
+  return EquippedRows(character_, selected_, slide, Columns(), gear_preset_);
 }
 
 ItemColumns EquippedPanel::Columns() const {
@@ -95,19 +97,24 @@ int EquippedPanel::ListCount() const {
       Rows(std::chrono::steady_clock::duration::zero()).size());
 }
 
-bool EquippedPanel::ShowsPresetBar() const {
-  return active_tab_ == kGearTab && !on_expand_ &&
-         Unlocked(Feature::kEquipPresets, character_, account_);
+bool EquippedPanel::ShowsSubBar() const {
+  if (on_expand_) {
+    return false;
+  }
+  if (active_tab_ == kSymbolTab) {
+    return Unlocked(Feature::kSacredSymbols, character_, account_);
+  }
+  return Unlocked(Feature::kEquipPresets, character_, account_);
 }
 
-// The rows above the list: always the tab bar, plus the preset row under it
-// when the Gear tab has one.
+// The rows above the list: always the tab bar, plus the row under it when the
+// tab has one.
 int EquippedPanel::CursorStop() const {
-  int bars = ShowsPresetBar() ? 2 : 1;
+  int bars = ShowsSubBar() ? 2 : 1;
   switch (zone_) {
     case kZoneTabs:
       return 0;
-    case kZonePresets:
+    case kZoneSubBar:
       return 1;
     case kZoneList:
       return bars + selected_;
@@ -116,14 +123,14 @@ int EquippedPanel::CursorStop() const {
 }
 
 void EquippedPanel::MoveCursor(int delta) {
-  int bars = ShowsPresetBar() ? 2 : 1;
+  int bars = ShowsSubBar() ? 2 : 1;
   int next = StepCursor(CursorStop(), delta, bars + ListCount());
   if (next == 0) {
     zone_ = kZoneTabs;
     return;
   }
   if (bars == 2 && next == 1) {
-    zone_ = kZonePresets;
+    zone_ = kZoneSubBar;
     return;
   }
   zone_ = kZoneList;
@@ -133,6 +140,17 @@ void EquippedPanel::MoveCursor(int delta) {
 void EquippedPanel::StepPreset(int direction) {
   gear_preset_ = StatPresetAt(
       std::clamp(IndexOf(gear_preset_) + direction, 0, kNumStatPresets - 1));
+}
+
+void EquippedPanel::StepSymbolKind(int direction) {
+  SymbolKind next = SymbolKind::kArcane;
+  if (direction > 0) {
+    next = SymbolKind::kSacred;
+  }
+  if (next != symbol_kind_) {
+    symbol_kind_ = next;
+    selected_ = 0;
+  }
 }
 
 int EquippedPanel::menu_column() const {
@@ -229,7 +247,8 @@ void EquippedPanel::OpenMenu() {
     // Grey until the duplicates are combined. The dim entry is how the player
     // learns that combining comes first.
     if (slot == EQUIP_SLOT_UNSPECIFIED ||
-        !SymbolCanLevelUp(character_.equipped().at(slot)->equip_state())) {
+        !SymbolCanLevelUp(character_.equipped().at(slot)->prototype(),
+                          character_.equipped().at(slot)->equip_state())) {
       symbol_menu_.Disable(kSymbolMenuLevelUp);
     }
     return;
@@ -339,7 +358,10 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
 }
 
 std::string EquippedPanel::Header() const {
-  return active_tab_ == kSymbolTab ? kSymbolHeader : ItemListHeader(Columns());
+  if (active_tab_ == kSymbolTab) {
+    return SymbolHeader(symbol_kind_);
+  }
+  return ItemListHeader(Columns());
 }
 
 void EquippedPanel::RebuildRows() {
@@ -396,8 +418,15 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
   });
 }
 
-ftxui::Element EquippedPanel::RenderPresetBar(bool row_selected) const {
+ftxui::Element EquippedPanel::RenderSubBar(bool row_selected) const {
   std::vector<TabSpec> specs;
+  if (active_tab_ == kSymbolTab) {
+    for (const char* label : kSymbolKindLabels) {
+      specs.push_back({label});
+    }
+    return TabBar(specs, static_cast<int>(symbol_kind_), row_selected,
+                  /*width=*/0);
+  }
   for (int i = 0; i < kNumStatPresets; ++i) {
     const StatPreset slot = StatPresetAt(i);
     specs.push_back({PresetSlotLabel(
@@ -418,9 +447,9 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // level 200.
   rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
   // Under the bar rather than in it: the presets are three versions of one tab,
-  // and a separate row shows that.
-  if (ShowsPresetBar()) {
-    rows.push_back(RenderPresetBar(focused && zone_ == kZonePresets));
+  // as Arcane and Sacred are, and a separate row shows that.
+  if (ShowsSubBar()) {
+    rows.push_back(RenderSubBar(focused && zone_ == kZoneSubBar));
   }
   rows.push_back(PanelSeparator(highlighted_));
   if (on_expand_) {
@@ -484,9 +513,14 @@ bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event,
   return true;
 }
 
-bool EquippedPanel::OnPresetBarEvent(const ftxui::Event& event) {
+bool EquippedPanel::OnSubBarEvent(const ftxui::Event& event) {
   if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
-    StepPreset(event == ftxui::Event::ArrowLeft ? -1 : 1);
+    int direction = event == ftxui::Event::ArrowLeft ? -1 : 1;
+    if (active_tab_ == kSymbolTab) {
+      StepSymbolKind(direction);
+    } else {
+      StepPreset(direction);
+    }
     return true;
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
@@ -495,8 +529,9 @@ bool EquippedPanel::OnPresetBarEvent(const ftxui::Event& event) {
   }
   // Enter wears the preset under the cursor, with no menu, just as Enter on
   // Expand goes through it. With the autoswap on there is nothing to pick: the
-  // activity wears the preset it names.
-  if (IsForward(event) && !character_.autoswap_presets() && !read_only_) {
+  // activity wears the preset it names. The symbol kinds are only lists.
+  if (IsForward(event) && active_tab_ == kGearTab &&
+      !character_.autoswap_presets() && !read_only_) {
     character_.SetSlotInUse(PresetKind::kEquip, gear_preset_);
     return true;
   }
@@ -548,8 +583,8 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter,
                              if (zone_ == kZoneTabs) {
                                return OnTabBarEvent(event, on_expand);
                              }
-                             if (zone_ == kZonePresets) {
-                               return OnPresetBarEvent(event);
+                             if (zone_ == kZoneSubBar) {
+                               return OnSubBarEvent(event);
                              }
                              return OnListEvent(event, on_enter);
                            });

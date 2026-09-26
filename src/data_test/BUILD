@@ -36,6 +36,8 @@ cc_test(
     ],
     deps = [
         "//src:spawn",
+        "//src/character:sacred_power",
+        "//src/character:symbol",
         "//src/frontend/screens:boss_fight_panel",
         "//src/frontend/screens:boss_select_panel",
         "//src/item",
@@ -61,8 +63,8 @@ cc_test(
     ],
     deps = [
         "//src:spawn",
-        "//src/character:arcane_force",
         "//src/character:sacred_power",
+        "//src/character:symbol",
         "//src/frontend/screens:mob_inspect_panel",
         "//src/frontend/widgets:format",
         "//src/protos:equip_proto_cc",

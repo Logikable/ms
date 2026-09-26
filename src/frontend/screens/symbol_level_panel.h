@@ -1,5 +1,5 @@
-/* SymbolLevelPanel is the confirm dialog for raising an Arcane Symbol's level.
- * The duplicates are already spent by the time it opens; it asks for the meso,
+/* SymbolLevelPanel is the confirm dialog for raising a symbol's level. The
+ * duplicates are already spent by the time it opens; it asks for the meso,
  * the other half of the price.
  *
  * The panel holds no game state. Reset() sets the symbol's name, its current

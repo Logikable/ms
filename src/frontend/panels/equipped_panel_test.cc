@@ -14,6 +14,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/character/sacred_power.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
@@ -1333,6 +1334,49 @@ TEST_F(SymbolTabTest, TheTwoListsDoNotShareItems) {
   std::string symbols = RenderComponent(component);
   EXPECT_NE(symbols.find("Vanishing Journey"), std::string::npos);
   EXPECT_EQ(symbols.find("Sword"), std::string::npos);
+}
+
+// Grandis adds an Arcane/Sacred row under the tab, each chip listing only its
+// own kind with its own force column. Before Grandis there is no row.
+TEST_F(SymbolTabTest, TheKindRowSplitsTheListsFromGrandis) {
+  CharacterInstance river = Traveller();
+  EquippedPanel before(river, account_, panel_focus_);
+  ftxui::Component early = before.MakeComponent([]() {});
+  OpenSymbolTab(early);
+  EXPECT_EQ(RenderComponent(early).find("Sacred"), std::string::npos);
+
+  Character proto;
+  proto.set_level(kGrandisLevel);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/0);
+  EquipPrototype cernium;
+  cernium.set_name("Sacred Symbol: Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+  c.PickUp(std::make_unique<EquipInstance>(cernium));
+  ASSERT_TRUE(c.Equip(0));
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  OpenSymbolTab(component);
+  std::string arcane = RenderComponent(component);
+  EXPECT_NE(arcane.find("Sacred"), std::string::npos) << arcane;
+  EXPECT_NE(arcane.find("Vanishing Journey"), std::string::npos);
+  EXPECT_EQ(arcane.find("Cernium"), std::string::npos);
+  EXPECT_NE(arcane.find("AF"), std::string::npos);
+
+  component->OnEvent(ftxui::Event::ArrowDown);  // the bar to the kind row
+  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::Return);  // a list, not a choice to confirm
+  std::string sacred = RenderComponent(component);
+  EXPECT_NE(sacred.find("Cernium"), std::string::npos) << sacred;
+  EXPECT_EQ(sacred.find("Vanishing Journey"), std::string::npos);
+  EXPECT_NE(sacred.find("SAC"), std::string::npos);
+  EXPECT_NE(LineWith(sacred, "Cernium").find("+10"), std::string::npos);
+  component->OnEvent(ftxui::Event::ArrowDown);  // onto the Cernium row
+  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_SYMBOL_CERNIUM);
 }
 
 // The tab appears when Arcane River opens and stays empty until the player

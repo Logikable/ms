@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/arcane_force.h"
+#include "src/character/symbol.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
@@ -410,7 +410,7 @@ ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
     return ThemedWindow(title, EmptyState("no item"), focused);
   }
   CardRows rows =
-      IsArcaneSymbol(item->prototype()) ? SymbolRows(*item) : EquipRows(*item);
+      IsSymbol(item->prototype()) ? SymbolRows(*item) : EquipRows(*item);
   return card.Render(title, std::move(rows), /*content_width=*/0, focused);
 }
 
@@ -425,7 +425,8 @@ CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
   // The growth bar replaces the star bar, and the name, required level and jobs
   // form the same heading an equip has. Nothing here scrolls, since a symbol
   // has four rows and a terminal always has room for four.
-  rows.head = {TextRow(CenteredRow(SymbolBar(level)))};
+  rows.head = {
+      TextRow(CenteredRow(SymbolBar(SymbolMaxLevel(item.prototype()), level)))};
   Append(rows.head, head);
   Append(rows.head, jobs);
   rows.head.push_back(RuleRow(ThemedSeparator()));
@@ -436,10 +437,11 @@ CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
 // The symbol's progress and what it is worth, spaced like the equip card's
 // stats. A rule separates them, since growth progress isn't a stat. The stat it
 // grants is the wearer's primary stat, so a card with no wearer shows only the
-// Arcane Force instead of guessing a job.
+// force instead of guessing a job.
 std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
                                                   int level) const {
-  int needed = SymbolExpToNextLevel(level);
+  const EquipPrototype& proto = item.prototype();
+  int needed = SymbolExpToNextLevel(proto, level);
   std::vector<CardRow> rows = {
       TextRow(SymbolRow("Growth Level", std::to_string(level))),
       TextRow(SymbolRow(
@@ -452,12 +454,46 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
     StatField primary = PrimaryStatField(character_->proto().job());
     const DisplayStat* stat = DisplayStatFor(primary);
     if (stat != nullptr) {
-      rows.push_back(TextRow(StatLine(
-          stat->label, stat->GetFrom(SymbolStatsFor(primary, level)), 0)));
+      rows.push_back(TextRow(
+          StatLine(stat->label,
+                   stat->GetFrom(SymbolStatsFor(proto, primary, level)), 0)));
     }
   }
+  if (!IsSacredSymbol(proto)) {
+    rows.push_back(
+        TextRow(StatLine("Arcane Force", SymbolForce(proto, level), 0)));
+    return rows;
+  }
   rows.push_back(
-      TextRow(StatLine("Arcane Force", SymbolArcaneForce(level), 0)));
+      TextRow(StatLine("Sacred Power", SymbolForce(proto, level), 0)));
+  Append(rows,
+         MaxLevelBonusRows(proto, SymbolMaxed(proto, item.equip_state())));
+  return rows;
+}
+
+// A Sacred Symbol's reward for reaching the top, shown from level 1 so the
+// player knows what the climb pays. Dim until it is earned.
+std::vector<CardRow> InspectPanel::MaxLevelBonusRows(
+    const EquipPrototype& proto, bool maxed) {
+  ftxui::Decorator earned = ftxui::nothing;
+  if (!maxed) {
+    earned = ftxui::dim;
+  }
+  std::vector<CardRow> rows = {
+      RuleRow(ThemedSeparator()),
+      TextRow(SymbolRow("Max Level Bonus", "") | earned),
+      TextRow(SymbolRow(" EXP Obtained", "+" +
+                                             std::to_string(static_cast<int>(
+                                                 kSacredMaxExpPct * 100)) +
+                                             "%") |
+              earned),
+      TextRow(SymbolRow(" Damage vs " + proto.sacred_symbol().boss_name(),
+                        "+" +
+                            std::to_string(static_cast<int>(
+                                kSacredMaxBossDamagePct * 100)) +
+                            "%") |
+              earned),
+  };
   return rows;
 }
 
@@ -870,9 +906,9 @@ ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
 // The growth bar a symbol has instead of stars: one pip per level, grouped in
 // fives like the star bar. Purple rather than gold, since a symbol takes no
 // star force and the two bars mustn't be confused.
-ftxui::Element InspectPanel::SymbolBar(int level) {
+ftxui::Element InspectPanel::SymbolBar(int max_level, int level) {
   std::vector<ftxui::Element> parts;
-  for (int i = 0; i < kMaxSymbolLevel; ++i) {
+  for (int i = 0; i < max_level; ++i) {
     if (i > 0 && i % 5 == 0) {
       parts.push_back(ftxui::text(" "));
     }

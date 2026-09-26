@@ -135,7 +135,7 @@ cc_library(
     hdrs = ["inspect_panel.h"],
     deps = [
         "//src/character",
-        "//src/character:arcane_force",
+        "//src/character:symbol",
         "//src/combat:damage",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
@@ -158,7 +158,7 @@ cc_test(
     deps = [
         ":inspect_panel",
         "//src/character",
-        "//src/character:arcane_force",
+        "//src/character:symbol",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:colors",
@@ -1194,7 +1194,6 @@ cc_library(
         "//src:map_force",
         "//src:map_level",
         "//src:spawn",
-        "//src/character:arcane_force",
         "//src/character:exp_table",
         "//src/frontend:types",
         "//src/frontend/widgets:chrome",

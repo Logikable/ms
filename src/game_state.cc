@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
@@ -21,7 +20,9 @@
 #include "src/character/job_name.h"
 #include "src/character/link.h"
 #include "src/character/max_character.h"
+#include "src/character/sacred_power.h"
 #include "src/character/stat_preset.h"
+#include "src/character/symbol.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -812,9 +813,24 @@ constexpr int kTestSymbols = 15;
 // Legendary averages about 65 rolls, so in practice this limit never triggers.
 constexpr int kMaxSeedCubes = 100000;
 
+// Cernium's first level takes 29, so the same for Grandis: one worn, and a
+// level's worth plus one in the bag.
+constexpr char kTestSacredSymbol[] = "symbol_cernium";
+constexpr int kTestSacredSymbols = 30;
+
 void GiveSymbols(GameState& state) {
   for (int i = 0; i < kTestSymbols; ++i) {
     GiveEquip(state, kStarterSymbol);
+  }
+  if (state.character.proto().level() < kGrandisLevel) {
+    return;
+  }
+  // No level reward hands one over, so the worn one comes from here too.
+  int worn = static_cast<int>(state.character.inventory().size());
+  GiveEquip(state, kTestSacredSymbol);
+  state.character.Equip(worn);
+  for (int i = 0; i < kTestSacredSymbols; ++i) {
+    GiveEquip(state, kTestSacredSymbol);
   }
 }
 
@@ -937,6 +953,19 @@ void BuyMaxConsumables(GameState& state) {
 // for the maps the same levels unlocked.
 constexpr int kMaxModeSymbolLevel = 10;
 
+// Whether a max character of `level` wears `proto`, and at what level: Arcane
+// Symbols once their area opens, Sacred Symbols maxed from the level they ask.
+// 0 for one they don't wear.
+int MaxModeSymbolLevel(const EquipPrototype& proto, int level) {
+  if (IsArcaneSymbol(proto) && proto.arcane_symbol().area_level() <= level) {
+    return kMaxModeSymbolLevel;
+  }
+  if (IsSacredSymbol(proto) && proto.required_level() <= level) {
+    return kMaxSacredSymbolLevel;
+  }
+  return 0;
+}
+
 // Every symbol whose area the level has reached, worn and levelled. Called
 // before the bag is cleared, so the replaced level-1 starter is removed with
 // the other leftovers.
@@ -945,11 +974,12 @@ void WearMaxSymbols(GameState& state) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
-    if (!IsArcaneSymbol(proto) || proto.arcane_symbol().area_level() > level) {
+    int symbol_level = MaxModeSymbolLevel(proto, level);
+    if (symbol_level == 0) {
       continue;
     }
     Equip raised;
-    raised.set_symbol_level(kMaxModeSymbolLevel);
+    raised.set_symbol_level(symbol_level);
     int row = static_cast<int>(state.character.inventory().size());
     state.character.PickUp(std::make_unique<EquipInstance>(proto, raised));
     if (static_cast<int>(state.character.inventory().size()) > row) {

@@ -316,13 +316,20 @@ std::string FormatSlot(EquipSlot slot) {
       return "Medal";
     case EQUIP_SLOT_HEART:
       return "Heart";
-    // All six share one name. The item's own name says which area it is from.
+    // All twelve share one name. The item's own name says which area it is
+    // from.
     case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:
     case EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND:
     case EQUIP_SLOT_SYMBOL_LACHELEIN:
     case EQUIP_SLOT_SYMBOL_ARCANA:
     case EQUIP_SLOT_SYMBOL_MORASS:
     case EQUIP_SLOT_SYMBOL_ESFERA:
+    case EQUIP_SLOT_SYMBOL_CERNIUM:
+    case EQUIP_SLOT_SYMBOL_ARCUS:
+    case EQUIP_SLOT_SYMBOL_ODIUM:
+    case EQUIP_SLOT_SYMBOL_SHANGRI_LA:
+    case EQUIP_SLOT_SYMBOL_ARTERIA:
+    case EQUIP_SLOT_SYMBOL_CARCION:
       return "Symbol";
     default:
       return "";

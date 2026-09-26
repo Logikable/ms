@@ -319,6 +319,7 @@ cc_test(
         "//src/character:consumables",
         "//src/character:hyper_stats",
         "//src/character:progression",
+        "//src/character:symbol",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",

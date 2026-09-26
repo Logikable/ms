@@ -155,7 +155,7 @@ cc_library(
     hdrs = ["tradeable.h"],
     deps = [
         ":currency",
-        "//src/character:arcane_force",
+        "//src/character:symbol",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
     ],

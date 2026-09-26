@@ -12,6 +12,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/link.h"
+#include "src/character/sacred_power.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 
@@ -65,6 +66,8 @@ constexpr Unlock kUnlocks[] = {
     // Arcane River opens at 200 and starts with a free symbol, so the tab has
     // something in it when it appears.
     {Feature::kSymbols, 200},
+    // Grandis's level. No symbol comes free here: the first is a drop.
+    {Feature::kSacredSymbols, kGrandisLevel},
     // Cubing's level: the presets arrive along with the reason to keep two sets
     // of gear. See Feature::kEquipPresets.
     {Feature::kEquipPresets, kPotentialUnlockLevel},
@@ -226,6 +229,8 @@ std::string FeatureName(Feature feature) {
       return "Buffs";
     case Feature::kSymbols:
       return "Arcane Symbols";
+    case Feature::kSacredSymbols:
+      return "Sacred Symbols";
     case Feature::kEquipPresets:
       return "Equip Presets";
     case Feature::kLinkSkills:

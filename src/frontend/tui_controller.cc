@@ -10,13 +10,13 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/combat/encounter.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -1051,7 +1051,7 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
     int level = SymbolLevel(worn.equip_state());
     symbol_combine_panel_.Reset(
         worn.prototype().name(), level, worn.equip_state().symbol_exp(),
-        SymbolExpToNextLevel(level),
+        SymbolExpToNextLevel(worn.prototype(), level),
         state_.character.SpareSymbolWorths(symbol_slot_));
   }
   return next;

@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/arcane_force.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/combat/encounter.h"
 #include "src/combat/measure.h"
 #include "src/game_state.h"
@@ -585,7 +585,7 @@ int CollectSymbols(CharacterInstance& character) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
-    if (IsArcaneSymbol(entry.second->prototype())) {
+    if (IsSymbol(entry.second->prototype())) {
       slots.push_back(entry.first);
     }
   }

@@ -4,5 +4,6 @@ attack: 16110
 max_hp: 5295023500
 exp: 2056974
 pdr: 10
-# No drops: there are no Sacred Symbols yet, and Grandis's one Etc item, Sol
-# Erda Fragment, is a shared-pool one.
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_arcus" per_kill: 0.0001 }

@@ -1,0 +1,9 @@
+name: "Sacred Symbol: Shangri-La"
+# GMS asks 200, but nothing in Grandis opens before 260.
+required_level: 260
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SYMBOL_SHANGRI_LA
+# Symbols level by absorbing duplicates instead.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+sacred_symbol { meso_cost_base: 18.6 boss: "kaling" boss_name: "Kaling" }

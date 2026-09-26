@@ -27,7 +27,6 @@ cc_library(
     srcs = ["character.cc"],
     hdrs = ["character.h"],
     deps = [
-        ":arcane_force",
         ":consumables",
         ":equip_presets",
         ":exp_table",
@@ -36,6 +35,7 @@ cc_library(
         ":job_branch",
         ":link",
         ":skill_placement",
+        ":symbol",
         ":v_matrix",
         "//src/item",
         "//src/item:currency",
@@ -64,9 +64,9 @@ cc_library(
     srcs = ["dailies.cc"],
     hdrs = ["dailies.h"],
     deps = [
-        ":arcane_force",
         ":boss_reset",
         ":character",
+        ":symbol",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -80,6 +80,7 @@ cc_test(
     deps = [
         ":character",
         ":dailies",
+        ":symbol",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -113,9 +114,27 @@ cc_library(
     name = "arcane_force",
     srcs = ["arcane_force.cc"],
     hdrs = ["arcane_force.h"],
+)
+
+cc_library(
+    name = "symbol",
+    srcs = ["symbol.cc"],
+    hdrs = ["symbol.h"],
     deps = [
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "symbol_test",
+    size = "small",
+    srcs = ["symbol_test.cc"],
+    deps = [
+        ":symbol",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -341,6 +360,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":skill_placement",
+        ":symbol",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_stats",
@@ -361,6 +381,7 @@ cc_library(
         ":exp_table",
         ":hyper_stats",
         ":link",
+        ":sacred_power",
         "//src:account",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
@@ -412,6 +433,7 @@ cc_test(
         ":equip_presets",
         ":exp_table",
         ":inner_ability",
+        ":symbol",
         ":v_matrix",
         "//src/item",
         "//src/item:equip_instance",
@@ -440,6 +462,7 @@ cc_test(
         ":consumables",
         ":hyper_stats",
         ":inner_ability",
+        ":symbol",
         ":v_matrix",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",

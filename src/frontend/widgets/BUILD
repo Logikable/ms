@@ -310,7 +310,7 @@ cc_library(
         ":item_row",
         ":marquee",
         "//src/character",
-        "//src/character:arcane_force",
+        "//src/character:symbol",
         "//src/item:equip_instance",
         "//src/item:slot_order",
         "//src/protos:equip_proto_cc",

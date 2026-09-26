@@ -79,6 +79,10 @@ enum class Feature {
   // it there are no symbols, and a tab that can only be empty is worse than no
   // tab.
   kSymbols,
+  // The Arcane/Sacred row under the Symbols tab. Unlocked at Grandis's level,
+  // the same reasoning one level down: before it, the Sacred list could only be
+  // empty, and a row with one chip is no choice.
+  kSacredSymbols,
   // The gold trail to the Link Skills row, shown the first time the account
   // reaches the last threshold; see kLinkSkillsLevel. The row itself is always
   // on the beginner's page.

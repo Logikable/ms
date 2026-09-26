@@ -1,7 +1,7 @@
 /* EquippedPanel shows what the character is wearing, in two tabs: Gear, and the
- * Arcane Symbols carried into Arcane River. Each gear row shows the item's
- * columns (see ItemColumns). A symbol shows its level, its progress to the next
- * one, and the Arcane Force it grants.
+ * symbols carried into Arcane River and Grandis, one kind at a time. Each gear
+ * row shows the item's columns (see ItemColumns). A symbol shows its level, its
+ * progress to the next one, and the force it grants.
  *
  * Focus moves top to bottom through zones, as in the bag. The top zone is the
  * tab bar, where Left and Right switch tabs. Once cubing unlocks the presets,
@@ -127,7 +127,7 @@ class EquippedPanel {
  private:
   // Which focus zone has the cursor. The bar is a stop in the same ring as the
   // rows, so one pair of keys moves through the whole panel.
-  enum Zone { kZoneTabs, kZonePresets, kZoneList };
+  enum Zone { kZoneTabs, kZoneSubBar, kZoneList };
 
   // The three passes OpenMenu makes over the gear menu: hide what the account
   // hasn't unlocked, then what this item can't take, then place the gold trail
@@ -144,14 +144,16 @@ class EquippedPanel {
   // The titled window around the tab bar and the list.
   ftxui::Element RenderContent(ftxui::Component menu);
   ftxui::Element RenderTabBar(bool row_selected) const;
-  // The Farm/Boss/Drop row under the bar, and whether it is shown. The Gear tab
-  // has it once cubing unlocks the presets.
-  ftxui::Element RenderPresetBar(bool row_selected) const;
-  bool ShowsPresetBar() const;
+  // The row under the bar, and whether it is shown: Farm/Boss/Drop on Gear once
+  // cubing unlocks the presets, Arcane/Sacred on Symbols once Grandis opens.
+  ftxui::Element RenderSubBar(bool row_selected) const;
+  bool ShowsSubBar() const;
   // Moves `direction` chips along the preset row, which doesn't wrap: it is a
   // row of three, not a ring like the bar above it.
   void StepPreset(int direction);
-  bool OnPresetBarEvent(const ftxui::Event& event);
+  // The same along Arcane/Sacred.
+  void StepSymbolKind(int direction);
+  bool OnSubBarEvent(const ftxui::Event& event);
   // The content tabs the character has reached, left to right. Symbols arrives
   // with Arcane River. Expand isn't one of these, since it is a door rather
   // than a page.
@@ -195,6 +197,8 @@ class EquippedPanel {
   bool on_expand_ = false;
   Zone zone_ = kZoneList;
   StatPreset gear_preset_ = StatPreset::kFirst;
+  // Which symbol list the Symbols tab shows.
+  SymbolKind symbol_kind_ = SymbolKind::kArcane;
   int selected_ = 0;
   // When the selection last moved, for scrolling a long name.
   SelectionClock name_clock_;

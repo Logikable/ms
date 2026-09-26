@@ -147,13 +147,16 @@ class InspectPanel {
   // screens can't drift apart.
   CardRows EquipRows(const EquipTabItem& item) const;
   ftxui::Element RenderStackable() const;
-  // An Arcane Symbol's card. It has its own body rather than the equip one:
+  // A symbol's card. It has its own body rather than the equip one:
   // what a symbol grants comes from its level and the wearer's job, so none of
   // an equip's rows apply.
   CardRows SymbolRows(const EquipTabItem& item) const;
-  // The symbol's four values: its progress, and what its level grants.
+  // The symbol's values: its progress, and what its level grants.
   std::vector<CardRow> SymbolStatRows(const EquipTabItem& item,
                                       int level) const;
+  // A Sacred Symbol's max-level EXP and boss damage, dimmed unless `maxed`.
+  static std::vector<CardRow> MaxLevelBonusRows(const EquipPrototype& proto,
+                                                bool maxed);
   // The equip body in parts, top to bottom. The rows that can't be split are
   // built and measured first. Then the star bar and job categories are each
   // split over two lines if one line would widen the panel.
@@ -193,9 +196,9 @@ class InspectPanel {
   // `count` stars starting at `from`, in groups of 5: filled (★) up to `stars`,
   // empty (☆) after. Filled stars are gold and empty stars dark grey.
   static ftxui::Element StarBar(int stars, int from, int count);
-  // A symbol's twenty levels in groups of 5: filled (◆) up to `level`, empty
-  // (◇) after. Filled pips are purple and empty ones dark grey.
-  static ftxui::Element SymbolBar(int level);
+  // A symbol's `max_level` levels in groups of 5: filled (◆) up to `level`,
+  // empty (◇) after. Filled pips are purple and empty ones dark grey.
+  static ftxui::Element SymbolBar(int max_level, int level);
 
   const EquipTabItem* item_ = nullptr;
   ComparisonSlots compare_;

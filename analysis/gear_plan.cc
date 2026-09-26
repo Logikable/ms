@@ -12,9 +12,9 @@
 #include "analysis/sim_gear.h"
 #include "analysis/star_force_curve.h"
 #include "analysis/yardstick.h"
-#include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -274,14 +274,14 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
 std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
     GameState& state, const Basis& basis, EquipSlot slot) {
   const EquipInstance* item = Worn(state, slot);
-  if (item == nullptr || !IsArcaneSymbol(item->prototype())) {
+  if (item == nullptr || !IsSymbol(item->prototype())) {
     return std::nullopt;
   }
   // Meso alone can't level a symbol: the level also needs duplicates from
   // drops. So a slot short of them offers nothing, however much meso the
   // character has.
   const ms::Equip& worn = item->equip_state();
-  if (!SymbolCanLevelUp(worn)) {
+  if (!SymbolCanLevelUp(item->prototype(), worn)) {
     return std::nullopt;
   }
   int level = SymbolLevel(worn);
@@ -292,12 +292,13 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   if (offer.cost <= 0) {
     return std::nullopt;
   }
-  // The level's value is the primary stat it adds. Its Arcane Force is left
+  // The level's value is the primary stat it adds. Its force is left
   // out, since that affects which maps the character can fight on rather than
   // the character itself, like ignored defence (see CubeBasis.yard).
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
-      Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
+      Minus(SymbolStatsFor(item->prototype(), primary, level + 1),
+            SymbolStatsFor(item->prototype(), primary, level));
   offer.gain =
       PowerWith(state, basis.yard, basis.derived, Plus(basis.worn, added)) -
       basis.power;
@@ -593,8 +594,7 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
     // Never sell a spare of a worn symbol: it levels the worn one. An unworn
     // symbol keeps one copy through the allowance, or symbols from unreachable
     // areas would pile up.
-    if (IsArcaneSymbol(proto) &&
-        WornStars(state.character, proto.name()) >= 0) {
+    if (IsSymbol(proto) && WornStars(state.character, proto.name()) >= 0) {
       ++i;
       continue;
     }

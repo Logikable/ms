@@ -10,6 +10,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
+#include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -5149,6 +5150,29 @@ TEST(ComputeBossParamsTest, RunsRealTimeWithNoRespawnAndNoIncomingHits) {
   EXPECT_DOUBLE_EQ(mapped.attacks.front().swing_seconds,
                    params.attacks.front().swing_seconds * speed);
   EXPECT_GT(params.attacks.front().damage_per_hit[0], 0.0);
+}
+
+// A maxed Sacred Symbol's boss damage reaches the fight against its boss, as
+// 1.2x a hit from no damage share, and no other fight.
+TEST(ComputeBossParamsTest, AMaxedSymbolHitsItsOwnBossHarder) {
+  GameState state({}, {}, {}, {{"arm", MakeMob("Zakum's Arm", 700000)}}, {});
+  EquipSword(state);
+  EquipPrototype symbol;
+  symbol.set_name("Symbol");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  symbol.mutable_sacred_symbol()->set_boss("zakum");
+  Equip maxed;
+  maxed.set_symbol_level(kMaxSacredSymbolLevel);
+  state.character.PickUp(std::make_unique<EquipInstance>(symbol, maxed));
+  ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1));
+
+  BossDifficulty normal = NormalTwoPhase();
+  double own =
+      ComputeBossParams(state, "zakum", normal, 0).attacks[0].damage_per_hit[0];
+  double other = ComputeBossParams(state, "horntail", normal, 0)
+                     .attacks[0]
+                     .damage_per_hit[0];
+  EXPECT_NEAR(own, other * (1 + kSacredMaxBossDamagePct), 1e-9 * own);
 }
 
 // The activity decides which Hyper Stat allocation applies: a boss fight uses

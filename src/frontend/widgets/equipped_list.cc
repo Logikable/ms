@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/arcane_force.h"
+#include "src/character/symbol.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
@@ -18,28 +18,44 @@ namespace ms {
 namespace {
 
 // A symbol list's columns. The name gets more room than an item list's 26
-// because every symbol is named "Arcane Symbol: <area>", and only three columns
-// follow it.
+// because every symbol is named "<kind> Symbol: <area>", and only three
+// columns follow it.
 constexpr int kSymbolNameWidth = 32;
 constexpr int kSymbolLevelWidth = 3;
 constexpr int kSymbolExpWidth = 7;
 
 // Progress toward a symbol's next level, or "MAX" if it has none.
-std::string SymbolExpCell(const Equip& state) {
-  int needed = SymbolExpToNextLevel(SymbolLevel(state));
+std::string SymbolExpCell(const EquipPrototype& proto, const Equip& state) {
+  int needed = SymbolExpToNextLevel(proto, SymbolLevel(state));
   if (needed == 0) {
     return "MAX";
   }
   return std::to_string(state.symbol_exp()) + "/" + std::to_string(needed);
 }
 
+bool OfKind(const EquipPrototype& proto, SymbolKind kind) {
+  switch (kind) {
+    case SymbolKind::kArcane:
+      return IsArcaneSymbol(proto);
+    case SymbolKind::kSacred:
+      return IsSacredSymbol(proto);
+  }
+  return false;
+}
+
 }  // namespace
 
-const char kSymbolHeader[] =
-    "  Name                            "  // 2 cursor + 32 name
-    "  Lv "                               // 2 sep + 3 level
-    "  EXP    "                           // 2 sep + 7 exp
-    "  AF";                               // 2 sep + label
+std::string SymbolHeader(SymbolKind kind) {
+  std::string force = "AF";
+  if (kind == SymbolKind::kSacred) {
+    force = "SAC";
+  }
+  return "  Name                            "  // 2 cursor + 32 name
+         "  Lv "                               // 2 sep + 3 level
+         "  EXP    "                           // 2 sep + 7 exp
+         "  " +
+         force;
+}
 
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
@@ -48,7 +64,7 @@ std::vector<EquippedRow> EquippedRows(
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped(preset)) {
-    if (!IsArcaneSymbol(kv.second->prototype())) {
+    if (!IsSymbol(kv.second->prototype())) {
       slots.push_back(kv.first);
     }
   }
@@ -80,7 +96,7 @@ std::vector<EquippedRow> EquippedRows(
 }
 
 std::vector<EquippedRow> SymbolRows(
-    const CharacterInstance& character, int selected,
+    const CharacterInstance& character, SymbolKind kind, int selected,
     std::chrono::steady_clock::duration elapsed) {
   std::vector<EquippedRow> rows;
   // The worn map is keyed by slot, and the symbol slots are numbered in the
@@ -88,7 +104,7 @@ std::vector<EquippedRow> SymbolRows(
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped()) {
     const EquipInstance& item = *kv.second;
-    if (!IsArcaneSymbol(item.prototype())) {
+    if (!OfKind(item.prototype(), kind)) {
       continue;
     }
     std::chrono::steady_clock::duration slide =
@@ -103,10 +119,11 @@ std::vector<EquippedRow> SymbolRows(
     row.slot = kv.first;
     // It has its own columns, so the row is written out directly rather than
     // fitted: a symbol has no slot, upgrades or potential to show.
-    row.text.text = name + "  " +
-                    PadRight(std::to_string(level), kSymbolLevelWidth) + "  " +
-                    PadRight(SymbolExpCell(state), kSymbolExpWidth) + "  +" +
-                    std::to_string(SymbolArcaneForce(level));
+    row.text.text =
+        name + "  " + PadRight(std::to_string(level), kSymbolLevelWidth) +
+        "  " +
+        PadRight(SymbolExpCell(item.prototype(), state), kSymbolExpWidth) +
+        "  +" + std::to_string(SymbolForce(item.prototype(), level));
     row.text.span[static_cast<int>(ItemColumn::kName)] = {
         0, static_cast<int>(name.size())};
     rows.push_back(std::move(row));

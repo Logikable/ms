@@ -87,7 +87,6 @@
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
 #include "analysis/skill_plan.h"
-#include "src/character/arcane_force.h"
 #include "src/character/boss_reset.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
@@ -97,6 +96,7 @@
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/combat/combat.h"
 #include "src/combat/constants.h"
 #include "src/combat/encounter.h"
@@ -3042,14 +3042,14 @@ void PrintWornRow(const EquipInstance& item) {
   const EquipPrototype& proto = item.prototype();
   // A symbol takes neither scrolls nor stars. It has a level and duplicates
   // banked toward the next, so the two columns show those instead.
-  if (IsArcaneSymbol(proto)) {
+  if (IsSymbol(proto)) {
     const ms::Equip& worn = item.equip_state();
     int level = SymbolLevel(worn);
     char rung[16];
     std::snprintf(rung, sizeof(rung), "Lv%d", level);
     char banked[16];
     std::snprintf(banked, sizeof(banked), "%d/%d", worn.symbol_exp(),
-                  SymbolExpToNextLevel(level));
+                  SymbolExpToNextLevel(proto, level));
     std::printf("    %-30s Lv%-4d %-8s %-6s %s\n", proto.name().c_str(),
                 proto.required_level(), banked, rung, "");
     return;

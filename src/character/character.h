@@ -700,7 +700,7 @@ class CharacterInstance {
   const EquipStats& equip_stats(StatPreset preset = StatPreset::kFirst) const {
     return equip_stats_[IndexOf(preset)];
   }
-  // The part of that total from worn Arcane Symbols. It is kept separate
+  // The part of that total from worn symbols. It is kept separate
   // because a symbol grants final stats that no %stat may multiply, so the step
   // that applies %stat subtracts this first.
   const EquipStats& symbol_stats(StatPreset preset = StatPreset::kFirst) const {
@@ -737,7 +737,7 @@ class CharacterInstance {
   bool CubeEquipped(EquipSlot slot, CubeType cube,
                     StatPreset preset = StatPreset::kFirst);
   bool CubeInventory(int index, CubeType cube);
-  // Spare copies of the Arcane Symbol for `slot` in the equip bag. Traces don't
+  // Spare copies of the symbol for `slot` in the equip bag. Traces don't
   // count, as elsewhere; see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
   // What each spare is worth in duplicates, in the order CombineSymbols uses
@@ -755,9 +755,8 @@ class CharacterInstance {
   // The character's Arcane Force: worn symbols plus the Hyper Stat. Every
   // Arcane River map checks it; see ArcaneFactorsFor.
   int arcane_force(Activity activity = Activity::kFarming) const;
-  // The character's Sacred Power, which every Grandis map checks; see
-  // SacredFactorsFor. It is always 0 for now because Sacred Symbols aren't in
-  // the game yet.
+  // The character's Sacred Power from worn Sacred Symbols, which every Grandis
+  // map checks; see SacredFactorsFor.
   int sacred_power(Activity activity = Activity::kFarming) const;
   // Whether an item of this type adds its attack right now: throwing stars only
   // count with a claw. equip_stats() already applies this. It is public so the
@@ -867,7 +866,7 @@ class CharacterInstance {
   // Reconciles one allocation for ReconcileHyperStats and returns the points it
   // took back.
   int ReconcileHyperPreset(StatPreset preset);
-  // Recomputes equip_stats_, symbol_stats_, arcane_force_ and set_bonuses_ from
+  // Recomputes equip_stats_, symbol_stats_, both forces and set_bonuses_ from
   // the worn items.
   void RecomputeEquipStats();
   // Does that for one preset: resolves its gear, then computes the totals.
@@ -897,6 +896,7 @@ class CharacterInstance {
   std::array<EquipStats, kNumStatPresets> symbol_stats_;
   std::array<PotentialTotals, kNumStatPresets> potential_totals_;
   std::array<int, kNumStatPresets> arcane_force_ = {};
+  std::array<int, kNumStatPresets> sacred_power_ = {};
   // Meso the buffs have used but not yet been charged, always under 1. The live
   // tick charges several times a second, so without this a potion at 1,000 a
   // second would lose fractions and cost 999. Not saved.

@@ -7,8 +7,8 @@
 
 #include "analysis/sim_gear.h"
 #include "analysis/yardstick.h"
-#include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
+#include "src/character/symbol.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -70,13 +70,13 @@ double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
                             const EquipInstance& worn) {
   const ms::Equip& state_of = worn.equip_state();
   int level = SymbolLevel(state_of);
-  int needed = SymbolExpToNextLevel(level);
+  int needed = SymbolExpToNextLevel(worn.prototype(), level);
   if (needed <= 0) {
     return 0.0;  // maxed out; another copy adds nothing
   }
   StatField primary = PrimaryStatField(state.character.proto().job());
-  EquipStats added =
-      Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
+  EquipStats added = Minus(SymbolStatsFor(worn.prototype(), primary, level + 1),
+                           SymbolStatsFor(worn.prototype(), primary, level));
   double gain = PowerWith(state, basis, Plus(basis.worn, added)) - basis.power;
   double paid = AsMeso(basis, gain) -
                 static_cast<double>(SymbolLevelUpCost(worn.prototype(), level));
@@ -115,7 +115,7 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
       !ReachedSymbolArea(state.character, proto)) {
     return 0.0;
   }
-  if (IsArcaneSymbol(proto)) {
+  if (IsSymbol(proto)) {
     // A second copy of a worn symbol is a duplicate that feeds the symbol's
     // level, not a piece of gear. A first copy falls through and is valued as
     // gear.

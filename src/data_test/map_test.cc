@@ -8,8 +8,8 @@
 #include <string>
 #include <utility>
 
-#include "src/character/arcane_force.h"
 #include "src/character/sacred_power.h"
+#include "src/character/symbol.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
 #include "src/protos/equip.pb.h"
@@ -37,17 +37,17 @@ std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
 }
 
-// Whether `mob` drops one of the six Arcane Symbols.
-bool DropsASymbol(const Mob& mob,
-                  const std::map<std::string, EquipPrototype>& equips) {
+// The symbol `mob` drops, or null if it drops none.
+const EquipPrototype* SymbolDropped(
+    const Mob& mob, const std::map<std::string, EquipPrototype>& equips) {
   for (const MobDrop& drop : mob.drops()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         equips.find(drop.equip());
-    if (it != equips.end() && IsArcaneSymbol(it->second)) {
-      return true;
+    if (it != equips.end() && IsSymbol(it->second)) {
+      return &it->second;
     }
   }
-  return false;
+  return nullptr;
 }
 
 // The level Arcane River opens at. No map below it is in the river, so a map
@@ -232,8 +232,9 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
 }
 
 // Arcane Force and Arcane River go together, checked from both sides since
-// neither derives the other. The second check only reaches down to the level
-// floor: Black Heaven runs to 219 outside the river.
+// neither derives the other. A symbol drop goes with its own kind's force. The
+// second check only reaches down to the level floor: Black Heaven runs to 219
+// outside the river.
 TEST(MapDataTest, ArcaneForceGoesWithArcaneRiver) {
   std::map<std::string, Mob> mobs = LoadMobs();
   std::map<std::string, EquipPrototype> equips = LoadEquips();
@@ -244,10 +245,15 @@ TEST(MapDataTest, ArcaneForceGoesWithArcaneRiver) {
       if (mob == mobs.end()) {
         continue;  // covered above
       }
-      if (DropsASymbol(mob->second, equips)) {
+      const EquipPrototype* symbol = SymbolDropped(mob->second, equips);
+      if (symbol != nullptr) {
         ++checked;
-        EXPECT_GT(entry.second.arcane_force(), 0)
-            << entry.first << " drops an Arcane Symbol and asks for no force";
+        int force = entry.second.arcane_force();
+        if (IsSacredSymbol(*symbol)) {
+          force = entry.second.sacred_power();
+        }
+        EXPECT_GT(force, 0) << entry.first << " drops " << symbol->name()
+                            << " and asks for no force of its kind";
       }
       if (entry.second.arcane_force() > 0) {
         EXPECT_GE(mob->second.level(), kArcaneRiverFloor)

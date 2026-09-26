@@ -10,8 +10,8 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
+#include "src/character/symbol.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
@@ -1159,7 +1159,7 @@ TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
   EXPECT_EQ(rendered.find("☆"), std::string::npos);
   // Instead, a pip per level, filled up to the symbol's level.
   EXPECT_EQ(Count(rendered, "◆"), 8) << rendered;
-  EXPECT_EQ(Count(rendered, "◇"), kMaxSymbolLevel - 8) << rendered;
+  EXPECT_EQ(Count(rendered, "◇"), kMaxArcaneSymbolLevel - 8) << rendered;
 }
 
 // The stat a symbol grants is the wearer's primary stat, so a magician sees INT
@@ -1184,7 +1184,7 @@ TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
 // that can never fill.
 TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   Equip state;
-  state.set_symbol_level(kMaxSymbolLevel);
+  state.set_symbol_level(kMaxArcaneSymbolLevel);
   EquipInstance symbol(VanishingJourneySymbol(), state);
   InspectPanel panel;
   panel.UseCharacter(c_);
@@ -1192,8 +1192,41 @@ TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("EXP  MAX"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("Arcane Force  +220"), std::string::npos) << rendered;
-  EXPECT_EQ(Count(rendered, "◆"), kMaxSymbolLevel) << rendered;
+  EXPECT_EQ(Count(rendered, "◆"), kMaxArcaneSymbolLevel) << rendered;
   EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
+}
+
+// A Sacred Symbol's card: eleven pips, Sacred Power, and the max-level bonus
+// dimmed until it is earned.
+TEST_F(InspectPanelTest, ASacredSymbolShowsItsBonus) {
+  EquipPrototype cernium;
+  cernium.set_name("Sacred Symbol: Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+  cernium.mutable_sacred_symbol()->set_boss_name("Chosen Seren");
+  Equip state;
+  state.set_symbol_level(3);
+  EquipInstance climbing(cernium, state);
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&climbing);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("EXP  0 / 141"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("STR  +900"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Sacred Power  +30"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("Arcane Force"), std::string::npos);
+  EXPECT_EQ(Count(rendered, "◆") + Count(rendered, "◇"), kMaxSacredSymbolLevel);
+  EXPECT_NE(rendered.find("Damage vs Chosen Seren  +20%"), std::string::npos)
+      << rendered;
+  EXPECT_TRUE(DimAt(panel, "Damage vs Chosen Seren"));
+  EXPECT_TRUE(DimAt(panel, "EXP Obtained"));
+
+  state.set_symbol_level(kMaxSacredSymbolLevel);
+  EquipInstance maxed(cernium, state);
+  panel.SetItem(&maxed);
+  EXPECT_NE(Render(panel).find("Damage vs Chosen Seren"), std::string::npos);
+  EXPECT_FALSE(DimAt(panel, "Damage vs Chosen Seren"))
+      << "earned, so drawn plainly";
 }
 
 // --- the ring and pendant tab bar ---

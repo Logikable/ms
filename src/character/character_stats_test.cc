@@ -12,6 +12,7 @@
 #include "src/character/consumables.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
+#include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -233,6 +234,32 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
   EXPECT_EQ(stats.max_mp, 60);
   EXPECT_EQ(stats.def, 30);
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
+}
+
+// A maxed Sacred Symbol adds EXP everywhere, and damage against its own boss
+// only. One level short gives neither.
+TEST_F(DerivedStatsTest, AMaxedSacredSymbolPaysItsBonuses) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  EquipPrototype cernium;
+  cernium.set_name("Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_boss("seren");
+  Equip short_of_it;
+  short_of_it.set_symbol_level(kMaxSacredSymbolLevel - 1);
+  c.PickUp(std::make_unique<EquipInstance>(cernium, short_of_it));
+  ASSERT_TRUE(c.Equip(0));
+  const double base_exp = DerivedStatsFor(c, {}).exp_pct;
+  EXPECT_DOUBLE_EQ(SymbolBossDamagePct(c, "seren", StatPreset::kFirst), 0.0);
+
+  ASSERT_TRUE(c.Unequip(EQUIP_SLOT_SYMBOL_CERNIUM));
+  Equip maxed;
+  maxed.set_symbol_level(kMaxSacredSymbolLevel);
+  c.PickUp(std::make_unique<EquipInstance>(cernium, maxed));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).exp_pct, base_exp + kSacredMaxExpPct);
+  EXPECT_DOUBLE_EQ(SymbolBossDamagePct(c, "seren", StatPreset::kFirst),
+                   kSacredMaxBossDamagePct);
+  EXPECT_DOUBLE_EQ(SymbolBossDamagePct(c, "lotus", StatPreset::kFirst), 0.0);
 }
 
 // With autoswap on, the activity picks the gear as well as the allocations. A

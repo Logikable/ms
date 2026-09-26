@@ -15,6 +15,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
+#include "src/character/symbol.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
@@ -1414,6 +1415,20 @@ void AddDropAndMesoRates(const CharacterInstance& character,
   }
 }
 
+// A maxed Sacred Symbol's EXP. Its boss damage waits for the boss; see
+// SymbolBossDamagePct.
+void AddSymbolExp(const CharacterInstance& character, StatPreset gear,
+                  DerivedStats& stats) {
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       character.equipped(gear)) {
+    const EquipInstance& item = *kv.second;
+    if (IsSacredSymbol(item.prototype()) &&
+        SymbolMaxed(item.prototype(), item.equip_state())) {
+      stats.exp_pct += kSacredMaxExpPct;
+    }
+  }
+}
+
 // Pick Pocket and Meso Explosion, which are worth nothing apart. The thrown
 // meso follows the swing like a Final Attack but rolls per line, so it is added
 // to the same list instead of getting its own mechanism.
@@ -1494,8 +1509,24 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   }
   AddRegenPulses(allocated, equipped, passives, stats);
   AddDropAndMesoRates(character, equipped, preset, stats);
+  AddSymbolExp(character, worn, stats);
   AddMesoStrike(passives, stats);
   return stats;
+}
+
+double SymbolBossDamagePct(const CharacterInstance& character,
+                           const std::string& boss, StatPreset gear) {
+  double pct = 0.0;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       character.equipped(gear)) {
+    const EquipInstance& item = *kv.second;
+    if (IsSacredSymbol(item.prototype()) &&
+        item.prototype().sacred_symbol().boss() == boss &&
+        SymbolMaxed(item.prototype(), item.equip_state())) {
+      pct += kSacredMaxBossDamagePct;
+    }
+  }
+  return pct;
 }
 
 double MesoBonus(const DerivedStats& derived) {

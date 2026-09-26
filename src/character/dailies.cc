@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/arcane_force.h"
 #include "src/character/boss_reset.h"
+#include "src/character/symbol.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -45,12 +45,12 @@ EquipSlot HighestSymbolOwned(const CharacterInstance& character) {
 
 }  // namespace
 
-Equip PackedSymbol(int copies) {
+Equip PackedSymbol(const EquipPrototype& proto, int copies) {
   Equip state;
   // One copy is the item itself; the rest are stored in it as duplicates.
   state.set_symbol_exp(std::max(0, copies - 1));
-  while (SymbolCanLevelUp(state)) {
-    LevelUpSymbol(state);
+  while (SymbolCanLevelUp(proto, state)) {
+    LevelUpSymbol(proto, state);
   }
   return state;
 }
@@ -91,8 +91,8 @@ bool ClaimDailies(CharacterInstance& character,
     return false;
   }
   for (const EquipPrototype* proto : claimable) {
-    character.PickUp(
-        std::make_unique<EquipInstance>(*proto, PackedSymbol(kSymbolsPerDay)));
+    character.PickUp(std::make_unique<EquipInstance>(
+        *proto, PackedSymbol(*proto, kSymbolsPerDay)));
   }
   character.RecordDailiesClaim(now);
   return true;

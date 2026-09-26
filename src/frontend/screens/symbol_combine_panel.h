@@ -1,8 +1,8 @@
-/* SymbolCombinePanel is the dialog for feeding spare Arcane Symbols into the
- * one being worn. It names the symbol, shows its EXP against the next level,
+/* SymbolCombinePanel is the dialog for feeding spare symbols into the one
+ * being worn. It names the symbol, shows its EXP against the next level,
  * and puts the shared AmountSelector below. The amount starts at every spare
- * held, since the last level needs 372 duplicates and one keypress each would
- * be too much to ask.
+ * held, since an Arcane Symbol's last level needs 372 duplicates and one
+ * keypress each would be too much to ask.
  *
  * The amount counts spare items, which aren't worth one each: a claimed stack
  * carries twenty. The EXP row shows this, and it goes past the level's

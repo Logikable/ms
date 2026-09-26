@@ -19,9 +19,13 @@
 
 namespace ms {
 
-// The column header above the symbol list. The Equipped list's own header is
-// ItemListHeader, over the columns its panel fitted.
-extern const char kSymbolHeader[];
+// The two symbol lists the Symbols tab switches between.
+enum class SymbolKind { kArcane, kSacred };
+
+// The column header above a symbol list, which names its kind's force. The
+// Equipped list's own header is ItemListHeader, over the columns its panel
+// fitted.
+std::string SymbolHeader(SymbolKind kind);
 
 // One worn item as a row.
 struct EquippedRow {
@@ -37,7 +41,7 @@ struct EquippedRow {
   bool inherited = false;
 };
 
-// The rows for the gear `character` is wearing. Arcane Symbols are left out,
+// The rows for the gear `character` is wearing. Symbols are left out,
 // since they have their own slots; see SymbolRows.
 //
 // Only the row at `selected` scrolls a name that is too long, with `elapsed` as
@@ -48,11 +52,11 @@ std::vector<EquippedRow> EquippedRows(
     std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,
     StatPreset preset = StatPreset::kFirst);
 
-// The rows for the Arcane Symbols `character` is wearing, in the order their
-// areas unlock. Empty until the first is equipped, which is all the Symbols tab
+// The rows for the symbols of `kind` that `character` is wearing, in the order
+// their areas unlock. Empty until the first is equipped, which is all the list
 // shows before then.
 std::vector<EquippedRow> SymbolRows(
-    const CharacterInstance& character, int selected,
+    const CharacterInstance& character, SymbolKind kind, int selected,
     std::chrono::steady_clock::duration elapsed);
 
 }  // namespace ms

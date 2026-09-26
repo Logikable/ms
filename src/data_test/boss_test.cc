@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/sacred_power.h"
+#include "src/character/symbol.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/item/item.h"
@@ -47,6 +49,60 @@ class BossDataTest : public testing::Test {
   std::map<std::string, Boss> bosses_ = LoadBosses();
   std::map<std::string, Mob> mobs_ = LoadMobs();
 };
+
+// The bosses the Sacred Symbols name that aren't in the game yet. Building one
+// takes it off this list, and its file must use the stem named here.
+const std::set<std::string> kUnbuiltSymbolBosses = {
+    "seren", "kalos", "first_adversary", "kaling", "malefic_star", "limbo",
+};
+
+// The highest level any mob in `boss`'s fights is at.
+int TopMobLevel(const Boss& boss, const std::map<std::string, Mob>& mobs) {
+  int top = 0;
+  for (const BossDifficulty& difficulty : boss.difficulties()) {
+    for (const BossPhase& phase : difficulty.phases()) {
+      for (const Spawn& spawn : phase.spawns()) {
+        std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
+        if (mob != mobs.end()) {
+          top = std::max(top, mob->second.level());
+        }
+      }
+    }
+  }
+  return top;
+}
+
+// A symbol's max-level damage finds its boss by file stem, so a boss built
+// under another stem would quietly get none. Three checks close that: a key
+// that finds a boss agrees with it on the name, the keys that find nothing are
+// exactly the unbuilt list, and every Grandis boss is some symbol's key.
+TEST_F(BossDataTest, SacredSymbolsNameRealBosses) {
+  std::set<std::string> keys;
+  std::set<std::string> unbuilt;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    if (!IsSacredSymbol(entry.second)) {
+      continue;
+    }
+    const SacredSymbolInfo& info = entry.second.sacred_symbol();
+    keys.insert(info.boss());
+    std::map<std::string, Boss>::const_iterator boss =
+        bosses_.find(info.boss());
+    if (boss == bosses_.end()) {
+      unbuilt.insert(info.boss());
+      continue;
+    }
+    EXPECT_EQ(boss->second.name(), info.boss_name()) << entry.first;
+  }
+  EXPECT_EQ(keys.size(), 6u) << "one boss per Sacred Symbol";
+  EXPECT_EQ(unbuilt, kUnbuiltSymbolBosses);
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    if (TopMobLevel(entry.second, mobs_) >= kGrandisLevel) {
+      EXPECT_GT(keys.count(entry.first), 0u)
+          << entry.first << " is a Grandis boss no Sacred Symbol names";
+    }
+  }
+}
 
 TEST_F(BossDataTest, EveryPhaseSpawnsAKnownMob) {
   int phases = 0;
