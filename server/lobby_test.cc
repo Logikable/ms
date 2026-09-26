@@ -96,9 +96,9 @@ class LobbyTest : public ::testing::Test {
     return id;
   }
 
-  // Starts the fight at kNow.
+  // Starts the fight.
   LobbyResult Start(const std::string& account_id, const StartFight& request) {
-    return lobby_.Start(account_id, request, kNow);
+    return lobby_.Start(account_id, request);
   }
 
   // Returns whether `account_id` is ready in the listed party.
@@ -311,24 +311,12 @@ TEST_F(LobbyTest, EveryMemberHasToBeReady) {
   EXPECT_TRUE(Start("one", Fight("zakum")).ok);
 }
 
-TEST_F(LobbyTest, NobodyMayTakeAFightTwiceInAReset) {
+// Each game counts resets on its own clock, so the server takes a member's
+// clears on trust rather than refuse on its own.
+TEST_F(LobbyTest, AMembersClearDoesNotBlockTheFight) {
   PartyOf(2);
-  // Cleared this morning, after the 4am daily reset.
   lobby_.UpdatePlayer(
       Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60));
-
-  LobbyResult refused = Start("one", Fight("hilla"));
-  EXPECT_FALSE(refused.ok);
-  EXPECT_EQ(refused.reason, Refused::REASON_ALREADY_CLEARED);
-  EXPECT_EQ(refused.message, "Someone has already cleared this boss today.");
-
-  // The other difficulty is blocked too, since the reset is per boss.
-  EXPECT_EQ(Start("one", Fight("hilla", 1)).reason,
-            Refused::REASON_ALREADY_CLEARED);
-
-  // A clear of a different boss does not block this one.
-  lobby_.UpdatePlayer(
-      Cleared(Player("two", 140), "zakum", "Normal", kNow - 6 * 60 * 60));
   EXPECT_TRUE(Start("one", Fight("hilla")).ok);
 }
 
@@ -350,21 +338,7 @@ TEST_F(LobbyTest, EveryMemberHasToHaveTheSameOptionsSet) {
   EXPECT_TRUE(Start("one", Fight("zakum", 0, /*practice=*/true)).ok);
 }
 
-// Practice uses up no clear, so earlier clears do not block it.
-TEST_F(LobbyTest, PracticeWalksPastTheReset) {
-  PartyOf(2);
-  lobby_.UpdatePlayer(
-      Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60));
-  ASSERT_EQ(Start("one", Fight("hilla")).reason,
-            Refused::REASON_ALREADY_CLEARED);
-
-  lobby_.UpdatePlayer(Practising(
-      Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60)));
-  lobby_.UpdatePlayer(Practising(Player("one", 140)));
-  EXPECT_TRUE(Start("one", Fight("hilla", 0, /*practice=*/true)).ok);
-}
-
-// Practice skips the reset check but not the level requirement.
+// Practice still has to meet the level requirement.
 TEST_F(LobbyTest, PracticeDoesNotWalkPastTheLevelGate) {
   PartyOf(2);
   lobby_.UpdatePlayer(Practising(Player("one", 140)));

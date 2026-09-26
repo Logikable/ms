@@ -5,10 +5,9 @@
  * next 4am on a Tuesday. Local time is used so a player's reset happens in
  * their own early morning.
  *
- * Local time means the player's clock, which the player can change. That was
- * fine for a single-player game. The multiplayer server checks party clears
- * against its own clock, but the clear times themselves are still recorded by
- * each player's game.
+ * Local time means the player's clock, which the player can change. The
+ * multiplayer server does not check clears, since its clock would disagree
+ * with a player's about when the day turned over.
  */
 #ifndef MS_SRC_CHARACTER_BOSS_RESET_H_
 #define MS_SRC_CHARACTER_BOSS_RESET_H_

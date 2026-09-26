@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
-#include <ctime>
 #include <map>
 #include <memory>
 #include <optional>
@@ -27,12 +25,6 @@
 
 namespace ms {
 namespace {
-
-// Returns the wall-clock Unix time. Boss resets need the real date, which the
-// loop's steady clock does not know.
-int64_t WallNow() {
-  return static_cast<int64_t>(std::time(nullptr));
-}
 
 // Shown to a player whose game version does not match the server's.
 constexpr char kUpdateMessage[] =
@@ -667,8 +659,7 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       result = lobby_.Leave(session.account_id);
       break;
     case ClientMessage::kStartFight:
-      result =
-          lobby_.Start(session.account_id, message.start_fight(), WallNow());
+      result = lobby_.Start(session.account_id, message.start_fight());
       break;
     case ClientMessage::kSetReady:
       result = lobby_.SetReady(session.account_id, message.set_ready().ready());

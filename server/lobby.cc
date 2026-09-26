@@ -1,7 +1,6 @@
 #include "server/lobby.h"
 
 #include <algorithm>
-#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -9,7 +8,6 @@
 #include "absl/strings/str_cat.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "server/ids.h"
-#include "src/character/boss_reset.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
@@ -201,7 +199,7 @@ LobbyResult Lobby::Promote(const std::string& account_id,
 }
 
 LobbyResult Lobby::Start(const std::string& account_id,
-                         const StartFight& request, int64_t now) {
+                         const StartFight& request) {
   Record* record = Find(account_id);
   if (record == nullptr) {
     return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
@@ -214,7 +212,7 @@ LobbyResult Lobby::Start(const std::string& account_id,
     return Refusal(Refused::REASON_FIGHT_STARTED,
                    "The fight has already started.");
   }
-  LobbyResult allowed = CheckFight(record->party, request, now);
+  LobbyResult allowed = CheckFight(record->party, request);
   if (!allowed.ok) {
     return allowed;
   }
@@ -319,8 +317,8 @@ const Lobby::Record* Lobby::Find(const std::string& account_id) const {
   return found == parties_.end() ? nullptr : &found->second;
 }
 
-LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
-                              int64_t now) const {
+LobbyResult Lobby::CheckFight(const Party& party,
+                              const StartFight& request) const {
   const BossDifficulty* difficulty =
       FindDifficulty(bosses_, request.boss_key(), request.difficulty_index());
   if (difficulty == nullptr) {
@@ -338,33 +336,14 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
                      "Someone doesn't meet the level requirement.");
     }
   }
-  // Check options before clears, because options such as practice decide
-  // whether clears matter. Everyone must pick the same options, since one
-  // fight cannot reward players differently.
+  // Everyone must pick the same options, since one fight cannot reward
+  // players differently.
   for (const PartyMember& member : party.members()) {
     if (!MessageDifferencer::Equals(member.player().boss_options(),
                                     request.options())) {
       return Refusal(Refused::REASON_OPTIONS_DIFFER,
                      "Players selected different bossing options.");
     }
-  }
-  const Boss& boss = bosses_.at(request.boss_key());
-  for (const PartyMember& member : party.members()) {
-    // Practice uses up no clear, so earlier clears do not block it.
-    if (request.options().practice()) {
-      break;
-    }
-    // Checked per boss, not per difficulty: clearing any difficulty locks
-    // them all.
-    if (BossAvailable(request.boss_key(), boss, member.player().boss_clears(),
-                      now)) {
-      continue;
-    }
-    std::string when =
-        difficulty->reset() == RESET_PERIOD_WEEKLY ? "this week" : "today";
-    return Refusal(
-        Refused::REASON_ALREADY_CLEARED,
-        absl::StrCat("Someone has already cleared this boss ", when, "."));
   }
   for (const PartyMember& member : party.members()) {
     // The leader is always ready and has no stored flag.
