@@ -612,7 +612,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
 }
 
 // Hard Damien and Hard Lotus pay what Normal does plus a one-in-five chance at
-// each AbsoLab box, on Normal's clock and gate.
+// each AbsoLab box, on Normal's gate and GMS's thirty-minute clock.
 TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
   struct Want {
     std::string boss;
@@ -626,7 +626,7 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
     const BossDifficulty& hard = bosses_.at(want.boss).difficulties(1);
     EXPECT_FALSE(hard.coming_soon());
     EXPECT_EQ(hard.reset(), normal.reset());
-    EXPECT_EQ(hard.time_limit_seconds(), normal.time_limit_seconds());
+    EXPECT_EQ(hard.time_limit_seconds(), 1800);
     EXPECT_EQ(hard.unlock_level(), normal.unlock_level());
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);

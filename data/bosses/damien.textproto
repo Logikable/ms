@@ -90,7 +90,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 1500
+  time_limit_seconds: 1800
   unlock_level: 210
   # Five Intense Power Crystals at GMS's price (84,375,000), divided by seven and
   # rounded to the nearest 50k, as for Normal.
