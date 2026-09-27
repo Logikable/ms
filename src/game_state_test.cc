@@ -722,9 +722,9 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
   }
 }
 
-// Potential should be visible at every rank, so the workbench assigns the four
-// ranks across its worn gear instead of letting each piece roll. A run where
-// nothing reached Legendary would leave the display half-tested.
+// Both potentials should be visible at every rank, so the workbench assigns the
+// four ranks across its worn gear instead of letting each piece roll. A run
+// where nothing reached Legendary would leave the display half-tested.
 TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
   // The armour the workbench wears which, with the sword, gives five slots with
   // potential: enough to assign every rank.
@@ -747,6 +747,7 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
 
   GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
   std::set<PotentialRank> ranks;
+  std::set<PotentialRank> bonus_ranks;
   int cubed = 0;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        state.character.equipped()) {
@@ -755,12 +756,18 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
     EXPECT_EQ(potential.lines_size(), kPotentialLines)
         << kv.second->prototype().name() << " was never cubed";
     ranks.insert(potential.rank());
+    const Potential& bonus = kv.second->equip_state().bonus_potential();
+    EXPECT_EQ(bonus.lines_size(), kPotentialLines)
+        << kv.second->prototype().name() << " has no bonus potential";
+    bonus_ranks.insert(bonus.rank());
     ++cubed;
   }
   ASSERT_EQ(cubed, 5) << "the four ranks need four pieces to be dealt over";
-  EXPECT_EQ(ranks, (std::set<PotentialRank>{
-                       POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC,
-                       POTENTIAL_RANK_UNIQUE, POTENTIAL_RANK_LEGENDARY}));
+  const std::set<PotentialRank> every_rank = {
+      POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC, POTENTIAL_RANK_UNIQUE,
+      POTENTIAL_RANK_LEGENDARY};
+  EXPECT_EQ(ranks, every_rank);
+  EXPECT_EQ(bonus_ranks, every_rank);
 }
 
 // Nothing is cubed for a player: potential is something they buy.

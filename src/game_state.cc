@@ -834,10 +834,11 @@ void GiveSymbols(GameState& state) {
   }
 }
 
-// Potential on the workbench's gear. Every rank should be on screen at once, so
-// the cubeable slots are assigned the four ranks in turn instead of each
-// rolling its own. A rank is reached by cubing until the item gets there, like
-// a player would, which costs only tens of rolls.
+// Both potentials on the workbench's gear. Every rank should be on screen at
+// once, so the cubeable slots are dealt the four ranks in turn instead of each
+// rolling its own, and dealt again for the bonus potential so the two ranks on
+// an item don't always match. A rank is reached by cubing until the item gets
+// there, like a player would, which costs only tens of rolls.
 void SeedPotentials(GameState& state) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
@@ -846,16 +847,17 @@ void SeedPotentials(GameState& state) {
       slots.push_back(kv.first);
     }
   }
-  std::shuffle(slots.begin(), slots.end(), state.rng);
-
   constexpr PotentialRank kRanks[] = {POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC,
                                       POTENTIAL_RANK_UNIQUE,
                                       POTENTIAL_RANK_LEGENDARY};
-  for (size_t i = 0; i < slots.size(); ++i) {
-    // Capped instead of trusting the odds: a cube that stopped ranking up would
-    // otherwise hang the workbench on startup.
-    state.character.CubeWornUpTo(slots[i], CubeType::kRed,
-                                 kRanks[i % std::size(kRanks)], kMaxSeedCubes);
+  for (CubeType cube : {CubeType::kRed, CubeType::kGreen}) {
+    std::shuffle(slots.begin(), slots.end(), state.rng);
+    for (size_t i = 0; i < slots.size(); ++i) {
+      // Capped instead of trusting the odds: a cube that stopped ranking up
+      // would otherwise hang the workbench on startup.
+      state.character.CubeWornUpTo(
+          slots[i], cube, kRanks[i % std::size(kRanks)], kMaxSeedCubes);
+    }
   }
 }
 
