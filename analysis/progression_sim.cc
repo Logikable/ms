@@ -611,6 +611,22 @@ std::string WornNames(const GameState& state) {
   return worn;
 }
 
+// The character's current damage against a boss.
+int PowerNow(const GameState& state) {
+  const Character& proto = state.character.proto();
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  return CombatPower(
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      TotalEquipStats(state.character, derived),
+                      state.character.weapon_type(), /*attack_skill=*/nullptr,
+                      /*attack_level=*/0, PassiveOffenseFor(derived)),
+      /*vs_boss=*/true);
+}
+
+// How much stronger the character must get before the worth table is
+// re-measured, since the ranking of line types changes with the kit.
+constexpr double kRemeasureGrowth = 1.5;
+
 // What the book and the matrix were last planned against. Planning is the most
 // expensive thing a look does, so if two looks agree on every field, the second
 // plan is skipped. Node levels are left out: a key the matrix plan's own output
@@ -628,12 +644,15 @@ struct PlanKey {
   }
 };
 
-// The part of a PlanKey the matrix plan depends on: gear, book and fight.
-// Points and map don't affect it.
-std::string MatrixKey(const PlanKey& key) {
-  return absl::StrCat(key.worn, "|", key.skills, "|", key.fight.first, "/",
-                      key.fight.second);
-}
+// What the matrix was last planned from scratch against. A full replan costs
+// hundreds of measured fights, so like the worth tables it waits for a new
+// target or a character who has outgrown the plan; in between, new points go
+// on top.
+struct MatrixChoice {
+  bool planned = false;
+  std::pair<std::string, int> fight;
+  int power = 0;
+};
 
 PlanKey PlanKeyFor(const GameState& state) {
   PlanKey key;
@@ -663,10 +682,8 @@ PlanKey PlanKeyFor(const GameState& state) {
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
-            PlanKey& planned, ToggleChoice& toggles, MapChoice& mapped,
-            Ledger& ledger) {
-  // What the matrix was last fully replanned against. See below.
-  const std::string planned_matrix = MatrixKey(planned);
+            PlanKey& planned, ToggleChoice& toggles, MatrixChoice& matrix,
+            MapChoice& mapped, Ledger& ledger) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -708,13 +725,18 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     SpendBookWithToggles(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
         &toggles);
-    // Plan the matrix after the book, on the same rate. Only replan from
-    // scratch when gear, book or fight changed, since those carry a character
-    // over a defence wall; otherwise new points are added on top.
-    PlanKey now = PlanKeyFor(state);
+    // Plan the matrix after the book, on the same rate. See MatrixChoice.
+    std::pair<std::string, int> fight;
+    AimedFight(state, &fight);
+    int power = PowerNow(state);
+    bool replan = !matrix.planned || fight != matrix.fight ||
+                  power >= matrix.power * kRemeasureGrowth;
+    if (replan && state.character.v_matrix_unlocked()) {
+      matrix = {true, fight, power};
+    }
     SpendVMatrix(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
-        /*replan=*/MatrixKey(now) != planned_matrix);
+        replan);
   }
   LearnTheRest(state);
   // Record the key after the free skills, since the key reads their levels.
@@ -1257,9 +1279,7 @@ struct Session {
   // The CombatPower the worth table was measured at, so it can be re-measured
   // once the character has outgrown it.
   int ability_power = 0;
-  // Worn gear at the last allocation: one line per slot with the item's name.
-  // See GearChanged.
-  std::string worn_gear;
+  MatrixChoice matrix;
   // Where this climb is saved, and under what name.
   const Checkpointing* saves = nullptr;
   std::string key;
@@ -1430,50 +1450,17 @@ GearReached ReachedOnGear(const GameState& state) {
   return reached;
 }
 
-// The character's current damage against a boss.
-int PowerNow(const GameState& state) {
-  const Character& proto = state.character.proto();
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  return CombatPower(
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      TotalEquipStats(state.character, derived),
-                      state.character.weapon_type(), /*attack_skill=*/nullptr,
-                      /*attack_level=*/0, PassiveOffenseFor(derived)),
-      /*vs_boss=*/true);
-}
-
-// How much stronger the character must get before the worth table is
-// re-measured, since the ranking of line types changes with the kit.
-constexpr double kRemeasureGrowth = 1.5;
-
-// Whether any slot holds a different item than at the last allocation; a new
-// weapon changes what every stat is worth. Compares names only, since stars and
-// scrolls change at nearly every look.
-bool GearChanged(Session& run) {
-  std::string worn;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
-       run.state.character.equipped()) {
-    worn += item.second->name();
-    worn += '\n';
-  }
-  if (worn == run.worn_gear) {
-    return false;
-  }
-  run.worn_gear = std::move(worn);
-  return true;
-}
-
 // Spends the Hyper Stat points from leveling on both presets. Unlike Inner
 // Ability, points come per level and cost nothing to move, so there's no pool
 // to split.
-void SpendHyperPoints(Session& run, bool regeared) {
+void SpendHyperPoints(Session& run) {
   if (run.state.character.proto().level() < kHyperStatUnlockLevel) {
     return;
   }
   int power = PowerNow(run.state);
   std::pair<std::string, int> aim;
   AimedFight(run.state, &aim);
-  if (!run.hyper_measured || regeared || aim != run.hyper_aim ||
+  if (!run.hyper_measured || aim != run.hyper_aim ||
       power >= run.hyper_power * kRemeasureGrowth) {
     // One basis for the whole table: a Hyper Stat point changes the character's
     // damage, not what a kill drops.
@@ -1500,9 +1487,9 @@ void SpendHyperPoints(Session& run, bool regeared) {
 // Spends collected honor on the bossing Inner Ability preset only: there's one
 // pool, and a character this early can't finish both.
 //
-// New gear doesn't force a re-measure here, though it does for Hyper Stats: a
-// fresh table can name a different target line and restart a chase that a dry
-// pool leaves half done. Forcing it cost a Cygnus clear and gained nothing.
+// New gear doesn't force a re-measure here: a fresh table can name a different
+// target line and restart a chase that a dry pool leaves half done. Forcing it
+// cost a Cygnus clear and gained nothing.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
@@ -1691,6 +1678,35 @@ void LoadWorth(const CheckpointWorth& from, AbilityWorth* worth) {
   }
 }
 
+void SaveHyperWorth(const HyperWorth& worth, CheckpointWorth* to) {
+  for (const auto& field : worth.rate) {
+    for (double rate : field) {
+      to->add_rate(rate);
+    }
+  }
+}
+
+void LoadHyperWorth(const CheckpointWorth& from, HyperWorth* worth) {
+  int i = 0;
+  for (auto& field : worth->rate) {
+    for (double& rate : field) {
+      if (i < from.rate_size()) {
+        rate = from.rate(i);
+      }
+      ++i;
+    }
+  }
+}
+
+void SaveAim(const std::pair<std::string, int>& aim, CheckpointAim* to) {
+  to->set_boss(aim.first);
+  to->set_difficulty(aim.second);
+}
+
+std::pair<std::string, int> LoadAim(const CheckpointAim& from) {
+  return {from.boss(), from.difficulty()};
+}
+
 void SaveBossLogs(const Climb& climb, CheckpointClimb* to) {
   for (const std::pair<const std::string, BossLog>& entry : climb.bosses) {
     CheckpointBossLog* log = to->add_bosses();
@@ -1856,6 +1872,15 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   }
   saved.set_ability_measured(run.ability_measured);
   saved.set_ability_power(run.ability_power);
+  SaveAim(run.ability_aim, saved.mutable_ability_aim());
+  saved.set_hyper_measured(run.hyper_measured);
+  saved.set_hyper_power(run.hyper_power);
+  SaveAim(run.hyper_aim, saved.mutable_hyper_aim());
+  SaveHyperWorth(run.hyper_farming, saved.mutable_hyper_farming());
+  SaveHyperWorth(run.hyper_bossing, saved.mutable_hyper_bossing());
+  saved.set_matrix_planned(run.matrix.planned);
+  saved.set_matrix_power(run.matrix.power);
+  SaveAim(run.matrix.fight, saved.mutable_matrix_aim());
   saved.set_world_rng(SaveRng(run.state.rng));
   saved.set_run_rng(SaveRng(run.rng));
   SaveClimb(run.climb, saved.mutable_climb());
@@ -1891,6 +1916,14 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   }
   run.ability_measured = saved.ability_measured();
   run.ability_power = saved.ability_power();
+  run.ability_aim = LoadAim(saved.ability_aim());
+  run.hyper_measured = saved.hyper_measured();
+  run.hyper_power = saved.hyper_power();
+  run.hyper_aim = LoadAim(saved.hyper_aim());
+  LoadHyperWorth(saved.hyper_farming(), &run.hyper_farming);
+  LoadHyperWorth(saved.hyper_bossing(), &run.hyper_bossing);
+  run.matrix = {saved.matrix_planned(), LoadAim(saved.matrix_aim()),
+                saved.matrix_power()};
   LoadRng(saved.world_rng(), &run.state.rng);
   LoadRng(saved.run_rng(), &run.rng);
   LoadClimb(saved.climb(), &run.climb);
@@ -1949,8 +1982,8 @@ void Restock(Session& run) {
   ClaimDailySymbols(run);
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
-         run.mapped, run.climb.ledger);
-  SpendHyperPoints(run, GearChanged(run));
+         run.matrix, run.mapped, run.climb.ledger);
+  SpendHyperPoints(run);
   SpendHonor(run);
 }
 
@@ -2086,7 +2119,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
-  SpendHyperPoints(run, GearChanged(run));
+  SpendHyperPoints(run);
   SpendHonor(run);
   // Hourly, but only re-picked once the character has outgrown the last answer.
   // Probing the maps plays a fight on each, and twenty endgame days of hourly

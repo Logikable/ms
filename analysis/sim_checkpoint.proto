@@ -123,6 +123,12 @@ message CheckpointClimb {
   repeated CheckpointPotentials potentials = 24;
 }
 
+// A fight a plan was measured against: boss key and difficulty index.
+message CheckpointAim {
+  string boss = 1;
+  int32 difficulty = 2;
+}
+
 // A climb saved at the level the checkpoint was taken.
 message SimCheckpoint {
   // The build that wrote it. A file whose stamp doesn't match the running
@@ -163,4 +169,16 @@ message SimCheckpoint {
   double level_began = 22;
   CheckpointStint stint = 23;
   repeated double carry = 24 [packed = true];
+
+  // When each plan was last made from scratch, so a resumed run re-plans at
+  // the same looks a full climb does. See MatrixChoice and SpendHyperPoints.
+  CheckpointAim ability_aim = 26;
+  bool hyper_measured = 27;
+  int32 hyper_power = 28;
+  CheckpointAim hyper_aim = 29;
+  CheckpointWorth hyper_farming = 30;
+  CheckpointWorth hyper_bossing = 31;
+  bool matrix_planned = 32;
+  int32 matrix_power = 33;
+  CheckpointAim matrix_aim = 34;
 }
