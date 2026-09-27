@@ -892,6 +892,10 @@ void SeedTest(GameState& state, const TestOptions& test) {
         entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
       state.character.AddItem(entry.second, kTestTokens);
     }
+    // And boxes, so Open can be tried without a Hard clear.
+    if (entry.second.has_box()) {
+      state.character.AddItem(entry.second, kTestTokens);
+    }
   }
 
   bool chose_job = test.job != JOB_ADVANCEMENT_UNSPECIFIED;
