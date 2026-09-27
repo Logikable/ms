@@ -143,6 +143,7 @@ TEST(PotentialPoolTest, WeaponLinesStayOnWeaponry) {
   EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_ATTACK_PCT));
   EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40));
   EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_STR)));
+  EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_MAX_HP_PCT)));
   const std::vector<PotentialLineType> armor = PotentialPool(
       PotentialTrack::kMain, PotentialGroup::kArmor, POTENTIAL_RANK_LEGENDARY);
   EXPECT_THAT(armor, Not(Contains(POTENTIAL_LINE_TYPE_ATTACK_PCT)));

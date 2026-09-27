@@ -60,7 +60,9 @@ constexpr LineSpec kMainLines[] = {
      POTENTIAL_RANK_LEGENDARY},
     {POTENTIAL_LINE_TYPE_LUK_PCT, kEveryGroup, POTENTIAL_RANK_RARE,
      POTENTIAL_RANK_LEGENDARY},
-    {POTENTIAL_LINE_TYPE_MAX_HP_PCT, kEveryGroup, POTENTIAL_RANK_RARE,
+    // Off weaponry, as GMS's client marks it at every rank but Epic; one
+    // universal rank would be the odd one out.
+    {POTENTIAL_LINE_TYPE_MAX_HP_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
      POTENTIAL_RANK_LEGENDARY},
     {POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kEveryGroup, POTENTIAL_RANK_EPIC,
      POTENTIAL_RANK_LEGENDARY},
