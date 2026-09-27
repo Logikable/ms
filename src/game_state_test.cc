@@ -207,17 +207,30 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
+// The first key the account binds to Mute, or empty.
+std::string MuteKey(const GameState& state) {
+  for (const Keybind& row : state.account.keybinds().binds()) {
+    if (row.action() == KEY_ACTION_MUTE && row.keys_size() > 0) {
+      return row.keys(0);
+    }
+  }
+  return "";
+}
+
 // Both settings are on for the workbench: it has two stat allocations at once,
-// and a tester hears the music. Play mode leaves both to the player.
+// and a tester hears the music, with M to mute it. Play mode leaves all three
+// to the player.
 TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
   GameState state = MakeTestModeState();
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
   EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
+  EXPECT_EQ(MuteKey(state), "M");
 
   GameState played = MakePlayModeState();
   EXPECT_FALSE(played.account.autoswap_presets());
   EXPECT_EQ(played.account.jukebox_mode(), JUKEBOX_MODE_FOLLOW_MAP);
+  EXPECT_EQ(MuteKey(played), "");
 }
 
 TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
@@ -1023,6 +1036,7 @@ TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
   EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
+  EXPECT_EQ(MuteKey(state), "M");
 }
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {

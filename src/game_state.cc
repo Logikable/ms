@@ -31,6 +31,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/keybinds.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -864,12 +865,20 @@ void SeedPotentials(GameState& state) {
 // The workbench, where everything exists to reach a screen without playing up
 // to it. `chosen` is --job: unset uses kTestAdvancement and buys its whole
 // book, so the default workbench is complete instead of half-built.
+// Neither workbench mode saves, so this never reaches the player's bindings.
+void BindMuteToM(GameState& state) {
+  Keybind* row = state.account.mutable_keybinds()->add_binds();
+  row->set_action(KEY_ACTION_MUTE);
+  row->add_keys("M");
+}
+
 void SeedTest(GameState& state, const TestOptions& test) {
   state.exp_multiplier = kTestExpMultiplier;
   // Both settings on: the workbench has two allocations at once, which is what
   // autoswap is for, and the music is what a tester hears for hours.
   state.account.SetAutoswapPresets(true);
   state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
+  BindMuteToM(state);
 
   // Enough to buy anything in the shop several times over, so buying screens
   // can be tested without farming meso. A hundred billion because star force is
@@ -1162,6 +1171,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
   // whatever the state requested.
   state.account.SetAutoswapPresets(true);
   state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
+  BindMuteToM(state);
   state.MirrorAccount();
   // The same default as the workbench: the highest advancement written in the
   // line, which is where boss rosters are measured from.
