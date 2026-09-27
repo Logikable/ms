@@ -1033,9 +1033,8 @@ TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 6)
       << "the Hero being played is not in the mirrored half";
   const CharacterInstance& hero = state.character;
-  EXPECT_EQ(hero.link_tally()
-                .With(hero.proto().job(), hero.proto().level())
-                .LevelFor(JOB_SWORDMAN),
+  EXPECT_EQ(hero.link_tally().LevelFor(JOB_SWORDMAN, hero.proto().job(),
+                                       hero.proto().level()),
             9);
   EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 9);
   EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 6);
