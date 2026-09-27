@@ -6,6 +6,7 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/types/span.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -35,7 +36,7 @@ struct LineSpec {
   PotentialRank max_rank;
 };
 
-constexpr LineSpec kLines[] = {
+constexpr LineSpec kMainLines[] = {
     // Flat stats, Rare only. GMS dropped them from Epic up, which is much of
     // what a rank-up gains.
     {POTENTIAL_LINE_TYPE_STR, kNonWeapon, POTENTIAL_RANK_RARE,
@@ -100,6 +101,54 @@ constexpr LineSpec kLines[] = {
      POTENTIAL_RANK_LEGENDARY},
 };
 
+// Bonus potential: GMS's own pools, less its flat stat, flat Max HP and flat
+// attack lines on every group and its per-9-levels lines on weaponry. A line
+// listed here and above must roll at the same ranks on both tracks, since
+// PotentialLineValue doesn't know which track it's on.
+constexpr LineSpec kBonusLines[] = {
+    {POTENTIAL_LINE_TYPE_STR_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_DEX_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_INT_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_LUK_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kWeaponryBit, POTENTIAL_RANK_EPIC,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_ATTACK_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_DAMAGE_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE, kWeaponryBit, POTENTIAL_RANK_UNIQUE,
+     POTENTIAL_RANK_LEGENDARY},
+
+    {POTENTIAL_LINE_TYPE_BONUS_STR_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_DEX_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_INT_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_LUK_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, kNonWeapon, POTENTIAL_RANK_RARE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT, kNonWeapon, POTENTIAL_RANK_EPIC,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS, kNonWeapon, POTENTIAL_RANK_UNIQUE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS, kNonWeapon, POTENTIAL_RANK_UNIQUE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS, kNonWeapon, POTENTIAL_RANK_UNIQUE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS, kNonWeapon, POTENTIAL_RANK_UNIQUE,
+     POTENTIAL_RANK_LEGENDARY},
+    {POTENTIAL_LINE_TYPE_COOLDOWN_1, kHatBit, POTENTIAL_RANK_LEGENDARY,
+     POTENTIAL_RANK_LEGENDARY},
+};
+
 // One band of equipment level and a line's value within it. A table's last row
 // covers every level above it.
 struct Band {
@@ -153,6 +202,29 @@ constexpr Band kRewardRateBands[] = {
     {kNoCeiling, {0, 0, 0, 20}},
 };
 
+// Bonus potential's %STR, %DEX, %INT and %LUK off weaponry, from GMS's
+// ItemOption.img.
+constexpr Band kBonusStatBands[] = {
+    {20, {1, 1, 2, 3}},  {50, {1, 2, 3, 4}},  {90, {1, 3, 4, 5}},
+    {150, {2, 4, 6, 8}}, {200, {3, 5, 6, 8}}, {kNoCeiling, {3, 5, 7, 9}},
+};
+
+// Not a rank below the single stats, as the main track's is.
+constexpr Band kBonusAllStatsBands[] = {
+    {20, {0, 1, 1, 2}},  {50, {0, 1, 2, 3}},  {90, {0, 1, 3, 4}},
+    {150, {0, 2, 5, 6}}, {200, {0, 3, 5, 6}}, {kNoCeiling, {0, 3, 6, 7}},
+};
+
+constexpr Band kBonusMaxHpBands[] = {
+    {20, {1, 1, 2, 3}},   {50, {1, 2, 3, 5}},   {90, {1, 3, 5, 7}},
+    {150, {2, 5, 8, 11}}, {200, {3, 6, 8, 11}}, {kNoCeiling, {3, 6, 9, 12}},
+};
+
+constexpr Band kBonusBossBands[] = {
+    {200, {0, 0, 12, 18}},
+    {kNoCeiling, {0, 0, 14, 20}},
+};
+
 // Chance a cube raises a potential's rank, by its current rank.
 constexpr double kRedRankUp[4] = {1.0 / 7.0, 0.06, 0.024, 0.0};
 
@@ -190,10 +262,22 @@ int BandValue(const Band* bands, int count, int item_level, int rank_index) {
   return bands[count - 1].value[rank_index];
 }
 
+absl::Span<const LineSpec> LinesOf(PotentialTrack track) {
+  switch (track) {
+    case PotentialTrack::kMain:
+      return kMainLines;
+    case PotentialTrack::kBonus:
+      return kBonusLines;
+  }
+  return {};
+}
+
 const LineSpec* SpecFor(PotentialLineType type) {
-  for (const LineSpec& spec : kLines) {
-    if (spec.type == type) {
-      return &spec;
+  for (PotentialTrack track : {PotentialTrack::kMain, PotentialTrack::kBonus}) {
+    for (const LineSpec& spec : LinesOf(track)) {
+      if (spec.type == type) {
+        return &spec;
+      }
     }
   }
   return nullptr;
@@ -334,20 +418,42 @@ int PotentialLineValue(PotentialLineType type, PotentialRank rank,
       return 1;
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
       return 2;
+    case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
+      return BandValue(kBonusStatBands, std::size(kBonusStatBands), item_level,
+                       index);
+    case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
+      return BandValue(kBonusAllStatsBands, std::size(kBonusAllStatsBands),
+                       item_level, index);
+    case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
+      return BandValue(kBonusMaxHpBands, std::size(kBonusMaxHpBands),
+                       item_level, index);
+    case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
+      return BandValue(kBonusBossBands, std::size(kBonusBossBands), item_level,
+                       index);
+    // One point per step at Unique, two at Legendary, at any item level.
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+      return rank == POTENTIAL_RANK_LEGENDARY ? 2 : 1;
     case POTENTIAL_LINE_TYPE_UNSPECIFIED:
       return 0;
   }
   return 0;
 }
 
-std::vector<PotentialLineType> PotentialPool(PotentialGroup group,
+std::vector<PotentialLineType> PotentialPool(PotentialTrack track,
+                                             PotentialGroup group,
                                              PotentialRank rank) {
   std::vector<PotentialLineType> pool;
   const int bit = GroupBitOf(group);
   if (bit == 0) {
     return pool;
   }
-  for (const LineSpec& spec : kLines) {
+  for (const LineSpec& spec : LinesOf(track)) {
     if ((spec.groups & bit) == 0 || rank < spec.min_rank ||
         rank > spec.max_rank) {
       continue;
@@ -365,9 +471,10 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
     std::bernoulli_distribution prime(PotentialPrimeChance(cube, i));
     const PotentialRank line_rank =
         prime(rng) ? rank : PreviousPotentialRank(rank);
-    const std::vector<PotentialLineType> pool = PotentialPool(group, line_rank);
-    // Never empty: the four %stat lines roll for every group, at every rank, on
-    // an item of any level.
+    const std::vector<PotentialLineType> pool =
+        PotentialPool(CubeOf(cube).track, group, line_rank);
+    // Never empty: four %stat lines roll for every group, at every rank, on
+    // both tracks.
     CHECK(!pool.empty());
     std::uniform_int_distribution<int> pick(0, pool.size() - 1);
     PotentialLine* line = potential.add_lines();
@@ -379,7 +486,7 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
 
 void AddPotential(const Potential& potential, int item_level,
                   PotentialTotals& totals) {
-  static_assert(PotentialLineType_ARRAYSIZE == 28,
+  static_assert(PotentialLineType_ARRAYSIZE == 39,
                 "a new potential line needs somewhere to land");
   for (const PotentialLine& line : potential.lines()) {
     const int value = PotentialLineValue(line.type(), line.rank(), item_level);
@@ -411,25 +518,43 @@ void AddPotential(const Potential& potential, int item_level,
         flat.set_max_hp(flat.max_hp() + value);
         break;
       case POTENTIAL_LINE_TYPE_STR_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
         totals.str_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_DEX_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
         totals.dex_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_INT_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
         totals.int_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_LUK_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
         totals.luk_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
         totals.str_pct += share;
         totals.dex_pct += share;
         totals.int_pct += share;
         totals.luk_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+      case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
         totals.max_hp_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+        totals.per_9_levels.set_str(totals.per_9_levels.str() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+        totals.per_9_levels.set_dex(totals.per_9_levels.dex() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+        totals.per_9_levels.set_int_(totals.per_9_levels.int_() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+        totals.per_9_levels.set_luk(totals.per_9_levels.luk() + value);
         break;
       case POTENTIAL_LINE_TYPE_ATTACK_PCT:
         totals.attack_pct += share;
@@ -449,6 +574,7 @@ void AddPotential(const Potential& potential, int item_level,
       case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
       case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
       case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+      case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
         totals.boss_pct += share;
         break;
       case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:

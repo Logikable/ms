@@ -4171,6 +4171,22 @@ TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
   EXPECT_EQ(PotentialStatGrant(c, stats, PotentialTotals()).str(), 0);
 }
 
+// A per-9-levels line pays its points once per nine of the wearer's levels,
+// so it grows with the character and not the item.
+TEST(PotentialStatsTest, PerLevelLinesCountTheWearersLevel) {
+  std::mt19937 rng(1);
+  CharacterInstance at_200 = MakeCharacter(rng, 200, 0);
+  EquipPotentialRing(at_200, 150, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS,
+                      POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS});
+  EXPECT_EQ(DerivedStatsFor(at_200, {}).potential_stats.str(), 22 * 2 * 2);
+
+  CharacterInstance at_8 = MakeCharacter(rng, 8, 0);
+  EquipPotentialRing(at_8, 150, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS});
+  EXPECT_EQ(DerivedStatsFor(at_8, {}).potential_stats.str(), 0);
+}
+
 TEST(PotentialStatsTest, ACooldownLineReachesTheCharacter) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);

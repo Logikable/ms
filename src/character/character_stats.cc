@@ -1026,19 +1026,25 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset slot,
   }
 }
 
-// The flat stats `potential` gives a character whose four stats total `pile`:
-// its own flat lines, plus the share its %stat lines take of the pile once
-// those flat lines are added. It is shared with PotentialStatGrant so the two
-// can't drift apart.
+// The flat stats `potential` gives a character at `level` whose four stats
+// total `pile`: its own flat lines, plus the share its %stat lines take of the
+// pile once those flat lines are added. It is shared with PotentialStatGrant so
+// the two can't drift apart.
 //
 // A %stat line multiplies the AP pool, worn gear, the book's flat grants and
 // the potential's own flat lines. It skips the three final-stat sources, which
 // is why the symbols are taken back off. It doesn't use Maple Warrior's rule,
 // which reads the AP pool alone. Two %stat sources add rather than compound, so
 // both are applied to the same base.
-EquipStats PotentialFlatGrant(const int pile[4],
+EquipStats PotentialFlatGrant(const int pile[4], int level,
                               const PotentialTotals& potential) {
-  const EquipStats& flat = potential.flat;
+  EquipStats flat = potential.flat;
+  const EquipStats& per_step = potential.per_9_levels;
+  const int steps = level / 9;
+  flat.set_str(flat.str() + per_step.str() * steps);
+  flat.set_dex(flat.dex() + per_step.dex() * steps);
+  flat.set_int_(flat.int_() + per_step.int_() * steps);
+  flat.set_luk(flat.luk() + per_step.luk() * steps);
   const int base[4] = {
       pile[0] + flat.str(),
       pile[1] + flat.dex(),
@@ -1089,7 +1095,8 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   passives.set_luk(totals.luk);
   int pile[4];
   StatPileFor(character, passives, EquipStats(), worn, pile);
-  const EquipStats paid = PotentialFlatGrant(pile, potential);
+  const EquipStats paid =
+      PotentialFlatGrant(pile, character.proto().level(), potential);
   totals.potential_stats = paid;
   totals.str += paid.str();
   totals.dex += paid.dex();
@@ -1558,7 +1565,7 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
   int pile[4];
   StatPileFor(character, derived.skill_stats, derived.potential_stats,
               derived.gear, pile);
-  return PotentialFlatGrant(pile, totals);
+  return PotentialFlatGrant(pile, character.proto().level(), totals);
 }
 
 int TotalIntFor(const CharacterInstance& character,

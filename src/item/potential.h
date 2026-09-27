@@ -66,8 +66,8 @@ enum class CubeType {
   kRed,
 };
 
-// Which of an item's two potentials a cube rerolls. Bonus potential isn't built
-// (see the note on Equip.main_potential), so no cube uses it yet.
+// Which of an item's two potentials a cube rerolls. Each draws from its own
+// pools; no cube rerolls bonus potential yet.
 enum class PotentialTrack {
   kMain,
   kBonus,
@@ -104,20 +104,23 @@ double PotentialRankUpChance(CubeType cube, PotentialRank rank);
 double PotentialPrimeChance(CubeType cube, int index);
 
 // The value of `type` at `rank` on an item of `item_level`: flat for stats and
-// Max HP, whole percents for the rest, and seconds for the two cooldown lines.
-// Zero for a combination that doesn't roll.
+// Max HP, points per step for the per-9-levels lines, seconds for the cooldown
+// lines and whole percents for the rest. Zero for a combination that rolls on
+// neither track.
 int PotentialLineValue(PotentialLineType type, PotentialRank rank,
                        int item_level);
 
-// The lines an item of `group` can roll at `rank`, in catalog order. All are
-// equally likely: GMS's weights are dropped along with the junk lines they
-// mostly applied to, and so are its per-line equipment level requirements,
-// since nothing has a Legendary potential on a level 30 item.
-std::vector<PotentialLineType> PotentialPool(PotentialGroup group,
+// The lines an item of `group` can roll at `rank` on `track`, in catalog
+// order. All are equally likely: GMS's weights are dropped along with the junk
+// lines they mostly applied to, and so are its per-line equipment level
+// requirements, since nothing has a Legendary potential on a level 30 item.
+std::vector<PotentialLineType> PotentialPool(PotentialTrack track,
+                                             PotentialGroup group,
                                              PotentialRank rank);
 
-// Rolls a whole potential at `rank`. The first line has the rank; the other two
-// are prime at the cube's odds and one rank lower otherwise. Duplicate lines
+// Rolls a whole potential at `rank` from the pools of the cube's track. The
+// first line has the rank; the other two are prime at the cube's odds and one
+// rank lower otherwise. Duplicate lines
 // are allowed: three %ATT lines on one weapon is the goal.
 Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
                         std::mt19937& rng);
@@ -127,6 +130,9 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
 // DerivedStats uses them, so the code reading this needs no conversion.
 struct PotentialTotals {
   EquipStats flat;
+  // The per-9-levels lines' points per step. Only the wearer's level turns
+  // them into stats; see PotentialFlatGrant in character_stats.cc.
+  EquipStats per_9_levels;
   // Stat percentages. What they multiply isn't decided here; see AddPotentials
   // in character_stats.cc, the one place that knows which stats potential can
   // scale.

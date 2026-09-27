@@ -611,27 +611,41 @@ std::string PotentialRankName(PotentialRank rank) {
 }
 
 std::string PotentialLineName(PotentialLineType type) {
-  static_assert(PotentialLineType_ARRAYSIZE == 28,
+  static_assert(PotentialLineType_ARRAYSIZE == 39,
                 "a new potential line needs a name");
   switch (type) {
     case POTENTIAL_LINE_TYPE_STR:
     case POTENTIAL_LINE_TYPE_STR_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
       return "STR";
     case POTENTIAL_LINE_TYPE_DEX:
     case POTENTIAL_LINE_TYPE_DEX_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
       return "DEX";
     case POTENTIAL_LINE_TYPE_INT:
     case POTENTIAL_LINE_TYPE_INT_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
       return "INT";
     case POTENTIAL_LINE_TYPE_LUK:
     case POTENTIAL_LINE_TYPE_LUK_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
       return "LUK";
     case POTENTIAL_LINE_TYPE_ALL_STATS:
     case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
       return "All Stats";
     case POTENTIAL_LINE_TYPE_MAX_HP:
     case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
       return "Max HP";
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+      return "STR per 9 Levels";
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+      return "DEX per 9 Levels";
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+      return "INT per 9 Levels";
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+      return "LUK per 9 Levels";
     case POTENTIAL_LINE_TYPE_ATTACK_PCT:
       return "ATT";
     case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
@@ -646,6 +660,7 @@ std::string PotentialLineName(PotentialLineType type) {
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+    case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
       return "Boss Damage";
     case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
       return "Critical Damage";
@@ -683,6 +698,10 @@ std::string PotentialValueText(PotentialLineType type, int value) {
     case POTENTIAL_LINE_TYPE_LUK:
     case POTENTIAL_LINE_TYPE_ALL_STATS:
     case POTENTIAL_LINE_TYPE_MAX_HP:
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
       return std::to_string(value);
     default:
       return std::to_string(value) + "%";
@@ -705,6 +724,22 @@ PotentialLineType StatPercentLine(StatField stat) {
   }
 }
 
+// The main line a bonus %stat line off weaponry grants the same stat as.
+PotentialLineType MainStatPercent(PotentialLineType bonus) {
+  switch (bonus) {
+    case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
+      return POTENTIAL_LINE_TYPE_STR_PCT;
+    case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
+      return POTENTIAL_LINE_TYPE_DEX_PCT;
+    case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
+      return POTENTIAL_LINE_TYPE_INT_PCT;
+    case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
+      return POTENTIAL_LINE_TYPE_LUK_PCT;
+    default:
+      return bonus;
+  }
+}
+
 // The %attack line that raises this character's damage. A magician's damage
 // uses magic attack, so a wand's weapon attack doesn't count. The stat column
 // asks the same question.
@@ -717,7 +752,7 @@ PotentialLineType PrimaryAttackPercent(StatField primary) {
 // damage and cooldown several fixed sizes, each its own type, and this maps
 // them to one effect. All Stat% maps to the character's primary stat.
 PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
-  static_assert(PotentialLineType_ARRAYSIZE == 28,
+  static_assert(PotentialLineType_ARRAYSIZE == 39,
                 "a new potential line needs a family");
   switch (type) {
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
@@ -728,6 +763,7 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+    case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
       return POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
     case POTENTIAL_LINE_TYPE_COOLDOWN_1:
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
@@ -738,7 +774,13 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
       return type;
     case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
       return StatPercentLine(primary);
+    case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
+      return SummaryFamily(MainStatPercent(type), primary);
     case POTENTIAL_LINE_TYPE_ATTACK_PCT:
     case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
       return type == PrimaryAttackPercent(primary)
@@ -872,7 +914,7 @@ std::vector<std::string> SecondaryStatEffect(const Potential& potential,
   }
   int total = 0;
   for (const PotentialLine& line : potential.lines()) {
-    if (line.type() == family) {
+    if (MainStatPercent(line.type()) == family) {
       total += PotentialLineValue(line.type(), line.rank(), item_level);
     }
   }
@@ -892,15 +934,25 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
 }
 
 std::string PotentialLineShortName(PotentialLineType type) {
-  static_assert(PotentialLineType_ARRAYSIZE == 28,
+  static_assert(PotentialLineType_ARRAYSIZE == 39,
                 "a new potential line needs a short name");
   switch (type) {
     case POTENTIAL_LINE_TYPE_ALL_STATS:
     case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
       return "All Stat";
     case POTENTIAL_LINE_TYPE_MAX_HP:
     case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+    case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
       return "HP";
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+      return "STR/9Lv";
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+      return "DEX/9Lv";
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+      return "INT/9Lv";
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+      return "LUK/9Lv";
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
@@ -909,6 +961,7 @@ std::string PotentialLineShortName(PotentialLineType type) {
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+    case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
       return "Boss";
     case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
       return "Crit DMG";

@@ -120,12 +120,13 @@ TEST(PotentialValueTest, TheOneOffLines) {
 }
 
 TEST(PotentialPoolTest, EachSpecialLineSitsInOneGroup) {
-  const std::vector<PotentialLineType> hat =
-      PotentialPool(PotentialGroup::kHat, POTENTIAL_RANK_LEGENDARY);
-  const std::vector<PotentialLineType> gloves =
-      PotentialPool(PotentialGroup::kGloves, POTENTIAL_RANK_LEGENDARY);
+  const std::vector<PotentialLineType> hat = PotentialPool(
+      PotentialTrack::kMain, PotentialGroup::kHat, POTENTIAL_RANK_LEGENDARY);
+  const std::vector<PotentialLineType> gloves = PotentialPool(
+      PotentialTrack::kMain, PotentialGroup::kGloves, POTENTIAL_RANK_LEGENDARY);
   const std::vector<PotentialLineType> accessory =
-      PotentialPool(PotentialGroup::kAccessory, POTENTIAL_RANK_LEGENDARY);
+      PotentialPool(PotentialTrack::kMain, PotentialGroup::kAccessory,
+                    POTENTIAL_RANK_LEGENDARY);
   EXPECT_THAT(hat, Contains(POTENTIAL_LINE_TYPE_COOLDOWN_2));
   EXPECT_THAT(gloves, Not(Contains(POTENTIAL_LINE_TYPE_COOLDOWN_2)));
   EXPECT_THAT(gloves, Contains(POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT));
@@ -137,28 +138,146 @@ TEST(PotentialPoolTest, EachSpecialLineSitsInOneGroup) {
 
 TEST(PotentialPoolTest, WeaponLinesStayOnWeaponry) {
   const std::vector<PotentialLineType> weapon =
-      PotentialPool(PotentialGroup::kWeaponry, POTENTIAL_RANK_LEGENDARY);
+      PotentialPool(PotentialTrack::kMain, PotentialGroup::kWeaponry,
+                    POTENTIAL_RANK_LEGENDARY);
   EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_ATTACK_PCT));
   EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40));
   EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_STR)));
-  const std::vector<PotentialLineType> armor =
-      PotentialPool(PotentialGroup::kArmor, POTENTIAL_RANK_LEGENDARY);
+  const std::vector<PotentialLineType> armor = PotentialPool(
+      PotentialTrack::kMain, PotentialGroup::kArmor, POTENTIAL_RANK_LEGENDARY);
   EXPECT_THAT(armor, Not(Contains(POTENTIAL_LINE_TYPE_ATTACK_PCT)));
   EXPECT_THAT(armor, Not(Contains(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35)));
 }
 
 TEST(PotentialPoolTest, FlatLinesAreRareAlone) {
-  EXPECT_THAT(PotentialPool(PotentialGroup::kArmor, POTENTIAL_RANK_RARE),
+  EXPECT_THAT(PotentialPool(PotentialTrack::kMain, PotentialGroup::kArmor,
+                            POTENTIAL_RANK_RARE),
               Contains(POTENTIAL_LINE_TYPE_STR));
-  EXPECT_THAT(PotentialPool(PotentialGroup::kArmor, POTENTIAL_RANK_EPIC),
+  EXPECT_THAT(PotentialPool(PotentialTrack::kMain, PotentialGroup::kArmor,
+                            POTENTIAL_RANK_EPIC),
               Not(Contains(POTENTIAL_LINE_TYPE_STR)));
-  EXPECT_THAT(PotentialPool(PotentialGroup::kArmor, POTENTIAL_RANK_EPIC),
+  EXPECT_THAT(PotentialPool(PotentialTrack::kMain, PotentialGroup::kArmor,
+                            POTENTIAL_RANK_EPIC),
               Contains(POTENTIAL_LINE_TYPE_ALL_STATS_PCT));
 }
 
 TEST(PotentialPoolTest, ASlotWithNoPotentialDrawsNothing) {
-  EXPECT_TRUE(
-      PotentialPool(PotentialGroup::kNone, POTENTIAL_RANK_RARE).empty());
+  EXPECT_TRUE(PotentialPool(PotentialTrack::kMain, PotentialGroup::kNone,
+                            POTENTIAL_RANK_RARE)
+                  .empty());
+}
+
+TEST(PotentialPoolTest, BonusPoolSizes) {
+  struct Case {
+    PotentialGroup group;
+    int sizes[4];
+  };
+  const Case cases[] = {
+      {PotentialGroup::kWeaponry, {7, 8, 9, 9}},
+      {PotentialGroup::kArmor, {5, 6, 10, 10}},
+      {PotentialGroup::kGloves, {5, 6, 10, 10}},
+      {PotentialGroup::kAccessory, {5, 6, 10, 10}},
+      {PotentialGroup::kHat, {5, 6, 10, 11}},
+  };
+  for (const Case& c : cases) {
+    for (int i = 0; i < 4; ++i) {
+      const PotentialRank rank =
+          static_cast<PotentialRank>(POTENTIAL_RANK_RARE + i);
+      EXPECT_EQ(PotentialPool(PotentialTrack::kBonus, c.group, rank).size(),
+                c.sizes[i])
+          << static_cast<int>(c.group) << " " << rank;
+    }
+  }
+}
+
+TEST(PotentialPoolTest, BonusWeaponryRollsTheMainLinesAndNoneOfItsOwn) {
+  const std::vector<PotentialLineType> weapon =
+      PotentialPool(PotentialTrack::kBonus, PotentialGroup::kWeaponry,
+                    POTENTIAL_RANK_LEGENDARY);
+  EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_ATTACK_PCT));
+  EXPECT_THAT(weapon, Contains(POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE));
+  EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_BONUS_STR_PCT)));
+  EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS)));
+  EXPECT_THAT(weapon, Not(Contains(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40)));
+  const std::vector<PotentialLineType> hat = PotentialPool(
+      PotentialTrack::kBonus, PotentialGroup::kHat, POTENTIAL_RANK_LEGENDARY);
+  EXPECT_THAT(hat, Contains(POTENTIAL_LINE_TYPE_COOLDOWN_1));
+  EXPECT_THAT(hat, Not(Contains(POTENTIAL_LINE_TYPE_COOLDOWN_2)));
+  EXPECT_THAT(hat, Not(Contains(POTENTIAL_LINE_TYPE_STR_PCT)));
+}
+
+// PotentialLineValue doesn't know the track, so a line both tracks roll must
+// be worth something at every rank either one rolls it at.
+TEST(PotentialPoolTest, EveryRolledLineHasAValue) {
+  for (PotentialTrack track : {PotentialTrack::kMain, PotentialTrack::kBonus}) {
+    for (PotentialGroup group :
+         {PotentialGroup::kWeaponry, PotentialGroup::kHat,
+          PotentialGroup::kGloves, PotentialGroup::kArmor,
+          PotentialGroup::kAccessory}) {
+      for (int r = POTENTIAL_RANK_RARE; r <= POTENTIAL_RANK_LEGENDARY; ++r) {
+        const PotentialRank rank = static_cast<PotentialRank>(r);
+        for (PotentialLineType type : PotentialPool(track, group, rank)) {
+          EXPECT_GT(PotentialLineValue(type, rank, 160), 0)
+              << type << " at " << rank;
+        }
+      }
+    }
+  }
+}
+
+// GMS's ItemOption.img at item level 160, and past 200 where most bonus lines
+// off weaponry step up once more.
+TEST(PotentialValueTest, BonusLinesByRankAndLevel) {
+  struct Case {
+    PotentialLineType type;
+    int at_160[4];
+    int at_201[4];
+  };
+  const Case cases[] = {
+      {POTENTIAL_LINE_TYPE_BONUS_STR_PCT, {3, 5, 6, 8}, {3, 5, 7, 9}},
+      {POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT, {0, 3, 5, 6}, {0, 3, 6, 7}},
+      {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, {3, 6, 8, 11}, {3, 6, 9, 12}},
+      {POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE, {0, 0, 12, 18}, {0, 0, 14, 20}},
+      {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS, {0, 0, 1, 2}, {0, 0, 1, 2}},
+  };
+  for (const Case& c : cases) {
+    for (int i = 0; i < 4; ++i) {
+      const PotentialRank rank =
+          static_cast<PotentialRank>(POTENTIAL_RANK_RARE + i);
+      EXPECT_EQ(PotentialLineValue(c.type, rank, 160), c.at_160[i])
+          << c.type << " at " << rank;
+      EXPECT_EQ(PotentialLineValue(c.type, rank, 201), c.at_201[i])
+          << c.type << " at " << rank;
+    }
+  }
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BONUS_STR_PCT,
+                               POTENTIAL_RANK_LEGENDARY, 20),
+            3);
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT,
+                               POTENTIAL_RANK_LEGENDARY, 90),
+            7);
+}
+
+TEST(AddPotentialTest, BonusLinesLandWithTheirMainKin) {
+  Potential potential;
+  potential.set_rank(POTENTIAL_RANK_LEGENDARY);
+  for (PotentialLineType type : {POTENTIAL_LINE_TYPE_BONUS_STR_PCT,
+                                 POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT,
+                                 POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT,
+                                 POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE,
+                                 POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS}) {
+    PotentialLine* line = potential.add_lines();
+    line->set_type(type);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  }
+  PotentialTotals totals;
+  AddPotential(potential, 160, totals);
+  EXPECT_DOUBLE_EQ(totals.str_pct, 0.08 + 0.06);
+  EXPECT_DOUBLE_EQ(totals.dex_pct, 0.06);
+  EXPECT_DOUBLE_EQ(totals.max_hp_pct, 0.11);
+  EXPECT_DOUBLE_EQ(totals.boss_pct, 0.18);
+  EXPECT_EQ(totals.per_9_levels.luk(), 2);
+  EXPECT_EQ(totals.flat.luk(), 0);
 }
 
 TEST(RollPotentialTest, ThreeLinesAndTheFirstCarriesTheRank) {

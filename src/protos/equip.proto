@@ -211,6 +211,25 @@ enum PotentialLineType {
   POTENTIAL_LINE_TYPE_ITEM_DROP_RATE = 25;
   POTENTIAL_LINE_TYPE_COOLDOWN_1 = 26;
   POTENTIAL_LINE_TYPE_COOLDOWN_2 = 27;
+
+  // Bonus potential's lines off weaponry, weaker than the main lines of the
+  // same name. Bonus weaponry rolls the main %stat, %ATT and %Damage lines
+  // instead, since GMS gives them the same values there.
+  POTENTIAL_LINE_TYPE_BONUS_STR_PCT = 28;
+  POTENTIAL_LINE_TYPE_BONUS_DEX_PCT = 29;
+  POTENTIAL_LINE_TYPE_BONUS_INT_PCT = 30;
+  POTENTIAL_LINE_TYPE_BONUS_LUK_PCT = 31;
+  POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT = 32;
+  POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT = 33;
+  // Bonus weaponry's boss damage, one line whose value steps with the item's
+  // level, unlike the main track's fixed sizes.
+  POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE = 34;
+  // Flat stat per 9 character levels, off weaponry: a line's value is the
+  // points per step, and the wearer's level decides the steps.
+  POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS = 35;
+  POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS = 36;
+  POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS = 37;
+  POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS = 38;
 }
 
 // One line of a potential. Its value isn't stored; PotentialLineValue computes
