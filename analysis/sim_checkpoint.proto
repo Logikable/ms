@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/character.proto";
+import "src/protos/equip.proto";
 
 // A climb saved partway up, so a run asking about higher levels doesn't have to
 // replay the lower ones. Not a save file: it holds the sim's own bookkeeping
@@ -86,6 +87,24 @@ message CheckpointToken {
   double log_miss = 3;
 }
 
+// Both potentials on one worn piece.
+message CheckpointSlotPotential {
+  EquipSlot slot = 1;
+  string item = 2;
+  int32 item_level = 3;
+  Potential main = 4;
+  Potential bonus = 5;
+}
+
+// Every worn piece's potentials the first time the climb reached `level`, or,
+// with `end` set, where the run stopped.
+message CheckpointPotentials {
+  int32 level = 1;
+  double seconds = 2;
+  bool end = 3;
+  repeated CheckpointSlotPotential slots = 4;
+}
+
 // Everything the tables have collected so far. Mirrors Climb field for field: a
 // field added there must be added here.
 message CheckpointClimb {
@@ -101,6 +120,7 @@ message CheckpointClimb {
   repeated int32 frozen_level = 19 [packed = true];
   repeated CheckpointToken tokens = 20;
   repeated CheckpointStint stints = 23;
+  repeated CheckpointPotentials potentials = 24;
 }
 
 // A climb saved at the level the checkpoint was taken.

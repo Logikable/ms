@@ -54,6 +54,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <map>
@@ -69,6 +70,7 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
@@ -191,6 +193,14 @@ ABSL_FLAG(std::string, ability_rank, "legendary",
           "any line through a reset. A lock buys nothing while what they are "
           "short of is a rank, and the ladder to Legendary costs more honor "
           "than a climb to the cap is paid.");
+ABSL_FLAG(std::vector<std::string>, potential_levels,
+          std::vector<std::string>({"140", "170", "200", "230", "260"}),
+          "Levels at which to record every worn piece's main and bonus "
+          "potential, for the table the report ends on. The end of the run is "
+          "always recorded too.");
+ABSL_FLAG(std::string, potential_dump, "",
+          "A file to write every recorded potential to, line by line, for "
+          "reading outside the report.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Any branch at all, including the ones that stop at "
@@ -889,6 +899,9 @@ struct Climb {
   // One per kFrozenTokens entry, in order.
   TokenProgress tokens[kNumFrozenTokens];
   std::vector<Stint> stints;
+  // Both potentials on every worn piece at each --potential_levels level
+  // reached, in order, then where the run ended.
+  std::vector<CheckpointPotentials> potentials_at;
 };
 
 // Counts this step's kills against the tokens they could have dropped.
@@ -1026,6 +1039,61 @@ void NoteMilestones(const GameState& state, int level, double seconds,
         state.character.honor() + climb.ability_honor_spent;
     climb.milestones[i].level_honor = HonorForLevels(1, level);
     climb.milestones[i].boss_honor = kBossClearHonor * ClearsSoFar(climb);
+  }
+}
+
+// The levels --potential_levels names, in order.
+std::vector<int> PotentialLevels() {
+  std::vector<int> levels;
+  for (const std::string& text : absl::GetFlag(FLAGS_potential_levels)) {
+    int level = 0;
+    if (absl::SimpleAtoi(text, &level)) {
+      levels.push_back(level);
+    } else {
+      LOG(WARNING) << "not a level in --potential_levels: " << text;
+    }
+  }
+  std::sort(levels.begin(), levels.end());
+  return levels;
+}
+
+// Both potentials on every worn piece that takes one, as they stand now.
+CheckpointPotentials PotentialsNow(const GameState& state, int level,
+                                   double seconds) {
+  CheckpointPotentials now;
+  now.set_level(level);
+  now.set_seconds(seconds);
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped()) {
+    if (!entry.second->CanCube()) {
+      continue;
+    }
+    const EquipInstance& item = *entry.second;
+    CheckpointSlotPotential& slot = *now.add_slots();
+    slot.set_slot(entry.first);
+    slot.set_item(item.prototype().name());
+    slot.set_item_level(item.prototype().required_level());
+    *slot.mutable_main() = item.equip_state().main_potential();
+    *slot.mutable_bonus() = item.equip_state().bonus_potential();
+  }
+  return now;
+}
+
+// Records the potentials at every --potential_levels level this one reaches.
+// Called after the level's shopping, like NoteMilestones.
+void NotePotentials(const GameState& state, int level, double seconds,
+                    Climb& climb) {
+  for (int wanted : PotentialLevels()) {
+    if (level < wanted) {
+      break;
+    }
+    bool taken = false;
+    for (const CheckpointPotentials& held : climb.potentials_at) {
+      taken = taken || (!held.end() && held.level() == wanted);
+    }
+    if (!taken) {
+      climb.potentials_at.push_back(PotentialsNow(state, wanted, seconds));
+    }
   }
 }
 
@@ -1719,6 +1787,9 @@ void SaveClimb(const Climb& climb, CheckpointClimb* to) {
   for (const Stint& stint : climb.stints) {
     SaveStint(stint, to->add_stints());
   }
+  for (const CheckpointPotentials& potentials : climb.potentials_at) {
+    *to->add_potentials() = potentials;
+  }
 }
 
 void LoadClimb(const CheckpointClimb& from, Climb* climb) {
@@ -1740,6 +1811,8 @@ void LoadClimb(const CheckpointClimb& from, Climb* climb) {
   for (const CheckpointStint& stint : from.stints()) {
     climb->stints.push_back(LoadStint(stint));
   }
+  climb->potentials_at.assign(from.potentials().begin(),
+                              from.potentials().end());
 }
 
 // The two random streams, serialized the way their own library does it.
@@ -1924,6 +1997,7 @@ void NoteLevelReached(Session& run, ClimbCursor& cursor, int reached) {
   cursor.level = reached;
   NoteFrozenDrops(run.state, cursor.level, run.climb);
   NoteMilestones(run.state, cursor.level, run.seconds, run.purse, run.climb);
+  NotePotentials(run.state, cursor.level, run.seconds, run.climb);
   cursor.stint = {cursor.level, 0.0, run.state.current_map,
                   HeldWeaponName(run.state.character)};
 }
@@ -2116,7 +2190,8 @@ std::string ClimbSettings() {
       absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_cubes), ";",
       absl::GetFlag(FLAGS_dailies), ";", absl::GetFlag(FLAGS_attention), ";",
       absl::GetFlag(FLAGS_ability_rank), ";",
-      absl::GetFlag(FLAGS_checkpoint_at));
+      absl::GetFlag(FLAGS_checkpoint_at), ";",
+      absl::StrJoin(absl::GetFlag(FLAGS_potential_levels), ","));
 }
 
 // A climb's file name: branch, seed and settings, which together are everything
@@ -2167,6 +2242,10 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // endgame section does: it spends at every level of the climb, and a run that
   // never reached the cap used to report none of it.
   climb.ledger.gear = run.shopper.life();
+  CheckpointPotentials end =
+      PotentialsNow(state, state.character.proto().level(), run.seconds);
+  end.set_end(true);
+  climb.potentials_at.push_back(std::move(end));
   climb.booms = run.shopper.life().booms;
   climb.ability_farming = state.character.ability(StatPreset::kFirst);
   climb.ability_bossing = state.character.ability(StatPreset::kSecond);
@@ -2867,17 +2946,18 @@ void PrintCubing(const std::vector<Job>& branches,
   std::printf(
       "\nWhat the cubing came to. Kept is the rolls that beat what the piece "
       "already held;\nthe rest is the price of the chance.\n\n");
-  std::printf("%-13s %9s %8s %8s %6s\n", "branch", "meso", "cubes", "kept",
-              "kept%");
+  std::printf("%-13s %9s %8s %8s %6s %8s %8s\n", "branch", "meso", "red",
+              "kept", "kept%", "green", "kept");
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const GearSpend& gear = climbs[i].ledger.gear;
     char meso[16];
     FormatShort(static_cast<double>(gear.cubes), meso, sizeof(meso));
-    std::printf("%-13s %9s %8d %8d %5.0f%%\n", BranchName(branches[i]).c_str(),
-                meso, gear.cubes_bought, gear.cubes_kept,
-                gear.cubes_bought == 0
-                    ? 0.0
-                    : 100.0 * gear.cubes_kept / gear.cubes_bought);
+    int red = gear.cubes_bought - gear.green_cubes_bought;
+    int red_kept = gear.cubes_kept - gear.green_cubes_kept;
+    std::printf("%-13s %9s %8d %8d %5.0f%% %8d %8d\n",
+                BranchName(branches[i]).c_str(), meso, red, red_kept,
+                red == 0 ? 0.0 : 100.0 * red_kept / red,
+                gear.green_cubes_bought, gear.green_cubes_kept);
   }
   int weakest = 0;
   for (int i = 1; i < static_cast<int>(climbs.size()); ++i) {
@@ -2899,6 +2979,119 @@ void PrintCubing(const std::vector<Job>& branches,
         WithoutPrefix(PotentialRank_Name(row.rank), "POTENTIAL_RANK_").c_str(),
         row.replaceable ? "replaceable" : "",
         absl::StrJoin(row.lines, ", ").c_str());
+  }
+}
+
+// A potential's rank as one letter, "-" for none.
+std::string RankLetter(PotentialRank rank) {
+  switch (rank) {
+    case POTENTIAL_RANK_RARE:
+      return "R";
+    case POTENTIAL_RANK_EPIC:
+      return "E";
+    case POTENTIAL_RANK_UNIQUE:
+      return "U";
+    case POTENTIAL_RANK_LEGENDARY:
+      return "L";
+    default:
+      return "-";
+  }
+}
+
+// How many branches hold each rank, highest first: "L7 U2 -1".
+std::string RankCounts(const std::vector<PotentialRank>& ranks) {
+  std::map<int, int> counts;
+  for (PotentialRank rank : ranks) {
+    ++counts[-static_cast<int>(rank)];
+  }
+  std::vector<std::string> parts;
+  for (const std::pair<const int, int>& entry : counts) {
+    parts.push_back(absl::StrCat(
+        RankLetter(static_cast<PotentialRank>(-entry.first)), entry.second));
+  }
+  return absl::StrJoin(parts, " ");
+}
+
+// The recorded potentials at `level` (or the run's end, with level 0), or null
+// if the climb never got there.
+const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
+  for (const CheckpointPotentials& held : climb.potentials_at) {
+    if (level == 0 ? held.end() : !held.end() && held.level() == level) {
+      return &held;
+    }
+  }
+  return nullptr;
+}
+
+// Main and bonus ranks on every slot at each --potential_levels level, counted
+// across branches. The lines themselves go to --potential_dump.
+void PrintPotentialLevels(const std::vector<Job>& branches,
+                          const std::vector<Climb>& climbs) {
+  std::vector<int> levels = PotentialLevels();
+  levels.push_back(0);
+  for (int level : levels) {
+    std::map<EquipSlot, std::vector<PotentialRank>> main;
+    std::map<EquipSlot, std::vector<PotentialRank>> bonus;
+    int reached = 0;
+    for (const Climb& climb : climbs) {
+      const CheckpointPotentials* held = PotentialsAt(climb, level);
+      if (held == nullptr) {
+        continue;
+      }
+      ++reached;
+      for (const CheckpointSlotPotential& slot : held->slots()) {
+        main[slot.slot()].push_back(slot.main().rank());
+        bonus[slot.slot()].push_back(slot.bonus().rank());
+      }
+    }
+    std::printf("\nPotentials %s, %d of %zu branches:\n\n",
+                level == 0 ? "where the run ended"
+                           : absl::StrCat("at level ", level).c_str(),
+                reached, branches.size());
+    if (reached == 0) {
+      continue;
+    }
+    std::printf("  %-18s %-24s %s\n", "slot", "main", "bonus");
+    for (const std::pair<const EquipSlot, std::vector<PotentialRank>>& entry :
+         main) {
+      std::printf(
+          "  %-18s %-24s %s\n",
+          WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
+          RankCounts(entry.second).c_str(),
+          RankCounts(bonus[entry.first]).c_str());
+    }
+  }
+}
+
+// One line per potential recorded, tab-separated: branch, level ("end" for the
+// run's end), days, slot, item, item level, track, rank and lines.
+void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
+                    const std::vector<Climb>& climbs) {
+  std::ofstream out(path);
+  if (!out) {
+    LOG(WARNING) << "can't write --potential_dump to " << path;
+    return;
+  }
+  for (std::size_t i = 0; i < branches.size(); ++i) {
+    for (const CheckpointPotentials& held : climbs[i].potentials_at) {
+      for (const CheckpointSlotPotential& slot : held.slots()) {
+        for (const Potential* potential : {&slot.main(), &slot.bonus()}) {
+          std::vector<std::string> lines;
+          for (const PotentialLine& line : potential->lines()) {
+            lines.push_back(LineText(line, slot.item_level()));
+          }
+          out << BranchName(branches[i]) << '\t'
+              << (held.end() ? absl::StrCat("end:", held.level())
+                             : absl::StrCat(held.level()))
+              << '\t' << held.seconds() / kDaySeconds << '\t'
+              << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_")
+              << '\t' << slot.item() << '\t' << slot.item_level() << '\t'
+              << (potential == &slot.main() ? "main" : "bonus") << '\t'
+              << RankLetter(potential->rank()) << '\t'
+              << absl::StrJoin(lines, ", ") << '\n';
+        }
+      }
+    }
   }
 }
 
@@ -3306,11 +3499,15 @@ void Run() {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
     PrintCubing(branches, typical);
+    PrintPotentialLevels(branches, typical);
     PrintDefence(catalogs, branches, typical);
     int weakest = WeakestBranch(catalogs, typical);
     PrintCharacterSheet(catalogs, branches[weakest], typical[weakest]);
   }
   PrintBossReadiness(catalogs, branches, typical);
+  if (!absl::GetFlag(FLAGS_potential_dump).empty()) {
+    DumpPotentials(absl::GetFlag(FLAGS_potential_dump), branches, typical);
+  }
 }
 
 }  // namespace

@@ -24,7 +24,10 @@ cc_library(
 proto_library(
     name = "sim_checkpoint_proto",
     srcs = ["sim_checkpoint.proto"],
-    deps = ["//src/protos:character_proto"],
+    deps = [
+        "//src/protos:character_proto",
+        "//src/protos:equip_proto",
+    ],
 )
 
 cc_proto_library(
