@@ -6,6 +6,7 @@
 #define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -456,6 +457,28 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              absl::Span<const CharacterInstance> allies = {},
                              Activity preset = Activity::kFarming,
                              std::optional<StatPreset> gear = std::nullopt);
+
+// DerivedStatsFor split at the buffs: the part no buff changes, computed once,
+// for a caller reading one character under many buff combinations. With()
+// gives exactly what DerivedStatsFor gives for the same arguments. The
+// character, catalog and allies must outlive it and not change.
+class DerivedBasis {
+ public:
+  DerivedBasis(const CharacterInstance& character,
+               const std::map<std::string, Skill>& skills,
+               absl::Span<const CharacterInstance> allies = {},
+               Activity preset = Activity::kFarming,
+               std::optional<StatPreset> gear = std::nullopt);
+  ~DerivedBasis();
+  DerivedBasis(const DerivedBasis&) = delete;
+  DerivedBasis& operator=(const DerivedBasis&) = delete;
+
+  DerivedStats With(absl::Span<const BuffUp> buffs_up) const;
+
+ private:
+  struct Held;
+  std::unique_ptr<Held> held_;
+};
 
 // The damage share worn Sacred Symbols add against `boss` (a data file stem),
 // at every difficulty: kSacredMaxBossDamagePct from each maxed one naming it.

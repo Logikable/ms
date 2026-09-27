@@ -401,6 +401,10 @@ struct BuffedSetSource {
   Activity preset = Activity::kFarming;
   // Whether to halve reach when building, as boss fights do for every list.
   bool halve_reach = false;
+  // The character's stats before any buff, made with the first set and shared
+  // by the rest: every set reads the same character. Shared rather than owned
+  // so CombatParams stays copyable.
+  mutable std::shared_ptr<const DerivedBasis> derived;
 };
 
 // One form a buff can be raised in; the fight picks one at each cast. See

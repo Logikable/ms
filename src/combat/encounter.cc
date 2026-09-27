@@ -1917,9 +1917,12 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
       up.push_back(source.ally_buffs[i]);
     }
   }
-  DerivedStats derived = DerivedStatsFor(
-      source.state->character, source.state->skills, absl::MakeConstSpan(up),
-      source.state->party, source.preset);
+  if (source.derived == nullptr) {
+    source.derived = std::make_shared<const DerivedBasis>(
+        source.state->character, source.state->skills,
+        absl::MakeConstSpan(source.state->party), source.preset);
+  }
+  DerivedStats derived = source.derived->With(absl::MakeConstSpan(up));
   AttackSet set = BuildAttackSet(*source.state, derived, *source.weapon,
                                  source.speed_factor, params.types);
   TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);

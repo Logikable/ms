@@ -638,6 +638,32 @@ TEST_F(DerivedStatsTest, GlacialFuryDeepensThePileWhileItStands) {
   EXPECT_EQ(standing.freeze.matt_per_stack, 5);
 }
 
+// A basis made once reads the same character under each buff combination as
+// DerivedStatsFor does, buff or none.
+TEST_F(DerivedStatsTest, TheBasisGivesWhatDerivedStatsForGives) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 0);
+  Skill crush = FreezingCrush();
+  Skill fury = GlacialFury();
+  std::map<std::string, Skill> skills = {{"freezing_crush", crush},
+                                         {"glacial_fury", fury}};
+  ASSERT_TRUE(c.LearnSkill(crush, 1));
+  ASSERT_TRUE(c.LearnSkill(fury, 1));
+
+  DerivedBasis basis(c, skills);
+  const BuffUp up[] = {{&fury}};
+  for (absl::Span<const BuffUp> buffs :
+       {absl::Span<const BuffUp>(), absl::MakeConstSpan(up)}) {
+    DerivedStats direct = DerivedStatsFor(c, skills, buffs);
+    DerivedStats split = basis.With(buffs);
+    EXPECT_EQ(split.freeze.cap, direct.freeze.cap);
+    EXPECT_EQ(split.freeze.matt_per_stack, direct.freeze.matt_per_stack);
+    EXPECT_EQ(split.max_hp, direct.max_hp);
+    EXPECT_EQ(split.skill_stats.SerializeAsString(),
+              direct.skill_stats.SerializeAsString());
+  }
+  EXPECT_EQ(basis.With(up).freeze.cap, 13);
+}
+
 // The buff raises a cap but doesn't create one. A character who never learned
 // Freezing Crush has no stacks for it to raise or pay for.
 TEST_F(DerivedStatsTest, TheCapBonusGrantsNothingWithoutACap) {

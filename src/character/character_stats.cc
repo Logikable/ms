@@ -853,31 +853,38 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
 
 // Sums every passive the character has learned. HP needs its whole flat total
 // before any percentage applies, so nothing is folded here.
-PassiveTotals LearnedPassives(const CharacterInstance& character,
-                              const std::map<std::string, Skill>& skills,
-                              absl::Span<const BuffUp> buffs_up,
-                              absl::Span<const CharacterInstance> allies,
-                              Activity activity,
-                              std::optional<StatPreset> worn = std::nullopt) {
+// What LearnedPassives adds before any buff, which every buff combination
+// shares.
+struct PassivesBeforeBuffs {
   PassiveTotals totals;
-  // The character's own gear preset. An ally's comes from their own activity.
-  const StatPreset gear =
-      worn.value_or(character.SlotFor(PresetKind::kEquip, activity));
+  int bonus = 0;
+  bool in_company = false;
+  std::vector<AllyGrant> party;
+  ExclusiveBest exclusive;
+};
+
+PassivesBeforeBuffs LearnedBeforeBuffs(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills,
+    absl::Span<const CharacterInstance> allies, Activity activity,
+    StatPreset gear) {
+  PassivesBeforeBuffs before;
+  PassiveTotals& totals = before.totals;
   EquipType weapon = character.weapon_type(gear);
-  int bonus = BonusSkillLevels(character, skills, allies);
+  before.bonus = BonusSkillLevels(character, skills, allies);
+  before.in_company = !allies.empty();
   std::vector<PayingSkill> paying =
-      PayingSkills(character, skills, bonus, allies, activity);
-  std::vector<AllyGrant> party =
-      PartyGrants(character, skills, allies, activity);
+      PayingSkills(character, skills, before.bonus, allies, activity);
+  before.party = PartyGrants(character, skills, allies, activity);
   // Both sources use one group table: a group includes everything that pays
   // into it, from the character's own book and the party alike.
-  ExclusiveBest exclusive;
+  ExclusiveBest& exclusive = before.exclusive;
   for (const PayingSkill& entry : paying) {
     exclusive.Consider(
         *entry.skill,
         EffectAt(entry.skill->base(), entry.skill->per_level(), entry.level));
   }
-  for (const AllyGrant& grant : party) {
+  for (const AllyGrant& grant : before.party) {
     exclusive.Consider(*grant.skill, AllyEffectOf(grant));
   }
   for (const PayingSkill& entry : paying) {
@@ -888,12 +895,19 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   for (const SkillEffect& bonus : character.set_bonuses(gear)) {
     AddEffect(bonus, totals);
   }
+  return before;
+}
+
+PassiveTotals LearnedWithBuffs(const CharacterInstance& character,
+                               const PassivesBeforeBuffs& before,
+                               absl::Span<const BuffUp> buffs_up) {
+  PassiveTotals totals = before.totals;
   for (const BuffUp& up : buffs_up) {
-    AddStandingBuff(character, up, bonus, !allies.empty(), totals);
+    AddStandingBuff(character, up, before.bonus, before.in_company, totals);
   }
   // What the party grants them, at each caster's level, added the same way.
-  for (const AllyGrant& grant : party) {
-    AddEffect(exclusive.Thin(*grant.skill, AllyEffectOf(grant)), totals);
+  for (const AllyGrant& grant : before.party) {
+    AddEffect(before.exclusive.Thin(*grant.skill, AllyEffectOf(grant)), totals);
   }
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);
@@ -902,6 +916,20 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   FoldEnemyCondition(totals);
   FoldComboOrbs(totals);
   return totals;
+}
+
+PassiveTotals LearnedPassives(const CharacterInstance& character,
+                              const std::map<std::string, Skill>& skills,
+                              absl::Span<const BuffUp> buffs_up,
+                              absl::Span<const CharacterInstance> allies,
+                              Activity activity,
+                              std::optional<StatPreset> worn = std::nullopt) {
+  // The character's own gear preset. An ally's comes from their own activity.
+  const StatPreset gear =
+      worn.value_or(character.SlotFor(PresetKind::kEquip, activity));
+  return LearnedWithBuffs(
+      character, LearnedBeforeBuffs(character, skills, allies, activity, gear),
+      buffs_up);
 }
 
 // What the Hyper Stats add on top of the skill book. The four stats are added
@@ -1459,20 +1487,14 @@ void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
 
 }  // namespace
 
-DerivedStats DerivedStatsFor(const CharacterInstance& character,
-                             const std::map<std::string, Skill>& skills,
-                             absl::Span<const BuffUp> buffs_up,
-                             absl::Span<const CharacterInstance> allies,
-                             Activity preset, std::optional<StatPreset> gear) {
+namespace {
+
+// Everything DerivedStatsFor does once the passives are summed.
+DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
+                         StatPreset worn, PassiveTotals passives) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
-  // The activity picks the gear as well as the allocations, unless the caller
-  // picked a preset; see stat_preset.h.
-  const StatPreset worn =
-      gear.value_or(character.SlotFor(PresetKind::kEquip, preset));
   const EquipStats& equipped = character.equip_stats(worn);
-  PassiveTotals passives =
-      LearnedPassives(character, skills, buffs_up, allies, preset, worn);
   // Before the fold: a potential's %stat and Maple Warrior both read a base the
   // other hasn't changed, and their shares add rather than compound.
   AddPotentials(character, preset, worn, passives);
@@ -1519,6 +1541,55 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   AddSymbolExp(character, worn, stats);
   AddMesoStrike(passives, stats);
   return stats;
+}
+
+// The activity picks the gear as well as the allocations, unless the caller
+// picked a preset; see stat_preset.h.
+StatPreset WornFor(const CharacterInstance& character, Activity preset,
+                   std::optional<StatPreset> gear) {
+  return gear.value_or(character.SlotFor(PresetKind::kEquip, preset));
+}
+
+}  // namespace
+
+DerivedStats DerivedStatsFor(const CharacterInstance& character,
+                             const std::map<std::string, Skill>& skills,
+                             absl::Span<const BuffUp> buffs_up,
+                             absl::Span<const CharacterInstance> allies,
+                             Activity preset, std::optional<StatPreset> gear) {
+  const StatPreset worn = WornFor(character, preset, gear);
+  return FoldDerived(character, preset, worn,
+                     LearnedWithBuffs(character,
+                                      LearnedBeforeBuffs(character, skills,
+                                                         allies, preset, worn),
+                                      buffs_up));
+}
+
+struct DerivedBasis::Held {
+  const CharacterInstance* character = nullptr;
+  Activity preset = Activity::kFarming;
+  StatPreset worn = StatPreset::kFirst;
+  PassivesBeforeBuffs before;
+};
+
+DerivedBasis::DerivedBasis(const CharacterInstance& character,
+                           const std::map<std::string, Skill>& skills,
+                           absl::Span<const CharacterInstance> allies,
+                           Activity preset, std::optional<StatPreset> gear)
+    : held_(std::make_unique<Held>()) {
+  held_->character = &character;
+  held_->preset = preset;
+  held_->worn = WornFor(character, preset, gear);
+  held_->before =
+      LearnedBeforeBuffs(character, skills, allies, preset, held_->worn);
+}
+
+DerivedBasis::~DerivedBasis() = default;
+
+DerivedStats DerivedBasis::With(absl::Span<const BuffUp> buffs_up) const {
+  return FoldDerived(
+      *held_->character, held_->preset, held_->worn,
+      LearnedWithBuffs(*held_->character, held_->before, buffs_up));
 }
 
 double SymbolBossDamagePct(const CharacterInstance& character,
