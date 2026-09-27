@@ -34,6 +34,7 @@
 #include "analysis/ability_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
+#include "analysis/parallel.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
@@ -146,6 +147,11 @@ ABSL_FLAG(double, plan_seconds, 180.0,
 ABSL_FLAG(std::string, branch, "",
           "Measure this branch alone, as --job spells it (\"bishop\"). Every "
           "branch by default.");
+ABSL_FLAG(int, seeds, 8,
+          "How many seeds --endowed plays each row with. Nearly the whole "
+          "purse goes on cubes, so one seed's row is mostly its luck: the mean "
+          "is printed, with the spread and how many cleared. The other modes "
+          "read no dice and play once.");
 ABSL_FLAG(int, rounds, 2,
           "How many times --endowed goes round the spending. One pass cannot "
           "settle it: a V node changes what a Hyper Stat point is worth and a "
@@ -413,6 +419,12 @@ struct Result {
   bool cleared = false;
   double clear_seconds = 0.0;
   double left = 0.0;
+  // Across the row's seeds: the slowest and fastest rate, and how many of the
+  // runs cleared. The rest of the row is the first seed's.
+  double dps_low = 0.0;
+  double dps_high = 0.0;
+  int clears = 0;
+  int runs = 1;
   // What --endowed did with its resources, for the detail line. A bench that
   // hands out meso must show what it turned into, or a low row can't be told
   // apart from a shopper that never spent.
@@ -434,36 +446,20 @@ struct Result {
   std::vector<std::pair<std::string, double>> shares;
 };
 
-// Extra hits other skills in the character's book give `swing`. Greater Vessel
-// of Light gives Blast an eleventh, and printing ten next to eleven hits' worth
-// of damage wouldn't add up.
-int BoostedLines(const GameState& state, const std::string& swing) {
-  int lines = 0;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (state.character.skill_level(entry.second) <= 0 ||
-        !state.character.HasBookFor(entry.second)) {
-      continue;
-    }
-    for (const SkillBoost& boost : entry.second.boost()) {
-      if (boost.skill_name() == swing) {
-        lines += boost.lines();
-      }
-    }
-  }
-  return lines;
-}
-
 // The character's whole book, and the figures of the attack they settled on.
 // Filled here rather than from the AttackOption, because the page prints the
 // skill's own data, not the damage it produced.
 void RecordBook(const GameState& state, const DerivedStats& derived,
-                const std::string& swing, Result* result) {
+                const AttackOption& swing, Result* result) {
   for (const std::pair<const int32_t, int32_t>& entry :
        state.character.proto().sp_by_stage()) {
     result->unspent_sp += entry.second;
   }
+  // At the levels the fight reads, Combat Orders' included.
+  int bonus = BonusSkillLevels(state.character, state.skills);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    int learned = state.character.skill_level(entry.second);
+    int learned = EffectiveSkillLevel(state.character, entry.second, bonus,
+                                      derived.activity);
     if (learned <= 0) {
       continue;
     }
@@ -481,7 +477,7 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
       continue;
     }
     result->skills.push_back({entry.second.name(), learned});
-    if (entry.second.name() != swing) {
+    if (entry.second.name() != swing.name) {
       continue;
     }
     result->skill_pct = entry.second.base().skill_pct() +
@@ -490,12 +486,12 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
     // own data says, and the printed line must agree with the damage next to
     // it.
     std::map<std::string, SkillBonus>::const_iterator boost =
-        derived.skill_bonus.find(swing);
+        derived.skill_bonus.find(swing.name);
     if (boost != derived.skill_bonus.end()) {
       result->skill_pct += boost->second.skill_pct;
     }
-    result->lines =
-        SkillLinesAt(entry.second, learned) + BoostedLines(state, swing);
+    // The built attack's count has the book's granted lines in it.
+    result->lines = swing.lines;
     // Bolt Surplus's extra hit is in the damage next to this count, so it must
     // be in the count too, on the same terms the damage chain grants it.
     if (result->lines > 1) {
@@ -724,13 +720,13 @@ void RecordStatLine(const OffenseStats& bare, const AttackOption& best,
 }
 
 Result Measure(const Catalogs& catalogs, int level, const Build& build,
-               const Fight& fight) {
+               const Fight& fight, unsigned int seed) {
   Result result;
   // The max character is seeded whole; the other two start from a fresh
   // character. A GameState can't be assigned, so which one is decided here.
   GameState state = absl::GetFlag(FLAGS_max)
                         ? MaxState(catalogs, level, build.job)
-                        : NewState(catalogs, kSimSeed);
+                        : NewState(catalogs, seed);
   if (!Outfit(catalogs, level, build, fight, state, result)) {
     return result;
   }
@@ -766,18 +762,21 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
   const AttackOption* best = &params.attacks[played.main_attack];
   RecordStatLine(bare, *best, result);
   result.weapon = HeldWeaponName(state.character);
-  RecordBook(state, derived, best->name, &result);
+  RecordBook(state, derived, *best, &result);
   result.mirror_pct = derived.mirror_line_pct;
   result.swing_seconds = best->swing_seconds / speed;
   // Total damage over the run's length: attacks, summons and the burns they
   // left. Scaled back to 1x so two levels compare directly.
   result.dps = played.damage * speed / played.seconds;
+  result.dps_low = result.dps;
+  result.dps_high = result.dps;
   RecordShares(params, played, &result);
   // Last of all: a clear pays the character, and every figure above describes
   // the character entering the fight.
   if (fight.real) {
     BossOutcome outcome = FightBoss(state, fight.boss, fight.difficulty);
     result.cleared = outcome.won;
+    result.clears = outcome.won ? 1 : 0;
     result.clear_seconds = outcome.seconds;
     result.left = outcome.left;
   }
@@ -927,13 +926,74 @@ std::string SeedLine() {
 // Result of one attempt at a real fight: the clear time, or how much of the
 // boss was left when the character gave up.
 std::string ClearCell(const Result& result) {
-  char cell[24];
+  char cell[32];
+  if (result.runs > 1) {
+    std::snprintf(cell, sizeof(cell), "%d/%d won", result.clears, result.runs);
+    return cell;
+  }
   if (result.cleared) {
     std::snprintf(cell, sizeof(cell), "%.0fs", result.clear_seconds);
   } else {
     std::snprintf(cell, sizeof(cell), "%.0f%% left", 100.0 * result.left);
   }
   return cell;
+}
+
+// Seeds each row is played with: --seeds for --endowed, whose shopper rolls
+// cubes, and one otherwise.
+int SeedsPerRow() {
+  return absl::GetFlag(FLAGS_endowed) ? std::max(1, absl::GetFlag(FLAGS_seeds))
+                                      : 1;
+}
+
+// One row's seeds as one result: the first seed's character and detail, with
+// the rate and CP averaged over every seed.
+Result Fold(const std::vector<Result>& runs) {
+  Result row = runs.front();
+  row.runs = static_cast<int>(runs.size());
+  double dps = 0.0;
+  double power = 0.0;
+  row.clears = 0;
+  for (const Result& run : runs) {
+    dps += run.dps;
+    power += run.combat_power;
+    row.dps_low = std::min(row.dps_low, run.dps);
+    row.dps_high = std::max(row.dps_high, run.dps);
+    row.clears += run.clears;
+  }
+  row.dps = dps / row.runs;
+  row.combat_power = static_cast<int>(power / row.runs);
+  return row;
+}
+
+// The spread of a row's seeds around its mean, as percentages.
+std::string SpreadCell(const Result& row) {
+  char cell[24];
+  if (row.dps <= 0.0) {
+    return "-";
+  }
+  std::snprintf(cell, sizeof(cell), "%+.0f%%/%+.0f%%",
+                100.0 * (row.dps_low / row.dps - 1.0),
+                100.0 * (row.dps_high / row.dps - 1.0));
+  return cell;
+}
+
+// Every row's seeds, measured across the cores and folded in table order.
+std::vector<Result> MeasureRows(const Catalogs& catalogs, int level,
+                                const std::vector<Build>& builds,
+                                const Fight& fight) {
+  int seeds = SeedsPerRow();
+  std::vector<Result> runs(builds.size() * seeds);
+  ParallelFor(static_cast<int>(runs.size()), [&](int i) {
+    runs[i] = Measure(catalogs, level, builds[i / seeds], fight,
+                      kSimSeed + static_cast<unsigned int>(i % seeds));
+  });
+  std::vector<Result> rows;
+  for (int row = 0; row < static_cast<int>(builds.size()); ++row) {
+    rows.push_back(Fold(std::vector<Result>(runs.begin() + row * seeds,
+                                            runs.begin() + (row + 1) * seeds)));
+  }
+  return rows;
 }
 
 void Run(int level) {
@@ -943,19 +1003,34 @@ void Run(int level) {
   // A real fight is reported in the unit boss decisions use; the dummy stays in
   // the per-second unit the weapon table has always used.
   bool per_minute = fight.real;
-  std::printf("Level %d, %s. %s is against %s over %.0fs, at 1x speed.\n\n",
+  int seeds = SeedsPerRow();
+  std::printf("Level %d, %s. %s is against %s over %.0fs, at 1x speed.\n",
               level, SeedLine().c_str(), per_minute ? "DPM" : "DPS",
               CrowdLine(fight).c_str(), absl::GetFlag(FLAGS_seconds));
-  std::printf("%-13s  %-22s  %7s  %12s  %-18s  %5s%s\n", "job", "weapon", "CP",
-              per_minute ? "DPM" : "DPS", "swing", "sec",
+  if (seeds > 1) {
+    std::printf(
+        "The mean of %d seeds, with the slowest and fastest against it. The "
+        "detail is the first seed's.\n",
+        seeds);
+  }
+  std::printf("\n%-13s  %-22s  %7s  %12s%s  %-18s  %5s%s\n", "job", "weapon",
+              "CP", per_minute ? "DPM" : "DPS",
+              seeds > 1 ? "  spread     " : "", "swing", "sec",
               fight.real ? "  fight" : "");
-  std::printf("%s\n", std::string(fight.real ? 98 : 85, '-').c_str());
+  std::printf(
+      "%s\n",
+      std::string((fight.real ? 98 : 85) + (seeds > 1 ? 13 : 0), '-').c_str());
   const std::string& only = absl::GetFlag(FLAGS_branch);
+  std::vector<Build> builds;
   for (const Build& build : kBuilds) {
-    if (!only.empty() && build.job != ParseBranch(only)) {
-      continue;
+    if (only.empty() || build.job == ParseBranch(only)) {
+      builds.push_back(build);
     }
-    Result result = Measure(catalogs, level, build, fight);
+  }
+  std::vector<Result> rows = MeasureRows(catalogs, level, builds, fight);
+  for (int row = 0; row < static_cast<int>(builds.size()); ++row) {
+    const Build& build = builds[row];
+    const Result& result = rows[row];
     // A max character that doesn't match the row measured nothing: the branch
     // holds its other weapon, and that row prints instead.
     if (absl::GetFlag(FLAGS_max) && result.combat_power == 0) {
@@ -973,10 +1048,13 @@ void Run(int level) {
     // than widened there.
     std::string power =
         result.combat_power > 0 ? std::to_string(result.combat_power) : "-";
-    std::printf("%-13s  %-22s  %7s  %12.1f  %-18s  %5.2f%s%s\n",
+    std::string spread = seeds > 1 ? "  " + SpreadCell(result) : "";
+    spread.resize(seeds > 1 ? 13 : 0, ' ');
+    std::printf("%-13s  %-22s  %7s  %12.1f%s  %-18s  %5.2f%s%s\n",
                 BranchName(build.job).c_str(), weapon.c_str(), power.c_str(),
-                result.dps * (per_minute ? 60.0 : 1.0), result.swing.c_str(),
-                result.swing_seconds, fight.real ? "  " : "",
+                result.dps * (per_minute ? 60.0 : 1.0), spread.c_str(),
+                result.swing.c_str(), result.swing_seconds,
+                fight.real ? "  " : "",
                 fight.real ? ClearCell(result).c_str() : "");
     if (absl::GetFlag(FLAGS_detail)) {
       PrintDetail(build, result);

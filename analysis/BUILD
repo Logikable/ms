@@ -380,6 +380,7 @@ sim_binary(
         ":ability_plan",
         ":gear_plan",
         ":hyper_plan",
+        ":parallel",
         ":sim_boss",
         ":sim_gear",
         ":sim_jobs",
