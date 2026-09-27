@@ -1002,9 +1002,12 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
     slots.push_back(worn.first);
   }
   for (EquipSlot slot : slots) {
-    const Potential potential = MaxPotentialFor(slot, gear, primary);
-    if (potential.lines_size() > 0) {
-      state.character.TakePotential(slot, PotentialTrack::kMain, potential);
+    for (PotentialTrack track :
+         {PotentialTrack::kMain, PotentialTrack::kBonus}) {
+      const Potential potential = MaxPotentialFor(slot, gear, primary, track);
+      if (potential.lines_size() > 0) {
+        state.character.TakePotential(slot, track, potential);
+      }
     }
   }
 }

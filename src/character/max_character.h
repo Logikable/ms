@@ -18,6 +18,7 @@
 #include <string>
 
 #include "src/character/character.h"
+#include "src/item/potential.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -37,24 +38,23 @@ struct MaxGear {
   // The weapon's stars, set separately because it's where a player spends meso
   // first and the one item worth taking further than the rest.
   int weapon_stars = 0;
-  // The potential rank of every cubeable item, and of the three weapon slots.
-  // UNSPECIFIED for a level with no cubing.
-  PotentialRank armour_potential = POTENTIAL_RANK_UNSPECIFIED;
-  PotentialRank weaponry_potential = POTENTIAL_RANK_UNSPECIFIED;
+  // The level whose potentials every item wears: 200, 230 or 260, where
+  // //analysis:progression_sim's sweep recorded them. 0 before cubing opens.
+  int potential_level = 0;
 };
 
 // The gear a character at `level` has paid for.
 MaxGear MaxGearForLevel(int level);
 
-// The lines `slot` has at `level`, for a character whose damage is based on
-// `primary`. Empty for a slot that takes no potential and for a level with no
-// cubing.
+// The potential on `track` that `slot` wears under `gear`, for a character
+// whose damage is based on `primary`. Empty for a slot that takes no potential
+// and for a level without that track.
 //
 // Every item of one kind has the same lines. The variety a real player ends up
 // with is luck, not a decision, and a character whose stats change with the
 // random seed makes fight measurements meaningless.
 Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
-                          StatField primary);
+                          StatField primary, PotentialTrack track);
 
 // Spends the whole Hyper Stat pool on both presets, best value per point first,
 // discarding any previous allocation. A stat's value is measured on this

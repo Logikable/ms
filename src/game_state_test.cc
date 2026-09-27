@@ -1109,8 +1109,8 @@ TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
             MaxGearForLevel(kTrialLevelCap).stars);
 }
 
-// Every piece has the same lines, set instead of rolled: the weapon gets its
-// own lines, and armour gets three lines of the job's main stat.
+// Every piece has the same lines on both potentials, set instead of rolled:
+// the weapon gets its own lines, and armour the job's main stat.
 TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
@@ -1119,9 +1119,15 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
 
   const Potential& hat = Worn(state, EQUIP_SLOT_HAT).potential();
-  EXPECT_EQ(hat.rank(), POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(hat.rank(), POTENTIAL_RANK_UNIQUE);
   ASSERT_EQ(hat.lines_size(), kPotentialLines);
   EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+
+  const Potential& bonus =
+      Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();
+  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
+  ASSERT_EQ(bonus.lines_size(), kPotentialLines);
+  EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
 }
 
 // Every buff bought and switched on, with the climb's leftover meso, not the
