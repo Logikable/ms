@@ -56,6 +56,7 @@
 #include <ctime>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <limits>
 #include <map>
 #include <memory>
@@ -63,6 +64,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -1324,10 +1326,11 @@ struct Session {
   std::string key;
   unsigned int seed = 0;
   bool saved = false;
-  // Every line's alt climb, or null when alts aren't leveled; the alts
+  // Every line's alt climb, still running beside this one when the run
+  // begins, or null when alts aren't leveled; the alts
   // standing; and the seconds still owed to them, which the next stretches
   // play on the alts before the main earns anything.
-  const AltLadders* ladders = nullptr;
+  const std::shared_future<AltLadders>* ladders = nullptr;
   AltLevels alts;
   double alt_debt = 0.0;
   double next_alt_look = 0.0;
@@ -2115,7 +2118,7 @@ void ConsiderAlts(Session& run) {
   }
   run.next_alt_look = run.seconds + kDaySeconds;
   std::vector<AltStep> steps =
-      AltSteps(*run.ladders, run.alts, run.state.character.proto().job());
+      AltSteps(run.ladders->get(), run.alts, run.state.character.proto().job());
   if (steps.empty()) {
     return;
   }
@@ -2415,7 +2418,8 @@ std::string ClimbKey(Job branch, unsigned int seed) {
 // out.
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps, unsigned int seed,
-           const Checkpointing& saves, const AltLadders* ladders) {
+           const Checkpointing& saves,
+           const std::shared_future<AltLadders>* ladders) {
   GameState state = NewState(catalogs, seed);
   // A plain field rather than a constructor argument, so a sim that fights
   // bosses must opt in. This one runs the dailies.
@@ -3778,18 +3782,27 @@ void Run() {
   // printed afterwards in the table's order, not the order threads finished.
   int count = static_cast<int>(branches.size());
   Checkpointing saves = PrepareCheckpoints();
-  AltLadders ladders;
-  if (absl::GetFlag(FLAGS_alts)) {
-    ladders = ClimbAlts(catalogs, maps);
+  // The alt climbs run beside the mains, which wait on them only on reaching
+  // the Link Skills level. Their own threads rather than slots in the mains'
+  // pool, so a main waiting on them can never hold the thread one needs.
+  const bool alts = absl::GetFlag(FLAGS_alts);
+  std::promise<AltLadders> climbed;
+  std::shared_future<AltLadders> ladders = climbed.get_future().share();
+  std::thread alt_climbs;
+  if (alts) {
+    alt_climbs =
+        std::thread([&] { climbed.set_value(ClimbAlts(catalogs, maps)); });
   }
   std::vector<std::vector<Climb>> runs(count, std::vector<Climb>(per_branch));
   ParallelFor(count * per_branch, [&](int i) {
     unsigned int seed =
         static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)) + i / count;
-    runs[i % count][i / count] =
-        Play(catalogs, branches[i % count], maps, seed, saves,
-             absl::GetFlag(FLAGS_alts) ? &ladders : nullptr);
+    runs[i % count][i / count] = Play(catalogs, branches[i % count], maps, seed,
+                                      saves, alts ? &ladders : nullptr);
   });
+  if (alts) {
+    alt_climbs.join();
+  }
 
   std::vector<Climb> typical;
   for (int i = 0; i < count; ++i) {
@@ -3815,7 +3828,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_boss_report)) {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
-    PrintAlts(ladders, branches, typical);
+    PrintAlts(alts ? ladders.get() : AltLadders(), branches, typical);
     PrintCubing(branches, typical);
     PrintPotentialLevels(branches, typical);
     PrintDefence(catalogs, branches, typical);
