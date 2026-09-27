@@ -259,9 +259,9 @@ class InventoryPanel {
   std::vector<InventoryRowState> rows_;
   // Labels built from rows_ for ftxui::Menu.
   std::vector<std::string> entries_;
-  ItemMenu menu_;       // Equip tab context menu
-  ItemMenu sell_menu_;  // Etc tab context menu
-  ItemMenu tab_menu_;   // the {Sort, Close} menu Enter opens on a tab
+  ItemMenu menu_;        // Equip tab context menu
+  ItemMenu stack_menu_;  // Etc tab context menu
+  ItemMenu tab_menu_;    // the {Sort, Close} menu Enter opens on a tab
 };
 
 }  // namespace ms

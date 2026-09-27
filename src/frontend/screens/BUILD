@@ -1271,3 +1271,38 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "box_panel",
+    srcs = ["box_panel.cc"],
+    hdrs = ["box_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:keys",
+        "//src/item:shop",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "box_panel_test",
+    size = "small",
+    srcs = ["box_panel_test.cc"],
+    deps = [
+        ":box_panel",
+        "//src/character",
+        "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:confirm_prompt",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -75,6 +75,10 @@ enum Screen : int {
   // The equip tab's version of kSell. Equipment doesn't stack, so it asks yes
   // or no instead of an amount.
   kSellEquip,
+  // Open on a box in the Etc tab: what it holds, and the question that trades
+  // one box for the row picked.
+  kBoxOpen,
+  kBoxConfirm,
   // Level Up on the Symbols tab: the next level's cost and the confirmation.
   kSymbolLevel,
   // Combine on a spare symbol in the bag: how many to feed into the worn one.
@@ -299,10 +303,12 @@ enum BuffMenuItem : int {
 };
 // Entries of the Etc stackable context menu.
 enum StackMenuItem : int {
-  kStackInspect = 0,
-  kStackSell = 1,
-  kStackMultiSell = 2,
-  kStackClose = 3,
+  // Shown only on a box.
+  kStackOpen = 0,
+  kStackInspect = 1,
+  kStackSell = 2,
+  kStackMultiSell = 3,
+  kStackClose = 4,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

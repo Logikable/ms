@@ -2805,6 +2805,39 @@ TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
   EXPECT_EQ(state_->character.inventory().size(), 0);
 }
 
+// --- Open a box ---
+
+// Open leads to the box's list, Enter asks, and Confirm trades one box for the
+// piece; Cancel goes back to the list.
+TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
+  ItemPrototype box;
+  box.set_name("Weapon Box");
+  box.mutable_box()->set_token_item("weapon_token");
+  box.mutable_box()->add_slots(EQUIP_SLOT_PRIMARY_WEAPON);
+  state_->character.AddItem(box, 2);
+  panel_focus_ = kInventoryPanel;
+  OpenBagTab(kEtcTab);
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
+  inventory_component_->OnEvent(ftxui::Event::Return);     // the stack menu
+  ASSERT_EQ(inventory_panel_->menu().selected(), kStackOpen)
+      << "Open sits first, above Inspect";
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBoxOpen);
+  EXPECT_EQ(controller_->box_panel().selected()->name(), "Frozen Sword");
+
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBoxConfirm);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBoxOpen) << "Cancel keeps the list";
+
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
+  EXPECT_EQ(controller_->screen(), kMain) << "one box at a time";
+  EXPECT_EQ(state_->character.CountItem(box), 1);
+  ASSERT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->character.inventory()[0].name(), "Frozen Sword");
+}
+
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
   OpenStackSell();

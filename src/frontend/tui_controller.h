@@ -27,6 +27,7 @@
 #include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
+#include "src/frontend/screens/box_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/character_select_panel.h"
@@ -453,6 +454,9 @@ class TuiController {
   const HammerPanel& hammer_panel() const {
     return hammer_panel_;
   }
+  const BoxPanel& box_panel() const {
+    return box_panel_;
+  }
 
   // The quit dialog's prompt, for the same reason.
   const ConfirmPrompt& quit_prompt() const {
@@ -683,6 +687,8 @@ class TuiController {
   bool OnCubeEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
+  bool OnBoxOpenEvent(ftxui::Event event);
+  bool OnBoxConfirmEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
@@ -1030,6 +1036,7 @@ class TuiController {
   bool ability_rank_up_ = false;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
+  BoxPanel box_panel_{state_.character, state_.equips};
   // The worn symbol the two symbol dialogs are about. Stored so the answer
   // applies to it, wherever the cursor went meanwhile.
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;

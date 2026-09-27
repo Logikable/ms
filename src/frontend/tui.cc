@@ -973,6 +973,11 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.symbol_combine_panel().Render());
     case kHammer:
       return OverMain(controller_.hammer_panel().Render());
+    case kBoxOpen:
+      return Centred(controller_.box_panel().Render());
+    case kBoxConfirm:
+      return Overlay(Centred(controller_.box_panel().Render()),
+                     controller_.box_panel().RenderConfirm());
     // The dialog belongs to the panel, so the screen and its dialog are one
     // state.
     case kMultiSell:

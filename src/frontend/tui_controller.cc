@@ -839,6 +839,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEvent(event);
     case kSellEquip:
       return OnSellEquipEvent(event);
+    case kBoxOpen:
+      return OnBoxOpenEvent(event);
+    case kBoxConfirm:
+      return OnBoxConfirmEvent(event);
     case kSymbolLevel:
       return OnSymbolLevelEvent(event);
     case kHyperReset:
@@ -1022,6 +1026,13 @@ Screen TuiController::SeedSaleScreen(Screen next) {
     multi_sell_panel_.Reset(tab, tab == kEquipTab
                                      ? inventory_panel_.selected()
                                      : inventory_panel_.selected_stack());
+  }
+  if (next == kBoxOpen) {
+    int row = inventory_panel_.selected_stack();
+    if (row < 0) {
+      return kMain;  // the row disappeared from under the menu
+    }
+    box_panel_.Reset(state_.character.stackables()[row].prototype());
   }
   if (next == kSell) {
     sell_index_ = inventory_panel_.selected_stack();
@@ -1707,6 +1718,38 @@ bool TuiController::OnHammerEvent(ftxui::Event event) {
   if (choice == ConfirmChoice::kConfirmed) {
     HammerItem(state_.character, subject_);
   }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnBoxOpenEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (IsForward(event)) {
+    if (box_panel_.selected() != nullptr) {
+      box_panel_.OpenConfirm();
+      screen_ = kBoxConfirm;
+    }
+    return true;
+  }
+  box_panel_.OnEvent(event);
+  // Swallow everything else, since this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnBoxConfirmEvent(ftxui::Event event) {
+  ConfirmChoice choice = box_panel_.OnConfirmEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kCancelled) {
+    screen_ = kBoxOpen;
+    return true;
+  }
+  // One box a time: back to the bag, where the next box is one Open away.
+  state_.character.OpenBox(box_panel_.box(), *box_panel_.selected());
   screen_ = kMain;
   return true;
 }

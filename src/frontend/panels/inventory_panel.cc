@@ -54,7 +54,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
              "Cube", "Recover", "Sell", "Multi-Sell", "Close"}),
-      sell_menu_({"Inspect", "Sell", "Multi-Sell", "Close"}),
+      stack_menu_({"Open", "Inspect", "Sell", "Multi-Sell", "Close"}),
       tab_menu_({"Sort", "Close"}) {
 }
 
@@ -62,7 +62,7 @@ ItemMenu& InventoryPanel::menu() {
   if (active_tab_ == kEquipTab) {
     return menu_;
   }
-  return sell_menu_;
+  return stack_menu_;
 }
 
 std::vector<int> InventoryPanel::VisibleTabs() const {
@@ -203,19 +203,26 @@ ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
   return TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);
 }
 
-// The Etc menu (Inspect, Sell, Multi-Sell, Close) for the stack under the
-// cursor.
+// The Etc menu (Open, Inspect, Sell, Multi-Sell, Close) for the stack under
+// the cursor.
 void InventoryPanel::OpenStackMenu() {
-  sell_menu_.Reset();
+  stack_menu_.Reset();
+  int row = selected_stack();
+  if (row < 0 || !character_.stackables()[row].prototype().has_box()) {
+    stack_menu_.Hide(kStackOpen);
+  } else if (character_.inventory().full()) {
+    // Grey rather than refused on Confirm: the piece would have nowhere to go.
+    stack_menu_.Disable(kStackOpen);
+  }
   // Multi-Sell arrives with the shop, because it sells across the whole bag and
   // a mistaken sale is undone at the shop's buyback. Selling one stack is
   // always available.
   if (!Unlocked(Feature::kShop, character_, account_)) {
-    sell_menu_.Hide(kStackMultiSell);
+    stack_menu_.Hide(kStackMultiSell);
   }
   if (selected_stack() < 0) {
-    sell_menu_.Disable(kStackSell);
-    sell_menu_.Disable(kStackMultiSell);
+    stack_menu_.Disable(kStackSell);
+    stack_menu_.Disable(kStackMultiSell);
   }
 }
 
@@ -376,23 +383,26 @@ Screen InventoryPanel::OnStackMenuEvent(ftxui::Event event) {
     return kMain;
   }
   if (event == ftxui::Event::ArrowUp) {
-    sell_menu_.Up();
+    stack_menu_.Up();
     return kItemMenu;
   }
   if (event == ftxui::Event::ArrowDown) {
-    sell_menu_.Down();
+    stack_menu_.Down();
     return kItemMenu;
   }
   if (!IsForward(event)) {
     return kItemMenu;
   }
-  if (sell_menu_.selected() == kStackInspect) {
+  if (stack_menu_.selected() == kStackOpen) {
+    return kBoxOpen;
+  }
+  if (stack_menu_.selected() == kStackInspect) {
     return kItemInspect;
   }
-  if (sell_menu_.selected() == kStackSell) {
+  if (stack_menu_.selected() == kStackSell) {
     return kSell;
   }
-  if (sell_menu_.selected() == kStackMultiSell) {
+  if (stack_menu_.selected() == kStackMultiSell) {
     return kMultiSell;
   }
   return kMain;

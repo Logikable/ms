@@ -1430,8 +1430,8 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   EXPECT_TRUE(panel.on_tab_bar());
 }
 
-// Inspect comes first, because looking at an item comes before deciding what to
-// do with it.
+// Inspect comes first on anything but a box, because looking at an item comes
+// before deciding what to do with it.
 TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1441,6 +1441,29 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   ScrollPanel sp(c_, no_scrolls_);
   EXPECT_EQ(panel.menu().selected(), kStackInspect);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
+}
+
+// Open is offered only on a box, and greyed out while the equip tab has no room
+// for what it holds.
+TEST_F(InventoryPanelTest, OpenIsOnlyOnABoxWithRoom) {
+  ItemPrototype box = MakeStackable("AbsoLab Weapon Box", 0);
+  box.mutable_box()->set_token_item("absolab_coin");
+  c_.AddItem(box, 1);
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  OpenTab(comp, panel, kEtcTab);
+  panel.OpenMenu();
+  ScrollPanel sp(c_, no_scrolls_);
+  EXPECT_EQ(panel.menu().selected(), kStackOpen);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kBoxOpen);
+
+  for (int i = 0; i < kTabCapacity; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kStackOpen), 0);
+  EXPECT_EQ(panel.menu().selected(), kStackInspect);
 }
 
 TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
