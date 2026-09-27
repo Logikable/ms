@@ -1,0 +1,12 @@
+name: "AbsoLab Armor Box"
+description: "Select and obtain a piece of AbsoLab Armor for your job."
+box {
+  token_item: "absolab_coin"
+  slots: EQUIP_SLOT_HAT
+  slots: EQUIP_SLOT_TOP
+  slots: EQUIP_SLOT_BOTTOM
+  slots: EQUIP_SLOT_SHOES
+  slots: EQUIP_SLOT_GLOVES
+  slots: EQUIP_SLOT_CAPE
+  slots: EQUIP_SLOT_SHOULDER
+}

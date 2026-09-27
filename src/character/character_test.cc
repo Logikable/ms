@@ -2153,6 +2153,61 @@ TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
+// --- OpenBox ---
+
+class OpenBoxTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    box_.set_name("AbsoLab Armor Box");
+    box_.mutable_box()->set_token_item("absolab_coin");
+    box_.mutable_box()->add_slots(EQUIP_SLOT_HAT);
+    hat_.set_name("AbsoLab Hat");
+    hat_.set_equip_slot(EQUIP_SLOT_HAT);
+    hat_.set_token_item("absolab_coin");
+    hat_.set_token_price(2);
+    c_.AddItem(box_, 2);
+  }
+
+  ItemPrototype box_;
+  EquipPrototype hat_;
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+// One box for one piece, however many boxes are held.
+TEST_F(OpenBoxTest, TradesOneBoxForThePick) {
+  EXPECT_TRUE(c_.OpenBox(box_, hat_));
+  EXPECT_EQ(c_.CountItem(box_), 1);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].name(), "AbsoLab Hat");
+}
+
+TEST_F(OpenBoxTest, RefusesWhatTheBoxCannotGive) {
+  EquipPrototype cape = hat_;
+  cape.set_equip_slot(EQUIP_SLOT_CAPE);
+  EquipPrototype mage_hat = hat_;
+  mage_hat.add_equip_job_categories(EQUIP_JOB_CATEGORY_MAGICIAN);
+  ItemPrototype empty_handed = box_;
+  empty_handed.set_name("Another Box");
+  EXPECT_FALSE(c_.OpenBox(box_, cape)) << "not in the box's slots";
+  EXPECT_FALSE(c_.OpenBox(box_, mage_hat)) << "not for this class";
+  EXPECT_FALSE(c_.OpenBox(empty_handed, hat_)) << "no box held";
+  EXPECT_EQ(c_.CountItem(box_), 2);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
+// The box stays when the pick has nowhere to go, rather than being spent on a
+// piece the full tab would drop.
+TEST_F(OpenBoxTest, KeepsTheBoxWhenTheTabIsFull) {
+  EquipPrototype junk;
+  junk.set_name("Junk");
+  junk.set_equip_slot(EQUIP_SLOT_HAT);
+  for (int i = 0; i < kTabCapacity; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(junk));
+  }
+  EXPECT_FALSE(c_.OpenBox(box_, hat_));
+  EXPECT_EQ(c_.CountItem(box_), 2);
+}
+
 // --- Buy, stackable ---
 
 class BuyStackableTest : public CharacterTest {

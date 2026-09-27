@@ -34,6 +34,15 @@ enum ItemKind {
   ITEM_KIND_SOUL_SHARD = 3;
 }
 
+// What a box opens into: one piece of the equipment the shop sells for
+// `token_item`, in one of `slots`, chosen by the player from what their class
+// can wear. Read from the shop rather than listed, so a piece added to the
+// shelf is in the box too.
+message BoxContents {
+  string token_item = 1;
+  repeated EquipSlot slots = 2;
+}
+
 // The definition of a stackable item type, loaded from data/items at startup
 // and shared read-only by every stack of that type.
 message ItemPrototype {
@@ -79,6 +88,8 @@ message ItemPrototype {
   // "Zakum's" under a Soul Shard column. Empty means the full name is used,
   // which is true of everything but soul shards.
   string short_name = 11;
+  // Set only on a box, which the Etc menu's Open trades for a piece of gear.
+  BoxContents box = 14;
 }
 
 // One stack on the Etc tab. It stores the catalog key and a count, not the

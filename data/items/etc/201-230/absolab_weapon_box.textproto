@@ -1,0 +1,6 @@
+name: "AbsoLab Weapon Box"
+description: "Select and obtain an AbsoLab Weapon for your job."
+box {
+  token_item: "absolab_coin"
+  slots: EQUIP_SLOT_PRIMARY_WEAPON
+}

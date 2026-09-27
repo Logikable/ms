@@ -270,5 +270,59 @@ TEST(ShopEtcStockTest, TheSpellTraceIsStocked) {
       << "what buys it lands in the purse, not on a tab";
 }
 
+EquipPrototype TokenPiece(const std::string& name, EquipSlot slot,
+                          const std::string& token) {
+  EquipPrototype e;
+  e.set_name(name);
+  e.set_required_level(160);
+  e.set_equip_slot(slot);
+  e.set_token_item(token);
+  e.set_token_price(2);
+  return e;
+}
+
+ItemPrototype ArmorBox() {
+  ItemPrototype box;
+  box.set_name("Box");
+  box.mutable_box()->set_token_item("coin");
+  box.mutable_box()->add_slots(EQUIP_SLOT_SHOES);
+  box.mutable_box()->add_slots(EQUIP_SLOT_HAT);
+  return box;
+}
+
+// A box holds what its token buys in its slots, in the box's slot order, and
+// nothing bought with another token, in another slot, or for meso.
+TEST(BoxStockTest, TheTokenShelfInTheBoxsSlots) {
+  EquipPrototype meso_hat = MakeItem("Meso Hat", 160, 100);
+  meso_hat.set_equip_slot(EQUIP_SLOT_HAT);
+  std::map<std::string, EquipPrototype> equips{
+      {"hat", TokenPiece("Hat", EQUIP_SLOT_HAT, "coin")},
+      {"shoes", TokenPiece("Shoes", EQUIP_SLOT_SHOES, "coin")},
+      {"cape", TokenPiece("Cape", EQUIP_SLOT_CAPE, "coin")},
+      {"other", TokenPiece("Other", EQUIP_SLOT_HAT, "other_coin")},
+      {"meso_hat", meso_hat},
+  };
+  ItemPrototype box = ArmorBox();
+  std::vector<std::string> expected{"shoes", "hat"};
+  EXPECT_EQ(BoxStock(box, equips), expected);
+  EXPECT_TRUE(BoxHolds(box, equips.at("hat")));
+  EXPECT_FALSE(BoxHolds(box, equips.at("cape")));
+  EXPECT_FALSE(BoxHolds(box, equips.at("other")));
+  EXPECT_FALSE(BoxHolds(box, equips.at("meso_hat")));
+  ItemPrototype not_a_box;
+  EXPECT_TRUE(BoxStock(not_a_box, equips).empty());
+  EXPECT_FALSE(BoxHolds(not_a_box, equips.at("hat")));
+}
+
+// A weapon for each of the ten branches, and seven pieces for each of the four
+// lines.
+TEST(BoxStockTest, TheAbsoLabBoxesAreStocked) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::map<std::string, ItemPrototype> items =
+      LoadTestData<ItemPrototype>("items");
+  EXPECT_EQ(BoxStock(items.at("absolab_weapon_box"), equips).size(), 10u);
+  EXPECT_EQ(BoxStock(items.at("absolab_armor_box"), equips).size(), 28u);
+}
+
 }  // namespace
 }  // namespace ms

@@ -41,6 +41,17 @@ std::vector<std::string> ShopEquipStock(
 std::vector<std::string> ShopEtcStock(
     const std::map<std::string, ItemPrototype>& items);
 
+// Whether `box` opens into `pick`: the token shelf sells it for the box's
+// token, in one of the box's slots. Says nothing about who can wear it.
+bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick);
+
+// Catalog keys of everything `box` opens into, in the order the box lists its
+// slots and in shop order within one slot. Empty for an item that isn't a box.
+// Filtering by class is the caller's job, as for the shop.
+std::vector<std::string> BoxStock(
+    const ItemPrototype& box,
+    const std::map<std::string, EquipPrototype>& equips);
+
 }  // namespace ms
 
 #endif  // MS_SRC_ITEM_SHOP_H_

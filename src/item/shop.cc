@@ -101,4 +101,32 @@ std::vector<std::string> ShopEtcStock(
   return keys;
 }
 
+bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick) {
+  if (!box.has_box() || !Stocked(pick, kPaidInTokens) ||
+      pick.token_item() != box.box().token_item()) {
+    return false;
+  }
+  const google::protobuf::RepeatedField<int>& slots = box.box().slots();
+  return std::find(slots.begin(), slots.end(), pick.equip_slot()) !=
+         slots.end();
+}
+
+std::vector<std::string> BoxStock(
+    const ItemPrototype& box,
+    const std::map<std::string, EquipPrototype>& equips) {
+  std::vector<std::string> shelf = ShopWeaponStock(equips, kPaidInTokens);
+  std::vector<std::string> rest = ShopEquipStock(equips, kPaidInTokens);
+  shelf.insert(shelf.end(), rest.begin(), rest.end());
+  std::vector<std::string> keys;
+  for (int slot : box.box().slots()) {
+    for (const std::string& key : shelf) {
+      const EquipPrototype& pick = equips.at(key);
+      if (pick.equip_slot() == slot && BoxHolds(box, pick)) {
+        keys.push_back(key);
+      }
+    }
+  }
+  return keys;
+}
+
 }  // namespace ms

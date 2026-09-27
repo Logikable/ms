@@ -359,6 +359,10 @@ class CharacterInstance {
   // Buy.
   bool BuyWithToken(const EquipPrototype& proto, const ItemPrototype& token,
                     int count);
+  // Trades one `box` from the Etc tab for a new `pick`. Refuses, spending
+  // nothing, unless the box holds `pick` (BoxHolds), this class can wear it and
+  // the equip tab has room.
+  bool OpenBox(const ItemPrototype& box, const EquipPrototype& pick);
   // The same for a stackable. Price and bag space are both checked first, so a
   // purchase that can't finish takes nothing.
   bool Buy(const ItemPrototype& proto, int count);

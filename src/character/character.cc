@@ -33,6 +33,7 @@
 #include "src/item/inventory_sort.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
+#include "src/item/shop.h"
 #include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -2496,6 +2497,16 @@ bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
   for (int i = 0; i < count; ++i) {
     PickUp(std::make_unique<EquipInstance>(proto));
   }
+  return true;
+}
+
+bool CharacterInstance::OpenBox(const ItemPrototype& box,
+                                const EquipPrototype& pick) {
+  if (!BoxHolds(box, pick) || !MeetsJob(pick) || RoomFor(pick) < 1 ||
+      !SpendItem(box.name(), 1)) {
+    return false;
+  }
+  PickUp(std::make_unique<EquipInstance>(pick));
   return true;
 }
 

@@ -44,6 +44,7 @@ cc_library(
         "//src/item:inventory",
         "//src/item:inventory_sort",
         "//src/item:projectile",
+        "//src/item:shop",
         "//src/item:stack_tab",
         "//src/item:star_force_cost",
         "//src/protos:character_proto_cc",
