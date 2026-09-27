@@ -23,7 +23,7 @@ TEST(SumEquipStatsTest, SingleElementIsIdentity) {
   EXPECT_EQ(result.attack(), 10);
 }
 
-TEST(SumEquipStatsTest, AllFieldsAreSummed) {
+TEST(SumEquipStatsTest, AllFieldsAreSummedAndDefenseCombines) {
   EquipStats a;
   a.set_str(1);
   a.set_dex(2);
@@ -51,7 +51,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   b.set_max_mp(90);
   b.set_def(80);
   b.set_boss_damage(110);
-  b.set_ignore_enemy_defense(120);
+  b.set_ignore_enemy_defense(50);
   b.set_item_drop_rate(130);
   b.set_max_hp_pct(140);
   b.set_max_mp_pct(150);
@@ -68,7 +68,8 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   EXPECT_EQ(result.max_mp(), 99);
   EXPECT_EQ(result.def(), 88);
   EXPECT_EQ(result.boss_damage(), 121);
-  EXPECT_EQ(result.ignore_enemy_defense(), 132);
+  // 1 - 0.88 * 0.50.
+  EXPECT_EQ(result.ignore_enemy_defense(), 56);
   EXPECT_EQ(result.item_drop_rate(), 143);
   EXPECT_EQ(result.max_hp_pct(), 154);
   EXPECT_EQ(result.max_mp_pct(), 165);
