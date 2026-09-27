@@ -666,7 +666,7 @@ TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
 // sword_ is a level 10 warrior weapon, so one row fills every column.
 TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   sword_.set_upgrade_slots(7);
-  UnlockEverything();
+  UnlockUpToBonusPotential();
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
   // Wide enough for every column at once. At the right column's minimum width,
@@ -767,7 +767,7 @@ TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   EXPECT_EQ(rendered.find("Stars"), std::string::npos);
   EXPECT_EQ(rendered.find("Potential"), std::string::npos);
 
-  UnlockEverything();
+  UnlockUpToBonusPotential();
   InventoryPanel open(c_, account_, panel_focus_);
   rendered = RenderComponent(open.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Scroll"), std::string::npos);

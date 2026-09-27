@@ -326,7 +326,7 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   sword_.set_upgrade_slots(7);
-  UnlockEverything();
+  UnlockUpToBonusPotential();
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
@@ -341,7 +341,8 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
 }
 
 // The upgrade columns appear with their mechanics, so a player who has never
-// scrolled doesn't see an empty Scroll column.
+// scrolled doesn't see an empty Scroll column. Bonus potential renames the main
+// column, and at this width pushes Scroll off.
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -353,12 +354,46 @@ TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   EXPECT_EQ(rendered.find("Stars"), std::string::npos);
   EXPECT_EQ(rendered.find("Potential"), std::string::npos);
 
-  UnlockEverything();
+  UnlockUpToBonusPotential();
   EquippedPanel open(c_, account_, panel_focus_);
   rendered = RenderComponent(open.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Scroll"), std::string::npos);
   EXPECT_NE(rendered.find("Stars"), std::string::npos);
   EXPECT_NE(rendered.find("Potential"), std::string::npos);
+  EXPECT_EQ(rendered.find("Main Potential"), std::string::npos);
+  EXPECT_EQ(rendered.find("Bonus Potential"), std::string::npos);
+
+  // The column shows once unlocked, though nothing worn has a bonus potential.
+  UnlockEverything();
+  EquippedPanel bonus(c_, account_, panel_focus_);
+  rendered = RenderComponent(bonus.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Main Potential"), std::string::npos);
+  EXPECT_NE(rendered.find("Bonus Potential"), std::string::npos);
+  EXPECT_NE(rendered.find("Stars"), std::string::npos);
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+}
+
+// An item carrying an upgrade shows its column before the account unlocks the
+// mechanic, as a traded or banked item can.
+TEST_F(EquippedPanelTest, AWornUpgradeShowsItsColumnBeforeTheUnlock) {
+  sword_.set_upgrade_slots(7);
+  Equip state;
+  state.set_scroll_successes(1);
+  state.set_stars(3);
+  PotentialLine* line = state.mutable_bonus_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  line->set_rank(POTENTIAL_RANK_EPIC);
+  state.mutable_bonus_potential()->set_rank(POTENTIAL_RANK_EPIC);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, state));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Scroll"), std::string::npos);
+  EXPECT_NE(rendered.find("Stars"), std::string::npos);
+  // No main potential, so the bonus column stands alone under its own name.
+  EXPECT_NE(rendered.find("Bonus Potential"), std::string::npos);
+  EXPECT_EQ(rendered.find("Main Potential"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Sword").find("% ATT"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {

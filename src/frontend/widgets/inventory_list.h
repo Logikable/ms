@@ -66,6 +66,11 @@ std::vector<InventoryRowState> BuildEquipRows(
     int selected, std::chrono::steady_clock::duration elapsed,
     const ItemColumns& columns);
 
+// The columns a bag or bank list of `items` may show (see ItemListOptionsFor).
+ItemListOptions EquipListOptions(const CharacterInstance& character,
+                                 const AccountInstance& account,
+                                 const InventoryInstance& items);
+
 // The header row over an Equip list drawing `columns`.
 ftxui::Element EquipHeader(const ItemColumns& columns,
                            ftxui::Element lead = nullptr,

@@ -34,6 +34,7 @@ cc_library(
         "//src:account",
         "//src/character",
         "//src/character:exp_table",
+        "//src/item:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",

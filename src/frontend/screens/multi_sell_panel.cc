@@ -305,12 +305,9 @@ ftxui::Element MultiSellPanel::RenderHeader() const {
 }
 
 ftxui::Element MultiSellPanel::RenderEquipTab() {
-  ItemListOptions options;
-  options.bag = true;
-  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
-  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
-  options.potential = Unlocked(Feature::kPotential, character_, account_);
-  ItemColumns columns = FitItemColumns(kEquipRowWidth, options);
+  ItemColumns columns = FitItemColumns(
+      kEquipRowWidth,
+      EquipListOptions(character_, account_, character_.inventory()));
   rows_ = BuildEquipRows(character_, character_.inventory(), selected_,
                          name_clock_.Elapsed(), columns);
   std::vector<ftxui::Element> list;

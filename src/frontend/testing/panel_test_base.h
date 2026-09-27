@@ -16,6 +16,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -157,6 +158,12 @@ class PanelTest : public testing::Test {
   // panel shows once everything is unlocked rather than about the gate itself.
   void UnlockEverything() {
     account_.RecordProgress(kMaxLevel, /*job_stage=*/4);
+  }
+
+  // Every upgrade but bonus potential, whose column pushes Scroll off a list
+  // at the right column's minimum width.
+  void UnlockUpToBonusPotential() {
+    account_.RecordProgress(kBonusPotentialUnlockLevel - 1, /*job_stage=*/4);
   }
 
   std::mt19937 rng_{0};

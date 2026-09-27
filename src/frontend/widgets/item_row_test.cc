@@ -15,14 +15,21 @@
 namespace ms {
 namespace {
 
-// A potential column with room for one effect, as a panel at its narrowest
-// gives it.
-constexpr int kOneEffect = 12;
+// Potential columns with room for one effect each, as a panel at its narrowest
+// gives them.
+ItemColumns OneEffect() {
+  ItemColumns columns;
+  columns.shown[static_cast<int>(ItemColumn::kPotential)] = true;
+  columns.shown[static_cast<int>(ItemColumn::kBonusPotential)] = true;
+  columns.potential_width = kItemPotentialWidth;
+  columns.bonus_potential_width = kItemPotentialWidth;
+  return columns;
+}
 
 ItemColumns EveryColumn() {
   return FitItemColumns(200,
                         {/*bag=*/true, /*scrolling=*/true, /*star_force=*/true,
-                         /*potential=*/true});
+                         /*potential=*/true, /*bonus_potential=*/true});
 }
 
 ItemCells SwordCells() {
@@ -35,13 +42,14 @@ ItemCells SwordCells() {
   cells.scroll = "+3/7";
   cells.stars = "12★";
   cells.potential = "+12% ATT";
+  cells.bonus_potential = "9% STR";
   return cells;
 }
 
 TEST(FormatItemRowTest, WritesEveryCellItIsGiven) {
   ItemRowText row = FormatItemRow(EveryColumn(), SwordCells());
   for (const char* cell : {"Sword", "Weapon", "Lv120", "Warrior", "+7 ATT",
-                           "+3/7", "12★", "+12% ATT"}) {
+                           "+3/7", "12★", "+12% ATT", "9% STR"}) {
     EXPECT_NE(row.text.find(cell), std::string::npos) << cell;
   }
 }
@@ -127,14 +135,14 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
 
-  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect);
+  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
   EXPECT_EQ(cells.scroll, "3/7");
   EXPECT_EQ(cells.stars, "12★");
   EXPECT_EQ(cells.potential, "12% ATT     ");
 
   // The job decides which lines the potential cell shows. A bishop's damage
   // doesn't use weapon attack, so the same item falls through to the rate.
-  cells = EquipUpgradeCells(proto, state, JOB_BISHOP, kOneEffect);
+  cells = EquipUpgradeCells(proto, state, JOB_BISHOP, OneEffect());
   EXPECT_EQ(cells.potential, "20% Meso    ");
 
   // The job's secondary stat also reaches the cell: a hero uses DEX after STR,
@@ -143,9 +151,9 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line = state.mutable_main_potential()->add_lines();
   line->set_type(POTENTIAL_LINE_TYPE_DEX_PCT);
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect).potential,
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_HERO, OneEffect()).potential,
             "12% DEX     ");
-  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_BISHOP, kOneEffect).potential,
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_BISHOP, OneEffect()).potential,
             "Junk        ");
 
   // An upgrade the item can't take and an item with no potential both read "-",
@@ -153,11 +161,22 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   proto.set_upgrade_slots(0);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   state.clear_main_potential();
-  cells = EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
   EXPECT_EQ(cells.scroll, "-");
   EXPECT_EQ(cells.stars, "-");
   EXPECT_EQ(cells.potential, "-           ");
   EXPECT_EQ(cells.potential_rank, POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_EQ(cells.bonus_potential, "-           ");
+
+  // The bonus potential reads the same way, from its own lines.
+  state.mutable_bonus_potential()->set_rank(POTENTIAL_RANK_EPIC);
+  line = state.mutable_bonus_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
+  line->set_rank(POTENTIAL_RANK_EPIC);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  EXPECT_EQ(cells.potential, "-           ");
+  EXPECT_NE(cells.bonus_potential.find("% STR"), std::string::npos);
+  EXPECT_EQ(cells.bonus_potential_rank, POTENTIAL_RANK_EPIC);
 }
 
 // The potential cell's text takes its rank's colour; the rest of the row and
@@ -165,12 +184,16 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
 TEST(ItemRowElementTest, ColoursThePotentialText) {
   ItemCells cells = SwordCells();
   cells.potential_rank = POTENTIAL_RANK_LEGENDARY;
+  cells.bonus_potential_rank = POTENTIAL_RANK_EPIC;
   ItemRowText row = FormatItemRow(EveryColumn(), cells);
   ftxui::Screen screen(200, 1);
   ftxui::Render(screen, ItemRowElement("> ", row));
   int potential = 2 + static_cast<int>(row.text.find("+12% ATT"));
+  int bonus = 2 + static_cast<int>(row.text.find("9% STR"));
   EXPECT_EQ(screen.PixelAt(potential, 0).foreground_color,
             RarityColor(POTENTIAL_RANK_LEGENDARY));
+  EXPECT_EQ(screen.PixelAt(bonus, 0).foreground_color,
+            RarityColor(POTENTIAL_RANK_EPIC));
   EXPECT_EQ(screen.PixelAt(potential, 0).background_color, ftxui::Color());
   EXPECT_EQ(screen.PixelAt(2, 0).foreground_color, ftxui::Color());
   EXPECT_EQ(screen.ToString().find("> Sword"), 0u);

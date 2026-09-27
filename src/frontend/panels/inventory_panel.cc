@@ -468,11 +468,8 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
 }
 
 ItemColumns InventoryPanel::Columns() const {
-  ItemListOptions options;
-  options.bag = true;
-  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
-  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
-  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  ItemListOptions options =
+      EquipListOptions(character_, account_, character_.inventory());
   // Minus the two borders: the width given is the column's, and the list is
   // drawn inside it.
   return FitItemColumns(width_ - 2, options);

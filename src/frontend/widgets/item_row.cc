@@ -3,8 +3,12 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/progression.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
@@ -17,10 +21,22 @@
 namespace ms {
 
 const std::string& ItemCells::Get(ItemColumn column) const {
-  static_assert(kNumItemColumns == 8, "a new column needs a cell");
+  static_assert(kNumItemColumns == 9, "a new column needs a cell");
   const std::string* const cells[kNumItemColumns] = {
-      &name, &slot, &level, &job, &stats, &scroll, &stars, &potential};
+      &name,  &slot,      &level,          &job, &stats, &scroll,
+      &stars, &potential, &bonus_potential};
   return *cells[static_cast<int>(column)];
+}
+
+PotentialRank ItemRowText::RankOf(ItemColumn column) const {
+  switch (column) {
+    case ItemColumn::kPotential:
+      return potential_rank;
+    case ItemColumn::kBonusPotential:
+      return bonus_potential_rank;
+    default:
+      return POTENTIAL_RANK_UNSPECIFIED;
+  }
 }
 
 // The stat column of one row: the attack this job uses, then the stat its
@@ -53,7 +69,7 @@ std::string ItemStatsCell(Job job, const EquipStats& stats) {
 }
 
 ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
-                            Job job, int potential_width) {
+                            Job job, const ItemColumns& columns) {
   ItemCells cells;
   // The slot count is included so a row shows how far the item can still go,
   // not only how far it has come.
@@ -64,17 +80,43 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
                     ? std::to_string(state.stars()) + "★"
                     : "-";
-  cells.potential = PotentialCell(state.main_potential(),
-                                  proto.required_level(), PrimaryStatField(job),
-                                  SecondaryStatField(job), potential_width);
+  cells.potential = PotentialCell(
+      state.main_potential(), proto.required_level(), PrimaryStatField(job),
+      SecondaryStatField(job), columns.Width(ItemColumn::kPotential));
   cells.potential_rank = state.main_potential().rank();
+  cells.bonus_potential = PotentialCell(
+      state.bonus_potential(), proto.required_level(), PrimaryStatField(job),
+      SecondaryStatField(job), columns.Width(ItemColumn::kBonusPotential));
+  cells.bonus_potential_rank = state.bonus_potential().rank();
   return cells;
+}
+
+ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
+                                   bool bag, const CharacterInstance& character,
+                                   const AccountInstance& account) {
+  ItemListOptions options;
+  options.bag = bag;
+  options.scrolling = Unlocked(Feature::kScrolling, character, account);
+  options.star_force = Unlocked(Feature::kStarForce, character, account);
+  options.potential = Unlocked(Feature::kPotential, character, account);
+  options.bonus_potential =
+      Unlocked(Feature::kBonusPotential, character, account);
+  for (const Equip* item : items) {
+    options.scrolling |= item->scroll_successes() > 0;
+    options.star_force |= item->stars() > 0;
+    options.potential |=
+        item->main_potential().rank() != POTENTIAL_RANK_UNSPECIFIED;
+    options.bonus_potential |=
+        item->bonus_potential().rank() != POTENTIAL_RANK_UNSPECIFIED;
+  }
+  return options;
 }
 
 ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
                           std::chrono::steady_clock::duration elapsed) {
   ItemRowText row;
   row.potential_rank = cells.potential_rank;
+  row.bonus_potential_rank = cells.bonus_potential_rank;
   for (int i = 0; i < kNumItemColumns; ++i) {
     ItemColumn column = static_cast<ItemColumn>(i);
     if (!columns.Shows(column)) {
@@ -102,23 +144,25 @@ ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
                               ftxui::Decorator name) {
   const std::string& text = row.text;
   CellSpan name_span = row.Span(ItemColumn::kName);
-  CellSpan potential = row.Span(ItemColumn::kPotential);
-  size_t name_end = std::min(
-      static_cast<size_t>(name_span.offset + name_span.bytes), text.size());
-  size_t potential_start =
-      potential.bytes == 0
-          ? text.size()
-          : std::max(name_end, static_cast<size_t>(potential.offset));
-  size_t potential_end = std::min(
-      potential_start + static_cast<size_t>(potential.bytes), text.size());
-  return ftxui::hbox({
-      ftxui::text(cursor + text.substr(0, name_end)) | name,
-      ftxui::text(text.substr(name_end, potential_start - name_end)),
-      ftxui::text(
-          text.substr(potential_start, potential_end - potential_start)) |
-          PotentialCellColor(row.potential_rank),
-      ftxui::text(text.substr(potential_end)),
-  });
+  size_t at = std::min(static_cast<size_t>(name_span.offset + name_span.bytes),
+                       text.size());
+  std::vector<ftxui::Element> parts = {
+      ftxui::text(cursor + text.substr(0, at)) | name};
+  for (ItemColumn column :
+       {ItemColumn::kPotential, ItemColumn::kBonusPotential}) {
+    CellSpan span = row.Span(column);
+    if (span.bytes == 0) {
+      continue;
+    }
+    size_t start = std::max(at, static_cast<size_t>(span.offset));
+    size_t end = std::min(start + static_cast<size_t>(span.bytes), text.size());
+    parts.push_back(ftxui::text(text.substr(at, start - at)));
+    parts.push_back(ftxui::text(text.substr(start, end - start)) |
+                    PotentialCellColor(row.RankOf(column)));
+    at = end;
+  }
+  parts.push_back(ftxui::text(text.substr(at)));
+  return ftxui::hbox(std::move(parts));
 }
 
 }  // namespace ms

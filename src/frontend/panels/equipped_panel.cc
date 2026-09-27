@@ -83,10 +83,8 @@ std::vector<EquippedRow> EquippedPanel::Rows(
 }
 
 ItemColumns EquippedPanel::Columns() const {
-  ItemListOptions options;
-  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
-  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
-  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  ItemListOptions options =
+      EquippedListOptions(character_, account_, gear_preset_);
   // Minus the two borders: the width given is the column's, and the list is
   // drawn inside it.
   return FitItemColumns(width_ - 2, options);

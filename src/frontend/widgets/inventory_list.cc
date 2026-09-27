@@ -127,9 +127,8 @@ std::vector<InventoryRowState> BuildEquipRows(
     const EquipTabItem& item = items[i];
     const EquipPrototype& proto = item.prototype();
     int level = proto.required_level() > 0 ? proto.required_level() : 1;
-    ItemCells cells =
-        EquipUpgradeCells(proto, item.equip_state(), character.proto().job(),
-                          columns.Width(ItemColumn::kPotential));
+    ItemCells cells = EquipUpgradeCells(proto, item.equip_state(),
+                                        character.proto().job(), columns);
     cells.name = item.name();
     cells.slot = FormatSlot(proto.equip_slot());
     cells.level = "Lv" + std::to_string(level);
@@ -146,6 +145,16 @@ std::vector<InventoryRowState> BuildEquipRows(
     rows.push_back(std::move(row));
   }
   return rows;
+}
+
+ItemListOptions EquipListOptions(const CharacterInstance& character,
+                                 const AccountInstance& account,
+                                 const InventoryInstance& items) {
+  std::vector<const Equip*> states;
+  for (int i = 0; i < items.size(); ++i) {
+    states.push_back(&items[i].equip_state());
+  }
+  return ItemListOptionsFor(states, /*bag=*/true, character, account);
 }
 
 ftxui::Element EquipHeader(const ItemColumns& columns, ftxui::Element lead,
@@ -179,9 +188,7 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
     }
     ftxui::Element cell =
         ftxui::text(label.text.substr(span.offset, span.bytes));
-    if (column == ItemColumn::kPotential) {
-      cell |= PotentialCellColor(label.potential_rank);
-    }
+    cell |= PotentialCellColor(label.RankOf(column));
     // The cell that explains the block stays bright red while the rest dims,
     // since it is the one thing on the row worth reading.
     bool why = (column == ItemColumn::kLevel && !row.level_ok) ||

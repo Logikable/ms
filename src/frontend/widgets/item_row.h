@@ -15,8 +15,10 @@
 
 #include <chrono>
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/protos/equip.pb.h"
@@ -37,9 +39,11 @@ struct ItemCells {
   std::string scroll;
   std::string stars;
   std::string potential;
-  // Colours the potential cell. UNSPECIFIED, an item never cubed, leaves it
-  // plain.
+  std::string bonus_potential;
+  // Colour the two potential cells. UNSPECIFIED, an item never cubed, leaves a
+  // cell plain.
   PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  PotentialRank bonus_potential_rank = POTENTIAL_RANK_UNSPECIFIED;
 
   const std::string& Get(ItemColumn column) const;
 };
@@ -56,6 +60,11 @@ struct ItemRowText {
   std::string text;
   CellSpan span[kNumItemColumns];
   PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  PotentialRank bonus_potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+
+  // The rank colouring `column`'s cell: UNSPECIFIED for all but the two
+  // potentials.
+  PotentialRank RankOf(ItemColumn column) const;
 
   CellSpan Span(ItemColumn column) const {
     return span[static_cast<int>(column)];
@@ -70,10 +79,17 @@ std::string ItemStatsCell(Job job, const EquipStats& stats);
 // The scroll, star force and potential cells of an item, which read the same
 // wherever it is listed. An upgrade the item can't take reads "-", and so does
 // a potential with nothing this job uses. A blank would look like a column that
-// failed to draw. `potential_width` is the column's width, which decides how
-// many effects the cell names.
+// failed to draw. The potential columns' widths in `columns` decide how many
+// effects each cell names.
 ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
-                            Job job, int potential_width);
+                            Job job, const ItemColumns& columns);
+
+// The upgrade columns a list of `items` may show: each once the account unlocks
+// its mechanic, or earlier if one of `items` carries it, such as a traded item
+// with bonus potential. `bag` is ItemListOptions::bag.
+ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
+                                   bool bag, const CharacterInstance& character,
+                                   const AccountInstance& account);
 
 // `cells` laid out in `columns`. `elapsed` is how long this row has been
 // selected, which scrolls a name too long for its column. Zero, the default and
@@ -83,7 +99,8 @@ ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
                           std::chrono::steady_clock::duration elapsed =
                               std::chrono::steady_clock::duration::zero());
 
-// `cursor` and `row` as one line, the potential cell in its rank's text colour.
+// `cursor` and `row` as one line, each potential cell in its rank's text
+// colour.
 // `name` decorates the cursor and the name cell.
 ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
                               ftxui::Decorator name = ftxui::nothing);

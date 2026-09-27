@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
@@ -51,6 +52,12 @@ std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,
     StatPreset preset = StatPreset::kFirst);
+
+// The columns the list of what `character` wears in `preset` may show (see
+// ItemListOptionsFor).
+ItemListOptions EquippedListOptions(const CharacterInstance& character,
+                                    const AccountInstance& account,
+                                    StatPreset preset = StatPreset::kFirst);
 
 // The rows for the symbols of `kind` that `character` is wearing, in the order
 // their areas unlock. Empty until the first is equipped, which is all the list

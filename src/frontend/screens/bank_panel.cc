@@ -356,15 +356,12 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
     return RenderStackList(stacks, AllRows(rows), cursor, focused,
                            CursorBox(zone), /*highlighted=*/false, elapsed);
   }
-  ItemListOptions options;
-  options.bag = true;
-  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
-  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
-  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  const InventoryInstance& items =
+      zone == BankZone::kBag ? character_.inventory() : bank.equips();
   return RenderEquipList(
-      character_,
-      zone == BankZone::kBag ? character_.inventory() : bank.equips(),
-      AllRows(rows), cursor, focused, FitItemColumns(kHalfWidth - 2, options),
+      character_, items, AllRows(rows), cursor, focused,
+      FitItemColumns(kHalfWidth - 2,
+                     EquipListOptions(character_, account_, items)),
       CursorBox(zone), /*highlighted=*/false, elapsed);
 }
 

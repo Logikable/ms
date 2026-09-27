@@ -80,8 +80,7 @@ std::vector<EquippedRow> EquippedRows(
             ? elapsed
             : std::chrono::steady_clock::duration::zero();
     ItemCells cells = EquipUpgradeCells(item.prototype(), item.equip_state(),
-                                        character.proto().job(),
-                                        columns.Width(ItemColumn::kPotential));
+                                        character.proto().job(), columns);
     cells.name = item.prototype().name();
     cells.slot = FormatWornSlot(slot);
     cells.stats = ItemStatsCell(character.proto().job(), item.stats());
@@ -93,6 +92,17 @@ std::vector<EquippedRow> EquippedRows(
     rows.push_back(std::move(row));
   }
   return rows;
+}
+
+ItemListOptions EquippedListOptions(const CharacterInstance& character,
+                                    const AccountInstance& account,
+                                    StatPreset preset) {
+  std::vector<const Equip*> states;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       character.equipped(preset)) {
+    states.push_back(&kv.second->equip_state());
+  }
+  return ItemListOptionsFor(states, /*bag=*/false, character, account);
 }
 
 std::vector<EquippedRow> SymbolRows(

@@ -10,7 +10,7 @@ namespace {
 
 // Each column's width, set by the widest thing in it: "Equip Slot", "Lv150",
 // "Magician", an attack figure next to a stat figure, and the "Scroll" heading
-// over "7/7" and "25*". The potential column sets its own limits (see
+// over "7/7" and "25*". The potential columns set their own limits (see
 // kItemPotentialWidth).
 constexpr int kSlotWidth = 10;
 constexpr int kLevelWidth = 5;
@@ -32,6 +32,8 @@ bool Eligible(ItemColumn column, const ItemListOptions& options) {
       return options.star_force;
     case ItemColumn::kPotential:
       return options.potential;
+    case ItemColumn::kBonusPotential:
+      return options.bonus_potential;
     default:
       return true;
   }
@@ -60,8 +62,35 @@ int ItemColumns::Width(ItemColumn column) const {
       return kStarsWidth;
     case ItemColumn::kPotential:
       return potential_width;
+    case ItemColumn::kBonusPotential:
+      return bonus_potential_width;
   }
   return 0;
+}
+
+const char* ItemColumns::Header(ItemColumn column) const {
+  switch (column) {
+    case ItemColumn::kName:
+      return "Name";
+    case ItemColumn::kSlot:
+      return "Equip Slot";
+    case ItemColumn::kLevel:
+      return "Level";
+    case ItemColumn::kJob:
+      return "Job";
+    case ItemColumn::kStats:
+      return "Stats";
+    case ItemColumn::kScroll:
+      return "Scroll";
+    case ItemColumn::kStars:
+      return "Stars";
+    case ItemColumn::kPotential:
+      return Shows(ItemColumn::kBonusPotential) ? "Main Potential"
+                                                : "Potential";
+    case ItemColumn::kBonusPotential:
+      return "Bonus Potential";
+  }
+  return "";
 }
 
 int ItemColumns::TotalWidth() const {
@@ -91,6 +120,14 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
     // column.
     columns.shown[static_cast<int>(column)] = true;
     int cost = kItemCellGap + columns.Width(column);
+    // The bonus column renames the main one, which widens to its new header.
+    int main_grows = 0;
+    if (column == ItemColumn::kBonusPotential &&
+        columns.Shows(ItemColumn::kPotential)) {
+      main_grows =
+          std::max(0, kItemMainPotentialWidth - columns.potential_width);
+      cost += main_grows;
+    }
     if (cost > left) {
       // The first column that doesn't fit ends the list. A narrower one further
       // down might fit, but taking it would put the columns in an order the
@@ -98,41 +135,33 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
       columns.shown[static_cast<int>(column)] = false;
       break;
     }
+    columns.potential_width += main_grows;
     left -= cost;
   }
-  // Leftover room goes to the potential column first, then to the name up to
-  // the longest name. A long name can still scroll under the cursor, but a
-  // second effect has nowhere else to show.
+  // Leftover room goes to the potential columns first, a column at a time
+  // between the two, then to the name up to the longest name. A long name can
+  // still scroll under the cursor, but a second effect has nowhere else to
+  // show.
+  int* potentials[2] = {nullptr, nullptr};
   if (columns.Shows(ItemColumn::kPotential)) {
-    int grow = std::clamp(left, 0, kItemPotentialMax - columns.potential_width);
-    columns.potential_width += grow;
-    left -= grow;
+    potentials[0] = &columns.potential_width;
+  }
+  if (columns.Shows(ItemColumn::kBonusPotential)) {
+    potentials[1] = &columns.bonus_potential_width;
+  }
+  for (bool grew = true; left > 0 && grew;) {
+    grew = false;
+    for (int* potential : potentials) {
+      if (potential != nullptr && left > 0 && *potential < kItemPotentialMax) {
+        ++*potential;
+        --left;
+        grew = true;
+      }
+    }
   }
   columns.name_width =
       std::clamp(kItemNameWidth + left, kItemNameWidth, kItemNameMax);
   return columns;
-}
-
-const char* ItemColumnHeader(ItemColumn column) {
-  switch (column) {
-    case ItemColumn::kName:
-      return "Name";
-    case ItemColumn::kSlot:
-      return "Equip Slot";
-    case ItemColumn::kLevel:
-      return "Level";
-    case ItemColumn::kJob:
-      return "Job";
-    case ItemColumn::kStats:
-      return "Stats";
-    case ItemColumn::kScroll:
-      return "Scroll";
-    case ItemColumn::kStars:
-      return "Stars";
-    case ItemColumn::kPotential:
-      return "Potential";
-  }
-  return "";
 }
 
 std::string ItemListHeader(const ItemColumns& columns) {
@@ -145,7 +174,7 @@ std::string ItemListHeader(const ItemColumns& columns) {
     if (column != ItemColumn::kName) {
       header.append(kItemCellGap, ' ');
     }
-    header += PadRight(ItemColumnHeader(column), columns.Width(column));
+    header += PadRight(columns.Header(column), columns.Width(column));
   }
   // The last column's padding is blank up to the border, so it is trimmed.
   header.erase(header.find_last_not_of(' ') + 1);
