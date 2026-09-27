@@ -18,6 +18,7 @@
  *       --bonus_ied=60
  */
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <map>
@@ -89,6 +90,11 @@ ABSL_FLAG(int, bonus_ied, 0,
           "the build already holds the way every other source does, so it "
           "asks what a shared pool -- the one GMS hands out on potential "
           "lines nobody's class decides -- does to the field.");
+ABSL_FLAG(bool, endgame_ied, false,
+          "Adds the ignored defence an endgame GMS account holds from systems "
+          "this game hasn't built (Legion, familiars, HEXA stat), so 300% PDR "
+          "measures the classes rather than whose book ignores the most. "
+          "Combines with --bonus_ied.");
 ABSL_FLAG(bool, upgraded, false,
           "Wear everything at its ceiling: every upgrade slot filled with the "
           "spell trace that swings hardest on it, and stars up to the item's "
@@ -227,6 +233,39 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct, int ied_pct) {
       break;
   }
   return proto;
+}
+
+// Ignored defence an endgame GMS account has from systems not built here: 8-11k
+// Legion, maxed HEXA, level 290+. Drop a row when its system ships. Values are
+// maplestorywiki.net's maxima except where noted.
+struct IedSource {
+  const char* system;
+  int pct;
+};
+constexpr IedSource kEndgameIed[] = {
+    {"Legion grid, 40 squares", 40},
+    {"Legion Artifact crystal", 20},
+    {"Legion member Blaster, SSS", 6},
+    {"Legion member Lynn, SSS", 6},
+    // 5% per SSS Champion, stacking; two assumed.
+    {"Legion Champion insignia", 10},
+    {"Familiar badges, capped", 15},
+    // One line; legendary lines roll 30-50%.
+    {"Familiar potential", 40},
+    // As an additional stat at level 10; half the primary's 20%.
+    {"HEXA stat", 10},
+};
+
+// The charm's ignored defence: --bonus_ied and, with --endgame_ied, every row
+// above, each ignoring a share of what the others left.
+int CharmIed() {
+  double left = 1.0 - absl::GetFlag(FLAGS_bonus_ied) / 100.0;
+  if (absl::GetFlag(FLAGS_endgame_ied)) {
+    for (const IedSource& source : kEndgameIed) {
+      left *= 1.0 - source.pct / 100.0;
+    }
+  }
+  return static_cast<int>(std::lround(100.0 * (1.0 - left)));
 }
 
 // The catalogs plus this sim's dummy, at the character's own level. Its HP is
@@ -690,7 +729,7 @@ bool Outfit(const Catalogs& catalogs, int level, const Build& build,
   int bonus_stat = absl::GetFlag(FLAGS_bonus_stat);
   int bonus_attack = absl::GetFlag(FLAGS_bonus_attack);
   int bonus_boss = absl::GetFlag(FLAGS_bonus_boss_pct);
-  int bonus_ied = absl::GetFlag(FLAGS_bonus_ied);
+  int bonus_ied = CharmIed();
   if (bonus_stat > 0 || bonus_attack > 0 || bonus_boss > 0 || bonus_ied > 0) {
     state.equips[kCharm] =
         Charm(build.job, bonus_stat, bonus_attack, bonus_boss, bonus_ied);
@@ -1007,6 +1046,12 @@ void Run(int level) {
   std::printf("Level %d, %s. %s is against %s over %.0fs, at 1x speed.\n",
               level, SeedLine().c_str(), per_minute ? "DPM" : "DPS",
               CrowdLine(fight).c_str(), absl::GetFlag(FLAGS_seconds));
+  if (absl::GetFlag(FLAGS_endgame_ied)) {
+    std::printf(
+        "Every row holds %d%% ignored defence for the endgame systems not "
+        "built here.\n",
+        CharmIed());
+  }
   if (seeds > 1) {
     std::printf(
         "The mean of %d seeds, with the slowest and fastest against it. The "
