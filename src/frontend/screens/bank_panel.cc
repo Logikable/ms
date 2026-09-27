@@ -228,9 +228,6 @@ std::string BankPanel::MoveStack() {
   // only part of a stack would be a split, not a move.
   if (zone_ == BankZone::kBag) {
     const StackableItem& stack = character_.stackables()[index];
-    if (!CanTrade(stack.prototype())) {
-      return "Boxes can't be stored.";
-    }
     if (bank.RoomFor(stack.prototype()) < stack.count()) {
       return "Bank full.";
     }

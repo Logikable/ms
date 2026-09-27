@@ -8,7 +8,7 @@
 namespace ms {
 
 bool CanTrade(const ItemPrototype& proto) {
-  return !IsCurrency(proto) && !proto.has_box();
+  return !IsCurrency(proto);
 }
 
 bool CanTrade(const EquipPrototype& proto) {

@@ -183,9 +183,7 @@ TEST_F(BankPanelTest, ASymbolWillNotGoIntoTheBank) {
   EXPECT_EQ(c_.inventory().size(), 3);
 }
 
-// A box is untradeable in GMS, and the bank is a way to hand it to another
-// character.
-TEST_F(BankPanelTest, ABoxWillNotGoIntoTheBank) {
+TEST_F(BankPanelTest, ABoxGoesIntoTheBank) {
   ItemPrototype box;
   box.set_name("AbsoLab Armor Box");
   box.mutable_box()->set_token_item("absolab_coin");
@@ -194,9 +192,9 @@ TEST_F(BankPanelTest, ABoxWillNotGoIntoTheBank) {
   ToList();
   panel_->MoveRow(2);
   ASSERT_EQ(panel_->selected_stack()->name(), "AbsoLab Armor Box");
-  EXPECT_EQ(panel_->MoveSelected(), "Boxes can't be stored.");
-  EXPECT_EQ(c_.CountItem(box), 1);
-  EXPECT_TRUE(bank().stacks().empty());
+  panel_->MoveSelected();
+  EXPECT_EQ(c_.CountItem(box), 0);
+  EXPECT_EQ(bank().stacks().size(), 1);
 }
 
 TEST_F(BankPanelTest, AFullTabRefusesAndSaysWhich) {

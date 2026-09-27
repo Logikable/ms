@@ -23,11 +23,11 @@ TEST(TradeableTest, ACurrencyStaysWhereItIs) {
   }
 }
 
-TEST(TradeableTest, ABoxIsBoundToItsOwner) {
+TEST(TradeableTest, ABoxTrades) {
   ItemPrototype box;
   box.set_name("AbsoLab Weapon Box");
   box.mutable_box()->set_token_item("absolab_coin");
-  EXPECT_FALSE(CanTrade(box));
+  EXPECT_TRUE(CanTrade(box));
 }
 
 // A symbol is bound to the character who levelled it; every other equip can be
