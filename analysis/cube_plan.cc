@@ -21,9 +21,9 @@
 namespace ms {
 namespace {
 
-const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
-  WornGear::const_iterator it = state.character.equipped().find(slot);
-  return it == state.character.equipped().end() ? nullptr : it->second;
+const EquipInstance* Worn(const GameState& state, StatPreset gear,
+                          EquipSlot slot) {
+  return state.character.WornAt(gear, slot);
 }
 
 // TotalEquipStats' own attack fold, redone here because the percentage differs
@@ -43,18 +43,19 @@ double WithoutIgnoredDefense(double combined, double part) {
   return 1.0 - (1.0 - combined) / (1.0 - part);
 }
 
-// Potential totals from every potential worn except the one `track` names on
-// `slot`. A cube's roll is added on top, so the rest is summed once per slot
-// rather than once per draw.
+// Potential totals from every potential `gear` wears except the one `track`
+// names on `item`. A cube's roll is added on top, so the rest is summed once
+// per slot rather than once per draw.
 PotentialTotals PotentialsBut(const CharacterInstance& character,
-                              EquipSlot slot, PotentialTrack track) {
+                              StatPreset gear, const EquipInstance* item,
+                              PotentialTrack track) {
   PotentialTotals totals;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       character.equipped()) {
+       character.equipped(gear)) {
     int level = entry.second->prototype().required_level();
     for (PotentialTrack held :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
-      if (entry.first == slot && held == track) {
+      if (entry.second == item && held == track) {
         continue;
       }
       AddPotential(PotentialOf(entry.second->equip_state(), held), level,
@@ -71,7 +72,7 @@ void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
                PassiveOffense* out_passives) {
   const CharacterInstance& character = state.character;
-  const PotentialTotals& worn = character.potential_totals();
+  const PotentialTotals& worn = character.potential_totals(basis.derived.gear);
   const EquipStats paid = PotentialStatGrant(character, basis.derived, totals);
   const EquipStats& held = basis.derived.potential_stats;
 
@@ -123,12 +124,11 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
       totals.item_drop_pct == worn.item_drop_pct) {
     return 0.0;
   }
-  DerivedStats after = basis.derived;
+  DerivedStats after = basis.farm;
   after.equip_meso_pct += totals.meso_pct - worn.meso_pct;
   after.item_drop_pct += totals.item_drop_pct - worn.item_drop_pct;
-  double extra =
-      income.rate(MesoBonus(after), after.item_drop_pct) -
-      income.rate(MesoBonus(basis.derived), basis.derived.item_drop_pct);
+  double extra = income.rate(MesoBonus(after), after.item_drop_pct) -
+                 income.rate(MesoBonus(basis.farm), basis.farm.item_drop_pct);
   return extra * income.seconds_left * income.power_per_meso;
 }
 
@@ -140,7 +140,9 @@ CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
   // Stats and Inner Ability differ on ignored defence.
   basis.derived = DerivedStatsFor(state.character, state.skills, {}, {},
                                   Activity::kBossing);
-  const EquipStats sources[] = {state.character.equip_stats(),
+  basis.farm = DerivedStatsFor(state.character, state.skills, {}, {},
+                               Activity::kFarming);
+  const EquipStats sources[] = {state.character.equip_stats(basis.derived.gear),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
   basis.yard = yard;
@@ -149,17 +151,58 @@ CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
 
 namespace {
 
-// Value of `rolled` replacing what `slot` holds: power plus income, in the
-// shelf's single currency. `others` and `standing` don't change between draws,
-// so the caller computes them once.
-double GainOf(const GameState& state, const CubeBasis& basis, int level,
-              const PotentialTotals& others, const PotentialTotals& now,
-              double standing, const Potential& rolled,
+// Everything a cube on one piece is valued against, computed once per piece
+// rather than per draw. A piece counts toward boss power if boss fights wear
+// it and toward income if farming does; a piece worn by both counts twice.
+struct CubePricing {
+  CubeType cube = CubeType::kRed;
+  int level = 0;
+  PotentialGroup group{};
+  bool bossed = false;
+  bool farmed = false;
+  PotentialTotals boss_others;
+  PotentialTotals farm_others;
+  PotentialTotals farm_now;
+  double standing = 0.0;
+};
+
+CubePricing PricingFor(const GameState& state, const CubeBasis& basis,
+                       const EquipInstance& item, EquipSlot slot,
+                       PotentialTrack track) {
+  const CharacterInstance& character = state.character;
+  CubePricing pricing;
+  pricing.level = item.prototype().required_level();
+  pricing.group = PotentialGroupOf(slot);
+  pricing.bossed = character.WornAt(kBossGear, slot) == &item;
+  pricing.farmed = character.WornAt(kFarmGear, slot) == &item;
+  const Potential& held = PotentialOf(item.equip_state(), track);
+  pricing.boss_others = PotentialsBut(character, kBossGear, &item, track);
+  PotentialTotals boss_now = pricing.boss_others;
+  AddPotential(held, pricing.level, boss_now);
+  pricing.standing = PowerOf(state, basis, boss_now);
+  pricing.farm_others = PotentialsBut(character, kFarmGear, &item, track);
+  pricing.farm_now = pricing.farm_others;
+  AddPotential(held, pricing.level, pricing.farm_now);
+  return pricing;
+}
+
+// Value of `rolled` replacing what the piece holds: power plus income, in the
+// shelf's single currency.
+double GainOf(const GameState& state, const CubeBasis& basis,
+              const CubePricing& pricing, const Potential& rolled,
               const CubeIncome& income) {
-  PotentialTotals totals = others;
-  AddPotential(rolled, level, totals);
-  return PowerOf(state, basis, totals) - standing +
-         IncomeGain(basis, now, totals, income);
+  double gain = 0.0;
+  if (pricing.bossed) {
+    PotentialTotals totals = pricing.boss_others;
+    AddPotential(rolled, pricing.level, totals);
+    gain += PowerOf(state, basis, totals) - pricing.standing;
+  }
+  if (pricing.farmed) {
+    PotentialTotals totals = pricing.farm_others;
+    AddPotential(rolled, pricing.level, totals);
+    gain += IncomeGain(basis, pricing.farm_now, totals, income);
+  }
+  return gain;
 }
 
 // Run lengths the shopper considers. A single cube is the usual offer; longer
@@ -178,17 +221,6 @@ constexpr int kCubeProgramLengthCount =
 
 namespace {
 
-// Everything a cube on one slot is valued against, computed once per slot
-// rather than per draw.
-struct CubePricing {
-  CubeType cube = CubeType::kRed;
-  int level = 0;
-  PotentialGroup group{};
-  PotentialTotals others;
-  PotentialTotals now;
-  double standing = 0.0;
-};
-
 // Expected gain of one cube on the slot, averaged over draws and never below
 // zero.
 double MarginalGain(const GameState& state, const CubeBasis& basis,
@@ -197,8 +229,7 @@ double MarginalGain(const GameState& state, const CubeBasis& basis,
   double total = 0.0;
   for (int draw = 0; draw < kCubeSamples; ++draw) {
     total += std::max(
-        0.0, GainOf(state, basis, pricing.level, pricing.others, pricing.now,
-                    pricing.standing,
+        0.0, GainOf(state, basis, pricing,
                     CubePotential(current, pricing.cube, pricing.group, rng),
                     income));
   }
@@ -221,8 +252,7 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
     int rung = 0;
     for (int cube = 1; cube <= longest; ++cube) {
       Potential rolled = CubePotential(held, pricing.cube, pricing.group, rng);
-      double gain = GainOf(state, basis, pricing.level, pricing.others,
-                           pricing.now, pricing.standing, rolled, income);
+      double gain = GainOf(state, basis, pricing, rolled, income);
       // Keep-better, as GMS offers. A higher rank is kept even when damage
       // doesn't change: under a defence wall every roll deals the 1-damage
       // floor, so a run judged on damage alone would never climb.
@@ -242,26 +272,21 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
 }  // namespace
 
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
-                            EquipSlot slot, CubeType cube,
+                            StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng) {
   CubeProgram best;
-  const EquipInstance* item = Worn(state, slot);
+  const EquipInstance* item = Worn(state, gear, slot);
   if (item == nullptr || !item->CanCube()) {
     return best;
   }
   const Cube& shelf = CubeOf(cube);
   const Potential& current = PotentialOf(item->equip_state(), shelf.track);
-  CubePricing pricing;
+  CubePricing pricing = PricingFor(state, basis, *item, slot, shelf.track);
   pricing.cube = cube;
-  pricing.level = item->prototype().required_level();
-  pricing.group = PotentialGroupOf(slot);
-  pricing.others = PotentialsBut(state.character, slot, shelf.track);
-  pricing.now = pricing.others;
-  AddPotential(current, pricing.level, pricing.now);
-  pricing.standing = PowerOf(state, basis, pricing.now);
 
+  // A farm-only piece is kept however the boss gear changes.
   double share =
-      Replaceable(state, slot)
+      pricing.bossed && Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
 
@@ -300,21 +325,17 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
   return best;
 }
 
-bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-                 PotentialTrack track, const Potential& rolled,
-                 const CubeIncome& income) {
-  const EquipInstance* item = Worn(state, slot);
+bool WorthTaking(const GameState& state, const CubeBasis& basis,
+                 StatPreset gear, EquipSlot slot, PotentialTrack track,
+                 const Potential& rolled, const CubeIncome& income) {
+  const EquipInstance* item = Worn(state, gear, slot);
   if (item == nullptr) {
     return false;
   }
-  int level = item->prototype().required_level();
   const Potential& held = PotentialOf(item->equip_state(), track);
-  PotentialTotals others = PotentialsBut(state.character, slot, track);
-  PotentialTotals now = others;
-  AddPotential(held, level, now);
-  double standing = PowerOf(state, basis, now);
   double gain =
-      GainOf(state, basis, level, others, now, standing, rolled, income);
+      GainOf(state, basis, PricingFor(state, basis, *item, slot, track), rolled,
+             income);
   if (gain > 0.0) {
     return true;
   }
@@ -340,7 +361,7 @@ bool WithinReach(const GameState& state, const EquipPrototype& proto) {
 }
 
 bool Replaceable(const GameState& state, EquipSlot slot) {
-  const EquipInstance* item = Worn(state, slot);
+  const EquipInstance* item = Worn(state, kBossGear, slot);
   if (item == nullptr) {
     return false;
   }

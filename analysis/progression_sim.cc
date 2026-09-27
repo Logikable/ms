@@ -604,9 +604,11 @@ struct MapChoice {
 // this: a different item counts as a change, a star on the same item doesn't.
 std::string WornNames(const GameState& state) {
   std::string worn;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
-       state.character.equipped()) {
-    absl::StrAppend(&worn, item.second->name(), "\n");
+  for (StatPreset gear : {kFarmGear, kBossGear}) {
+    for (const std::pair<const EquipSlot, const EquipInstance*>& item :
+         state.character.equipped(gear)) {
+      absl::StrAppend(&worn, item.second->name(), "\n");
+    }
   }
   return worn;
 }
@@ -908,6 +910,10 @@ struct Climb {
   // Where the meso came from and went. Recorded at end of run like the endgame
   // fields above, so no checkpoint carries it.
   Ledger ledger;
+  // What the farm gear's potentials and everything else add to meso and drops
+  // at the end, as fractions: MesoBonus's result and the drop rate.
+  double farm_meso = 0.0;
+  double farm_drop = 0.0;
   // Final potential on each worn slot that takes one, one row per slot, already
   // in display order.
   std::vector<PotentialRow> potentials;
@@ -1079,24 +1085,36 @@ std::vector<int> PotentialLevels() {
   return levels;
 }
 
-// Both potentials on every worn piece that takes one, as they stand now.
+// Appends what `item`, worn in `at`, holds on both tracks.
+void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
+                      CheckpointPotentials& now) {
+  CheckpointSlotPotential& slot = *now.add_slots();
+  slot.set_slot(at);
+  slot.set_farm(farm);
+  slot.set_item(item.prototype().name());
+  slot.set_item_level(item.prototype().required_level());
+  *slot.mutable_main() = item.equip_state().main_potential();
+  *slot.mutable_bonus() = item.equip_state().bonus_potential();
+}
+
+// Both potentials on every piece boss fights wear that takes one, then on
+// every farm piece they don't, as they stand now.
 CheckpointPotentials PotentialsNow(const GameState& state, int level,
                                    double seconds) {
   CheckpointPotentials now;
   now.set_level(level);
   now.set_seconds(seconds);
-  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
-    if (!entry.second->CanCube()) {
-      continue;
+  for (StatPreset gear : {kBossGear, kFarmGear}) {
+    const bool farm = gear == kFarmGear;
+    for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+         state.character.equipped(gear)) {
+      if (!entry.second->CanCube() ||
+          (farm &&
+           state.character.WornAt(kBossGear, entry.first) == entry.second)) {
+        continue;
+      }
+      AddSlotPotential(entry.first, *entry.second, farm, now);
     }
-    const EquipInstance& item = *entry.second;
-    CheckpointSlotPotential& slot = *now.add_slots();
-    slot.set_slot(entry.first);
-    slot.set_item(item.prototype().name());
-    slot.set_item_level(item.prototype().required_level());
-    *slot.mutable_main() = item.equip_state().main_potential();
-    *slot.mutable_bonus() = item.equip_state().bonus_potential();
   }
   return now;
 }
@@ -2275,6 +2293,9 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // endgame section does: it spends at every level of the climb, and a run that
   // never reached the cap used to report none of it.
   climb.ledger.gear = run.shopper.life();
+  const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
+  climb.farm_meso = MesoBonus(farming);
+  climb.farm_drop = farming.item_drop_pct;
   CheckpointPotentials end =
       PotentialsNow(state, state.character.proto().level(), run.seconds);
   end.set_end(true);
@@ -2978,19 +2999,24 @@ void PrintCubing(const std::vector<Job>& branches,
                  const std::vector<Climb>& climbs) {
   std::printf(
       "\nWhat the cubing came to. Kept is the rolls that beat what the piece "
-      "already held;\nthe rest is the price of the chance.\n\n");
-  std::printf("%-13s %9s %8s %8s %6s %8s %8s\n", "branch", "meso", "red",
-              "kept", "kept%", "green", "kept");
+      "already held;\nthe rest is the price of the chance. Farm is cubes on "
+      "pieces worn only while farming;\nmeso% and drop% are what farming "
+      "ends the run with.\n\n");
+  std::printf("%-13s %9s %8s %8s %6s %8s %8s %8s %8s %6s %6s\n", "branch",
+              "meso", "red", "kept", "kept%", "green", "kept", "farm", "kept",
+              "meso%", "drop%");
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const GearSpend& gear = climbs[i].ledger.gear;
     char meso[16];
     FormatShort(static_cast<double>(gear.cubes), meso, sizeof(meso));
     int red = gear.cubes_bought - gear.green_cubes_bought;
     int red_kept = gear.cubes_kept - gear.green_cubes_kept;
-    std::printf("%-13s %9s %8d %8d %5.0f%% %8d %8d\n",
+    std::printf("%-13s %9s %8d %8d %5.0f%% %8d %8d %8d %8d %5.0f%% %5.0f%%\n",
                 BranchName(branches[i]).c_str(), meso, red, red_kept,
                 red == 0 ? 0.0 : 100.0 * red_kept / red,
-                gear.green_cubes_bought, gear.green_cubes_kept);
+                gear.green_cubes_bought, gear.green_cubes_kept,
+                gear.farm_cubes_bought, gear.farm_cubes_kept,
+                100.0 * climbs[i].farm_meso, 100.0 * climbs[i].farm_drop);
   }
   int weakest = 0;
   for (int i = 1; i < static_cast<int>(climbs.size()); ++i) {
@@ -3073,6 +3099,9 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
       }
       ++reached;
       for (const CheckpointSlotPotential& slot : held->slots()) {
+        if (slot.farm()) {
+          continue;  // the table is the boss gear, which max mode copies
+        }
         main[slot.slot()].push_back(slot.main().rank());
         bonus[slot.slot()].push_back(slot.bonus().rank());
       }
@@ -3117,6 +3146,7 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
               << (held.end() ? absl::StrCat("end:", held.level())
                              : absl::StrCat(held.level()))
               << '\t' << held.seconds() / kDaySeconds << '\t'
+              << (slot.farm() ? "FARM_" : "")
               << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_")
               << '\t' << slot.item() << '\t' << slot.item_level() << '\t'
               << (potential == &slot.main() ? "main" : "bonus") << '\t'

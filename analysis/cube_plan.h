@@ -16,6 +16,7 @@
 #include <functional>
 #include <random>
 
+#include "analysis/sim_gear.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
@@ -50,7 +51,10 @@ struct CubeIncome {
 // The character as they are now, which every cube is valued against. Computing
 // it needs a rebuild, so the shopper does it once per round.
 struct CubeBasis {
+  // Read while bossing, off the boss gear: what power is judged on.
   DerivedStats derived;
+  // Read while farming, off the farm gear: what income is judged on.
+  DerivedStats farm;
   // Stats from everything worn plus everything granted, before percentages are
   // applied: the sum TotalEquipStats folds, not its result. A potential can
   // change %ATT, so the fold is redone per candidate.
@@ -76,24 +80,25 @@ struct CubeProgram {
   }
 };
 
-// The run of `cube` on `slot` with the best value per meso, out of a ladder
-// of lengths, all from one sample: the chance the best of N draws is the i-th
-// of a sorted sample of m is (i/m)^N - ((i-1)/m)^N.
+// The run of `cube` on what `gear` wears in `slot` with the best value per
+// meso, out of a ladder of lengths, all from one sample: the chance the best of
+// N draws is the i-th of a sorted sample of m is (i/m)^N - ((i-1)/m)^N.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
-                            EquipSlot slot, CubeType cube,
+                            StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng);
 
-// Whether `rolled` beats what `slot` already has on `track`: the same
+// Whether `rolled` beats what `gear` wears in `slot` on `track`: the same
 // comparison BestCubeProgram averages, applied to one actual roll. The cube is
 // paid for either way, so this only decides which lines the item keeps.
-bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-                 PotentialTrack track, const Potential& rolled,
-                 const CubeIncome& income);
+bool WorthTaking(const GameState& state, const CubeBasis& basis,
+                 StatPreset gear, EquipSlot slot, PotentialTrack track,
+                 const Potential& rolled, const CubeIncome& income);
 
-// Whether the shopper is likely to replace what `slot` holds: a higher-level
-// piece the character can wear and afford. A weapon must match the type in
-// hand. A tier priced in tokens counts only once a token is in the bag. The
-// gain is discounted rather than refused, since cubing still helps the climb.
+// Whether the shopper is likely to replace what boss fights wear in `slot`: a
+// higher-level piece the character can wear and afford. A weapon must match the
+// type in hand. A tier priced in tokens counts only once a token is in the bag.
+// The gain is discounted rather than refused, since cubing still helps the
+// climb.
 bool Replaceable(const GameState& state, EquipSlot slot);
 
 }  // namespace ms

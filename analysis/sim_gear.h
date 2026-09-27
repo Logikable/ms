@@ -11,12 +11,23 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
+
+// The gear boss fights wear and the gear farming wears: the autoswap slots,
+// which the sims always run with. Boss fights read the second preset, whose own
+// pieces override the first; farming reads the first. Only accessories ever
+// differ, since only they roll %meso and %drop.
+inline constexpr StatPreset kBossGear = StatPreset::kSecond;
+inline constexpr StatPreset kFarmGear = StatPreset::kFirst;
+
+// Whether `slot` holds a piece farming and boss fights wear separately.
+bool SplitsFarmGear(EquipSlot slot);
 
 // Name of the character's weapon, or "-" if empty-handed.
 std::string HeldWeaponName(const CharacterInstance& character);
@@ -61,6 +72,10 @@ void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 // Wears the best items from the bag in the slots the shop doesn't stock. A
 // piece goes on when its slot is empty or it outranks what is there, so a
 // second copy never replaces a first that has scrolls and stars.
+//
+// Once gear presets open, a better accessory goes on for boss fights only and
+// the one it replaces stays on for farming: a piece a meso line can be cubed
+// onto without costing a boss any damage.
 void WearBestFromBag(CharacterInstance& character);
 
 // Maxes out everything worn: the best-measuring scroll in every slot, and stars
@@ -70,9 +85,9 @@ void WearBestFromBag(CharacterInstance& character);
 // past 15 stars an attempt can destroy the item.
 void FullyUpgrade(GameState& state, int star_cap = kMaxStarForce);
 
-// The scroll each worn slot should use: the one that measures best when applied
-// to every slot, among those with at least `success_rate` success. Restores the
-// character, so it wears and buys nothing.
+// The scroll each slot of the boss gear should use: the one that measures best
+// when applied to every slot, among those with at least `success_rate` success.
+// Restores the character, so it wears and buys nothing.
 std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate);
 

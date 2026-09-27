@@ -131,6 +131,7 @@ cc_library(
     hdrs = ["cube_plan.h"],
     deps = [
         ":sim_boss",
+        ":sim_gear",
         ":yardstick",
         "//src:game_state",
         "//src/character",

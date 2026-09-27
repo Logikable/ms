@@ -14,6 +14,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/item/projectile.h"
 #include "src/item/shop.h"
 #include "src/protos/character.pb.h"
@@ -397,6 +398,14 @@ Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
   return state;
 }
 
+}  // namespace
+
+bool SplitsFarmGear(EquipSlot slot) {
+  return PotentialGroupOf(slot) == PotentialGroup::kAccessory;
+}
+
+namespace {
+
 // Wears a fresh `proto` with state `made` in `slot`, leaving the displaced copy
 // in the bag. `slot` is where the item is worn: every ring says
 // EQUIP_SLOT_RING, and unequipping that would remove the wrong ring.
@@ -409,17 +418,18 @@ bool WearMade(CharacterInstance& character, EquipSlot slot,
   return character.Equip(character.inventory().size() - 1);
 }
 
-// The scroll `slot` should use: the one the character measures best with,
-// including no scroll (tried first). `success_rate` narrows the choice, since a
-// budget player picks a rate before a stat. Leaves the character wearing the
-// last try-on for the caller to restore.
+// The scroll the piece boss fights wear in `slot` should use: the one the
+// character measures best with, including no scroll (tried first).
+// `success_rate` narrows the choice, since a budget player picks a rate before
+// a stat. Each try-on goes where the measurement reads, the farm gear. Leaves
+// the character wearing the last try-on for the caller to restore.
 const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
                                 int success_rate) {
-  WornGear::const_iterator it = state.character.equipped().find(slot);
-  if (it == state.character.equipped().end()) {
+  const EquipInstance* worn = state.character.WornAt(kBossGear, slot);
+  if (worn == nullptr) {
     return nullptr;
   }
-  EquipPrototype proto = it->second->prototype();
+  EquipPrototype proto = worn->prototype();
   std::vector<const Scroll*> candidates;
   for (const Scroll* scroll : ScrollsFor(state, proto)) {
     if (success_rate == 0 || scroll->success_rate() == success_rate) {
@@ -541,7 +551,7 @@ std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate) {
   std::vector<EquipSlot> worn;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
+       state.character.equipped(kBossGear)) {
     worn.push_back(entry.first);
   }
   std::string farming = OpenTryout(state);
@@ -601,14 +611,14 @@ int CollectSymbols(CharacterInstance& character) {
 
 namespace {
 
-// Whether a copy of `proto` is worn anywhere in its family. Equipping another
-// would swap with it, sending the worn one to the bag, where it would be
-// offered again forever.
-bool WearsCopyOf(const CharacterInstance& character,
+// Whether `gear` wears a copy of `proto` anywhere in its family. Equipping
+// another would swap with it, sending the worn one to the bag, where it would
+// be offered again forever.
+bool WearsCopyOf(const CharacterInstance& character, StatPreset gear,
                  const EquipPrototype& proto) {
   for (EquipSlot slot : SlotFamily(proto.equip_slot())) {
-    WornGear::const_iterator worn = character.equipped().find(slot);
-    if (worn != character.equipped().end() &&
+    WornGear::const_iterator worn = character.equipped(gear).find(slot);
+    if (worn != character.equipped(gear).end() &&
         worn->second->name() == proto.name()) {
       return true;
     }
@@ -619,6 +629,8 @@ bool WearsCopyOf(const CharacterInstance& character,
 }  // namespace
 
 void WearBestFromBag(CharacterInstance& character) {
+  const bool presets =
+      character.proto().level() >= UnlockLevel(Feature::kEquipPresets);
   // Restart after every change, since equipping reorders the bag: the displaced
   // item goes back into it.
   bool moved = true;
@@ -627,19 +639,21 @@ void WearBestFromBag(CharacterInstance& character) {
     const InventoryInstance& bag = character.inventory();
     for (int i = 0; i < bag.size(); ++i) {
       const EquipPrototype& proto = bag[i].prototype();
+      const StatPreset gear =
+          presets && SplitsFarmGear(proto.equip_slot()) ? kBossGear : kFarmGear;
       if (bag[i].is_trace() || Shopped(proto) ||
           !ReachedSymbolArea(character, proto) || !character.CanEquip(proto) ||
-          WearsCopyOf(character, proto)) {
+          WearsCopyOf(character, gear, proto)) {
         continue;
       }
       WornGear::const_iterator worn =
-          character.equipped().find(proto.equip_slot());
-      if (worn != character.equipped().end() &&
+          character.equipped(gear).find(proto.equip_slot());
+      if (worn != character.equipped(gear).end() &&
           worn->second->prototype().required_level() >=
               proto.required_level()) {
         continue;
       }
-      if (character.Equip(i)) {
+      if (character.Equip(i, gear)) {
         moved = true;
         break;
       }

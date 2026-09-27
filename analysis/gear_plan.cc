@@ -35,16 +35,32 @@ const ItemPrototype* TraceItem(const GameState& state) {
   return it == state.items.end() ? nullptr : &it->second;
 }
 
+// What boss fights wear in `slot`, which every upgrade but a farm cube is for.
 const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
-  WornGear::const_iterator it = state.character.equipped().find(slot);
-  return it == state.character.equipped().end() ? nullptr : it->second;
+  return state.character.WornAt(kBossGear, slot);
+}
+
+// The preset that owns what boss fights wear in `slot`: the Boss preset's own
+// piece, or the farm piece it inherits. A star run must know, since a boom on
+// the Boss preset's own piece leaves the farm piece showing through.
+StatPreset OwnerOf(const CharacterInstance& character, EquipSlot slot) {
+  return character.InheritsSlot(kBossGear, slot) ? kFarmGear : kBossGear;
+}
+
+// The piece `owner` holds in `slot` as its own, or null.
+const EquipInstance* Owned(const CharacterInstance& character, StatPreset owner,
+                           EquipSlot slot) {
+  const std::map<EquipSlot, EquipInstance>& own = character.own_gear(owner);
+  std::map<EquipSlot, EquipInstance>::const_iterator it = own.find(slot);
+  return it == own.end() ? nullptr : &it->second;
 }
 
 // Stats the character wears plus what their passives grant. This is the
 // expensive half of scoring a candidate, so it's computed once a round and each
 // candidate is added to a copy.
 EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
-  derived = DerivedStatsFor(state.character, state.skills);
+  derived = DerivedStatsFor(state.character, state.skills, {}, {},
+                            Activity::kBossing);
   return TotalEquipStats(state.character, derived);
 }
 
@@ -158,7 +174,7 @@ int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
 // Stars on the worn copy of `name`, or -1 if none is worn.
 int WornStars(const CharacterInstance& character, const std::string& name) {
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       character.equipped()) {
+       character.equipped(kBossGear)) {
     if (entry.second->prototype().name() == name) {
       return entry.second->stars();
     }
@@ -187,7 +203,7 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   std::map<EquipSlot, const Scroll*> picked =
       ChooseScrolls(state, plan_.scroll_rate);
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
+       state.character.equipped(kBossGear)) {
     std::map<EquipSlot, const Scroll*>::const_iterator found =
         picked.find(entry.first);
     chosen_[entry.second->prototype().name()] =
@@ -317,7 +333,7 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       state.character.proto().level() >= UnlockLevel(Feature::kHammer);
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
+       state.character.equipped(kBossGear)) {
     slots.push_back(entry.first);
   }
   std::vector<Candidate> offers;
@@ -381,22 +397,36 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   const bool green =
       state.character.proto().level() >= UnlockLevel(Feature::kBonusPotential);
+  // Every piece boss fights wear, then every farm piece they don't.
+  std::vector<std::pair<StatPreset, EquipSlot>> pieces;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
-    if (!entry.second->CanCube()) {
+       state.character.equipped(kBossGear)) {
+    pieces.push_back({kBossGear, entry.first});
+  }
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped(kFarmGear)) {
+    if (state.character.WornAt(kBossGear, entry.first) != entry.second) {
+      pieces.push_back({kFarmGear, entry.first});
+    }
+  }
+  for (const std::pair<StatPreset, EquipSlot>& piece : pieces) {
+    const EquipInstance* item =
+        state.character.WornAt(piece.first, piece.second);
+    if (item == nullptr || !item->CanCube()) {
       continue;
     }
     for (const Cube& shelf : kCubes) {
       if (shelf.type == CubeType::kGreen && !green) {
         continue;
       }
-      CubeProgram run =
-          BestCubeProgram(state, basis, entry.first, shelf.type, income_, rng_);
+      CubeProgram run = BestCubeProgram(state, basis, piece.first, piece.second,
+                                        shelf.type, income_, rng_);
       if (!run.worth()) {
         continue;
       }
       Candidate offer;
-      offer.slot = entry.first;
+      offer.slot = piece.second;
+      offer.gear = piece.first;
       offer.cube = true;
       offer.cube_type = shelf.type;
       // Price and value the whole run, so a slot needing a dozen rolls is
@@ -435,12 +465,12 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
 
 // Keep-better, as the game offers: a roll that doesn't beat the item's current
 // lines is declined, and the cube is spent either way.
-bool GearShopper::BuyCube(GameState& state, EquipSlot slot, CubeType cube,
-                          GearSpend& spend) {
+bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
+                          CubeType cube, GearSpend& spend) {
   // Computed before buying the cube, since the comparison is against the
   // character as they are now and buying changes them.
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
-  std::optional<Potential> rolled = state.character.BuyCube(slot, cube);
+  std::optional<Potential> rolled = state.character.BuyCube(slot, cube, gear);
   if (!rolled.has_value()) {
     return false;  // refused for meso or by the item
   }
@@ -449,17 +479,22 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, CubeType cube,
   spend.cubes += shelf.cost;
   ++spend.cubes_bought;
   spend.green_cubes_bought += green;
-  if (WorthTaking(state, basis, slot, shelf.track, *rolled, income_)) {
-    state.character.TakePotential(slot, shelf.track, *rolled);
+  const bool farm =
+      gear == kFarmGear && state.character.WornAt(kBossGear, slot) !=
+                               state.character.WornAt(kFarmGear, slot);
+  spend.farm_cubes_bought += farm;
+  if (WorthTaking(state, basis, gear, slot, shelf.track, *rolled, income_)) {
+    state.character.TakePotential(slot, shelf.track, *rolled, gear);
     ++spend.cubes_kept;
     spend.green_cubes_kept += green;
+    spend.farm_cubes_kept += farm;
   }
   return true;
 }
 
 bool GearShopper::BuyHammer(GameState& state, EquipSlot slot,
                             GearSpend& spend) {
-  if (!state.character.HammerEquipped(slot)) {
+  if (!state.character.HammerEquipped(slot, kBossGear)) {
     return false;  // refused for meso or by the item
   }
   spend.hammers += kGoldenHammerCost;
@@ -479,7 +514,7 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
       !state.character.SpendItem(kSpellTraceName, traces)) {
     return false;  // the bag refused them, not a lack of meso
   }
-  state.character.ScrollEquipped(candidate.slot, *candidate.scroll);
+  state.character.ScrollEquipped(candidate.slot, *candidate.scroll, kBossGear);
   spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
   ++spend.slots_filled;
   return true;
@@ -488,18 +523,19 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
 // Attempts until the star lands or meso runs out. The offer's price was the
 // expected cost; this is the actual cost, and one run isn't the average.
 bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
-  const EquipInstance* item = Worn(state, slot);
+  const StatPreset owner = OwnerOf(state.character, slot);
+  const EquipInstance* item = Owned(state.character, owner, slot);
   int before = item == nullptr ? 0 : item->stars();
   // Copy the prototype: a boom destroys the EquipInstance, and recovery needs
   // to know what was lost.
   EquipPrototype proto = item == nullptr ? EquipPrototype() : item->prototype();
   while (true) {
-    item = Worn(state, slot);
+    item = Owned(state.character, owner, slot);
     if (item == nullptr) {
       // The last attempt destroyed it. The trace plus a spare copy rebuilds the
       // piece, several stars lower with its scrolls intact, and the run
       // continues from there. That loop is what the offer's price solved.
-      if (!RecoverBoom(state, slot, proto, spend)) {
+      if (!RecoverBoom(state, owner, proto, spend)) {
         break;
       }
       continue;
@@ -512,12 +548,12 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
     if (attempt <= 0 || attempt > state.character.meso()) {
       break;
     }
-    if (state.character.StarForceEquipped(slot) == kStarForceNoMeso) {
+    if (state.character.StarForceEquipped(slot, owner) == kStarForceNoMeso) {
       break;
     }
     spend.stars += attempt;
   }
-  item = Worn(state, slot);
+  item = Owned(state.character, owner, slot);
   if (item != nullptr && item->stars() > before) {
     ++spend.stars_gained;
   }
@@ -532,7 +568,7 @@ bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
   }
   int64_t cost =
       SymbolLevelUpCost(item->prototype(), SymbolLevel(item->equip_state()));
-  if (!state.character.LevelUpSymbol(slot)) {
+  if (!state.character.LevelUpSymbol(slot, kBossGear)) {
     return false;
   }
   spend.symbols += cost;
@@ -543,7 +579,8 @@ bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
 bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
                            GearSpend& spend) {
   if (candidate.cube) {
-    return BuyCube(state, candidate.slot, candidate.cube_type, spend);
+    return BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
+                   spend);
   }
   if (candidate.hammer) {
     return BuyHammer(state, candidate.slot, spend);
@@ -557,7 +594,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   return BuyStar(state, candidate.slot, spend);
 }
 
-bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
+bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
                               const EquipPrototype& proto, GearSpend& spend) {
   int trace_index = -1;
   int spare_index = -1;
@@ -587,7 +624,7 @@ bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
   state.character.RecoverTrace(trace_index, spare_index);
   ++spend.booms;
   // RecoverTrace appends the restored piece, which is what goes back on.
-  return state.character.Equip(state.character.inventory().size() - 1);
+  return state.character.Equip(state.character.inventory().size() - 1, owner);
 }
 
 void GearShopper::SellSpares(GameState& state, GearSpend& spend) {

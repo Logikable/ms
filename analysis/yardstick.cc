@@ -10,6 +10,7 @@
 #include "analysis/sim_boss.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
+#include "src/character/stat_preset.h"
 #include "src/combat/encounter.h"
 #include "src/combat/measure.h"
 #include "src/protos/boss.pb.h"
@@ -169,7 +170,7 @@ std::string KitKey(const GameState& state) {
   AimedFight(state, &fight);
   absl::StrAppend(&key, fight.first, "/", fight.second, "\n");
   for (const std::pair<const EquipSlot, const EquipInstance*>& item :
-       state.character.equipped()) {
+       state.character.equipped(AutoswapSlotFor(Activity::kBossing))) {
     absl::StrAppend(&key, item.second->name(), "\n");
   }
   for (const std::pair<const std::string, int32_t>& learned :

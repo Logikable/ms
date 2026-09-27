@@ -60,9 +60,11 @@ struct GearSpend {
   // the trap a keep-better rule invites.
   int cubes_bought = 0;
   int cubes_kept = 0;
-  // The Green Cubes among them.
+  // The Green Cubes among them, and the cubes on farm-only pieces.
   int green_cubes_bought = 0;
   int green_cubes_kept = 0;
+  int farm_cubes_bought = 0;
+  int farm_cubes_kept = 0;
   // Pieces destroyed and restored, and meso from bag items sold to make room
   // and pay for it.
   int booms = 0;
@@ -87,6 +89,8 @@ struct GearSpend {
     cubes_kept += other.cubes_kept;
     green_cubes_bought += other.green_cubes_bought;
     green_cubes_kept += other.green_cubes_kept;
+    farm_cubes_bought += other.farm_cubes_bought;
+    farm_cubes_kept += other.farm_cubes_kept;
     booms += other.booms;
     sold += other.sold;
   }
@@ -149,6 +153,9 @@ class GearShopper {
     // is expected to beat the lines it replaces. Which cube is `cube_type`.
     bool cube = false;
     CubeType cube_type = CubeType::kRed;
+    // Whose piece a cube is for: the boss gear's, or a farm-only piece's.
+    // Every other offer is for the boss gear.
+    StatPreset gear = kBossGear;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
     // Expected meso cost, including attempts that fail.
@@ -201,7 +208,7 @@ class GearShopper {
   bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
   // One function per kind of offer. False means the bag or meso refused, and
   // BuyBest tries the next offer.
-  bool BuyCube(GameState& state, EquipSlot slot, CubeType cube,
+  bool BuyCube(GameState& state, EquipSlot slot, StatPreset gear, CubeType cube,
                GearSpend& spend);
   bool BuyHammer(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
@@ -213,7 +220,7 @@ class GearShopper {
   void SellSpares(GameState& state, GearSpend& spend);
   // Restores a destroyed piece from the trace the boom left and a spare copy.
   // False if nothing can cover it, which ends the run.
-  bool RecoverBoom(GameState& state, EquipSlot slot,
+  bool RecoverBoom(GameState& state, StatPreset owner,
                    const EquipPrototype& proto, GearSpend& spend);
 
   GearPlan plan_;

@@ -94,6 +94,8 @@ message CheckpointSlotPotential {
   int32 item_level = 3;
   Potential main = 4;
   Potential bonus = 5;
+  // Worn only while farming, under a boss piece of its own.
+  bool farm = 6;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,
