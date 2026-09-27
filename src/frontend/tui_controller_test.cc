@@ -3520,7 +3520,9 @@ TEST_F(TuiControllerTest, PlayOnTheCharacterInPlayResumesThem) {
       << "a resume must not rebuild the fight they left going";
 }
 
-TEST_F(TuiControllerTest, SetOfflineMovesTheCheckAndStaysOnTheList) {
+// Set Offline asks first, naming who gains the offline progress and who loses
+// it, and opens on Confirm since another press undoes it.
+TEST_F(TuiControllerTest, SetOfflineAsksThenMovesTheCheck) {
   state_->character.SetUsername("First");
   AddCharacter("Second");
   controller_->OpenMenuEntry(MenuEntry::kCharacters);
@@ -3528,6 +3530,20 @@ TEST_F(TuiControllerTest, SetOfflineMovesTheCheckAndStaysOnTheList) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline
   controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kCharacterOffline);
+  EXPECT_EQ(controller_->character_offline_question(),
+            (std::vector<std::string>{"Earn offline progress on Second?",
+                                      "First will stop earning it."}));
+
+  // Backing out leaves the check where it was.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_EQ(state_->offline_slot, 0);
+
+  controller_->OnEvent(ftxui::Event::Return);     // the menu again
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Confirm
 
   EXPECT_EQ(controller_->screen(), kCharacterSelect);
   EXPECT_EQ(state_->offline_slot, 1);

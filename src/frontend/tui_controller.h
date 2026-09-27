@@ -414,6 +414,13 @@ class TuiController {
   const ConfirmPrompt& character_delete_prompt() const {
     return character_delete_prompt_;
   }
+  const ConfirmPrompt& character_offline_prompt() const {
+    return character_offline_prompt_;
+  }
+  // The two lines of the open Set Offline confirmation.
+  const std::vector<std::string>& character_offline_question() const {
+    return character_offline_question_;
+  }
   // The screen the quit dialog was opened over, which Cancel returns to and
   // which stays drawn behind it.
   Screen quit_return() const {
@@ -424,7 +431,7 @@ class TuiController {
   // character who may be about to be swapped out.
   bool OnCharacterSelect() const {
     return screen_ == kCharacterSelect || screen_ == kCharacterMenu ||
-           screen_ == kCharacterDelete;
+           screen_ == kCharacterDelete || screen_ == kCharacterOffline;
   }
   // Whether a character has just been put into play. Reading it clears it. Tui
   // owns the fight and the watcher, and both belong to the character being
@@ -660,6 +667,7 @@ class TuiController {
   bool OnCharacterSelectEvent(ftxui::Event event);
   bool OnCharacterMenuEvent(ftxui::Event event);
   bool OnCharacterDeleteEvent(ftxui::Event event);
+  bool OnCharacterOfflineEvent(ftxui::Event event);
   // Does what the character menu's selected entry does.
   void TakeCharacterMenuEntry();
   // Returns to the game with whoever is now in play. The game saves either way.
@@ -996,6 +1004,10 @@ class TuiController {
   // The slot the open Delete confirmation is about, stored when it opens, since
   // the cursor may have moved by the time it is answered.
   int character_delete_slot_ = -1;
+  // The same for Set Offline, with the question naming both characters.
+  ConfirmPrompt character_offline_prompt_;
+  int character_offline_slot_ = -1;
+  std::vector<std::string> character_offline_question_;
   // True from a switch until Tui reads it.
   bool character_switched_ = false;
   // The screen the quit dialog was opened over, which Cancel returns to. The

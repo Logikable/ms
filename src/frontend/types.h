@@ -173,6 +173,9 @@ enum Screen : int {
   // Delete's confirmation, over the list. The only action in the game that
   // can't be undone.
   kCharacterDelete,
+  // Set Offline's confirmation, over the list: who starts earning offline
+  // progress, and who stops.
+  kCharacterOffline,
   // The card a returning player sees: what their character earned while the
   // game was closed. Shown at launch and dismissed with one key.
   kOffline,

@@ -1006,6 +1006,16 @@ ftxui::Element Tui::RenderScreen() {
                        {CenteredRow("Delete this character?"),
                         CenteredRow("This is irreversible.")},
                        controller_.character_delete_prompt().Render()));
+    case kCharacterOffline: {
+      std::vector<ftxui::Element> question;
+      for (const std::string& line : controller_.character_offline_question()) {
+        question.push_back(CenteredRow(line));
+      }
+      return Overlay(
+          Centred(controller_.character_select_panel().Render()),
+          DialogWindow("", std::move(question),
+                       controller_.character_offline_prompt().Render()));
+    }
     case kOptions:
       return Centred(options_panel_.Render());
     case kJukebox:

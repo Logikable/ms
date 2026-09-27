@@ -37,6 +37,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/roster.h"
 
 namespace ms {
 namespace {
@@ -934,6 +935,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnCharacterMenuEvent(event);
     case kCharacterDelete:
       return OnCharacterDeleteEvent(event);
+    case kCharacterOffline:
+      return OnCharacterOfflineEvent(event);
     case kKeybinds:
       return OnKeybindsEvent(event);
     case kOptions:
@@ -1387,14 +1390,25 @@ void TuiController::TakeCharacterMenuEntry() {
       // is still theirs.
       LeaveCharacterSelect(PlayCharacter(state_, slot));
       return;
-    case kCharacterMenuSetOffline:
-      SetOfflineCharacter(state_, slot);
-      // Straight back to the list, where the check mark has moved: nothing
-      // needs confirming, and seeing it move is the feedback.
-      character_select_panel_.Refresh();
-      screen_ = kCharacterSelect;
-      save_wanted_ = true;
+    case kCharacterMenuSetOffline: {
+      character_offline_slot_ = slot;
+      std::string leaving;
+      for (const RosterEntry& entry : Roster(state_)) {
+        if (entry.offline) {
+          leaving = entry.name;
+        }
+      }
+      character_offline_question_ = {
+          "Earn offline progress on " +
+              character_select_panel_.selected_name() + "?",
+          leaving + " will stop earning it."};
+      character_select_panel_.CloseMenu();
+      // Opens on Confirm: another press undoes it, so the prompt is there to be
+      // read rather than to stop a slip.
+      character_offline_prompt_.Open(/*cancel_selected=*/false);
+      screen_ = kCharacterOffline;
       return;
+    }
     case kCharacterMenuDelete:
       character_delete_slot_ = slot;
       // The menu closes behind the question, since the question is about the
@@ -1426,6 +1440,21 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
   character_select_panel_.Refresh();
   screen_ = kCharacterSelect;
   save_wanted_ = true;
+  return true;
+}
+
+bool TuiController::OnCharacterOfflineEvent(ftxui::Event event) {
+  ConfirmChoice choice = character_offline_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    SetOfflineCharacter(state_, character_offline_slot_);
+    save_wanted_ = true;
+  }
+  character_offline_slot_ = -1;
+  character_select_panel_.Refresh();
+  screen_ = kCharacterSelect;
   return true;
 }
 
