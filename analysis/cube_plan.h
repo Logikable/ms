@@ -76,18 +76,19 @@ struct CubeProgram {
   }
 };
 
-// The run on `slot` with the best value per meso, out of a ladder of lengths,
-// all from one sample: the chance the best of N draws is the i-th of a sorted
-// sample of m is (i/m)^N - ((i-1)/m)^N.
+// The run of `cube` on `slot` with the best value per meso, out of a ladder
+// of lengths, all from one sample: the chance the best of N draws is the i-th
+// of a sorted sample of m is (i/m)^N - ((i-1)/m)^N.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
-                            EquipSlot slot, const CubeIncome& income,
-                            std::mt19937& rng);
+                            EquipSlot slot, CubeType cube,
+                            const CubeIncome& income, std::mt19937& rng);
 
-// Whether `rolled` beats what `slot` already has: the same comparison
-// BestCubeProgram averages, applied to one actual roll. The cube is paid for
-// either way, so this only decides which lines the item keeps.
+// Whether `rolled` beats what `slot` already has on `track`: the same
+// comparison BestCubeProgram averages, applied to one actual roll. The cube is
+// paid for either way, so this only decides which lines the item keeps.
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-                 const Potential& rolled, const CubeIncome& income);
+                 PotentialTrack track, const Potential& rolled,
+                 const CubeIncome& income);
 
 // Whether the shopper is likely to replace what `slot` holds: a higher-level
 // piece the character can wear and afford. A weapon must match the type in

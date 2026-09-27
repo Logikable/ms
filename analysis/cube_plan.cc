@@ -43,19 +43,23 @@ double WithoutIgnoredDefense(double combined, double part) {
   return 1.0 - (1.0 - combined) / (1.0 - part);
 }
 
-// Potential totals from everything worn except `slot`. A cube's roll is added
-// on top, so the other pieces are summed once per slot rather than once per
-// draw.
+// Potential totals from every potential worn except the one `track` names on
+// `slot`. A cube's roll is added on top, so the rest is summed once per slot
+// rather than once per draw.
 PotentialTotals PotentialsBut(const CharacterInstance& character,
-                              EquipSlot slot) {
+                              EquipSlot slot, PotentialTrack track) {
   PotentialTotals totals;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
-    if (entry.first == slot) {
-      continue;
+    int level = entry.second->prototype().required_level();
+    for (PotentialTrack held :
+         {PotentialTrack::kMain, PotentialTrack::kBonus}) {
+      if (entry.first == slot && held == track) {
+        continue;
+      }
+      AddPotential(PotentialOf(entry.second->equip_state(), held), level,
+                   totals);
     }
-    AddPotential(entry.second->equip_state().main_potential(),
-                 entry.second->prototype().required_level(), totals);
   }
   return totals;
 }
@@ -177,6 +181,7 @@ namespace {
 // Everything a cube on one slot is valued against, computed once per slot
 // rather than per draw.
 struct CubePricing {
+  CubeType cube = CubeType::kRed;
   int level = 0;
   PotentialGroup group{};
   PotentialTotals others;
@@ -194,7 +199,7 @@ double MarginalGain(const GameState& state, const CubeBasis& basis,
     total += std::max(
         0.0, GainOf(state, basis, pricing.level, pricing.others, pricing.now,
                     pricing.standing,
-                    CubePotential(current, CubeType::kRed, pricing.group, rng),
+                    CubePotential(current, pricing.cube, pricing.group, rng),
                     income));
   }
   return total / kCubeSamples;
@@ -215,8 +220,7 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
     double best_gain = 0.0;
     int rung = 0;
     for (int cube = 1; cube <= longest; ++cube) {
-      Potential rolled =
-          CubePotential(held, CubeType::kRed, pricing.group, rng);
+      Potential rolled = CubePotential(held, pricing.cube, pricing.group, rng);
       double gain = GainOf(state, basis, pricing.level, pricing.others,
                            pricing.now, pricing.standing, rolled, income);
       // Keep-better, as GMS offers. A higher rank is kept even when damage
@@ -238,18 +242,20 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
 }  // namespace
 
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
-                            EquipSlot slot, const CubeIncome& income,
-                            std::mt19937& rng) {
+                            EquipSlot slot, CubeType cube,
+                            const CubeIncome& income, std::mt19937& rng) {
   CubeProgram best;
   const EquipInstance* item = Worn(state, slot);
   if (item == nullptr || !item->CanCube()) {
     return best;
   }
-  const Potential& current = item->equip_state().main_potential();
+  const Cube& shelf = CubeOf(cube);
+  const Potential& current = PotentialOf(item->equip_state(), shelf.track);
   CubePricing pricing;
+  pricing.cube = cube;
   pricing.level = item->prototype().required_level();
   pricing.group = PotentialGroupOf(slot);
-  pricing.others = PotentialsBut(state.character, slot);
+  pricing.others = PotentialsBut(state.character, slot, shelf.track);
   pricing.now = pricing.others;
   AddPotential(current, pricing.level, pricing.now);
   pricing.standing = PowerOf(state, basis, pricing.now);
@@ -266,7 +272,7 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
   if (marginal > 0.0) {
     best.cubes = 1;
     best.gain = marginal;
-    best.cost = kCubeCost;
+    best.cost = shelf.cost;
     return best;
   }
 
@@ -277,7 +283,7 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
 
   for (int rung = 0; rung < kCubeProgramLengthCount; ++rung) {
     double expected = reached[rung] / kCubeRuns * share;
-    int64_t cost = static_cast<int64_t>(kCubeProgramLengths[rung]) * kCubeCost;
+    int64_t cost = static_cast<int64_t>(kCubeProgramLengths[rung]) * shelf.cost;
     if (expected <= 0.0) {
       continue;
     }
@@ -295,15 +301,17 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
 }
 
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-                 const Potential& rolled, const CubeIncome& income) {
+                 PotentialTrack track, const Potential& rolled,
+                 const CubeIncome& income) {
   const EquipInstance* item = Worn(state, slot);
   if (item == nullptr) {
     return false;
   }
   int level = item->prototype().required_level();
-  PotentialTotals others = PotentialsBut(state.character, slot);
+  const Potential& held = PotentialOf(item->equip_state(), track);
+  PotentialTotals others = PotentialsBut(state.character, slot, track);
   PotentialTotals now = others;
-  AddPotential(item->equip_state().main_potential(), level, now);
+  AddPotential(held, level, now);
   double standing = PowerOf(state, basis, now);
   double gain =
       GainOf(state, basis, level, others, now, standing, rolled, income);
@@ -313,8 +321,7 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
   // Accept a higher rank even when damage didn't change, on the same terms
   // BestCubeProgram priced the run. The two must agree, or the shopper pays for
   // a program and then declines every result.
-  return gain >= 0.0 &&
-         rolled.rank() > item->equip_state().main_potential().rank();
+  return gain >= 0.0 && rolled.rank() > held.rank();
 }
 
 // Whether the character could ever buy `proto`. A tier priced in tokens only

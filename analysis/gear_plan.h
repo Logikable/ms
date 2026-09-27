@@ -60,6 +60,9 @@ struct GearSpend {
   // the trap a keep-better rule invites.
   int cubes_bought = 0;
   int cubes_kept = 0;
+  // The Green Cubes among them.
+  int green_cubes_bought = 0;
+  int green_cubes_kept = 0;
   // Pieces destroyed and restored, and meso from bag items sold to make room
   // and pay for it.
   int booms = 0;
@@ -82,6 +85,8 @@ struct GearSpend {
     hammers_driven += other.hammers_driven;
     cubes_bought += other.cubes_bought;
     cubes_kept += other.cubes_kept;
+    green_cubes_bought += other.green_cubes_bought;
+    green_cubes_kept += other.green_cubes_kept;
     booms += other.booms;
     sold += other.sold;
   }
@@ -140,9 +145,10 @@ class GearShopper {
     // stat it gives. The duplicates it uses aren't bought: they drop, and
     // CollectSymbols has already applied them.
     bool symbol = false;
-    // A cube on the slot's potential, priced at kCubeCost and valued at how
-    // much one reroll is expected to beat the item's current lines.
+    // A cube on one of the slot's potentials, valued at how much one reroll
+    // is expected to beat the lines it replaces. Which cube is `cube_type`.
     bool cube = false;
+    CubeType cube_type = CubeType::kRed;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
     // Expected meso cost, including attempts that fail.
@@ -195,7 +201,8 @@ class GearShopper {
   bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
   // One function per kind of offer. False means the bag or meso refused, and
   // BuyBest tries the next offer.
-  bool BuyCube(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuyCube(GameState& state, EquipSlot slot, CubeType cube,
+               GearSpend& spend);
   bool BuyHammer(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
                  GearSpend& spend);

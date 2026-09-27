@@ -166,8 +166,10 @@ class CubePlanTest : public ::testing::Test {
     basis_ = CubeBasisFor(*state_, yard_);
   }
 
-  // Sets the hat's current potential, which every roll is judged against.
-  void Wearing(const Potential& potential) {
+  // Sets the hat's potential on `track`, which every roll on that track is
+  // judged against.
+  void Wearing(const Potential& potential,
+               PotentialTrack track = PotentialTrack::kMain) {
     EquipInstance* hat = nullptr;
     for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
          state_->character.equipped()) {
@@ -176,7 +178,7 @@ class CubePlanTest : public ::testing::Test {
       }
     }
     ASSERT_NE(hat, nullptr);
-    hat->SetPotential(PotentialTrack::kMain, potential);
+    hat->SetPotential(track, potential);
   }
 
   std::unique_ptr<GameState> state_;
@@ -193,7 +195,7 @@ TEST_F(CubePlanTest, ARollWorthMoreIsTaken) {
   Wearing(bare);
 
   EXPECT_TRUE(WorthTaking(
-      *state_, basis_, EQUIP_SLOT_HAT,
+      *state_, basis_, EQUIP_SLOT_HAT, PotentialTrack::kMain,
       Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_STR_PCT), income_));
 }
 
@@ -202,7 +204,8 @@ TEST_F(CubePlanTest, ARollWorthLessIsDeclined) {
 
   Potential bare;
   bare.set_rank(POTENTIAL_RANK_EPIC);
-  EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT, bare, income_));
+  EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT,
+                           PotentialTrack::kMain, bare, income_));
 }
 
 // Under a defence wall every roll deals the 1-damage floor, so accepting on
@@ -216,17 +219,34 @@ TEST_F(CubePlanTest, ARankIsTakenEvenWhereTheDamageDoesNotMove) {
   up.set_rank(POTENTIAL_RANK_UNIQUE);
   Wearing(held);
 
-  EXPECT_TRUE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT, up, income_));
+  EXPECT_TRUE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT,
+                          PotentialTrack::kMain, up, income_));
 
   Potential down;
   down.set_rank(POTENTIAL_RANK_RARE);
-  EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT, down, income_))
+  EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT,
+                           PotentialTrack::kMain, down, income_))
       << "a lower rank worth the same is not a reason to keep it";
+}
+
+// A bonus roll adds to the main lines rather than competing with them, so a
+// weak one is still worth taking onto an empty bonus potential.
+TEST_F(CubePlanTest, ABonusRollIsJudgedAgainstTheBonusPotential) {
+  Wearing(Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT));
+  Potential bare;
+  bare.set_rank(POTENTIAL_RANK_RARE);
+  Wearing(bare, PotentialTrack::kBonus);
+
+  EXPECT_TRUE(WorthTaking(
+      *state_, basis_, EQUIP_SLOT_HAT, PotentialTrack::kBonus,
+      Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_BONUS_STR_PCT), income_));
+  EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT,
+                           PotentialTrack::kBonus, bare, income_));
 }
 
 TEST_F(CubePlanTest, NothingWornIsNeverWorthTaking) {
   EXPECT_FALSE(WorthTaking(
-      *state_, basis_, EQUIP_SLOT_GLOVES,
+      *state_, basis_, EQUIP_SLOT_GLOVES, PotentialTrack::kMain,
       Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT), income_));
 }
 
@@ -236,8 +256,8 @@ TEST_F(CubePlanTest, PricesARunIntoASlotThatTakesPotential) {
   Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
   std::mt19937 rng(1234);
 
-  CubeProgram program =
-      BestCubeProgram(*state_, basis_, EQUIP_SLOT_HAT, income_, rng);
+  CubeProgram program = BestCubeProgram(*state_, basis_, EQUIP_SLOT_HAT,
+                                        CubeType::kRed, income_, rng);
   ASSERT_TRUE(program.worth()) << "a Rare hat has somewhere to climb";
   EXPECT_GT(program.cubes, 0);
   EXPECT_GT(program.gain, 0.0);
@@ -250,17 +270,28 @@ TEST_F(CubePlanTest, TheCostIsTheCubesItMeansToBuy) {
   Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
   std::mt19937 rng(1234);
 
-  CubeProgram program =
-      BestCubeProgram(*state_, basis_, EQUIP_SLOT_HAT, income_, rng);
+  CubeProgram program = BestCubeProgram(*state_, basis_, EQUIP_SLOT_HAT,
+                                        CubeType::kRed, income_, rng);
   ASSERT_TRUE(program.worth());
   EXPECT_EQ(program.cost % program.cubes, 0)
       << "every cube in the run costs the same";
 }
 
+TEST_F(CubePlanTest, AGreenRunIsPricedInGreenCubes) {
+  Wearing(Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT));
+  std::mt19937 rng(1234);
+
+  CubeProgram program = BestCubeProgram(*state_, basis_, EQUIP_SLOT_HAT,
+                                        CubeType::kGreen, income_, rng);
+  ASSERT_TRUE(program.worth())
+      << "a hat with no bonus potential has everything to gain";
+  EXPECT_EQ(program.cost, program.cubes * kGreenCubeCost);
+}
+
 TEST_F(CubePlanTest, NoRunIntoASlotThatTakesNoPotential) {
   std::mt19937 rng(1234);
-  CubeProgram program =
-      BestCubeProgram(*state_, basis_, EQUIP_SLOT_GLOVES, income_, rng);
+  CubeProgram program = BestCubeProgram(*state_, basis_, EQUIP_SLOT_GLOVES,
+                                        CubeType::kRed, income_, rng);
   EXPECT_FALSE(program.worth());
   EXPECT_EQ(program.cubes, 0);
 }
