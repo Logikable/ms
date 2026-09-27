@@ -798,29 +798,43 @@ std::vector<CardRow> InspectPanel::SlotRows(const EquipTabItem& item) const {
   };
 }
 
-// The potential lines. The rank is named once at the top, and each line's dot
-// shows whether it rolled at that rank: a line one rank lower has the lower
-// rank's colour.
-std::vector<CardRow> InspectPanel::PotentialRows(
-    const EquipTabItem& item) const {
-  const Potential& potential = item.potential();
-  if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
-    return {};
-  }
-  const std::string rank = PotentialRankName(potential.rank());
-  const ftxui::Color rank_color = RarityColor(potential.rank());
-  std::vector<CardRow> rows = {
-      RuleRow(ThemedSeparator()),
-      TextRow(ftxui::text(" " + rank + " Potential ") |
-              ftxui::color(rank_color)),
-  };
-  const int level = item.prototype().required_level();
+namespace {
+
+// One potential's rows: the rank named once at the top, then each line with a
+// dot showing whether it rolled at that rank. A line one rank lower has the
+// lower rank's colour.
+void AppendPotentialRows(const Potential& potential, const std::string& title,
+                         int item_level, std::vector<CardRow>& rows) {
+  rows.push_back(TextRow(ftxui::text(" " + PotentialRankName(potential.rank()) +
+                                     " " + title + " ") |
+                         ftxui::color(RarityColor(potential.rank()))));
   for (const PotentialLine& line : potential.lines()) {
     rows.push_back(TextRow(ftxui::hbox({
         ftxui::text(" ◼") | ftxui::color(RarityColor(line.rank())),
         ftxui::text("  " + PotentialLineName(line.type()) + "  " +
-                    PotentialLineValueText(line, level) + " "),
+                    PotentialLineValueText(line, item_level) + " "),
     })));
+  }
+}
+
+}  // namespace
+
+std::vector<CardRow> InspectPanel::PotentialRows(
+    const EquipTabItem& item) const {
+  const Potential& main = item.potential();
+  const Potential& bonus = item.bonus_potential();
+  const bool has_main = main.rank() != POTENTIAL_RANK_UNSPECIFIED;
+  const bool has_bonus = bonus.rank() != POTENTIAL_RANK_UNSPECIFIED;
+  if (!has_main && !has_bonus) {
+    return {};
+  }
+  const int level = item.prototype().required_level();
+  std::vector<CardRow> rows = {RuleRow(ThemedSeparator())};
+  if (has_main) {
+    AppendPotentialRows(main, "Potential", level, rows);
+  }
+  if (has_bonus) {
+    AppendPotentialRows(bonus, "Bonus Potential", level, rows);
   }
   return rows;
 }

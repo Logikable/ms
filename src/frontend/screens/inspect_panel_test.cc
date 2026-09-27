@@ -323,6 +323,52 @@ TEST_F(InspectPanelTest, ShowsPotentialUnderTheScrollCount) {
             rendered.find("Legendary Potential"));
 }
 
+// The bonus potential sits straight under the main one, with no rule between.
+TEST_F(InspectPanelTest, ShowsBonusPotentialUnderThePotential) {
+  sword_.set_required_level(160);
+  Equip state;
+  *state.mutable_main_potential() = WeaponPotential();
+  Potential* bonus = state.mutable_bonus_potential();
+  bonus->set_rank(POTENTIAL_RANK_UNIQUE);
+  for (PotentialLineType type :
+       {POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE,
+        POTENTIAL_LINE_TYPE_DAMAGE_PCT}) {
+    PotentialLine* line = bonus->add_lines();
+    line->set_type(type);
+    line->set_rank(POTENTIAL_RANK_UNIQUE);
+  }
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  const size_t header = rendered.find("Unique Bonus Potential");
+  ASSERT_NE(header, std::string::npos) << rendered;
+  EXPECT_LT(rendered.find("◼  Ignore DEF  +35%"), header);
+  EXPECT_EQ(rendered.find("─", rendered.find("◼  Ignore DEF")),
+            rendered.find("─", header))
+      << "no rule between the two potentials";
+  EXPECT_NE(rendered.find("◼  ATT  +10%", header), std::string::npos);
+  EXPECT_NE(rendered.find("◼  Boss Damage  +12%", header), std::string::npos);
+}
+
+// An item with bonus potential and no main one still gets its rule.
+TEST_F(InspectPanelTest, ShowsABonusPotentialAlone) {
+  Equip state;
+  Potential* bonus = state.mutable_bonus_potential();
+  bonus->set_rank(POTENTIAL_RANK_RARE);
+  PotentialLine* line = bonus->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_STR_PCT);
+  line->set_rank(POTENTIAL_RANK_RARE);
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Rare Bonus Potential"), std::string::npos)
+      << rendered;
+  EXPECT_EQ(rendered.find(" Potential "),
+            rendered.find(" Bonus Potential ") + 6);
+}
+
 TEST_F(InspectPanelTest, PaintsEveryPotentialLineItsOwnRank) {
   sword_.set_required_level(100);
   Equip state;
