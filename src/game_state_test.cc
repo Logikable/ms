@@ -1074,18 +1074,21 @@ TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
   }
 }
 
-// A sim's max character stands alone: no roster, and not even their own line's
-// link skill, however high their level. See TestOptions::link_skills.
-TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {
+// A sim's bare roster gives the same link skills as the playable one, without
+// building a character for any of it.
+TEST(GameStateTest, MaxModeBareRosterGivesTheSameLinks) {
   TestOptions options;
   options.job = JOB_ADVANCEMENT_HERO;
   options.level = kTrialLevelCap;
-  options.link_skills = false;
-  GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {},
-                  EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
-                  MaxBosses());
-  EXPECT_TRUE(state.inactive_characters.empty());
-  EXPECT_TRUE(state.character.link_skills_off());
+  options.playable_roster = false;
+  GameState bare(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {}, EveryStageBook(),
+                 GameMode::kMax, options, std::nullopt, {}, MaxBosses());
+  GameState full = MakeMaxState(kTrialLevelCap);
+  ASSERT_EQ(bare.inactive_characters.size(), full.inactive_characters.size());
+  EXPECT_FALSE(bare.inactive_characters[0].character().has_equip_presets());
+  EXPECT_EQ(bare.character.link_tally().best_by_line(),
+            full.character.link_tally().best_by_line());
+  EXPECT_FALSE(bare.character.link_tally().empty());
 }
 
 // The roster levels with the max character, not ahead of it: below the first

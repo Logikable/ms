@@ -1623,7 +1623,7 @@ CharacterInstance::link_skills(StatPreset slot) const {
 
 bool CharacterInstance::HoldsLinkSkill(const Skill& skill,
                                        Activity activity) const {
-  if (skill.link_line() == JOB_UNSPECIFIED || link_skills_off_) {
+  if (skill.link_line() == JOB_UNSPECIFIED) {
     return false;
   }
   // The character's own line's link skill is always active and doesn't use one

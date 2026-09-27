@@ -1117,12 +1117,21 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
 // The rest of a max account: a max character at the top of every other job
 // line, at the played character's level, so the roster provides the account's
 // link skills. Built before the played character, who is then the only one
-// never converted to and from a proto.
-void SeedMaxRoster(GameState& state, Job played_line, int level) {
+// never converted to and from a proto. Unless `playable`, each is only the job
+// and level the link tally reads.
+void SeedMaxRoster(GameState& state, Job played_line, int level,
+                   bool playable) {
   const int64_t now = static_cast<int64_t>(std::time(nullptr));
   state.inactive_characters.clear();
   for (Job job : EveryFourthJob()) {
     if (LineOf(job) == played_line) {
+      continue;
+    }
+    if (!playable) {
+      Character& bare =
+          *state.inactive_characters.emplace_back().mutable_character();
+      bare.set_job(JobForAdvancement(CeilingAdvancementFor(job, level)));
+      bare.set_level(level);
       continue;
     }
     ResetToBeginner(state);
@@ -1143,7 +1152,6 @@ void SeedMaxRoster(GameState& state, Job played_line, int level) {
 // income by then (max_character.cc has the math). Nothing from the workbench:
 // no extra meso, no EXP bonus, no spare gear.
 void SeedMax(GameState& state, const TestOptions& options) {
-  state.character.set_link_skills_off(!options.link_skills);
   // A max character has two allocations at once, which is what autoswap is for,
   // whatever the state requested.
   state.account.SetAutoswapPresets(true);
@@ -1160,15 +1168,9 @@ void SeedMax(GameState& state, const TestOptions& options) {
   const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
   const Job played_line = LineOf(JobForAdvancement(advancement));
 
-  // The roster exists only for link skills, so a max character without them
-  // stands alone, as in every sim.
-  LinkTally tally;
-  if (options.link_skills) {
-    SeedMaxRoster(state, played_line, level);
-    tally = CeilingTally(played_line, level);
-  }
+  SeedMaxRoster(state, played_line, level, options.playable_roster);
   ResetToBeginner(state);
-  MaxOneCharacter(state, advancement, level, tally);
+  MaxOneCharacter(state, advancement, level, CeilingTally(played_line, level));
   // Recompute the tally from the roster: from now on the account provides it,
   // and removing a slot changes it.
   state.MirrorAccount();

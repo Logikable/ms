@@ -92,12 +92,10 @@ struct TestOptions {
   GearSetup equips;
   TestSkills skills = TestSkills::kZero;
   bool autoswap_presets = false;
-  // Whether a kMax character gets link skills, which means an account with a
-  // character at the top of every job line. On for the game, where max mode is
-  // a fully played account; off for the sims, whose balance numbers predate
-  // link skills. Other modes ignore it: a real account's roster is whatever the
-  // player made.
-  bool link_skills = true;
+  // Whether kMax builds the rest of the account as characters that can be
+  // played. Off, each is only the job and level link skills are read from, at
+  // a tenth of the cost; the sims build thousands of max states.
+  bool playable_roster = true;
 };
 
 struct GameState {

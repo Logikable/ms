@@ -2807,7 +2807,6 @@ TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
   tally.Record(JOB_DARK_KNIGHT, 210);
   c_.set_link_tally(tally);
   c_.set_account_max_level(210);
-  c_.set_link_skills_off(true);
   EquipInstance blade(sword_);
 
   CharacterInstance probe = c_.Wearing(blade, StatPreset::kFirst);
@@ -2815,7 +2814,6 @@ TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
   EXPECT_EQ(probe.link_tally().LevelFor(JOB_SWORDMAN),
             c_.link_tally().LevelFor(JOB_SWORDMAN));
   EXPECT_EQ(probe.account_max_level(), 210);
-  EXPECT_TRUE(probe.link_skills_off()) << "the switch came too";
 }
 
 // A piece with no slot this character can fill has nothing to price, and the

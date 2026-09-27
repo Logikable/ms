@@ -563,16 +563,6 @@ class CharacterInstance {
   bool inner_ability_unlocked() const {
     return character_.level() >= kInnerAbilityUnlockLevel;
   }
-  // Whether link skills are turned off; see set_link_skills_off().
-  bool link_skills_off() const {
-    return link_skills_off_;
-  }
-  // Turns them all off, own line included. Sims use it to measure a character
-  // alone, because the balance numbers were taken before link skills existed
-  // and haven't been re-taken. See TestOptions::link_skills.
-  void set_link_skills_off(bool off) {
-    link_skills_off_ = off;
-  }
   // The three lines `preset` has, and its overall rank.
   const AbilityPreset& ability(StatPreset preset = StatPreset::kFirst) const {
     return PresetOf(character_.inner_ability(), preset);
@@ -832,9 +822,6 @@ class CharacterInstance {
   int account_max_level_ = 0;
   // Copy of what the account's other characters have reached; see link_tally().
   LinkTally link_tally_;
-  // Whether link skills are turned off for this character regardless of the
-  // account; see set_link_skills_off().
-  bool link_skills_off_ = false;
 
   // The level of a skill nobody buys: the account's highest level divided by
   // the levels each skill level costs, capped. See
