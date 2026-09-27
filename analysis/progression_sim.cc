@@ -3000,7 +3000,7 @@ void PrintCubing(const std::vector<Job>& branches,
   std::printf(
       "\nWhat the cubing came to. Kept is the rolls that beat what the piece "
       "already held;\nthe rest is the price of the chance. Farm is cubes on "
-      "pieces worn only while farming;\nmeso% and drop% are what farming "
+      "pieces worn only while farming;\nmeso%% and drop%% are what farming "
       "ends the run with.\n\n");
   std::printf("%-13s %9s %8s %8s %6s %8s %8s %8s %8s %6s %6s\n", "branch",
               "meso", "red", "kept", "kept%", "green", "kept", "farm", "kept",
