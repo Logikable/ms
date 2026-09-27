@@ -79,17 +79,17 @@ class EquipInstance : public EquipTabItem {
   // Returns kStarForceFail if already at max_stars().
   StarForceOutcome StarForce(std::mt19937& rng);
 
-  // Rerolls this item's main potential without charging; the caller takes the
-  // meso, as with star force. The first cube on an item always gives a Rare
-  // potential; each later one rolls for a rank-up first. Returns false and
-  // changes nothing if the item can't have potential; see CanCube.
+  // Rerolls the potential the cube's track names without charging; the caller
+  // takes the meso, as with star force. The first cube on an item always gives
+  // a Rare potential; each later one rolls for a rank-up first. Returns false
+  // and changes nothing if the item can't have potential; see CanCube.
   bool Cube(CubeType cube, std::mt19937& rng);
 
   // Sets `potential` on this item, when a player accepts an offered roll; see
   // CharacterInstance::BuyCube. Nothing is checked, since the roll came from
   // this item's own group.
-  void SetPotential(const Potential& potential) {
-    *state_.mutable_main_potential() = potential;
+  void SetPotential(PotentialTrack track, const Potential& potential) {
+    *MutablePotentialOf(state_, track) = potential;
   }
 
   // Whether a cube can be used on this item, meaning it's worn in a slot

@@ -440,7 +440,7 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, GearSpend& spend) {
   spend.cubes += kCubeCost;
   ++spend.cubes_bought;
   if (WorthTaking(state, basis, slot, *rolled, income_)) {
-    state.character.TakePotential(slot, *rolled);
+    state.character.TakePotential(slot, PotentialTrack::kMain, *rolled);
     ++spend.cubes_kept;
   }
   return true;

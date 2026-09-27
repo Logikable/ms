@@ -194,6 +194,21 @@ TEST_F(ProgressionTest, AWalkedTrailStaysWalkedForTheNextCharacter) {
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, second, account_));
 }
 
+// Bonus potential's trail ends at the Green Cube's row, which stays gold until
+// a Green Cube is used, for every character on the account.
+TEST_F(ProgressionTest, TheGreenCubeRowLeadsUntilOneIsUsed) {
+  const int level = UnlockLevel(Feature::kBonusPotential);
+  EXPECT_FALSE(LeadToBonusCube(MakeCharacter(level - 1), account_));
+  EXPECT_FALSE(LeadToAction(Feature::kBonusPotential, MakeCharacter(level - 1),
+                            account_));
+  CharacterInstance first = MakeCharacter(level);
+  EXPECT_TRUE(LeadToBonusCube(first, account_));
+  EXPECT_TRUE(LeadToAction(Feature::kBonusPotential, first, account_));
+  FollowedToBonusCube(account_);
+  EXPECT_FALSE(LeadToBonusCube(first, account_));
+  EXPECT_FALSE(LeadToBonusCube(MakeCharacter(1), account_));
+}
+
 // --- the upgrades a climb opened ---
 
 TEST_F(ProgressionTest, NamesTheUpgradeThatOpened) {
@@ -227,9 +242,9 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      3u)
-      << "star force, the hammer and cubing are ahead of an account that "
-         "stopped at 50";
+      4u)
+      << "star force, the hammer, cubing and bonus potential are ahead of an "
+         "account that stopped at 50";
 }
 
 // Panels and tabs highlight themselves in gold when they unlock; only item menu
@@ -240,17 +255,19 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      4u)
-      << "scrolling, star force, the hammer and cubing, in the order they "
-         "arrive";
+      5u)
+      << "scrolling, star force, the hammer, cubing and bonus potential, in "
+         "the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
-      Feature::kEquipped,   Feature::kBag,       Feature::kUnequip,
-      Feature::kScrolling,  Feature::kStarForce, Feature::kHammer,
-      Feature::kPotential,  Feature::kSkills,    Feature::kShop,
-      Feature::kLinkSkills,
+      Feature::kEquipped,       Feature::kBag,
+      Feature::kUnequip,        Feature::kScrolling,
+      Feature::kStarForce,      Feature::kHammer,
+      Feature::kPotential,      Feature::kSkills,
+      Feature::kShop,           Feature::kLinkSkills,
+      Feature::kBonusPotential,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());

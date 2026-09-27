@@ -722,15 +722,17 @@ class CharacterInstance {
   // reads the totals in between. Returns whether it reached the rank.
   bool CubeWornUpTo(EquipSlot slot, CubeType cube, PotentialRank want,
                     int rolls, StatPreset preset = StatPreset::kFirst);
-  // Uses one cube on the item worn in `slot`, charging kCubeCost. It returns
-  // the rolled potential without applying it; TakePotential applies it. A
+  // Uses one cube on the item worn in `slot`, charging its price. It returns
+  // the rolled potential without applying it; TakePotential applies it to the
+  // cube's track. A
   // player offered something worse keeps what they have, and the cube is spent
   // either way.
   std::optional<Potential> BuyCube(EquipSlot slot, CubeType cube,
                                    StatPreset preset = StatPreset::kFirst);
   // Puts `potential` on the item worn in `slot`, when a player accepts a roll.
   // Returns false, changing nothing, for an empty slot.
-  bool TakePotential(EquipSlot slot, const Potential& potential,
+  bool TakePotential(EquipSlot slot, PotentialTrack track,
+                     const Potential& potential,
                      StatPreset preset = StatPreset::kFirst);
   // Uses one cube on a worn or bagged item, charging for it and applying
   // whatever it rolls. This is what the cubing screen calls.
@@ -852,7 +854,7 @@ class CharacterInstance {
   // StarForce methods call it before rolling.
   bool PayForStarForce(const EquipInstance& item);
   bool PayForHammer(const EquipInstance& item);
-  bool PayForCube(const EquipInstance& item);
+  bool PayForCube(const EquipInstance& item, CubeType cube);
   // Adds a sale to the front of the buy-back shelf, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);

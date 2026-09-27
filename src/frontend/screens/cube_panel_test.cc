@@ -65,6 +65,55 @@ TEST_F(CubePanelTest, TheShelfKeepsItsHeight) {
   EXPECT_EQ(shelf->requirement().min_y, 10);
 }
 
+// The Green Cube isn't on the shelf until bonus potential unlocks, and is gold
+// while its trail leads there.
+TEST_F(CubePanelTest, TheGreenCubeWaitsForItsUnlock) {
+  EquipInstance item = Cubed();
+  CubePanel panel;
+  panel.Reset();
+  panel.SetItem(&item, 5 * kGreenCubeCost);
+  EXPECT_EQ(RenderElement(panel.Render(true)).find("Green Cube"),
+            std::string::npos);
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected_cube(), CubeType::kRed) << "one cube to wrap over";
+
+  panel.SetShelf(/*bonus_unlocked=*/true, /*lead_bonus=*/true);
+  std::string rendered = RenderElement(panel.Render(true));
+  EXPECT_NE(rendered.find("Green Cube"), std::string::npos);
+  EXPECT_NE(rendered.find("Bonus"), std::string::npos);
+  EXPECT_NE(rendered.find("24,000,000"), std::string::npos);
+  EXPECT_EQ(LabelColor(panel.Render(true), "Green Cube"), kGold);
+  EXPECT_NE(LabelColor(panel.Render(true), "Red Cube"), kGold);
+  panel.SetShelf(true, /*lead_bonus=*/false);
+  EXPECT_NE(LabelColor(panel.Render(true), "Green Cube"), kGold);
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected_cube(), CubeType::kGreen);
+}
+
+// The question shows the lines the selected cube rerolls: none yet for bonus
+// potential on an item only red cubes have touched.
+TEST_F(CubePanelTest, TheQuestionShowsTheSelectedCubesPotential) {
+  EquipInstance item = Cubed();
+  CubePanel panel;
+  panel.Reset();
+  panel.SetShelf(true, false);
+  panel.SetItem(&item, 5 * kGreenCubeCost);
+  panel.MoveCursor(1);
+  panel.OnEvent(ftxui::Event::Return);
+  std::string rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_NE(rendered.find("Grant bonus potential?"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("Green Cube"), std::string::npos);
+  EXPECT_NE(rendered.find("24,000,000"), std::string::npos);
+  EXPECT_EQ(rendered.find("STR"), std::string::npos);
+  int dashes = 0;
+  for (size_t at = rendered.find("—"); at != std::string::npos;
+       at = rendered.find("—", at + 1)) {
+    ++dashes;
+  }
+  EXPECT_EQ(dashes, kPotentialLines) << "a placeholder for every line";
+}
+
 // Both windows measure themselves, so both have to request the margin.
 TEST_F(CubePanelTest, NeitherWindowWeldsTextToItsBorder) {
   EquipInstance item = Cubed();

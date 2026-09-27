@@ -4191,10 +4191,39 @@ TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
       c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().lines_size(), 0)
       << "declining a roll leaves the piece as it was";
 
-  ASSERT_TRUE(c.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON, *rolled));
+  ASSERT_TRUE(c.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON, PotentialTrack::kMain,
+                              *rolled));
   EXPECT_EQ(
       c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().lines_size(),
       kPotentialLines);
+}
+
+// A Green Cube costs its own price, rolls the bonus potential and leaves the
+// main one alone, and its lines count toward worn stats like the main ones.
+TEST_F(CharacterTest, AGreenCubeRollsTheBonusPotentialAtItsOwnPrice) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
+  ASSERT_TRUE(c.Equip(0));
+  c.AddMeso(kGreenCubeCost + kCubeCost - 1);
+  ASSERT_TRUE(c.CubeEquipped(EQUIP_SLOT_HAT, CubeType::kGreen));
+  EXPECT_EQ(c.meso(), kCubeCost - 1);
+  const EquipInstance& hat = *c.equipped().at(EQUIP_SLOT_HAT);
+  EXPECT_EQ(hat.bonus_potential().rank(), POTENTIAL_RANK_RARE);
+  EXPECT_EQ(hat.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_FALSE(c.CubeEquipped(EQUIP_SLOT_HAT, CubeType::kRed))
+      << "the purse no longer covers a red cube";
+
+  PotentialTotals expected;
+  AddPotential(hat.bonus_potential(), hat.prototype().required_level(),
+               expected);
+  const PotentialTotals& worn = c.potential_totals();
+  EXPECT_DOUBLE_EQ(worn.str_pct + worn.dex_pct + worn.int_pct + worn.luk_pct +
+                       worn.max_hp_pct,
+                   expected.str_pct + expected.dex_pct + expected.int_pct +
+                       expected.luk_pct + expected.max_hp_pct);
+  EXPECT_GT(worn.str_pct + worn.dex_pct + worn.int_pct + worn.luk_pct +
+                worn.max_hp_pct,
+            0.0);
 }
 
 TEST_F(CharacterTest, BuyingACubeTakesNothingFromAPurseThatCannotCoverIt) {

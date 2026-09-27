@@ -34,6 +34,8 @@ struct ShelfWidths {
   int cost = 0;
 };
 
+// Measured over every cube, shown or not, so unlocking one doesn't shift the
+// columns.
 ShelfWidths Widths() {
   ShelfWidths widths = {4, 4, 4};  // "Name", "Type", "Cost"
   for (const Cube& cube : kCubes) {
@@ -48,11 +50,13 @@ ShelfWidths Widths() {
 // unaffordable price can be red while the rest of the row is grey: the reason
 // and what it blocks, drawn separately.
 ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
-                        bool selected, bool affordable) {
+                        bool selected, bool affordable, bool gold) {
   ftxui::Element label = ftxui::text(
       (selected ? "> " : "  ") + PadRight(CubeName(cube.type), widths.name) +
       "  " + PadRight(CubeTrackName(cube.track), widths.type) + "  ");
-  if (!affordable) {
+  if (gold) {
+    label = std::move(label) | ftxui::color(kGold);
+  } else if (!affordable) {
     label = std::move(label) | ftxui::dim;
   }
   ftxui::Element cost = RedUnless(
@@ -77,6 +81,25 @@ void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
   }
 }
 
+void CubePanel::SetShelf(bool bonus_unlocked, bool lead_bonus) {
+  bonus_unlocked_ = bonus_unlocked;
+  lead_bonus_ = lead_bonus;
+}
+
+std::vector<Cube> CubePanel::Shelf() const {
+  std::vector<Cube> shelf;
+  for (const Cube& cube : kCubes) {
+    if (cube.track == PotentialTrack::kMain || bonus_unlocked_) {
+      shelf.push_back(cube);
+    }
+  }
+  return shelf;
+}
+
+const Potential& CubePanel::SelectedPotential() const {
+  return PotentialOf(item_->equip_state(), CubeOf(selected_cube()).track);
+}
+
 void CubePanel::Reset() {
   selected_ = 0;
   rank_up_ = false;
@@ -84,11 +107,12 @@ void CubePanel::Reset() {
 }
 
 CubeType CubePanel::selected_cube() const {
-  return kCubes[selected_].type;
+  const std::vector<Cube> shelf = Shelf();
+  return shelf[std::min<int>(selected_, shelf.size() - 1)].type;
 }
 
 int64_t CubePanel::Cost() const {
-  return kCubes[selected_].cost;
+  return CubeOf(selected_cube()).cost;
 }
 
 bool CubePanel::Affordable() const {
@@ -99,7 +123,7 @@ void CubePanel::MoveCursor(int delta) {
   if (confirm_.open()) {
     return;
   }
-  selected_ = StepCursor(selected_, delta, std::size(kCubes));
+  selected_ = StepCursor(selected_, delta, Shelf().size());
 }
 
 ftxui::Element CubePanel::Render(bool focused) const {
@@ -110,12 +134,15 @@ ftxui::Element CubePanel::Render(bool focused) const {
                   PadLeft("Cost", widths.cost) + " "),
       ThemedSeparator(),
   };
-  for (int i = 0; i < static_cast<int>(std::size(kCubes)); ++i) {
+  const std::vector<Cube> shelf = Shelf();
+  for (int i = 0; i < static_cast<int>(shelf.size()); ++i) {
+    const Cube& cube = shelf[i];
     rows.push_back(
-        ShelfRow(kCubes[i], widths, i == selected_, meso_ >= kCubes[i].cost));
+        ShelfRow(cube, widths, i == selected_, meso_ >= cube.cost,
+                 lead_bonus_ && cube.track == PotentialTrack::kBonus));
   }
   // The shelf keeps its full height with or without cubes to fill it.
-  for (int i = std::size(kCubes); i < kShelfRows; ++i) {
+  for (int i = shelf.size(); i < kShelfRows; ++i) {
     rows.push_back(ftxui::text(""));
   }
   return ThemedWindow(" Cube Selection ", ftxui::vbox(std::move(rows)),
@@ -123,13 +150,17 @@ ftxui::Element CubePanel::Render(bool focused) const {
 }
 
 std::vector<ftxui::Element> CubePanel::LineRows() const {
-  const Potential& potential = item_->potential();
+  const Potential& potential = SelectedPotential();
   if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
     // An item with no potential has no lines to show, and the rows stay empty
     // instead of being removed, so the window is the same size before the first
     // cube as after.
-    return std::vector<ftxui::Element>(
-        kPotentialLines, CenteredRow(ftxui::text("—") | ftxui::dim));
+    // One node per row: ftxui draws a shared node only in the last box.
+    std::vector<ftxui::Element> rows;
+    for (int i = 0; i < kPotentialLines; ++i) {
+      rows.push_back(CenteredRow(ftxui::text("—") | ftxui::dim));
+    }
+    return rows;
   }
   const int level = item_->prototype().required_level();
   std::vector<std::pair<std::string, std::string>> lines;
@@ -158,13 +189,16 @@ std::vector<ftxui::Element> CubePanel::LineRows() const {
 
 ftxui::Element CubePanel::RenderConfirm() const {
   const bool fresh = item_ == nullptr ||
-                     item_->potential().rank() == POTENTIAL_RANK_UNSPECIFIED;
+                     SelectedPotential().rank() == POTENTIAL_RANK_UNSPECIFIED;
+  const bool bonus = CubeOf(selected_cube()).track == PotentialTrack::kBonus;
   // Gold on a rank up, steel blue otherwise. The body's own rules use it too:
   // an AccentWindow draws its content white, so a themed rule inside a gold
   // window would look like a seam.
   const ftxui::Color accent = PanelAccent(rank_up_);
   std::vector<ftxui::Element> body = {
-      CenteredRow(fresh ? "Grant potential?" : "Reroll these lines?"),
+      CenteredRow(!fresh  ? "Reroll these lines?"
+                  : bonus ? "Grant bonus potential?"
+                          : "Grant potential?"),
       AccentSeparator(accent),
   };
   if (item_ != nullptr) {

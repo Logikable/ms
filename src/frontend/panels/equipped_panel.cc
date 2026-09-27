@@ -235,7 +235,8 @@ void EquippedPanel::HighlightTrail() {
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kGearMenuStarForce);
   }
-  if (LeadToAction(Feature::kPotential, character_, account_)) {
+  if (LeadToAction(Feature::kPotential, character_, account_) ||
+      LeadToAction(Feature::kBonusPotential, character_, account_)) {
     menu_.Highlight(kGearMenuCube);
   }
 }
@@ -312,6 +313,9 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   }
   if (open.selected() == kGearMenuCube) {
     FollowedToAction(Feature::kPotential, account_);
+    if (Unlocked(Feature::kBonusPotential, character_, account_)) {
+      FollowedToAction(Feature::kBonusPotential, account_);
+    }
     return kCubing;
   }
   return kMain;

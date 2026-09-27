@@ -43,6 +43,9 @@ enum class Feature {
   // every other upgrade: it's the last thing a player does to an item, and
   // worth doing again and again.
   kPotential,
+  // The Green Cube on the cubing screen's shelf, which rerolls bonus
+  // potential. Its trail runs through the Cube menu entry to the shelf row.
+  kBonusPotential,
   // Recovery isn't listed: it needs a trace, which only exists after an item is
   // destroyed, which no level causes by itself. The item is the gate.
   //
@@ -157,6 +160,15 @@ bool LeadToAction(Feature feature, const CharacterInstance& character,
 
 // Records that the player pressed Enter on that entry, wherever they did it.
 void FollowedToAction(Feature feature, AccountInstance& account);
+
+// Whether the Green Cube's shelf row should be gold: bonus potential has
+// unlocked and the player hasn't used a Green Cube yet. The last step of its
+// trail, after the Cube menu entry.
+bool LeadToBonusCube(const CharacterInstance& character,
+                     const AccountInstance& account);
+
+// Records that the player used one.
+void FollowedToBonusCube(AccountInstance& account);
 
 /* The gold trail that leads a player to the Link Skills screen.
  *

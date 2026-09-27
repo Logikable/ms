@@ -1624,6 +1624,9 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
   // based on the meso, and a key press shouldn't have to wait for the next
   // render to know it.
   cube_panel_.SetItem(cube_item(), state_.character.meso());
+  cube_panel_.SetShelf(
+      Unlocked(Feature::kBonusPotential, state_.character, state_.account),
+      LeadToBonusCube(state_.character, state_.account));
   bool busy = cube_panel_.IsConfirming();
   if (IsBack(event) && !busy) {
     screen_ = kMain;
@@ -1648,13 +1651,21 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
   if (cube_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
     // The window stays up over the item it just rerolled, which is the point:
     // the player watches the lines change and presses again.
-    const PotentialRank before = cube_item()->potential().rank();
-    CubeItem(state_.character, subject_, cube_panel_.selected_cube());
+    const CubeType cube = cube_panel_.selected_cube();
+    const PotentialTrack track = CubeOf(cube).track;
+    auto rank = [&] {
+      return PotentialOf(cube_item()->equip_state(), track).rank();
+    };
+    const PotentialRank before = rank();
+    if (CubeItem(state_.character, subject_, cube) &&
+        track == PotentialTrack::kBonus) {
+      FollowedToBonusCube(state_.account);
+    }
     // The first cube on an item without potential always gives a Rare
     // potential, so it is a grant rather than a rank-up and the window stays
     // steel blue.
     cube_panel_.SetRankUp(before != POTENTIAL_RANK_UNSPECIFIED &&
-                          cube_item()->potential().rank() > before);
+                          rank() > before);
   }
   return true;
 }

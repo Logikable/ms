@@ -37,6 +37,10 @@ class CubePanel {
   // them, since the price and the money to pay it are read together. Called
   // every frame, so a reroll's new lines and smaller purse arrive here.
   void SetItem(const EquipInstance* item, int64_t meso);
+  // Which cubes the shelf offers: the bonus cubes only once `bonus_unlocked`,
+  // since a locked feature isn't shown at all. `lead_bonus` draws their rows
+  // gold, the end of bonus potential's trail. Called every frame, like SetItem.
+  void SetShelf(bool bonus_unlocked, bool lead_bonus);
   // Cursor on the first cube, question closed. Call when the screen opens.
   void Reset();
   // The shelf. `focused` highlights the title; it is off while the item card
@@ -48,9 +52,9 @@ class CubePanel {
   bool IsConfirming() const {
     return confirm_.open();
   }
-  // Whether the last reroll raised the potential's rank, which turns the window
-  // gold. Set by the caller, the only one that sees the potential before and
-  // after the cube, and cleared by it on the next key.
+  // Whether the last reroll raised the rank of the potential it rerolled, which
+  // turns the window gold. Set by the caller, the only one that sees the
+  // potential before and after the cube, and cleared by it on the next key.
   void SetRankUp(bool rank_up) {
     rank_up_ = rank_up;
   }
@@ -63,16 +67,21 @@ class CubePanel {
   CubeType selected_cube() const;
 
  private:
+  // The cubes on offer, in kCubes order.
+  std::vector<Cube> Shelf() const;
+  const Potential& SelectedPotential() const;
   // The price of the cube under the cursor, and whether the purse covers it.
   int64_t Cost() const;
   bool Affordable() const;
-  // The three lines the question is asked about, or three placeholders for an
-  // item with no potential yet.
+  // The three lines of the potential the selected cube rerolls, or three
+  // placeholders for an item with none yet.
   std::vector<ftxui::Element> LineRows() const;
 
   const EquipInstance* item_ = nullptr;
   int64_t meso_ = 0;
   int selected_ = 0;
+  bool bonus_unlocked_ = false;
+  bool lead_bonus_ = false;
   bool rank_up_ = false;  // see SetRankUp
   ConfirmPrompt confirm_;
 };

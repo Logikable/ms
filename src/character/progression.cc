@@ -57,6 +57,8 @@ constexpr Unlock kUnlocks[] = {
     // Potential's own level; see kPotentialUnlockLevel. Well after the hammer:
     // a cube is only worth using on gear the player won't replace soon.
     {Feature::kPotential, kPotentialUnlockLevel},
+    // See kBonusPotentialUnlockLevel.
+    {Feature::kBonusPotential, kBonusPotentialUnlockLevel},
     // Hyper Stats' own level, where the points start; see
     // kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
@@ -103,10 +105,8 @@ constexpr StageUnlock kStageUnlocks[] = {
 // condition in the card and another in the menus, so a new upgrade is added to
 // both at once.
 constexpr Feature kUpgrades[] = {
-    Feature::kScrolling,
-    Feature::kStarForce,
-    Feature::kHammer,
-    Feature::kPotential,
+    Feature::kScrolling, Feature::kStarForce,      Feature::kHammer,
+    Feature::kPotential, Feature::kBonusPotential,
 };
 
 // The upgrades with a gold trail, and the name their record keys are built
@@ -127,7 +127,11 @@ constexpr Led kLedUpgrades[] = {
     {Feature::kStarForce, "star_force", false},
     {Feature::kHammer, "hammer", false},
     {Feature::kPotential, "potential", false},
+    {Feature::kBonusPotential, "bonus_potential", false},
 };
+
+// The Green Cube row's record key; written into saves, like the slugs above.
+constexpr char kBonusCubeLeadKey[] = "lead_cube:green";
 
 std::string WeaponLeadKey(const char* slug) {
   return std::string("lead_weapon:") + slug;
@@ -209,6 +213,8 @@ std::string FeatureName(Feature feature) {
       return "the Golden Hammer";
     case Feature::kPotential:
       return "Potential";
+    case Feature::kBonusPotential:
+      return "Bonus Potential";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:
@@ -295,6 +301,16 @@ void FollowedToAction(Feature feature, AccountInstance& account) {
       account.MarkSeen(ActionLeadKey(led.slug));
     }
   }
+}
+
+bool LeadToBonusCube(const CharacterInstance& character,
+                     const AccountInstance& account) {
+  return Unlocked(Feature::kBonusPotential, character, account) &&
+         !account.Seen(kBonusCubeLeadKey);
+}
+
+void FollowedToBonusCube(AccountInstance& account) {
+  account.MarkSeen(kBonusCubeLeadKey);
 }
 
 std::string LinkTrailKey(LinkTrailStep step) {

@@ -31,10 +31,14 @@ namespace ms {
 // who has taken one character there can cube on all of them.
 inline constexpr int kPotentialUnlockLevel = 180;
 
-// The cost of one cube, whatever it rolls. Flat, as GMS prices it: a cube on a
-// level 200 weapon costs the same as on a level 100 ring, so the item worth
-// cubing is the one whose lines are worth the most.
+// The level bonus potential's cube unlocks at, account-wide like cubing.
+inline constexpr int kBonusPotentialUnlockLevel = 230;
+
+// The cost of one red cube and one green cube, whatever they roll. Flat, as
+// GMS prices them: a cube on a level 200 weapon costs the same as on a level
+// 100 ring, so the item worth cubing is the one whose lines are worth the most.
 inline constexpr int64_t kCubeCost = 12'000'000;
+inline constexpr int64_t kGreenCubeCost = 24'000'000;
 
 // Lines every potential has. GMS reveals them one at a time and sells an item
 // for the third; here an item always has all three.
@@ -64,14 +68,19 @@ bool SlotTakesPotential(EquipSlot slot);
 // name is what the player is buying.
 enum class CubeType {
   kRed,
+  kGreen,
 };
 
 // Which of an item's two potentials a cube rerolls. Each draws from its own
-// pools; no cube rerolls bonus potential yet.
+// pools.
 enum class PotentialTrack {
   kMain,
   kBonus,
 };
+
+// The potential on `equip` that `track` names.
+const Potential& PotentialOf(const Equip& equip, PotentialTrack track);
+Potential* MutablePotentialOf(Equip& equip, PotentialTrack track);
 
 // One cube in the shop: what it rerolls and what it costs. The list the cubing
 // screen offers, in its order.
@@ -83,6 +92,7 @@ struct Cube {
 
 inline constexpr Cube kCubes[] = {
     {CubeType::kRed, PotentialTrack::kMain, kCubeCost},
+    {CubeType::kGreen, PotentialTrack::kBonus, kGreenCubeCost},
 };
 
 // The shelf entry for `type`.

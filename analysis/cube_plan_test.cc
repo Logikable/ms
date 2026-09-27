@@ -176,7 +176,7 @@ class CubePlanTest : public ::testing::Test {
       }
     }
     ASSERT_NE(hat, nullptr);
-    hat->SetPotential(potential);
+    hat->SetPotential(PotentialTrack::kMain, potential);
   }
 
   std::unique_ptr<GameState> state_;

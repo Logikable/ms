@@ -173,8 +173,9 @@ bool EquipInstance::Cube(CubeType cube, std::mt19937& rng) {
   if (!CanCube()) {
     return false;
   }
-  *state_.mutable_main_potential() =
-      CubePotential(state_.main_potential(), cube,
+  const PotentialTrack track = CubeOf(cube).track;
+  *MutablePotentialOf(state_, track) =
+      CubePotential(PotentialOf(state_, track), cube,
                     PotentialGroupOf(prototype_.equip_slot()), rng);
   return true;
 }

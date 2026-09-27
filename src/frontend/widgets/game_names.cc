@@ -579,6 +579,8 @@ std::string CubeName(CubeType cube) {
   switch (cube) {
     case CubeType::kRed:
       return "Red Cube";
+    case CubeType::kGreen:
+      return "Green Cube";
   }
   return "";
 }

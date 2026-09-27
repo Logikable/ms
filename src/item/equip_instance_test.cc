@@ -639,6 +639,22 @@ TEST_F(EquipInstanceTest, ASlotWithNoPotentialRefusesTheCube) {
   EXPECT_EQ(medal.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
 }
 
+TEST_F(EquipInstanceTest, AGreenCubeRollsOnlyTheBonusPotential) {
+  EquipInstance cape(MakeArmour(EQUIP_SLOT_CAPE));
+  std::mt19937 rng(5);
+  ASSERT_TRUE(cape.Cube(CubeType::kRed, rng));
+  const Potential main = cape.potential();
+  ASSERT_TRUE(cape.Cube(CubeType::kGreen, rng));
+  EXPECT_EQ(cape.potential().SerializeAsString(), main.SerializeAsString());
+  ASSERT_EQ(cape.bonus_potential().rank(), POTENTIAL_RANK_RARE);
+  const std::vector<PotentialLineType> pool = PotentialPool(
+      PotentialTrack::kBonus, PotentialGroup::kArmor, POTENTIAL_RANK_RARE);
+  for (const PotentialLine& line : cape.bonus_potential().lines()) {
+    EXPECT_NE(std::find(pool.begin(), pool.end(), line.type()), pool.end())
+        << line.type();
+  }
+}
+
 // A trace keeps its item's potential: it can't be cubed again, since it isn't
 // an EquipInstance, but the lines can still be read.
 TEST_F(EquipInstanceTest, ATraceKeepsThePotentialItDiedWith) {

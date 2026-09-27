@@ -235,10 +235,12 @@ int Above200Step(int item_level) {
   return item_level > 200 ? kAbove200Step : 0;
 }
 
-// Chance a cube raises a potential's rank, by its current rank.
+// Chance a cube raises a potential's rank, by its current rank. The green cube
+// shares them: GMS has never published its bonus cube's odds, and no
+// community sample of them was found.
 constexpr double kRedRankUp[4] = {1.0 / 7.0, 0.06, 0.024, 0.0};
 
-// Chance the 2nd and 3rd lines are prime.
+// Chance the 2nd and 3rd lines are prime. Shared with the green cube too.
 constexpr double kRedPrime[kPotentialLines] = {1.0, 0.10, 0.01};
 
 int RankIndex(PotentialRank rank) {
@@ -329,6 +331,16 @@ PotentialGroup PotentialGroupOf(EquipSlot slot) {
   }
 }
 
+const Potential& PotentialOf(const Equip& equip, PotentialTrack track) {
+  return track == PotentialTrack::kBonus ? equip.bonus_potential()
+                                         : equip.main_potential();
+}
+
+Potential* MutablePotentialOf(Equip& equip, PotentialTrack track) {
+  return track == PotentialTrack::kBonus ? equip.mutable_bonus_potential()
+                                         : equip.mutable_main_potential();
+}
+
 bool SlotTakesPotential(EquipSlot slot) {
   return PotentialGroupOf(slot) != PotentialGroup::kNone;
 }
@@ -353,6 +365,7 @@ double PotentialRankUpChance(CubeType cube, PotentialRank rank) {
   }
   switch (cube) {
     case CubeType::kRed:
+    case CubeType::kGreen:
       return kRedRankUp[RankIndex(rank)];
   }
   return 0.0;
@@ -364,6 +377,7 @@ double PotentialPrimeChance(CubeType cube, int index) {
   }
   switch (cube) {
     case CubeType::kRed:
+    case CubeType::kGreen:
       return kRedPrime[index];
   }
   return 0.0;

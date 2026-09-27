@@ -1908,6 +1908,8 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
     const EquipInstance& item = *kv.second;
     AddPotential(item.potential(), item.prototype().required_level(),
                  potential_totals_[index]);
+    AddPotential(item.bonus_potential(), item.prototype().required_level(),
+                 potential_totals_[index]);
     // A symbol's stats aren't on its prototype: it grants its level in the
     // wearer's primary stat. Its force is added in the same pass.
     if (IsSymbol(item.prototype())) {
@@ -2042,29 +2044,32 @@ bool CharacterInstance::CubeWornUpTo(EquipSlot slot, CubeType cube,
   if (item == nullptr) {
     return false;
   }
-  for (int roll = 0; roll < rolls && item->potential().rank() < want; ++roll) {
+  const PotentialTrack track = CubeOf(cube).track;
+  auto rank = [&] { return PotentialOf(item->equip_state(), track).rank(); };
+  for (int roll = 0; roll < rolls && rank() < want; ++roll) {
     if (!item->Cube(cube, rng_)) {
       break;
     }
   }
   RecomputeEquipStats();
-  return item->potential().rank() >= want;
+  return rank() >= want;
 }
 
 // Pays for a cube, or returns false and spends nothing. It also checks the
 // item, so a cube that can't be used isn't charged.
-bool CharacterInstance::PayForCube(const EquipInstance& item) {
-  if (!item.CanCube() || kCubeCost > character_.meso()) {
+bool CharacterInstance::PayForCube(const EquipInstance& item, CubeType cube) {
+  const int64_t cost = CubeOf(cube).cost;
+  if (!item.CanCube() || cost > character_.meso()) {
     return false;
   }
-  character_.set_meso(character_.meso() - kCubeCost);
+  character_.set_meso(character_.meso() - cost);
   return true;
 }
 
 bool CharacterInstance::CubeEquipped(EquipSlot slot, CubeType cube,
                                      StatPreset preset) {
   EquipInstance* item = WornIn(preset, slot);
-  if (item == nullptr || !PayForCube(*item)) {
+  if (item == nullptr || !PayForCube(*item, cube)) {
     return false;
   }
   return CubeWorn(slot, cube, preset);
@@ -2072,29 +2077,29 @@ bool CharacterInstance::CubeEquipped(EquipSlot slot, CubeType cube,
 
 bool CharacterInstance::CubeInventory(int index, CubeType cube) {
   EquipInstance* item = inventory_.equip_instance(index);
-  return item != nullptr && PayForCube(*item) && item->Cube(cube, rng_);
+  return item != nullptr && PayForCube(*item, cube) && item->Cube(cube, rng_);
 }
 
 std::optional<Potential> CharacterInstance::BuyCube(EquipSlot slot,
                                                     CubeType cube,
                                                     StatPreset preset) {
   const EquipInstance* item = WornAt(preset, slot);
-  if (item == nullptr || !item->CanCube() || character_.meso() < kCubeCost) {
+  if (item == nullptr || !PayForCube(*item, cube)) {
     return std::nullopt;
   }
-  character_.set_meso(character_.meso() - kCubeCost);
-  return CubePotential(item->equip_state().main_potential(), cube,
-                       PotentialGroupOf(item->prototype().equip_slot()), rng_);
+  return CubePotential(PotentialOf(item->equip_state(), CubeOf(cube).track),
+                       cube, PotentialGroupOf(item->prototype().equip_slot()),
+                       rng_);
 }
 
-bool CharacterInstance::TakePotential(EquipSlot slot,
+bool CharacterInstance::TakePotential(EquipSlot slot, PotentialTrack track,
                                       const Potential& potential,
                                       StatPreset preset) {
   EquipInstance* item = WornIn(preset, slot);
   if (item == nullptr) {
     return false;
   }
-  item->SetPotential(potential);
+  item->SetPotential(track, potential);
   // The lines are worn stats, so the totals have changed.
   RecomputeEquipStats();
   return true;

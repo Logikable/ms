@@ -308,7 +308,8 @@ void InventoryPanel::HighlightUnusedUpgrades() {
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
   }
-  if (LeadToAction(Feature::kPotential, character_, account_)) {
+  if (LeadToAction(Feature::kPotential, character_, account_) ||
+      LeadToAction(Feature::kBonusPotential, character_, account_)) {
     menu_.Highlight(kMenuCube);
   }
 }
@@ -443,6 +444,9 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
   }
   if (menu_.selected() == kMenuCube) {
     FollowedToAction(Feature::kPotential, account_);
+    if (Unlocked(Feature::kBonusPotential, character_, account_)) {
+      FollowedToAction(Feature::kBonusPotential, account_);
+    }
     return kCubing;
   }
   if (menu_.selected() == kMenuRecover) {

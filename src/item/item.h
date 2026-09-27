@@ -174,6 +174,9 @@ class EquipTabItem : public Item {
   const Potential& potential() const {
     return state_.main_potential();
   }
+  const Potential& bonus_potential() const {
+    return state_.bonus_potential();
+  }
   int stars() const {
     return state_.stars();
   }
