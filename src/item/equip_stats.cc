@@ -1,5 +1,7 @@
 #include "src/item/equip_stats.h"
 
+#include <cmath>
+
 #include "absl/types/span.h"
 #include "src/protos/equip.pb.h"
 
@@ -7,6 +9,7 @@ namespace ms {
 
 EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
   EquipStats result;
+  double defense_left = 1.0;
   for (const EquipStats& s : sources) {
     result.set_str(result.str() + s.str());
     result.set_dex(result.dex() + s.dex());
@@ -18,13 +21,16 @@ EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
     result.set_max_mp(result.max_mp() + s.max_mp());
     result.set_def(result.def() + s.def());
     result.set_boss_damage(result.boss_damage() + s.boss_damage());
-    result.set_ignore_enemy_defense(result.ignore_enemy_defense() +
-                                    s.ignore_enemy_defense());
+    defense_left *= 1.0 - s.ignore_enemy_defense() / 100.0;
     result.set_item_drop_rate(result.item_drop_rate() + s.item_drop_rate());
     result.set_meso_rate(result.meso_rate() + s.meso_rate());
     result.set_max_hp_pct(result.max_hp_pct() + s.max_hp_pct());
     result.set_max_mp_pct(result.max_mp_pct() + s.max_mp_pct());
   }
+  // Each source ignores a share of what the others left, as in GMS: two 50%
+  // lines make 75%, never 100%.
+  result.set_ignore_enemy_defense(
+      static_cast<int>(std::lround(100.0 * (1.0 - defense_left))));
   return result;
 }
 
