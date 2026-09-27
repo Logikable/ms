@@ -64,13 +64,20 @@ TEST(LinkTest, ABranchReachesThreeRungsPerLineItHas) {
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
 }
 
-// MirrorAccount relies on this: the character being played is added to a copy,
-// so the session's tally is never changed by whoever reads it.
-TEST(LinkTest, WithFoldsOneMoreCharacterInWithoutKeepingThem) {
+// MirrorAccount relies on this: the character being played is counted without
+// being kept, so the session's tally is never changed by whoever reads it. In
+// a line already recorded, the better of the two counts.
+TEST(LinkTest, OneMoreCharacterIsCountedWithoutBeingKept) {
   LinkTally tally;
   tally.Record(JOB_HERO, 210);
-  EXPECT_EQ(tally.With(JOB_PALADIN, 120).LevelFor(JOB_SWORDMAN), 5);
+  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN, JOB_PALADIN, 120), 5);
+  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN, JOB_CRUSADER, 70), 3);
+  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN, JOB_FIGHTER, 60), 3);
+  EXPECT_EQ(tally.LevelFor(JOB_ARCHER, JOB_PALADIN, 120), 0);
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 3);
+  LinkTally lower;
+  lower.Record(JOB_HERO, 70);
+  EXPECT_EQ(lower.LevelFor(JOB_SWORDMAN, JOB_HERO, 210), 3);
 }
 
 }  // namespace

@@ -612,9 +612,8 @@ class CharacterInstance {
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()
                                  : skill.replaces_skill_name();
-    return character_.skill_levels().contains(key)
-               ? character_.skill_levels().at(key)
-               : 0;
+    auto it = character_.skill_levels().find(key);
+    return it == character_.skill_levels().end() ? 0 : it->second;
   }
   // Whether the player has `name` switched on. False for a skill that is not a
   // toggle. See Skill.toggle.

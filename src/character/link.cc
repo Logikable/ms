@@ -41,23 +41,33 @@ void LinkTally::Record(Job job, int level) {
 }
 
 int LinkTally::LevelFor(Job line) const {
+  return LevelFor(line, JOB_UNSPECIFIED, 0);
+}
+
+int LinkTally::LevelFor(Job line, Job also, int also_level) const {
   JobBranch branch = BranchOf(line);
   if (branch == JobBranch::kNone || branch == JobBranch::kBeginner) {
     return 0;
   }
+  const Job also_line = LineOf(also);
+  bool counted = false;
   int level = 0;
   for (const std::pair<const Job, int>& entry : best_) {
-    if (BranchOf(entry.first) == branch) {
-      level += LinkRungsFor(entry.second);
+    if (BranchOf(entry.first) != branch) {
+      continue;
     }
+    int best = entry.second;
+    if (entry.first == also_line) {
+      best = std::max(best, also_level);
+      counted = true;
+    }
+    level += LinkRungsFor(best);
+  }
+  if (!counted && also_line != JOB_UNSPECIFIED &&
+      BranchOf(also_line) == branch) {
+    level += LinkRungsFor(also_level);
   }
   return level;
-}
-
-LinkTally LinkTally::With(Job job, int level) const {
-  LinkTally tally = *this;
-  tally.Record(job, level);
-  return tally;
 }
 
 }  // namespace ms

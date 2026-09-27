@@ -55,9 +55,10 @@ class LinkTally {
   // is a branch's first job.
   int LevelFor(Job line) const;
 
-  // The tally with one more character added, to include the character being
-  // played without changing the stored tally.
-  LinkTally With(Job job, int level) const;
+  // The same with one more character counted, to include the character being
+  // played without changing the stored tally. Nothing is copied: a skill level
+  // is read this way on every lookup.
+  int LevelFor(Job line, Job also, int also_level) const;
 
   // The full tally, line by line. For sending a tally over the network and
   // reading one back; see PlayerInfo.link_lines.

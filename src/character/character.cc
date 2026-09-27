@@ -1644,8 +1644,8 @@ int CharacterInstance::LinkSkillLevelOffered(const Skill& skill) const {
   if (skill.link_line() == JOB_UNSPECIFIED) {
     return 0;
   }
-  int level = link_tally_.With(character_.job(), character_.level())
-                  .LevelFor(skill.link_line());
+  int level = link_tally_.LevelFor(skill.link_line(), character_.job(),
+                                   character_.level());
   if (BranchOf(skill.link_line()) == BranchOf(character_.job())) {
     level = std::max(level, 1);
   }
