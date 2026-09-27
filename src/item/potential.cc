@@ -227,6 +227,14 @@ constexpr Band kBonusBossBands[] = {
     {kNoCeiling, {0, 0, 14, 20}},
 };
 
+// What the main track's ignored-defence and boss lines gain on an item above
+// level 200.
+constexpr int kAbove200Step = 5;
+
+int Above200Step(int item_level) {
+  return item_level > 200 ? kAbove200Step : 0;
+}
+
 // Chance a cube raises a potential's rank, by its current rank.
 constexpr double kRedRankUp[4] = {1.0 / 7.0, 0.06, 0.024, 0.0};
 
@@ -403,19 +411,19 @@ int PotentialLineValue(PotentialLineType type, PotentialRank rank,
     case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
       return BandValue(kRewardRateBands, std::size(kRewardRateBands),
                        item_level, index);
-    // The lines GMS states as fixed values instead of per level band. Their
-    // value is in their name, since two of them share a pool.
+    // Several sizes share a pool, so each is its own type, named for its value
+    // up to item level 200. GMS adds kAbove200Step past that.
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
-      return 15;
+      return 15 + Above200Step(item_level);
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
-      return 30;
+      return 30 + Above200Step(item_level);
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
-      return 35;
+      return 35 + Above200Step(item_level);
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
-      return 40;
+      return 40 + Above200Step(item_level);
     case POTENTIAL_LINE_TYPE_COOLDOWN_1:
       return 1;
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:

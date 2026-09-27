@@ -169,9 +169,9 @@ enum PotentialRank {
 }
 
 // What one potential line can grant: the part of GMS's list that some stat here
-// uses. When GMS offers one effect at several fixed sizes, each size is its own
-// type (two entries in one pool, not one entry with two values), so a line's
-// value depends only on its type and rank.
+// uses. When GMS offers one effect at several sizes, each size is its own type
+// (two entries in one pool, not one entry with two values), so a line's value
+// depends only on its type, rank and item level.
 enum PotentialLineType {
   POTENTIAL_LINE_TYPE_UNSPECIFIED = 0;
   // Flat stats. As in GMS, they are rare on their own: Epic and above no longer

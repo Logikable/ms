@@ -119,6 +119,25 @@ TEST(PotentialValueTest, TheOneOffLines) {
             0);
 }
 
+// GMS's fixed-size lines step up by 5 on an item above level 200.
+TEST(PotentialValueTest, FixedSizesStepUpAbove200) {
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15,
+                               POTENTIAL_RANK_EPIC, 200),
+            15);
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15,
+                               POTENTIAL_RANK_EPIC, 201),
+            20);
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40,
+                               POTENTIAL_RANK_LEGENDARY, 250),
+            45);
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30,
+                               POTENTIAL_RANK_UNIQUE, 201),
+            35);
+  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40,
+                               POTENTIAL_RANK_LEGENDARY, 200),
+            40);
+}
+
 TEST(PotentialPoolTest, EachSpecialLineSitsInOneGroup) {
   const std::vector<PotentialLineType> hat = PotentialPool(
       PotentialTrack::kMain, PotentialGroup::kHat, POTENTIAL_RANK_LEGENDARY);
