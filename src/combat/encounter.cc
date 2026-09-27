@@ -998,6 +998,8 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   }
 }
 
+}  // namespace
+
 // What the rest of the job book gives one skill: extra lines, reach, trigger
 // rate, and cooldown reduction.
 struct SkillBoosts {
@@ -1016,6 +1018,23 @@ struct SkillBoosts {
   double shield_hits = 0.0;
   double shield_boss_damage_taken_pct = 0.0;
 };
+
+// The part of the book no buff changes, read once for all of a fight's attack
+// sets.
+struct LearnedBook {
+  struct Entry {
+    const Skill* skill = nullptr;
+    int level = 0;
+    // Whether it can be offered at all; see Available.
+    bool available = false;
+  };
+  Activity activity = Activity::kFarming;
+  std::map<std::string, SkillBoosts> boosts;
+  // Every skill with a level, in book order.
+  std::vector<Entry> learned;
+};
+
+namespace {
 
 // Every such bonus, summed and keyed by the skill it targets. Collected up
 // front because the granting skill may come after the one it boosts, and every
@@ -1067,6 +1086,24 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
     }
   }
   return by_target;
+}
+
+LearnedBook LearnBook(const GameState& state, Activity activity) {
+  LearnedBook book;
+  book.activity = activity;
+  int bonus = BonusSkillLevels(state.character, state.skills);
+  book.boosts = BoostsByTarget(state.character, state.skills, bonus, activity);
+  std::set<std::string> superseded =
+      DormantSkillNames(state.character, state.skills, bonus, activity);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    int level = EffectiveSkillLevel(state.character, skill, bonus, activity);
+    if (level > 0) {
+      book.learned.push_back(LearnedBook::Entry{
+          &skill, level, Available(state, skill, superseded, activity)});
+    }
+  }
+  return book;
 }
 
 // `skill` with the job book's bonuses applied. Its per-level line count is
@@ -1222,18 +1259,15 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
 
 // A second pass after every attack is built, since a skill's form may target
 // another skill by name before that skill is built.
-void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
-                       EquipType weapon_type, const DerivedStats& derived,
-                       int attack_speed, double speed_factor,
+void AddEmpoweredForms(const GameState& state, const LearnedBook& book,
+                       const EquipStats& equipped, EquipType weapon_type,
+                       const DerivedStats& derived, int attack_speed,
+                       double speed_factor,
                        const std::vector<CombatType>& types, AttackSet& set) {
-  int bonus = BonusSkillLevels(state.character, state.skills);
-  std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    const Skill& skill = entry.second;
-    int learned =
-        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
-    if (learned <= 0) {
+  for (const LearnedBook::Entry& entry : book.learned) {
+    const Skill& skill = *entry.skill;
+    int learned = entry.level;
+    if (skill.empowered_form_size() == 0) {
       continue;
     }
     // A form replacing a pulse is a pulse: no shadow and no meso, for the
@@ -1247,10 +1281,11 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
       }
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           derived, attack_speed, speed_factor, types,
-                          SKILL_KIND_ATTACK, boosts, set.attacks);
+                          SKILL_KIND_ATTACK, book.boosts, set.attacks);
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           off_clock, attack_speed, speed_factor, types,
-                          SKILL_KIND_AUTO_ATTACK, boosts, set.auto_attacks);
+                          SKILL_KIND_AUTO_ATTACK, book.boosts,
+                          set.auto_attacks);
     }
   }
 }
@@ -1303,24 +1338,21 @@ bool HangLoad(const Magazine& magazine, AttackOption& load, AttackSet& set) {
 
 // Adds one attack for each learned buff that loads one. A separate pass because
 // the skill with the magazine is a buff, which AddAttacks has already skipped.
-void AddMagazines(const GameState& state, const DerivedStats& derived,
-                  EquipType weapon_type, int attack_speed, double speed_factor,
+void AddMagazines(const GameState& state, const LearnedBook& book,
+                  const DerivedStats& derived, EquipType weapon_type,
+                  int attack_speed, double speed_factor,
                   const std::vector<CombatType>& types, AttackSet& set) {
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
-  int bonus = BonusSkillLevels(state.character, state.skills);
-  std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    const Skill& skill = entry.second;
+  for (const LearnedBook::Entry& entry : book.learned) {
+    const Skill& skill = *entry.skill;
     const Magazine& magazine = skill.buff().magazine();
-    int learned =
-        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
-    if (learned <= 0 || magazine.charges() <= 0) {
+    int learned = entry.level;
+    if (magazine.charges() <= 0) {
       continue;
     }
     Skill loaded = MagazineSkill(skill, magazine);
     Skill boosted;
-    const Skill& swung = Boosted(loaded, learned, boosts, boosted);
+    const Skill& swung = Boosted(loaded, learned, book.boosts, boosted);
     AttackOption attack =
         AttackFor(state.character.proto(), total_stats, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor);
@@ -1381,8 +1413,9 @@ void FileAutoAttack(const Skill& swung, double speed_factor,
 // Every attack the character could use, basic attack first. Skills on their
 // own timer go to auto_attacks instead. Passives apply to whichever attack is
 // chosen, so each gets the full `derived`.
-void AddAttacks(const GameState& state, const DerivedStats& derived,
-                EquipType weapon_type, int attack_speed, double speed_factor,
+void AddAttacks(const GameState& state, const LearnedBook& book,
+                const DerivedStats& derived, EquipType weapon_type,
+                int attack_speed, double speed_factor,
                 const std::vector<CombatType>& types, AttackSet& set) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
@@ -1393,23 +1426,16 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   StripMesoDrops(off_clock);
   set.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr, 0,
                                   types, derived, attack_speed, speed_factor));
-  int bonus = BonusSkillLevels(state.character, state.skills);
-  std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
-  std::set<std::string> superseded =
-      DormantSkillNames(state.character, state.skills, bonus, derived.activity);
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    const Skill& skill = entry.second;
-    int learned =
-        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
-    if (learned <= 0 ||
-        !Available(state, skill, superseded, derived.activity)) {
+  for (const LearnedBook::Entry& entry : book.learned) {
+    if (!entry.available) {
       continue;
     }
+    const Skill& skill = *entry.skill;
+    int learned = entry.level;
     // Apply lines and reach other skills grant this one before building
     // anything, so everything below sees one skill.
     Skill boosted;
-    const Skill& swung = Boosted(skill, learned, boosts, boosted);
+    const Skill& swung = Boosted(skill, learned, book.boosts, boosted);
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  state.skills, attack_speed, speed_factor, types, set);
     // Skills that can't be used as an attack stop here. Their auto-firing parts
@@ -1491,16 +1517,17 @@ int DotSlotsNeeded(const CombatParams& params) {
 
 // Everything the character can attack with under one set of stats: their own,
 // or with some buffs active.
-AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
+AttackSet BuildAttackSet(const GameState& state, const LearnedBook& book,
+                         const DerivedStats& derived,
                          const EquipPrototype& weapon, double speed_factor,
                          const std::vector<CombatType>& types) {
   int attack_speed = AttackSpeedStageFor(state, weapon, derived);
   AttackSet set;
-  AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
-             types, set);
-  AddMagazines(state, derived, weapon.equip_type(), attack_speed, speed_factor,
-               types, set);
-  AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
+  AddAttacks(state, book, derived, weapon.equip_type(), attack_speed,
+             speed_factor, types, set);
+  AddMagazines(state, book, derived, weapon.equip_type(), attack_speed,
+               speed_factor, types, set);
+  AddEmpoweredForms(state, book, TotalEquipStats(state.character, derived),
                     weapon.equip_type(), derived, attack_speed, speed_factor,
                     types, set);
   NumberDots(set, static_cast<int>(derived.dots.size()));
@@ -1923,8 +1950,13 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
         absl::MakeConstSpan(source.state->party), source.preset);
   }
   DerivedStats derived = source.derived->With(absl::MakeConstSpan(up));
-  AttackSet set = BuildAttackSet(*source.state, derived, *source.weapon,
-                                 source.speed_factor, params.types);
+  if (source.book == nullptr || source.book->activity != derived.activity) {
+    source.book = std::make_shared<const LearnedBook>(
+        LearnBook(*source.state, derived.activity));
+  }
+  AttackSet set =
+      BuildAttackSet(*source.state, *source.book, derived, *source.weapon,
+                     source.speed_factor, params.types);
   TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);
   TagBuffSilencedSummons(params.buffs, source.buff_skills, set.auto_attacks);
   TagBuffSilencedCasts(params.buffs, set.triggered_attacks);
@@ -2043,8 +2075,11 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 const EquipPrototype& weapon, double speed_factor,
                 Activity preset, CombatParams& params) {
+  std::shared_ptr<const LearnedBook> book =
+      std::make_shared<const LearnedBook>(LearnBook(state, derived.activity));
   AttackSet base =
-      BuildAttackSet(state, derived, weapon, speed_factor, params.types);
+      BuildAttackSet(state, *book, derived, weapon, speed_factor, params.types);
+  params.buffed_source.book = std::move(book);
   params.attacks = std::move(base.attacks);
   params.auto_attacks = std::move(base.auto_attacks);
   params.triggered_attacks = std::move(base.triggered_attacks);

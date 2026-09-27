@@ -383,6 +383,8 @@ struct AttackSet {
   int freeze_cap = 0;
 };
 
+struct LearnedBook;
+
 // What's needed to build the attack set for a buff combination, kept so each
 // set is built on first use rather than all up front. Not owned, like
 // CombatType::mob.
@@ -405,6 +407,8 @@ struct BuffedSetSource {
   // by the rest: every set reads the same character. Shared rather than owned
   // so CombatParams stays copyable.
   mutable std::shared_ptr<const DerivedBasis> derived;
+  // The book's levels and boosts, which no buff changes either.
+  mutable std::shared_ptr<const LearnedBook> book;
 };
 
 // One form a buff can be raised in; the fight picks one at each cast. See
