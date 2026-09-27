@@ -126,6 +126,27 @@ cc_library(
 )
 
 cc_library(
+    name = "alt_plan",
+    srcs = ["alt_plan.cc"],
+    hdrs = ["alt_plan.h"],
+    deps = [
+        "//src/character:job_branch",
+        "//src/character:link",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "alt_plan_test",
+    size = "small",
+    srcs = ["alt_plan_test.cc"],
+    deps = [
+        ":alt_plan",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "cube_plan",
     srcs = ["cube_plan.cc"],
     hdrs = ["cube_plan.h"],
@@ -398,6 +419,7 @@ sim_binary(
     srcs = ["progression_sim.cc"],
     deps = [
         ":ability_plan",
+        ":alt_plan",
         ":buff_plan",
         ":checkpoint",
         ":cube_plan",
@@ -425,6 +447,8 @@ sim_binary(
         "//src/character:honor",
         "//src/character:inner_ability",
         "//src/character:job_advancement",
+        "//src/character:job_branch",
+        "//src/character:link",
         "//src/character:progression",
         "//src/character:symbol",
         "//src/combat",

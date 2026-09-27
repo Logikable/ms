@@ -135,6 +135,10 @@ class GearShopper {
     return income_.power_per_meso;
   }
 
+  // The character's damage against the target fight, in the units offers are
+  // valued in, so a purchase off the shelf can be priced alongside them.
+  double Power(GameState& state);
+
  private:
   // One thing the character could buy next.
   struct Candidate {

@@ -125,6 +125,14 @@ message CheckpointClimb {
   repeated CheckpointPotentials potentials = 24;
 }
 
+// One alt rung the main took; see AltBought.
+message CheckpointAlt {
+  int32 line = 1;
+  int32 level = 2;
+  double at = 3;
+  double seconds = 4;
+}
+
 // A fight a plan was measured against: boss key and difficulty index.
 message CheckpointAim {
   string boss = 1;
@@ -183,4 +191,9 @@ message SimCheckpoint {
   bool matrix_planned = 32;
   int32 matrix_power = 33;
   CheckpointAim matrix_aim = 34;
+
+  // The alt rungs taken, and the farming seconds still owed to them.
+  repeated CheckpointAlt alts = 35;
+  double alt_debt = 36;
+  double next_alt_look = 37;
 }

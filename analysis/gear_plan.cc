@@ -321,6 +321,12 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   return offer;
 }
 
+double GearShopper::Power(GameState& state) {
+  DerivedStats derived;
+  EquipStats worn = WornAndGranted(state, derived);
+  return PowerWith(state, yard_.For(state), derived, worn);
+}
+
 std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);

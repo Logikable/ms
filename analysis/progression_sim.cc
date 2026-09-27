@@ -75,6 +75,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "analysis/ability_plan.h"
+#include "analysis/alt_plan.h"
 #include "analysis/buff_plan.h"
 #include "analysis/checkpoint.h"
 #include "analysis/cube_plan.h"
@@ -97,6 +98,8 @@
 #include "src/character/honor.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
+#include "src/character/job_branch.h"
+#include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
 #include "src/combat/combat.h"
@@ -157,6 +160,9 @@ ABSL_FLAG(int, scroll_rate, 100,
 ABSL_FLAG(bool, endgame, true,
           "Print what the days after the cap add up to: the best money map "
           "farmed and the dailies run, with the purse still spending.");
+ABSL_FLAG(bool, alts, true,
+          "Level alts for their link skills once the main reaches the Link "
+          "Skills level, whenever one pays for the farming hours it costs.");
 ABSL_FLAG(double, endgame_days, 7.0,
           "Days played at the cap for the endgame section.");
 ABSL_FLAG(double, total_days, 40.0,
@@ -413,9 +419,10 @@ struct Ledger {
   int64_t gear_bought = 0;  // shop shelves: weapon, off-hand, equips
   GearSpend gear;           // scrolls, stars, hammers, replacements
   BuffSpend buffs;          // per second, per fight, and permanent unlocks
+  int64_t alt_meso = 0;     // what alts kept on the way up, handed over
 
   int64_t named_income() const {
-    return etc_sales + gear.sold + boss_clears;
+    return etc_sales + gear.sold + boss_clears + alt_meso;
   }
 };
 
@@ -864,6 +871,15 @@ struct TokenProgress {
   double log_miss = 0.0;
 };
 
+// One alt rung taken: whose line, the level it stopped at, when, and the
+// farming seconds it cost the main.
+struct AltBought {
+  Job line = JOB_UNSPECIFIED;
+  int level = 0;
+  double at = 0.0;
+  double seconds = 0.0;
+};
+
 // Result of one branch's climb.
 struct Climb {
   // One per kMilestones entry, in order.
@@ -930,6 +946,11 @@ struct Climb {
   // Both potentials on every worn piece at each --potential_levels level
   // reached, in order, then where the run ended.
   std::vector<CheckpointPotentials> potentials_at;
+  // Playtime and meso held on first reaching each link rung, which is what an
+  // alt's climb is run for.
+  AltLadder rungs;
+  // The alt rungs the main took, in order.
+  std::vector<AltBought> alts;
 };
 
 // Counts this step's kills against the tokens they could have dropped.
@@ -1303,6 +1324,15 @@ struct Session {
   std::string key;
   unsigned int seed = 0;
   bool saved = false;
+  // Every line's alt climb, or null when alts aren't leveled; the alts
+  // standing; and the seconds still owed to them, which the next stretches
+  // play on the alts before the main earns anything.
+  const AltLadders* ladders = nullptr;
+  AltLevels alts;
+  double alt_debt = 0.0;
+  double next_alt_look = 0.0;
+  // Where the climb stops: the cap, or the last link rung for an alt.
+  int stop_level = kTrialLevelCap;
 };
 
 // Converts the --buffs flag to a BuffMode.
@@ -1861,6 +1891,21 @@ void LoadRng(const std::string& saved, std::mt19937* rng) {
   text >> *rng;
 }
 
+// Gives the character the link tally `alts` make, and fills the presets with
+// what it opens.
+void WearAlts(GameState& state, const AltLevels& alts) {
+  state.character.set_link_tally(AltTally(alts));
+  state.character.ReconcileLinkSkills(state.skills);
+}
+
+// Pays what the alts are owed out of a stretch of `seconds`, and returns what
+// is left for the main to farm.
+double PayAltDebt(Session& run, double seconds) {
+  double owed = std::min(run.alt_debt, seconds);
+  run.alt_debt -= owed;
+  return seconds - owed;
+}
+
 SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   SimCheckpoint saved;
   saved.set_stamp(run.saves->stamp);
@@ -1902,6 +1947,15 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   saved.set_world_rng(SaveRng(run.state.rng));
   saved.set_run_rng(SaveRng(run.rng));
   SaveClimb(run.climb, saved.mutable_climb());
+  for (const AltBought& alt : run.climb.alts) {
+    CheckpointAlt* to = saved.add_alts();
+    to->set_line(alt.line);
+    to->set_level(alt.level);
+    to->set_at(alt.at);
+    to->set_seconds(alt.seconds);
+  }
+  saved.set_alt_debt(run.alt_debt);
+  saved.set_next_alt_look(run.next_alt_look);
   saved.set_level_began(cursor.level_began);
   SaveStint(cursor.stint, saved.mutable_stint());
   for (double carried : cursor.carry) {
@@ -1947,6 +2001,15 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   LoadClimb(saved.climb(), &run.climb);
   run.farming_worth = run.climb.farming_worth;
   run.bossing_worth = run.climb.bossing_worth;
+  for (const CheckpointAlt& alt : saved.alts()) {
+    const Job line = static_cast<Job>(alt.line());
+    run.climb.alts.push_back({line, alt.level(), alt.at(), alt.seconds()});
+    run.alts[line] = std::max(run.alts[line], alt.level());
+  }
+  run.alt_debt = saved.alt_debt();
+  run.next_alt_look = saved.next_alt_look();
+  // The tally lives on the account, not the character the checkpoint holds.
+  WearAlts(run.state, run.alts);
   cursor->level = saved.level();
   cursor->level_began = saved.level_began();
   cursor->stint = LoadStint(saved.stint());
@@ -2005,13 +2068,94 @@ void Restock(Session& run) {
   SpendHonor(run);
 }
 
+// Meso a second the character makes on the map as they stand, from a played
+// fight.
+double FarmRate(Session& run, const DropBasis& basis) {
+  CombatParams params = ComputeCombatParams(run.state);
+  Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+  if (yield.died) {
+    return 0.0;
+  }
+  return MesoPerSecondFor(
+      run.state, CrowdFor(run.state, basis, params, yield.kills_per_second));
+}
+
+// What taking `step` is worth in meso, net of the farming it costs: the map's
+// extra income over the rest of the run, plus the boss damage priced at what
+// the shelf charges for as much. Measured by playing both fights with the alt
+// in place, since two of the four link skills are buffs no closed form sees.
+double AltWorth(Session& run, const DropBasis& basis, const AltStep& step,
+                double rate, double boss, double power) {
+  AltLevels with = run.alts;
+  with[step.line] = step.level;
+  WearAlts(run.state, with);
+  double rate_after = FarmRate(run, basis);
+  double boss_after = BossRateOver(run.state, basis, kBookSeconds);
+  WearAlts(run.state, run.alts);
+
+  double kept = static_cast<double>(std::max<int64_t>(0, step.meso));
+  double left =
+      std::max(0.0, run.horizon - run.seconds - run.alt_debt - step.seconds);
+  double worth = (rate_after - rate) * left + kept - step.seconds * rate;
+  double per_meso = run.shopper.power_per_meso();
+  if (boss > 0.0 && per_meso > 0.0) {
+    worth += (boss_after / boss - 1.0) * power / per_meso;
+  }
+  return worth;
+}
+
+// Once a day from the Link Skills level, takes the alt rung worth the most, if
+// any is worth its hours. Those hours come out of the main's farming; see
+// Session::alt_debt. The rates are measured afresh rather than taken from the
+// look, whose fight predates what the look just bought.
+void ConsiderAlts(Session& run) {
+  if (run.ladders == nullptr || run.seconds < run.next_alt_look ||
+      run.state.character.proto().level() < kLinkSkillsLevel) {
+    return;
+  }
+  run.next_alt_look = run.seconds + kDaySeconds;
+  std::vector<AltStep> steps =
+      AltSteps(*run.ladders, run.alts, run.state.character.proto().job());
+  if (steps.empty()) {
+    return;
+  }
+  DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                 run.shopper.yardstick());
+  double rate = FarmRate(run, basis);
+  double boss = BossRateOver(run.state, basis, kBookSeconds);
+  double power = run.shopper.Power(run.state);
+  const AltStep* best = nullptr;
+  double best_worth = 0.0;
+  for (const AltStep& step : steps) {
+    double worth = AltWorth(run, basis, step, rate, boss, power);
+    if (worth > best_worth) {
+      best = &step;
+      best_worth = worth;
+    }
+  }
+  if (best == nullptr) {
+    return;
+  }
+  run.alts[best->line] = best->level;
+  WearAlts(run.state, run.alts);
+  run.alt_debt += best->seconds;
+  int64_t kept = std::max<int64_t>(0, best->meso);
+  run.state.character.AddMeso(kept);
+  run.climb.ledger.alt_meso += kept;
+  run.purse.Note(run.state.character);
+  run.climb.alts.push_back(
+      {best->line, best->level, run.seconds, best->seconds});
+}
+
 // The player opens the game. The potion plan and the shopper's income come
-// before gear: a buff that pays for itself multiplies every later meso.
+// before gear: a buff that pays for itself multiplies every later meso. Alts
+// come last, priced against the shelf the shopper just walked.
 void TakeLook(Session& run, const CombatParams& params, const Yield& yield) {
   PlanBuffsFor(run, params, yield);
   SetShopperIncome(run, params, yield);
   run.purse.Note(run.state.character);
   Restock(run);
+  ConsiderAlts(run);
 }
 
 // Resumes the climb from a checkpoint, or starts it from scratch.
@@ -2030,12 +2174,13 @@ void BeginClimb(Session& run, ClimbCursor& cursor) {
 // Skips the run ahead by `horizon` and pays out what the stretch earned.
 void EarnOver(Session& run, const CombatParams& params, const Yield& yield,
               double horizon, ClimbCursor& cursor) {
-  std::vector<int64_t> kills = KillsOver(yield, horizon, &cursor.carry);
+  double farmed = PayAltDebt(run, horizon);
+  std::vector<int64_t> kills = KillsOver(yield, farmed, &cursor.carry);
   AwardCombatRewards(run.state, params, kills);
   NoteTokenChances(params, kills, run.climb);
   // The stretch is skipped rather than ticked, so potions are charged for it
   // here; AdvanceCombat, which does it in the game, never runs.
-  DrinkBuffs(run.state, horizon, &run.climb.ledger.buffs);
+  DrinkBuffs(run.state, farmed, &run.climb.ledger.buffs);
   run.purse.Note(run.state.character);
   run.seconds += horizon;
 }
@@ -2049,6 +2194,13 @@ void NoteLevelReached(Session& run, ClimbCursor& cursor, int reached) {
   NoteFrozenDrops(run.state, cursor.level, run.climb);
   NoteMilestones(run.state, cursor.level, run.seconds, run.purse, run.climb);
   NotePotentials(run.state, cursor.level, run.seconds, run.climb);
+  for (int rung = 0; rung < kLinkRungsPerLine; ++rung) {
+    if (reached >= kLinkRungLevels[rung] &&
+        run.climb.rungs.seconds[rung] < 0.0) {
+      run.climb.rungs.seconds[rung] = run.seconds;
+      run.climb.rungs.meso[rung] = run.state.character.meso();
+    }
+  }
   cursor.stint = {cursor.level, 0.0, run.state.current_map,
                   HeldWeaponName(run.state.character)};
 }
@@ -2059,7 +2211,7 @@ void ClimbToCap(Session& run) {
   ClimbCursor cursor;
   BeginClimb(run, cursor);
   CombatParams params = ComputeCombatParams(run.state);
-  while (cursor.level < kTrialLevelCap && run.seconds < give_up) {
+  while (cursor.level < run.stop_level && run.seconds < give_up) {
     NoteCheckpoint(run, cursor);
     Yield yield = MeasureYield(run.state, params, run.beats, run.step);
     if (yield.died || yield.exp_per_second <= 0.0) {
@@ -2139,6 +2291,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   run.purse.Note(run.state.character);
   SpendHyperPoints(run);
   SpendHonor(run);
+  ConsiderAlts(run);
   // Hourly, but only re-picked once the character has outgrown the last answer.
   // Probing the maps plays a fight on each, and twenty endgame days of hourly
   // looks would make that most of the section's cost.
@@ -2212,9 +2365,10 @@ void FarmAtCap(Session& run) {
     // than a level, since the clock is the only thing that moves here.
     double jump = std::min(next_retool, horizon) - run.seconds;
     jump = std::max(jump, run.step);
-    std::vector<int64_t> kills = KillsOver(yield, jump, &carry);
+    double farmed = PayAltDebt(run, jump);
+    std::vector<int64_t> kills = KillsOver(yield, farmed, &carry);
     AwardCombatRewards(run.state, params, kills);
-    DrinkBuffs(run.state, jump, &run.climb.ledger.buffs);
+    DrinkBuffs(run.state, farmed, &run.climb.ledger.buffs);
     run.purse.Note(run.state.character);
     run.seconds += jump;
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
@@ -2261,7 +2415,7 @@ std::string ClimbKey(Job branch, unsigned int seed) {
 // out.
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps, unsigned int seed,
-           const Checkpointing& saves) {
+           const Checkpointing& saves, const AltLadders* ladders) {
   GameState state = NewState(catalogs, seed);
   // A plain field rather than a constructor argument, so a sim that fights
   // bosses must opt in. This one runs the dailies.
@@ -2284,6 +2438,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   run.saves = &saves;
   run.key = ClimbKey(branch, seed);
   run.seed = seed;
+  run.ladders = ladders;
   ClimbToCap(run);
   if (absl::GetFlag(FLAGS_endgame) &&
       state.character.proto().level() >= kTrialLevelCap) {
@@ -2309,6 +2464,33 @@ Climb Play(const Catalogs& catalogs, Job branch,
   climb.endgame_earned_total = run.purse.earned;
   climb.meso_held = state.character.meso();
   return climb;
+}
+
+// Climbs one line's alt to the last link rung, burning against a main already
+// there. No bosses and no cubes: an alt is leveled, not geared.
+AltLadder ClimbAlt(const Catalogs& catalogs, Job branch,
+                   const std::vector<std::string>& maps, unsigned int seed) {
+  GameState state = NewState(catalogs, seed);
+  state.inactive_characters.emplace_back().mutable_character()->set_level(
+      kLinkRungLevels[kLinkRungsPerLine - 1]);
+  Climb climb;
+  GearPlan plan;
+  plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
+  plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+  plan.cubes = false;
+  Session run = {state,          maps,
+                 PathTo(branch), 0,
+                 Purse(),        GearShopper(plan),
+                 WeaponScout(),  PlanKey(),
+                 ToggleChoice(), MapChoice(),
+                 climb};
+  run.step = absl::GetFlag(FLAGS_step);
+  run.beats = absl::GetFlag(FLAGS_probe_beats);
+  run.rng.seed(seed);
+  run.seed = seed;
+  run.stop_level = kLinkRungLevels[kLinkRungsPerLine - 1];
+  ClimbToCap(run);
+  return climb.rungs;
 }
 
 // Formats seconds as readable playtime: hours and minutes up to a day, then
@@ -3501,6 +3683,73 @@ void PrintTargets(const std::vector<Job>& branches,
   }
 }
 
+// One alt climb per line a main could level, all at once, on the sweep's seed.
+AltLadders ClimbAlts(const Catalogs& catalogs,
+                     const std::vector<std::string>& maps) {
+  std::vector<Job> lines;
+  for (Job branch : EveryBranch()) {
+    if (StageOf(branch) >= 4) {
+      lines.push_back(branch);
+    }
+  }
+  std::vector<AltLadder> climbed(lines.size());
+  const unsigned int seed =
+      static_cast<unsigned int>(absl::GetFlag(FLAGS_seed));
+  ParallelFor(static_cast<int>(lines.size()), [&](int i) {
+    climbed[i] = ClimbAlt(catalogs, lines[i], maps, seed);
+  });
+  AltLadders ladders;
+  for (std::size_t i = 0; i < lines.size(); ++i) {
+    ladders[LineOf(lines[i])] = climbed[i];
+  }
+  return ladders;
+}
+
+// What each line's alt takes to reach each rung, then which rungs each main
+// took and what they cost it.
+void PrintAlts(const AltLadders& ladders, const std::vector<Job>& branches,
+               const std::vector<Climb>& climbs) {
+  if (ladders.empty()) {
+    return;
+  }
+  std::printf(
+      "\nAlts, climbed once per line with burning: playtime and meso kept on "
+      "reaching each\nlink rung.\n\n%-13s",
+      "line");
+  for (int level : kLinkRungLevels) {
+    std::printf(" %9s %9s", absl::StrCat("Lv", level).c_str(), "kept");
+  }
+  std::printf("\n");
+  for (const std::pair<const Job, AltLadder>& entry : ladders) {
+    std::printf("%-13s", BranchName(entry.first).c_str());
+    for (int rung = 0; rung < kLinkRungsPerLine; ++rung) {
+      char kept[16];
+      FormatShort(static_cast<double>(entry.second.meso[rung]), kept,
+                  sizeof(kept));
+      std::printf(" %9s %9s", Clock(entry.second.seconds[rung]).c_str(), kept);
+    }
+    std::printf("\n");
+  }
+  std::printf(
+      "\nThe rungs each main took, when, and the farming they cost it.\n\n");
+  std::printf("%-13s %9s %9s  %s\n", "branch", "farming", "kept", "rungs");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    double cost = 0.0;
+    std::vector<std::string> taken;
+    for (const AltBought& alt : climbs[i].alts) {
+      cost += alt.seconds;
+      taken.push_back(absl::StrCat(BranchName(alt.line), " ", alt.level, " d",
+                                   static_cast<int>(alt.at / kDaySeconds)));
+    }
+    char kept[16];
+    FormatShort(static_cast<double>(climbs[i].ledger.alt_meso), kept,
+                sizeof(kept));
+    std::printf("%-13s %9s %9s  %s\n", BranchName(branches[i]).c_str(),
+                Clock(cost).c_str(), kept,
+                taken.empty() ? "-" : absl::StrJoin(taken, ", ").c_str());
+  }
+}
+
 // Where this sweep's climbs are saved. Computed once, because preparing the
 // directory deletes another build's files, and two threads doing that at once
 // would delete each other's.
@@ -3529,12 +3778,17 @@ void Run() {
   // printed afterwards in the table's order, not the order threads finished.
   int count = static_cast<int>(branches.size());
   Checkpointing saves = PrepareCheckpoints();
+  AltLadders ladders;
+  if (absl::GetFlag(FLAGS_alts)) {
+    ladders = ClimbAlts(catalogs, maps);
+  }
   std::vector<std::vector<Climb>> runs(count, std::vector<Climb>(per_branch));
   ParallelFor(count * per_branch, [&](int i) {
     unsigned int seed =
         static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)) + i / count;
     runs[i % count][i / count] =
-        Play(catalogs, branches[i % count], maps, seed, saves);
+        Play(catalogs, branches[i % count], maps, seed, saves,
+             absl::GetFlag(FLAGS_alts) ? &ladders : nullptr);
   });
 
   std::vector<Climb> typical;
@@ -3561,6 +3815,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_boss_report)) {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
+    PrintAlts(ladders, branches, typical);
     PrintCubing(branches, typical);
     PrintPotentialLevels(branches, typical);
     PrintDefence(catalogs, branches, typical);
