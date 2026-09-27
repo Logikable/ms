@@ -179,16 +179,16 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
     }
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
-  // Chaos Zakum, for whom GMS gives no EXP; and Lotus and the Guardian Angel
-  // Slime, which are the same case and are fought for their drops.
+  // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights and the
+  // Guardian Angel Slime, which are the same case and are fought for their
+  // drops.
   EXPECT_EQ(unpaid, std::vector<std::string>(
                         {"crimson_queen", "guardian_angel_slime", "lotus",
-                         "pierre", "vellum", "von_bon", "zakum"}));
+                         "lotus", "pierre", "vellum", "von_bon", "zakum"}));
 }
 
-// The shells (Hard Damien, Hard Lotus, Chaos Guardian Angel Slime) can't be
-// entered, so a timer, gate or reward on one would be a promise the screen
-// never shows.
+// A shell (Chaos Guardian Angel Slime) can't be entered, so a timer, gate or
+// reward on one would be a promise the screen never shows.
 TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   std::vector<std::string> shells;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -206,37 +206,34 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(shells,
-            std::vector<std::string>(
-                {"damien Hard", "guardian_angel_slime Chaos", "lotus Hard"}));
+  EXPECT_EQ(shells, std::vector<std::string>({"guardian_angel_slime Chaos"}));
 }
 
-// Each shell is its Normal fight with GMS's Hard or Chaos numbers, and the
+// Each harder fight is its Normal with GMS's Hard or Chaos numbers, and the
 // difficulty is the only difference: the same mobs in the same cells, so
-// building the fight means filling in what's missing, not laying it out.
-TEST_F(BossDataTest, EveryShellIsItsNormalShapeAtGmsNumbers) {
+// building a shell means filling in what's missing, not laying it out.
+TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
     std::string name;
     std::vector<int64_t> hp;
   };
-  const std::vector<Want> kShells = {
+  const std::vector<Want> kHarder = {
       {"damien", "Hard", {25200000000000LL, 10800000000000LL}},
       {"lotus", "Hard", {9985500000000LL, 9985500000000LL, 13314000000000LL}},
       {"guardian_angel_slime", "Chaos", {90000000000000LL}}};
-  for (const Want& want : kShells) {
+  for (const Want& want : kHarder) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
     const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
-    const BossDifficulty& shell = bosses_.at(want.boss).difficulties(1);
+    const BossDifficulty& harder = bosses_.at(want.boss).difficulties(1);
     SCOPED_TRACE(want.boss);
-    EXPECT_EQ(shell.name(), want.name);
-    EXPECT_TRUE(shell.coming_soon());
-    ASSERT_EQ(shell.phases_size(), static_cast<int>(want.hp.size()));
-    ASSERT_EQ(shell.phases_size(), normal.phases_size());
-    for (int i = 0; i < shell.phases_size(); ++i) {
+    EXPECT_EQ(harder.name(), want.name);
+    ASSERT_EQ(harder.phases_size(), static_cast<int>(want.hp.size()));
+    ASSERT_EQ(harder.phases_size(), normal.phases_size());
+    for (int i = 0; i < harder.phases_size(); ++i) {
       const BossPhase& shape = normal.phases(i);
-      const BossPhase& phase = shell.phases(i);
+      const BossPhase& phase = harder.phases(i);
       SCOPED_TRACE(i);
       EXPECT_EQ(phase.bgm(), shape.bgm());
       ASSERT_EQ(phase.spawns_size(), 1);
@@ -319,10 +316,10 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
-  EXPECT_EQ(fights, 21) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
-                           "Damien, the Guardian Angel Slime, the four of Root "
-                           "Abyss, and both difficulties of Zakum, Magnus, "
-                           "Pink Bean, Hilla and Horntail";
+  EXPECT_EQ(fights, 23) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "Guardian Angel Slime, the four of Root Abyss, and "
+                           "both difficulties of Zakum, Magnus, Pink Bean, "
+                           "Hilla, Horntail, Lotus and Damien";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -611,6 +608,39 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
                 normal.drops(i).SerializeAsString())
           << "drop " << i + 1;
     }
+  }
+}
+
+// Hard Damien and Hard Lotus pay what Normal does plus a one-in-five chance at
+// each AbsoLab box, on Normal's clock and gate.
+TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
+  struct Want {
+    std::string boss;
+    int64_t meso;
+    int64_t exp;
+  };
+  for (const Want& want : std::vector<Want>{{"damien", 60250000, 22000000},
+                                            {"lotus", 63550000, 0}}) {
+    SCOPED_TRACE(want.boss);
+    const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
+    const BossDifficulty& hard = bosses_.at(want.boss).difficulties(1);
+    EXPECT_FALSE(hard.coming_soon());
+    EXPECT_EQ(hard.reset(), normal.reset());
+    EXPECT_EQ(hard.time_limit_seconds(), normal.time_limit_seconds());
+    EXPECT_EQ(hard.unlock_level(), normal.unlock_level());
+    EXPECT_EQ(hard.meso(), want.meso);
+    EXPECT_EQ(hard.exp(), want.exp);
+    ASSERT_EQ(hard.drops_size(), normal.drops_size() + 2);
+    for (int i = 0; i < normal.drops_size(); ++i) {
+      EXPECT_EQ(hard.drops(i).SerializeAsString(),
+                normal.drops(i).SerializeAsString());
+    }
+    const MobDrop& weapon = hard.drops(normal.drops_size());
+    const MobDrop& armor = hard.drops(normal.drops_size() + 1);
+    EXPECT_EQ(weapon.item(), "absolab_weapon_box");
+    EXPECT_EQ(armor.item(), "absolab_armor_box");
+    EXPECT_DOUBLE_EQ(weapon.per_kill(), 0.2);
+    EXPECT_DOUBLE_EQ(armor.per_kill(), 0.2);
   }
 }
 

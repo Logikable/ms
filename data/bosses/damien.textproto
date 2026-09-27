@@ -54,9 +54,7 @@ difficulties {
   }
 }
 difficulties {
-  # Not built yet: no time limit, unlock level or reward until it is.
   name: "Hard"
-  coming_soon: true
   phases {
     bgm: "Demian Spine"
     spawns {
@@ -90,5 +88,30 @@ difficulties {
     player_spots { x: 6 y: 5 }
     arena_width: 9
     arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1500
+  unlock_level: 210
+  # Five Intense Power Crystals at GMS's price (84,375,000), divided by seven and
+  # rounded to the nearest 50k, as for Normal.
+  meso: 60250000
+  # GMS pays Hard the same EXP as Normal.
+  exp: 22000000
+  drops {
+    item: "absolab_coin"
+    per_kill: 1.0
+  }
+  drops {
+    item: "damiens_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the boxes' odds. Unlike GMS, drop rate raises them.
+  drops {
+    item: "absolab_weapon_box"
+    per_kill: 0.2
+  }
+  drops {
+    item: "absolab_armor_box"
+    per_kill: 0.2
   }
 }
