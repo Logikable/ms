@@ -41,20 +41,29 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
 constexpr double kGiveUpFactor = 1.5;
 constexpr double kFirstLook = 120.0;
 
-// Fraction of the fight's starting HP still left. Unreached phases count in
-// full.
-double LeftStanding(const BossRun& run) {
-  int phases = std::max(1, run.phase_count());
-  return (phases - run.phase() + run.phase_hp_fraction()) / phases;
+// Fraction of the fight's starting HP still left, each phase weighted by its
+// HP rather than counted as an equal share.
+double LeftStanding(const BossRun& run, const std::vector<int64_t>& phase_hp) {
+  int64_t total = 0;
+  double left = 0.0;
+  for (int i = 0; i < static_cast<int>(phase_hp.size()); ++i) {
+    total += phase_hp[i];
+    if (i + 1 > run.phase()) {
+      left += phase_hp[i];
+    } else if (i + 1 == run.phase()) {
+      left += run.phase_hp_fraction() * phase_hp[i];
+    }
+  }
+  return total > 0 ? left / total : 0.0;
 }
 
 // Whether the fight is already lost: progress in `elapsed` says the rest can't
 // be finished within `clock`.
-bool WalkedOut(const BossRun& run, double elapsed, double clock) {
+bool WalkedOut(double left, double elapsed, double clock) {
   if (elapsed < kFirstLook) {
     return false;
   }
-  double done = 1.0 - LeftStanding(run);
+  double done = 1.0 - left;
   return done <= 0.0 || elapsed / done > clock * kGiveUpFactor;
 }
 
@@ -69,10 +78,16 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   }
   double clock =
       found->second.difficulties(difficulty_index).time_limit_seconds();
+  std::vector<int64_t> phase_hp;
+  for (const BossPhase& phase :
+       found->second.difficulties(difficulty_index).phases()) {
+    phase_hp.push_back(PhaseHp(state.mobs, phase));
+  }
   BossRun run(boss_key, found->second, difficulty_index);
   while (!run.done()) {
     run.Advance(state, kStepSeconds);
-    if (WalkedOut(run, clock - run.seconds_left(), clock)) {
+    if (WalkedOut(LeftStanding(run, phase_hp), clock - run.seconds_left(),
+                  clock)) {
       break;
     }
   }
@@ -80,7 +95,9 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   outcome.won = run.won();
   outcome.seconds = clock - run.seconds_left();
   if (!outcome.won) {
-    outcome.left = LeftStanding(run);
+    outcome.left = LeftStanding(run, phase_hp);
+    double pace = (1.0 - outcome.left) / std::max(outcome.seconds, 1.0);
+    outcome.left_at_clock = std::max(0.0, 1.0 - pace * clock);
   }
   return outcome;
 }

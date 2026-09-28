@@ -24,9 +24,12 @@ struct BossOutcome {
   // since a player leaves a fight that is clearly going nowhere.
   double seconds = 0.0;
   // Fraction of the fight's starting HP still left when it ended; 0 for a
-  // clear. Unreached phases count in full, so a build that died in the first of
-  // three phases reads near 1.0.
+  // clear.
   double left = 0.0;
+  // What would have been left at the time limit had the player stayed, at the
+  // pace so far. This, not `left`, says how close a walk-out came: one at 2:00
+  // of a 30:00 fight reads near 1.0 left whatever the build.
+  double left_at_clock = 0.0;
 };
 
 // Fights `difficulty_index` of `boss_key` and returns the outcome, collecting

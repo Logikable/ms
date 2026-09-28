@@ -836,7 +836,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
     result.cleared = outcome.won;
     result.clears = outcome.won ? 1 : 0;
     result.clear_seconds = outcome.seconds;
-    result.left = outcome.left;
+    result.left = outcome.left_at_clock;
   }
   return result;
 }
@@ -982,7 +982,7 @@ std::string SeedLine() {
 }
 
 // Result of one attempt at a real fight: the clear time, or how much of the
-// boss was left when the character gave up.
+// boss the character's pace would have left at the time limit.
 std::string ClearCell(const Result& result) {
   char cell[32];
   if (result.runs > 1) {

@@ -307,6 +307,23 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "sim_boss_test",
+    size = "small",
+    srcs = ["sim_boss_test.cc"],
+    deps = [
+        ":sim_boss",
+        "//src:game_state",
+        "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
 sim_binary(
     name = "ability_sim",
     srcs = ["ability_sim.cc"],

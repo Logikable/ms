@@ -782,9 +782,8 @@ struct BossLog {
   int first_attempt_level = 0;
   int first_clear_level = 0;          // 0 if never won
   double first_clear_seconds = -1.0;  // playtime at that clear
-  // Most of the fight any attempt cleared; 1.0 once won. Unreached phases count
-  // in full, so a rout reads low rather than as a fraction of the one phase it
-  // saw.
+  // Most of the fight any attempt would have cleared by the time limit; 1.0
+  // once won. A walk-out counts at its pace, not at the HP it left behind.
   double best_done = 0.0;
   // The fastest clear and the character's damage at the time. Zero if never
   // won.
@@ -1184,7 +1183,7 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   climb.ledger.boss_clears +=
       std::max<int64_t>(0, state.character.meso() - before_fight);
   *result = outcome;
-  log.best_done = std::max(log.best_done, 1.0 - outcome.left);
+  log.best_done = std::max(log.best_done, 1.0 - outcome.left_at_clock);
   if (!outcome.won) {
     return outcome.seconds;
   }
@@ -2935,7 +2934,7 @@ struct FightStanding {
   int level = 0;            // level of the first clear, 0 if never won
   double seconds = -1.0;    // playtime at that clear
   double after_cap = -1.0;  // how much of that came after the cap
-  double best_done = 0.0;   // most of the fight any attempt cleared
+  double best_done = 0.0;   // most of the fight any attempt would clear
   int attempts = 0;
   int reached = 0;  // level the branch itself reached
 };
