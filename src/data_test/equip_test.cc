@@ -400,7 +400,7 @@ TEST(EquipDataTest, EveryTokenBuysSomething) {
   FillTokenShelves(LoadEquips(), items);
   // Lucid's and Will's coins, dropped ahead of the Arcane Umbra gear they are
   // for. Until it is built they sort last.
-  const std::set<std::string> kShopToCome = {"aracho_coin", "phantasma_coin"};
+  const std::set<std::string> kShopToCome = {"arachno_coin", "phantasma_coin"};
   int tokens = 0;
   for (const std::pair<const std::string, ItemPrototype>& entry : items) {
     if (entry.second.kind() == ITEM_KIND_TOKEN &&
