@@ -25,10 +25,12 @@ PartyFight::PartyFight(std::string id, std::string boss_key, const Boss& boss,
       difficulty_index_(difficulty_index),
       mobs_(&mobs),
       options_(options) {
+  options_.clear_void_drops();
   for (const PartyMember& member : party.members()) {
     FightPlayer player;
     player.account_id = member.player().account_id();
     player.name = member.player().name();
+    player.void_drops = member.player().boss_options().void_drops();
     players_.push_back(std::move(player));
   }
   share_count_ = static_cast<int>(players_.size());
@@ -145,32 +147,40 @@ void PartyFight::DealDrops() {
   }
   const BossDifficulty* chosen = difficulty();
   std::vector<FightPlayer*> paid;
+  std::vector<FightPlayer*> equip_paid;
   double best_drop_pct = 0.0;
   for (FightPlayer& player : players_) {
     if (player.present) {
       paid.push_back(&player);
       best_drop_pct = std::max(best_drop_pct, player.item_drop_pct);
+      if (!player.void_drops) {
+        equip_paid.push_back(&player);
+      }
     }
   }
   if (chosen == nullptr || paid.empty()) {
     return;
   }
-  std::uniform_int_distribution<size_t> who(0, paid.size() - 1);
-  std::vector<int64_t> won(paid.size());
   for (const MobDrop& drop : chosen->drops()) {
+    const std::vector<FightPlayer*>& takers =
+        drop.has_equip() ? equip_paid : paid;
+    if (takers.empty()) {
+      continue;
+    }
     // One roll per fight, where a map rolls once per kill. BossDropRate
     // decides how drop rate affects each drop.
     int64_t rolled = RollDrops(BossDropRate(drop, best_drop_pct), 1, rng_);
-    std::fill(won.begin(), won.end(), 0);
+    std::uniform_int_distribution<size_t> who(0, takers.size() - 1);
+    std::vector<int64_t> won(takers.size());
     for (int64_t i = 0; i < rolled; ++i) {
       // Pick a player for each copy, so two copies can go to two players.
       ++won[who(rng_)];
     }
-    for (size_t i = 0; i < paid.size(); ++i) {
+    for (size_t i = 0; i < takers.size(); ++i) {
       if (won[i] == 0) {
         continue;
       }
-      FightAward& award = paid[i]->awards.emplace_back();
+      FightAward& award = takers[i]->awards.emplace_back();
       if (drop.has_equip()) {
         award.set_equip(drop.equip());
       } else {

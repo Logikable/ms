@@ -390,7 +390,9 @@ TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
 TEST(BossFightPanelTest, APracticeRunSaysSoBeforeAnythingElse) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
-  BossRun run("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  BossOptions practice_only;
+  practice_only.set_practice(true);
+  BossRun run("zakum", boss, 0, /*authority=*/nullptr, practice_only);
   run.Advance(*state, kBossCountdownSeconds);
   EXPECT_EQ(FightHeading(run), "Practice - Normal Zakum - P1 - 100%");
 

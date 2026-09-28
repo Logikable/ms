@@ -2025,7 +2025,7 @@ void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   ChargeBossEntry();
   boss_run_ =
       std::make_unique<BossRun>(boss_run_key_, it->second, index,
-                                party_fight_.get(), party_fight_->practice());
+                                party_fight_.get(), party_fight_->options());
   // Whatever they were doing, they are in a fight now. The Menu box closes too:
   // leaving the fight goes to the main view, whose menu row hides its cursor
   // while a box is open.
@@ -3069,23 +3069,23 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
     // party of one, it is the local run below with no network involved.
     multiplayer_->client().StartFight(boss_run_key_,
                                       boss_select_panel_.selected_difficulty(),
-                                      PARTY_MODE_SHARED, state_.boss_options);
+                                      PARTY_MODE_SHARED, state_.FightOptions());
     screen_ = kBossSelect;
     return true;
   }
   ChargeBossEntry();
   boss_run_ = std::make_unique<BossRun>(
       boss_run_key_, it->second, boss_select_panel_.selected_difficulty(),
-      /*authority=*/nullptr, state_.boss_options.practice());
+      /*authority=*/nullptr, state_.FightOptions());
   screen_ = kBossFight;
   return true;
 }
 
 void TuiController::ToggleBossOption(int option) {
-  // Only one option on the row so far. The index is checked rather than
-  // assumed, so a second option doesn't trigger this one.
   if (option == 0) {
     state_.boss_options.set_practice(!state_.boss_options.practice());
+  } else if (option == 1) {
+    state_.account.SetVoidBossDrops(!state_.account.void_boss_drops());
   }
 }
 

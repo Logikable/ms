@@ -334,6 +334,10 @@ TEST_F(LobbyTest, EveryMemberHasToHaveTheSameOptionsSet) {
   EXPECT_EQ(Start("one", Fight("zakum", 0, /*practice=*/true)).reason,
             Refused::REASON_OPTIONS_DIFFER);
 
+  // Void drops is each player's own, so it may differ.
+  PlayerInfo voiding = Practising(Player("two", 140));
+  voiding.mutable_boss_options()->set_void_drops(true);
+  lobby_.UpdatePlayer(voiding);
   lobby_.UpdatePlayer(Practising(Player("one", 140)));
   EXPECT_TRUE(Start("one", Fight("zakum", 0, /*practice=*/true)).ok);
 }

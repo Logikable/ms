@@ -101,6 +101,10 @@ message Options {
   // unmuting brings them back.
   bool mute = 8;
 
+  // Whether boss fights drop no equips. Only the boss screen's options row sets
+  // this. Remembered, unlike Practice, since it costs no clear.
+  bool void_boss_drops = 9;
+
   // Field 5 was a shuffle switch on the Options screen, replaced by
   // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on
   // costs the player one keypress on the Jukebox screen, while reading it would

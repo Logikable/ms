@@ -74,8 +74,10 @@ void Run() {
         NewMaxState(catalogs, AdvancementForJobStage(branch, StageOf(branch)),
                     level, kSeed);
     state.bosses = catalogs.bosses;
+    BossOptions practice_only;
+    practice_only.set_practice(true);
     BossRun run(boss->first, state.bosses.at(boss->first), difficulty,
-                /*authority=*/nullptr, /*practice=*/true);
+                /*authority=*/nullptr, practice_only);
     while (!run.done() &&
            run.breakdown().seconds() < absl::GetFlag(FLAGS_seconds)) {
       run.Advance(state, kStepSeconds);

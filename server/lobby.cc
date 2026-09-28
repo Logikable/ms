@@ -337,10 +337,14 @@ LobbyResult Lobby::CheckFight(const Party& party,
     }
   }
   // Everyone must pick the same options, since one fight cannot reward
-  // players differently.
+  // players differently. Void drops is the exception: the deal routes around
+  // whoever has it on.
+  BossOptions terms = request.options();
+  terms.clear_void_drops();
   for (const PartyMember& member : party.members()) {
-    if (!MessageDifferencer::Equals(member.player().boss_options(),
-                                    request.options())) {
+    BossOptions theirs = member.player().boss_options();
+    theirs.clear_void_drops();
+    if (!MessageDifferencer::Equals(theirs, terms)) {
       return Refusal(Refused::REASON_OPTIONS_DIFFER,
                      "Players selected different bossing options.");
     }

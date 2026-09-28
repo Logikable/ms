@@ -814,9 +814,9 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
 }
 
-// The row draws the switch in its current state, and Left and Right stay on the
-// only switch there is.
-TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
+// The row draws each switch in its current state, and Left and Right walk
+// between them without passing either end.
+TEST(BossSelectPanelTest, TheOptionsRowDrawsItsSwitches) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
   BossSelectPanel panel(state);
@@ -830,11 +830,21 @@ TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
   EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[✓] Practice"),
             std::string::npos);
 
+  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[ ] Void drops"),
+            std::string::npos);
+  state.account.SetVoidBossDrops(true);
+  EXPECT_TRUE(panel.void_drops());
+  rows = RenderRows(panel);
+  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[✓] Void drops"),
+            std::string::npos);
+
   panel.SwitchPanel(2);
   ASSERT_EQ(panel.focus(), BossPanel::kOptions);
   panel.ChangeDifficulty(1);
-  EXPECT_EQ(panel.selected_option(), 0);
-  panel.ChangeDifficulty(-1);
+  EXPECT_EQ(panel.selected_option(), 1);
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.selected_option(), 1);
+  panel.ChangeDifficulty(-2);
   EXPECT_EQ(panel.selected_option(), 0);
   // Left and Right didn't move the grid's own cursor.
   EXPECT_EQ(panel.selected_difficulty(), 0);
@@ -863,6 +873,38 @@ TEST(BossSelectPanelTest, PracticeRestatesTheStatusAndDimsTheRewards) {
   // the reset, not the level requirement.
   state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(300);
   EXPECT_NE(Render(panel).find("Locked"), std::string::npos);
+}
+
+// Void drops dims the equips it won't deal and nothing else. Under Practice the
+// switch itself is dimmed, since there is nothing left to void.
+TEST(BossSelectPanelTest, VoidDropsDimsOnlyTheEquips) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  EquipPrototype mark;
+  mark.set_name("Mark");
+  state.equips["mark"] = mark;
+  ItemPrototype shard;
+  shard.set_name("Shard");
+  state.items["shard"] = shard;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  normal->set_meso(3062500);
+  MobDrop* equip_drop = normal->add_drops();
+  equip_drop->set_equip("mark");
+  equip_drop->set_per_kill(0.5);
+  MobDrop* item_drop = normal->add_drops();
+  item_drop->set_item("shard");
+  item_drop->set_per_kill(1.0);
+  BossSelectPanel panel(state);
+  EXPECT_FALSE(PixelOf(RenderScreen(panel), " Mark").dim);
+
+  state.account.SetVoidBossDrops(true);
+  EXPECT_TRUE(PixelOf(RenderScreen(panel), " Mark").dim);
+  EXPECT_FALSE(PixelOf(RenderScreen(panel), " Shard").dim);
+  EXPECT_FALSE(PixelOf(RenderScreen(panel), "Meso").dim);
+  EXPECT_FALSE(PixelOf(RenderScreen(panel), "Void drops").dim);
+
+  state.boss_options.set_practice(true);
+  EXPECT_TRUE(PixelOf(RenderScreen(panel), "Void drops").dim);
 }
 
 // The list, the detail panel beside it and the options row are each fitted to

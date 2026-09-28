@@ -159,12 +159,12 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
 }
 
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
-                 FightAuthority* authority, bool practice)
+                 FightAuthority* authority, const BossOptions& options)
     : boss_key_(std::move(boss_key)),
       boss_(&boss),
       difficulty_index_(difficulty_index),
       authority_(authority),
-      practice_(practice) {
+      options_(options) {
   const BossDifficulty* chosen = difficulty();
   if (chosen == nullptr) {
     state_ = BossRunState::kAborted;
@@ -683,6 +683,9 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
                                              double item_drop_pct) const {
   std::vector<SharedAward> awards;
   for (const MobDrop& drop : difficulty()->drops()) {
+    if (options_.void_drops() && drop.has_equip()) {
+      continue;
+    }
     // Bosses roll each drop once per fight; maps roll once per kill. How drop
     // rate applies depends on the item; see BossDropRate.
     int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct), 1, state.rng);
@@ -699,7 +702,7 @@ void BossRun::PayReward(GameState& state,
   clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
   // A practice run pays nothing: no meso, EXP, honor or drops. The clear time
   // above is still recorded, since beating it is the point.
-  if (practice_) {
+  if (options_.practice()) {
     return;
   }
   // A party splits the meso and nothing else. Every member beat the boss, so

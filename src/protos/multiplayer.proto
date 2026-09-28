@@ -23,12 +23,15 @@ enum PartyMode {
 }
 
 // The options a player has turned on in the boss screen's options row. Every
-// party member must have the same ones, or the leader's start is refused, since
-// a fight can't pay one player and not another.
+// party member must have the same ones, bar `void_drops`, or the leader's start
+// is refused.
 message BossOptions {
   // Practice: the fight ignores the reset timer and uses up no clear, and pays
   // nothing.
   bool practice = 1;
+  // Void drops: this player is dealt no equips. In a party the equips go only
+  // to members who have it off, so it may differ between them.
+  bool void_drops = 2;
 }
 
 // One player as others see them: the character they bring, and the account that

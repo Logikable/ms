@@ -763,7 +763,9 @@ TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
   int64_t exp = state->character.proto().exp();
-  BossRun run("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  BossOptions practice_only;
+  practice_only.set_practice(true);
+  BossRun run("zakum", boss, 0, /*authority=*/nullptr, practice_only);
   RunToEnd(run, *state);
 
   ASSERT_TRUE(run.won());
@@ -779,6 +781,24 @@ TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }
 
+// Void drops keeps a sure equip from dropping and pays everything else.
+TEST(BossRunTest, VoidDropsPaysAllButEquips) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  BossOptions no_equips;
+  no_equips.set_void_drops(true);
+  BossRun run("zakum", boss, 0, /*authority=*/nullptr, no_equips);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_GT(run.reward().meso, 0);
+  EXPECT_GT(run.reward().exp, 0);
+  ASSERT_EQ(run.reward().items.size(), 1);
+  EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
+  EXPECT_TRUE(state->character.HasDefeated("zakum"));
+}
+
 // The first clear records the boss and names the skills it opens; a second
 // opens nothing, and a practice clear records nothing.
 TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
@@ -789,7 +809,9 @@ TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
   state->skills[spider.name()] = spider;
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
 
-  BossRun practice("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  BossOptions practice_only;
+  practice_only.set_practice(true);
+  BossRun practice("zakum", boss, 0, /*authority=*/nullptr, practice_only);
   RunToEnd(practice, *state);
   ASSERT_TRUE(practice.won());
   EXPECT_FALSE(state->character.HasDefeated("zakum"));

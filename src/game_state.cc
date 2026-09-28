@@ -1323,6 +1323,12 @@ void SeedNewCharacter(GameState& state) {
   SeedPlay(state);
 }
 
+BossOptions GameState::FightOptions() const {
+  BossOptions options = boss_options;
+  options.set_void_drops(account.void_boss_drops());
+  return options;
+}
+
 void GameState::MirrorAccount() {
   MirrorAccountOnto(character, inactive_characters, /*theirs=*/-1);
 }

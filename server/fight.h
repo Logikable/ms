@@ -47,6 +47,9 @@ struct FightPlayer {
   int buff_count = 0;
   // Their Item Drop Rate as a fraction. Drops roll against the party's best.
   double item_drop_pct = 0.0;
+  // Whether they turned on Void drops before the fight: no equip is dealt to
+  // them.
+  bool void_drops = false;
   // Their drops. Empty until the fight is won.
   std::vector<FightAward> awards;
   // Damage they dealt since the last broadcast. The server relays these to
@@ -130,8 +133,9 @@ class PartyFight {
   const std::string& boss_key() const {
     return boss_key_;
   }
-  // The options the fight started with. Sent with every state so clients do
-  // not rely on their own settings.
+  // The options the fight started with, less Void drops, which is each
+  // player's own. Sent with every state so clients do not rely on their own
+  // settings.
   const BossOptions& options() const {
     return options_;
   }
@@ -152,8 +156,8 @@ class PartyFight {
   // drops.
   void Finish(PartyFightState outcome);
   // Rolls each drop once for the whole party and gives it to a random player
-  // still present. One shared roll keeps a guaranteed drop guaranteed and a
-  // one-off drop from landing twice.
+  // still present, and an equip to one without Void drops. One shared roll
+  // keeps a guaranteed drop guaranteed and a one-off drop from landing twice.
   void DealDrops();
   // Runs the timer, and moves to the next phase or ends the fight once every
   // mob is dead.

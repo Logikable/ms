@@ -63,7 +63,7 @@ void PartyFightAuthority::Forget() {
   told_ = false;
   boss_key_.clear();
   difficulty_index_ = 0;
-  practice_ = false;
+  options_.Clear();
   fight_id_.clear();
 }
 
@@ -87,7 +87,7 @@ void PartyFightAuthority::TakeState(const FightState& state,
   told_ = true;
   boss_key_ = state.boss_key();
   difficulty_index_ = state.difficulty_index();
-  practice_ = state.options().practice();
+  options_ = state.options();
   fight_.state = StateOf(state.stage());
   fight_.phase = state.phase();
   fight_.seconds_left = state.seconds_left();

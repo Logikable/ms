@@ -46,12 +46,17 @@ constexpr int kPanelRows = kBossPanelHeight - 2;
 // Two borders and the row of switches between them.
 constexpr int kOptionsHeight = 3;
 // The switches on the row, left to right.
-constexpr int kOptionCount = 1;
+constexpr int kOptionCount = 2;
 // One switch: its box, then its name. The box comes first so the row reads as a
 // column of states rather than a sentence.
-ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor) {
+ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor,
+                          bool moot = false) {
   ftxui::Element chip = ftxui::text((on ? kCheckedBox : kUncheckedBox) +
                                     std::string(" ") + label);
+  // Still toggles, but the other switches make it change nothing.
+  if (moot) {
+    chip = std::move(chip) | ftxui::dim;
+  }
   // A switch is a control rather than a row, so it inverts like every other
   // button in the game.
   return on_cursor ? std::move(chip) | ftxui::inverted : chip;
@@ -174,6 +179,10 @@ void BossSelectPanel::Reset() {
 
 bool BossSelectPanel::practice() const {
   return state_.boss_options.practice();
+}
+
+bool BossSelectPanel::void_drops() const {
+  return state_.account.void_boss_drops();
 }
 
 void BossSelectPanel::SwitchPanel(int delta) {
@@ -485,6 +494,10 @@ ftxui::Element BossSelectPanel::RenderOptions() const {
              ftxui::hbox({
                  ftxui::text("  "),
                  OptionChip("Practice", practice(), focused && option_ == 0),
+                 ftxui::text("   "),
+                 // Practice pays nothing, so there is nothing to void.
+                 OptionChip("Void drops", void_drops(), focused && option_ == 1,
+                            /*moot=*/practice()),
              }),
              focused) |
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kOptionsHeight);
@@ -563,10 +576,15 @@ void BossSelectPanel::RenderDropRow(
   // chance stays in the same column as every other value on this panel.
   std::string chance = DropChance(drop.per_kill());
   int width = kDetailWidth - 3 - static_cast<int>(chance.size());
-  rows.push_back({ftxui::text(
+  ftxui::Element row = ftxui::text(
       " " +
       ScrollingWindow(DropName(state_, drop), width, now.time_since_epoch()) +
-      " " + chance + " ")});
+      " " + chance + " ");
+  // Dimmed like a practice card: still worth reading, but not dealt.
+  if (void_drops() && drop.has_equip()) {
+    row = std::move(row) | ftxui::dim;
+  }
+  rows.push_back({std::move(row)});
 }
 
 ftxui::Element BossSelectPanel::Render(
