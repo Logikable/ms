@@ -87,7 +87,7 @@ message CheckpointToken {
   double log_miss = 3;
 }
 
-// Both potentials on one worn piece.
+// Both potentials on one worn piece, and its stars and hammers.
 message CheckpointSlotPotential {
   EquipSlot slot = 1;
   string item = 2;
@@ -96,6 +96,8 @@ message CheckpointSlotPotential {
   Potential bonus = 5;
   // Worn only while farming, under a boss piece of its own.
   bool farm = 6;
+  int32 stars = 7;
+  int32 hammers = 8;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,

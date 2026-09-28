@@ -1107,7 +1107,7 @@ std::vector<int> PotentialLevels() {
   return levels;
 }
 
-// Appends what `item`, worn in `at`, holds on both tracks.
+// Appends what `item`, worn in `at`, holds on both tracks, and its stars.
 void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
                       CheckpointPotentials& now) {
   CheckpointSlotPotential& slot = *now.add_slots();
@@ -1117,10 +1117,12 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   slot.set_item_level(item.prototype().required_level());
   *slot.mutable_main() = item.equip_state().main_potential();
   *slot.mutable_bonus() = item.equip_state().bonus_potential();
+  slot.set_stars(item.stars());
+  slot.set_hammers(item.equip_state().hammers());
 }
 
-// Both potentials on every piece boss fights wear that takes one, then on
-// every farm piece they don't, as they stand now.
+// Both potentials and the stars on every piece boss fights wear that takes a
+// cube or a star, then on every farm piece they don't, as they stand now.
 CheckpointPotentials PotentialsNow(const GameState& state, int level,
                                    double seconds) {
   CheckpointPotentials now;
@@ -1130,7 +1132,7 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
     const bool farm = gear == kFarmGear;
     for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
          state.character.equipped(gear)) {
-      if (!entry.second->CanCube() ||
+      if ((!entry.second->CanCube() && entry.second->max_stars() == 0) ||
           (farm &&
            state.character.WornAt(kBossGear, entry.first) == entry.second)) {
         continue;
@@ -3256,6 +3258,19 @@ std::string RankCounts(const std::vector<PotentialRank>& ranks) {
   return absl::StrJoin(parts, " ");
 }
 
+// How many branches hold each count, highest first: "17x3 15x7".
+std::string CountsOf(const std::vector<int>& values) {
+  std::map<int, int, std::greater<int>> counts;
+  for (int value : values) {
+    ++counts[value];
+  }
+  std::vector<std::string> parts;
+  for (const std::pair<const int, int>& entry : counts) {
+    parts.push_back(absl::StrCat(entry.first, "x", entry.second));
+  }
+  return absl::StrJoin(parts, " ");
+}
+
 // The recorded potentials at `level` (or the run's end, with level 0), or null
 // if the climb never got there.
 const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
@@ -3267,8 +3282,9 @@ const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
   return nullptr;
 }
 
-// Main and bonus ranks on every slot at each --potential_levels level, counted
-// across branches. The lines themselves go to --potential_dump.
+// Main and bonus ranks, stars and hammers on every slot at each
+// --potential_levels level, counted across branches. The lines themselves go
+// to --potential_dump.
 void PrintPotentialLevels(const std::vector<Job>& branches,
                           const std::vector<Climb>& climbs) {
   std::vector<int> levels = PotentialLevels();
@@ -3276,6 +3292,8 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
   for (int level : levels) {
     std::map<EquipSlot, std::vector<PotentialRank>> main;
     std::map<EquipSlot, std::vector<PotentialRank>> bonus;
+    std::map<EquipSlot, std::vector<int>> stars;
+    std::map<EquipSlot, std::vector<int>> hammers;
     int reached = 0;
     for (const Climb& climb : climbs) {
       const CheckpointPotentials* held = PotentialsAt(climb, level);
@@ -3289,6 +3307,8 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
         }
         main[slot.slot()].push_back(slot.main().rank());
         bonus[slot.slot()].push_back(slot.bonus().rank());
+        stars[slot.slot()].push_back(slot.stars());
+        hammers[slot.slot()].push_back(slot.hammers());
       }
     }
     std::printf("\nPotentials %s, %d of %zu branches:\n\n",
@@ -3298,20 +3318,24 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     if (reached == 0) {
       continue;
     }
-    std::printf("  %-18s %-24s %s\n", "slot", "main", "bonus");
+    std::printf("  %-18s %-16s %-16s %-28s %s\n", "slot", "main", "bonus",
+                "stars", "hammers");
     for (const std::pair<const EquipSlot, std::vector<PotentialRank>>& entry :
          main) {
       std::printf(
-          "  %-18s %-24s %s\n",
+          "  %-18s %-16s %-16s %-28s %s\n",
           WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
           RankCounts(entry.second).c_str(),
-          RankCounts(bonus[entry.first]).c_str());
+          RankCounts(bonus[entry.first]).c_str(),
+          CountsOf(stars[entry.first]).c_str(),
+          CountsOf(hammers[entry.first]).c_str());
     }
   }
 }
 
 // One line per potential recorded, tab-separated: branch, level ("end" for the
-// run's end), days, slot, item, item level, track, rank and lines.
+// run's end), days, slot, item, item level, stars, hammers, track, rank and
+// lines.
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
                     const std::vector<Climb>& climbs) {
   std::ofstream out(path);
@@ -3334,6 +3358,7 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
               << (slot.farm() ? "FARM_" : "")
               << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_")
               << '\t' << slot.item() << '\t' << slot.item_level() << '\t'
+              << slot.stars() << '\t' << slot.hammers() << '\t'
               << (potential == &slot.main() ? "main" : "bonus") << '\t'
               << RankLetter(potential->rank()) << '\t'
               << absl::StrJoin(lines, ", ") << '\n';
