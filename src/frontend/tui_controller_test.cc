@@ -4282,8 +4282,10 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EnterFight();
   controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
   ASSERT_NE(controller_->boss_run(), nullptr) << "the closing beat is running";
+  EXPECT_TRUE(controller_->boss_fight_running());
   controller_->AdvanceBossRun(kBossEndHoldSeconds);
   EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_FALSE(controller_->boss_fight_running()) << "the map farms again";
   // Held until the notice is dismissed, so the arena stands behind it, and
   // the clock is stopped: a fight already lost cannot be lost again.
   EXPECT_NE(controller_->boss_run(), nullptr);
@@ -4301,10 +4303,14 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EXPECT_FALSE(controller_->in_boss_fight());
 }
 
+// The map farms again behind the clear card, while the run stays for its arena.
 TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
   EnterFight();
+  EXPECT_TRUE(controller_->boss_fight_running());
   RunFightToEnd();
   EXPECT_EQ(controller_->screen(), kBossClear);
+  EXPECT_TRUE(controller_->in_boss_fight());
+  EXPECT_FALSE(controller_->boss_fight_running());
   EXPECT_GT(state_->character.BossClearedAt("zakum", "Normal"), 0);
 }
 
