@@ -21,11 +21,11 @@ package(default_visibility = ["//visibility:public"])
 # but a real one, because pkg_zip otherwise stamps everything 1980-01-01, which
 # reads as a corrupt download rather than a deliberate default.
 #
-# 2026-09-27 12:00 UTC, the day this build went out. Noon on purpose: a zip's
+# 2026-09-28 12:00 UTC, the day this build went out. Noon on purpose: a zip's
 # timestamp carries no timezone, so whatever a viewer does with it, midday
 # cannot slide onto the day before or after. Move it when the date shown to a
 # player would otherwise be misleading.
-_RELEASE_TIMESTAMP = 1790510400
+_RELEASE_TIMESTAMP = 1790596800
 
 platform(
     name = "linux_x86_64",
