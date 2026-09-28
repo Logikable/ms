@@ -1,0 +1,56 @@
+name: "Lucid"
+difficulties {
+  name: "Normal"
+  phases {
+    bgm: "WierldForestIntheGirlsdream"
+    spawns {
+      mob: "lucid_phase_1"
+      spots { x: 4 y: 2 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "BrokenDream"
+    spawns {
+      mob: "lucid_phase_2"
+      spots { x: 4 y: 2 }
+      # Twice Chaos Papulatus's pace: she flits about the clocktower.
+      walk { interval_ms: 250 range: RANGE_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 230
+  arcane_force: 360
+  # Five Intense Power Crystals at GMS's price (50,765,625), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 36250000
+  # GMS lists no EXP on either body.
+  exp: 0
+  drops {
+    item: "phantasma_coin"
+    per_kill: 1.0
+  }
+  drops {
+    item: "lucids_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds; the Guardian Angel Ring's.
+  drops {
+    equip: "twilight_mark"
+    per_kill: 0.5
+  }
+}

@@ -1,0 +1,5 @@
+name: "Phantasma Coin"
+kind: ITEM_KIND_TOKEN
+description: "Exchange these Phantasma coins for official Arcane Umbra equipment."
+currency_mark: "◆"
+currency_color: CURRENCY_COLOR_PINK

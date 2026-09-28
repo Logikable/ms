@@ -1,0 +1,5 @@
+name: "Aracho Coin"
+kind: ITEM_KIND_TOKEN
+description: "A coin spun from the webs of the Mirror World."
+currency_mark: "◆"
+currency_color: CURRENCY_COLOR_PURPLE

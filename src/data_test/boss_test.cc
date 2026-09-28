@@ -179,12 +179,13 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
     }
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
-  // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights and the
-  // Guardian Angel Slime, which are the same case and are fought for their
-  // drops.
-  EXPECT_EQ(unpaid, std::vector<std::string>(
-                        {"crimson_queen", "guardian_angel_slime", "lotus",
-                         "lotus", "pierre", "vellum", "von_bon", "zakum"}));
+  // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights, the
+  // Guardian Angel Slime, Lucid and Will, which are the same case and are
+  // fought for their drops.
+  EXPECT_EQ(unpaid,
+            std::vector<std::string>({"crimson_queen", "guardian_angel_slime",
+                                      "lotus", "lotus", "lucid", "pierre",
+                                      "vellum", "von_bon", "will", "zakum"}));
 }
 
 // A shell (Chaos Guardian Angel Slime) can't be entered, so a timer, gate or
@@ -316,8 +317,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
-  EXPECT_EQ(fights, 23) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "Guardian Angel Slime, the four of Root Abyss, and "
+  EXPECT_EQ(fights, 25) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "Guardian Angel Slime, Lucid, Will, the four of "
+                           "Root Abyss, and "
                            "both difficulties of Zakum, Magnus, Pink Bean, "
                            "Hilla, Horntail, Lotus and Damien";
 }

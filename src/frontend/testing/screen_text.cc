@@ -97,8 +97,9 @@ std::vector<std::string> RowsTouchingTheRightBorder(ftxui::Element element) {
   for (int y = 1; y + 1 < height; ++y) {
     std::string row = ScreenRow(screen, y);
     std::string margin = ScreenRow(screen, y, width - 2, width - 1);
+    // A scroll bar's thumb can end halfway through a cell, as ╹ or ╻.
     if (margin != " " && margin != "\u2500" && margin != "\u2503" &&
-        margin != "\u2502") {
+        margin != "\u2502" && margin != "\u2579" && margin != "\u257b") {
       touching.push_back(row);
     }
   }

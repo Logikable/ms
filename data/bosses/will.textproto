@@ -1,0 +1,71 @@
+name: "Will"
+difficulties {
+  # GMS's own level (250) is kept, twenty over the gate.
+  name: "Normal"
+  phases {
+    bgm: "Diffraction"
+    spawns {
+      mob: "will_phase_1"
+      spots { x: 4 y: 3 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "MirrorCage"
+    spawns {
+      mob: "will_phase_2"
+      spots { x: 4 y: 3 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "BloodCage"
+    spawns {
+      mob: "will_phase_3"
+      spots { x: 4 y: 2 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 230
+  arcane_force: 760
+  # Five Intense Power Crystals at GMS's price (55,815,000), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 39850000
+  # GMS lists no EXP on any of the three bodies.
+  exp: 0
+  drops {
+    item: "aracho_coin"
+    per_kill: 1.0
+  }
+  drops {
+    item: "wills_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds; the Guardian Angel Ring's.
+  drops {
+    equip: "twilight_mark"
+    per_kill: 0.5
+  }
+}

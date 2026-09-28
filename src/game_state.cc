@@ -478,6 +478,10 @@ constexpr int kAbsoLabLevel = 210;
 // gives one out until 220.
 constexpr int kGuardianAngelSlimeLevel = 220;
 
+// The level Lucid and Will open at, both of whom drop the Twilight Mark, worn
+// from 140.
+constexpr int kLucidAndWillLevel = 230;
+
 // The AbsoLab weapon for a 4th job, following the same line choice as the two
 // tiers below. Empty below the 4th job, which only reaches level 210 if a
 // tester sets it by hand.
@@ -751,6 +755,9 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
       MakeRoomFor(state, ring->second);
       WearAll(state, {"guardian_angel_ring"}, equips);
     }
+  }
+  if (state.character.proto().level() >= kLucidAndWillLevel) {
+    WearAll(state, {"twilight_mark"}, equips);
   }
   WearStarterSymbol(state);
 }
@@ -1310,10 +1317,13 @@ int OwnedFromLevel(const EquipPrototype& proto) {
       proto.token_item() == "captivating_fragment") {
     return kRootAbyssLevel;
   }
-  // The one piece of gear a fight drops directly instead of through a token,
-  // and the only one whose fight opens above the level it's worn at.
+  // Gear a fight drops directly instead of through a token, from a fight that
+  // opens above the level it's worn at.
   if (proto.name() == "Guardian Angel Ring") {
     return kGuardianAngelSlimeLevel;
+  }
+  if (proto.name() == "Twilight Mark") {
+    return kLucidAndWillLevel;
   }
   return proto.required_level();
 }

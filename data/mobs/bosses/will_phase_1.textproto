@@ -1,0 +1,9 @@
+# GMS splits this across two dimensions, 4.2T each; here it is one bar.
+# GMS names all three "Will"; the bar says which phase it is.
+name: "Will"
+level: 250
+attack: 22000
+max_hp: 8400000000000
+exp: 0
+pdr: 300
+boss: true
