@@ -1,0 +1,24 @@
+name: "Arcane Umbra Guards"
+required_level: 200
+base_stats {
+  dex: 100
+  luk: 100
+  attack: 149
+  boss_damage: 30
+  ignore_enemy_defense: 20
+}
+attack_speed: ATTACK_SPEED_FAST_2
+equip_type: EQUIP_TYPE_CLAW
+upgrade_slots: 8
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+# Either coin buys it.
+token_prices {
+  token_item: "phantasma_coin"
+  count: 24
+}
+token_prices {
+  token_item: "arachno_coin"
+  count: 24
+}
+set_family: "Arcane Umbra Thief Weapon"

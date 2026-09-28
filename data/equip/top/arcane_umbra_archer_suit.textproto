@@ -1,0 +1,19 @@
+# GMS has the top and bottom as one overall; they are split here into two slots
+# whose stats add up to the overall's. The overall's ignored defence goes on the
+# top whole, since two shares of it would multiply to less.
+name: "Arcane Umbra Archer Suit"
+required_level: 200
+base_stats {
+  str: 45
+  dex: 45
+  attack: 5
+  def: 300
+  ignore_enemy_defense: 10
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_TOP
+upgrade_slots: 7
+token_prices {
+  token_item: "arachno_coin"
+  count: 12
+}

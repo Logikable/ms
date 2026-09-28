@@ -1,0 +1,16 @@
+name: "Arcane Umbra Archer Hat"
+required_level: 200
+base_stats {
+  str: 65
+  dex: 65
+  attack: 7
+  def: 600
+  ignore_enemy_defense: 15
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+token_prices {
+  token_item: "arachno_coin"
+  count: 12
+}

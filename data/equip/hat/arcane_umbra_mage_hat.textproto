@@ -1,0 +1,16 @@
+name: "Arcane Umbra Mage Hat"
+required_level: 200
+base_stats {
+  int: 65
+  luk: 65
+  magic_attack: 7
+  def: 600
+  ignore_enemy_defense: 15
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+token_prices {
+  token_item: "arachno_coin"
+  count: 12
+}

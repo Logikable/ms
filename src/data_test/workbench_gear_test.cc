@@ -49,11 +49,12 @@ std::vector<JobAdvancement> EveryAdvancement() {
   return all;
 }
 
-// The level where the two token tiers can first be owned. That is where the
+// The level where the three token tiers can first be owned. That is where the
 // bosses that pay for them open, not where the gear can be worn; see
 // OwnedFromLevel in game_state.h.
 constexpr int kRootAbyssOpens = 200;
 constexpr int kAbsoLabOpens = 210;
+constexpr int kArcaneUmbraOpens = 230;
 
 // Every piece of the set has "Frozen" in its name, as the player sees. The
 // armour has no set_family; only the two pieces the token shelf sells do, where
@@ -179,7 +180,7 @@ void ExpectOffHand(const CharacterInstance& character,
 
 // The Frozen set drops and isn't sold, so the workbench is where it's seen. A
 // 3rd job at 100 wears the four pieces in range; a 4th at 200 keeps three; a
-// 5th at the cap wears AbsoLab instead.
+// 5th at the cap wears Arcane Umbra instead.
 void ExpectFrozenSet(const CharacterInstance& character,
                      JobAdvancement advancement) {
   int frozen = 0;
@@ -192,8 +193,8 @@ void ExpectFrozenSet(const CharacterInstance& character,
 }
 
 // Each token tier waits for its fight: Chaos Root Abyss at 200, Damien and
-// Lotus at 210. So a 5th job at the cap wears AbsoLab, a 4th at 200 Root Abyss,
-// and a 3rd neither.
+// Lotus at 210, Lucid and Will at 230. So a 5th job at the cap wears Arcane
+// Umbra, a 4th at 200 Root Abyss, and a 3rd none of them.
 void ExpectTokenTier(const CharacterInstance& character,
                      JobAdvancement advancement) {
   if (StageForAdvancement(advancement) < 3) {
@@ -208,7 +209,9 @@ void ExpectTokenTier(const CharacterInstance& character,
         << EquipSlot_Name(slot) << " is empty";
     int tier = worn->second->prototype().required_level();
     SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second->name()));
-    if (level >= kAbsoLabOpens) {
+    if (level >= kArcaneUmbraOpens) {
+      EXPECT_EQ(tier, 200);
+    } else if (level >= kAbsoLabOpens) {
       EXPECT_EQ(tier, 160);
     } else if (level >= kRootAbyssOpens) {
       EXPECT_EQ(tier, 150);

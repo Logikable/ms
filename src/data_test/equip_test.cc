@@ -301,7 +301,7 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   }
 }
 
-// Every weapon type whose meso ladder reaches the top has all three token tiers
+// Every weapon type whose meso ladder reaches the top has all four token tiers
 // above it. The one-handed sword is excluded: nobody uses one past 2nd job.
 TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
   // Level -> type -> the one weapon of that type a token buys at that level.
@@ -320,14 +320,14 @@ TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
         << " at level " << proto.required_level();
     tier[proto.equip_type()] = entry.first;
   }
-  // Frozen, then Root Abyss, then AbsoLab.
-  const int kTokenTiers[] = {120, 150, 160};
+  // Frozen, then Root Abyss, then AbsoLab, then Arcane Umbra.
+  const int kTokenTiers[] = {120, 150, 160, 200};
   for (int level : kTokenTiers) {
     ASSERT_GT(token_tiers.count(level), 0u)
         << "no token weapons at level " << level;
   }
   EXPECT_EQ(token_tiers.size(), std::size(kTokenTiers))
-      << "a token weapon sits outside the three tiers";
+      << "a token weapon sits outside the four tiers";
   for (const std::pair<const EquipType, std::vector<int>>& ladder :
        WeaponLadders()) {
     if (ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD) {
@@ -403,13 +403,9 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
 TEST(EquipDataTest, EveryTokenBuysSomething) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   FillTokenShelves(LoadEquips(), items);
-  // Lucid's and Will's coins, dropped ahead of the Arcane Umbra gear they are
-  // for. Until it is built they sort last.
-  const std::set<std::string> kShopToCome = {"arachno_coin", "phantasma_coin"};
   int tokens = 0;
   for (const std::pair<const std::string, ItemPrototype>& entry : items) {
-    if (entry.second.kind() == ITEM_KIND_TOKEN &&
-        kShopToCome.count(entry.first) == 0) {
+    if (entry.second.kind() == ITEM_KIND_TOKEN) {
       ++tokens;
       EXPECT_GT(entry.second.currency_level(), 0)
           << entry.first << " is a token nothing in the catalog is sold for";
@@ -418,13 +414,15 @@ TEST(EquipDataTest, EveryTokenBuysSomething) {
   EXPECT_GT(tokens, 0);
 }
 
-// Cygnus's token buys four shoulders, one per branch, and AbsoLab's coin buys
-// the tier above the same way. A missing branch gets nothing from the clear.
+// Cygnus's token buys four shoulders, one per branch, and AbsoLab's and Will's
+// coins buy the tiers above the same way. A missing branch gets nothing from
+// the clear.
 TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
   // The level each token's shoulder is worn at. This also confirms which tiers
-  // exist, so a third one can't appear unnoticed.
+  // exist, so a new one can't appear unnoticed.
   const std::map<std::string, int> kTiers = {{"cygnus_shoulder_token", 140},
-                                             {"absolab_coin", 160}};
+                                             {"absolab_coin", 160},
+                                             {"arachno_coin", 200}};
   // Token -> branch -> the one shoulder for that branch it buys.
   std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -837,60 +835,86 @@ TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
   EXPECT_EQ(seen, kBranches) << "a branch has no Root Abyss set";
 }
 
-// AbsoLab's totals are GMS's own, but GMS's set covers seven slots where this
-// covers eight (Armor and Pants are one overall there), so the tiers are spread
-// differently.
-TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
-  const std::set<EquipSetName> kBranches = {
-      EQUIP_SET_NAME_ABSOLAB_WARRIOR, EQUIP_SET_NAME_ABSOLAB_BOWMAN,
-      EQUIP_SET_NAME_ABSOLAB_MAGICIAN, EQUIP_SET_NAME_ABSOLAB_THIEF};
-  std::set<EquipSetName> seen;
-  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
-    const EquipSet& set = entry.second;
-    if (kBranches.count(set.name()) == 0) {
-      continue;
+// AbsoLab's and Arcane Umbra's totals are GMS's own, but GMS's sets cover
+// seven slots where these cover eight (the top and bottom are one overall
+// there), so the tiers are spread differently.
+TEST(EquipDataTest, EveryEightPieceSetAddsUpToGmsTotals) {
+  struct Totals {
+    std::set<EquipSetName> branches;
+    int stat;
+    int attack;
+    int def;
+    int pool;
+    double pool_pct;
+  };
+  const Totals kTiers[] = {
+      {{EQUIP_SET_NAME_ABSOLAB_WARRIOR, EQUIP_SET_NAME_ABSOLAB_BOWMAN,
+        EQUIP_SET_NAME_ABSOLAB_MAGICIAN, EQUIP_SET_NAME_ABSOLAB_THIEF},
+       30,
+       135,
+       200,
+       1500,
+       0.20},
+      {{EQUIP_SET_NAME_ARCANE_UMBRA_WARRIOR, EQUIP_SET_NAME_ARCANE_UMBRA_BOWMAN,
+        EQUIP_SET_NAME_ARCANE_UMBRA_MAGICIAN,
+        EQUIP_SET_NAME_ARCANE_UMBRA_THIEF},
+       50,
+       195,
+       400,
+       2000,
+       0.30},
+  };
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const Totals& totals : kTiers) {
+    std::set<EquipSetName> seen;
+    for (const std::pair<const std::string, EquipSet>& entry : sets) {
+      const EquipSet& set = entry.second;
+      if (totals.branches.count(set.name()) == 0) {
+        continue;
+      }
+      seen.insert(set.name());
+      ASSERT_EQ(set.complete_pieces(), 8) << entry.first;
+      ASSERT_EQ(set.members_size(), 8) << entry.first;
+      ASSERT_EQ(set.tiers_size(), 7) << entry.first;
+      int stat = 0;
+      int attack = 0;
+      int def = 0;
+      int pool = 0;
+      double pool_pct = 0.0;
+      double boss = 0.0;
+      // Ignored defence is the one bonus a set gives twice, and two shares of
+      // it multiply instead of adding, as the character's own does.
+      double ied = 0.0;
+      for (int i = 0; i < set.tiers_size(); ++i) {
+        const SkillEffect& effect = set.tiers(i).effect();
+        EXPECT_EQ(set.tiers(i).pieces(), i + 2) << entry.first;
+        stat += effect.str();
+        attack += effect.attack();
+        def += effect.def();
+        pool += effect.max_hp();
+        pool_pct += effect.max_hp_pct();
+        boss += effect.boss_pct();
+        ied = CombineIgnoredDefense(ied, effect.ied_pct());
+        // All four stats rise together, magic attack matches attack, and MP
+        // matches HP.
+        EXPECT_EQ(effect.dex(), effect.str()) << entry.first;
+        EXPECT_EQ(effect.int_(), effect.str()) << entry.first;
+        EXPECT_EQ(effect.luk(), effect.str()) << entry.first;
+        EXPECT_EQ(effect.magic_attack(), effect.attack()) << entry.first;
+        EXPECT_EQ(effect.max_mp(), effect.max_hp()) << entry.first;
+        EXPECT_DOUBLE_EQ(effect.max_mp_pct(), effect.max_hp_pct())
+            << entry.first;
+      }
+      EXPECT_EQ(stat, totals.stat) << entry.first;
+      EXPECT_EQ(attack, totals.attack) << entry.first;
+      EXPECT_EQ(def, totals.def) << entry.first;
+      EXPECT_EQ(pool, totals.pool) << entry.first;
+      EXPECT_DOUBLE_EQ(pool_pct, totals.pool_pct) << entry.first;
+      EXPECT_DOUBLE_EQ(boss, 0.30) << entry.first;
+      EXPECT_DOUBLE_EQ(ied, 0.19) << entry.first;
     }
-    seen.insert(set.name());
-    ASSERT_EQ(set.complete_pieces(), 8) << entry.first;
-    ASSERT_EQ(set.members_size(), 8) << entry.first;
-    ASSERT_EQ(set.tiers_size(), 7) << entry.first;
-    int stat = 0;
-    int attack = 0;
-    int def = 0;
-    int pool = 0;
-    double pool_pct = 0.0;
-    double boss = 0.0;
-    // Ignored defence is the one bonus a set gives twice, and two shares of it
-    // multiply instead of adding, as the character's own does.
-    double ied = 0.0;
-    for (int i = 0; i < set.tiers_size(); ++i) {
-      const SkillEffect& effect = set.tiers(i).effect();
-      EXPECT_EQ(set.tiers(i).pieces(), i + 2) << entry.first;
-      stat += effect.str();
-      attack += effect.attack();
-      def += effect.def();
-      pool += effect.max_hp();
-      pool_pct += effect.max_hp_pct();
-      boss += effect.boss_pct();
-      ied = CombineIgnoredDefense(ied, effect.ied_pct());
-      // All four stats rise together, magic attack matches attack, and MP
-      // matches HP.
-      EXPECT_EQ(effect.dex(), effect.str()) << entry.first;
-      EXPECT_EQ(effect.int_(), effect.str()) << entry.first;
-      EXPECT_EQ(effect.luk(), effect.str()) << entry.first;
-      EXPECT_EQ(effect.magic_attack(), effect.attack()) << entry.first;
-      EXPECT_EQ(effect.max_mp(), effect.max_hp()) << entry.first;
-      EXPECT_DOUBLE_EQ(effect.max_mp_pct(), effect.max_hp_pct()) << entry.first;
-    }
-    EXPECT_EQ(stat, 30) << entry.first;
-    EXPECT_EQ(attack, 135) << entry.first;
-    EXPECT_EQ(def, 200) << entry.first;
-    EXPECT_EQ(pool, 1500) << entry.first;
-    EXPECT_DOUBLE_EQ(pool_pct, 0.20) << entry.first;
-    EXPECT_DOUBLE_EQ(boss, 0.30) << entry.first;
-    EXPECT_DOUBLE_EQ(ied, 0.19) << entry.first;
+    EXPECT_EQ(seen, totals.branches) << "a branch has no set";
   }
-  EXPECT_EQ(seen, kBranches) << "a branch has no AbsoLab set";
 }
 
 // The bonuses the inspect screen's set card shows a row for. A tier granting

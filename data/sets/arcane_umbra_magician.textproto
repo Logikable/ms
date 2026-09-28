@@ -1,0 +1,99 @@
+name: EQUIP_SET_NAME_ARCANE_UMBRA_MAGICIAN
+# GMS's set has seven slots, since Suit and Pants are one overall there; the
+# tiers here are spread over eight and add up to the same totals.
+complete_pieces: 8
+members {
+  slot: EQUIP_SLOT_HAT
+  items { name: "Arcane Umbra Mage Hat" }
+}
+members {
+  slot: EQUIP_SLOT_TOP
+  items { name: "Arcane Umbra Mage Suit" }
+}
+members {
+  slot: EQUIP_SLOT_BOTTOM
+  items { name: "Arcane Umbra Mage Pants" }
+}
+members {
+  slot: EQUIP_SLOT_SHOES
+  items { name: "Arcane Umbra Mage Shoes" }
+}
+members {
+  slot: EQUIP_SLOT_GLOVES
+  items { name: "Arcane Umbra Mage Gloves" }
+}
+members {
+  slot: EQUIP_SLOT_CAPE
+  items { name: "Arcane Umbra Mage Cape" }
+}
+members {
+  slot: EQUIP_SLOT_SHOULDER
+  items { name: "Arcane Umbra Mage Shoulder" }
+}
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "Arcane Umbra Magician Weapon"
+}
+tiers {
+  pieces: 2
+  effect {
+    attack: 20
+    magic_attack: 20
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    attack: 25
+    magic_attack: 25
+    def: 400
+    ied_pct: 0.10
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    attack: 30
+    magic_attack: 30
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 50
+    dex: 50
+    int: 50
+    luk: 50
+    max_hp: 2000
+    max_mp: 2000
+    attack: 30
+    magic_attack: 30
+  }
+}
+tiers {
+  pieces: 6
+  effect {
+    attack: 30
+    magic_attack: 30
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    max_hp_pct: 0.30
+    max_mp_pct: 0.30
+    attack: 30
+    magic_attack: 30
+  }
+}
+tiers {
+  pieces: 8
+  effect {
+    attack: 30
+    magic_attack: 30
+    ied_pct: 0.10
+  }
+}

@@ -24,6 +24,11 @@ enum EquipSetName {
   EQUIP_SET_NAME_ABSOLAB_MAGICIAN = 10;
   EQUIP_SET_NAME_ABSOLAB_THIEF = 11;
   EQUIP_SET_NAME_DAWN_BOSS = 12;
+  // One per branch, for the same reason as Root Abyss.
+  EQUIP_SET_NAME_ARCANE_UMBRA_WARRIOR = 13;
+  EQUIP_SET_NAME_ARCANE_UMBRA_BOWMAN = 14;
+  EQUIP_SET_NAME_ARCANE_UMBRA_MAGICIAN = 15;
+  EQUIP_SET_NAME_ARCANE_UMBRA_THIEF = 16;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect

@@ -480,7 +480,7 @@ constexpr int kAbsoLabLevel = 210;
 constexpr int kGuardianAngelSlimeLevel = 220;
 
 // The level Lucid and Will open at, both of whom drop the Twilight Mark, worn
-// from 140.
+// from 140, and the coins for Arcane Umbra, worn from 200.
 constexpr int kLucidAndWillLevel = 230;
 
 // The AbsoLab weapon for a 4th job, following the same line choice as the two
@@ -545,6 +545,63 @@ std::vector<std::string> AbsoLabArmour(Job job) {
 std::vector<std::string> AbsoLabGear(Job job) {
   std::vector<std::string> names = AbsoLabArmour(job);
   std::string weapon = AbsoLabWeapon(job);
+  if (!weapon.empty()) {
+    names.push_back(std::move(weapon));
+  }
+  return names;
+}
+
+// The Arcane Umbra weapon for a 4th job, on the same line choice as AbsoLab's.
+std::string ArcaneUmbraWeapon(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return "arcane_umbra_two_handed_axe";
+    case JOB_PALADIN:
+      return "arcane_umbra_two_handed_hammer";
+    case JOB_DARK_KNIGHT:
+      return "arcane_umbra_spear";
+    case JOB_BOW_MASTER:
+      return "arcane_umbra_bow";
+    case JOB_MARKSMAN:
+      return "arcane_umbra_crossbow";
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
+      return "arcane_umbra_staff";
+    case JOB_NIGHT_LORD:
+      return "arcane_umbra_guards";
+    case JOB_SHADOWER:
+      return "arcane_umbra_dagger";
+    default:
+      return "";
+  }
+}
+
+// The branch's whole Arcane Umbra set, replacing AbsoLab piece for piece.
+std::vector<std::string> ArcaneUmbraGear(Job job) {
+  std::string branch;
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      branch = "knight";
+      break;
+    case JobBranch::kArcher:
+      branch = "archer";
+      break;
+    case JobBranch::kMagician:
+      branch = "mage";
+      break;
+    case JobBranch::kRogue:
+      branch = "thief";
+      break;
+    default:
+      return {};
+  }
+  std::vector<std::string> names;
+  for (const char* piece :
+       {"hat", "suit", "pants", "shoes", "gloves", "cape", "shoulder"}) {
+    names.push_back("arcane_umbra_" + branch + "_" + piece);
+  }
+  std::string weapon = ArcaneUmbraWeapon(job);
   if (!weapon.empty()) {
     names.push_back(std::move(weapon));
   }
@@ -758,6 +815,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     }
   }
   if (state.character.proto().level() >= kLucidAndWillLevel) {
+    WearAll(state, ArcaneUmbraGear(state.character.proto().job()), equips);
     WearAll(state, {"twilight_mark"}, equips);
   }
   // It wears what those fights drop, so it has beaten them, and holds whatever

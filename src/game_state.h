@@ -239,8 +239,9 @@ void GrantLevelRewards(GameState& state, int from_level, int to_level);
 // The earliest level at which a piece of gear can be owned, which isn't always
 // the level it can be worn at: token-bought gear waits for the fight that pays
 // for it. Root Abyss gear is worn at 150 and paid for by bosses opening at 200;
-// AbsoLab is worn at 160 and paid for by bosses opening at 210. Everything else
-// can be owned as soon as it can be worn.
+// AbsoLab is worn at 160 and paid for by bosses opening at 210; Arcane Umbra is
+// worn at 200 and paid for at 230. Everything else can be owned as soon as it
+// can be worn.
 int OwnedFromLevel(const EquipPrototype& proto);
 
 }  // namespace ms
