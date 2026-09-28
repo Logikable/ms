@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdint>
 #include <ctime>
+#include <limits>
 #include <map>
 #include <memory>
 #include <random>
@@ -1315,17 +1316,37 @@ void GrantLevelRewards(GameState& state, int from_level, int to_level) {
   state.character.PickUp(std::make_unique<EquipInstance>(symbol->second));
 }
 
-int OwnedFromLevel(const EquipPrototype& proto) {
-  if (proto.token_item() == "absolab_coin") {
+namespace {
+
+// The level the fight paying `token` opens at, or 0 when it opens below any
+// gear the token buys.
+int TokenLevel(const std::string& token) {
+  if (token == "absolab_coin") {
     return kAbsoLabLevel;
+  }
+  if (token == "phantasma_coin" || token == "arachno_coin") {
+    return kLucidAndWillLevel;
   }
   // The four Chaos Root Abyss Pieces, the only tokens named this way, and
   // Princess No's fragment, from a fight opening at the same level. The Frozen
   // and Cygnus tokens come from fights open well below the gear they buy, so
   // they gate nothing.
-  if (proto.token_item().rfind("piece_of_", 0) == 0 ||
-      proto.token_item() == "captivating_fragment") {
+  if (token.rfind("piece_of_", 0) == 0 || token == "captivating_fragment") {
     return kRootAbyssLevel;
+  }
+  return 0;
+}
+
+}  // namespace
+
+int OwnedFromLevel(const EquipPrototype& proto) {
+  // Any one token buys it, so the first of them to drop is what counts.
+  if (!proto.token_prices().empty()) {
+    int level = std::numeric_limits<int>::max();
+    for (const TokenPrice& price : proto.token_prices()) {
+      level = std::min(level, TokenLevel(price.token_item()));
+    }
+    return std::max(level, proto.required_level());
   }
   // Gear a fight drops directly instead of through a token, from a fight that
   // opens above the level it's worn at.

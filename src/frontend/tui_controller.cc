@@ -3604,7 +3604,8 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
       const ItemPrototype* token = shop_panel_.selected_token();
       int64_t balance = token == nullptr ? state_.character.meso()
                                          : state_.character.CountItem(*token);
-      int price = token == nullptr ? item->shop_price() : item->token_price();
+      int price = token == nullptr ? item->shop_price()
+                                   : shop_panel_.selected_price()->count();
       buy_panel_.Reset(item->name(), price, balance,
                        state_.character.RoomFor(*item),
                        state_.character.CountOwned(*item), token);
@@ -3672,7 +3673,9 @@ void TuiController::BuyWhatTheDialogAgreedTo() {
   const ItemPrototype* token = shop_panel_.selected_token();
   if (item != nullptr && item->name() == buy_item_) {
     if (token != nullptr) {
-      state_.character.BuyWithToken(*item, *token, buy_panel_.quantity());
+      state_.character.BuyWithToken(*item,
+                                    shop_panel_.selected_price()->token_item(),
+                                    *token, buy_panel_.quantity());
     } else {
       state_.character.Buy(*item, buy_panel_.quantity());
     }

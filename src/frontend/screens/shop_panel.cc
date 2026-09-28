@@ -179,7 +179,9 @@ void ShopPanel::Restock() {
     return;
   }
   if (tab_ == kShopEtcTab) {
-    stock_ = ShopEtcStock(items_);
+    for (const std::string& key : ShopEtcStock(items_)) {
+      stock_.push_back({key});
+    }
     return;
   }
   Payment payment = pay_ == kShopTokenTab ? kPaidInTokens : kPaidInMeso;
@@ -187,8 +189,16 @@ void ShopPanel::Restock() {
                                        ? ShopEquipStock(equips_, payment)
                                        : ShopWeaponStock(equips_, payment);
   for (const std::string& key : shelf) {
-    if (character_.MeetsJob(equips_.at(key))) {
-      stock_.push_back(key);
+    const EquipPrototype& proto = equips_.at(key);
+    if (!character_.MeetsJob(proto)) {
+      continue;
+    }
+    if (payment == kPaidInMeso) {
+      stock_.push_back({key});
+      continue;
+    }
+    for (const TokenPrice& price : proto.token_prices()) {
+      stock_.push_back({key, &price});
     }
   }
 }
@@ -313,12 +323,12 @@ const BuyBackEntry* ShopPanel::selected_buy_back() const {
   return &character_.buy_backs().Get(selected_);
 }
 
-const ItemPrototype* ShopPanel::RowToken(const EquipPrototype& proto) const {
-  if (proto.token_item().empty()) {
+const ItemPrototype* ShopPanel::RowToken(const StockRow& row) const {
+  if (row.price == nullptr) {
     return nullptr;
   }
   std::map<std::string, ItemPrototype>::const_iterator it =
-      items_.find(proto.token_item());
+      items_.find(row.price->token_item());
   return it == items_.end() ? nullptr : &it->second;
 }
 
@@ -328,8 +338,14 @@ const ItemPrototype* ShopPanel::selected_token() const {
   if (!HasPayRow() || pay_ != kShopTokenTab) {
     return nullptr;
   }
-  const EquipPrototype* item = selected_item();
-  return item == nullptr ? nullptr : RowToken(*item);
+  return selected_item() == nullptr ? nullptr : RowToken(stock_[selected_]);
+}
+
+const TokenPrice* ShopPanel::selected_price() const {
+  if (selected_token() == nullptr) {
+    return nullptr;
+  }
+  return stock_[selected_].price;
 }
 
 const EquipPrototype* ShopPanel::selected_item() const {
@@ -337,7 +353,7 @@ const EquipPrototype* ShopPanel::selected_item() const {
       selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
-  return &equips_.at(stock_[selected_]);
+  return &equips_.at(stock_[selected_].key);
 }
 
 const ItemPrototype* ShopPanel::selected_stackable() const {
@@ -345,7 +361,7 @@ const ItemPrototype* ShopPanel::selected_stackable() const {
       selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
-  return &items_.at(stock_[selected_]);
+  return &items_.at(stock_[selected_].key);
 }
 
 bool ShopPanel::OnEvent(ftxui::Event event) {
@@ -380,14 +396,16 @@ std::vector<const ItemPrototype*> ShopPanel::TabTokens() const {
       tab_ == kShopEquipsTab ? ShopEquipStock(equips_, kPaidInTokens)
                              : ShopWeaponStock(equips_, kPaidInTokens);
   for (const std::string& key : shelf) {
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        items_.find(equips_.at(key).token_item());
-    if (it == items_.end()) {
-      continue;
-    }
-    const ItemPrototype* token = &it->second;
-    if (std::find(tokens.begin(), tokens.end(), token) == tokens.end()) {
-      tokens.push_back(token);
+    for (const TokenPrice& price : equips_.at(key).token_prices()) {
+      std::map<std::string, ItemPrototype>::const_iterator it =
+          items_.find(price.token_item());
+      if (it == items_.end()) {
+        continue;
+      }
+      const ItemPrototype* token = &it->second;
+      if (std::find(tokens.begin(), tokens.end(), token) == tokens.end()) {
+        tokens.push_back(token);
+      }
     }
   }
   return tokens;
@@ -480,14 +498,15 @@ ftxui::Element ShopPanel::RenderEtcRow(
 // The level is red by the bag's rule and in the bag's colour. There is no class
 // to colour, since the list only has items for this character's class.
 ftxui::Element ShopPanel::RenderEquipRow(
-    const EquipPrototype& proto, const std::string& cursor,
+    const StockRow& row, const std::string& cursor,
     std::chrono::steady_clock::duration elapsed) const {
+  const EquipPrototype& proto = equips_.at(row.key);
   ftxui::Element level =
       RedUnless(ftxui::text(LevelCell(proto)), character_.MeetsLevel(proto));
   // Each row is priced in its own currency: the shelf it is on says which, and
-  // the item says how many.
-  const ItemPrototype* token = RowToken(proto);
-  int64_t price = token == nullptr ? proto.shop_price() : proto.token_price();
+  // the row's price how many.
+  const ItemPrototype* token = RowToken(row);
+  int64_t price = token == nullptr ? proto.shop_price() : row.price->count();
   int64_t held =
       token == nullptr ? character_.meso() : character_.CountItem(*token);
   ftxui::Element cost = CostCell(token, FormatWithCommas(price), price <= held);
@@ -557,9 +576,9 @@ ftxui::Element ShopPanel::RenderStock() const {
     if (tab_ == kShopBuyBackTab) {
       row = RenderBuyBackRow(character_.buy_backs().Get(i), cursor, elapsed);
     } else if (tab_ == kShopEtcTab) {
-      row = RenderEtcRow(items_.at(stock_[i]), cursor, elapsed);
+      row = RenderEtcRow(items_.at(stock_[i].key), cursor, elapsed);
     } else {
-      row = RenderEquipRow(equips_.at(stock_[i]), cursor, elapsed);
+      row = RenderEquipRow(stock_[i], cursor, elapsed);
     }
     item_rows.push_back(HighlightRow(std::move(row), selected));
   }

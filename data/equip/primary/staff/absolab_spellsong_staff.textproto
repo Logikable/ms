@@ -13,6 +13,8 @@ equip_type: EQUIP_TYPE_STAFF
 upgrade_slots: 8
 equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
 equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
-token_item: "absolab_coin"
-token_price: 5
+token_prices {
+  token_item: "absolab_coin"
+  count: 5
+}
 set_family: "AbsoLab Magician Weapon"

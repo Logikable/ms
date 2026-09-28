@@ -27,8 +27,9 @@ EquipPrototype Piece(const std::string& name, EquipSlot slot,
   e.set_required_level(160);
   e.set_equip_slot(slot);
   e.add_equip_job_categories(job);
-  e.set_token_item("absolab_coin");
-  e.set_token_price(2);
+  TokenPrice* price = e.add_token_prices();
+  price->set_token_item("absolab_coin");
+  price->set_count(2);
   return e;
 }
 

@@ -122,8 +122,9 @@ class TuiControllerTest : public testing::Test {
     frozen.set_name("Frozen Sword");
     frozen.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     frozen.set_required_level(120);
-    frozen.set_token_item("weapon_token");
-    frozen.set_token_price(1);
+    TokenPrice* price = frozen.add_token_prices();
+    price->set_token_item("weapon_token");
+    price->set_count(1);
     equips["frozen_sword"] = frozen;
     // Two of the six symbols, which is enough for a claim to have a ladder.
     symbol_.set_name("Arcane Symbol: Vanishing Journey");

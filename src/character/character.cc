@@ -2496,10 +2496,12 @@ bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
 }
 
 bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
+                                     const std::string& token_key,
                                      const ItemPrototype& token, int count) {
+  int price = TokenPriceIn(proto, token_key);
   // A mark is what makes an item a currency, so a token without one buys
   // nothing.
-  if (count <= 0 || proto.token_price() <= 0 || token.currency_mark().empty()) {
+  if (count <= 0 || price <= 0 || token.currency_mark().empty()) {
     return false;
   }
   // Space first, then the whole price at once. SpendItem is all or nothing, so
@@ -2507,8 +2509,7 @@ bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
   if (count > RoomFor(proto)) {
     return false;
   }
-  if (!SpendItem(token.name(),
-                 static_cast<int64_t>(count) * proto.token_price())) {
+  if (!SpendItem(token.name(), static_cast<int64_t>(count) * price)) {
     return false;
   }
   for (int i = 0; i < count; ++i) {

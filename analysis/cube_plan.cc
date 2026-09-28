@@ -346,18 +346,21 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis,
 }
 
 // Whether the character could ever buy `proto`. A tier priced in tokens only
-// counts once one of the tokens has dropped, so a character who can't clear
+// counts once one of its tokens has dropped, so a character who can't clear
 // Damien or Lotus keeps the weapon in hand.
 bool WithinReach(const GameState& state, const EquipPrototype& proto) {
-  if (proto.token_price() <= 0) {
+  if (proto.token_prices().empty()) {
     return true;
   }
-  std::map<std::string, ItemPrototype>::const_iterator token =
-      state.items.find(proto.token_item());
-  if (token == state.items.end()) {
-    return false;
+  for (const TokenPrice& price : proto.token_prices()) {
+    std::map<std::string, ItemPrototype>::const_iterator token =
+        state.items.find(price.token_item());
+    if (token != state.items.end() &&
+        state.character.CountItem(token->second.name()) > 0) {
+      return true;
+    }
   }
-  return state.character.CountItem(token->second.name()) > 0;
+  return false;
 }
 
 bool Replaceable(const GameState& state, EquipSlot slot) {

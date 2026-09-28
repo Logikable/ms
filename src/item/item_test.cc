@@ -166,8 +166,9 @@ TEST(ShortNameTest, TheShortFormFallsBackToTheName) {
 TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
   auto sold_for = [](const std::string& token, int level, EquipSlot slot) {
     EquipPrototype proto;
-    proto.set_token_item(token);
-    proto.set_token_price(1);
+    TokenPrice* price = proto.add_token_prices();
+    price->set_token_item(token);
+    price->set_count(1);
     proto.set_required_level(level);
     proto.set_equip_slot(slot);
     return proto;
@@ -178,8 +179,8 @@ TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
       {"c", sold_for("piece", 150, EQUIP_SLOT_RING)},
       {"d", sold_for("piece", 150, EQUIP_SLOT_RING_2)},
   };
-  // Priced in meso, so it names no token.
-  equips["e"].set_token_item("coin");
+  // Priced in meso, so it raises no token's level.
+  equips["e"].set_shop_price(1);
   equips["e"].set_required_level(200);
   std::map<std::string, ItemPrototype> items;
   items["coin"].set_kind(ITEM_KIND_TOKEN);

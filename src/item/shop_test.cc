@@ -156,7 +156,7 @@ TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
   }
   int stocked = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
-    if (entry.second.has_shop_price() || entry.second.token_price() > 0) {
+    if (entry.second.has_shop_price() || !entry.second.token_prices().empty()) {
       ++stocked;
       EXPECT_EQ(shelved.count(entry.first), 1u)
           << entry.first << " is priced but on no shelf";
@@ -194,13 +194,13 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   for (const std::vector<std::string>& shelf : {weapons, worn}) {
     for (const std::string& key : shelf) {
       const EquipPrototype& proto = equips.at(key);
-      EXPECT_GT(proto.token_price(), 0) << key << " costs no token";
+      EXPECT_FALSE(proto.token_prices().empty()) << key << " costs no token";
       EXPECT_FALSE(proto.has_shop_price())
           << key << " is on the meso shelf too";
     }
   }
   for (const std::string& key : ShopWeaponStock(equips, kPaidInMeso)) {
-    EXPECT_EQ(equips.at(key).token_price(), 0)
+    EXPECT_TRUE(equips.at(key).token_prices().empty())
         << key << " is on the meso shelf and the token shelf at once";
   }
 }
@@ -276,8 +276,9 @@ EquipPrototype TokenPiece(const std::string& name, EquipSlot slot,
   e.set_name(name);
   e.set_required_level(160);
   e.set_equip_slot(slot);
-  e.set_token_item(token);
-  e.set_token_price(2);
+  TokenPrice* price = e.add_token_prices();
+  price->set_token_item(token);
+  price->set_count(2);
   return e;
 }
 

@@ -13,9 +13,13 @@ namespace ms {
 
 namespace {
 
-// The shop's price for this item, on the shelf `payment` names.
+// The shop's price for this item, on the shelf `payment` names. An item with
+// several token prices sorts by its first.
 int PriceOf(const EquipPrototype& proto, Payment payment) {
-  return payment == kPaidInMeso ? proto.shop_price() : proto.token_price();
+  if (payment == kPaidInMeso) {
+    return proto.shop_price();
+  }
+  return proto.token_prices().empty() ? 0 : proto.token_prices(0).count();
 }
 
 // Whether the item is on that shelf at all. A meso price is checked by
@@ -23,7 +27,7 @@ int PriceOf(const EquipPrototype& proto, Payment payment) {
 // A token price is checked by size, since nothing costs zero tokens.
 bool Stocked(const EquipPrototype& proto, Payment payment) {
   return payment == kPaidInMeso ? proto.has_shop_price()
-                                : proto.token_price() > 0;
+                                : !proto.token_prices().empty();
 }
 
 // Whether a weapon shelf holds this slot. The other shelf holds every other
@@ -101,9 +105,17 @@ std::vector<std::string> ShopEtcStock(
   return keys;
 }
 
+int TokenPriceIn(const EquipPrototype& proto, const std::string& token) {
+  for (const TokenPrice& price : proto.token_prices()) {
+    if (price.token_item() == token) {
+      return price.count();
+    }
+  }
+  return 0;
+}
+
 bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick) {
-  if (!box.has_box() || !Stocked(pick, kPaidInTokens) ||
-      pick.token_item() != box.box().token_item()) {
+  if (!box.has_box() || TokenPriceIn(pick, box.box().token_item()) <= 0) {
     return false;
   }
   const google::protobuf::RepeatedField<int>& slots = box.box().slots();

@@ -358,11 +358,11 @@ class CharacterInstance {
   // copy is a new item, so buying two adds two rows. A price of zero means
   // free; having no price at all is what keeps an item out of the shop.
   bool Buy(const EquipPrototype& proto, int count);
-  // Buys `count` copies of `proto` with the token it names, taken from the Etc
-  // tab. The caller looks up `token` from the catalog. All or nothing, like
-  // Buy.
-  bool BuyWithToken(const EquipPrototype& proto, const ItemPrototype& token,
-                    int count);
+  // Buys `count` copies of `proto` with `token`, one of the tokens it names by
+  // `token_key`. The caller looks up `token` from the catalog. All or nothing,
+  // like Buy.
+  bool BuyWithToken(const EquipPrototype& proto, const std::string& token_key,
+                    const ItemPrototype& token, int count);
   // Trades one `box` from the Etc tab for a new `pick`. Refuses, spending
   // nothing, unless the box holds `pick` (BoxHolds), this class can wear it and
   // the equip tab has room.

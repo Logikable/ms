@@ -229,7 +229,7 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
     JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
     ASSERT_NE(owner, JOB_ADVANCEMENT_UNSPECIFIED)
         << entry.first << " is an off-hand nobody can hold";
-    ASSERT_TRUE(proto.has_shop_price() || proto.token_price() > 0)
+    ASSERT_TRUE(proto.has_shop_price() || !proto.token_prices().empty())
         << entry.first << " is an off-hand nothing buys";
     if (proto.has_shop_price()) {
       meso[owner].push_back(proto.required_level());
@@ -310,7 +310,7 @@ TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
-        proto.token_price() <= 0) {
+        proto.token_prices().empty()) {
       continue;
     }
     std::map<EquipType, std::string>& tier =
@@ -371,24 +371,29 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.token_price() <= 0 && proto.token_item().empty()) {
+    if (proto.token_prices().empty()) {
       continue;
     }
     ++seen;
-    EXPECT_GT(proto.token_price(), 0) << entry.first << " names a token for 0";
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        items.find(proto.token_item());
-    ASSERT_NE(it, items.end())
-        << entry.first << " is bought with " << proto.token_item()
-        << ", which is not an item";
-    EXPECT_FALSE(it->second.currency_mark().empty())
-        << proto.token_item() << " pays for " << entry.first
-        << " without a mark to draw in the cost column";
-    EXPECT_EQ(it->second.kind(), ITEM_KIND_TOKEN)
-        << proto.token_item() << " pays for " << entry.first
-        << " without saying it is a token, so the bag files it as a drop";
     EXPECT_FALSE(proto.has_shop_price())
         << entry.first << " is on both shelves at once";
+    std::set<std::string> named;
+    for (const TokenPrice& price : proto.token_prices()) {
+      EXPECT_GT(price.count(), 0) << entry.first << " names a token for 0";
+      EXPECT_TRUE(named.insert(price.token_item()).second)
+          << entry.first << " is priced twice in " << price.token_item();
+      std::map<std::string, ItemPrototype>::const_iterator it =
+          items.find(price.token_item());
+      ASSERT_NE(it, items.end())
+          << entry.first << " is bought with " << price.token_item()
+          << ", which is not an item";
+      EXPECT_FALSE(it->second.currency_mark().empty())
+          << price.token_item() << " pays for " << entry.first
+          << " without a mark to draw in the cost column";
+      EXPECT_EQ(it->second.kind(), ITEM_KIND_TOKEN)
+          << price.token_item() << " pays for " << entry.first
+          << " without saying it is a token, so the bag files it as a drop";
+    }
   }
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
@@ -425,15 +430,16 @@ TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.equip_slot() != EQUIP_SLOT_SHOULDER || proto.token_price() <= 0) {
+    if (proto.equip_slot() != EQUIP_SLOT_SHOULDER ||
+        proto.token_prices_size() != 1) {
       continue;
     }
     ASSERT_EQ(proto.equip_job_categories_size(), 1)
         << entry.first << " is a shoulder for more than one branch";
-    std::map<std::string, int>::const_iterator tier =
-        kTiers.find(proto.token_item());
+    const std::string& token = proto.token_prices(0).token_item();
+    std::map<std::string, int>::const_iterator tier = kTiers.find(token);
     ASSERT_NE(tier, kTiers.end())
-        << entry.first << " is bought with " << proto.token_item()
+        << entry.first << " is bought with " << token
         << ", which is a shoulder tier nothing here knows about";
     EXPECT_EQ(proto.required_level(), tier->second) << entry.first;
     EquipJobCategory branch = proto.equip_job_categories(0);
@@ -511,14 +517,16 @@ TEST(EquipDataTest, TokenGearAndItsTokensSellForNothing) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.token_item().empty()) {
+    if (proto.token_prices().empty()) {
       continue;
     }
     ++seen;
     EXPECT_EQ(SellPrice(proto), 0) << entry.first << " sells for meso";
-    ASSERT_GT(items.count(proto.token_item()), 0u) << proto.token_item();
-    EXPECT_EQ(items.at(proto.token_item()).sell_price(), 0)
-        << proto.token_item() << " sells for meso";
+    for (const TokenPrice& price : proto.token_prices()) {
+      ASSERT_GT(items.count(price.token_item()), 0u) << price.token_item();
+      EXPECT_EQ(items.at(price.token_item()).sell_price(), 0)
+          << price.token_item() << " sells for meso";
+    }
   }
   EXPECT_GT(seen, 0) << "no token-traded gear in the catalog to check";
 }
@@ -930,7 +938,7 @@ TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
     }
     ++seen;
     ASSERT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
-    if (proto.token_price() <= 0) {
+    if (proto.token_prices().empty()) {
       EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
           << entry.first << " is not worn by every job";
     }

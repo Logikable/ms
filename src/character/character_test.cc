@@ -2111,8 +2111,9 @@ class BuyWithTokenTest : public CharacterTest {
   void SetUp() override {
     polearm_.set_name("Frozen Polearm");
     polearm_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-    polearm_.set_token_item("frozen_weapon_token");
-    polearm_.set_token_price(1);
+    TokenPrice* price = polearm_.add_token_prices();
+    price->set_token_item("frozen_weapon_token");
+    price->set_count(1);
     token_.set_name("Frozen Weapon Token");
     token_.set_currency_mark("●");
     c_.AddItem(token_, 2);
@@ -2128,7 +2129,7 @@ class BuyWithTokenTest : public CharacterTest {
 };
 
 TEST_F(BuyWithTokenTest, TakesTheTokenAndGivesTheItem) {
-  EXPECT_TRUE(c_.BuyWithToken(polearm_, token_, 1));
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, 1));
   EXPECT_EQ(TokensLeft(), 1);
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].name(), "Frozen Polearm");
@@ -2137,11 +2138,11 @@ TEST_F(BuyWithTokenTest, TakesTheTokenAndGivesTheItem) {
 // The whole order or none of it, as with meso: otherwise a player a token short
 // would pay for something they never got.
 TEST_F(BuyWithTokenTest, BuysNothingWhenItCannotBuyEverything) {
-  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, 3));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, 3));
   EXPECT_EQ(TokensLeft(), 2);
   EXPECT_EQ(c_.inventory().size(), 0);
 
-  EXPECT_TRUE(c_.BuyWithToken(polearm_, token_, 2));
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, 2));
   EXPECT_EQ(TokensLeft(), 0);
   EXPECT_EQ(c_.inventory().size(), 2) << "each copy is its own item";
 }
@@ -2150,11 +2151,31 @@ TEST_F(BuyWithTokenTest, RefusesWhatNoTokenBuys) {
   EquipPrototype meso_item;
   meso_item.set_name("Zedbug");
   meso_item.set_shop_price(400000);
-  EXPECT_FALSE(c_.BuyWithToken(meso_item, token_, 1));
-  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, 0));
-  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, -1));
+  EXPECT_FALSE(c_.BuyWithToken(meso_item, "frozen_weapon_token", token_, 1));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, 0));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, -1));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, "absolab_coin", token_, 1))
+      << "a token the item isn't priced in";
   EXPECT_EQ(TokensLeft(), 2);
   EXPECT_EQ(c_.inventory().size(), 0);
+}
+
+// An item priced in two tokens is bought with either, at that token's price.
+TEST_F(BuyWithTokenTest, EitherTokenBuysAnItemPricedInTwo) {
+  TokenPrice* price = polearm_.add_token_prices();
+  price->set_token_item("arachno_coin");
+  price->set_count(3);
+  ItemPrototype coin;
+  coin.set_name("Arachno Coin");
+  coin.set_currency_mark("◆");
+  c_.AddItem(coin, 3);
+
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, "arachno_coin", coin, 1));
+  EXPECT_EQ(c_.CountItem(coin), 0);
+  EXPECT_EQ(TokensLeft(), 2);
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, "frozen_weapon_token", token_, 1));
+  EXPECT_EQ(TokensLeft(), 1);
+  EXPECT_EQ(c_.inventory().size(), 2);
 }
 
 // An Etc item isn't a currency just because it was passed as one. The currency
@@ -2164,7 +2185,7 @@ TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
   horn.set_name("Beetle's Horn");
   c_.AddItem(horn, 50);
 
-  EXPECT_FALSE(c_.BuyWithToken(polearm_, horn, 1));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, "frozen_weapon_token", horn, 1));
   EXPECT_EQ(c_.CountItem(horn), 50);
   EXPECT_EQ(c_.inventory().size(), 0);
 }
@@ -2179,8 +2200,9 @@ class OpenBoxTest : public CharacterTest {
     box_.mutable_box()->add_slots(EQUIP_SLOT_HAT);
     hat_.set_name("AbsoLab Hat");
     hat_.set_equip_slot(EQUIP_SLOT_HAT);
-    hat_.set_token_item("absolab_coin");
-    hat_.set_token_price(2);
+    TokenPrice* price = hat_.add_token_prices();
+    price->set_token_item("absolab_coin");
+    price->set_count(2);
     c_.AddItem(box_, 2);
   }
 

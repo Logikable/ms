@@ -4,7 +4,8 @@
  * without pricing it.
  *
  * The weapon and equipment shelves each exist twice, once for meso and once for
- * tokens, because an item gives one price or the other, never both.
+ * tokens, because an item is priced in meso or in tokens, never both. It may
+ * name several tokens, any one of which buys it.
  */
 #ifndef MS_SRC_ITEM_SHOP_H_
 #define MS_SRC_ITEM_SHOP_H_
@@ -40,6 +41,10 @@ std::vector<std::string> ShopEquipStock(
 // file. Meso only: tokens buy equipment, not stackables.
 std::vector<std::string> ShopEtcStock(
     const std::map<std::string, ItemPrototype>& items);
+
+// What `proto` costs in `token`, a data file stem, or 0 when that token doesn't
+// buy it.
+int TokenPriceIn(const EquipPrototype& proto, const std::string& token);
 
 // Whether `box` opens into `pick`: the token shelf sells it for the box's
 // token, in one of the box's slots. Says nothing about who can wear it.

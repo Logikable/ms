@@ -12,6 +12,8 @@ equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
 upgrade_slots: 8
 equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
 equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
-token_item: "piece_of_destruction"
-token_price: 15
+token_prices {
+  token_item: "piece_of_destruction"
+  count: 15
+}
 set_family: "Root Abyss Warrior Weapon"

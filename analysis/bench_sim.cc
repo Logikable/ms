@@ -18,6 +18,7 @@
  *       --bonus_ied=60
  */
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -25,6 +26,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -385,10 +387,26 @@ double PlanRate(GameState& state, const Fight& fight) {
   return played.seconds > 0.0 ? played.damage * speed / played.seconds : 0.0;
 }
 
-// The token AbsoLab's shelf is priced in, and the one thing the endowed
-// character isn't given: Lotus and Damien drop it, so a character just entering
-// those fights has none.
-constexpr char kAbsoLabToken[] = "absolab_coin";
+// The tokens AbsoLab's shelf and every shelf above it are priced in, and the
+// one thing the endowed character isn't given: Lotus, Damien, Lucid and Will
+// drop them, so a character just entering those fights has none.
+constexpr std::array<std::string_view, 3> kBossCoins = {
+    "absolab_coin", "phantasma_coin", "arachno_coin"};
+
+bool IsBossCoin(std::string_view token) {
+  return std::find(kBossCoins.begin(), kBossCoins.end(), token) !=
+         kBossCoins.end();
+}
+
+// Whether any of `proto`'s prices is in a boss coin.
+bool BoughtWithBossCoins(const EquipPrototype& proto) {
+  for (const TokenPrice& price : proto.token_prices()) {
+    if (IsBossCoin(price.token_item())) {
+      return true;
+    }
+  }
+  return false;
+}
 
 // The best weapon of `type` a character at `level` can wear. By type rather
 // than catalog key, so the table below survives a new tier. `below_absolab`
@@ -402,7 +420,7 @@ std::string BestOfType(const Catalogs& catalogs, EquipType type, int level,
     const EquipPrototype& proto = entry.second;
     if (proto.equip_type() != type || proto.required_level() > level ||
         proto.required_level() <= best_level ||
-        (below_absolab && proto.token_item() == kAbsoLabToken)) {
+        (below_absolab && BoughtWithBossCoins(proto))) {
       continue;
     }
     best_level = proto.required_level();
@@ -602,9 +620,10 @@ void GiveTokens(GameState& state) {
   std::set<std::string> shelves;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
-    if (entry.second.token_price() > 0 &&
-        entry.second.token_item() != kAbsoLabToken) {
-      shelves.insert(entry.second.token_item());
+    for (const TokenPrice& price : entry.second.token_prices()) {
+      if (!IsBossCoin(price.token_item())) {
+        shelves.insert(price.token_item());
+      }
     }
   }
   for (const std::string& key : shelves) {

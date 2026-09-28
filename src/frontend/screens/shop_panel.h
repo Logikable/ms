@@ -108,10 +108,13 @@ class ShopPanel {
   const ItemPrototype* selected_stackable() const;
   // The buyback row under the cursor, on the same terms.
   const BuyBackEntry* selected_buy_back() const;
-  // The token the selected item is bought with, or nullptr when the open shelf
+  // The token the selected row is bought with, or nullptr when the open shelf
   // uses meso. This tells a caller how to charge for the row selected_item()
   // names.
   const ItemPrototype* selected_token() const;
+  // That row's price in its token, or nullptr on the same terms. An item any
+  // of several tokens buys has a row for each.
+  const TokenPrice* selected_price() const;
   // The row's position on the shelf, which BuyBack takes. The cursor position
   // is the shelf position, since the tab lists the whole shelf.
   int selected_row() const {
@@ -166,8 +169,15 @@ class ShopPanel {
   // The second row: Meso and Token, or a blank row under a tab that has
   // neither. Blank rather than absent, so the window keeps one height.
   ftxui::Element RenderPayBar() const;
+  // One row of the stock: a catalog key, and on a token shelf the price the
+  // row charges.
+  struct StockRow {
+    std::string key;
+    const TokenPrice* price = nullptr;
+  };
+
   // The token a row is bought with, or nullptr for a row priced in meso.
-  const ItemPrototype* RowToken(const EquipPrototype& proto) const;
+  const ItemPrototype* RowToken(const StockRow& row) const;
   // Every currency the open shelf uses, in shelf order, or empty for a meso
   // shelf. Read from the shelf itself rather than the slot, so a later tier
   // that splits its tokens differently needs no change here. Works even while
@@ -180,7 +190,7 @@ class ShopPanel {
       const ItemPrototype& item, const std::string& cursor,
       std::chrono::steady_clock::duration elapsed) const;
   ftxui::Element RenderEquipRow(
-      const EquipPrototype& proto, const std::string& cursor,
+      const StockRow& row, const std::string& cursor,
       std::chrono::steady_clock::duration elapsed) const;
   // One buyback row. A stackable fills the quantity column, and an equip, being
   // a single item, leaves it blank. Both are priced at what the sale paid for
@@ -199,9 +209,9 @@ class ShopPanel {
   const std::map<std::string, ItemPrototype>& items_;
   int tab_ = kShopWeaponTab;
   int pay_ = kShopMesoTab;
-  // The catalog keys of the stock, in display order. Rebuilt by Reset(), the
-  // only thing that changes it; buying doesn't.
-  std::vector<std::string> stock_;
+  // The stock, in display order. Rebuilt by Reset(), the only thing that
+  // changes it; buying doesn't.
+  std::vector<StockRow> stock_;
   Zone zone_ = kZoneList;
   int selected_ = 0;
   // The stock row at the top of the window. The list is longer than the screen,

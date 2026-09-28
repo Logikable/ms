@@ -13,6 +13,8 @@ equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
 equip_slot: EQUIP_SLOT_SHOULDER
 set_family: "Cygnus Shoulder"
 upgrade_slots: 1
-token_item: "cygnus_shoulder_token"
-token_price: 1
+token_prices {
+  token_item: "cygnus_shoulder_token"
+  count: 1
+}
 sell_price: 0

@@ -349,12 +349,11 @@ void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
   std::map<std::string, std::set<EquipSlot>> slots;
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
     const EquipPrototype& proto = entry.second;
-    if (proto.token_price() <= 0) {
-      continue;
+    for (const TokenPrice& price : proto.token_prices()) {
+      int& level = levels[price.token_item()];
+      level = std::max(level, proto.required_level());
+      slots[price.token_item()].insert(BaseSlot(proto.equip_slot()));
     }
-    int& level = levels[proto.token_item()];
-    level = std::max(level, proto.required_level());
-    slots[proto.token_item()].insert(BaseSlot(proto.equip_slot()));
   }
   for (std::pair<const std::string, ItemPrototype>& entry : items) {
     ItemPrototype& token = entry.second;

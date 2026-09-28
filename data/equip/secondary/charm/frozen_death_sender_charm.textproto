@@ -11,6 +11,8 @@ equip_slot: EQUIP_SLOT_SECONDARY
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 set_family: "Frozen Secondary"
-token_item: "frozen_secondary_token"
-token_price: 1
+token_prices {
+  token_item: "frozen_secondary_token"
+  count: 1
+}
 sell_price: 0

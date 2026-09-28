@@ -99,12 +99,14 @@ DropBasis DropBasisFor(const GameState& state, double power_per_meso,
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
-    if (proto.token_item().empty() || proto.token_price() <= 0) {
+    if (proto.token_prices().empty()) {
       continue;
     }
-    double each = EquipDropValue(state, basis, proto) / proto.token_price();
-    double& best = basis.tokens[proto.token_item()];
-    best = std::max(best, each);
+    double value = EquipDropValue(state, basis, proto);
+    for (const TokenPrice& price : proto.token_prices()) {
+      double& best = basis.tokens[price.token_item()];
+      best = std::max(best, value / price.count());
+    }
   }
   return basis;
 }

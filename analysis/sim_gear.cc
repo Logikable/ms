@@ -92,32 +92,39 @@ std::vector<std::string> SecondaryShelf(const GameState& state) {
   return keys;
 }
 
-// The token `proto` is priced in, or null if it's priced in meso.
-const ItemPrototype* TokenFor(const GameState& state,
-                              const EquipPrototype& proto) {
-  if (proto.token_price() <= 0) {
-    return nullptr;
+// The first of `proto`'s token prices the character can pay, or null when
+// they can pay none of them.
+const TokenPrice* PayablePrice(const GameState& state,
+                               const EquipPrototype& proto) {
+  for (const TokenPrice& price : proto.token_prices()) {
+    std::map<std::string, ItemPrototype>::const_iterator token =
+        state.items.find(price.token_item());
+    if (token != state.items.end() &&
+        price.count() <= state.character.CountItem(token->second.name())) {
+      return &price;
+    }
   }
-  std::map<std::string, ItemPrototype>::const_iterator it =
-      state.items.find(proto.token_item());
-  return it == state.items.end() ? nullptr : &it->second;
+  return nullptr;
 }
 
 // Whether the character can currently afford `proto`. A token price is paid
-// from tokens that fights dropped, so this checks the Etc tab rather than meso.
+// from tokens that fights dropped, so this checks the purse rather than meso.
 bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
-  const ItemPrototype* token = TokenFor(state, proto);
-  if (token == nullptr) {
+  if (proto.token_prices().empty()) {
     return proto.shop_price() <= state.character.meso();
   }
-  return proto.token_price() <= state.character.CountItem(token->name());
+  return PayablePrice(state, proto) != nullptr;
 }
 
 // Buys one `proto` in whichever currency it's priced in.
 bool BuyOne(GameState& state, const EquipPrototype& proto) {
-  const ItemPrototype* token = TokenFor(state, proto);
-  return token == nullptr ? state.character.Buy(proto, 1)
-                          : state.character.BuyWithToken(proto, *token, 1);
+  if (proto.token_prices().empty()) {
+    return state.character.Buy(proto, 1);
+  }
+  const TokenPrice* price = PayablePrice(state, proto);
+  return price != nullptr &&
+         state.character.BuyWithToken(proto, price->token_item(),
+                                      state.items.at(price->token_item()), 1);
 }
 
 // Best tier of `type` the character can use, or null if the shop stocks none
@@ -470,7 +477,7 @@ bool Shopped(const EquipPrototype& proto) {
   EquipSlot slot = proto.equip_slot();
   return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_SECONDARY ||
          slot == EQUIP_SLOT_PROJECTILE || proto.has_shop_price() ||
-         proto.token_price() > 0;
+         !proto.token_prices().empty();
 }
 
 // Wears the best of `candidates` in every slot of one family, highest tier

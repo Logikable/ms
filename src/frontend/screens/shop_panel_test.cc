@@ -54,8 +54,9 @@ EquipPrototype MakeTokenItem(
     EquipType type = EQUIP_TYPE_ONE_HANDED_SWORD,
     EquipSlot slot = EQUIP_SLOT_PRIMARY_WEAPON) {
   EquipPrototype e = MakeUnpricedItem(name, level, job, type, slot);
-  e.set_token_item(token);
-  e.set_token_price(count);
+  TokenPrice* price = e.add_token_prices();
+  price->set_token_item(token);
+  price->set_count(count);
   return e;
 }
 
@@ -1036,6 +1037,34 @@ TEST_F(ShopPanelTest, EachTokenTabAsksInItsOwnToken) {
   EXPECT_EQ(other.selected_item()->name(), "Frozen Medal");
   ASSERT_NE(other.selected_token(), nullptr);
   EXPECT_EQ(other.selected_token()->name(), "Secondary Token");
+}
+
+// An item either of two tokens buys has a row for each, priced in that token,
+// and the selection says which one the player is on.
+TEST_F(ShopPanelTest, AnItemTwoTokensBuyHasARowForEach) {
+  std::map<std::string, EquipPrototype> equips = {
+      {"umbra", MakeTokenItem("Umbra Sword", 120, "weapon_token", /*count=*/1,
+                              EQUIP_JOB_CATEGORY_WARRIOR)}};
+  TokenPrice* price = equips["umbra"].add_token_prices();
+  price->set_token_item("shoulder_token");
+  price->set_count(4);
+  CharacterInstance c = MakeCharacter(100000, 120, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips, items_);
+  OpenTokenShelf(panel, kShopWeaponTab);
+
+  std::vector<std::string> rows = ScreenRows(panel);
+  int first = IndexWith(rows, "● 1");
+  EXPECT_GE(first, 0);
+  EXPECT_EQ(IndexWith(rows, "▲ 4"), first + 1);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // pay bar to the first row
+  ASSERT_NE(panel.selected_price(), nullptr);
+  EXPECT_EQ(panel.selected_price()->token_item(), "weapon_token");
+  EXPECT_EQ(panel.selected_token()->name(), "Weapon Token");
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_NE(panel.selected_price(), nullptr);
+  EXPECT_EQ(panel.selected_price()->count(), 4);
+  EXPECT_EQ(panel.selected_token()->name(), "Shoulder Token");
+  EXPECT_EQ(panel.selected_item()->name(), "Umbra Sword");
 }
 
 // The tab bar shows meso whatever the shelf uses: the token balances have their
