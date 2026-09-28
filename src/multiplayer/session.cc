@@ -53,9 +53,9 @@ PlayerInfo PlayerFor(const GameState& state) {
        state.character.link_tally().best_by_line()) {
     (*player.mutable_link_lines())[line.first] = line.second;
   }
-  // What they have set on the boss screen. The server holds a whole party to
-  // one set of these before it opens a fight.
-  *player.mutable_boss_options() = state.boss_options;
+  // Their boss screen settings. The server requires the whole party to share
+  // one set before it starts a fight.
+  *player.mutable_boss_options() = state.FightOptions();
   return player;
 }
 

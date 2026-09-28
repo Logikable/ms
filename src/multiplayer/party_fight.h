@@ -40,11 +40,11 @@ class PartyFightAuthority : public FightAuthority {
   int difficulty_index() const {
     return difficulty_index_;
   }
-  // Whether the fight was started as practice. Read off the server's word
-  // rather than this client's own switch, so a toggle mid-fight cannot change
-  // what this one pays.
-  bool practice() const {
-    return practice_;
+  // The terms the fight was started with. Taken from the server, not this
+  // client's own settings, so toggling one mid-fight can't change this client's
+  // rewards.
+  const BossOptions& options() const {
+    return options_;
   }
   // Walks this player out of the fight. Nothing more about it is listened to,
   // however long the last of it takes to arrive, and the party's next fight
@@ -68,7 +68,7 @@ class PartyFightAuthority : public FightAuthority {
   bool told_ = false;
   std::string boss_key_;
   int difficulty_index_ = 0;
-  bool practice_ = false;
+  BossOptions options_;
   std::string fight_id_;
   // The fight this player walked out of, whose last words are still on the
   // way.

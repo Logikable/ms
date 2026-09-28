@@ -383,5 +383,47 @@ TEST(FightDropsTest, NothingIsDealtToAPlayerWhoHasGone) {
   EXPECT_TRUE(fight.players()[2].awards.empty());
 }
 
+// Void drops is each player's own: the equips go around whoever has it on,
+// everything else is dealt as before, and with nobody left to take an equip it
+// never drops.
+TEST(FightDropsTest, EquipsSkipPlayersWhoVoidThem) {
+  Boss boss = Dropping(1.0, 1.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  Party party = PartyOf(3);
+  for (int i = 0; i < 2; ++i) {
+    party.mutable_members(i)
+        ->mutable_player()
+        ->mutable_boss_options()
+        ->set_void_drops(true);
+  }
+  BossOptions leader;
+  leader.set_void_drops(true);
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, party, leader);
+  EXPECT_FALSE(fight.options().void_drops());
+  Clear(fight);
+
+  ASSERT_EQ(fight.state(), PartyFightState::kWon);
+  EXPECT_EQ(TotalAwards(fight), 2);
+  for (int i = 0; i < 2; ++i) {
+    for (const FightAward& award : fight.players()[i].awards) {
+      EXPECT_FALSE(award.has_equip());
+    }
+  }
+  bool third_has_mark = false;
+  for (const FightAward& award : fight.players()[2].awards) {
+    third_has_mark |= award.equip() == "mark";
+  }
+  EXPECT_TRUE(third_has_mark);
+
+  party.mutable_members(2)
+      ->mutable_player()
+      ->mutable_boss_options()
+      ->set_void_drops(true);
+  PartyFight voided("p1-2", "zakum", boss, 0, mobs, party, leader);
+  Clear(voided);
+  ASSERT_EQ(voided.state(), PartyFightState::kWon);
+  EXPECT_EQ(TotalAwards(voided), 1);
+}
+
 }  // namespace
 }  // namespace ms

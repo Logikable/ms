@@ -29,6 +29,7 @@
 #include "src/combat/fight_authority.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/multiplayer.pb.h"
 
 namespace ms {
 
@@ -214,13 +215,14 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
 
 class BossRun {
  public:
-  // `boss` and `authority` are owned elsewhere and must outlive the run. An
-  // invalid `difficulty_index` makes a run that is over before it starts, and
-  // a null `authority` fights the boss alone -- deciding its own phases, its
-  // own clock and what its monsters have left. `practice` is the fight taken
-  // for nothing: it pays nothing, and the caller records no clear for it.
+  // `boss` and `authority` must outlive the run. An invalid `difficulty_index`
+  // makes a run that is already over. A null `authority` means a solo fight
+  // that tracks its own phases, timer and monster HP. A practice run pays
+  // nothing, and the caller doesn't record a clear for it. A solo run with
+  // `void_drops` rolls no equips; a party's server deals around them itself.
   BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
-          FightAuthority* authority = nullptr, bool practice = false);
+          FightAuthority* authority = nullptr,
+          const BossOptions& options = BossOptions());
 
   // Steps the run by elapsed_seconds of real time, paying the character for
   // whatever died. Does nothing once the run is finished.
@@ -249,7 +251,7 @@ class BossRun {
   // Whether this run is a practice run, which pays nothing and spends no
   // clear. The caller asks before writing one down.
   bool practice() const {
-    return practice_;
+    return options_.practice();
   }
   // The boss without its difficulty: what the player is asked about on the
   // way out.
@@ -434,7 +436,7 @@ class BossRun {
   const Boss* boss_ = nullptr;
   int difficulty_index_ = 0;
   std::string title_;
-  bool practice_ = false;
+  BossOptions options_;
   std::string boss_name_;
   int phases_ = 0;
 

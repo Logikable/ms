@@ -56,7 +56,10 @@ struct FightPlayer {
   // Their Item Drop Rate, as a fraction. The clear rolls against the best one
   // in the party.
   double item_drop_pct = 0.0;
-  // What a clear dealt them. Empty until the fight is won.
+  // Whether they turned on Void drops before the fight: no equip is dealt to
+  // them.
+  bool void_drops = false;
+  // Their drops. Empty until the fight is won.
   std::vector<FightAward> awards;
   // What they have landed since the last broadcast took these away. Held here
   // rather than in the fight's own state because it is a relay: the server
@@ -145,8 +148,9 @@ class PartyFight {
   const std::string& boss_key() const {
     return boss_key_;
   }
-  // The terms the fight was opened on, sent out with every state so that no
-  // client has to trust its own switch.
+  // The options the fight started with, less Void drops, which is each
+  // player's own. Sent with every state so clients do not rely on their own
+  // settings.
   const BossOptions& options() const {
     return options_;
   }
@@ -167,11 +171,9 @@ class PartyFight {
   // Ends the fight in `outcome`, holding it for the closing beat. A clear
   // deals its drops on the way.
   void Finish(PartyFightState outcome);
-  // Rolls each of the difficulty's drops once, against the best Item Drop Rate
-  // anyone still here is carrying, and gives what falls to a player drawn at
-  // random. One roll for the party is what makes a certain drop certain -- a
-  // roll each at a split chance can pay it to nobody, and can pay a one-off
-  // twice.
+  // Rolls each drop once for the whole party and gives it to a random player
+  // still present, and an equip to one without Void drops. One shared roll
+  // keeps a guaranteed drop guaranteed and a one-off drop from landing twice.
   void DealDrops();
   // Runs the clock and, when the roster empties, moves the fight on.
   void RunPhase(double dt);

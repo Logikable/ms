@@ -340,11 +340,15 @@ LobbyResult Lobby::CheckFight(const Party& party,
                      "Someone doesn't meet the level requirement.");
     }
   }
-  // A fight cannot pay one player and not the next, so the party has to agree
-  // on the terms.
+  // Everyone must pick the same options, since one fight cannot reward
+  // players differently. Void drops is the exception: the deal routes around
+  // whoever has it on.
+  BossOptions terms = request.options();
+  terms.clear_void_drops();
   for (const PartyMember& member : party.members()) {
-    if (!MessageDifferencer::Equals(member.player().boss_options(),
-                                    request.options())) {
+    BossOptions theirs = member.player().boss_options();
+    theirs.clear_void_drops();
+    if (!MessageDifferencer::Equals(theirs, terms)) {
       return Refusal(Refused::REASON_OPTIONS_DIFFER,
                      "Players selected different bossing options.");
     }

@@ -219,6 +219,7 @@ cc_library(
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
     ],
 )
 

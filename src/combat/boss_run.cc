@@ -159,12 +159,12 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
 }
 
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
-                 FightAuthority* authority, bool practice)
+                 FightAuthority* authority, const BossOptions& options)
     : boss_key_(std::move(boss_key)),
       boss_(&boss),
       difficulty_index_(difficulty_index),
       authority_(authority),
-      practice_(practice) {
+      options_(options) {
   const BossDifficulty* chosen = difficulty();
   if (chosen == nullptr) {
     state_ = BossRunState::kAborted;
@@ -684,8 +684,11 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
                                              double item_drop_pct) const {
   std::vector<SharedAward> awards;
   for (const MobDrop& drop : difficulty()->drops()) {
-    // One roll for the fight, where a map rolls one per kill. What drop rate
-    // buys depends on what falls -- see BossDropRate.
+    if (options_.void_drops() && drop.has_equip()) {
+      continue;
+    }
+    // Bosses roll each drop once per fight; maps roll once per kill. How drop
+    // rate applies depends on the item; see BossDropRate.
     int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct), 1, state.rng);
     if (rolled > 0) {
       awards.push_back({drop, rolled});
@@ -698,10 +701,9 @@ void BossRun::PayReward(GameState& state,
                         const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
   clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
-  // A practice run is the fight and nothing else: no meso, no EXP, no honor
-  // and no drops. The clock above still stands, being what the player came to
-  // beat.
-  if (practice_) {
+  // A practice run pays nothing: no meso, EXP, honor or drops. The clear time
+  // above is still recorded, since beating it is the point.
+  if (options_.practice()) {
     return;
   }
   // A party splits the purse and nothing else. The EXP is what the fight is

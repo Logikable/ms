@@ -131,6 +131,14 @@ class AccountInstance {
     account_.mutable_options()->set_mute(on);
   }
 
+  // Whether boss fights drop no equips for this account.
+  bool void_boss_drops() const {
+    return account_.options().void_boss_drops();
+  }
+  void SetVoidBossDrops(bool on) {
+    account_.mutable_options()->set_void_boss_drops(on);
+  }
+
   // Whether the focused panel's title blinks. Off by default: the blink is an
   // option, separate from the chip that marks focus.
   bool panel_title_blink() const {

@@ -96,6 +96,8 @@ class BossSelectPanel {
   // Whether the fight would be taken as practice: no clear spent, and no
   // reward paid. Read off the game state, which is what the server is told.
   bool practice() const;
+  // Whether the fight would drop no equips for this player.
+  bool void_drops() const;
 
   // Key into GameState::bosses of the highlighted fight; empty when there are
   // none.

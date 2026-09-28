@@ -4007,6 +4007,10 @@ TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
   EXPECT_EQ(controller_->screen(), kBossSelect)
       << "the row takes its own Enter";
   EXPECT_TRUE(boss_select_panel_->practice());
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(state_->account.void_boss_drops());
+  EXPECT_TRUE(boss_select_panel_->practice());
 }
 
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {

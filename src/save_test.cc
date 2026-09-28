@@ -299,6 +299,20 @@ TEST_F(SaveTest, TheAutoswapSwitchReachesTheCharacterOnLoad) {
   EXPECT_TRUE(loaded->character.autoswap_presets());
 }
 
+// Void drops is remembered; Practice never is, so a restart can't leave a real
+// clear paying nothing.
+TEST_F(SaveTest, OnlyVoidDropsOutlivesARestart) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->account.SetVoidBossDrops(true);
+  saved->boss_options.set_practice(true);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_TRUE(loaded->FightOptions().void_drops());
+  EXPECT_FALSE(loaded->FightOptions().practice());
+}
+
 TEST_F(SaveTest, WritesAndReadsBackTheUsername) {
   std::unique_ptr<GameState> saved = MakeState();
   EXPECT_EQ(saved->character.username(), kDefaultUsername);

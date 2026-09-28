@@ -188,11 +188,14 @@ struct GameState {
   // Name of the map being farmed (key into `maps`); empty means none.
   std::string current_map;
 
-  // What the player has switched on for a boss fight -- see the boss screen's
-  // options row. NOT saved: practice pays nothing, and a switch remembered
-  // across a restart would quietly cost somebody a real clear. It rides in
-  // PlayerInfo so the server can hold a whole party to one set of them.
+  // The player's boss fight settings, from the boss screen's options row. Only
+  // `practice` is kept here, unsaved: practice pays nothing, and a setting
+  // remembered across a restart could quietly cost someone a real clear. Void
+  // drops lives on the account; read both through FightOptions().
   BossOptions boss_options;
+  // `boss_options` with the account's Void drops filled in: what a fight is
+  // started with and what PlayerInfo sends the server.
+  BossOptions FightOptions() const;
 
   // When the played character was last put into play, as seconds since the
   // Unix epoch: what the character select sorts the roster on. Stamped when
