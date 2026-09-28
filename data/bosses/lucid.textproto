@@ -5,7 +5,7 @@ difficulties {
     bgm: "WierldForestIntheGirlsdream"
     spawns {
       mob: "lucid_phase_1"
-      spots { x: 4 y: 2 }
+      spots { x: 4 y: 3 }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -19,7 +19,7 @@ difficulties {
     bgm: "BrokenDream"
     spawns {
       mob: "lucid_phase_2"
-      spots { x: 4 y: 2 }
+      spots { x: 4 y: 3 }
       # Twice Chaos Papulatus's pace: she flits about the clocktower.
       walk { interval_ms: 250 range: RANGE_STEP }
     }

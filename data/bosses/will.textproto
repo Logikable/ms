@@ -6,7 +6,7 @@ difficulties {
     bgm: "Diffraction"
     spawns {
       mob: "will_phase_1"
-      spots { x: 4 y: 3 }
+      spots { x: 4 y: 4 }
       walk { interval_ms: 10000 range: RANGE_ROW_STEP }
     }
     player_spots { x: 4 y: 5 }
@@ -21,7 +21,7 @@ difficulties {
     bgm: "MirrorCage"
     spawns {
       mob: "will_phase_2"
-      spots { x: 4 y: 3 }
+      spots { x: 4 y: 4 }
       walk { interval_ms: 10000 range: RANGE_ROW_STEP }
     }
     player_spots { x: 4 y: 5 }
@@ -36,7 +36,7 @@ difficulties {
     bgm: "BloodCage"
     spawns {
       mob: "will_phase_3"
-      spots { x: 4 y: 2 }
+      spots { x: 4 y: 3 }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
