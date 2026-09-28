@@ -76,5 +76,62 @@ TEST(WearBestFromBagTest, ABetterAccessoryGoesOnForBossesOnly) {
   }
 }
 
+// A split puts the bag's copy on for farming and leaves boss fights the worn
+// piece with its stars. A ring lands where the copy does, even past an empty
+// ring slot, and a slot farming already has its own piece in is left alone.
+TEST(SplitFarmPieceTest, TheWornPieceStaysWithBossFights) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  CharacterInstance character(rng, proto);
+  Equip starred;
+  starred.set_stars(12);
+  character.PickUp(std::make_unique<EquipInstance>(
+      Accessory("Eyepatch", 160, EQUIP_SLOT_EYE_ACCESSORY), starred));
+  ASSERT_TRUE(character.Equip(0));
+  character.PickUp(std::make_unique<EquipInstance>(Ring("Meister", 140)));
+  ASSERT_TRUE(character.Equip(0));
+  character.PickUp(std::make_unique<EquipInstance>(Ring("Horntail", 110)));
+  ASSERT_TRUE(character.Equip(0));
+  ASSERT_TRUE(character.Unequip(EQUIP_SLOT_RING));  // Meister's slot empties
+  ASSERT_EQ(character.WornAt(kFarmGear, EQUIP_SLOT_RING_2)->name(), "Horntail");
+  character.SellEquip(0);
+
+  EXPECT_EQ(SplitFarmPiece(character, EQUIP_SLOT_EYE_ACCESSORY),
+            EQUIP_SLOT_UNSPECIFIED)
+      << "no copy in the bag";
+  character.PickUp(std::make_unique<EquipInstance>(
+      Accessory("Eyepatch", 160, EQUIP_SLOT_EYE_ACCESSORY)));
+  character.PickUp(std::make_unique<EquipInstance>(Ring("Horntail", 110)));
+  EXPECT_EQ(SplitFarmPiece(character, EQUIP_SLOT_EYE_ACCESSORY),
+            EQUIP_SLOT_EYE_ACCESSORY);
+  EXPECT_EQ(character.WornAt(kBossGear, EQUIP_SLOT_EYE_ACCESSORY)->stars(), 12);
+  EXPECT_EQ(character.WornAt(kFarmGear, EQUIP_SLOT_EYE_ACCESSORY)->stars(), 0);
+  EXPECT_FALSE(SharesFarmPiece(character, EQUIP_SLOT_EYE_ACCESSORY));
+
+  EquipSlot farm = SplitFarmPiece(character, EQUIP_SLOT_RING_2);
+  ASSERT_NE(farm, EQUIP_SLOT_UNSPECIFIED);
+  EXPECT_EQ(character.WornAt(kFarmGear, farm)->name(), "Horntail");
+  EXPECT_EQ(character.WornAt(kBossGear, farm)->name(), "Horntail");
+  EXPECT_NE(character.WornAt(kFarmGear, farm),
+            character.WornAt(kBossGear, farm));
+  EXPECT_EQ(character.inventory().size(), 0);
+}
+
+// Before presets open there is one set, so nothing splits.
+TEST(SplitFarmPieceTest, NothingSplitsBeforePresets) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(170);
+  proto.set_job(JOB_HERO);
+  CharacterInstance character(rng, proto);
+  character.PickUp(std::make_unique<EquipInstance>(Ring("Meister", 140)));
+  ASSERT_TRUE(character.Equip(0));
+  character.PickUp(std::make_unique<EquipInstance>(Ring("Meister", 140)));
+  EXPECT_FALSE(SharesFarmPiece(character, EQUIP_SLOT_RING));
+  EXPECT_EQ(SplitFarmPiece(character, EQUIP_SLOT_RING), EQUIP_SLOT_UNSPECIFIED);
+}
+
 }  // namespace
 }  // namespace ms

@@ -51,6 +51,10 @@ struct Yardstick {
 // the character actually does, which is why HeldYardstick exists.
 Yardstick YardstickFor(const GameState& state);
 
+// The same attacks aimed at a monster of `level` with no defence and no boss
+// flag: what farm gear is valued against, since a map's crowd has neither.
+Yardstick CrowdYardstick(const Yardstick& aimed, int level);
+
 // Damage `stats` and `passives` deal over the whole fight against the
 // yardstick. Every caller must go through this: cube and star offers are sorted
 // against each other, and a caller computing its own damage gives different

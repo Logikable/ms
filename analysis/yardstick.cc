@@ -200,6 +200,12 @@ Yardstick YardstickFor(const GameState& state) {
   return yard;
 }
 
+Yardstick CrowdYardstick(const Yardstick& aimed, int level) {
+  Yardstick crowd = aimed;
+  crowd.target = StandIn(level);
+  return crowd;
+}
+
 double WorthOf(const GameState& state, const Yardstick& yard,
                const EquipStats& stats, const PassiveOffense& passives) {
   const Character& proto = state.character.proto();

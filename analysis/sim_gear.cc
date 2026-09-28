@@ -669,6 +669,52 @@ void WearBestFromBag(CharacterInstance& character) {
   }
 }
 
+bool SharesFarmPiece(const CharacterInstance& character, EquipSlot slot) {
+  if (character.proto().level() < UnlockLevel(Feature::kEquipPresets) ||
+      !SplitsFarmGear(slot)) {
+    return false;
+  }
+  const EquipInstance* worn = character.WornAt(kBossGear, slot);
+  return worn != nullptr && worn == character.WornAt(kFarmGear, slot);
+}
+
+EquipSlot SplitFarmPiece(CharacterInstance& character, EquipSlot slot) {
+  if (!SharesFarmPiece(character, slot)) {
+    return EQUIP_SLOT_UNSPECIFIED;
+  }
+  const std::string name = character.WornAt(kFarmGear, slot)->name();
+  const InventoryInstance& bag = character.inventory();
+  int copy = -1;
+  for (int i = 0; i < bag.size() && copy < 0; ++i) {
+    if (bag.equip_instance(i) != nullptr && bag[i].prototype().name() == name) {
+      copy = i;
+    }
+  }
+  if (copy < 0 || !character.Unequip(slot, kFarmGear)) {
+    return EQUIP_SLOT_UNSPECIFIED;
+  }
+  // Unequip appends, so `copy` still names the copy. Farming takes it first and
+  // the worn piece follows it into the Boss preset: SlotToFill puts a second
+  // copy where the first shows, so a ring lands where the copy did even when
+  // an earlier ring slot stood empty.
+  const EquipInstance* worn = bag.equip_instance(bag.size() - 1);
+  character.Equip(copy, kFarmGear);
+  for (int i = 0; i < bag.size(); ++i) {
+    if (bag.equip_instance(i) == worn) {
+      character.Equip(i, kBossGear);
+      break;
+    }
+  }
+  for (EquipSlot at : SlotFamily(slot)) {
+    const EquipInstance* farm = character.WornAt(kFarmGear, at);
+    if (farm != nullptr && farm->name() == name &&
+        farm != character.WornAt(kBossGear, at)) {
+      return at;
+    }
+  }
+  return EQUIP_SLOT_UNSPECIFIED;
+}
+
 void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
   std::map<EquipSlot, std::vector<const EquipPrototype*>> by_family;
   for (const std::pair<const std::string, EquipPrototype>& entry :

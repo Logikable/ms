@@ -3187,23 +3187,24 @@ void PrintCubing(const std::vector<Job>& branches,
   std::printf(
       "\nWhat the cubing came to. Kept is the rolls that beat what the piece "
       "already held;\nthe rest is the price of the chance. Farm is cubes on "
-      "pieces worn only while farming;\nmeso%% and drop%% are what farming "
-      "ends the run with.\n\n");
-  std::printf("%-13s %9s %8s %8s %6s %8s %8s %8s %8s %6s %6s\n", "branch",
+      "pieces worn only while farming;\nsplit is copies put on for farming "
+      "alone. meso%% and drop%% are what farming\nends the run with.\n\n");
+  std::printf("%-13s %9s %8s %8s %6s %8s %8s %8s %8s %5s %6s %6s\n", "branch",
               "meso", "red", "kept", "kept%", "green", "kept", "farm", "kept",
-              "meso%", "drop%");
+              "split", "meso%", "drop%");
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const GearSpend& gear = climbs[i].ledger.gear;
     char meso[16];
     FormatShort(static_cast<double>(gear.cubes), meso, sizeof(meso));
     int red = gear.cubes_bought - gear.green_cubes_bought;
     int red_kept = gear.cubes_kept - gear.green_cubes_kept;
-    std::printf("%-13s %9s %8d %8d %5.0f%% %8d %8d %8d %8d %5.0f%% %5.0f%%\n",
-                BranchName(branches[i]).c_str(), meso, red, red_kept,
-                red == 0 ? 0.0 : 100.0 * red_kept / red,
-                gear.green_cubes_bought, gear.green_cubes_kept,
-                gear.farm_cubes_bought, gear.farm_cubes_kept,
-                100.0 * climbs[i].farm_meso, 100.0 * climbs[i].farm_drop);
+    std::printf(
+        "%-13s %9s %8d %8d %5.0f%% %8d %8d %8d %8d %5d %5.0f%% %5.0f%%\n",
+        BranchName(branches[i]).c_str(), meso, red, red_kept,
+        red == 0 ? 0.0 : 100.0 * red_kept / red, gear.green_cubes_bought,
+        gear.green_cubes_kept, gear.farm_cubes_bought, gear.farm_cubes_kept,
+        gear.farm_splits, 100.0 * climbs[i].farm_meso,
+        100.0 * climbs[i].farm_drop);
   }
   int weakest = 0;
   for (int i = 1; i < static_cast<int>(climbs.size()); ++i) {

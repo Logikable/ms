@@ -51,6 +51,7 @@ struct GearSpend {
   int64_t cubes = 0;         // every cube, whatever it rolled
   int64_t symbols = 0;       // Arcane Symbol level-ups
   int64_t replacements = 0;  // copies bought to replace destroyed pieces
+  int64_t copies = 0;        // copies bought to give farming its own piece
   int slots_filled = 0;
   int stars_gained = 0;
   int symbol_levels = 0;
@@ -65,13 +66,15 @@ struct GearSpend {
   int green_cubes_kept = 0;
   int farm_cubes_bought = 0;
   int farm_cubes_kept = 0;
+  // Slots farming was given its own piece in; see GearShopper::SplitOffers.
+  int farm_splits = 0;
   // Pieces destroyed and restored, and meso from bag items sold to make room
   // and pay for it.
   int booms = 0;
   int64_t sold = 0;
 
   int64_t meso() const {
-    return scrolls + stars + hammers + replacements + cubes + symbols;
+    return scrolls + stars + hammers + replacements + copies + cubes + symbols;
   }
 
   void Add(const GearSpend& other) {
@@ -81,6 +84,7 @@ struct GearSpend {
     cubes += other.cubes;
     symbols += other.symbols;
     replacements += other.replacements;
+    copies += other.copies;
     slots_filled += other.slots_filled;
     stars_gained += other.stars_gained;
     symbol_levels += other.symbol_levels;
@@ -91,6 +95,7 @@ struct GearSpend {
     green_cubes_kept += other.green_cubes_kept;
     farm_cubes_bought += other.farm_cubes_bought;
     farm_cubes_kept += other.farm_cubes_kept;
+    farm_splits += other.farm_splits;
     booms += other.booms;
     sold += other.sold;
   }
@@ -157,8 +162,11 @@ class GearShopper {
     // is expected to beat the lines it replaces. Which cube is `cube_type`.
     bool cube = false;
     CubeType cube_type = CubeType::kRed;
-    // Whose piece a cube is for: the boss gear's, or a farm-only piece's.
-    // Every other offer is for the boss gear.
+    // A copy of what both presets wear in `slot`, put on for farming so a
+    // meso line can be cubed onto it. Priced with the cube run that follows.
+    bool split = false;
+    // Whose piece the offer is for: the boss gear's, or a farm-only piece's.
+    // Symbols and splits are always the boss gear's.
     StatPreset gear = kBossGear;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
@@ -174,12 +182,22 @@ class GearShopper {
   // piece.
   struct Basis {
     const ItemPrototype* trace = nullptr;
+    // The gear offers are for, and what it wears and is granted.
+    StatPreset gear = kBossGear;
     DerivedStats derived;
     EquipStats worn;
-    // The target fight, and the character's current damage against it.
+    // The fight judged against, and the character's current damage in it.
     Yardstick yard;
     double power = 0.0;
+    // Converts a damage gain into the units offers rank in. One for the boss
+    // gear. For the farm gear, farming is bound by damage rather than respawn,
+    // so a gain is that share of the farm income over the run left.
+    double scale = 1.0;
   };
+
+  // The farm gear's basis: its damage against a crowd, scaled to income at
+  // `power_per_meso`. Its scale is zero when income isn't known.
+  Basis FarmBasis(GameState& state, const Basis& boss, double power_per_meso);
 
   // The scroll and star offers for one worn piece. Each returns nothing when
   // the piece has no such offer.
@@ -197,6 +215,15 @@ class GearShopper {
   // combat power a meso buys elsewhere on the shelf. Income lines convert at
   // this rate.
   std::vector<Candidate> CubeOffers(GameState& state, double best);
+  // Scroll and star offers for one piece in `basis.gear`; see ScrollOffer and
+  // StarOffer.
+  void PieceOffers(GameState& state, const Basis& basis, EquipSlot slot,
+                   bool hammers_open, std::vector<Candidate>& offers);
+  // An offer for each accessory both presets wear that a bag or shop copy
+  // could split, valued with a trial split: the cube run the copy would take,
+  // less the farm damage it gives up by starting bare. Held for the rest of a
+  // Spend, since every trial rebuilds the character.
+  std::vector<Candidate> SplitOffers(GameState& state, const Basis& farm);
 
   // The scroll `slot`'s item wants, measured once per item and cached.
   const Scroll* ScrollFor(GameState& state, EquipSlot slot);
@@ -214,10 +241,13 @@ class GearShopper {
   // BuyBest tries the next offer.
   bool BuyCube(GameState& state, EquipSlot slot, StatPreset gear, CubeType cube,
                GearSpend& spend);
-  bool BuyHammer(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,
+                 GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
                  GearSpend& spend);
-  bool BuyStar(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
+               GearSpend& spend);
+  bool BuySplit(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuySymbol(GameState& state, EquipSlot slot, GearSpend& spend);
   // Sells bag items held for nothing: pieces the character can't wear at all,
   // and spares beyond what booms could ever use.
@@ -241,6 +271,8 @@ class GearShopper {
   // Keyed by prototype name, since that is what distinguishes an item from its
   // replacement. A slot whose item takes no scroll maps to null.
   std::map<std::string, const Scroll*> chosen_;
+  // SplitOffers' result for the current Spend, cleared by a split.
+  std::optional<std::vector<Candidate>> splits_;
 };
 
 }  // namespace ms

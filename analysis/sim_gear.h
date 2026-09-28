@@ -78,6 +78,17 @@ void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 // onto without costing a boss any damage.
 void WearBestFromBag(CharacterInstance& character);
 
+// Whether farming could have its own piece in `slot` but still wears the one
+// boss fights do.
+bool SharesFarmPiece(const CharacterInstance& character, EquipSlot slot);
+
+// Gives farming its own copy of the piece both presets wear in `slot`: a bag
+// copy goes on for farming, and the worn piece becomes the Boss preset's own
+// with its stars and scrolls. Returns the slot farming wears the copy in, which
+// for a ring can differ from `slot`, or EQUIP_SLOT_UNSPECIFIED when the slot
+// isn't shared or the bag holds no copy.
+EquipSlot SplitFarmPiece(CharacterInstance& character, EquipSlot slot);
+
 // Maxes out everything worn: the best-measuring scroll in every slot, and stars
 // to the item's maximum. Nothing is rolled or paid for.
 //

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -171,15 +172,33 @@ int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
   return std::max(1, static_cast<int>(std::ceil(booms)));
 }
 
-// Stars on the worn copy of `name`, or -1 if none is worn.
+// Stars on the least-starred worn copy of `name`, or -1 if none is worn. The
+// farm copy of a split piece has the longer run ahead of it.
 int WornStars(const CharacterInstance& character, const std::string& name) {
-  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       character.equipped(kBossGear)) {
-    if (entry.second->prototype().name() == name) {
-      return entry.second->stars();
+  int fewest = -1;
+  for (StatPreset gear : {kBossGear, kFarmGear}) {
+    for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+         character.equipped(gear)) {
+      if (entry.second->prototype().name() == name &&
+          (fewest < 0 || entry.second->stars() < fewest)) {
+        fewest = entry.second->stars();
+      }
     }
   }
-  return -1;
+  return fewest;
+}
+
+// Whether a worn copy of `name` could still be split for farming, which is
+// what a bag copy of it would do.
+bool AwaitsSplit(const CharacterInstance& character, const std::string& name) {
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       character.equipped(kBossGear)) {
+    if (entry.second->prototype().name() == name &&
+        SharesFarmPiece(character, entry.first)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace
@@ -226,6 +245,7 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   }
   Candidate offer;
   offer.slot = slot;
+  offer.gear = basis.gear;
   offer.scroll = scroll;
   offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
                basis.trace->shop_price();
@@ -234,7 +254,7 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   offer.gain = (PowerWith(state, basis.yard, basis.derived,
                           Plus(basis.worn, scroll->stats())) -
                 basis.power) *
-               plan_.scroll_rate / 100.0;
+               basis.scale * plan_.scroll_rate / 100.0;
   if (open_slots <= 0) {
     offer.hammer = true;
     offer.cost += kGoldenHammerCost;
@@ -259,7 +279,7 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   // Looked up here rather than passed in: ScrollOffer measures, and measuring
   // rebuilds the character from a proto, destroying every EquipInstance in the
   // map, this one included.
-  const EquipInstance* item = Worn(state, slot);
+  const EquipInstance* item = state.character.WornAt(basis.gear, slot);
   if (item == nullptr) {
     return std::nullopt;
   }
@@ -285,9 +305,10 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   // left of the run afresh.
   Candidate offer;
   offer.slot = slot;
+  offer.gear = basis.gear;
   offer.star = true;
   offer.cost = static_cast<int64_t>(run.step_cost);
-  offer.gain = run.gain * run.step_cost / run.cost;
+  offer.gain = run.gain * basis.scale * run.step_cost / run.cost;
   return offer;
 }
 
@@ -331,6 +352,53 @@ double GearShopper::Power(GameState& state) {
   return PowerWith(state, yard_.For(state), derived, worn);
 }
 
+GearShopper::Basis GearShopper::FarmBasis(GameState& state, const Basis& boss,
+                                          double power_per_meso) {
+  Basis farm;
+  farm.trace = boss.trace;
+  farm.gear = kFarmGear;
+  farm.derived = DerivedStatsFor(state.character, state.skills, {}, {},
+                                 Activity::kFarming);
+  farm.worn = TotalEquipStats(state.character, farm.derived);
+  farm.yard = CrowdYardstick(boss.yard, state.character.proto().level());
+  farm.power = PowerWith(state, farm.yard, farm.derived, farm.worn);
+  farm.scale = 0.0;
+  if (income_.rate && income_.seconds_left > 0.0 && farm.power > 0.0) {
+    farm.scale =
+        income_.rate(MesoBonus(farm.derived), farm.derived.item_drop_pct) *
+        income_.seconds_left * power_per_meso / farm.power;
+  }
+  return farm;
+}
+
+void GearShopper::PieceOffers(GameState& state, const Basis& basis,
+                              EquipSlot slot, bool hammers_open,
+                              std::vector<Candidate>& offers) {
+  const EquipInstance* item = state.character.WornAt(basis.gear, slot);
+  if (item == nullptr) {
+    return;
+  }
+  // Read these before either offer, since both measure: trying on a scroll
+  // rebuilds the character, destroying every EquipInstance in the map.
+  int level = item->prototype().required_level();
+  int stars = item->stars();
+  int open_slots = item->equip_state().remaining_upgrade_slots();
+  bool can_star = item->CanStarForce();
+  bool can_hammer = item->CanHammer() && hammers_open;
+  std::optional<Candidate> scroll =
+      ScrollOffer(state, basis, slot, level, open_slots, can_hammer);
+  if (scroll.has_value()) {
+    offers.push_back(*scroll);
+  }
+  if (!can_star) {
+    return;
+  }
+  std::optional<Candidate> star = StarOffer(state, basis, slot, level, stars);
+  if (star.has_value()) {
+    offers.push_back(*star);
+  }
+}
+
 std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);
@@ -348,46 +416,97 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   }
   std::vector<Candidate> offers;
   for (EquipSlot slot : slots) {
-    const EquipInstance* item = Worn(state, slot);
-    if (item == nullptr) {
-      continue;
-    }
     std::optional<Candidate> symbol = SymbolOffer(state, basis, slot);
     if (symbol.has_value()) {
       offers.push_back(*symbol);
       continue;  // a symbol takes neither scrolls nor stars
     }
-    // Read these before either offer, since both measure: trying on a scroll
-    // rebuilds the character, destroying every EquipInstance in the map.
-    int level = item->prototype().required_level();
-    int stars = item->stars();
-    int open_slots = item->equip_state().remaining_upgrade_slots();
-    bool can_star = item->CanStarForce();
-    bool can_hammer = item->CanHammer() && hammers_open;
-    std::optional<Candidate> scroll =
-        ScrollOffer(state, basis, slot, level, open_slots, can_hammer);
-    if (scroll.has_value()) {
-      offers.push_back(*scroll);
-    }
-    if (!can_star) {
-      continue;
-    }
-    std::optional<Candidate> star = StarOffer(state, basis, slot, level, stars);
-    if (star.has_value()) {
-      offers.push_back(*star);
-    }
+    PieceOffers(state, basis, slot, hammers_open, offers);
   }
-  // Cube offers come after the rest, which set what a meso is worth. An income
-  // line pays in meso, and only that rate lets it rank against damage lines.
-  // See CubeOffers.
+  // Farm, split and cube offers come after the rest, which set what a meso is
+  // worth. They pay in income, and only that rate lets it rank against damage.
   double best = 0.0;
   for (const Candidate& offer : offers) {
     if (offer.cost > 0) {
       best = std::max(best, static_cast<double>(offer.gain) / offer.cost);
     }
   }
+  const Basis farm = FarmBasis(state, basis, best);
+  if (farm.scale > 0.0) {
+    std::vector<EquipSlot> farm_only;
+    for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+         state.character.equipped(kFarmGear)) {
+      if (state.character.WornAt(kBossGear, entry.first) != entry.second) {
+        farm_only.push_back(entry.first);
+      }
+    }
+    for (EquipSlot slot : farm_only) {
+      PieceOffers(state, farm, slot, hammers_open, offers);
+    }
+    if (!splits_.has_value()) {
+      splits_ = SplitOffers(state, farm);
+    }
+    offers.insert(offers.end(), splits_->begin(), splits_->end());
+  }
   std::vector<Candidate> cubes = CubeOffers(state, best);
   offers.insert(offers.end(), cubes.begin(), cubes.end());
+  return offers;
+}
+
+std::vector<GearShopper::Candidate> GearShopper::SplitOffers(
+    GameState& state, const Basis& farm) {
+  std::vector<Candidate> offers;
+  if (!plan_.cubes) {
+    return offers;  // a bare copy is only worth the meso line cubed onto it
+  }
+  std::vector<std::pair<EquipSlot, std::string>> shared;
+  std::set<std::string> seen;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped(kBossGear)) {
+    const EquipPrototype& proto = entry.second->prototype();
+    if (SharesFarmPiece(state.character, entry.first) &&
+        entry.second->CanCube() && seen.insert(proto.name()).second &&
+        (proto.shop_price() > 0 ||
+         SparesInBag(state.character, proto.name()) > 0)) {
+      shared.push_back({entry.first, proto.name()});
+    }
+  }
+  if (shared.empty()) {
+    return offers;
+  }
+  // Every trial ends by putting this back, which destroys every EquipInstance
+  // the character held; nothing below keeps one across a trial.
+  const Character before = state.character.ToProto();
+  for (const std::pair<EquipSlot, std::string>& piece : shared) {
+    const EquipPrototype proto =
+        state.character.WornAt(kBossGear, piece.first)->prototype();
+    const int64_t copy = SpareCost(proto);
+    if (SparesInBag(state.character, piece.second) == 0 &&
+        !state.character.Buy(proto, 1)) {
+      continue;
+    }
+    const EquipSlot at = SplitFarmPiece(state.character, piece.first);
+    if (at != EQUIP_SLOT_UNSPECIFIED) {
+      DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
+                                             {}, Activity::kFarming);
+      const double lost =
+          (farm.power - PowerWith(state, farm.yard, derived,
+                                  TotalEquipStats(state.character, derived))) *
+          farm.scale;
+      CubeProgram run =
+          BestCubeProgram(state, CubeBasisFor(state, yard_.For(state)),
+                          kFarmGear, at, CubeType::kRed, income_, rng_);
+      if (run.worth() && run.gain > lost) {
+        Candidate offer;
+        offer.slot = piece.first;
+        offer.split = true;
+        offer.cost = copy + run.cost;
+        offer.gain = run.gain - lost;
+        offers.push_back(offer);
+      }
+    }
+    state.character.RestoreFrom(before, state.equips, state.items);
+  }
   return offers;
 }
 
@@ -502,9 +621,9 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
   return true;
 }
 
-bool GearShopper::BuyHammer(GameState& state, EquipSlot slot,
+bool GearShopper::BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,
                             GearSpend& spend) {
-  if (!state.character.HammerEquipped(slot, kBossGear)) {
+  if (!state.character.HammerEquipped(slot, gear)) {
     return false;  // refused for meso or by the item
   }
   spend.hammers += kGoldenHammerCost;
@@ -515,7 +634,8 @@ bool GearShopper::BuyHammer(GameState& state, EquipSlot slot,
 bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
                             GearSpend& spend) {
   const ItemPrototype* trace = TraceItem(state);
-  const EquipInstance* item = Worn(state, candidate.slot);
+  const EquipInstance* item =
+      state.character.WornAt(candidate.gear, candidate.slot);
   if (trace == nullptr || item == nullptr) {
     return false;
   }
@@ -524,7 +644,8 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
       !state.character.SpendItem(kSpellTraceName, traces)) {
     return false;  // the bag refused them, not a lack of meso
   }
-  state.character.ScrollEquipped(candidate.slot, *candidate.scroll, kBossGear);
+  state.character.ScrollEquipped(candidate.slot, *candidate.scroll,
+                                 candidate.gear);
   spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
   ++spend.slots_filled;
   return true;
@@ -532,8 +653,11 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
 
 // Attempts until the star lands or meso runs out. The offer's price was the
 // expected cost; this is the actual cost, and one run isn't the average.
-bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
-  const StatPreset owner = OwnerOf(state.character, slot);
+bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
+                          GearSpend& spend) {
+  // A farm-only piece is the first preset's own, like everything it wears.
+  const StatPreset owner =
+      gear == kFarmGear ? kFarmGear : OwnerOf(state.character, slot);
   const EquipInstance* item = Owned(state.character, owner, slot);
   int before = item == nullptr ? 0 : item->stars();
   // Copy the prototype: a boom destroys the EquipInstance, and recovery needs
@@ -586,14 +710,36 @@ bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
   return true;
 }
 
+bool GearShopper::BuySplit(GameState& state, EquipSlot slot, GearSpend& spend) {
+  const EquipInstance* worn = state.character.WornAt(kBossGear, slot);
+  if (worn == nullptr) {
+    return false;
+  }
+  const EquipPrototype proto = worn->prototype();
+  const bool bought = SparesInBag(state.character, proto.name()) == 0;
+  if (bought && !state.character.Buy(proto, 1)) {
+    return false;
+  }
+  if (SplitFarmPiece(state.character, slot) == EQUIP_SLOT_UNSPECIFIED) {
+    return false;
+  }
+  spend.copies += bought ? proto.shop_price() : 0;
+  ++spend.farm_splits;
+  splits_.reset();
+  return true;
+}
+
 bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
                            GearSpend& spend) {
+  if (candidate.split) {
+    return BuySplit(state, candidate.slot, spend);
+  }
   if (candidate.cube) {
     return BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
                    spend);
   }
   if (candidate.hammer) {
-    return BuyHammer(state, candidate.slot, spend);
+    return BuyHammer(state, candidate.slot, candidate.gear, spend);
   }
   if (candidate.symbol) {
     return BuySymbol(state, candidate.slot, spend);
@@ -601,7 +747,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (!candidate.star) {
     return BuyScroll(state, candidate, spend);
   }
-  return BuyStar(state, candidate.slot, spend);
+  return BuyStar(state, candidate.slot, candidate.gear, spend);
 }
 
 bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
@@ -660,12 +806,12 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
     if (kept == allowance.end()) {
       int worn = WornStars(state.character, proto.name());
       // A piece not worn keeps one copy, since it's gear, not a spare. A worn
-      // piece keeps as many as booms could use.
-      kept =
-          allowance
-              .insert({proto.name(),
-                       worn < 0 ? 1 : SparesWorthKeeping(state, proto, worn)})
-              .first;
+      // piece keeps as many as booms could use, and one to split for farming.
+      int keep = worn < 0 ? 1 : SparesWorthKeeping(state, proto, worn);
+      if (AwaitsSplit(state.character, proto.name())) {
+        keep = std::max(keep, 1);
+      }
+      kept = allowance.insert({proto.name(), keep}).first;
     }
     if (state.character.MeetsJob(proto) && kept->second > 0) {
       --kept->second;
@@ -678,6 +824,7 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
 
 GearSpend GearShopper::Spend(GameState& state) {
   GearSpend spend;
+  splits_.reset();
   SellSpares(state, spend);
   while (BuyBest(state, spend)) {
   }
