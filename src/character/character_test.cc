@@ -1161,6 +1161,22 @@ TEST_F(LearnSkillTest, ANodeOffersOnlyTheLevelsItsPoolReaches) {
   EXPECT_EQ(rich.LevelsAffordable(node), 0);
 }
 
+// A node a boss unlocks is in nobody's matrix until that boss falls, and a
+// recorded defeat survives a save.
+TEST_F(LearnSkillTest, ABossLockedNodeWaitsForItsFirstClear) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/100);
+  Skill node = MakeCommonNode();
+  node.set_unlock_boss("will");
+  EXPECT_FALSE(c.ReachesVNode(node));
+  EXPECT_FALSE(c.LearnSkill(node));
+
+  EXPECT_TRUE(c.RecordDefeat("will"));
+  EXPECT_FALSE(c.RecordDefeat("will")) << "only the first clear is news";
+  EXPECT_TRUE(c.ReachesVNode(node));
+  EXPECT_TRUE(c.LearnSkill(node));
+  EXPECT_EQ(c.ToProto().bosses_defeated_size(), 1);
+}
+
 // A node needs a matrix, so a character without one buys nothing however many
 // points they have.
 TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {

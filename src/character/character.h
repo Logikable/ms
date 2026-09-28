@@ -177,6 +177,10 @@ class CharacterInstance {
   // Records a clear at `now`, replacing any earlier one for the same pair.
   void RecordBossClear(const std::string& boss, const std::string& difficulty,
                        int64_t now);
+  // Whether this character has ever cleared `boss`, at any difficulty.
+  bool HasDefeated(const std::string& boss) const;
+  // Records a first clear of `boss`. Returns false if it was already recorded.
+  bool RecordDefeat(const std::string& boss);
   // When this character last claimed the dailies, or 0 for never. They reset on
   // the same clock as daily bosses; see dailies.h.
   int64_t DailiesClaimedAt() const {

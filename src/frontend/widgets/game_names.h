@@ -6,6 +6,7 @@
 #define MS_SRC_FRONTEND_WIDGETS_GAME_NAMES_H_
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -148,9 +149,10 @@ std::vector<const Skill*> SkillsForAdvancement(
 // Every V Matrix node a character at `advancement` holds, as one list in four
 // blocks: the job's own actives, the boosts for its book, its line's archetype
 // nodes, then the common nodes. See VNodeSectionBreaks for where the blocks
-// start.
+// start. A node a boss unlocks is left out unless `defeated` names that boss.
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
-                                    JobAdvancement advancement);
+                                    JobAdvancement advancement,
+                                    const std::set<std::string>& defeated);
 
 // The index in VNodesFor's list of the first node of each block after the
 // first, so the caller can draw a rule above each. A missing block adds no

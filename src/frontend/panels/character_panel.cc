@@ -841,9 +841,15 @@ JobAdvancement CharacterPanel::VAdvancement() const {
                                 character_.proto().job_stage());
 }
 
+std::vector<const Skill*> CharacterPanel::VNodes() const {
+  const google::protobuf::RepeatedPtrField<std::string>& defeated =
+      character_.proto().bosses_defeated();
+  return VNodesFor(skills_, VAdvancement(),
+                   std::set<std::string>(defeated.begin(), defeated.end()));
+}
+
 bool CharacterPanel::HasVPage() const {
-  return character_.v_matrix_unlocked() &&
-         !VNodesFor(skills_, VAdvancement()).empty();
+  return character_.v_matrix_unlocked() && !VNodes().empty();
 }
 
 bool CharacterPanel::ShowsSkillPlus() const {
@@ -909,7 +915,7 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   std::set<std::string> toggles_on(character_.proto().active_skill().begin(),
                                    character_.proto().active_skill().end());
   if (IsVPage(page)) {
-    return VNodesFor(skills_, VAdvancement());
+    return VNodes();
   }
   if (IsHyperPage(page)) {
     return SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true,

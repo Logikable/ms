@@ -23,7 +23,7 @@ namespace ms {
 // arena is a grid whatever is in it. It is narrow because a phase can have ten
 // panels across four rows. Names wrap over the bar's rows instead of setting
 // the width, so a row must fit the longest word in a name.
-inline constexpr int kBossPanelWidth = 16;
+inline constexpr int kBossPanelWidth = 17;
 
 // How many rows the player's bar uses. Fixed, unlike the monsters', because the
 // name on it changes with every attack, and a panel that grew and shrank

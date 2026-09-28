@@ -955,6 +955,20 @@ void CharacterInstance::RecordBossClear(const std::string& boss,
   added->set_cleared_unix_seconds(now);
 }
 
+bool CharacterInstance::HasDefeated(const std::string& boss) const {
+  const google::protobuf::RepeatedPtrField<std::string>& defeated =
+      character_.bosses_defeated();
+  return std::find(defeated.begin(), defeated.end(), boss) != defeated.end();
+}
+
+bool CharacterInstance::RecordDefeat(const std::string& boss) {
+  if (HasDefeated(boss)) {
+    return false;
+  }
+  character_.add_bosses_defeated(boss);
+  return true;
+}
+
 bool CharacterInstance::ScrollPinned(const std::string& key) const {
   const google::protobuf::RepeatedPtrField<std::string>& pinned =
       character_.pinned_scrolls();
@@ -1715,6 +1729,9 @@ int CharacterInstance::ReconcileLinkSkills(
 
 bool CharacterInstance::ReachesVNode(const Skill& skill) const {
   if (!v_matrix_unlocked()) {
+    return false;
+  }
+  if (!skill.unlock_boss().empty() && !HasDefeated(skill.unlock_boss())) {
     return false;
   }
   // A common node belongs to no job, so every matrix can hold it. Any other

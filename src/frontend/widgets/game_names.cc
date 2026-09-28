@@ -187,7 +187,8 @@ std::vector<const Skill*> SkillsForAdvancement(
 }
 
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
-                                    JobAdvancement advancement) {
+                                    JobAdvancement advancement,
+                                    const std::set<std::string>& defeated) {
   std::vector<const Skill*> nodes;
   for (const Skill* skill : SkillsForAdvancement(catalog, advancement)) {
     if (skill->v_node() != V_NODE_KIND_UNSPECIFIED) {
@@ -200,7 +201,10 @@ std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
                    });
   for (const Skill* node :
        SkillsForAdvancement(catalog, JOB_ADVANCEMENT_COMMON)) {
-    nodes.push_back(node);
+    if (node->unlock_boss().empty() ||
+        defeated.count(node->unlock_boss()) > 0) {
+      nodes.push_back(node);
+    }
   }
   return nodes;
 }

@@ -779,6 +779,34 @@ TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }
 
+// The first clear records the boss and names the skills it opens; a second
+// opens nothing, and a practice clear records nothing.
+TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
+  std::unique_ptr<GameState> state = MakeState();
+  Skill spider;
+  spider.set_name("True Arachnid Reflection");
+  spider.set_unlock_boss("zakum");
+  state->skills[spider.name()] = spider;
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+
+  BossRun practice("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  RunToEnd(practice, *state);
+  ASSERT_TRUE(practice.won());
+  EXPECT_FALSE(state->character.HasDefeated("zakum"));
+
+  BossRun first("zakum", boss, 0);
+  RunToEnd(first, *state);
+  ASSERT_TRUE(first.won());
+  EXPECT_TRUE(state->character.HasDefeated("zakum"));
+  EXPECT_EQ(first.reward().skills,
+            std::vector<std::string>({"True Arachnid Reflection"}));
+
+  BossRun second("zakum", boss, 0);
+  RunToEnd(second, *state);
+  ASSERT_TRUE(second.won());
+  EXPECT_TRUE(second.reward().skills.empty());
+}
+
 // Paid once: not once per phase, and not again while the win is on screen.
 TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   std::unique_ptr<GameState> state = MakeState();

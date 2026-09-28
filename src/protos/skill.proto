@@ -1571,6 +1571,10 @@ message Skill {
   // JOB_ADVANCEMENT_LINK, which is nobody's book, and access depends on what
   // the account has equipped, not whose book it is in.
   Job link_line = 67;
+  // The boss, by its file stem under data/bosses, whose first clear at any
+  // difficulty opens this skill. Until then no character has it in any book.
+  // Empty for a skill that needs no boss.
+  string unlock_boss = 68;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.
   SkillRequirement required_skill = 8;

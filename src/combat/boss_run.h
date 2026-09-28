@@ -145,6 +145,9 @@ struct BossReward {
   // fight as often as they like doesn't give it.
   int64_t honor = 0;
   std::vector<BossRewardItem> items;
+  // Skills this clear opened, by display name: only a first clear of the boss
+  // opens any. See Skill.unlock_boss.
+  std::vector<std::string> skills;
 };
 
 // One monster's bar. Created when the phase starts and never reused: a dead

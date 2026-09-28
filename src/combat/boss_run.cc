@@ -727,6 +727,13 @@ void BossRun::PayReward(GameState& state,
                                award.drop.per_kill()});
     }
   }
+  if (state.character.RecordDefeat(boss_key_)) {
+    for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      if (entry.second.unlock_boss() == boss_key_) {
+        reward_.skills.push_back(entry.second.name());
+      }
+    }
+  }
 }
 
 void BossRun::AdvanceShared(GameState& state, double dt) {

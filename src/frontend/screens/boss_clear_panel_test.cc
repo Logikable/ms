@@ -85,6 +85,18 @@ TEST(BossClearPanelTest, ARuleDividesWhatWasPaidFromTheGear) {
   EXPECT_NE(rows[shard + 1].find("\u2500"), std::string::npos);
 }
 
+// A skill a first clear opened goes last, under a rule of its own.
+TEST(BossClearPanelTest, ASkillTheClearOpenedIsRuledOffLast) {
+  BossReward reward = FullReward();
+  reward.skills.push_back("True Arachnid Reflection");
+  ftxui::Screen screen = RenderCard(reward);
+  int gear = RowOf(screen, "Condensed Power Crystal");
+  int skill = RowOf(screen, "New Skill: True Arachnid Reflection");
+  ASSERT_GT(gear, 0);
+  ASSERT_EQ(skill, gear + 2);
+  EXPECT_NE(ScreenRows(screen)[gear + 1].find("\u2500"), std::string::npos);
+}
+
 // With only gear, there is nothing to separate from, so no rule is drawn above
 // the single line.
 TEST(BossClearPanelTest, GearAloneIsNotRuledOffFromNothing) {

@@ -450,6 +450,9 @@ class CharacterPanel {
   // Whether the V page is shown, which it is once the character has a matrix
   // and the catalog has a node they can reach.
   bool HasVPage() const;
+  // The V page's nodes, leaving out any a boss this character hasn't beaten
+  // unlocks.
+  std::vector<const Skill*> VNodes() const;
   // Whether page `page` is the V page, which is always last.
   bool IsVPage(int page) const;
   // The advancement whose own nodes the V page lists beside the common ones.

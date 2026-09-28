@@ -64,9 +64,10 @@ std::vector<const Skill*> JobInspectPanel::Skills() const {
   // The 5th advancement gives a V Matrix instead of a book, and the matrix
   // includes the common nodes as well as the job's own, of every kind, so a
   // boost node appears here as soon as one is written. Built with the same
-  // function the V page uses, so the two can't disagree.
+  // function the V page uses, so the two can't disagree. A node a boss unlocks
+  // belongs to no job, so it isn't shown.
   if (stage_ == kFifthJobStage) {
-    return VNodesFor(skills_, advancement);
+    return VNodesFor(skills_, advancement, {});
   }
   // Below the 5th, this job's own book and no other. A player choosing between
   // Fighter and Page already has the Swordman's book, so listing it again would

@@ -759,6 +759,16 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   if (state.character.proto().level() >= kLucidAndWillLevel) {
     WearAll(state, {"twilight_mark"}, equips);
   }
+  // It wears what those fights drop, so it has beaten them, and holds whatever
+  // skill a first clear opens.
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (!difficulty.coming_soon() &&
+          difficulty.unlock_level() <= state.character.proto().level()) {
+        state.character.RecordDefeat(entry.first);
+      }
+    }
+  }
   WearStarterSymbol(state);
 }
 

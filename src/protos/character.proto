@@ -477,6 +477,11 @@ message Character {
   // what to bring. See //src/character:link.
   LinkSkills link_skills = 28;
 
+  // Every boss this character has ever cleared, by file stem, at any
+  // difficulty. Unlike boss_clears this never expires: it is what
+  // Skill.unlock_boss reads. A Practice run doesn't count.
+  repeated string bosses_defeated = 29;
+
   // Tabs opened and gold trails walked. Since format version 2 the account
   // keeps these, so something shown once is shown to all of the player's
   // characters. See Account.seen_keys.

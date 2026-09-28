@@ -7,7 +7,7 @@ description:
   "increased to master level. Exceptions: Combat Orders, hyper skills, and "
   "5th job skills cannot be increased. Does not stack with Combat Orders."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 6 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Combat Orders"
 max_level: 30

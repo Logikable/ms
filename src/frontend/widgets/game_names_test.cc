@@ -649,7 +649,7 @@ TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
                     JOB_ADVANCEMENT_DARK_KNIGHT_V, 1)},
   };
   EXPECT_EQ(
-      NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V)),
+      NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V, {})),
       (std::vector<std::string>{"Dark Synthesis", "Radiant Evil", "Boost A",
                                 "Boost B", "Weapon Aura", "Impenetrable Skin",
                                 "Erda Fountain", "Rope Lift"}));
@@ -672,7 +672,7 @@ TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
                     JOB_ADVANCEMENT_DARK_KNIGHT_V, 1)},
   };
   std::vector<const Skill*> nodes =
-      VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V);
+      VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V, {});
   EXPECT_EQ(VNodeSectionBreaks(nodes), (std::vector<int>{1, 3, 4}));
 
   // A page missing a block gets no rule for it. A job with no nodes of its own
@@ -684,7 +684,7 @@ TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
        Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 2)},
   };
   EXPECT_TRUE(
-      VNodeSectionBreaks(VNodesFor(commons_only, JOB_ADVANCEMENT_BISHOP_V))
+      VNodeSectionBreaks(VNodesFor(commons_only, JOB_ADVANCEMENT_BISHOP_V, {}))
           .empty());
 }
 
@@ -697,9 +697,9 @@ TEST(VNodesForTest, AnotherLinesArchetypeNodeIsNotOnThePage) {
       {"aura", Node("Weapon Aura", V_NODE_KIND_ARCHETYPE,
                     JOB_ADVANCEMENT_DARK_KNIGHT_V, 7)},
   };
-  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_BISHOP_V)),
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_BISHOP_V, {})),
             (std::vector<std::string>{"Erda Fountain"}));
-  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V)),
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V, {})),
             (std::vector<std::string>{"Weapon Aura", "Erda Fountain"}));
 }
 
@@ -711,8 +711,28 @@ TEST(VNodesForTest, AJobWithNoNodesOfItsOwnStillHoldsTheCommons) {
        Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
       {"slash", PageSkill("Slash Blast", 1)},
   };
-  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V)),
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V, {})),
             (std::vector<std::string>{"Erda Fountain"}));
+}
+
+// A node a boss unlocks joins the common block once that boss is beaten, in
+// its own place in the order.
+TEST(VNodesForTest, ABossLockedNodeWaitsForTheBoss) {
+  Skill spider = Node("True Arachnid Reflection", V_NODE_KIND_COMMON,
+                      JOB_ADVANCEMENT_COMMON, 2);
+  spider.set_unlock_boss("will");
+  std::map<std::string, Skill> catalog = {
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"spider", spider},
+      {"lift",
+       Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 3)},
+  };
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V, {})),
+            (std::vector<std::string>{"Erda Fountain", "Rope Lift"}));
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V, {"will"})),
+            (std::vector<std::string>{
+                "Erda Fountain", "True Arachnid Reflection", "Rope Lift"}));
 }
 
 // A chip must not change width when a preset is put in use, or the row shifts

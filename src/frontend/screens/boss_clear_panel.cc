@@ -70,6 +70,12 @@ ftxui::Element BossClearPanel(const std::string& title, double seconds,
   for (const BossRewardItem* item : prizes) {
     rows.push_back(CenteredRow(DropLine(*item)));
   }
+  if (!reward.skills.empty() && rows.size() > 2) {
+    rows.push_back(AccentSeparator(kYellow));
+  }
+  for (const std::string& skill : reward.skills) {
+    rows.push_back(CenteredRow("New Skill: " + skill));
+  }
   // A clear that paid nothing, like a Practice run, has no rewards section,
   // so the title's rule is the only one.
   if (rows.size() > 2) {

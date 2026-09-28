@@ -1,0 +1,35 @@
+# The first clear of Will opens it; GMS asks Hard Will and a Nodestone. The
+# cast's HP cost is dropped.
+#
+# The spider hits one enemy, eight times a swing. GMS swings its legs ten times
+# an attack mode, 900, 850, 750 and 650ms apart for the first five, and ends
+# the mode early once five land on one target, then rests 3s. Against a boss
+# that is five swings every 6.15s, one pulse here.
+name: "True Arachnid Reflection"
+description:
+  "The collapsing space between the Mirror World and reality become linked "
+  "with Will's Erda, causing the spider within the mirror to temporarily "
+  "materialize in reality. Unaffected by attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 3 }
+v_node: V_NODE_KIND_COMMON
+unlock_boss: "will"
+max_level: 30
+base_delay_ms: 780
+cooldown_seconds: 250.0
+max_enemies: 15
+lines: 15
+base { skill_pct: 4.68 }
+per_level { skill_pct: 0.18 }
+buff {
+  duration_seconds: 50.0
+  pulse {
+    label: "Spider Legs"
+    cast_interval_seconds: 6.15
+    casts: 5
+    lines: 8
+    max_enemies: 1
+    base { skill_pct: 1.82 }
+    per_level { skill_pct: 0.07 }
+  }
+}

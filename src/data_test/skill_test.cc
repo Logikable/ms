@@ -1294,10 +1294,12 @@ TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
 
 // Every attack names the weapons it needs. Every class can hold the starter
 // Sword and Long Sword, so an attack with no requirement would let a magician
-// cast Energy Bolt with a longsword.
+// cast Energy Bolt with a longsword. A common node is the exception: it is in
+// every matrix, and GMS casts it with whatever is held.
 TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+    if (entry.second.kind() != SKILL_KIND_ATTACK ||
+        entry.second.v_node() == V_NODE_KIND_COMMON) {
       continue;
     }
     EXPECT_GT(entry.second.required_equip_type_size(), 0)
@@ -1392,7 +1394,8 @@ TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
   std::set<JobAdvancement> seen;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (skill.kind() != SKILL_KIND_ATTACK) {
+    if (skill.kind() != SKILL_KIND_ATTACK ||
+        skill.v_node() == V_NODE_KIND_COMMON) {
       continue;
     }
     JobAdvancement book = BookOf(skill);
