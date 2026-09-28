@@ -101,4 +101,27 @@ StarForceRun StarForceRunTo(int required_level, int from, int to) {
   return run;
 }
 
+StarRunChoice BestStarRun(int required_level, int from, int ceiling,
+                          double spare, bool can_boom,
+                          const std::function<double(int)>& gain_to) {
+  StarRunChoice best;
+  for (int to = from + 1; to <= ceiling; ++to) {
+    StarForceRun run = StarForceRunTo(required_level, from, to);
+    if (run.meso <= 0.0 || (run.booms > 0.0 && !can_boom)) {
+      break;
+    }
+    const double cost = run.meso + run.booms * spare;
+    const double gain = gain_to(to);
+    if (to == from + 1) {
+      best.step_cost = cost;
+    }
+    if (best.to == 0 || gain * best.cost > best.gain * cost) {
+      best.to = to;
+      best.gain = gain;
+      best.cost = cost;
+    }
+  }
+  return best;
+}
+
 }  // namespace ms

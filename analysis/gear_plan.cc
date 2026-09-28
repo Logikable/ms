@@ -244,17 +244,16 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
 
 // The next star `slot`'s item could take. Nothing if it takes no stars, has
 // reached the plan's limit, or isn't fully scrolled, since GMS refuses a star
-// while an upgrade slot is open.
+// while an upgrade slot is open. Valued as the first step of the best run it
+// starts; see BestStarRun.
 std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
                                                              const Basis& basis,
                                                              EquipSlot slot,
                                                              int level,
                                                              int stars) {
-  if (stars >= plan_.star_ceiling) {
-    return std::nullopt;
-  }
-  StarForceRun run = StarForceRunTo(level, stars, stars + 1);
-  if (run.meso <= 0.0) {
+  const int ceiling =
+      std::min(plan_.star_ceiling, EquipTabItem::MaxStarsForLevel(level));
+  if (stars >= ceiling) {
     return std::nullopt;
   }
   // Looked up here rather than passed in: ScrollOffer measures, and measuring
@@ -267,23 +266,28 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   // Only risk destruction with a way to recover. The trace a boom leaves needs
   // a spare copy, and if neither the shop nor the bag has one, the piece would
   // simply be lost, which the sim can't undo.
-  if (run.booms > 0.0 && !CanCoverBoom(state.character, item->prototype())) {
+  const bool coverable = CanCoverBoom(state.character, item->prototype());
+  const double spare = static_cast<double>(SpareCost(item->prototype()));
+  const EquipStats now = item->StarForceStatGains(stars);
+  StarRunChoice run = BestStarRun(
+      level, stars, ceiling, spare, coverable,
+      [&state, &basis, item, &now](int to) {
+        return PowerWith(
+                   state, basis.yard, basis.derived,
+                   Plus(basis.worn, Minus(item->StarForceStatGains(to), now))) -
+               basis.power;
+      });
+  if (run.to == 0 || run.cost <= 0.0) {
     return std::nullopt;
   }
+  // Bought one star at a time, at the run's rate: the offer is the next star's
+  // price, and the gain its share of the run's. The next pass prices what is
+  // left of the run afresh.
   Candidate offer;
   offer.slot = slot;
   offer.star = true;
-  // The expected price of getting the star, not of one attempt. Past 15 stars
-  // the copies consumed by booms are the larger part.
-  offer.cost =
-      static_cast<int64_t>(run.meso + run.booms * SpareCost(item->prototype()));
-  // Worn stats already include the item's current stars, so only the gap is on
-  // offer.
-  EquipStats added = Minus(item->StarForceStatGains(stars + 1),
-                           item->StarForceStatGains(stars));
-  offer.gain =
-      PowerWith(state, basis.yard, basis.derived, Plus(basis.worn, added)) -
-      basis.power;
+  offer.cost = static_cast<int64_t>(run.step_cost);
+  offer.gain = run.gain * run.step_cost / run.cost;
   return offer;
 }
 

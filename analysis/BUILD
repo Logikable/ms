@@ -579,3 +579,13 @@ cc_library(
         "//src/item:star_force_cost",
     ],
 )
+
+cc_test(
+    name = "star_force_curve_test",
+    size = "small",
+    srcs = ["star_force_curve_test.cc"],
+    deps = [
+        ":star_force_curve",
+        "@googletest//:gtest_main",
+    ],
+)
