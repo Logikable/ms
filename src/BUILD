@@ -114,6 +114,7 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/character:sacred_power",
+        "//src/protos:boss_proto_cc",
         "//src/protos:map_proto_cc",
     ],
 )
@@ -125,6 +126,7 @@ cc_test(
     deps = [
         ":map_force",
         "//src/character",
+        "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:map_proto_cc",
         "@googletest//:gtest_main",

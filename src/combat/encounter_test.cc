@@ -5175,6 +5175,23 @@ TEST(ComputeBossParamsTest, AMaxedSymbolHitsItsOwnBossHarder) {
   EXPECT_NEAR(own, other * (1 + kSacredMaxBossDamagePct), 1e-9 * own);
 }
 
+// A boss's Arcane Force requirement cuts the damage as a river map's does:
+// meeting 10% of it deals 30%.
+TEST(ComputeBossParamsTest, ArcaneForceScalesTheDamageDealt) {
+  GameState state({}, {}, {}, {{"arm", MakeMob("Zakum's Arm", 700000)}}, {});
+  EquipSword(state);
+  EquipSymbol(state, /*level=*/1);  // 30 force
+  BossDifficulty free = NormalTwoPhase();
+  BossDifficulty asking = NormalTwoPhase();
+  asking.set_arcane_force(300);
+
+  double full =
+      ComputeBossParams(state, "zakum", free, 0).attacks[0].damage_per_hit[0];
+  double starved =
+      ComputeBossParams(state, "zakum", asking, 0).attacks[0].damage_per_hit[0];
+  EXPECT_NEAR(starved, full * 0.30, 1e-9 * full);
+}
+
 // The activity decides which Hyper Stat allocation applies: a boss fight uses
 // the bossing one, a map the farming one.
 TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {

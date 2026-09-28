@@ -2204,6 +2204,9 @@ CombatParams ComputeBossParams(const GameState& state,
                                          state.party, Activity::kBossing);
   derived.damage_pct +=
       SymbolBossDamagePct(state.character, boss_key, derived.gear);
+  ForceFactors force = BossForceFor(difficulty, state.character).factors;
+  derived.force_damage_factor = force.damage_dealt;
+  derived.force_taken_factor = force.damage_taken;
   // Boss fights run in real time at every level. Game speed stretches idle maps
   // so the player can leave them running; a watched fight needs neither that
   // nor respawns. Both intervals stay 0.

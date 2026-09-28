@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "src/character/character.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/map.pb.h"
 
@@ -44,6 +45,24 @@ TEST(MapForceTest, ReadsTheForceTheMapNames) {
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
   EXPECT_DOUBLE_EQ(none.factors.damage_taken, 1.0);
   EXPECT_FALSE(AsksForForce(field));
+}
+
+TEST(MapForceTest, ABossWeighsArcaneForceAsAMapDoes) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(230);
+  CharacterInstance character(rng, std::move(proto));
+
+  BossDifficulty lucid;
+  lucid.set_arcane_force(360);
+  MapForce force = BossForceFor(lucid, character);
+  EXPECT_EQ(force.name, "Arcane Force");
+  EXPECT_EQ(force.required, 360);
+  EXPECT_DOUBLE_EQ(force.factors.damage_dealt, 0.10);
+
+  MapForce none = BossForceFor(BossDifficulty(), character);
+  EXPECT_EQ(none.required, 0);
+  EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
 }
 
 }  // namespace

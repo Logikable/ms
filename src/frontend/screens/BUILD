@@ -869,6 +869,7 @@ cc_library(
     hdrs = ["boss_select_panel.h"],
     deps = [
         "//src:game_state",
+        "//src:map_force",
         "//src:spawn",
         "//src/character:boss_reset",
         "//src/character:honor",

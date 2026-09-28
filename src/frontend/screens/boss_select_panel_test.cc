@@ -586,6 +586,23 @@ TEST(BossSelectPanelTest, AnUngatedFightHasNoUnlockRow) {
   EXPECT_EQ(Render(panel).find("Unlock Level"), std::string::npos);
 }
 
+// Arcane Force reads like the unlock level, red while short, but falling short
+// only costs damage: the fight stays open. No requirement, no row.
+TEST(BossSelectPanelTest, ArcaneForceIsRedWhileShortButNeverLocks) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossSelectPanel ungated(state);
+  EXPECT_EQ(Render(ungated).find("Arcane Force"), std::string::npos);
+
+  state.bosses["zakum"].mutable_difficulties(0)->set_arcane_force(360);
+  BossSelectPanel panel(state);
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("Arcane Force"), std::string::npos);
+  EXPECT_NE(out.find("360"), std::string::npos);
+  EXPECT_NE(out.find("Available"), std::string::npos);
+  EXPECT_EQ(RowColor(panel, "Arcane Force"), kRed);
+}
+
 // With neither fight gated, the list is ordered by the easiest difficulty's HP,
 // whatever the fight is called.
 TEST(BossSelectPanelTest, TheListSortsByTheHpOfTheEasiestDifficulty) {

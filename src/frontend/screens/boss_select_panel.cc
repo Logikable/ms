@@ -20,6 +20,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/map_force.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -374,6 +375,13 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     rows.push_back(RedUnless(
         DetailRow("Unlock Level", std::to_string(difficulty.unlock_level())),
         Unlocked(difficulty)));
+  }
+  if (difficulty.arcane_force() > 0) {
+    // Red like the unlock level, though falling short only costs damage.
+    MapForce force = BossForceFor(difficulty, state_.character);
+    rows.push_back(
+        RedUnless(DetailRow("Arcane Force", std::to_string(force.required)),
+                  force.owned >= force.required));
   }
   RenderPhaseHp(rows, difficulty);
   rows.push_back(

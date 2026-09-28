@@ -62,6 +62,9 @@ message BossDifficulty {
   // and shows only each phase's HP. There is no timer, reset or reward to show
   // because none has been decided.
   bool coming_soon = 9;
+  // The Arcane Force the fight requires, weighed as an Arcane River map weighs
+  // it: short of it the player deals less, never is kept out. 0 requires none.
+  int32 arcane_force = 10;
 }
 
 // A boss and every difficulty it can be fought at, loaded from data/bosses at
