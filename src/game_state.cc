@@ -230,9 +230,7 @@ const Scroll* BestScrollFor(const GameState& state,
 // odds.
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
-  Equip built;
-  built.set_equip_name(proto.name());
-  built.set_remaining_upgrade_slots(proto.upgrade_slots());
+  Equip built = FreshEquip(proto);
   // Hammers first, so the scrolls fill the widened set of slots.
   if (equips.hammered && TakesUpgradeSlots(proto)) {
     built.set_hammers(kMaxHammers);
@@ -482,6 +480,13 @@ constexpr int kGuardianAngelSlimeLevel = 220;
 // The level Lucid and Will open at, both of whom drop the Twilight Mark, worn
 // from 140, and the coins for Arcane Umbra, worn from 200.
 constexpr int kLucidAndWillLevel = 230;
+
+// The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
+// AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
+// workbench never wears the Mark.
+std::vector<std::string> HardBlackHeavenGear() {
+  return {"berserked", "magic_eyepatch", "black_heart"};
+}
 
 // The AbsoLab weapon for a 4th job, following the same line choice as the two
 // tiers below. Empty below the 4th job, which only reaches level 210 if a
@@ -805,6 +810,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   }
   if (state.character.proto().level() >= kAbsoLabLevel) {
     WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
+    WearAll(state, HardBlackHeavenGear(), equips);
   }
   if (state.character.proto().level() >= kGuardianAngelSlimeLevel) {
     std::map<std::string, EquipPrototype>::const_iterator ring =
@@ -816,7 +822,6 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   }
   if (state.character.proto().level() >= kLucidAndWillLevel) {
     WearAll(state, ArcaneUmbraGear(state.character.proto().job()), equips);
-    WearAll(state, {"twilight_mark"}, equips);
   }
   // It wears what those fights drop, so it has beaten them, and holds whatever
   // skill a first clear opens.
@@ -1090,7 +1095,10 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
        state.character.equipped()) {
-    slots.push_back(worn.first);
+    // A piece that refuses cubes keeps the potential it dropped with.
+    if (worn.second->CanCube()) {
+      slots.push_back(worn.first);
+    }
   }
   for (EquipSlot slot : slots) {
     for (PotentialTrack track :
@@ -1413,6 +1421,10 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   }
   if (proto.name() == "Twilight Mark") {
     return kLucidAndWillLevel;
+  }
+  if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
+      proto.name() == "Black Heart") {
+    return kAbsoLabLevel;
   }
   return proto.required_level();
 }

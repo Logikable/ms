@@ -29,6 +29,7 @@ enum EquipSetName {
   EQUIP_SET_NAME_ARCANE_UMBRA_BOWMAN = 14;
   EQUIP_SET_NAME_ARCANE_UMBRA_MAGICIAN = 15;
   EQUIP_SET_NAME_ARCANE_UMBRA_THIEF = 16;
+  EQUIP_SET_NAME_PITCHED_BOSS = 17;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect

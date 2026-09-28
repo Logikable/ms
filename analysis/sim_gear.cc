@@ -381,15 +381,16 @@ int HammersAt(int level) {
 // slots unused, as for an item that takes none.
 Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
                 int hammers) {
-  Equip state;
-  state.set_equip_name(proto.name());
+  Equip state = FreshEquip(proto);
   if (TakesUpgradeSlots(proto)) {
     state.set_hammers(hammers);
   }
   int slots = TotalUpgradeSlots(proto, state);
   if (scroll == nullptr) {
-    state.set_remaining_upgrade_slots(slots);
+    state.set_remaining_upgrade_slots(state.remaining_upgrade_slots() +
+                                      state.hammers());
   } else {
+    state.set_remaining_upgrade_slots(0);
     state.set_scroll_successes(slots);
     EquipStats gained;
     for (int i = 0; i < slots; ++i) {

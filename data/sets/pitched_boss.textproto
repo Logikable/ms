@@ -1,0 +1,134 @@
+name: EQUIP_SET_NAME_PITCHED_BOSS
+# GMS's ten slots. The badge, emblem, pendant, pocket, earrings, ring and belt
+# pieces drop from fights not built yet.
+complete_pieces: 10
+members {
+  slot: EQUIP_SLOT_FACE_ACCESSORY
+  items { name: "Berserked" }
+}
+members {
+  slot: EQUIP_SLOT_EYE_ACCESSORY
+  items { name: "Magic Eyepatch" }
+}
+members {
+  slot: EQUIP_SLOT_HEART
+  items { name: "Black Heart" }
+}
+tiers {
+  pieces: 2
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp: 250
+    attack: 10
+    magic_attack: 10
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp: 250
+    attack: 10
+    magic_attack: 10
+    def: 250
+    ied_pct: 0.10
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    crit_dmg: 0.05
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 6
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    ied_pct: 0.10
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    crit_dmg: 0.05
+  }
+}
+tiers {
+  pieces: 8
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 9
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    max_hp: 375
+    attack: 15
+    magic_attack: 15
+    crit_dmg: 0.05
+  }
+}
+tiers {
+  pieces: 10
+  effect {
+    str: 20
+    dex: 20
+    int: 20
+    luk: 20
+    max_hp: 500
+    attack: 20
+    magic_attack: 20
+    boss_pct: 0.10
+  }
+}

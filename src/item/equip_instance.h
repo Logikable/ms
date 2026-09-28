@@ -63,8 +63,7 @@ std::unique_ptr<EquipTabItem> EquipItemFromState(const EquipPrototype& proto,
 class EquipInstance : public EquipTabItem {
  public:
   // Constructs from a prototype and optional existing state. When state is
-  // omitted (fresh drop), equip_name and remaining_upgrade_slots are
-  // initialized from the prototype.
+  // omitted (fresh drop), it starts as FreshEquip(prototype).
   explicit EquipInstance(const EquipPrototype& prototype,
                          const Equip& state = {});
   std::unique_ptr<EquipTabItem> Clone() const override;
@@ -92,11 +91,12 @@ class EquipInstance : public EquipTabItem {
     *MutablePotentialOf(state_, track) = potential;
   }
 
-  // Whether a cube can be used on this item, meaning it's worn in a slot
-  // potential applies to. A trace never qualifies, since it isn't an
-  // EquipInstance.
+  // Whether a cube can be used on this item: it's worn in a slot potential
+  // applies to and doesn't refuse cubes. A trace never qualifies, since it
+  // isn't an EquipInstance.
   bool CanCube() const {
-    return SlotTakesPotential(prototype_.equip_slot());
+    return SlotTakesPotential(prototype_.equip_slot()) &&
+           Supports(prototype_, UPGRADE_CUBE);
   }
 
   // Uses a golden hammer: one more upgrade slot, open and unspent. Returns

@@ -19,6 +19,7 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/text_columns.h"
+#include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/protos/character.pb.h"
@@ -776,6 +777,82 @@ TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(1).effect().boss_pct(), 0.0);
   EXPECT_EQ(set->tiers(2).effect().def(), 100);
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
+}
+
+TEST(EquipDataTest, ThePitchedBossSetAddsUpToItsWikiTotals) {
+  const EquipSet* set = nullptr;
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == EQUIP_SET_NAME_PITCHED_BOSS) {
+      set = &entry.second;
+    }
+  }
+  ASSERT_NE(set, nullptr);
+  ASSERT_EQ(set->complete_pieces(), 10);
+  ASSERT_EQ(set->tiers_size(), 9);
+  int stat = 0;
+  int attack = 0;
+  int pool = 0;
+  int def = 0;
+  double boss = 0.0;
+  double ied_left = 1.0;
+  double crit_dmg = 0.0;
+  for (int i = 0; i < set->tiers_size(); ++i) {
+    const SkillEffect& effect = set->tiers(i).effect();
+    EXPECT_EQ(set->tiers(i).pieces(), i + 2);
+    EXPECT_EQ(effect.dex(), effect.str());
+    EXPECT_EQ(effect.int_(), effect.str());
+    EXPECT_EQ(effect.luk(), effect.str());
+    EXPECT_EQ(effect.magic_attack(), effect.attack());
+    stat += effect.str();
+    attack += effect.attack();
+    pool += effect.max_hp();
+    def += effect.def();
+    boss += effect.boss_pct();
+    ied_left *= 1.0 - effect.ied_pct();
+    crit_dmg += effect.crit_dmg();
+  }
+  EXPECT_EQ(stat, 130);
+  EXPECT_EQ(attack, 130);
+  EXPECT_EQ(pool, 3250);
+  EXPECT_EQ(def, 250);
+  EXPECT_NEAR(boss, 0.40, 1e-9);
+  // The wiki's 19%: the two 10% tiers multiply.
+  EXPECT_NEAR(1.0 - ied_left, 0.19, 1e-9);
+  EXPECT_NEAR(crit_dmg, 0.15, 1e-9);
+}
+
+// The Black Heart drops finished: 77 ATT and MATT in spent scrolls and a fixed
+// potential, and every upgrade refused so nothing can change it.
+TEST(EquipDataTest, TheBlackHeartDropsFinishedAndStaysThatWay) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  ASSERT_TRUE(equips.count("black_heart"));
+  EquipInstance heart(equips.at("black_heart"));
+  const Equip& state = heart.equip_state();
+  EXPECT_EQ(state.equip_name(), "Black Heart");
+  EXPECT_EQ(state.remaining_upgrade_slots(), 0);
+  EXPECT_EQ(state.scroll_stats().attack(), 77);
+  EXPECT_EQ(state.scroll_stats().magic_attack(), 77);
+  ASSERT_EQ(state.main_potential().lines_size(), 2);
+  EXPECT_EQ(state.main_potential().lines(0).type(),
+            POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
+  EXPECT_EQ(state.main_potential().lines(1).type(),
+            POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
+  EXPECT_FALSE(heart.CanCube());
+  EXPECT_FALSE(heart.CanHammer());
+  EXPECT_FALSE(heart.CanStarForce());
+  EXPECT_FALSE(Supports(heart.prototype(), UPGRADE_SCROLL));
+}
+
+// A dropped_as can't spend more scrolls than the item has slots.
+TEST(EquipDataTest, EveryDroppedStateFitsItsSlots) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    EXPECT_LE(proto.dropped_as().scroll_successes(), proto.upgrade_slots())
+        << entry.first;
+    EXPECT_TRUE(proto.dropped_as().equip_name().empty()) << entry.first;
+  }
 }
 
 // The Guardian Angel Ring counts for two sets: GMS converts it with a scroll

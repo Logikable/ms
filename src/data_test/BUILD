@@ -169,6 +169,7 @@ cc_test(
         "//src/frontend/widgets:item_row",
         "//src/frontend/widgets:text_columns",
         "//src/item",
+        "//src/item:equip_instance",
         "//src/item:projectile",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

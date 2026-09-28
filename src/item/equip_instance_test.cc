@@ -639,6 +639,20 @@ TEST_F(EquipInstanceTest, ASlotWithNoPotentialRefusesTheCube) {
   EXPECT_EQ(medal.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
 }
 
+TEST_F(EquipInstanceTest, AnItemThatRefusesCubesKeepsItsPotential) {
+  EquipPrototype proto = MakeArmour(EQUIP_SLOT_HEART);
+  proto.add_unsupported_upgrades(UPGRADE_CUBE);
+  proto.mutable_dropped_as()->mutable_main_potential()->set_rank(
+      POTENTIAL_RANK_UNIQUE);
+  EquipInstance heart(proto);
+  std::mt19937 rng(4);
+  EXPECT_FALSE(heart.CanCube());
+  EXPECT_FALSE(heart.Cube(CubeType::kRed, rng));
+  EXPECT_FALSE(heart.Cube(CubeType::kGreen, rng));
+  EXPECT_EQ(heart.potential().rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(heart.bonus_potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+}
+
 TEST_F(EquipInstanceTest, AGreenCubeRollsOnlyTheBonusPotential) {
   EquipInstance cape(MakeArmour(EQUIP_SLOT_CAPE));
   std::mt19937 rng(5);

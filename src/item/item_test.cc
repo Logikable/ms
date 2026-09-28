@@ -111,6 +111,26 @@ TEST(UpgradeSlotsTest, AShelfNeedsScrollsAndSlots) {
   EXPECT_FALSE(TakesUpgradeSlots(refuses));
 }
 
+// A fresh copy opens every slot, less the ones dropped_as already spent, and
+// keeps what dropped_as sets.
+TEST(UpgradeSlotsTest, AFreshCopyStartsAsItDrops) {
+  EquipPrototype proto;
+  proto.set_name("Plain");
+  proto.set_upgrade_slots(7);
+  Equip plain = FreshEquip(proto);
+  EXPECT_EQ(plain.equip_name(), "Plain");
+  EXPECT_EQ(plain.remaining_upgrade_slots(), 7);
+
+  proto.mutable_dropped_as()->set_scroll_successes(5);
+  proto.mutable_dropped_as()->mutable_scroll_stats()->set_attack(35);
+  proto.mutable_dropped_as()->mutable_main_potential()->set_rank(
+      POTENTIAL_RANK_UNIQUE);
+  Equip scrolled = FreshEquip(proto);
+  EXPECT_EQ(scrolled.remaining_upgrade_slots(), 2);
+  EXPECT_EQ(scrolled.scroll_stats().attack(), 35);
+  EXPECT_EQ(scrolled.main_potential().rank(), POTENTIAL_RANK_UNIQUE);
+}
+
 TEST(SlotFamilyTest, RingsAndPendantsAnswerWithTheirWholeFamily) {
   const std::vector<EquipSlot> kRings = {EQUIP_SLOT_RING, EQUIP_SLOT_RING_2,
                                          EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};

@@ -258,6 +258,9 @@ enum Upgrade {
   UPGRADE_UNSPECIFIED = 0;
   UPGRADE_SCROLL = 1;
   UPGRADE_STAR_FORCE = 2;
+  // Both tracks: an item that refuses cubes keeps the potential it dropped
+  // with.
+  UPGRADE_CUBE = 3;
 }
 
 // Which job branches can equip the item. UNIVERSAL means any job; BEGINNER
@@ -340,8 +343,6 @@ message SacredSymbolInfo {
   int32 area_level = 4;
 }
 
-// The definition of an item type, loaded from data/ at startup and shared
-// read-only by every EquipInstance of that type.
 // One way to buy an item with tokens.
 message TokenPrice {
   // The token, by data file stem.
@@ -349,6 +350,8 @@ message TokenPrice {
   int32 count = 2;
 }
 
+// The definition of an item type, loaded from data/ at startup and shared
+// read-only by every EquipInstance of that type.
 message EquipPrototype {
   string name = 1;
   EquipType equip_type = 2;
@@ -389,6 +392,10 @@ message EquipPrototype {
     ArcaneSymbolInfo arcane_symbol = 15;
     SacredSymbolInfo sacred_symbol = 16;
   }
+  // The upgrade state every new copy starts in, for an item that drops already
+  // scrolled or with a potential. Set only what differs from a plain drop;
+  // FreshEquip fills in the name and the open slots.
+  optional Equip dropped_as = 17;
 }
 
 // The per-copy state of one dropped item, saved to disk. It refers to its

@@ -130,10 +130,11 @@ EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {
   // A default Equip (fresh drop) has an empty equip_name; initialize from the
-  // prototype.
+  // prototype, keeping anything the caller did set.
   if (state_.equip_name().empty()) {
-    state_.set_equip_name(prototype_.name());
-    state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
+    Equip fresh = FreshEquip(prototype_);
+    fresh.MergeFrom(state_);
+    state_ = fresh;
   }
 }
 

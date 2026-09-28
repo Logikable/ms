@@ -48,6 +48,10 @@ bool Supports(const EquipPrototype& proto, Upgrade upgrade);
 // slots and can't create them.
 bool TakesUpgradeSlots(const EquipPrototype& proto);
 
+// A new copy of `proto`: its dropped_as state, named, with every slot the
+// prototype gives that dropped_as didn't already spend.
+Equip FreshEquip(const EquipPrototype& proto);
+
 // How many upgrade slots this item has: the prototype's, plus one for each
 // golden hammer used on it. Use this instead of upgrade_slots wherever the
 // number means the item's total slots, such as what a Clean Slate can restore

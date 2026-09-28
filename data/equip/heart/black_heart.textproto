@@ -1,0 +1,36 @@
+name: "Black Heart"
+required_level: 120
+base_stats {
+  str: 50
+  dex: 50
+  int: 50
+  luk: 50
+  max_hp: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_HEART
+# GMS's 77 ATT and MATT, carried as eleven spent 7-point scrolls. It drops
+# finished and nothing changes it.
+upgrade_slots: 11
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+unsupported_upgrades: UPGRADE_CUBE
+dropped_as {
+  scroll_successes: 11
+  scroll_stats {
+    attack: 77
+    magic_attack: 77
+  }
+  main_potential {
+    rank: POTENTIAL_RANK_UNIQUE
+    lines {
+      type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30
+      rank: POTENTIAL_RANK_UNIQUE
+    }
+    lines {
+      type: POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
+      rank: POTENTIAL_RANK_UNIQUE
+    }
+  }
+}
+sell_price: 0

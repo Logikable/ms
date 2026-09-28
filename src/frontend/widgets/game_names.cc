@@ -272,6 +272,8 @@ std::string FormatEquipSet(EquipSetName set) {
       return "Arcane Umbra Set (Magician)";
     case EQUIP_SET_NAME_ARCANE_UMBRA_THIEF:
       return "Arcane Umbra Set (Thief)";
+    case EQUIP_SET_NAME_PITCHED_BOSS:
+      return "Pitched Boss Set";
     default:
       return "";
   }

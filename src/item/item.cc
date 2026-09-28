@@ -384,6 +384,14 @@ bool TakesUpgradeSlots(const EquipPrototype& proto) {
   return Supports(proto, UPGRADE_SCROLL) && proto.upgrade_slots() > 0;
 }
 
+Equip FreshEquip(const EquipPrototype& proto) {
+  Equip fresh = proto.dropped_as();
+  fresh.set_equip_name(proto.name());
+  fresh.set_remaining_upgrade_slots(proto.upgrade_slots() -
+                                    fresh.scroll_successes());
+  return fresh;
+}
+
 int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state) {
   return proto.upgrade_slots() + state.hammers();
 }

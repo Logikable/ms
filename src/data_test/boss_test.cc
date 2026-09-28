@@ -614,15 +614,18 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
 }
 
 // Hard Damien and Hard Lotus pay what Normal does plus a one-in-five chance at
-// each AbsoLab box, on Normal's gate and GMS's thirty-minute clock.
-TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
+// each AbsoLab box and at each pitched piece, on Normal's gate and GMS's
+// thirty-minute clock.
+TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
   struct Want {
     std::string boss;
     int64_t meso;
     int64_t exp;
+    std::vector<std::string> pitched;
   };
-  for (const Want& want : std::vector<Want>{{"damien", 60250000, 22000000},
-                                            {"lotus", 63550000, 0}}) {
+  for (const Want& want : std::vector<Want>{
+           {"damien", 60250000, 22000000, {"magic_eyepatch"}},
+           {"lotus", 63550000, 0, {"berserked", "black_heart"}}}) {
     SCOPED_TRACE(want.boss);
     const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
     const BossDifficulty& hard = bosses_.at(want.boss).difficulties(1);
@@ -632,7 +635,8 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
     EXPECT_EQ(hard.unlock_level(), normal.unlock_level());
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
-    ASSERT_EQ(hard.drops_size(), normal.drops_size() + 2);
+    ASSERT_EQ(hard.drops_size(),
+              normal.drops_size() + 2 + static_cast<int>(want.pitched.size()));
     for (int i = 0; i < normal.drops_size(); ++i) {
       EXPECT_EQ(hard.drops(i).SerializeAsString(),
                 normal.drops(i).SerializeAsString());
@@ -643,7 +647,31 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheAbsoLabBoxes) {
     EXPECT_EQ(armor.item(), "absolab_armor_box");
     EXPECT_DOUBLE_EQ(weapon.per_kill(), 0.2);
     EXPECT_DOUBLE_EQ(armor.per_kill(), 0.2);
+    for (size_t i = 0; i < want.pitched.size(); ++i) {
+      const MobDrop& piece = hard.drops(normal.drops_size() + 2 + i);
+      EXPECT_EQ(piece.equip(), want.pitched[i]);
+      EXPECT_DOUBLE_EQ(piece.per_kill(), 0.2);
+    }
   }
+}
+
+// The user's rule for the tier: every gear drop from Hard Damien, Hard Lotus,
+// Lucid and Will, boxes included, is one in five.
+TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
+  int checked = 0;
+  for (const std::string& boss : {"damien", "lotus", "lucid", "will"}) {
+    for (const BossDifficulty& difficulty : bosses_.at(boss).difficulties()) {
+      for (const MobDrop& drop : difficulty.drops()) {
+        if (drop.has_equip() || drop.item().find("_box") != std::string::npos) {
+          ++checked;
+          EXPECT_DOUBLE_EQ(drop.per_kill(), 0.2)
+              << boss << " " << difficulty.name() << " " << drop.equip()
+              << drop.item();
+        }
+      }
+    }
+  }
+  EXPECT_EQ(checked, 9);
 }
 
 // Hard Magnus and the Chaos Pink Bean statues have more than 100% PDR, so the
@@ -834,8 +862,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(walk.jump().interval_ms(), 30000);
   EXPECT_EQ(walk.jump().y(), 2);
   EXPECT_EQ(walk.jump().hang_ms(), 660);
-  // Her ring drops half the time, the one boss drop that isn't certain; her
-  // shard always drops.
+  // Her ring drops half the time; her shard always drops.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).equip(), "guardian_angel_ring");
   EXPECT_DOUBLE_EQ(normal.drops(0).per_kill(), 0.5);
