@@ -548,6 +548,11 @@ class TuiController {
   bool in_boss_fight() const {
     return boss_run_ != nullptr;
   }
+  // True until the fight's result is on screen. The map farms again behind the
+  // clear card and the timeout notice, which keep the run for its arena.
+  bool boss_fight_running() const {
+    return boss_run_ != nullptr && !boss_run_->done();
+  }
 
   // True once the quit dialog is confirmed. The controller doesn't own the
   // ftxui screen, so it sets this and Tui does the quitting.

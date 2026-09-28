@@ -1308,10 +1308,13 @@ void Tui::Tick() {
   // The map only farms while the player is on it. EXP from a fight they can't
   // see would be odd, meso draining during a trade would change a deal nobody
   // agreed to, and kills on the character select would belong to nobody. The
-  // analysis stops along with farming.
+  // analysis stops along with farming. A finished fight's result screens farm:
+  // the player is done there, only reading.
   if (controller_.in_boss_fight()) {
     controller_.AdvanceBossRun(elapsed.count());
-  } else if (!controller_.OnTradeScreen() && !controller_.OnCharacterSelect()) {
+  }
+  if (!controller_.boss_fight_running() && !controller_.OnTradeScreen() &&
+      !controller_.OnCharacterSelect()) {
     RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
     AnalysisSample sample;
     sample.seconds = elapsed.count();
