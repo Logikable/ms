@@ -26,11 +26,10 @@ namespace {
 
 // What //analysis:progression_sim's 75-day sweep (2026-09-27, one seed, all
 // ten branches) wore on arriving at each level, read toward its better half as
-// kPotentialBands is. Every piece stands at its own star limit through 140,
-// which is all a 10 asks of it. From 170 whatever can go further sits at
-// 11-13 stars; a level 160 piece stops at 11, where each star has grown
-// dearer, so 12 overstates AbsoLab by one. The weapon holds 14 until the
-// Fafnir and AbsoLab weapons take it to 15, from 230. Hammers are in by 170.
+// kPotentialBands is. Every piece stands at its own star limit through 140.
+// From 170 whatever can go further sits at 11-13 stars, and from 230 most
+// pieces are at 17, the run the 16th star opens. The weapon stops at 15: a
+// boom needs a spare copy to recover from, and a weapon rarely has one.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -39,7 +38,7 @@ struct GearBand {
 constexpr GearBand kBands[] = {
     {0, {false, 10, 12, 0}},    {130, {false, 10, 14, 0}},
     {170, {true, 12, 14, 0}},   {200, {true, 12, 14, 200}},
-    {230, {true, 12, 15, 230}}, {260, {true, 12, 15, 260}},
+    {230, {true, 17, 14, 230}}, {260, {true, 17, 15, 260}},
 };
 
 // The %stat line for the stat the character fights with.

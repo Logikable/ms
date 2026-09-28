@@ -58,8 +58,8 @@ struct GearSetup {
   // unstarred. Stars only go on an item with no slots left to scroll, the
   // upgrade screen's rule, so an item with slots also needs `scrolled`.
   int stars = 0;
-  // Stars for the weapon alone, which is where meso goes first and the one
-  // piece worth taking further. Zero uses `stars` like everything else.
+  // Stars for the weapon alone, which max mode sets apart from the rest. Zero
+  // uses `stars` like everything else.
   int weapon_stars = 0;
 };
 

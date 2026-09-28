@@ -43,21 +43,24 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   EXPECT_TRUE(MaxGearForLevel(200).hammered);
   EXPECT_EQ(MaxGearForLevel(200).stars, 12);
   EXPECT_EQ(MaxGearForLevel(200).weapon_stars, 14);
-  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 15);
+  EXPECT_EQ(MaxGearForLevel(230).stars, 17);
+  EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 15);
   EXPECT_EQ(MaxGearForLevel(229).potential_level, 200);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
 
   int last_stars = 0;
+  int last_weapon_stars = 0;
   int last_potentials = 0;
   bool last_hammered = false;
   for (int level = 1; level <= 260; ++level) {
     const MaxGear gear = MaxGearForLevel(level);
     EXPECT_GE(gear.stars, last_stars) << "at level " << level;
-    EXPECT_GE(gear.weapon_stars, gear.stars) << "at level " << level;
+    EXPECT_GE(gear.weapon_stars, last_weapon_stars) << "at level " << level;
     EXPECT_TRUE(gear.hammered || !last_hammered) << "at level " << level;
     EXPECT_GE(gear.potential_level, last_potentials) << "at level " << level;
     last_stars = gear.stars;
+    last_weapon_stars = gear.weapon_stars;
     last_hammered = gear.hammered;
     last_potentials = gear.potential_level;
   }
