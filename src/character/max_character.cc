@@ -24,28 +24,13 @@ namespace ms {
 
 namespace {
 
-// What each gear band costs and what leveling has paid by the level where it
-// opens, from //analysis:progression_sim's median branch. Every row is priced
-// through analysis/star_force_curve.h over the twenty-two items a level 140
-// character wears, seventeen of which take stars.
-//
-//   level   income   gear                                      bill
-//   -----   ------   ---------------------------------------   ----
-//    130     165M    10*, weapon 14*, scrolled                  135M
-//    140     226M    the same, every slot filled                229M
-//    170     620M    the same, plus the Wealth potion           435M
-//    180     820M    hammered on top of it                      675M
-//    190    1.25B    11*, weapon 15*, both potions             1.13B
-//    200    1.70B    12*, weapon 15*, potentials, potions
-//
-// From 200 the potentials are read off the sweep instead of priced; see
-// kPotentialBands.
-//
-// Two of the original targets were lowered to fit. A "maxed out" level 140
-// weapon is 15 stars on a level 120 item, which costs 226M on its own (the
-// whole climb for one item), so the ceiling is 14, one star short of the cap
-// and where the sim's own shopper stops from 130. And hammers can't start
-// before 180: two in every item cost 340M on top of everything else.
+// What //analysis:progression_sim's 75-day sweep (2026-09-27, one seed, all
+// ten branches) wore on arriving at each level, read toward its better half as
+// kPotentialBands is. Every piece stands at its own star limit through 140,
+// which is all a 10 asks of it. From 170 whatever can go further sits at
+// 11-13 stars; a level 160 piece stops at 11, where each star has grown
+// dearer, so 12 overstates AbsoLab by one. The weapon holds 14 until the
+// Fafnir and AbsoLab weapons take it to 15, from 230. Hammers are in by 170.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -53,9 +38,8 @@ struct GearBand {
 
 constexpr GearBand kBands[] = {
     {0, {false, 10, 12, 0}},    {130, {false, 10, 14, 0}},
-    {180, {true, 10, 14, 0}},   {190, {true, 11, 15, 0}},
-    {200, {true, 12, 15, 200}}, {230, {true, 12, 15, 230}},
-    {260, {true, 12, 15, 260}},
+    {170, {true, 12, 14, 0}},   {200, {true, 12, 14, 200}},
+    {230, {true, 12, 15, 230}}, {260, {true, 12, 15, 260}},
 };
 
 // The %stat line for the stat the character fights with.

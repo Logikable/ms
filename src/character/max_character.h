@@ -6,10 +6,9 @@
  * job: the point of the mode is to measure fights against a known character,
  * not to find each job's optimum.
  *
- * Every number is priced against what //analysis:progression_sim says leveling
- * pays by that level; the .cc shows the math band by band. The rule is that a
- * band's gear costs no more than the income at the level where it opens, so a
- * max character is a rich player, not an impossible one.
+ * The stars, hammers and potentials are what //analysis:progression_sim's
+ * sweep wore at each level, read toward its better half, so a max character is
+ * a rich player, not an impossible one.
  */
 #ifndef MS_SRC_CHARACTER_MAX_CHARACTER_H_
 #define MS_SRC_CHARACTER_MAX_CHARACTER_H_
