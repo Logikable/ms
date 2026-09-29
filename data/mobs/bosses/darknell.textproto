@@ -1,0 +1,8 @@
+# The wiki marks this HP as estimated.
+name: "Guard Captain Darknell"
+level: 265
+attack: 22000
+max_hp: 26250000000000
+exp: 0
+pdr: 300
+boss: true

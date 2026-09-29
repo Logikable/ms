@@ -430,7 +430,9 @@ void BossRun::FillSlots(const CombatParams& params) {
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
-    bar.next_dash_at = bar.walk.dash().interval_ms() / 1000.0;
+    bar.next_special_at = bar.walk.specials().max_interval_ms() > 0
+                              ? SpecialWait(bar, 0)
+                              : bar.walk.dash().interval_ms() / 1000.0;
     bar.next_jump_at = bar.walk.jump().interval_ms() / 1000.0;
     bar.ground_y = bar.y;
     bar.hp_fraction = mob.hp_fraction;
@@ -486,31 +488,97 @@ void BossRun::JumpSlot(BossSlot& slot) {
 }
 
 double BossRun::NextMoveAt(const BossSlot& slot) {
-  if (slot.dash_left > 0 || slot.walk.dash().interval_ms() <= 0) {
+  bool specials = slot.walk.specials().max_interval_ms() > 0 ||
+                  slot.walk.dash().interval_ms() > 0;
+  if (slot.dash_left > 0 || slot.falling || !specials) {
     return slot.next_move_at;
   }
-  return std::min(slot.next_move_at, slot.next_dash_at);
+  return std::min(slot.next_move_at, slot.next_special_at);
+}
+
+double BossRun::SpecialWait(const BossSlot& slot, int done) {
+  const ArenaSpecials& specials = slot.walk.specials();
+  int spread =
+      std::max(0, specials.max_interval_ms() - specials.min_interval_ms());
+  // Negative steps, so these draws never repeat one a step has used.
+  uint32_t drawn = Mixed(slot.id, -1 - 2 * done) % (spread + 1);
+  return (specials.min_interval_ms() + static_cast<int>(drawn)) / 1000.0;
+}
+
+bool BossRun::StartSpecial(const BossPhase& phase, BossSlot& slot) {
+  slot.next_move_at = slot.next_special_at;
+  bool fall = false;
+  if (slot.walk.specials().max_interval_ms() > 0) {
+    ++slot.specials_done;
+    slot.next_special_at += SpecialWait(slot, slot.specials_done);
+    bool can_dash = slot.walk.has_dash();
+    bool can_fall = slot.walk.has_fall();
+    fall = can_fall &&
+           (!can_dash || Mixed(slot.id, -2 * slot.specials_done) % 2 == 0);
+  } else {
+    slot.next_special_at += slot.walk.dash().interval_ms() / 1000.0;
+  }
+  if (fall && StartFall(phase, slot)) {
+    return true;
+  }
+  if (!slot.walk.has_dash()) {
+    return false;
+  }
+  slot.dash_left = std::max(1, slot.walk.dash().cells());
+  slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
+  // If already against that wall, turn around instead of standing still for
+  // the whole dash.
+  if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y, arena_width(),
+                arena_height())) {
+    slot.dash_dx = -slot.dash_dx;
+  }
+  return false;
+}
+
+bool BossRun::StartFall(const BossPhase& phase, BossSlot& slot) {
+  if (fall_targets_.empty()) {
+    return false;
+  }
+  std::vector<ArenaSpot> spots = AllPlayerSpots(phase);
+  int target =
+      fall_targets_[Mixed(slot.id, slot.steps_taken) % fall_targets_.size()];
+  if (target < 0 || target >= static_cast<int>(spots.size()) ||
+      !MayEnter(phase, spots[target].x(), 0, arena_width(), arena_height())) {
+    return false;
+  }
+  slot.ground_y = slot.y;
+  slot.x = spots[target].x();
+  slot.y = 0;
+  slot.falling = slot.y < slot.ground_y;
+  return true;
+}
+
+void BossRun::FallSlot(const BossPhase& phase, BossSlot& slot) {
+  if (MayEnter(phase, slot.x, slot.y + 1, arena_width(), arena_height())) {
+    ++slot.y;
+  }
+  slot.falling =
+      slot.y < slot.ground_y &&
+      MayEnter(phase, slot.x, slot.y + 1, arena_width(), arena_height());
 }
 
 void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
-  const ArenaDash& dash = slot.walk.dash();
   ++slot.steps_taken;
-  // A dash that is due replaces the next step, and starts from when the dash
-  // was due rather than when the step was.
-  if (slot.dash_left == 0 && dash.interval_ms() > 0 &&
-      slot.next_dash_at <= slot.next_move_at) {
-    slot.dash_left = std::max(1, dash.cells());
-    slot.next_move_at = slot.next_dash_at;
-    slot.next_dash_at += dash.interval_ms() / 1000.0;
-    slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
-    // If already against that wall, turn around instead of standing still for
-    // the whole dash.
-    if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y, arena_width(),
-                  arena_height())) {
-      slot.dash_dx = -slot.dash_dx;
-    }
+  // A special that is due replaces the next step, and starts from when it was
+  // due rather than when the step was.
+  bool specials = slot.walk.specials().max_interval_ms() > 0 ||
+                  slot.walk.dash().interval_ms() > 0;
+  if (specials && slot.dash_left == 0 && !slot.falling &&
+      slot.next_special_at <= slot.next_move_at && StartSpecial(phase, slot)) {
+    // A fall's first move is its appearance on the top row.
+    slot.next_move_at +=
+        (slot.falling ? slot.walk.fall().step_ms() : slot.walk.interval_ms()) /
+        1000.0;
+    return;
   }
-  if (slot.dash_left > 0) {
+  if (slot.falling) {
+    FallSlot(phase, slot);
+  } else if (slot.dash_left > 0) {
     --slot.dash_left;
     if (!DashSlot(phase, slot)) {
       slot.dash_left = 0;  // stopped at the wall; the dash ends
@@ -518,8 +586,10 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   } else {
     StepSlot(phase, slot);
   }
-  slot.next_move_at +=
-      (slot.dash_left > 0 ? dash.step_ms() : slot.walk.interval_ms()) / 1000.0;
+  int wait = slot.falling         ? slot.walk.fall().step_ms()
+             : slot.dash_left > 0 ? slot.walk.dash().step_ms()
+                                  : slot.walk.interval_ms();
+  slot.next_move_at += wait / 1000.0;
 }
 
 void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
@@ -616,6 +686,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
+  fall_targets_.assign(1, player_at_);
   // After the timer update, since walking positions follow the timer.
   DriftSlots();
   player_at_ =
@@ -761,6 +832,12 @@ void BossRun::TakeShared(const SharedFight& shared) {
   }
   if (shared.share_count > 0) {
     share_count_ = shared.share_count;
+  }
+  fall_targets_.clear();
+  for (const SharedPlayer& player : shared.players) {
+    if (player.present && player.spot >= 0) {
+      fall_targets_.push_back(player.spot);
+    }
   }
   // This player first, so their stacks have owner 0.
   members_.assign(1, FightMember());

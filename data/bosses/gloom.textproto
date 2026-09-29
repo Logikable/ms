@@ -1,6 +1,6 @@
 name: "Gloom"
 difficulties {
-  # GMS's own level (255) is kept, twenty-five over the gate.
+  # GMS's own level (255) is kept, fifteen over the gate.
   name: "Normal"
   phases {
     bgm: "FerociousBattlefield"
@@ -33,7 +33,7 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1800
-  unlock_level: 230
+  unlock_level: 240
   arcane_force: 730
   # Five Intense Power Crystals at GMS's price (59,535,000), divided by seven and
   # rounded to the nearest 50k.
@@ -45,7 +45,7 @@ difficulties {
     per_kill: 1.0
   }
   # GMS never published the odds. This game drops all of Hard Damien's, Hard
-  # Lotus's, Lucid's, Will's and Gloom's gear at 20%.
+  # Lotus's, Lucid's, Will's, Gloom's and Darknell's gear at 20%.
   drops {
     equip: "estella_earrings"
     per_kill: 0.2

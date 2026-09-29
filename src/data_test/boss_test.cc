@@ -58,20 +58,18 @@ const std::set<std::string> kUnbuiltSymbolBosses = {
     "seren", "kalos", "first_adversary", "kaling", "malefic_star", "limbo",
 };
 
-// The highest level any mob in `boss`'s fights is at.
-int TopMobLevel(const Boss& boss, const std::map<std::string, Mob>& mobs) {
-  int top = 0;
+// The lowest level any of `boss`'s built difficulties opens at. It marks a
+// Grandis boss where its mobs' level can't: Darknell, of Arcane River, is
+// level 265.
+int LowestUnlockLevel(const Boss& boss) {
+  int lowest = 0;
   for (const BossDifficulty& difficulty : boss.difficulties()) {
-    for (const BossPhase& phase : difficulty.phases()) {
-      for (const Spawn& spawn : phase.spawns()) {
-        std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
-        if (mob != mobs.end()) {
-          top = std::max(top, mob->second.level());
-        }
-      }
+    if (!difficulty.coming_soon() &&
+        (lowest == 0 || difficulty.unlock_level() < lowest)) {
+      lowest = difficulty.unlock_level();
     }
   }
-  return top;
+  return lowest;
 }
 
 // A symbol's max-level damage finds its boss by file stem, so a boss built
@@ -101,7 +99,7 @@ TEST_F(BossDataTest, SacredSymbolsNameRealBosses) {
   EXPECT_EQ(keys.size(), 6u) << "one boss per Sacred Symbol";
   EXPECT_EQ(unbuilt, kUnbuiltSymbolBosses);
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
-    if (TopMobLevel(entry.second, mobs_) >= kGrandisLevel) {
+    if (LowestUnlockLevel(entry.second) >= kGrandisLevel) {
       EXPECT_GT(keys.count(entry.first), 0u)
           << entry.first << " is a Grandis boss no Sacred Symbol names";
     }
@@ -182,12 +180,12 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights, the
-  // Guardian Angel Slime, Lucid, Will and Gloom, which are the same case and
-  // are fought for their drops.
+  // Guardian Angel Slime, Lucid, Will, Gloom and Darknell, which are the same
+  // case and are fought for their drops.
   EXPECT_EQ(unpaid, std::vector<std::string>(
-                        {"crimson_queen", "gloom", "guardian_angel_slime",
-                         "lotus", "lotus", "lucid", "pierre", "vellum",
-                         "von_bon", "will", "zakum"}));
+                        {"crimson_queen", "darknell", "gloom",
+                         "guardian_angel_slime", "lotus", "lotus", "lucid",
+                         "pierre", "vellum", "von_bon", "will", "zakum"}));
 }
 
 // A shell (Chaos Guardian Angel Slime) can't be entered, so a timer, gate or
@@ -319,8 +317,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
-  EXPECT_EQ(fights, 26) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "Guardian Angel Slime, Lucid, Will, Gloom, the "
+  EXPECT_EQ(fights, 27) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "Guardian Angel Slime, Lucid, Will, Gloom, "
+                           "Darknell, the "
                            "four of Root Abyss, and "
                            "both difficulties of Zakum, Magnus, Pink Bean, "
                            "Hilla, Horntail, Lotus and Damien";
@@ -658,11 +657,11 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
 }
 
 // The user's rule for the tier: every gear drop from Hard Damien, Hard Lotus,
-// Lucid, Will and Gloom, boxes included, is one in five.
+// Lucid, Will, Gloom and Darknell, boxes included, is one in five.
 TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
   int checked = 0;
   for (const std::string& boss :
-       {"damien", "lotus", "lucid", "will", "gloom"}) {
+       {"damien", "lotus", "lucid", "will", "gloom", "darknell"}) {
     for (const BossDifficulty& difficulty : bosses_.at(boss).difficulties()) {
       for (const MobDrop& drop : difficulty.drops()) {
         if (drop.has_equip() || drop.item().find("_box") != std::string::npos) {
@@ -674,7 +673,7 @@ TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
       }
     }
   }
-  EXPECT_EQ(checked, 10);
+  EXPECT_EQ(checked, 11);
 }
 
 // Hard Magnus and the Chaos Pink Bean statues have more than 100% PDR, so the
@@ -817,7 +816,7 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
     EXPECT_EQ(mob.max_hp(), kHp[i]) << i;
   }
   // The blade drawn: the second phase dashes across the row instead of walking
-  // it, and it is the only walk in the game that does.
+  // it.
   EXPECT_FALSE(normal.phases(0).spawns(0).walk().has_dash());
   const ArenaDash& dash = normal.phases(1).spawns(0).walk().dash();
   EXPECT_EQ(dash.interval_ms(), 30000);
@@ -871,6 +870,38 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_DOUBLE_EQ(normal.drops(0).per_kill(), 0.5);
   EXPECT_EQ(normal.drops(1).item(), "guardian_angel_slimes_soul_shard");
   EXPECT_DOUBLE_EQ(normal.drops(1).per_kill(), 1.0);
+}
+
+// A special must have a move to make and a wait to draw it in, and a fall
+// only happens as one: an unscheduled fall would never be made.
+TEST_F(BossDataTest, EverySpecialHasAMoveAndAWait) {
+  int specials = 0;
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        for (const Spawn& spawn : phase.spawns()) {
+          const ArenaWalk& walk = spawn.walk();
+          std::string where = entry.first + " " + spawn.mob();
+          if (!walk.has_specials()) {
+            EXPECT_FALSE(walk.has_fall()) << where << " never falls";
+            continue;
+          }
+          ++specials;
+          EXPECT_TRUE(walk.has_dash() || walk.has_fall()) << where;
+          EXPECT_GT(walk.specials().min_interval_ms(), 0) << where;
+          EXPECT_GE(walk.specials().max_interval_ms(),
+                    walk.specials().min_interval_ms())
+              << where;
+          EXPECT_EQ(walk.dash().interval_ms(), 0)
+              << where << " dashes on two clocks";
+          if (walk.has_fall()) {
+            EXPECT_GT(walk.fall().step_ms(), 0) << where;
+          }
+        }
+      }
+    }
+  }
+  EXPECT_EQ(specials, 1) << "only Darknell takes turns between moves";
 }
 
 // A jump must come back down before the next one is due, and the row it jumps
@@ -1034,7 +1065,7 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"papulatus", {7, 5}},   {"lotus", {5, 8, 8}},
       {"damien", {5, 5}},      {"guardian_angel_slime", {5}},
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
-      {"gloom", {5}}};
+      {"gloom", {5}},          {"darknell", {5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

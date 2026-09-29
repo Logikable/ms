@@ -1,0 +1,45 @@
+name: "Darknell"
+difficulties {
+  # GMS's own level (265) is kept, past the level cap.
+  name: "Normal"
+  phases {
+    bgm: "SubterminalPoint"
+    spawns {
+      mob: "darknell"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { cells: 4 step_ms: 120 }
+        fall { step_ms: 60 }
+        specials { min_interval_ms: 30000 max_interval_ms: 60000 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 240
+  arcane_force: 850
+  # Five Intense Power Crystals at GMS's price (63,375,000), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 45250000
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "darknells_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. This game drops all of Hard Damien's, Hard
+  # Lotus's, Lucid's, Will's, Gloom's and Darknell's gear at 20%.
+  drops {
+    equip: "estella_earrings"
+    per_kill: 0.2
+  }
+}

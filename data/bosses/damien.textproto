@@ -115,7 +115,7 @@ difficulties {
     per_kill: 0.2
   }
   # GMS's rate is about 0.2%. This game drops all of Hard Damien's, Hard
-  # Lotus's, Lucid's, Will's and Gloom's gear at 20%.
+  # Lotus's, Lucid's, Will's, Gloom's and Darknell's gear at 20%.
   drops {
     equip: "magic_eyepatch"
     per_kill: 0.2

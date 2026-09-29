@@ -168,16 +168,20 @@ struct BossSlot {
   // How many moves of its walk it has made; each new move follows from these.
   // Stored so each move costs one move's work instead of replaying thousands.
   int steps_taken = 0;
-  // When the next move and dash are due, in run seconds. Set from the walk when
-  // the slot is created, so a monster arriving in a later phase follows the
-  // time already spent.
+  // When the next move and the next dash or special are due, in run seconds.
+  // Set from the walk when the slot is created, so a monster arriving in a
+  // later phase follows the time already spent.
   double next_move_at = 0.0;
-  double next_dash_at = 0.0;
+  double next_special_at = 0.0;
   // Cells left in the current dash, and its direction.
   int dash_left = 0;
   int dash_dx = 0;
+  // Mid-fall: it drops a row per step until it is back on `ground_y`.
+  bool falling = false;
+  // Specials made so far, which the next wait and choice are drawn from.
+  int specials_done = 0;
   // A jump: the row it left, and when it lands. Walking pauses until it lands,
-  // so it always lands where it jumped from.
+  // so it always lands where it jumped from. A fall lands on `ground_y` too.
   bool airborne = false;
   int ground_y = 0;
   double next_jump_at = 0.0;
@@ -376,6 +380,19 @@ class BossRun {
   // Moves `slot` one cell along its dash. Returns false if it can't enter that
   // cell, which ends the dash.
   bool DashSlot(const BossPhase& phase, BossSlot& slot);
+  // Starts whichever dash or fall is due, and schedules the next one. Returns
+  // true if the start was itself this move: a fall's appearance on the top
+  // row.
+  bool StartSpecial(const BossPhase& phase, BossSlot& slot);
+  // Puts `slot` on the top row over a player, or returns false if there is no
+  // one to fall on or the cell is taken.
+  bool StartFall(const BossPhase& phase, BossSlot& slot);
+  // Drops a falling `slot` one row, ending the fall on its walking row or
+  // against anything it can't enter.
+  void FallSlot(const BossPhase& phase, BossSlot& slot);
+  // Seconds from one special to the next: the `done`th draw between the
+  // walk's bounds.
+  static double SpecialWait(const BossSlot& slot, int done);
   // When `slot`'s next jump event is due: landing if it's in the air, the next
   // jump if it's on the ground. kNeverMoves if it never jumps.
   static double NextJumpAt(const BossSlot& slot);
@@ -459,6 +476,9 @@ class BossRun {
   // Which of the phase's player spots the player is on. -1 if the phase has
   // none; the player then stands at the origin and can't move.
   int player_at_ = -1;
+  // The spots a fall can aim at: every present player's, as the server last
+  // reported them in a party, so each client aims at the same one.
+  std::vector<int> fall_targets_;
   std::vector<BossSlot> slots_;
   std::vector<DamageStack> damage_stacks_;
   std::vector<DamageWrite> damage_writes_;

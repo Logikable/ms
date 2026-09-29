@@ -326,6 +326,78 @@ TEST(BossRunTest, TimedSpotsOpenOnTheFightClockAndDropThePlayer) {
   EXPECT_EQ(run.player_spot().y(), 1);
 }
 
+// Darknell's shape: one body on row 4 over a floor of five, taking turns
+// between specials every `min_ms` to `max_ms` and otherwise standing still.
+Boss SpecialsBoss(bool dash, bool fall, int min_ms, int max_ms) {
+  Boss boss = TwoPhaseBoss();
+  BossDifficulty* normal = boss.mutable_difficulties(0);
+  normal->mutable_phases()->DeleteSubrange(1, 1);
+  BossPhase* phase = normal->mutable_phases(0);
+  phase->clear_player_spots();
+  for (int x : {6, 0, 8, 2, 4}) {
+    ArenaSpot* stand = phase->add_player_spots();
+    stand->set_x(x);
+    stand->set_y(5);
+  }
+  phase->set_arena_width(9);
+  phase->set_arena_height(6);
+  Spawn* body = phase->mutable_spawns(0);
+  body->clear_spots();
+  ArenaSpot* at = body->add_spots();
+  at->set_x(4);
+  at->set_y(4);
+  ArenaWalk* walk = body->mutable_walk();
+  walk->set_interval_ms(1000000);
+  walk->set_range(ArenaWalk::RANGE_ROW_STEP);
+  if (dash) {
+    walk->mutable_dash()->set_cells(4);
+    walk->mutable_dash()->set_step_ms(120);
+  }
+  if (fall) {
+    walk->mutable_fall()->set_step_ms(60);
+  }
+  walk->mutable_specials()->set_min_interval_ms(min_ms);
+  walk->mutable_specials()->set_max_interval_ms(max_ms);
+  return boss;
+}
+
+// A fall appears on the top row over the player and drops a row every step
+// until it is back on the row it walks.
+TEST(BossRunTest, AFallDropsOntoThePlayerARowAtATime) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(false, true, 1000, 1000);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  run.Advance(*state, 1.03);
+  ASSERT_EQ(run.slots().size(), 1u);
+  EXPECT_EQ(run.slots()[0].x, 6);
+  EXPECT_EQ(run.slots()[0].y, 0);
+  run.Advance(*state, 0.06);
+  EXPECT_EQ(run.slots()[0].y, 1);
+  run.Advance(*state, 0.5);
+  EXPECT_EQ(run.slots()[0].x, 6);
+  EXPECT_EQ(run.slots()[0].y, 4);
+  EXPECT_FALSE(run.slots()[0].falling);
+}
+
+// Given both, the specials take turns at random and the waits vary.
+TEST(BossRunTest, SpecialsPickBetweenTheDashAndTheFall) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(true, true, 1000, 2000);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  bool fell = false;
+  bool dashed = false;
+  for (int i = 0; i < 2000; ++i) {
+    run.Advance(*state, 0.03);
+    const BossSlot& slot = run.slots()[0];
+    fell = fell || slot.y == 0;
+    dashed = dashed || (slot.y == 4 && slot.x != 4 && slot.x != 6);
+  }
+  EXPECT_TRUE(fell);
+  EXPECT_TRUE(dashed);
+}
+
 TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();
@@ -1133,6 +1205,25 @@ TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
   for (const DamageWrite& write : run.damage_writes()) {
     EXPECT_EQ(write.mob_id, run.slots()[0].id);
   }
+}
+
+// In a party the fall aims where the server last put the players, not where
+// this client has already moved, so every client aims at the same column.
+TEST(BossRunTest, AFollowedFallAimsWhereTheServerSaysThePlayersAre) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(false, true, 1000, 1000);
+  TestAuthority authority(1);
+  authority.fight_.players[0].spot = 1;
+  authority.fight_.players[1].present = false;
+  authority.fight_.seconds_left = 300.0;
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.03);
+  ASSERT_EQ(run.player_spot().x(), 6) << "this client's own position";
+  authority.fight_.seconds_left = 300.0 - 1.03;
+  run.Advance(*state, 0.03);
+  ASSERT_EQ(run.slots().size(), 1u);
+  EXPECT_EQ(run.slots()[0].x, 0);
+  EXPECT_EQ(run.slots()[0].y, 0);
 }
 
 TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {

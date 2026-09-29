@@ -48,11 +48,35 @@ message ArenaWalk {
   }
   Range range = 2;
   // An occasional rush across the arena, replacing one ordinary step. Unset
-  // means it never dashes; only Damien dashes.
+  // means it never dashes.
   ArenaDash dash = 3;
   // A jump off its row and back. Unset means it never jumps; only the Guardian
   // Angel Slime jumps.
   ArenaJump jump = 4;
+  // A drop from the top row onto a player. It happens only as one of
+  // `specials`.
+  ArenaFall fall = 5;
+  // Takes turns between the dash and the fall at random, in place of the
+  // dash's own interval. Darknell's.
+  ArenaSpecials specials = 6;
+}
+
+// A fall: the monster vanishes from its row, appears on the top row over a
+// player picked at random, and drops a row at a time back to the row it walks.
+// The player is picked from the positions the server last reported, so every
+// client aims at the same column unless the player moved in the meantime.
+message ArenaFall {
+  // Milliseconds per row. The screen redraws every 30ms, so 60 shows each
+  // row for about two frames.
+  int32 step_ms = 1;
+}
+
+// One special move, the dash or the fall, every `min_interval_ms` to
+// `max_interval_ms`. The wait and the choice are drawn from the fight's clock,
+// so every client makes the same one.
+message ArenaSpecials {
+  int32 min_interval_ms = 1;
+  int32 max_interval_ms = 2;
 }
 
 // A jump off the row the monster walks and back down to the cell it left. It
@@ -77,8 +101,8 @@ message ArenaJump {
 // cell the player can stand on), and walking resumes one interval after the
 // last cell it reached.
 message ArenaDash {
-  // Milliseconds between dashes. 0 means it never dashes, as does an unset
-  // dash.
+  // Milliseconds between dashes. 0 means it dashes only as a special, or never
+  // without `specials`.
   int32 interval_ms = 1;
   // How many cells one dash covers, unless a wall stops it.
   int32 cells = 2;

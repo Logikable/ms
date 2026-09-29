@@ -73,6 +73,7 @@ constexpr Title kTitles[] = {
     {"RestNPeace", "Rest 'n' Peace"},
     {"Shinin'Harbor", "Shinin' Harbor"},
     {"Start the Adventure", "Start the Adventure"},
+    {"SubterminalPoint", "Subterminal Point"},
     {"Subway", "Subway"},
     {"SunsetDesert", "Sunset Desert"},
     {"Suu1phase", "Suu Phase 1"},
