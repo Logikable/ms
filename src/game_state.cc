@@ -481,6 +481,9 @@ constexpr int kGuardianAngelSlimeLevel = 220;
 // from 140, and the coins for Arcane Umbra, worn from 200.
 constexpr int kLucidAndWillLevel = 230;
 
+// The level Gloom opens at, who drops the Estella Earrings, worn from 160.
+constexpr int kGloomLevel = 230;
+
 // The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
 // AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
 // workbench never wears the Mark.
@@ -822,6 +825,9 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   }
   if (state.character.proto().level() >= kLucidAndWillLevel) {
     WearAll(state, ArcaneUmbraGear(state.character.proto().job()), equips);
+  }
+  if (state.character.proto().level() >= kGloomLevel) {
+    WearAll(state, {"estella_earrings"}, equips);
   }
   // It wears what those fights drop, so it has beaten them, and holds whatever
   // skill a first clear opens.
@@ -1427,6 +1433,9 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   }
   if (proto.name() == "Twilight Mark") {
     return kLucidAndWillLevel;
+  }
+  if (proto.name() == "Estella Earrings") {
+    return kGloomLevel;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {

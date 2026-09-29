@@ -45,6 +45,7 @@ constexpr Title kTitles[] = {
     {"ElinForest", "Elin Forest"},
     {"EvilEyes", "Evil Eyes"},
     {"FairyTalediffvers", "Fairy Tale"},
+    {"FerociousBattlefield", "Ferocious Battlefield"},
     {"FightingPinkBeen", "Fighting Pink Bean"},
     {"FloralLife", "Floral Life"},
     {"Forgetfulness", "Forgetfulness"},

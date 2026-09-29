@@ -36,6 +36,8 @@ struct CombatType {
   std::vector<ArenaSpot> spots;
   // How it moves around the arena. Unset for mobs that stand still.
   ArenaWalk walk;
+  // Whether the arena draws it as a giant bar.
+  bool giant = false;
   // Expected damage of one hit to the player, after their DEF. Every mob of one
   // type hits the same.
   double damage_to_player = 0.0;

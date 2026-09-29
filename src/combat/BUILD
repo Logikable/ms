@@ -199,10 +199,33 @@ cc_library(
 )
 
 cc_library(
+    name = "arena_spots",
+    srcs = ["arena_spots.cc"],
+    hdrs = ["arena_spots.h"],
+    deps = [
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "arena_spots_test",
+    size = "small",
+    srcs = ["arena_spots_test.cc"],
+    deps = [
+        ":arena_spots",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "boss_run",
     srcs = ["boss_run.cc"],
     hdrs = ["boss_run.h"],
     deps = [
+        ":arena_spots",
         ":boss_timing",
         ":combat",
         ":damage_breakdown",

@@ -32,6 +32,22 @@ message BossPhase {
   // whatever the previous phase played, which is what every phase after the
   // first of a one-track boss does.
   string bgm = 5;
+  // Spots that open and close on the fight's clock, numbered after
+  // `player_spots`.
+  TimedSpots timed_spots = 6;
+}
+
+// Extra places to stand that open every `interval_ms` of fight time, measured
+// from the end of the countdown, and stay open for `open_ms`: Gloom's
+// tentacles open at 55s, 110s and so on. When they close, anyone on one drops
+// to the nearest free fixed spot, in party order; see DropFromClosedSpots in
+// src/combat/arena_spots.h.
+message TimedSpots {
+  // 0 means they never open, as does an unset message.
+  int32 interval_ms = 1;
+  // Must be shorter than `interval_ms`.
+  int32 open_ms = 2;
+  repeated ArenaSpot spots = 3;
 }
 
 // One difficulty of one boss: what the player fights, how long they have, how

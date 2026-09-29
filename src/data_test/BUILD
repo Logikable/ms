@@ -38,6 +38,7 @@ cc_test(
         "//src:spawn",
         "//src/character:sacred_power",
         "//src/character:symbol",
+        "//src/combat:arena_spots",
         "//src/frontend/screens:boss_fight_panel",
         "//src/frontend/screens:boss_select_panel",
         "//src/item",

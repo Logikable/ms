@@ -102,6 +102,9 @@ message Spawn {
   // How this monster moves around its arena. Unset means it stands still, which
   // is true of most monsters.
   ArenaWalk walk = 4;
+  // Drawn twice as tall and half again as wide as a usual bar, covering two of
+  // the arena's rows. Leave the cells around it free of spots.
+  bool giant = 5;
 }
 
 // The definition of a monster type, loaded from data/mobs at startup and shared

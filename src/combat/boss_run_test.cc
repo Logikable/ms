@@ -287,6 +287,45 @@ TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
   EXPECT_EQ(run.arena_height(), 4);
 }
 
+// A timed spot can be reached only while it is open, is drawn only then, and
+// drops whoever stands on it when it closes. A giant's flag reaches its bar.
+TEST(BossRunTest, TimedSpotsOpenOnTheFightClockAndDropThePlayer) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->mutable_spawns(0)->set_giant(true);
+  ArenaSpot* left = phase->add_player_spots();
+  left->set_x(0);
+  left->set_y(1);
+  TimedSpots* timed = phase->mutable_timed_spots();
+  timed->set_interval_ms(10000);
+  timed->set_open_ms(5000);
+  timed->add_spots()->set_x(1);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_EQ(run.player_spots().size(), 3u);
+  EXPECT_TRUE(run.slots()[0].giant);
+  EXPECT_FALSE(run.spot_open(2));
+  run.MovePlayer(0, -1);
+  EXPECT_EQ(run.player_spot().y(), 1) << "climbed onto a closed spot";
+
+  for (int i = 0; i < 21; ++i) {
+    run.Advance(*state, 0.5);
+  }
+  EXPECT_TRUE(run.spot_open(2));
+  run.MovePlayer(0, -1);
+  EXPECT_EQ(run.player_spot().x(), 1);
+  EXPECT_EQ(run.player_spot().y(), 0);
+
+  for (int i = 0; i < 10; ++i) {
+    run.Advance(*state, 0.5);
+  }
+  EXPECT_FALSE(run.spot_open(2));
+  // The two floor spots beside it tie, and the one nearer the middle wins.
+  EXPECT_EQ(run.player_spot().x(), 2);
+  EXPECT_EQ(run.player_spot().y(), 1);
+}
+
 TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();

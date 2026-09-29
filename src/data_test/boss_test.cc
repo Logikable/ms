@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <map>
 #include <memory>
 #include <set>
@@ -13,6 +14,7 @@
 
 #include "src/character/sacred_power.h"
 #include "src/character/symbol.h"
+#include "src/combat/arena_spots.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/item/item.h"
@@ -180,12 +182,12 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights, the
-  // Guardian Angel Slime, Lucid and Will, which are the same case and are
-  // fought for their drops.
-  EXPECT_EQ(unpaid,
-            std::vector<std::string>({"crimson_queen", "guardian_angel_slime",
-                                      "lotus", "lotus", "lucid", "pierre",
-                                      "vellum", "von_bon", "will", "zakum"}));
+  // Guardian Angel Slime, Lucid, Will and Gloom, which are the same case and
+  // are fought for their drops.
+  EXPECT_EQ(unpaid, std::vector<std::string>(
+                        {"crimson_queen", "gloom", "guardian_angel_slime",
+                         "lotus", "lotus", "lucid", "pierre", "vellum",
+                         "von_bon", "will", "zakum"}));
 }
 
 // A shell (Chaos Guardian Angel Slime) can't be entered, so a timer, gate or
@@ -317,9 +319,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
-  EXPECT_EQ(fights, 25) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "Guardian Angel Slime, Lucid, Will, the four of "
-                           "Root Abyss, and "
+  EXPECT_EQ(fights, 26) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "Guardian Angel Slime, Lucid, Will, Gloom, the "
+                           "four of Root Abyss, and "
                            "both difficulties of Zakum, Magnus, Pink Bean, "
                            "Hilla, Horntail, Lotus and Damien";
 }
@@ -656,10 +658,11 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
 }
 
 // The user's rule for the tier: every gear drop from Hard Damien, Hard Lotus,
-// Lucid and Will, boxes included, is one in five.
+// Lucid, Will and Gloom, boxes included, is one in five.
 TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
   int checked = 0;
-  for (const std::string& boss : {"damien", "lotus", "lucid", "will"}) {
+  for (const std::string& boss :
+       {"damien", "lotus", "lucid", "will", "gloom"}) {
     for (const BossDifficulty& difficulty : bosses_.at(boss).difficulties()) {
       for (const MobDrop& drop : difficulty.drops()) {
         if (drop.has_equip() || drop.item().find("_box") != std::string::npos) {
@@ -671,7 +674,7 @@ TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
       }
     }
   }
-  EXPECT_EQ(checked, 9);
+  EXPECT_EQ(checked, 10);
 }
 
 // Hard Magnus and the Chaos Pink Bean statues have more than 100% PDR, so the
@@ -943,7 +946,7 @@ TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
             rows[spot.y()].push_back(spot.x());
           }
         }
-        for (const ArenaSpot& spot : phase.player_spots()) {
+        for (const ArenaSpot& spot : AllPlayerSpots(phase)) {
           rows[spot.y()].push_back(spot.x());
         }
         for (std::pair<const int, std::vector<int>>& row : rows) {
@@ -969,7 +972,7 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
         std::string where = entry.first + " " + difficulty.name();
         EXPECT_GT(phase.player_spots_size(), 0)
             << where << " gives the player nowhere to stand";
-        for (const ArenaSpot& spot : phase.player_spots()) {
+        for (const ArenaSpot& spot : AllPlayerSpots(phase)) {
           EXPECT_LT(spot.x(), phase.arena_width())
               << where << " stands the player past the right of its arena";
           EXPECT_LT(spot.y(), phase.arena_height())
@@ -978,6 +981,44 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
       }
     }
   }
+}
+
+// A giant's bar reaches into the cells beside it and the rows above and below,
+// so a spot there would be drawn under it. Timed spots must close before they
+// next open, or they would never close at all.
+TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
+  int giants = 0;
+  int timed = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        std::string where = entry.first + " " + difficulty.name();
+        if (!phase.timed_spots().spots().empty()) {
+          ++timed;
+          EXPECT_GT(phase.timed_spots().open_ms(), 0) << where;
+          EXPECT_LT(phase.timed_spots().open_ms(),
+                    phase.timed_spots().interval_ms())
+              << where << " opens its timed spots for good";
+        }
+        for (const Spawn& spawn : phase.spawns()) {
+          if (!spawn.giant()) {
+            continue;
+          }
+          for (const ArenaSpot& at : spawn.spots()) {
+            ++giants;
+            for (const ArenaSpot& spot : AllPlayerSpots(phase)) {
+              EXPECT_FALSE(std::abs(spot.x() - at.x()) <= 1 &&
+                           std::abs(spot.y() - at.y()) <= 1)
+                  << where << " stands the player under its giant at ("
+                  << spot.x() << ", " << spot.y() << ")";
+            }
+          }
+        }
+      }
+    }
+  }
+  EXPECT_EQ(giants, 1) << "Gloom is the only giant";
+  EXPECT_EQ(timed, 1) << "Gloom's tentacles are the only timed spots";
 }
 
 // Five spots on the floor of every fight, plus any ledges, at every difficulty,
@@ -991,7 +1032,9 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"von_bon", {5}},        {"crimson_queen", {5}},
       {"vellum", {5}},         {"princess_no", {9}},
       {"papulatus", {7, 5}},   {"lotus", {5, 8, 8}},
-      {"damien", {5, 5}},      {"guardian_angel_slime", {5}}};
+      {"damien", {5, 5}},      {"guardian_angel_slime", {5}},
+      {"lucid", {5, 5}},       {"will", {5, 5, 5}},
+      {"gloom", {5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

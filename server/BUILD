@@ -75,6 +75,7 @@ cc_library(
     hdrs = ["fight.h"],
     deps = [
         "//src:spawn",
+        "//src/combat:arena_spots",
         "//src/combat:boss_timing",
         "//src/combat:loot",
         "//src/protos:boss_proto_cc",

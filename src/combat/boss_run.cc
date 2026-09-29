@@ -30,23 +30,6 @@ constexpr double kReportSeconds = kFightPublishInterval.count() / 1000.0;
 // A time later than any fight lasts, for events a slot never has.
 constexpr double kNeverMoves = std::numeric_limits<double>::infinity();
 
-// The furthest cell anyone stands on along each axis. Used as the arena size
-// when the phase doesn't set one.
-ArenaSpot ArenaExtent(const BossPhase& phase) {
-  ArenaSpot extent;
-  for (const Spawn& spawn : phase.spawns()) {
-    for (const ArenaSpot& spot : spawn.spots()) {
-      extent.set_x(std::max(extent.x(), spot.x() + 1));
-      extent.set_y(std::max(extent.y(), spot.y() + 1));
-    }
-  }
-  for (const ArenaSpot& spot : phase.player_spots()) {
-    extent.set_x(std::max(extent.x(), spot.x() + 1));
-    extent.set_y(std::max(extent.y(), spot.y() + 1));
-  }
-  return extent;
-}
-
 // A pseudo-random number from a monster ID and a step count. The same inputs
 // give the same result on every client, so nothing needs to be sent.
 uint32_t Mixed(int id, int step) {
@@ -59,7 +42,7 @@ uint32_t Mixed(int id, int step) {
 }
 
 bool PlayerMayStand(const BossPhase& phase, int x, int y) {
-  for (const ArenaSpot& spot : phase.player_spots()) {
+  for (const ArenaSpot& spot : AllPlayerSpots(phase)) {
     if (spot.x() == x && spot.y() == y) {
       return true;
     }
@@ -115,49 +98,6 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
 
 }  // namespace
 
-int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
-  return NextPlayerSpot(phase, from, dx, dy, {});
-}
-
-int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
-                   const std::vector<int>& taken) {
-  if (from < 0 || from >= phase.player_spots_size()) {
-    return from;
-  }
-  const ArenaSpot& at = phase.player_spots(from);
-  int best = from;
-  int best_along = 0;
-  int best_across = 0;
-  bool tied = false;
-  for (int i = 0; i < phase.player_spots_size(); ++i) {
-    if (std::find(taken.begin(), taken.end(), i) != taken.end()) {
-      continue;
-    }
-    const ArenaSpot& spot = phase.player_spots(i);
-    int step_x = spot.x() - at.x();
-    int step_y = spot.y() - at.y();
-    // How far the spot is in the pressed direction, and how far off to the
-    // side. Only one of dx and dy is ever nonzero, so each is a single term.
-    int along = step_x * dx + step_y * dy;
-    int across = std::abs(step_x * dy) + std::abs(step_y * dx);
-    // Skip spots further to the side than ahead. Otherwise pressing Right in
-    // Horntail's top corner would jump to the spot under his tail.
-    if (along <= 0 || across > along) {
-      continue;
-    }
-    if (best == from || along < best_along ||
-        (along == best_along && across < best_across)) {
-      best = i;
-      best_along = along;
-      best_across = across;
-      tied = false;
-      continue;
-    }
-    tied = tied || (along == best_along && across == best_across);
-  }
-  return tied ? from : best;
-}
-
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
                  FightAuthority* authority, const BossOptions& options)
     : boss_key_(std::move(boss_key)),
@@ -192,7 +132,10 @@ void BossRun::MovePlayer(int dx, int dy) {
   }
   // Move locally first and tell the server later, rather than waiting for it,
   // so movement never stutters.
-  player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, TakenSpots());
+  std::vector<int> taken = TakenSpots();
+  std::vector<int> closed = ClosedSpots(*phase, FightSeconds());
+  taken.insert(taken.end(), closed.begin(), closed.end());
+  player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, taken);
   if (!members_.empty()) {
     members_[0].spot = player_at_;
   }
@@ -253,10 +196,11 @@ ArenaSpot BossRun::player_spot() const {
   if (phase == nullptr) {
     return ArenaSpot();
   }
-  if (player_at_ < 0 || player_at_ >= phase->player_spots_size()) {
+  std::vector<ArenaSpot> spots = AllPlayerSpots(*phase);
+  if (player_at_ < 0 || player_at_ >= static_cast<int>(spots.size())) {
     return ArenaSpot();
   }
-  return phase->player_spots(player_at_);
+  return spots[player_at_];
 }
 
 std::vector<ArenaSpot> BossRun::player_spots() const {
@@ -264,8 +208,24 @@ std::vector<ArenaSpot> BossRun::player_spots() const {
   if (phase == nullptr) {
     return {};
   }
-  return std::vector<ArenaSpot>(phase->player_spots().begin(),
-                                phase->player_spots().end());
+  return AllPlayerSpots(*phase);
+}
+
+bool BossRun::spot_open(int index) const {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return false;
+  }
+  std::vector<int> closed = ClosedSpots(*phase, FightSeconds());
+  return std::find(closed.begin(), closed.end(), index) == closed.end();
+}
+
+double BossRun::FightSeconds() const {
+  const BossDifficulty* chosen = difficulty();
+  if (chosen == nullptr) {
+    return 0.0;
+  }
+  return std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
 }
 
 int BossRun::arena_width() const {
@@ -273,10 +233,7 @@ int BossRun::arena_width() const {
   if (phase == nullptr) {
     return 0;
   }
-  // If the phase doesn't set a width, use the rightmost occupied cell, with no
-  // margin.
-  return phase->arena_width() > 0 ? phase->arena_width()
-                                  : ArenaExtent(*phase).x();
+  return ArenaSize(*phase).x();
 }
 
 int BossRun::arena_height() const {
@@ -284,8 +241,7 @@ int BossRun::arena_height() const {
   if (phase == nullptr) {
     return 0;
   }
-  return phase->arena_height() > 0 ? phase->arena_height()
-                                   : ArenaExtent(*phase).y();
+  return ArenaSize(*phase).y();
 }
 
 bool BossRun::done() const {
@@ -470,6 +426,7 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.x = spot.x();
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
+    bar.giant = params.types[mob.type].giant;
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
@@ -589,10 +546,7 @@ void BossRun::DriftSlots() {
   if (phase == nullptr) {
     return;
   }
-  double limit = difficulty() == nullptr
-                     ? 0.0
-                     : static_cast<double>(difficulty()->time_limit_seconds());
-  double elapsed = std::max(0.0, limit - seconds_left_);
+  double elapsed = FightSeconds();
   for (BossSlot& slot : slots_) {
     if (slot.walk.interval_ms() <= 0 && slot.walk.jump().interval_ms() <= 0) {
       continue;
@@ -664,6 +618,8 @@ void BossRun::RunPhase(GameState& state, double dt) {
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
   // After the timer update, since walking positions follow the timer.
   DriftSlots();
+  player_at_ =
+      DropFromClosedSpots(*current_phase(), FightSeconds(), {player_at_})[0];
   if (!sim_.view().roster.empty()) {
     if (seconds_left_ <= 0.0) {
       Finish(BossRunState::kTimedOut);
@@ -832,6 +788,33 @@ void BossRun::TakeShared(const SharedFight& shared) {
   if (player_at_ < 0 ||
       std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
     player_at_ = stood;
+  }
+  DropShared(shared);
+}
+
+void BossRun::DropShared(const SharedFight& shared) {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return;
+  }
+  // Everyone, in party order, as the server drops them: it may not have caught
+  // up with a spot closing yet, and a player shown hanging in the air for a
+  // frame would look wrong.
+  std::vector<int> standing(shared.players.size(), -1);
+  for (std::size_t i = 0; i < shared.players.size(); ++i) {
+    if (static_cast<int>(i) == shared.self) {
+      standing[i] = player_at_;
+    } else if (shared.players[i].present) {
+      standing[i] = shared.players[i].spot;
+    }
+  }
+  standing = DropFromClosedSpots(*phase, FightSeconds(), standing);
+  for (std::size_t i = 0; i < standing.size(); ++i) {
+    if (static_cast<int>(i) == shared.self) {
+      player_at_ = standing[i];
+    } else if (member_of_player_[i] > 0) {
+      members_[member_of_player_[i]].spot = standing[i];
+    }
   }
 }
 

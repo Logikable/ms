@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/combat/arena_spots.h"
 #include "src/combat/boss_timing.h"
 #include "src/combat/loot.h"
 #include "src/protos/boss.pb.h"
@@ -243,7 +244,11 @@ void PartyFight::TakeLines() {
 bool PartyFight::MoveTo(const std::string& account_id, int spot) {
   const BossPhase* current = current_phase();
   if (over() || current == nullptr || spot < 0 ||
-      spot >= current->player_spots_size()) {
+      spot >= static_cast<int>(AllPlayerSpots(*current).size())) {
+    return false;
+  }
+  std::vector<int> closed = ClosedSpots(*current, FightSeconds());
+  if (std::find(closed.begin(), closed.end(), spot) != closed.end()) {
     return false;
   }
   FightPlayer* moving = Find(account_id);
@@ -277,8 +282,36 @@ void PartyFight::Disconnect(const std::string& account_id) {
   Finish(PartyFightState::kAbandoned);
 }
 
+double PartyFight::FightSeconds() const {
+  const BossDifficulty* chosen = difficulty();
+  if (chosen == nullptr) {
+    return 0.0;
+  }
+  return std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
+}
+
+void PartyFight::DropFromClosedSpots() {
+  const BossPhase* current = current_phase();
+  if (current == nullptr) {
+    return;
+  }
+  // Party order, which every client drops in too. A player who left holds no
+  // spot.
+  std::vector<int> standing;
+  for (const FightPlayer& player : players_) {
+    standing.push_back(player.present ? player.spot : -1);
+  }
+  standing = ms::DropFromClosedSpots(*current, FightSeconds(), standing);
+  for (std::size_t i = 0; i < players_.size(); ++i) {
+    if (players_[i].present) {
+      players_[i].spot = standing[i];
+    }
+  }
+}
+
 void PartyFight::RunPhase(double dt) {
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
+  DropFromClosedSpots();
   if (AnyoneAlive()) {
     if (seconds_left_ <= 0.0) {
       Finish(PartyFightState::kTimedOut);

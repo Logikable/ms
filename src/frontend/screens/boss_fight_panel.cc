@@ -38,9 +38,9 @@ int Percent(double fraction) {
   return std::clamp(pct, 0, 100);
 }
 
-std::vector<std::string> BarLines(const std::string& text, int rows) {
-  std::vector<std::string> lines =
-      WrapBalanced(text, kBossPanelWidth - kPanelClearance);
+std::vector<std::string> BarLines(const std::string& text, int rows,
+                                  int width = kBossPanelWidth) {
+  std::vector<std::string> lines = WrapBalanced(text, width - kPanelClearance);
   lines.resize(rows);
   return lines;
 }
@@ -61,12 +61,23 @@ int MobBarRows(const std::vector<BossSlot>& slots) {
 // A monster's bar: its remaining HP, with its name wrapped over the fill like
 // the player's attack name. The percent goes in the title, since the name won't
 // fit there and a number reads well as a badge on the frame.
-ftxui::Element MobBar(const BossSlot& slot, int rows) {
-  ftxui::Element bar = ProgressBar(static_cast<float>(slot.hp_fraction), kRed,
-                                   BarLines(slot.name, rows));
+// A giant's name sits in the middle of its `inside` rows.
+ftxui::Element MobBar(const BossSlot& slot, int rows, int inside) {
+  int width = slot.giant ? kGiantPanelWidth : kBossPanelWidth;
+  std::vector<std::string> lines;
+  if (slot.giant) {
+    std::vector<std::string> name = BarLines(slot.name, rows, width);
+    lines.assign((inside - rows) / 2, "");
+    lines.insert(lines.end(), name.begin(), name.end());
+    lines.resize(inside);
+  } else {
+    lines = BarLines(slot.name, rows);
+  }
+  ftxui::Element bar =
+      ProgressBar(static_cast<float>(slot.hp_fraction), kRed, lines);
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
 }
 
 // Seconds as a duration for the marquee. The run counts in doubles, and
@@ -130,6 +141,8 @@ bool Stood(const std::vector<FightMember>& members, int index) {
 struct ArenaCell {
   int x = 0;
   int y = 0;
+  // How many rows of the grid its panel is as tall as: 2 for a giant.
+  int span = 1;
 };
 
 // Numbers drawn directly onto the screen instead of built from rows, because
@@ -302,7 +315,8 @@ class ArenaNode : public ftxui::Node {
     }
     for (std::size_t i = 0; i < panels_; ++i) {
       row_width[cells_[i].y] += children_[i]->requirement().min_x;
-      tallest = std::max(tallest, children_[i]->requirement().min_y);
+      tallest = std::max(tallest, children_[i]->requirement().min_y /
+                                      std::max(1, cells_[i].span));
     }
     for (const std::pair<const int, int>& row : row_width) {
       requirement_.min_x = std::max(requirement_.min_x, row.second);
@@ -364,13 +378,13 @@ class ArenaNode : public ftxui::Node {
     std::sort(row.begin(), row.end(), [this](std::size_t a, std::size_t b) {
       return cells_[a].x < cells_[b].x;
     });
-    int height = children_[row.front()]->requirement().min_y;
-    int top = CentreOf(y, rows_, box.y_min, box.y_max) - height / 2;
-    top = std::clamp(top, box.y_min, std::max(box.y_min, box.y_max - height));
     // Filled from the left: the first panel takes its own place, and each later
     // one goes where its cell asks or against its neighbour.
     int taken = box.x_min;
     for (std::size_t i : row) {
+      int height = children_[i]->requirement().min_y;
+      int top = CentreOf(y, rows_, box.y_min, box.y_max) - height / 2;
+      top = std::clamp(top, box.y_min, std::max(box.y_min, box.y_max - height));
       int width = children_[i]->requirement().min_x;
       int left =
           CentreOf(cells_[i].x, columns_, box.x_min, box.x_max) - width / 2;
@@ -555,9 +569,11 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
       continue;
     }
     panel_of_slot[slot.id] = panels.size();
-    panels.push_back(MobBar(slot, MobBarRows(slots)) |
-                     ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
-    cells.push_back({slot.x, slot.y});
+    int span = slot.giant ? 2 : 1;
+    panels.push_back(
+        MobBar(slot, MobBarRows(slots), span * rows - kPanelBorder) |
+        ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, span * rows));
+    cells.push_back({slot.x, slot.y, span});
   }
   // The monster bars come first, and the arena relies on that: the column over
   // each is kept clear for the player's hits on that monster.
@@ -565,7 +581,8 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
   std::vector<ArenaSpot> spots = run.player_spots();
   const std::vector<FightMember>& members = run.members();
   for (int i = 0; i < static_cast<int>(spots.size()); ++i) {
-    if (Stood(members, i) || spots[i].y() < 0 || spots[i].y() >= height) {
+    if (Stood(members, i) || !run.spot_open(i) || spots[i].y() < 0 ||
+        spots[i].y() >= height) {
       continue;
     }
     panels.push_back(EmptySpot(rows));

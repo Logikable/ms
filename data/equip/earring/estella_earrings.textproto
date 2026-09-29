@@ -1,0 +1,17 @@
+name: "Estella Earrings"
+required_level: 160
+base_stats {
+  str: 7
+  dex: 7
+  int: 7
+  luk: 7
+  max_hp: 300
+  max_mp: 300
+  attack: 2
+  magic_attack: 2
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EARRINGS
+upgrade_slots: 6
+sell_price: 0

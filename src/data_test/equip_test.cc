@@ -735,7 +735,7 @@ TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
 }
 
 // The Dawn Boss Set's totals, checked the same way for the same reason. Only
-// two of its four slots have an item today, so its top tiers can't be reached
+// three of its four slots have an item today, so its top tier can't be reached
 // yet, which is exactly why the numbers need a test instead of a playtest.
 TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
@@ -747,7 +747,7 @@ TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
   }
   ASSERT_NE(set, nullptr);
   ASSERT_EQ(set->complete_pieces(), 4);
-  ASSERT_EQ(set->members_size(), 2);
+  ASSERT_EQ(set->members_size(), 3);
   ASSERT_EQ(set->tiers_size(), 3);
   const int kStat[] = {10, 20, 30};
   const int kAttack[] = {10, 20, 30};

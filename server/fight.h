@@ -162,6 +162,10 @@ class PartyFight {
   // Runs the timer, and moves to the next phase or ends the fight once every
   // mob is dead.
   void RunPhase(double dt);
+  // Seconds since the countdown ended, which timed spots open and close on.
+  double FightSeconds() const;
+  // Moves everyone off timed spots that have closed, as the clients do.
+  void DropFromClosedSpots();
   // Returns whether any mob has HP left.
   bool AnyoneAlive() const;
 

@@ -1,0 +1,53 @@
+name: "Gloom"
+difficulties {
+  # GMS's own level (255) is kept, twenty-five over the gate.
+  name: "Normal"
+  phases {
+    bgm: "FerociousBattlefield"
+    spawns {
+      mob: "gloom"
+      spots { x: 4 y: 2 }
+      giant: true
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    # The two tentacles GMS strikes with every 55 seconds, stood on as
+    # platforms until they retract.
+    timed_spots {
+      interval_ms: 55000
+      open_ms: 20000
+      spots { x: 1 y: 4 }
+      spots { x: 7 y: 4 }
+      spots { x: 2 y: 3 }
+      spots { x: 6 y: 3 }
+      spots { x: 2 y: 1 }
+      spots { x: 6 y: 1 }
+      spots { x: 1 y: 0 }
+      spots { x: 7 y: 0 }
+    }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 230
+  arcane_force: 730
+  # Five Intense Power Crystals at GMS's price (59,535,000), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 42550000
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "glooms_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. This game drops all of Hard Damien's, Hard
+  # Lotus's, Lucid's, Will's and Gloom's gear at 20%.
+  drops {
+    equip: "estella_earrings"
+    per_kill: 0.2
+  }
+}

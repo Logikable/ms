@@ -24,6 +24,8 @@ namespace ms {
 // panels across four rows. Names wrap over the bar's rows instead of setting
 // the width, so a row must fit the longest word in a name.
 inline constexpr int kBossPanelWidth = 17;
+// A giant's bar: half as wide again, rounded to odd so it centres on its cell.
+inline constexpr int kGiantPanelWidth = 25;
 
 // How many rows the player's bar uses. Fixed, unlike the monsters', because the
 // name on it changes with every attack, and a panel that grew and shrank

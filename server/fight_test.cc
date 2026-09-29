@@ -238,6 +238,33 @@ TEST_F(FightTest, OneSpotHoldsOnePlayer) {
 
 // Each report's table replaces the last, even from an earlier phase, and it is
 // kept after the player leaves.
+// Timed spots take players only while open, and when they close the server
+// drops everyone on one in party order, as each client does.
+TEST(FightSpotsTest, TimedSpotsTakePlayersOnlyWhileOpen) {
+  Boss boss = TwoPhases();
+  TimedSpots* timed =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_timed_spots();
+  timed->set_interval_ms(10000);
+  timed->set_open_ms(5000);
+  for (int y : {1, 2}) {
+    ArenaSpot* spot = timed->add_spots();
+    spot->set_x(1);
+    spot->set_y(y);
+  }
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(2));
+  fight.Advance(kBossCountdownSeconds);
+  EXPECT_FALSE(fight.MoveTo("one", 4)) << "stood on a closed spot";
+  fight.Advance(10.0);
+  EXPECT_TRUE(fight.MoveTo("one", 4));
+  EXPECT_TRUE(fight.MoveTo("two", 5));
+  fight.Advance(5.0);
+  // One goes first and takes the spot under both; two's nearest are then a
+  // tie, and the one nearer the middle wins.
+  EXPECT_EQ(fight.players()[0].spot, 1);
+  EXPECT_EQ(fight.players()[1].spot, 2);
+}
+
 TEST_F(FightTest, TheLastBreakdownReportedIsKept) {
   CountIn();
   FightUpdate update;

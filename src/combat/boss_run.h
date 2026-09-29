@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/combat/arena_spots.h"
 #include "src/combat/boss_timing.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"
@@ -162,6 +163,8 @@ struct BossSlot {
   int y = 0;
   // How it wanders. An unset walk means it stands still.
   ArenaWalk walk;
+  // Drawn at twice the height and half again the width of a usual bar.
+  bool giant = false;
   // How many moves of its walk it has made; each new move follows from these.
   // Stored so each move costs one move's work instead of replaying thousands.
   int steps_taken = 0;
@@ -201,15 +204,6 @@ struct FightMember {
   // Number of active buffs.
   int buff_count = 0;
 };
-
-// Which of `phase`'s player spots a key press moves to. Picks the nearest spot
-// in the pressed direction, measured along that direction and then across it; a
-// spot further across than along doesn't count as that direction. Returns
-// `from` when no spot lies that way or two spots tie. Spots in `taken` are
-// skipped, and the search continues past them.
-int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
-                   const std::vector<int>& taken);
-int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
 
 class BossRun {
  public:
@@ -329,9 +323,12 @@ class BossRun {
   // If the phase doesn't set a size, it is measured from the spots, with no
   // margin.
   ArenaSpot player_spot() const;
-  // Every spot the player can stand on this phase, including their current one.
-  // Empty if the phase has none.
+  // Every spot the player can stand on this phase, including their current one,
+  // open or closed. Empty if the phase has none.
   std::vector<ArenaSpot> player_spots() const;
+  // Whether spot `index` of player_spots() can be stood on now. A timed spot
+  // is drawn only while it is open.
+  bool spot_open(int index) const;
   int arena_width() const;
   int arena_height() const;
   // The attack being charged and its progress, for the player's charge bar.
@@ -402,6 +399,11 @@ class BossRun {
   void AdvanceShared(GameState& state, double dt);
   // Copies the phase, timer and player positions from the server.
   void TakeShared(const SharedFight& shared);
+  // Drops everyone standing on a closed spot, the same way the server does.
+  void DropShared(const SharedFight& shared);
+  // Seconds since the countdown ended, phase gaps included: the clock walks
+  // and timed spots follow.
+  double FightSeconds() const;
   // Runs the local fight against the shared monsters: this player's attacks
   // land, monster HP is capped to the server's values, and the damage is
   // reported.

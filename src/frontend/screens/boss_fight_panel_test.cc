@@ -1147,6 +1147,62 @@ TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
   }
 }
 
+// Gloom's room: a giant at (4, 2) over five floor spots, and the X of eight
+// timed spots around it that opens at 10s for 5s.
+Boss GloomBoss() {
+  Boss boss = GridBoss({{4, 5}, {0, 5}, {8, 5}, {2, 5}, {6, 5}});
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  ArenaSpot* at = phase->mutable_spawns(0)->mutable_spots(0);
+  at->set_x(4);
+  at->set_y(2);
+  phase->mutable_spawns(0)->set_giant(true);
+  TimedSpots* timed = phase->mutable_timed_spots();
+  timed->set_interval_ms(10000);
+  timed->set_open_ms(5000);
+  for (int y : {4, 3, 1, 0}) {
+    int x = y == 4 || y == 0 ? 1 : 2;
+    for (int column : {x, 8 - x}) {
+      ArenaSpot* spot = timed->add_spots();
+      spot->set_x(column);
+      spot->set_y(y);
+    }
+  }
+  return boss;
+}
+
+// A giant is two panels tall and half as wide again, and the X it stands in
+// is drawn only while open, every spot of it clear of the others.
+TEST(BossFightPanelTest, AGiantFillsItsRoomAndTheXOpensAroundIt) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = GloomBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  std::vector<std::string> rows = Rows(run);
+  // Unused cells read as '#' too, so the bar is measured by its blank inside.
+  int top = RowOf(rows, "# 100% #");
+  ASSERT_GE(top, 0);
+  int left = static_cast<int>(rows[top + 1].find(' '));
+  int right = static_cast<int>(rows[top + 1].find('#', left)) - 1;
+  EXPECT_EQ(right - left + 1, kGiantPanelWidth - 2);
+  int bottom = top + 1;
+  while (rows[bottom + 1][left] == ' ') {
+    ++bottom;
+  }
+  EXPECT_EQ(bottom - top, 2 * (2 + kPlayerBarRows) - 2);
+  EXPECT_EQ(EmptySpotsIn(rows).size(), 4u);
+
+  run.Advance(*state, 10.0);
+  std::vector<std::pair<int, int>> open = EmptySpotsIn(Rows(run));
+  ASSERT_EQ(open.size(), 12u);
+  for (const std::pair<int, int>& spot : open) {
+    EXPECT_FALSE(spot.first >= top && spot.first <= bottom &&
+                 spot.second + 5 > left && spot.second <= right)
+        << "a spot drawn under the giant at row " << spot.first;
+  }
+  run.Advance(*state, 5.0);
+  EXPECT_EQ(EmptySpotsIn(Rows(run)).size(), 4u);
+}
+
 // Three panels across the arena, each a fixed height but sized sideways to its
 // contents, which a long mob name or a large number could fill.
 TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {
