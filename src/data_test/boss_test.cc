@@ -207,12 +207,15 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(shells, std::vector<std::string>({"guardian_angel_slime Chaos"}));
+  EXPECT_EQ(shells, std::vector<std::string>({"darknell Hard", "gloom Chaos",
+                                              "guardian_angel_slime Chaos",
+                                              "lucid Hard", "will Hard"}));
 }
 
 // Each harder fight is its Normal with GMS's Hard or Chaos numbers, and the
 // difficulty is the only difference: the same mobs in the same cells, so
-// building a shell means filling in what's missing, not laying it out.
+// building a shell means filling in what's missing, not laying it out. Hard
+// Lucid adds a third phase of her own after Normal's two.
 TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
@@ -222,7 +225,11 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   const std::vector<Want> kHarder = {
       {"damien", "Hard", {25200000000000LL, 10800000000000LL}},
       {"lotus", "Hard", {9985500000000LL, 9985500000000LL, 13314000000000LL}},
-      {"guardian_angel_slime", "Chaos", {90000000000000LL}}};
+      {"guardian_angel_slime", "Chaos", {90000000000000LL}},
+      {"lucid", "Hard", {50800000000000LL, 54000000000000LL, 12800000000000LL}},
+      {"will", "Hard", {42000000000000LL, 31500000000000LL, 52500000000000LL}},
+      {"gloom", "Chaos", {127050000000000LL}},
+      {"darknell", "Hard", {157500000000000LL}}};
   for (const Want& want : kHarder) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
@@ -231,8 +238,14 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
     SCOPED_TRACE(want.boss);
     EXPECT_EQ(harder.name(), want.name);
     ASSERT_EQ(harder.phases_size(), static_cast<int>(want.hp.size()));
-    ASSERT_EQ(harder.phases_size(), normal.phases_size());
+    ASSERT_EQ(harder.phases_size(),
+              normal.phases_size() + (want.boss == "lucid" ? 1 : 0));
     for (int i = 0; i < harder.phases_size(); ++i) {
+      if (i >= normal.phases_size()) {
+        EXPECT_EQ(mobs_.at(harder.phases(i).spawns(0).mob()).max_hp(),
+                  want.hp[i]);
+        continue;
+      }
       const BossPhase& shape = normal.phases(i);
       const BossPhase& phase = harder.phases(i);
       SCOPED_TRACE(i);
@@ -252,8 +265,8 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
       EXPECT_EQ(mob.max_hp(), want.hp[i]);
     }
   }
-  // The one mob above the level cap: GMS fights her at 250, and a shell's card
-  // doesn't show a level, so nothing reads it yet.
+  // GMS fights her at 250, past the level cap, and a shell's card doesn't show
+  // a level, so nothing reads it yet.
   EXPECT_EQ(mobs_.at("chaos_guardian_angel_slime").level(), 250);
 }
 
@@ -901,7 +914,8 @@ TEST_F(BossDataTest, EverySpecialHasAMoveAndAWait) {
       }
     }
   }
-  EXPECT_EQ(specials, 1) << "only Darknell takes turns between moves";
+  EXPECT_EQ(specials, 2) << "only Darknell, at both difficulties, takes turns "
+                            "between moves";
 }
 
 // A jump must come back down before the next one is due, and the row it jumps
@@ -1048,8 +1062,8 @@ TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
       }
     }
   }
-  EXPECT_EQ(giants, 1) << "Gloom is the only giant";
-  EXPECT_EQ(timed, 1) << "Gloom's tentacles are the only timed spots";
+  EXPECT_EQ(giants, 2) << "Gloom, at both difficulties, is the only giant";
+  EXPECT_EQ(timed, 2) << "Gloom's tentacles are the only timed spots";
 }
 
 // Five spots on the floor of every fight, plus any ledges, at every difficulty,
@@ -1066,15 +1080,22 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"damien", {5, 5}},      {"guardian_angel_slime", {5}},
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
       {"gloom", {5}},          {"darknell", {5}}};
+  // A difficulty with a phase its Normal lacks.
+  const std::map<std::string, std::vector<int>> kOwnShape = {
+      {"lucid Hard", {5, 5, 5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :
          bosses_.at(want.first).difficulties()) {
       std::string where = want.first + " " + difficulty.name();
-      ASSERT_EQ(difficulty.phases_size(), static_cast<int>(want.second.size()))
+      std::map<std::string, std::vector<int>>::const_iterator own =
+          kOwnShape.find(where);
+      const std::vector<int>& spots =
+          own == kOwnShape.end() ? want.second : own->second;
+      ASSERT_EQ(difficulty.phases_size(), static_cast<int>(spots.size()))
           << where;
       for (int i = 0; i < difficulty.phases_size(); ++i) {
-        EXPECT_EQ(difficulty.phases(i).player_spots_size(), want.second[i])
+        EXPECT_EQ(difficulty.phases(i).player_spots_size(), spots[i])
             << where << " phase " << i + 1;
       }
     }

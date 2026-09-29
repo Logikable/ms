@@ -55,3 +55,53 @@ difficulties {
     per_kill: 0.2
   }
 }
+difficulties {
+  # Not built yet: no time limit, unlock level or reward until it is.
+  name: "Hard"
+  coming_soon: true
+  phases {
+    bgm: "WierldForestIntheGirlsdream"
+    spawns {
+      mob: "hard_lucid_phase_1"
+      spots { x: 4 y: 3 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "BrokenDream"
+    spawns {
+      mob: "hard_lucid_phase_2"
+      spots { x: 4 y: 3 }
+      # Twice Chaos Papulatus's pace: she flits about the clocktower.
+      walk { interval_ms: 250 range: RANGE_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  # Hard only: she stands still in the middle of the clocktower, and GMS gives
+  # the party 45 seconds to finish her.
+  phases {
+    spawns {
+      mob: "hard_lucid_phase_3"
+      spots { x: 4 y: 3 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+}

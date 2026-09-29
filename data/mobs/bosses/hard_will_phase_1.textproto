@@ -1,0 +1,8 @@
+# GMS splits this across two dimensions, 21T each; here it is one bar.
+name: "Will"
+level: 250
+attack: 22000
+max_hp: 42000000000000
+exp: 0
+pdr: 300
+boss: true

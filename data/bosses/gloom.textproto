@@ -51,3 +51,37 @@ difficulties {
     per_kill: 0.2
   }
 }
+difficulties {
+  # Not built yet: no time limit, unlock level or reward until it is.
+  name: "Chaos"
+  coming_soon: true
+  phases {
+    bgm: "FerociousBattlefield"
+    spawns {
+      mob: "chaos_gloom"
+      spots { x: 4 y: 2 }
+      giant: true
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    # The two tentacles GMS strikes with every 55 seconds, stood on as
+    # platforms until they retract.
+    timed_spots {
+      interval_ms: 55000
+      open_ms: 20000
+      spots { x: 1 y: 4 }
+      spots { x: 7 y: 4 }
+      spots { x: 2 y: 3 }
+      spots { x: 6 y: 3 }
+      spots { x: 2 y: 1 }
+      spots { x: 6 y: 1 }
+      spots { x: 1 y: 0 }
+      spots { x: 7 y: 0 }
+    }
+    arena_width: 9
+    arena_height: 6
+  }
+}

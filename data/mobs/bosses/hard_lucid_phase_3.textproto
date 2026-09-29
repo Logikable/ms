@@ -1,0 +1,8 @@
+# GMS gives her ten lives of 1.28T; here they are one bar.
+name: "Lucid"
+level: 230
+attack: 22000
+max_hp: 12800000000000
+exp: 0
+pdr: 300
+boss: true

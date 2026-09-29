@@ -1,0 +1,8 @@
+# The wiki marks this HP as estimated.
+name: "Giant Monster Gloom"
+level: 255
+attack: 22000
+max_hp: 127050000000000
+exp: 0
+pdr: 300
+boss: true
