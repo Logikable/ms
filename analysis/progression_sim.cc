@@ -662,12 +662,13 @@ struct PlanKey {
 };
 
 // What the matrix was last planned from scratch against. A full replan costs
-// hundreds of measured fights, so like the worth tables it waits for a new
-// target or a character who has outgrown the plan; in between, new points go
-// on top.
+// hundreds of measured fights, so like the worth tables it waits for a target
+// behind a different defence wall or a character who has outgrown the plan; in
+// between, new points go on top. The wall rather than the boss: a replan is
+// for levers the wall zeroed, and most bosses past 190 share one.
 struct MatrixChoice {
   bool planned = false;
-  std::pair<std::string, int> fight;
+  double defence = 0.0;
   int power = 0;
   MatrixMemo memo;
 };
@@ -744,13 +745,12 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
         &toggles);
     // Plan the matrix after the book, on the same rate. See MatrixChoice.
-    std::pair<std::string, int> fight;
-    AimedFight(state, &fight);
+    double defence = AimedDefence(state);
     int power = PowerNow(state);
-    bool replan = !matrix.planned || fight != matrix.fight ||
+    bool replan = !matrix.planned || defence != matrix.defence ||
                   power >= matrix.power * kRemeasureGrowth;
     if (replan && state.character.v_matrix_unlocked()) {
-      matrix = {true, fight, power};
+      matrix = {true, defence, power};
     }
     SpendVMatrix(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
@@ -1961,7 +1961,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   SaveHyperWorth(run.hyper_bossing, saved.mutable_hyper_bossing());
   saved.set_matrix_planned(run.matrix.planned);
   saved.set_matrix_power(run.matrix.power);
-  SaveAim(run.matrix.fight, saved.mutable_matrix_aim());
+  saved.set_matrix_defence(run.matrix.defence);
   saved.mutable_matrix_relative()->insert(run.matrix.memo.relative.begin(),
                                           run.matrix.memo.relative.end());
   saved.set_world_rng(SaveRng(run.state.rng));
@@ -2015,7 +2015,7 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.hyper_aim = LoadAim(saved.hyper_aim());
   LoadHyperWorth(saved.hyper_farming(), &run.hyper_farming);
   LoadHyperWorth(saved.hyper_bossing(), &run.hyper_bossing);
-  run.matrix = {saved.matrix_planned(), LoadAim(saved.matrix_aim()),
+  run.matrix = {saved.matrix_planned(), saved.matrix_defence(),
                 saved.matrix_power()};
   run.matrix.memo.relative.insert(saved.matrix_relative().begin(),
                                   saved.matrix_relative().end());

@@ -193,7 +193,8 @@ message SimCheckpoint {
   CheckpointWorth hyper_bossing = 31;
   bool matrix_planned = 32;
   int32 matrix_power = 33;
-  CheckpointAim matrix_aim = 34;
+  reserved 34;  // matrix_aim, before the matrix keyed on the boss's defence
+  double matrix_defence = 39;
 
   // The alt rungs taken, and the farming seconds still owed to them.
   repeated CheckpointAlt alts = 35;
