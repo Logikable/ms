@@ -154,6 +154,8 @@ class GearShopper {
     EquipSlot slot = EQUIP_SLOT_UNSPECIFIED;
     // A star when set; otherwise one of the item's upgrade slots.
     bool star = false;
+    // The last star of the run a star offer starts.
+    int star_to = 0;
     // A golden hammer: the slot it opens and the scroll that fills it, priced
     // and valued together. A hammer alone is worth nothing; what's being bought
     // is the scroll it makes room for.
@@ -256,7 +258,8 @@ class GearShopper {
                  GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
                  GearSpend& spend);
-  bool BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
+  // Taps `slot` until it holds `to` stars or the purse runs dry.
+  bool BuyStar(GameState& state, EquipSlot slot, StatPreset gear, int to,
                GearSpend& spend);
   bool BuySplit(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuySymbol(GameState& state, EquipSlot slot, GearSpend& spend);

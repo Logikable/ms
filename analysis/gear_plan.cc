@@ -300,15 +300,16 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   if (run.to == 0 || run.cost <= 0.0) {
     return std::nullopt;
   }
-  // Bought one star at a time, at the run's rate: the offer is the next star's
-  // price, and the gain its share of the run's. The next pass prices what is
-  // left of the run afresh.
+  // The whole run, bought through once started as a player sits at the Star
+  // Force window, so one star's price is all the purse must hold to begin.
   Candidate offer;
   offer.slot = slot;
   offer.gear = basis.gear;
   offer.star = true;
-  offer.cost = static_cast<int64_t>(run.step_cost);
-  offer.gain = run.gain * basis.scale * run.step_cost / run.cost;
+  offer.star_to = run.to;
+  offer.cost = static_cast<int64_t>(run.cost);
+  offer.outlay = static_cast<int64_t>(run.step_cost);
+  offer.gain = run.gain * basis.scale;
   return offer;
 }
 
@@ -684,12 +685,12 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
 // Attempts until the star lands or meso runs out. The offer's price was the
 // expected cost; this is the actual cost, and one run isn't the average.
 bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
-                          GearSpend& spend) {
+                          int to, GearSpend& spend) {
   // A farm-only piece is the first preset's own, like everything it wears.
   const StatPreset owner =
       gear == kFarmGear ? kFarmGear : OwnerOf(state.character, slot);
   const EquipInstance* item = Owned(state.character, owner, slot);
-  int before = item == nullptr ? 0 : item->stars();
+  const int before = item == nullptr ? 0 : item->stars();
   // Copy the prototype: a boom destroys the EquipInstance, and recovery needs
   // to know what was lost.
   EquipPrototype proto = item == nullptr ? EquipPrototype() : item->prototype();
@@ -704,7 +705,7 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
       }
       continue;
     }
-    if (item->stars() > before) {
+    if (item->stars() >= to) {
       break;
     }
     int64_t attempt =
@@ -719,7 +720,7 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
   }
   item = Owned(state.character, owner, slot);
   if (item != nullptr && item->stars() > before) {
-    ++spend.stars_gained;
+    spend.stars_gained += item->stars() - before;
   }
   return true;
 }
@@ -777,7 +778,8 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (!candidate.star) {
     return BuyScroll(state, candidate, spend);
   }
-  return BuyStar(state, candidate.slot, candidate.gear, spend);
+  return BuyStar(state, candidate.slot, candidate.gear, candidate.star_to,
+                 spend);
 }
 
 bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
