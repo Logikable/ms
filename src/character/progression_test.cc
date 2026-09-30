@@ -194,19 +194,35 @@ TEST_F(ProgressionTest, AWalkedTrailStaysWalkedForTheNextCharacter) {
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, second, account_));
 }
 
-// Bonus potential's trail ends at the Green Cube's row, which stays gold until
-// a Green Cube is used, for every character on the account.
-TEST_F(ProgressionTest, TheGreenCubeRowLeadsUntilOneIsUsed) {
-  const int level = UnlockLevel(Feature::kBonusPotential);
-  EXPECT_FALSE(LeadToBonusCube(MakeCharacter(level - 1), account_));
-  EXPECT_FALSE(LeadToAction(Feature::kBonusPotential, MakeCharacter(level - 1),
-                            account_));
-  CharacterInstance first = MakeCharacter(level);
-  EXPECT_TRUE(LeadToBonusCube(first, account_));
-  EXPECT_TRUE(LeadToAction(Feature::kBonusPotential, first, account_));
-  FollowedToBonusCube(account_);
-  EXPECT_FALSE(LeadToBonusCube(first, account_));
-  EXPECT_FALSE(LeadToBonusCube(MakeCharacter(1), account_));
+// In unlock order: following the menu clears every cube unlocked so far.
+// Each cube past Red has a shelf row that stays gold until one is used, for
+// every character on the account, and the Cube menu leads until it is opened.
+TEST_F(ProgressionTest, EachCubeRowLeadsUntilOneIsUsed) {
+  const std::pair<CubeType, Feature> kCubesLed[] = {
+      {CubeType::kGreen, Feature::kBonusPotential},
+      {CubeType::kBlack, Feature::kBlackCube},
+      {CubeType::kWhite, Feature::kWhiteCube},
+  };
+  EXPECT_EQ(UnlockLevel(Feature::kBlackCube), 240);
+  EXPECT_EQ(UnlockLevel(Feature::kWhiteCube), 260);
+  for (const auto& [cube, feature] : kCubesLed) {
+    const int level = UnlockLevel(feature);
+    CharacterInstance below = MakeCharacter(level - 1);
+    EXPECT_FALSE(CubeUnlocked(cube, below, account_));
+    EXPECT_FALSE(LeadToCube(cube, below, account_));
+    FollowedToCubeMenu(below, account_);
+    CharacterInstance first = MakeCharacter(level);
+    EXPECT_TRUE(CubeUnlocked(cube, first, account_));
+    EXPECT_TRUE(LeadToCube(cube, first, account_));
+    EXPECT_TRUE(LeadToCubeMenu(first, account_)) << level;
+    FollowedToCubeMenu(first, account_);
+    EXPECT_FALSE(LeadToCubeMenu(first, account_)) << level;
+    FollowedToCube(cube, account_);
+    EXPECT_FALSE(LeadToCube(cube, first, account_));
+    EXPECT_FALSE(LeadToCube(cube, MakeCharacter(1), account_));
+  }
+  EXPECT_FALSE(LeadToCube(CubeType::kRed, MakeCharacter(260), account_))
+      << "Red's trail ends at the menu";
 }
 
 // --- the upgrades a climb opened ---
@@ -242,9 +258,9 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      4u)
-      << "star force, the hammer, cubing and bonus potential are ahead of an "
-         "account that stopped at 50";
+      6u)
+      << "star force, the hammer, cubing and all three cubes after Red are "
+         "ahead of an account that stopped at 50";
 }
 
 // Panels and tabs highlight themselves in gold when they unlock; only item menu
@@ -255,9 +271,9 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      5u)
-      << "scrolling, star force, the hammer, cubing and bonus potential, in "
-         "the order they arrive";
+      7u)
+      << "scrolling, star force, the hammer, cubing and all three cubes after "
+         "Red, in the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
@@ -267,7 +283,8 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
       Feature::kStarForce,      Feature::kHammer,
       Feature::kPotential,      Feature::kSkills,
       Feature::kShop,           Feature::kLinkSkills,
-      Feature::kBonusPotential,
+      Feature::kBonusPotential, Feature::kBlackCube,
+      Feature::kWhiteCube,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());

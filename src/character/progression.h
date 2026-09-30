@@ -18,6 +18,7 @@
 
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/item/potential.h"
 
 namespace ms {
 
@@ -46,6 +47,9 @@ enum class Feature {
   // The Green Cube on the cubing screen's shelf, which rerolls bonus
   // potential. Its trail runs through the Cube menu entry to the shelf row.
   kBonusPotential,
+  // The Black and White Cubes on that shelf, trailed the same way.
+  kBlackCube,
+  kWhiteCube,
   // Recovery isn't listed: it needs a trace, which only exists after an item is
   // destroyed, which no level causes by itself. The item is the gate.
   //
@@ -164,14 +168,25 @@ bool LeadToAction(Feature feature, const CharacterInstance& character,
 // Records that the player pressed Enter on that entry, wherever they did it.
 void FollowedToAction(Feature feature, AccountInstance& account);
 
-// Whether the Green Cube's shelf row should be gold: bonus potential has
-// unlocked and the player hasn't used a Green Cube yet. The last step of its
-// trail, after the Cube menu entry.
-bool LeadToBonusCube(const CharacterInstance& character,
-                     const AccountInstance& account);
+// Whether the Cube menu entry should be gold: some cube has unlocked whose
+// trail the player hasn't followed. Following it clears every unlocked one.
+bool LeadToCubeMenu(const CharacterInstance& character,
+                    const AccountInstance& account);
+void FollowedToCubeMenu(const CharacterInstance& character,
+                        AccountInstance& account);
+
+// Whether `cube` is on the cubing screen's shelf.
+bool CubeUnlocked(CubeType cube, const CharacterInstance& character,
+                  const AccountInstance& account);
+
+// Whether `cube`'s shelf row should be gold: it has unlocked and the player
+// hasn't used one yet. The last step of its trail, after the Cube menu entry.
+// Never the Red Cube, whose trail ends at the menu.
+bool LeadToCube(CubeType cube, const CharacterInstance& character,
+                const AccountInstance& account);
 
 // Records that the player used one.
-void FollowedToBonusCube(AccountInstance& account);
+void FollowedToCube(CubeType cube, AccountInstance& account);
 
 /* The gold trail that leads a player to the Link Skills screen.
  *

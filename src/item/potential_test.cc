@@ -328,20 +328,27 @@ TEST(RollPotentialTest, RareLinesStayRare) {
   }
 }
 
-TEST(RollPotentialTest, PrimeOddsAreTenPercentAndOne) {
+TEST(RollPotentialTest, PrimeOddsAreEachCubesOwn) {
+  const std::map<CubeType, std::pair<double, double>> kExpected = {
+      {CubeType::kRed, {0.10, 0.01}},
+      {CubeType::kBlack, {0.20, 0.05}},
+  };
   std::mt19937 rng(3);
-  int second = 0;
-  int third = 0;
   constexpr int kRuns = 20000;
-  for (int i = 0; i < kRuns; ++i) {
-    const Potential rolled =
-        RollPotential(CubeType::kRed, PotentialGroup::kAccessory,
-                      POTENTIAL_RANK_LEGENDARY, rng);
-    second += rolled.lines(1).rank() == POTENTIAL_RANK_LEGENDARY;
-    third += rolled.lines(2).rank() == POTENTIAL_RANK_LEGENDARY;
+  for (const auto& [cube, odds] : kExpected) {
+    int second = 0;
+    int third = 0;
+    for (int i = 0; i < kRuns; ++i) {
+      const Potential rolled = RollPotential(cube, PotentialGroup::kAccessory,
+                                             POTENTIAL_RANK_LEGENDARY, rng);
+      second += rolled.lines(1).rank() == POTENTIAL_RANK_LEGENDARY;
+      third += rolled.lines(2).rank() == POTENTIAL_RANK_LEGENDARY;
+    }
+    EXPECT_NEAR(static_cast<double>(second) / kRuns, odds.first, 0.01)
+        << CubeOf(cube).cost;
+    EXPECT_NEAR(static_cast<double>(third) / kRuns, odds.second, 0.005)
+        << CubeOf(cube).cost;
   }
-  EXPECT_NEAR(static_cast<double>(second) / kRuns, 0.10, 0.01);
-  EXPECT_NEAR(static_cast<double>(third) / kRuns, 0.01, 0.005);
 }
 
 TEST(CubePotentialTest, TheFirstCubeIsAlwaysRare) {
@@ -355,26 +362,52 @@ TEST(CubePotentialTest, TheFirstCubeIsAlwaysRare) {
 }
 
 TEST(CubePotentialTest, RankClimbsAtTheStatedOddsAndNeverFalls) {
-  const std::map<PotentialRank, double> kExpected = {
-      {POTENTIAL_RANK_RARE, 1.0 / 7.0},
-      {POTENTIAL_RANK_EPIC, 0.06},
-      {POTENTIAL_RANK_UNIQUE, 0.024},
-      {POTENTIAL_RANK_LEGENDARY, 0.0},
+  const std::map<CubeType, std::map<PotentialRank, double>> kExpected = {
+      {CubeType::kRed,
+       {{POTENTIAL_RANK_RARE, 1.0 / 7.0},
+        {POTENTIAL_RANK_EPIC, 0.06},
+        {POTENTIAL_RANK_UNIQUE, 0.024},
+        {POTENTIAL_RANK_LEGENDARY, 0.0}}},
+      {CubeType::kBlack,
+       {{POTENTIAL_RANK_RARE, 0.16},
+        {POTENTIAL_RANK_EPIC, 0.11},
+        {POTENTIAL_RANK_UNIQUE, 0.047},
+        {POTENTIAL_RANK_LEGENDARY, 0.0}}},
   };
   std::mt19937 rng(13);
   constexpr int kRuns = 20000;
-  for (const std::pair<const PotentialRank, double>& entry : kExpected) {
-    Potential held;
-    held.set_rank(entry.first);
-    int climbed = 0;
-    for (int i = 0; i < kRuns; ++i) {
-      const Potential next =
-          CubePotential(held, CubeType::kRed, PotentialGroup::kArmor, rng);
-      EXPECT_GE(next.rank(), entry.first);
-      climbed += next.rank() > entry.first;
+  for (const auto& [cube, ranks] : kExpected) {
+    for (const auto& [rank, odds] : ranks) {
+      Potential held;
+      held.set_rank(rank);
+      int climbed = 0;
+      for (int i = 0; i < kRuns; ++i) {
+        const Potential next =
+            CubePotential(held, cube, PotentialGroup::kArmor, rng);
+        EXPECT_GE(next.rank(), rank);
+        climbed += next.rank() > rank;
+      }
+      EXPECT_NEAR(static_cast<double>(climbed) / kRuns, odds, 0.01)
+          << CubeOf(cube).cost << " " << rank;
     }
-    EXPECT_NEAR(static_cast<double>(climbed) / kRuns, entry.second, 0.01)
-        << entry.first;
+  }
+}
+
+// Each cube's twin on the other track shares its odds.
+TEST(CubePotentialTest, BonusCubesShareTheirMainTwinsOdds) {
+  for (int rank = POTENTIAL_RANK_RARE; rank <= POTENTIAL_RANK_LEGENDARY;
+       ++rank) {
+    const PotentialRank r = static_cast<PotentialRank>(rank);
+    EXPECT_EQ(PotentialRankUpChance(CubeType::kGreen, r),
+              PotentialRankUpChance(CubeType::kRed, r));
+    EXPECT_EQ(PotentialRankUpChance(CubeType::kWhite, r),
+              PotentialRankUpChance(CubeType::kBlack, r));
+  }
+  for (int line = 0; line < kPotentialLines; ++line) {
+    EXPECT_EQ(PotentialPrimeChance(CubeType::kGreen, line),
+              PotentialPrimeChance(CubeType::kRed, line));
+    EXPECT_EQ(PotentialPrimeChance(CubeType::kWhite, line),
+              PotentialPrimeChance(CubeType::kBlack, line));
   }
 }
 

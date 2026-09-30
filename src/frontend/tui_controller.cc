@@ -777,7 +777,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
   // its way through. Custom is the ticker's redraw, not a player action.
   if (event != ftxui::Event::Custom) {
     ability_rank_up_ = false;
-    cube_panel_.SetRankUp(false);
+    cube_panel_.TouchRankUp();
   }
   // The notice is drawn over whatever is on screen, so it gets keys before the
   // screen under it.
@@ -1659,14 +1659,23 @@ const EquipInstance* TuiController::cube_item() const {
   return subject_.GetInstance(state_.character);
 }
 
+std::vector<ShelfEntry> TuiController::cube_shelf() const {
+  std::vector<ShelfEntry> shelf;
+  for (const Cube& cube : kCubes) {
+    if (CubeUnlocked(cube.type, state_.character, state_.account)) {
+      shelf.push_back(
+          {cube.type, LeadToCube(cube.type, state_.character, state_.account)});
+    }
+  }
+  return shelf;
+}
+
 bool TuiController::OnCubeEvent(ftxui::Event event) {
   // Given the meso before any key is handled: the panel greys its own Confirm
   // based on the meso, and a key press shouldn't have to wait for the next
   // render to know it.
   cube_panel_.SetItem(cube_item(), state_.character.meso());
-  cube_panel_.SetShelf(
-      Unlocked(Feature::kBonusPotential, state_.character, state_.account),
-      LeadToBonusCube(state_.character, state_.account));
+  cube_panel_.SetShelf(cube_shelf());
   bool busy = cube_panel_.IsConfirming();
   if (IsBack(event) && !busy) {
     screen_ = kMain;
@@ -1688,26 +1697,53 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
     }
     return true;
   }
-  if (cube_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
-    // The window stays up over the item it just rerolled, which is the point:
-    // the player watches the lines change and presses again.
-    const CubeType cube = cube_panel_.selected_cube();
-    const PotentialTrack track = CubeOf(cube).track;
-    auto rank = [&] {
-      return PotentialOf(cube_item()->equip_state(), track).rank();
-    };
-    const PotentialRank before = rank();
-    if (CubeItem(state_.character, subject_, cube) &&
-        track == PotentialTrack::kBonus) {
-      FollowedToBonusCube(state_.account);
-    }
-    // The first cube on an item without potential always gives a Rare
-    // potential, so it is a grant rather than a rank-up and the window stays
-    // steel blue.
-    cube_panel_.SetRankUp(before != POTENTIAL_RANK_UNSPECIFIED &&
-                          rank() > before);
+  const CubeType cube = cube_panel_.selected_cube();
+  const PotentialTrack track = CubeOf(cube).track;
+  switch (cube_panel_.OnEvent(event)) {
+    case CubeAction::kReroll:
+      RerollCube(cube);
+      break;
+    case CubeAction::kKeepAfter:
+      KeepPotential(state_.character, subject_, track, cube_panel_.TakeAfter());
+      break;
+    case CubeAction::kNone:
+    case CubeAction::kKeepBefore:
+    case CubeAction::kClosed:
+      break;
   }
   return true;
+}
+
+void TuiController::RerollCube(CubeType cube) {
+  // The window stays up over the item it just rerolled, which is the point:
+  // the player watches the lines change and presses again.
+  const PotentialTrack track = CubeOf(cube).track;
+  // A choosing cube rolls from the roll still on offer, so a rank it reached
+  // is kept while the player goes on rolling.
+  const Potential from = cube_panel_.after().value_or(
+      PotentialOf(cube_item()->equip_state(), track));
+  PotentialRank rolled = POTENTIAL_RANK_UNSPECIFIED;
+  if (CubeOf(cube).choose) {
+    std::optional<Potential> roll =
+        RollCubeItem(state_.character, subject_, cube, from);
+    if (!roll.has_value()) {
+      return;
+    }
+    rolled = roll->rank();
+    cube_panel_.SetAfter(*std::move(roll));
+  } else {
+    if (!CubeItem(state_.character, subject_, cube)) {
+      return;
+    }
+    rolled = PotentialOf(cube_item()->equip_state(), track).rank();
+  }
+  FollowedToCube(cube, state_.account);
+  // The first cube on an item without potential always gives a Rare
+  // potential, so it is a grant rather than a rank-up and the window stays
+  // steel blue.
+  if (from.rank() != POTENTIAL_RANK_UNSPECIFIED && rolled > from.rank()) {
+    cube_panel_.RaiseRankUp();
+  }
 }
 
 bool TuiController::OnHammerEvent(ftxui::Event event) {
@@ -1962,6 +1998,7 @@ void TuiController::AdvanceParty() {
 
 void TuiController::AdvanceNotification(double elapsed_seconds) {
   notification_.Advance(elapsed_seconds);
+  cube_panel_.AdvanceRankUp(elapsed_seconds);
 }
 
 void TuiController::TouchNotification() {

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -15,6 +16,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
@@ -68,6 +70,51 @@ ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
       selected);
 }
 
+// The widest line name and value, over every potential shown together, so the
+// Before and After boxes line up.
+struct LineWidths {
+  int name = 0;
+  int value = 0;
+};
+
+LineWidths MeasureLines(std::initializer_list<const Potential*> potentials,
+                        int level) {
+  LineWidths widths;
+  for (const Potential* potential : potentials) {
+    for (const PotentialLine& line : potential->lines()) {
+      widths.name = std::max<int>(widths.name,
+                                  TextColumns(PotentialLineName(line.type())));
+      widths.value = std::max<int>(
+          widths.value, TextColumns(PotentialLineValueText(line, level)));
+    }
+  }
+  return widths;
+}
+
+// The three lines of `potential`, or three placeholders for none yet, so the
+// window is the same size before the first cube as after.
+void AppendLineRows(std::vector<ftxui::Element>& rows,
+                    const Potential& potential, int level,
+                    const LineWidths& widths) {
+  if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
+    // One node per row: ftxui draws a shared node only in the last box.
+    for (int i = 0; i < kPotentialLines; ++i) {
+      rows.push_back(CenteredRow(ftxui::text("—") | ftxui::dim));
+    }
+    return;
+  }
+  for (const PotentialLine& line : potential.lines()) {
+    // The rank dot the inspect card shows on each line, so the same three lines
+    // look the same in the window and on the card behind it.
+    rows.push_back(CenteredRow(ftxui::hbox({
+        ftxui::text("◼ ") | ftxui::color(RarityColor(line.rank())),
+        ftxui::text(PadRight(PotentialLineName(line.type()), widths.name) +
+                    "  " +
+                    PadLeft(PotentialLineValueText(line, level), widths.value)),
+    })));
+  }
+}
+
 }  // namespace
 
 void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
@@ -81,34 +128,56 @@ void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
   }
 }
 
-void CubePanel::SetShelf(bool bonus_unlocked, bool lead_bonus) {
-  bonus_unlocked_ = bonus_unlocked;
-  lead_bonus_ = lead_bonus;
-}
-
-std::vector<Cube> CubePanel::Shelf() const {
-  std::vector<Cube> shelf;
-  for (const Cube& cube : kCubes) {
-    if (cube.track == PotentialTrack::kMain || bonus_unlocked_) {
-      shelf.push_back(cube);
-    }
-  }
-  return shelf;
+void CubePanel::SetShelf(std::vector<ShelfEntry> shelf) {
+  shelf_ = std::move(shelf);
 }
 
 const Potential& CubePanel::SelectedPotential() const {
   return PotentialOf(item_->equip_state(), CubeOf(selected_cube()).track);
 }
 
+bool CubePanel::Choosing() const {
+  return CubeOf(selected_cube()).choose;
+}
+
 void CubePanel::Reset() {
   selected_ = 0;
   rank_up_ = false;
+  after_.reset();
+  keep_focus_ = KeepFocus::kNone;
   confirm_.Close();
 }
 
+void CubePanel::RaiseRankUp() {
+  rank_up_ = true;
+  rank_up_seconds_ = kRankUpSeconds;
+  rank_up_touched_ = false;
+}
+
+void CubePanel::AdvanceRankUp(double elapsed_seconds) {
+  rank_up_seconds_ = std::max(0.0, rank_up_seconds_ - elapsed_seconds);
+}
+
+void CubePanel::TouchRankUp() {
+  rank_up_touched_ = true;
+}
+
+bool CubePanel::rank_up() const {
+  return rank_up_ && (rank_up_seconds_ > 0.0 || !rank_up_touched_);
+}
+
 CubeType CubePanel::selected_cube() const {
-  const std::vector<Cube> shelf = Shelf();
-  return shelf[std::min<int>(selected_, shelf.size() - 1)].type;
+  return shelf_[std::min<int>(selected_, shelf_.size() - 1)].type;
+}
+
+void CubePanel::SetAfter(Potential after) {
+  after_ = std::move(after);
+}
+
+Potential CubePanel::TakeAfter() {
+  Potential after = after_.value_or(Potential());
+  after_.reset();
+  return after;
 }
 
 int64_t CubePanel::Cost() const {
@@ -123,7 +192,7 @@ void CubePanel::MoveCursor(int delta) {
   if (confirm_.open()) {
     return;
   }
-  selected_ = StepCursor(selected_, delta, Shelf().size());
+  selected_ = StepCursor(selected_, delta, shelf_.size());
 }
 
 ftxui::Element CubePanel::Render(bool focused) const {
@@ -134,77 +203,82 @@ ftxui::Element CubePanel::Render(bool focused) const {
                   PadLeft("Cost", widths.cost) + " "),
       ThemedSeparator(),
   };
-  const std::vector<Cube> shelf = Shelf();
-  for (int i = 0; i < static_cast<int>(shelf.size()); ++i) {
-    const Cube& cube = shelf[i];
-    rows.push_back(
-        ShelfRow(cube, widths, i == selected_, meso_ >= cube.cost,
-                 lead_bonus_ && cube.track == PotentialTrack::kBonus));
+  for (int i = 0; i < static_cast<int>(shelf_.size()); ++i) {
+    const Cube& cube = CubeOf(shelf_[i].type);
+    rows.push_back(ShelfRow(cube, widths, i == selected_, meso_ >= cube.cost,
+                            shelf_[i].lead));
   }
   // The shelf keeps its full height with or without cubes to fill it.
-  for (int i = shelf.size(); i < kShelfRows; ++i) {
+  for (int i = shelf_.size(); i < kShelfRows; ++i) {
     rows.push_back(ftxui::text(""));
   }
   return ThemedWindow(" Cube Selection ", ftxui::vbox(std::move(rows)),
                       focused);
 }
 
-std::vector<ftxui::Element> CubePanel::LineRows() const {
-  const Potential& potential = SelectedPotential();
-  if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
-    // An item with no potential has no lines to show, and the rows stay empty
-    // instead of being removed, so the window is the same size before the first
-    // cube as after.
-    // One node per row: ftxui draws a shared node only in the last box.
-    std::vector<ftxui::Element> rows;
-    for (int i = 0; i < kPotentialLines; ++i) {
-      rows.push_back(CenteredRow(ftxui::text("—") | ftxui::dim));
-    }
-    return rows;
+std::string CubePanel::Prompt() const {
+  const bool fresh = item_ == nullptr ||
+                     SelectedPotential().rank() == POTENTIAL_RANK_UNSPECIFIED;
+  if (!fresh) {
+    return "Reroll these lines?";
   }
+  return CubeOf(selected_cube()).track == PotentialTrack::kBonus
+             ? "Grant bonus potential?"
+             : "Grant potential?";
+}
+
+ftxui::Element CubePanel::KeepButtons() const {
+  // Spaced so each button starts in the column of the one below it: Confirm is
+  // a column wider than Keep.
+  ftxui::Element row = ftxui::hbox({
+      ftxui::text(" "),
+      ActionButton("Keep ↑", keep_focus_ == KeepFocus::kBefore),
+      ftxui::text("    "),
+      ActionButton("Keep ↓", keep_focus_ == KeepFocus::kAfter),
+      ftxui::text(" "),
+  });
+  return after_.has_value() ? row : std::move(row) | ftxui::dim;
+}
+
+ftxui::Element CubePanel::RenderChoice(ftxui::Color accent) const {
   const int level = item_->prototype().required_level();
-  std::vector<std::pair<std::string, std::string>> lines;
-  int name_width = 0;
-  int value_width = 0;
-  for (const PotentialLine& line : potential.lines()) {
-    std::string name = PotentialLineName(line.type());
-    std::string value = PotentialLineValueText(line, level);
-    name_width = std::max<int>(name_width, name.size());
-    value_width = std::max<int>(value_width, value.size());
-    lines.push_back({std::move(name), std::move(value)});
-  }
-  std::vector<ftxui::Element> rows;
-  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-    // The rank dot the inspect card shows on each line, so the same three lines
-    // look the same in the window and on the card behind it.
-    rows.push_back(CenteredRow(ftxui::hbox({
-        ftxui::text("◼ ") |
-            ftxui::color(RarityColor(potential.lines(i).rank())),
-        ftxui::text(PadRight(lines[i].first, name_width) + "  " +
-                    PadLeft(lines[i].second, value_width)),
-    })));
-  }
-  return rows;
+  const Potential empty;
+  const Potential& before = SelectedPotential();
+  const Potential& after = after_.has_value() ? *after_ : empty;
+  const LineWidths widths = MeasureLines({&before, &after}, level);
+  std::vector<ftxui::Element> body = {
+      CenteredRow(Prompt()),
+      TitledSeparator(" Before ", accent),
+  };
+  AppendLineRows(body, before, level, widths);
+  body.push_back(AccentSeparator(accent));
+  body.push_back(CenteredRow(KeepButtons()));
+  body.push_back(TitledSeparator(" After ", accent));
+  AppendLineRows(body, after, level, widths);
+  body.push_back(AccentSeparator(accent));
+  body.push_back(PriceBlock(meso_, Cost(), Affordable()));
+  const ConfirmFocus focus =
+      keep_focus_ == KeepFocus::kNone ? confirm_.focus() : ConfirmFocus::kNone;
+  return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
+                      ConfirmButtons(focus, Affordable()), accent);
 }
 
 ftxui::Element CubePanel::RenderConfirm() const {
-  const bool fresh = item_ == nullptr ||
-                     SelectedPotential().rank() == POTENTIAL_RANK_UNSPECIFIED;
-  const bool bonus = CubeOf(selected_cube()).track == PotentialTrack::kBonus;
   // Gold on a rank up, steel blue otherwise. The body's own rules use it too:
   // an AccentWindow draws its content white, so a themed rule inside a gold
   // window would look like a seam.
-  const ftxui::Color accent = PanelAccent(rank_up_);
+  const ftxui::Color accent = PanelAccent(rank_up());
+  if (item_ != nullptr && Choosing()) {
+    return RenderChoice(accent);
+  }
   std::vector<ftxui::Element> body = {
-      CenteredRow(!fresh  ? "Reroll these lines?"
-                  : bonus ? "Grant bonus potential?"
-                          : "Grant potential?"),
+      CenteredRow(Prompt()),
       AccentSeparator(accent),
   };
   if (item_ != nullptr) {
-    for (ftxui::Element& row : LineRows()) {
-      body.push_back(std::move(row));
-    }
+    const Potential& potential = SelectedPotential();
+    const int level = item_->prototype().required_level();
+    AppendLineRows(body, potential, level, MeasureLines({&potential}, level));
   }
   body.push_back(AccentSeparator(accent));
   // The purse above the price: the window is the only thing on screen saying
@@ -215,22 +289,71 @@ ftxui::Element CubePanel::RenderConfirm() const {
                       ConfirmButtons(confirm_.focus(), Affordable()), accent);
 }
 
-ConfirmChoice CubePanel::OnEvent(ftxui::Event event) {
+void CubePanel::FocusConfirmRow(bool cancel) {
+  keep_focus_ = KeepFocus::kNone;
+  confirm_.Open(/*cancel_selected=*/cancel || !Affordable());
+}
+
+CubeAction CubePanel::OnKeepEvent(const ftxui::Event& event) {
+  if (event == ftxui::Event::ArrowLeft) {
+    keep_focus_ = KeepFocus::kBefore;
+  } else if (event == ftxui::Event::ArrowRight) {
+    keep_focus_ = KeepFocus::kAfter;
+  } else if (event == ftxui::Event::ArrowDown) {
+    FocusConfirmRow(/*cancel=*/keep_focus_ == KeepFocus::kAfter);
+  } else if (IsForward(event)) {
+    const bool keep_after = keep_focus_ == KeepFocus::kAfter;
+    // Back to Confirm, whichever was kept: the next thing a player does after
+    // keeping is roll again.
+    FocusConfirmRow(/*cancel=*/false);
+    if (keep_after) {
+      return CubeAction::kKeepAfter;
+    }
+    after_.reset();
+    return CubeAction::kKeepBefore;
+  }
+  return CubeAction::kNone;
+}
+
+CubeAction CubePanel::OnEvent(ftxui::Event event) {
   if (!confirm_.open()) {
     if (IsForward(event)) {
       // A cube the purse can't cover still opens the question, with Confirm
       // greyed. It is the same window a player rerolls their way into, and not
       // showing it would look like the shelf had gone away.
-      confirm_.Open(/*cancel_selected=*/!Affordable());
+      FocusConfirmRow(/*cancel=*/false);
     }
-    return ConfirmChoice::kPending;
+    return CubeAction::kNone;
   }
-  ConfirmChoice choice = confirm_.OnEvent(std::move(event), Affordable());
-  if (choice == ConfirmChoice::kConfirmed) {
-    // The window stays open: Confirm buys another roll of the lines it shows.
-    confirm_.Open(/*cancel_selected=*/false);
+  if (IsBack(event)) {
+    after_.reset();
+    keep_focus_ = KeepFocus::kNone;
+    confirm_.Close();
+    return CubeAction::kClosed;
   }
-  return choice;
+  if (keep_focus_ != KeepFocus::kNone) {
+    return OnKeepEvent(event);
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    if (after_.has_value()) {
+      keep_focus_ = confirm_.focus() == ConfirmFocus::kCancel
+                        ? KeepFocus::kAfter
+                        : KeepFocus::kBefore;
+    }
+    return CubeAction::kNone;
+  }
+  switch (confirm_.OnEvent(std::move(event), Affordable())) {
+    case ConfirmChoice::kPending:
+      return CubeAction::kNone;
+    case ConfirmChoice::kConfirmed:
+      // The window stays open: Confirm buys another roll of the lines it shows.
+      confirm_.Open(/*cancel_selected=*/false);
+      return CubeAction::kReroll;
+    case ConfirmChoice::kCancelled:
+      after_.reset();
+      return CubeAction::kClosed;
+  }
+  return CubeAction::kNone;
 }
 
 }  // namespace ms

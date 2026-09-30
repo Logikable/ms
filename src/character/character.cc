@@ -2098,16 +2098,47 @@ bool CharacterInstance::CubeInventory(int index, CubeType cube) {
   return item != nullptr && PayForCube(*item, cube) && item->Cube(cube, rng_);
 }
 
+std::optional<Potential> CharacterInstance::BuyRoll(const EquipInstance* item,
+                                                    CubeType cube,
+                                                    const Potential& from) {
+  if (item == nullptr || !PayForCube(*item, cube)) {
+    return std::nullopt;
+  }
+  return CubePotential(from, cube,
+                       PotentialGroupOf(item->prototype().equip_slot()), rng_);
+}
+
 std::optional<Potential> CharacterInstance::BuyCube(EquipSlot slot,
                                                     CubeType cube,
                                                     StatPreset preset) {
   const EquipInstance* item = WornAt(preset, slot);
-  if (item == nullptr || !PayForCube(*item, cube)) {
+  if (item == nullptr) {
     return std::nullopt;
   }
-  return CubePotential(PotentialOf(item->equip_state(), CubeOf(cube).track),
-                       cube, PotentialGroupOf(item->prototype().equip_slot()),
-                       rng_);
+  return BuyRoll(item, cube,
+                 PotentialOf(item->equip_state(), CubeOf(cube).track));
+}
+
+std::optional<Potential> CharacterInstance::BuyCubeFrom(EquipSlot slot,
+                                                        CubeType cube,
+                                                        const Potential& from,
+                                                        StatPreset preset) {
+  return BuyRoll(WornAt(preset, slot), cube, from);
+}
+
+std::optional<Potential> CharacterInstance::BuyInventoryCubeFrom(
+    int index, CubeType cube, const Potential& from) {
+  return BuyRoll(inventory_.equip_instance(index), cube, from);
+}
+
+bool CharacterInstance::TakeInventoryPotential(int index, PotentialTrack track,
+                                               const Potential& potential) {
+  EquipInstance* item = inventory_.equip_instance(index);
+  if (item == nullptr) {
+    return false;
+  }
+  item->SetPotential(track, potential);
+  return true;
 }
 
 bool CharacterInstance::TakePotential(EquipSlot slot, PotentialTrack track,

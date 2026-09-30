@@ -34,11 +34,17 @@ inline constexpr int kPotentialUnlockLevel = 180;
 // The level bonus potential's cube unlocks at, account-wide like cubing.
 inline constexpr int kBonusPotentialUnlockLevel = 230;
 
-// The cost of one red cube and one green cube, whatever they roll. Flat, as
-// GMS prices them: a cube on a level 200 weapon costs the same as on a level
-// 100 ring, so the item worth cubing is the one whose lines are worth the most.
+// The levels the choosing cubes unlock at, account-wide like cubing.
+inline constexpr int kBlackCubeUnlockLevel = 240;
+inline constexpr int kWhiteCubeUnlockLevel = 260;
+
+// The cost of one use of each cube, whatever it rolls. Flat, as GMS prices
+// them: a cube on a level 200 weapon costs the same as on a level 100 ring, so
+// the item worth cubing is the one whose lines are worth the most.
 inline constexpr int64_t kCubeCost = 12'000'000;
+inline constexpr int64_t kBlackCubeCost = 22'000'000;
 inline constexpr int64_t kGreenCubeCost = 24'000'000;
+inline constexpr int64_t kWhiteCubeCost = 44'000'000;
 
 // Lines every potential has. GMS reveals them one at a time and sells an item
 // for the third; here an item always has all three.
@@ -68,7 +74,9 @@ bool SlotTakesPotential(EquipSlot slot);
 // name is what the player is buying.
 enum class CubeType {
   kRed,
+  kBlack,
   kGreen,
+  kWhite,
 };
 
 // Which of an item's two potentials a cube rerolls. Each draws from its own
@@ -88,11 +96,16 @@ struct Cube {
   CubeType type;
   PotentialTrack track;
   int64_t cost;
+  // Whether the player chooses between the old lines and the roll, instead of
+  // the roll replacing them.
+  bool choose;
 };
 
 inline constexpr Cube kCubes[] = {
-    {CubeType::kRed, PotentialTrack::kMain, kCubeCost},
-    {CubeType::kGreen, PotentialTrack::kBonus, kGreenCubeCost},
+    {CubeType::kRed, PotentialTrack::kMain, kCubeCost, false},
+    {CubeType::kBlack, PotentialTrack::kMain, kBlackCubeCost, true},
+    {CubeType::kGreen, PotentialTrack::kBonus, kGreenCubeCost, false},
+    {CubeType::kWhite, PotentialTrack::kBonus, kWhiteCubeCost, true},
 };
 
 // The shelf entry for `type`.

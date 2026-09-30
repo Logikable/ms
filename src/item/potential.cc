@@ -243,6 +243,11 @@ constexpr double kRedRankUp[4] = {1.0 / 7.0, 0.06, 0.024, 0.0};
 // Chance the 2nd and 3rd lines are prime. Shared with the green cube too.
 constexpr double kRedPrime[kPotentialLines] = {1.0, 0.10, 0.01};
 
+// The black cube's, from the GMS community sample StrategyWiki's Potential
+// System page tabulates. The white cube shares them, as green shares red's.
+constexpr double kBlackRankUp[4] = {0.16, 0.11, 0.047, 0.0};
+constexpr double kBlackPrime[kPotentialLines] = {1.0, 0.20, 0.05};
+
 int RankIndex(PotentialRank rank) {
   return rank - POTENTIAL_RANK_RARE;
 }
@@ -367,6 +372,9 @@ double PotentialRankUpChance(CubeType cube, PotentialRank rank) {
     case CubeType::kRed:
     case CubeType::kGreen:
       return kRedRankUp[RankIndex(rank)];
+    case CubeType::kBlack:
+    case CubeType::kWhite:
+      return kBlackRankUp[RankIndex(rank)];
   }
   return 0.0;
 }
@@ -379,6 +387,9 @@ double PotentialPrimeChance(CubeType cube, int index) {
     case CubeType::kRed:
     case CubeType::kGreen:
       return kRedPrime[index];
+    case CubeType::kBlack:
+    case CubeType::kWhite:
+      return kBlackPrime[index];
   }
   return 0.0;
 }

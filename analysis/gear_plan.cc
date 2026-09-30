@@ -545,7 +545,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       continue;
     }
     for (const Cube& shelf : kCubes) {
-      if (shelf.type == CubeType::kGreen && !green) {
+      if (shelf.choose || (shelf.type == CubeType::kGreen && !green)) {
         continue;
       }
       CubeProgram run = BestCubeProgram(state, basis, piece.first, piece.second,

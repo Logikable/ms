@@ -259,6 +259,9 @@ ftxui::Element CenteredRow(const std::string& text);
 // A horizontal divider in `accent`, for use inside an AccentWindow: a
 // steel-blue line across a gold card looks like a seam.
 ftxui::Element AccentSeparator(ftxui::Color accent);
+// A rule with `title` at its left, placed and spaced as a window's own title,
+// for naming the part of a window below it. Pass the spaces, as to a window.
+ftxui::Element TitledSeparator(const std::string& title, ftxui::Color accent);
 
 // The divider inside a main-screen panel, the counterpart of PanelAccent(): a
 // lit panel is gold throughout, not just at its border.

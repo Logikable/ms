@@ -556,6 +556,16 @@ ftxui::Element AccentSeparator(ftxui::Color accent) {
   return ftxui::separator() | ftxui::color(accent);
 }
 
+ftxui::Element TitledSeparator(const std::string& title, ftxui::Color accent) {
+  // A separator one row high draws as a horizontal rule, so flex stretches it
+  // across the rest of the row.
+  return ftxui::hbox({
+             ftxui::text(title),
+             ftxui::separator() | ftxui::flex,
+         }) |
+         ftxui::color(accent);
+}
+
 ftxui::Element PanelSeparator(bool highlighted) {
   return AccentSeparator(PanelAccent(highlighted));
 }

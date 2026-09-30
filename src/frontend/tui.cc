@@ -877,9 +877,7 @@ ftxui::Element Tui::StarForceColumns() {
 ftxui::Element Tui::RenderCubing() {
   const EquipInstance* item = controller_.cube_item();
   cube_panel_.SetItem(item, state_.character.meso());
-  cube_panel_.SetShelf(
-      Unlocked(Feature::kBonusPotential, state_.character, state_.account),
-      LeadToBonusCube(state_.character, state_.account));
+  cube_panel_.SetShelf(controller_.cube_shelf());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();

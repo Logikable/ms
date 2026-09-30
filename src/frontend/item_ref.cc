@@ -64,4 +64,20 @@ bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube) {
   return character.CubeInventory(ref.index(), cube);
 }
 
+std::optional<Potential> RollCubeItem(CharacterInstance& character, ItemRef ref,
+                                      CubeType cube, const Potential& from) {
+  if (ref.equipped()) {
+    return character.BuyCubeFrom(ref.slot(), cube, from, ref.preset());
+  }
+  return character.BuyInventoryCubeFrom(ref.index(), cube, from);
+}
+
+bool KeepPotential(CharacterInstance& character, ItemRef ref,
+                   PotentialTrack track, const Potential& potential) {
+  if (ref.equipped()) {
+    return character.TakePotential(ref.slot(), track, potential, ref.preset());
+  }
+  return character.TakeInventoryPotential(ref.index(), track, potential);
+}
+
 }  // namespace ms

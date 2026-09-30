@@ -738,6 +738,17 @@ class CharacterInstance {
   bool CubeEquipped(EquipSlot slot, CubeType cube,
                     StatPreset preset = StatPreset::kFirst);
   bool CubeInventory(int index, CubeType cube);
+  // One use of a choosing cube on a worn or bagged item, charged but not
+  // applied. It rolls from `from`, which is the roll the player is still
+  // weighing, or the item's own potential when there is none.
+  std::optional<Potential> BuyCubeFrom(EquipSlot slot, CubeType cube,
+                                       const Potential& from,
+                                       StatPreset preset = StatPreset::kFirst);
+  std::optional<Potential> BuyInventoryCubeFrom(int index, CubeType cube,
+                                                const Potential& from);
+  // TakePotential for a bagged item.
+  bool TakeInventoryPotential(int index, PotentialTrack track,
+                              const Potential& potential);
   // Spare copies of the symbol for `slot` in the equip bag. Traces don't
   // count, as elsewhere; see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
@@ -851,6 +862,9 @@ class CharacterInstance {
   bool PayForStarForce(const EquipInstance& item);
   bool PayForHammer(const EquipInstance& item);
   bool PayForCube(const EquipInstance& item, CubeType cube);
+  // PayForCube, then a roll from `from` for `item`'s slot.
+  std::optional<Potential> BuyRoll(const EquipInstance* item, CubeType cube,
+                                   const Potential& from);
   // Adds a sale to the front of the buy-back shelf, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);

@@ -8,6 +8,8 @@
 #ifndef MS_SRC_FRONTEND_ITEM_REF_H_
 #define MS_SRC_FRONTEND_ITEM_REF_H_
 
+#include <optional>
+
 #include "src/character/character.h"
 #include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
@@ -74,6 +76,14 @@ bool HammerItem(CharacterInstance& character, ItemRef ref);
 // false, spending nothing, if the item can't have potential or the character
 // can't afford it.
 bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube);
+
+// Charges for one choosing `cube` on the item `ref` names and returns its roll
+// from `from` without applying it; KeepPotential applies one. Empty, spending
+// nothing, where CubeItem would return false.
+std::optional<Potential> RollCubeItem(CharacterInstance& character, ItemRef ref,
+                                      CubeType cube, const Potential& from);
+bool KeepPotential(CharacterInstance& character, ItemRef ref,
+                   PotentialTrack track, const Potential& potential);
 
 }  // namespace ms
 

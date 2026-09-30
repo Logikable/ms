@@ -59,6 +59,8 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kPotential, kPotentialUnlockLevel},
     // See kBonusPotentialUnlockLevel.
     {Feature::kBonusPotential, kBonusPotentialUnlockLevel},
+    {Feature::kBlackCube, kBlackCubeUnlockLevel},
+    {Feature::kWhiteCube, kWhiteCubeUnlockLevel},
     // Hyper Stats' own level, where the points start; see
     // kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
@@ -107,7 +109,8 @@ constexpr StageUnlock kStageUnlocks[] = {
 // both at once.
 constexpr Feature kUpgrades[] = {
     Feature::kScrolling, Feature::kStarForce,      Feature::kHammer,
-    Feature::kPotential, Feature::kBonusPotential,
+    Feature::kPotential, Feature::kBonusPotential, Feature::kBlackCube,
+    Feature::kWhiteCube,
 };
 
 // The upgrades with a gold trail, and the name their record keys are built
@@ -129,10 +132,47 @@ constexpr Led kLedUpgrades[] = {
     {Feature::kHammer, "hammer", false},
     {Feature::kPotential, "potential", false},
     {Feature::kBonusPotential, "bonus_potential", false},
+    {Feature::kBlackCube, "black_cube", false},
+    {Feature::kWhiteCube, "white_cube", false},
 };
 
-// The Green Cube row's record key; written into saves, like the slugs above.
-constexpr char kBonusCubeLeadKey[] = "lead_cube:green";
+// The features that put a cube on the shelf, one per cube.
+constexpr Feature kCubeFeatures[] = {
+    Feature::kPotential,
+    Feature::kBlackCube,
+    Feature::kBonusPotential,
+    Feature::kWhiteCube,
+};
+
+Feature CubeFeature(CubeType cube) {
+  switch (cube) {
+    case CubeType::kRed:
+      return Feature::kPotential;
+    case CubeType::kBlack:
+      return Feature::kBlackCube;
+    case CubeType::kGreen:
+      return Feature::kBonusPotential;
+    case CubeType::kWhite:
+      return Feature::kWhiteCube;
+  }
+  LOG(FATAL) << "Cube " << static_cast<int>(cube) << " has no feature";
+}
+
+// A shelf row's record key, or null for a cube with no row trail. Written into
+// saves, like the slugs above.
+const char* CubeLeadKey(CubeType cube) {
+  switch (cube) {
+    case CubeType::kRed:
+      return nullptr;
+    case CubeType::kBlack:
+      return "lead_cube:black";
+    case CubeType::kGreen:
+      return "lead_cube:green";
+    case CubeType::kWhite:
+      return "lead_cube:white";
+  }
+  return nullptr;
+}
 
 std::string WeaponLeadKey(const char* slug) {
   return std::string("lead_weapon:") + slug;
@@ -216,6 +256,10 @@ std::string FeatureName(Feature feature) {
       return "Potential";
     case Feature::kBonusPotential:
       return "Bonus Potential";
+    case Feature::kBlackCube:
+      return "the Black Cube";
+    case Feature::kWhiteCube:
+      return "the White Cube";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:
@@ -306,14 +350,41 @@ void FollowedToAction(Feature feature, AccountInstance& account) {
   }
 }
 
-bool LeadToBonusCube(const CharacterInstance& character,
-                     const AccountInstance& account) {
-  return Unlocked(Feature::kBonusPotential, character, account) &&
-         !account.Seen(kBonusCubeLeadKey);
+bool LeadToCubeMenu(const CharacterInstance& character,
+                    const AccountInstance& account) {
+  for (Feature feature : kCubeFeatures) {
+    if (LeadToAction(feature, character, account)) {
+      return true;
+    }
+  }
+  return false;
 }
 
-void FollowedToBonusCube(AccountInstance& account) {
-  account.MarkSeen(kBonusCubeLeadKey);
+void FollowedToCubeMenu(const CharacterInstance& character,
+                        AccountInstance& account) {
+  for (Feature feature : kCubeFeatures) {
+    if (Unlocked(feature, character, account)) {
+      FollowedToAction(feature, account);
+    }
+  }
+}
+
+bool CubeUnlocked(CubeType cube, const CharacterInstance& character,
+                  const AccountInstance& account) {
+  return Unlocked(CubeFeature(cube), character, account);
+}
+
+bool LeadToCube(CubeType cube, const CharacterInstance& character,
+                const AccountInstance& account) {
+  const char* key = CubeLeadKey(cube);
+  return key != nullptr && CubeUnlocked(cube, character, account) &&
+         !account.Seen(key);
+}
+
+void FollowedToCube(CubeType cube, AccountInstance& account) {
+  if (const char* key = CubeLeadKey(cube)) {
+    account.MarkSeen(key);
+  }
 }
 
 std::string LinkTrailKey(LinkTrailStep step) {

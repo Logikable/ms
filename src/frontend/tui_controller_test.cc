@@ -2241,8 +2241,8 @@ TEST_F(TuiControllerTest, ConfirmRerollsWithoutLeavingTheScreen) {
             POTENTIAL_RANK_RARE);
 }
 
-// A cube that raises the rank lights the confirmation gold, and the next key
-// clears it. It rerolls until a rank-up happens.
+// A cube that raises the rank lights the confirmation gold, until both a key
+// and kRankUpSeconds have passed. It rerolls until a rank-up happens.
 TEST_F(TuiControllerTest, ARankUpLightsTheCubeQuestionUntilTheNextKey) {
   LevelTo(UnlockLevel(Feature::kPotential));
   PickUpScrolledSword();
@@ -2270,7 +2270,57 @@ TEST_F(TuiControllerTest, ARankUpLightsTheCubeQuestionUntilTheNextKey) {
   EXPECT_EQ(CubeQuestionColor(), kYellow) << "a redraw is nobody doing"
                                              " anything";
   controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(CubeQuestionColor(), kYellow) << "a key alone is too soon";
+  controller_->AdvanceNotification(kRankUpSeconds);
   EXPECT_EQ(CubeQuestionColor(), kTheme);
+}
+
+// The Black Cube rolls into After and charges, but the item changes only on
+// Keep ↓; rerolls continue from After's rank.
+TEST_F(TuiControllerTest, TheBlackCubeChangesNothingUntilKept) {
+  LevelTo(UnlockLevel(Feature::kBlackCube));
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  state_->character.AddMeso(500 * kBlackCubeCost);
+  const EquipInstance& worn =
+      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kGearMenuCube);
+  controller_->OnEvent(ftxui::Event::Return);     // the screen
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Black, under Red
+  ASSERT_EQ(cube_panel_.selected_cube(), CubeType::kBlack);
+  controller_->OnEvent(ftxui::Event::Return);  // the question
+  const int64_t meso = state_->character.meso();
+  controller_->OnEvent(ftxui::Event::Return);  // a roll
+  EXPECT_EQ(state_->character.meso(), meso - kBlackCubeCost);
+  ASSERT_TRUE(cube_panel_.after().has_value());
+  EXPECT_EQ(worn.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // Keep ↑
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(cube_panel_.after().has_value());
+  EXPECT_EQ(worn.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+
+  controller_->OnEvent(ftxui::Event::Return);  // a roll: Rare, from nothing
+  for (int i = 0; i < 200 && cube_panel_.after()->rank() == POTENTIAL_RANK_RARE;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+  ASSERT_EQ(cube_panel_.after()->rank(), POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(CubeQuestionColor(), kYellow);
+  for (int i = 0; i < 20; ++i) {
+    controller_->OnEvent(ftxui::Event::Return);
+    EXPECT_GE(cube_panel_.after()->rank(), POTENTIAL_RANK_EPIC)
+        << "rolls go on from After";
+  }
+  const Potential kept = *cube_panel_.after();
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // Cancel
+  controller_->OnEvent(ftxui::Event::ArrowUp);     // Keep ↓
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(worn.potential().SerializeAsString(), kept.SerializeAsString());
+  EXPECT_EQ(controller_->screen(), kCubing);
 }
 
 // --- Star Force via bag panel ---

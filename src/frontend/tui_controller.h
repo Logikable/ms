@@ -265,8 +265,9 @@ class TuiController {
   // fight is advanced.
   void AdvanceParty();
 
-  // Runs the notification's clock down, and records that the player pressed a
-  // key. Both come from Tui, which owns the frame clock and sees every key.
+  // Runs the notification's clock down, and the cube window's rank-up gold's,
+  // and records that the player pressed a key. Both come from Tui, which owns
+  // the frame clock and sees every key.
   void AdvanceNotification(double elapsed_seconds);
   void TouchNotification();
 
@@ -627,6 +628,8 @@ class TuiController {
   // The item the cubing screen is working on, read live rather than cached: a
   // cube destroys nothing, so the screen draws the item's own lines.
   const EquipInstance* cube_item() const;
+  // The cubes unlocked for the account, each gold while its trail leads there.
+  std::vector<ShelfEntry> cube_shelf() const;
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
@@ -690,6 +693,9 @@ class TuiController {
   void OpenQuit();
   bool OnStarForceEvent(ftxui::Event event);
   bool OnCubeEvent(ftxui::Event event);
+  // Buys one use of `cube` on the cubing screen's item: applied, or for a
+  // choosing cube, offered as After.
+  void RerollCube(CubeType cube);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
   bool OnBoxOpenEvent(ftxui::Event event);
