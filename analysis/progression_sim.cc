@@ -1214,14 +1214,14 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
 constexpr double kLookGap = 30.0 * 60.0;  // between looks inside one session
 
 // Looks per day by level, interpolated between anchors. A new character is
-// watched closely; one grinding out the last forty levels is checked morning
-// and evening.
+// watched closely; one past 200 is opened once a day, for the dailies and the
+// bosses, as a GMS player at that stage does.
 struct LookAnchor {
   int level;
   double per_day;
 };
 constexpr LookAnchor kAttention[] = {{1, 48.0},  {30, 24.0}, {60, 12.0},
-                                     {100, 5.0}, {150, 2.0}, {200, 2.0}};
+                                     {100, 5.0}, {150, 2.0}, {200, 1.0}};
 constexpr int kNumAttention = sizeof(kAttention) / sizeof(kAttention[0]);
 
 double LooksPerDay(int level) {
