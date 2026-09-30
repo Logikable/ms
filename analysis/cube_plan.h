@@ -69,6 +69,8 @@ struct CubeBasis {
   // applied: the sum TotalEquipStats folds, not its result. A potential can
   // change %ATT, so the fold is redone per candidate.
   EquipStats raw;
+  // The passives WorthOf takes, before the potentials move them.
+  PassiveOffense passives;
   // The fight lines are judged against. An ignored-defence line's value depends
   // on the fight, not the character, and changes threefold between Cygnus and
   // Lotus, so the monster itself is carried. See //analysis:yardstick.

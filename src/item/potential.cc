@@ -1,5 +1,6 @@
 #include "src/item/potential.h"
 
+#include <array>
 #include <iterator>
 #include <random>
 #include <vector>
@@ -498,6 +499,36 @@ std::vector<PotentialLineType> PotentialPool(PotentialTrack track,
   return pool;
 }
 
+namespace {
+
+// Every pool, built once: a roll draws three lines, and the sims roll millions.
+const std::vector<PotentialLineType>& CachedPool(PotentialTrack track,
+                                                 PotentialGroup group,
+                                                 PotentialRank rank) {
+  constexpr int kTracks = 2;
+  constexpr int kGroups = static_cast<int>(PotentialGroup::kAccessory) + 1;
+  using Table = std::array<std::array<std::array<std::vector<PotentialLineType>,
+                                                 PotentialRank_ARRAYSIZE>,
+                                      kGroups>,
+                           kTracks>;
+  static const Table* const table = [] {
+    auto* built = new Table;
+    for (int t = 0; t < kTracks; ++t) {
+      for (int g = 0; g < kGroups; ++g) {
+        for (int r = 0; r < PotentialRank_ARRAYSIZE; ++r) {
+          (*built)[t][g][r] = PotentialPool(static_cast<PotentialTrack>(t),
+                                            static_cast<PotentialGroup>(g),
+                                            static_cast<PotentialRank>(r));
+        }
+      }
+    }
+    return built;
+  }();
+  return (*table)[static_cast<int>(track)][static_cast<int>(group)][rank];
+}
+
+}  // namespace
+
 Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
                         std::mt19937& rng) {
   Potential potential;
@@ -506,8 +537,8 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
     std::bernoulli_distribution prime(PotentialPrimeChance(cube, i));
     const PotentialRank line_rank =
         prime(rng) ? rank : PreviousPotentialRank(rank);
-    const std::vector<PotentialLineType> pool =
-        PotentialPool(CubeOf(cube).track, group, line_rank);
+    const std::vector<PotentialLineType>& pool =
+        CachedPool(CubeOf(cube).track, group, line_rank);
     // Never empty: four %stat lines roll for every group, at every rank, on
     // both tracks.
     CHECK(!pool.empty());

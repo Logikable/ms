@@ -67,10 +67,12 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
 
 // Stats the character wears and is granted with `totals` in place of the worn
 // potentials. Returns the two halves WorthOf takes, not a folded OffenseStats,
-// so cubes are measured on the same terms as stars.
+// so cubes are measured on the same terms as stars. `passives` must be a copy
+// of basis.passives: only the fields a potential moves are written, so one
+// copy of its skill map serves every roll.
 void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
-               PassiveOffense* out_passives) {
+               PassiveOffense& passives) {
   const CharacterInstance& character = state.character;
   const PotentialTotals& worn = character.potential_totals(basis.derived.gear);
   const EquipStats paid = PotentialStatGrant(character, basis.derived, totals);
@@ -89,25 +91,23 @@ void StatsWith(const GameState& state, const CubeBasis& basis,
                                            worn.magic_attack_pct +
                                            totals.magic_attack_pct));
 
-  PassiveOffense passives = PassiveOffenseFor(basis.derived);
-  passives.damage_pct += totals.damage_pct - worn.damage_pct;
-  passives.boss_pct += totals.boss_pct - worn.boss_pct;
-  passives.crit_dmg += totals.crit_dmg - worn.crit_dmg;
+  const PassiveOffense& base = basis.passives;
+  passives.damage_pct = base.damage_pct + (totals.damage_pct - worn.damage_pct);
+  passives.boss_pct = base.boss_pct + (totals.boss_pct - worn.boss_pct);
+  passives.crit_dmg = base.crit_dmg + (totals.crit_dmg - worn.crit_dmg);
   passives.ied = CombineIgnoredDefense(
       WithoutIgnoredDefense(basis.derived.ied, worn.ied), totals.ied);
 
   *out = stats;
-  *out_passives = passives;
 }
 
 // Damage a character with `totals` deals against the yardstick, in the same
 // units scroll and star offers are ranked in. So a cube and a star compare
 // directly.
 double PowerOf(const GameState& state, const CubeBasis& basis,
-               const PotentialTotals& totals) {
+               const PotentialTotals& totals, PassiveOffense& passives) {
   EquipStats stats;
-  PassiveOffense passives;
-  StatsWith(state, basis, totals, &stats, &passives);
+  StatsWith(state, basis, totals, &stats, passives);
   return WorthOf(state, basis.yard, stats, passives);
 }
 
@@ -145,6 +145,7 @@ CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
   const EquipStats sources[] = {state.character.equip_stats(basis.derived.gear),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
+  basis.passives = PassiveOffenseFor(basis.derived);
   basis.yard = yard;
   return basis;
 }
@@ -164,6 +165,8 @@ struct CubePricing {
   PotentialTotals farm_others;
   PotentialTotals farm_now;
   double standing = 0.0;
+  // PowerOf's scratch copy of basis.passives; see StatsWith.
+  mutable PassiveOffense passives;
 };
 
 CubePricing PricingFor(const GameState& state, const CubeBasis& basis,
@@ -171,6 +174,7 @@ CubePricing PricingFor(const GameState& state, const CubeBasis& basis,
                        PotentialTrack track) {
   const CharacterInstance& character = state.character;
   CubePricing pricing;
+  pricing.passives = basis.passives;
   pricing.level = item.prototype().required_level();
   pricing.group = PotentialGroupOf(slot);
   pricing.bossed = character.WornAt(kBossGear, slot) == &item;
@@ -179,7 +183,7 @@ CubePricing PricingFor(const GameState& state, const CubeBasis& basis,
   pricing.boss_others = PotentialsBut(character, kBossGear, &item, track);
   PotentialTotals boss_now = pricing.boss_others;
   AddPotential(held, pricing.level, boss_now);
-  pricing.standing = PowerOf(state, basis, boss_now);
+  pricing.standing = PowerOf(state, basis, boss_now, pricing.passives);
   pricing.farm_others = PotentialsBut(character, kFarmGear, &item, track);
   pricing.farm_now = pricing.farm_others;
   AddPotential(held, pricing.level, pricing.farm_now);
@@ -195,7 +199,7 @@ double GainOf(const GameState& state, const CubeBasis& basis,
   if (pricing.bossed) {
     PotentialTotals totals = pricing.boss_others;
     AddPotential(rolled, pricing.level, totals);
-    gain += PowerOf(state, basis, totals) - pricing.standing;
+    gain += PowerOf(state, basis, totals, pricing.passives) - pricing.standing;
   }
   if (pricing.farmed) {
     PotentialTotals totals = pricing.farm_others;
