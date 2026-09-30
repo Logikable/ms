@@ -175,6 +175,9 @@ bool LeadToCubeMenu(const CharacterInstance& character,
 void FollowedToCubeMenu(const CharacterInstance& character,
                         AccountInstance& account);
 
+// The feature that puts `cube` on the shelf.
+Feature CubeFeature(CubeType cube);
+
 // Whether `cube` is on the cubing screen's shelf.
 bool CubeUnlocked(CubeType cube, const CharacterInstance& character,
                   const AccountInstance& account);

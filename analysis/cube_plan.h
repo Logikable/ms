@@ -2,9 +2,17 @@
  * star: expected combat power for the meso it costs. GearShopper ranks it
  * against everything else, so there is no fixed order of pieces.
  *
- * The value is marginal and keep-better: how much the reroll beats the item's
- * current lines, averaged over draws, never below zero. It undervalues goals
- * that need two specific lines, such as the -3s hat; both are meant to lose.
+ * A run of cubes is an optimal stopping problem. Every roll costs its price in
+ * power, at the rate the rest of the shelf pays (CubeIncome::power_per_meso),
+ * and rolling goes on while the piece is worth less than a reservation value:
+ * the r with E[max(X, r)] - price = r, where X is a roll's gain. Rank-ups tie
+ * the ranks together, so r is solved from Legendary down.
+ *
+ * Red and Green replace the lines and Black and White keep the better, yet
+ * both play the same rule: below r a player rolls on whatever the last roll
+ * left, and above it neither is worth a roll. What sets them apart is odds and
+ * price, which is all the shelf compares. It undervalues goals that need two
+ * specific lines, such as the -3s hat; both are meant to lose.
  *
  * A %meso or %drop line earns income rather than power, so it is valued over
  * the rest of the run instead (see CubeIncome).
@@ -12,6 +20,7 @@
 #ifndef MS_ANALYSIS_CUBE_PLAN_H_
 #define MS_ANALYSIS_CUBE_PLAN_H_
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <random>
@@ -43,8 +52,9 @@ struct CubeIncome {
   // result, both caps applied) and `drop_pct`. Empty for a caller with no
   // encounter, which values income lines at zero.
   std::function<double(double meso_bonus, double drop_pct)> rate;
-  // Combat power a meso buys elsewhere on the shelf. Only the ranking depends
-  // on this, so a stale value can misrank but never misdecide.
+  // Combat power a meso buys elsewhere on the shelf: what a roll costs in
+  // power, so it sets where a run stops. Zero rolls until no roll could do
+  // better.
   double power_per_meso = 0.0;
 };
 
@@ -67,32 +77,39 @@ struct CubeBasis {
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard);
 
-// A run of cubes on one slot, and what it's expected to leave. Priced as a run
-// because a character below a boss's defence wall gains nothing from any one
-// roll but has a real chance over dozens.
+// A run of cubes on one slot under the stopping rule, and what it's expected
+// to leave. Priced as a run because a character below a boss's defence wall
+// gains nothing from any one roll but has a real chance over dozens.
 struct CubeProgram {
-  int cubes = 0;      // cubes in the run
-  double gain = 0.0;  // expected gain of the run's best roll
-  int64_t cost = 0;   // total cost of the run
+  double cubes = 0.0;  // expected cubes before the rule stops
+  double gain = 0.0;   // expected gain of the lines it stops on
+  int64_t cost = 0;    // expected meso, cubes times the price
+  // The reservation value at each rank, indexed by PotentialRank, in gain over
+  // the piece's current lines and already scaled by `share`.
+  std::array<double, PotentialRank_ARRAYSIZE> reserve{};
+  // What a gain is worth on this piece: less on one the shopper may replace.
+  double share = 1.0;
 
   bool worth() const {
-    return cubes > 0 && gain > 0.0 && cost > 0;
+    return cubes > 0.0 && gain > 0.0 && cost > 0;
   }
 };
 
-// The run of `cube` on what `gear` wears in `slot` with the best value per
-// meso, out of a ladder of lengths, all from one sample: the chance the best of
-// N draws is the i-th of a sorted sample of m is (i/m)^N - ((i-1)/m)^N.
+// The run of `cube` on what `gear` wears in `slot`; empty when the piece is
+// already worth its reservation value, so no roll pays.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng);
 
-// Whether `rolled` beats what `gear` wears in `slot` on `track`: the same
-// comparison BestCubeProgram averages, applied to one actual roll. The cube is
-// paid for either way, so this only decides which lines the item keeps.
+// Whether a choosing cube's `rolled` should replace what `gear` wears in
+// `slot`, under `program`'s rule: the better of the two states, each worth its
+// lines or its rank's reservation value, whichever is more. A higher rank is
+// taken on its future even when its lines are worse. A replacing cube has no
+// choice to make.
 bool WorthTaking(const GameState& state, const CubeBasis& basis,
                  StatPreset gear, EquipSlot slot, PotentialTrack track,
-                 const Potential& rolled, const CubeIncome& income);
+                 const Potential& rolled, const CubeIncome& income,
+                 const CubeProgram& program);
 
 // Whether the shopper is likely to replace what boss fights wear in `slot`: a
 // higher-level piece the character can wear and afford. A weapon must match the

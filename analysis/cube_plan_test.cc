@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <map>
 #include <memory>
 #include <random>
@@ -185,6 +186,9 @@ class CubePlanTest : public ::testing::Test {
   Yardstick yard_;
   CubeBasis basis_;
   CubeIncome income_;
+  // A rule with every reservation value at zero, so a roll is taken for its
+  // lines alone. Tests of the rank rule set their own.
+  CubeProgram program_;
 };
 
 // Both sides stay at the same rank, so this tests keep-better and not the rank
@@ -196,7 +200,8 @@ TEST_F(CubePlanTest, ARollWorthMoreIsTaken) {
 
   EXPECT_TRUE(WorthTaking(
       *state_, basis_, kBossGear, EQUIP_SLOT_HAT, PotentialTrack::kMain,
-      Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_STR_PCT), income_));
+      Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_STR_PCT), income_,
+      program_));
 }
 
 TEST_F(CubePlanTest, ARollWorthLessIsDeclined) {
@@ -205,12 +210,15 @@ TEST_F(CubePlanTest, ARollWorthLessIsDeclined) {
   Potential bare;
   bare.set_rank(POTENTIAL_RANK_EPIC);
   EXPECT_FALSE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                           PotentialTrack::kMain, bare, income_));
+                           PotentialTrack::kMain, bare, income_, program_));
 }
 
 // Under a defence wall every roll deals the 1-damage floor, so accepting on
-// damage alone throws away the rank-up the run was bought for.
-TEST_F(CubePlanTest, ARankIsTakenEvenWhereTheDamageDoesNotMove) {
+// damage alone throws away the rank-up the run was bought for: the higher
+// rank's reservation value is what it is worth.
+TEST_F(CubePlanTest, ARankIsTakenOnItsFuture) {
+  program_.reserve[POTENTIAL_RANK_EPIC] = 1.0;
+  program_.reserve[POTENTIAL_RANK_UNIQUE] = 2.0;
   // Two potentials of different rank with no lines, so neither changes the
   // damage.
   Potential held;
@@ -220,12 +228,12 @@ TEST_F(CubePlanTest, ARankIsTakenEvenWhereTheDamageDoesNotMove) {
   Wearing(held);
 
   EXPECT_TRUE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                          PotentialTrack::kMain, up, income_));
+                          PotentialTrack::kMain, up, income_, program_));
 
   Potential down;
   down.set_rank(POTENTIAL_RANK_RARE);
   EXPECT_FALSE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                           PotentialTrack::kMain, down, income_))
+                           PotentialTrack::kMain, down, income_, program_))
       << "a lower rank worth the same is not a reason to keep it";
 }
 
@@ -239,9 +247,10 @@ TEST_F(CubePlanTest, ABonusRollIsJudgedAgainstTheBonusPotential) {
 
   EXPECT_TRUE(WorthTaking(
       *state_, basis_, kBossGear, EQUIP_SLOT_HAT, PotentialTrack::kBonus,
-      Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_BONUS_STR_PCT), income_));
+      Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_BONUS_STR_PCT), income_,
+      program_));
   EXPECT_FALSE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                           PotentialTrack::kBonus, bare, income_));
+                           PotentialTrack::kBonus, bare, income_, program_));
 }
 
 // A piece worn only while farming is worth its income and nothing else, and a
@@ -268,62 +277,97 @@ TEST_F(CubePlanTest, FarmAndBossPiecesAreEachJudgedOnTheirOwnWork) {
   const Potential meso =
       Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_MESO_RATE);
   EXPECT_TRUE(WorthTaking(*state_, basis_, kFarmGear, EQUIP_SLOT_HAT,
-                          PotentialTrack::kMain, meso, income_));
+                          PotentialTrack::kMain, meso, income_, program_));
   EXPECT_FALSE(WorthTaking(
       *state_, basis_, kFarmGear, EQUIP_SLOT_HAT, PotentialTrack::kMain,
-      Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_LUK_PCT), income_))
+      Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_LUK_PCT), income_,
+      program_))
       << "farming damage is not what a farm piece is cubed for";
   EXPECT_FALSE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                           PotentialTrack::kMain, meso, income_))
+                           PotentialTrack::kMain, meso, income_, program_))
       << "a boss-only piece earns nothing while farming";
   EXPECT_TRUE(WorthTaking(
       *state_, basis_, kBossGear, EQUIP_SLOT_HAT, PotentialTrack::kMain,
-      Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT), income_));
+      Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT), income_,
+      program_));
+}
+
+// A rank-up whose lines are far worse is still taken, since what the run goes
+// on to roll from is the rank.
+TEST_F(CubePlanTest, WorseLinesAtAHigherRankAreTaken) {
+  Wearing(Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_STR_PCT));
+  Potential up;
+  up.set_rank(POTENTIAL_RANK_UNIQUE);
+  program_.reserve[POTENTIAL_RANK_EPIC] = 1.0;
+  program_.reserve[POTENTIAL_RANK_UNIQUE] = 1e12;
+  EXPECT_TRUE(WorthTaking(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
+                          PotentialTrack::kMain, up, income_, program_));
 }
 
 TEST_F(CubePlanTest, NothingWornIsNeverWorthTaking) {
   EXPECT_FALSE(WorthTaking(
       *state_, basis_, kBossGear, EQUIP_SLOT_GLOVES, PotentialTrack::kMain,
-      Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT), income_));
+      Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT), income_,
+      program_));
 }
 
 // --- BestCubeProgram ---
 
-TEST_F(CubePlanTest, PricesARunIntoASlotThatTakesPotential) {
-  Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
-  std::mt19937 rng(1234);
-
-  CubeProgram program = BestCubeProgram(
-      *state_, basis_, kBossGear, EQUIP_SLOT_HAT, CubeType::kRed, income_, rng);
-  ASSERT_TRUE(program.worth()) << "a Rare hat has somewhere to climb";
-  EXPECT_GT(program.cubes, 0);
-  EXPECT_GT(program.gain, 0.0);
-  EXPECT_GT(program.cost, 0);
-}
-
 // A run is compared per meso against everything else on the shelf, so its cost
-// must match the cubes it buys.
-TEST_F(CubePlanTest, TheCostIsTheCubesItMeansToBuy) {
+// must be the cubes it expects to buy, at the cube's own price.
+TEST_F(CubePlanTest, ARunIsPricedInItsOwnCubes) {
   Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
-  std::mt19937 rng(1234);
-
-  CubeProgram program = BestCubeProgram(
-      *state_, basis_, kBossGear, EQUIP_SLOT_HAT, CubeType::kRed, income_, rng);
-  ASSERT_TRUE(program.worth());
-  EXPECT_EQ(program.cost % program.cubes, 0)
-      << "every cube in the run costs the same";
+  for (CubeType cube :
+       {CubeType::kRed, CubeType::kBlack, CubeType::kGreen, CubeType::kWhite}) {
+    std::mt19937 rng(1234);
+    CubeProgram program = BestCubeProgram(*state_, basis_, kBossGear,
+                                          EQUIP_SLOT_HAT, cube, income_, rng);
+    ASSERT_TRUE(program.worth()) << "a Rare hat has somewhere to climb";
+    EXPECT_GE(program.cubes, 1.0);
+    EXPECT_EQ(program.cost, std::llround(program.cubes * CubeOf(cube).cost));
+  }
 }
 
-TEST_F(CubePlanTest, AGreenRunIsPricedInGreenCubes) {
-  Wearing(Rolled(POTENTIAL_RANK_LEGENDARY, POTENTIAL_LINE_TYPE_STR_PCT));
-  std::mt19937 rng(1234);
-
-  CubeProgram program =
+// A roll costs its price in power at what a meso buys elsewhere, so the dearer
+// the meso, the sooner the run stops, until no roll pays at all.
+TEST_F(CubePlanTest, DearerMesoStopsSooner) {
+  Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
+  std::mt19937 free_rng(1234);
+  const CubeProgram free =
       BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
-                      CubeType::kGreen, income_, rng);
-  ASSERT_TRUE(program.worth())
-      << "a hat with no bonus potential has everything to gain";
-  EXPECT_EQ(program.cost, program.cubes * kGreenCubeCost);
+                      CubeType::kRed, income_, free_rng);
+  ASSERT_TRUE(free.worth());
+
+  income_.power_per_meso = free.gain / free.cost;
+  std::mt19937 dear_rng(1234);
+  const CubeProgram dear =
+      BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
+                      CubeType::kRed, income_, dear_rng);
+  ASSERT_TRUE(dear.worth());
+  EXPECT_LT(dear.cubes, free.cubes);
+  EXPECT_GE(dear.gain / dear.cost, income_.power_per_meso)
+      << "a run the rule starts pays at least what the meso buys elsewhere";
+
+  income_.power_per_meso = 1e6;
+  std::mt19937 dearest_rng(1234);
+  EXPECT_FALSE(BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
+                               CubeType::kRed, income_, dearest_rng)
+                   .worth());
+}
+
+// Lines no roll can beat are worth no roll, however cheap the meso.
+TEST_F(CubePlanTest, TheBestLinesAreNotCubed) {
+  Potential best;
+  best.set_rank(POTENTIAL_RANK_LEGENDARY);
+  for (int i = 0; i < kPotentialLines; ++i) {
+    *best.add_lines() =
+        Line(POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
+  }
+  Wearing(best);
+  std::mt19937 rng(1234);
+  EXPECT_FALSE(BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_HAT,
+                               CubeType::kBlack, income_, rng)
+                   .worth());
 }
 
 TEST_F(CubePlanTest, NoRunIntoASlotThatTakesNoPotential) {
@@ -332,7 +376,6 @@ TEST_F(CubePlanTest, NoRunIntoASlotThatTakesNoPotential) {
       BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_GLOVES,
                       CubeType::kRed, income_, rng);
   EXPECT_FALSE(program.worth());
-  EXPECT_EQ(program.cubes, 0);
 }
 
 }  // namespace

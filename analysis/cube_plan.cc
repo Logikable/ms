@@ -205,68 +205,103 @@ double GainOf(const GameState& state, const CubeBasis& basis,
   return gain;
 }
 
-// Run lengths the shopper considers. A single cube is the usual offer; longer
-// runs make a line that needs a higher rank get valued at the cost of reaching
-// it, rather than written off on the first roll.
-constexpr int kCubeProgramLengths[] = {1, 4, 16, 64};
-
-// Runs played per slot. Few, because runs are the expensive part: every cube in
-// one has to be valued to decide whether to keep it.
-constexpr int kCubeRuns = 4;
-
-constexpr int kCubeProgramLengthCount =
-    sizeof(kCubeProgramLengths) / sizeof(kCubeProgramLengths[0]);
-
 }  // namespace
 
 namespace {
 
-// Expected gain of one cube on the slot, averaged over draws and never below
-// zero.
-double MarginalGain(const GameState& state, const CubeBasis& basis,
-                    const CubePricing& pricing, const Potential& current,
-                    const CubeIncome& income, std::mt19937& rng) {
+// The gains of one rank's sampled rolls, sorted, and the chance a roll at that
+// rank ranks up instead.
+struct RankDraws {
+  PotentialRank rank = POTENTIAL_RANK_UNSPECIFIED;
+  double rank_up = 0.0;
+  std::vector<double> gains;
+};
+
+double MeanMax(const std::vector<double>& gains, double floor) {
   double total = 0.0;
-  for (int draw = 0; draw < kCubeSamples; ++draw) {
-    total += std::max(
-        0.0, GainOf(state, basis, pricing,
-                    CubePotential(current, pricing.cube, pricing.group, rng),
-                    income));
+  for (double gain : gains) {
+    total += std::max(gain, floor);
   }
-  return total / kCubeSamples;
+  return total / gains.size();
 }
 
-// Total gain left by runs of each length, summed over kCubeRuns. Runs are
-// played out because each cube rolls against what the last one left: a kept
-// roll can raise the rank, and the line that clears a defence wall may only
-// exist there.
-std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
-                                 const CubePricing& pricing,
-                                 const Potential& current,
-                                 const CubeIncome& income, std::mt19937& rng) {
-  int longest = kCubeProgramLengths[kCubeProgramLengthCount - 1];
-  std::vector<double> reached(kCubeProgramLengthCount, 0.0);
-  for (int run = 0; run < kCubeRuns; ++run) {
-    Potential held = current;
-    double best_gain = 0.0;
-    int rung = 0;
-    for (int cube = 1; cube <= longest; ++cube) {
-      Potential rolled = CubePotential(held, pricing.cube, pricing.group, rng);
-      double gain = GainOf(state, basis, pricing, rolled, income);
-      // Keep-better, as GMS offers. A higher rank is kept even when damage
-      // doesn't change: under a defence wall every roll deals the 1-damage
-      // floor, so a run judged on damage alone would never climb.
-      if (gain > best_gain ||
-          (gain >= best_gain && rolled.rank() > held.rank())) {
-        best_gain = gain;
-        held = rolled;
-      }
-      if (cube == kCubeProgramLengths[rung]) {
-        reached[rung++] += best_gain;
-      }
+// The r with (1 - q) E[max(X, r)] + q carried - toll = r, where `carried` is
+// what a rank-up is worth. Bisected: the left side minus r falls as r rises.
+double ReserveFor(const RankDraws& draws, double carried, double toll) {
+  const double q = draws.rank_up;
+  auto excess = [&](double r) {
+    const double stay = draws.gains.empty() ? 0.0 : MeanMax(draws.gains, r);
+    return (1.0 - q) * stay + q * carried - toll - r;
+  };
+  const double low_gain = draws.gains.empty() ? carried : draws.gains.front();
+  const double high_gain = draws.gains.empty() ? carried : draws.gains.back();
+  double lo = std::min(low_gain, carried) - toll - 1.0;
+  double hi = std::max(high_gain, carried);
+  for (int step = 0; step < 100 && lo < hi; ++step) {
+    const double mid = lo + (hi - lo) / 2;
+    if (mid <= lo || mid >= hi) {
+      break;
+    }
+    (excess(mid) > 0.0 ? lo : hi) = mid;
+  }
+  // With no rank above, the rule must stop on some roll it can draw.
+  return q == 0.0 ? std::min(hi, high_gain) : hi;
+}
+
+// Where a rank's draws fall against its reservation value: the share that
+// rolls on, and the mean gain of the ones the rule stops on, times their
+// share.
+struct Split {
+  double below = 0.0;
+  double stopped = 0.0;
+};
+
+Split SplitAt(const RankDraws& draws, double reserve) {
+  Split split;
+  for (double gain : draws.gains) {
+    if (gain < reserve) {
+      split.below += 1.0;
+    } else {
+      split.stopped += gain;
     }
   }
-  return reached;
+  if (!draws.gains.empty()) {
+    split.below /= draws.gains.size();
+    split.stopped /= draws.gains.size();
+  }
+  return split;
+}
+
+// Samples every rank from the piece's own up. A piece with no potential
+// starts on a pseudo-rank that always "ranks up" to Rare, as its first cube
+// always gives a Rare potential.
+std::vector<RankDraws> SampleRanks(const GameState& state,
+                                   const CubeBasis& basis,
+                                   const CubePricing& pricing,
+                                   PotentialRank held, double share,
+                                   const CubeIncome& income,
+                                   std::mt19937& rng) {
+  std::vector<RankDraws> ranks;
+  if (held == POTENTIAL_RANK_UNSPECIFIED) {
+    ranks.push_back({held, 1.0, {}});
+    held = POTENTIAL_RANK_RARE;
+  }
+  for (int rank = held; rank <= POTENTIAL_RANK_LEGENDARY; ++rank) {
+    RankDraws draws;
+    draws.rank = static_cast<PotentialRank>(rank);
+    draws.rank_up = PotentialRankUpChance(pricing.cube, draws.rank);
+    draws.gains.reserve(kCubeSamples);
+    for (int i = 0; i < kCubeSamples; ++i) {
+      draws.gains.push_back(
+          share *
+          GainOf(state, basis, pricing,
+                 RollPotential(pricing.cube, pricing.group, draws.rank, rng),
+                 income));
+    }
+    std::sort(draws.gains.begin(), draws.gains.end());
+    ranks.push_back(std::move(draws));
+  }
+  return ranks;
 }
 
 }  // namespace
@@ -274,75 +309,79 @@ std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng) {
-  CubeProgram best;
+  CubeProgram program;
   const EquipInstance* item = Worn(state, gear, slot);
   if (item == nullptr || !item->CanCube()) {
-    return best;
+    return program;
   }
   const Cube& shelf = CubeOf(cube);
-  const Potential& current = PotentialOf(item->equip_state(), shelf.track);
+  const PotentialRank held =
+      PotentialOf(item->equip_state(), shelf.track).rank();
   CubePricing pricing = PricingFor(state, basis, *item, slot, shelf.track);
   pricing.cube = cube;
-
+  if (!pricing.bossed && !pricing.farmed) {
+    return program;
+  }
   // A farm-only piece is kept however the boss gear changes.
-  double share =
+  program.share =
       pricing.bossed && Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
+  const std::vector<RankDraws> ranks =
+      SampleRanks(state, basis, pricing, held, program.share, income, rng);
+  const double toll = income.power_per_meso * shelf.cost;
 
-  // Try one cube first. A longer run only beats it per meso when the single
-  // cube is worth nothing, which happens only under a defence wall.
-  double marginal =
-      MarginalGain(state, basis, pricing, current, income, rng) * share;
-  if (marginal > 0.0) {
-    best.cubes = 1;
-    best.gain = marginal;
-    best.cost = shelf.cost;
-    return best;
+  // Legendary down: each rank's rule needs the one above's, and the run's
+  // cubes and gain need the same, so both are carried down together.
+  double carried = 0.0;  // E[max(X, r)] one rank up
+  double above_cubes = 0.0;
+  double above_gain = 0.0;
+  Split above;
+  for (int i = ranks.size() - 1; i >= 0; --i) {
+    const RankDraws& draws = ranks[i];
+    const double q = draws.rank_up;
+    const double reserve = ReserveFor(draws, carried, toll);
+    const Split here = SplitAt(draws, reserve);
+    const double stay = (1.0 - q) * here.below;
+    const double cubes = (1.0 + q * above.below * above_cubes) / (1.0 - stay);
+    const double gain = ((1.0 - q) * here.stopped +
+                         q * (above.stopped + above.below * above_gain)) /
+                        (1.0 - stay);
+    program.reserve[draws.rank] = reserve;
+    carried = draws.gains.empty() ? 0.0 : MeanMax(draws.gains, reserve);
+    above_cubes = cubes;
+    above_gain = gain;
+    above = here;
   }
-
-  // Play out runs; see PlayCubeRuns for why they can't be counted
-  // independently.
-  std::vector<double> reached =
-      PlayCubeRuns(state, basis, pricing, current, income, rng);
-
-  for (int rung = 0; rung < kCubeProgramLengthCount; ++rung) {
-    double expected = reached[rung] / kCubeRuns * share;
-    int64_t cost = static_cast<int64_t>(kCubeProgramLengths[rung]) * shelf.cost;
-    if (expected <= 0.0) {
-      continue;
-    }
-    // Compare by cross-multiplying rather than dividing. The empty starting run
-    // must lose to anything: with zero cost it would otherwise tie every length
-    // and block them all.
-    if (best.cubes > 0 && expected * best.cost <= best.gain * cost) {
-      continue;  // no better per meso than the run already chosen
-    }
-    best.cubes = kCubeProgramLengths[rung];
-    best.gain = expected;
-    best.cost = cost;
+  // The piece's own lines are the zero every gain is measured from, so a
+  // reservation value at or below zero means no roll pays.
+  if (program.reserve[ranks.front().rank] <= 0.0) {
+    return program;
   }
-  return best;
+  program.cubes = above_cubes;
+  program.gain = above_gain;
+  program.cost = static_cast<int64_t>(std::llround(above_cubes * shelf.cost));
+  return program;
 }
 
 bool WorthTaking(const GameState& state, const CubeBasis& basis,
                  StatPreset gear, EquipSlot slot, PotentialTrack track,
-                 const Potential& rolled, const CubeIncome& income) {
+                 const Potential& rolled, const CubeIncome& income,
+                 const CubeProgram& program) {
   const EquipInstance* item = Worn(state, gear, slot);
   if (item == nullptr) {
     return false;
   }
-  const Potential& held = PotentialOf(item->equip_state(), track);
-  double gain =
-      GainOf(state, basis, PricingFor(state, basis, *item, slot, track), rolled,
-             income);
-  if (gain > 0.0) {
-    return true;
-  }
-  // Accept a higher rank even when damage didn't change, on the same terms
-  // BestCubeProgram priced the run. The two must agree, or the shopper pays for
-  // a program and then declines every result.
-  return gain >= 0.0 && rolled.rank() > held.rank();
+  const PotentialRank held = PotentialOf(item->equip_state(), track).rank();
+  const double gain =
+      program.share * GainOf(state, basis,
+                             PricingFor(state, basis, *item, slot, track),
+                             rolled, income);
+  const double now = std::max(0.0, program.reserve[held]);
+  const double then = std::max(gain, program.reserve[rolled.rank()]);
+  // Within the same state, the better lines: they are what the piece keeps if
+  // the rule is never run again.
+  return then > now || (then == now && gain > 0.0);
 }
 
 // Whether the character could ever buy `proto`. A tier priced in tokens only

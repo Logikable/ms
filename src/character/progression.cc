@@ -144,20 +144,6 @@ constexpr Feature kCubeFeatures[] = {
     Feature::kWhiteCube,
 };
 
-Feature CubeFeature(CubeType cube) {
-  switch (cube) {
-    case CubeType::kRed:
-      return Feature::kPotential;
-    case CubeType::kBlack:
-      return Feature::kBlackCube;
-    case CubeType::kGreen:
-      return Feature::kBonusPotential;
-    case CubeType::kWhite:
-      return Feature::kWhiteCube;
-  }
-  LOG(FATAL) << "Cube " << static_cast<int>(cube) << " has no feature";
-}
-
 // A shelf row's record key, or null for a cube with no row trail. Written into
 // saves, like the slugs above.
 const char* CubeLeadKey(CubeType cube) {
@@ -367,6 +353,20 @@ void FollowedToCubeMenu(const CharacterInstance& character,
       FollowedToAction(feature, account);
     }
   }
+}
+
+Feature CubeFeature(CubeType cube) {
+  switch (cube) {
+    case CubeType::kRed:
+      return Feature::kPotential;
+    case CubeType::kBlack:
+      return Feature::kBlackCube;
+    case CubeType::kGreen:
+      return Feature::kBonusPotential;
+    case CubeType::kWhite:
+      return Feature::kWhiteCube;
+  }
+  LOG(FATAL) << "Cube " << static_cast<int>(cube) << " has no feature";
 }
 
 bool CubeUnlocked(CubeType cube, const CharacterInstance& character,

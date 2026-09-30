@@ -493,9 +493,7 @@ std::vector<GearShopper::Candidate> GearShopper::SplitOffers(
           (farm.power - PowerWith(state, farm.yard, derived,
                                   TotalEquipStats(state.character, derived))) *
           farm.scale;
-      CubeProgram run =
-          BestCubeProgram(state, CubeBasisFor(state, yard_.For(state)),
-                          kFarmGear, at, CubeType::kRed, income_, rng_);
+      CubeProgram run = BestMainCubeProgram(state, at);
       if (run.worth() && run.gain > lost) {
         Candidate offer;
         offer.slot = piece.first;
@@ -510,6 +508,30 @@ std::vector<GearShopper::Candidate> GearShopper::SplitOffers(
   return offers;
 }
 
+// Whether `cube` is on the shelf at the character's level. The sim plays one
+// character, so its level is the account's.
+bool OnShelf(const GameState& state, CubeType cube) {
+  return state.character.proto().level() >= UnlockLevel(CubeFeature(cube));
+}
+
+CubeProgram GearShopper::BestMainCubeProgram(const GameState& state,
+                                             EquipSlot slot) {
+  const CubeBasis basis = CubeBasisFor(state, yard_.For(state));
+  CubeProgram best;
+  for (const Cube& shelf : kCubes) {
+    if (shelf.track != PotentialTrack::kMain || !OnShelf(state, shelf.type)) {
+      continue;
+    }
+    CubeProgram run = BestCubeProgram(state, basis, kFarmGear, slot, shelf.type,
+                                      income_, rng_);
+    if (run.worth() &&
+        (!best.worth() || run.gain * best.cost > best.gain * run.cost)) {
+      best = run;
+    }
+  }
+  return best;
+}
+
 // Cubing has its own unlock level and its own pass, since every candidate is
 // priced against one CubeBasis, which needs a rebuild.
 std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
@@ -519,13 +541,10 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       state.character.proto().level() < UnlockLevel(Feature::kPotential)) {
     return offers;
   }
-  // The meso rate only sets an income line's rank. Whether it pays for itself
-  // depends on its earnings over the horizon against the cube's cost, which
-  // needs no rate. Stored so the accept decision uses the same value.
+  // What a meso buys elsewhere is what a roll costs in power, so it sets where
+  // cubing stops. Stored so the keep decision uses the same value.
   income_.power_per_meso = best;
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
-  const bool green =
-      state.character.proto().level() >= UnlockLevel(Feature::kBonusPotential);
   // Every piece boss fights wear, then every farm piece they don't.
   std::vector<std::pair<StatPreset, EquipSlot>> pieces;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
@@ -545,7 +564,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       continue;
     }
     for (const Cube& shelf : kCubes) {
-      if (shelf.choose || (shelf.type == CubeType::kGreen && !green)) {
+      if (!OnShelf(state, shelf.type)) {
         continue;
       }
       CubeProgram run = BestCubeProgram(state, basis, piece.first, piece.second,
@@ -558,10 +577,12 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       offer.gear = piece.first;
       offer.cube = true;
       offer.cube_type = shelf.type;
+      offer.cube_program = run;
       // Price and value the whole run, so a slot needing a dozen rolls is
       // ranked on the dozen's cost. Cubes are bought one at a time; the next
-      // pass reprices the rest.
+      // pass reprices the rest, so one cube is all the purse must cover.
       offer.cost = run.cost;
+      offer.outlay = shelf.cost;
       offer.gain = run.gain;
       offers.push_back(offer);
     }
@@ -582,7 +603,8 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   // ended shopping for the rest of the run.
   for (const Candidate& offer : offers) {
     if (offer.gain <= 0.0 || offer.cost <= 0 ||
-        offer.cost > state.character.meso()) {
+        (offer.outlay > 0 ? offer.outlay : offer.cost) >
+            state.character.meso()) {
       continue;
     }
     if (BuyOffer(state, offer, spend)) {
@@ -592,10 +614,11 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   return false;
 }
 
-// Keep-better, as the game offers: a roll that doesn't beat the item's current
-// lines is declined, and the cube is spent either way.
+// A replacing cube's roll always goes on; a choosing cube's goes on when the
+// run's rule would rather be there. The cube is spent either way.
 bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
-                          CubeType cube, GearSpend& spend) {
+                          CubeType cube, const CubeProgram& program,
+                          GearSpend& spend) {
   // Computed before buying the cube, since the comparison is against the
   // character as they are now and buying changes them.
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
@@ -604,18 +627,19 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
     return false;  // refused for meso or by the item
   }
   const Cube& shelf = CubeOf(cube);
-  const bool green = cube == CubeType::kGreen;
+  const int which = static_cast<int>(cube);
   spend.cubes += shelf.cost;
   ++spend.cubes_bought;
-  spend.green_cubes_bought += green;
+  ++spend.bought_by_cube[which];
   const bool farm =
       gear == kFarmGear && state.character.WornAt(kBossGear, slot) !=
                                state.character.WornAt(kFarmGear, slot);
   spend.farm_cubes_bought += farm;
-  if (WorthTaking(state, basis, gear, slot, shelf.track, *rolled, income_)) {
+  if (!shelf.choose || WorthTaking(state, basis, gear, slot, shelf.track,
+                                   *rolled, income_, program)) {
     state.character.TakePotential(slot, shelf.track, *rolled, gear);
     ++spend.cubes_kept;
-    spend.green_cubes_kept += green;
+    ++spend.kept_by_cube[which];
     spend.farm_cubes_kept += farm;
   }
   return true;
@@ -736,7 +760,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   }
   if (candidate.cube) {
     return BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
-                   spend);
+                   candidate.cube_program, spend);
   }
   if (candidate.hammer) {
     return BuyHammer(state, candidate.slot, candidate.gear, spend);

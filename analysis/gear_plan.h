@@ -10,7 +10,9 @@
 #ifndef MS_ANALYSIS_GEAR_PLAN_H_
 #define MS_ANALYSIS_GEAR_PLAN_H_
 
+#include <array>
 #include <cstdint>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <random>
@@ -57,13 +59,13 @@ struct GearSpend {
   int symbol_levels = 0;
   int hammers_driven = 0;
   // Cubes bought, and those whose roll was kept. Tracked separately because a
-  // cube buys a chance, not an outcome: the gap is meso that bought nothing,
-  // the trap a keep-better rule invites.
+  // choosing cube buys a chance, not an outcome: the gap is meso that bought
+  // nothing. A replacing cube's roll is always kept.
   int cubes_bought = 0;
   int cubes_kept = 0;
-  // The Green Cubes among them, and the cubes on farm-only pieces.
-  int green_cubes_bought = 0;
-  int green_cubes_kept = 0;
+  // The same, by cube, indexed by CubeType; and the cubes on farm-only pieces.
+  std::array<int, std::size(kCubes)> bought_by_cube{};
+  std::array<int, std::size(kCubes)> kept_by_cube{};
   int farm_cubes_bought = 0;
   int farm_cubes_kept = 0;
   // Slots farming was given its own piece in; see GearShopper::SplitOffers.
@@ -91,8 +93,10 @@ struct GearSpend {
     hammers_driven += other.hammers_driven;
     cubes_bought += other.cubes_bought;
     cubes_kept += other.cubes_kept;
-    green_cubes_bought += other.green_cubes_bought;
-    green_cubes_kept += other.green_cubes_kept;
+    for (size_t i = 0; i < bought_by_cube.size(); ++i) {
+      bought_by_cube[i] += other.bought_by_cube[i];
+      kept_by_cube[i] += other.kept_by_cube[i];
+    }
     farm_cubes_bought += other.farm_cubes_bought;
     farm_cubes_kept += other.farm_cubes_kept;
     farm_splits += other.farm_splits;
@@ -158,10 +162,11 @@ class GearShopper {
     // stat it gives. The duplicates it uses aren't bought: they drop, and
     // CollectSymbols has already applied them.
     bool symbol = false;
-    // A cube on one of the slot's potentials, valued at how much one reroll
-    // is expected to beat the lines it replaces. Which cube is `cube_type`.
+    // A cube on one of the slot's potentials, valued as the run its stopping
+    // rule expects (see //analysis:cube_plan). Which cube is `cube_type`.
     bool cube = false;
     CubeType cube_type = CubeType::kRed;
+    CubeProgram cube_program;
     // A copy of what both presets wear in `slot`, put on for farming so a
     // meso line can be cubed onto it. Priced with the cube run that follows.
     bool split = false;
@@ -172,6 +177,9 @@ class GearShopper {
     const Scroll* scroll = nullptr;
     // Expected meso cost, including attempts that fail.
     int64_t cost = 0;
+    // The meso the purse must hold to start, when that is less than `cost`:
+    // one cube of a run bought a cube at a time.
+    int64_t outlay = 0;
     // Damage it would add against the target fight (see //analysis:yardstick).
     // A double because damage at the cap runs into billions.
     double gain = 0.0;
@@ -240,7 +248,10 @@ class GearShopper {
   // One function per kind of offer. False means the bag or meso refused, and
   // BuyBest tries the next offer.
   bool BuyCube(GameState& state, EquipSlot slot, StatPreset gear, CubeType cube,
-               GearSpend& spend);
+               const CubeProgram& program, GearSpend& spend);
+  // The main-track cube run on the farm piece in `slot` with the best value per
+  // meso, out of the cubes on the shelf.
+  CubeProgram BestMainCubeProgram(const GameState& state, EquipSlot slot);
   bool BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,
                  GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
