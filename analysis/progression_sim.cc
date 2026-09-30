@@ -1193,9 +1193,10 @@ void NotePotentials(const GameState& state, int level, double seconds,
 
 // Fights one boss once and returns the playtime it took. A failed run pays
 // nothing but still costs the time the player spent.
-// The share of its clock a fight's fastest clear must have used for later
-// clears to be claimed without playing them; see FightOnce.
-constexpr double kSettledShare = 0.5;
+// The most of its clock a fight's fastest clear may have used for later
+// clears to be claimed without playing them; see FightOnce. A clear at no more
+// power than today's repeats with near certainty even near the clock.
+constexpr double kSettledShare = 0.8;
 
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
                  int level, int power, double now, Climb& climb,
@@ -1217,12 +1218,14 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   int64_t before_fight = state.character.meso();
   // A fight already cleared in well under its clock, by a character no
   // stronger than this one, is claimed rather than played: the daily farm of a
-  // boss long outgrown was most of the days at the cap.
+  // boss long outgrown was most of the days at the cap. It takes the fastest
+  // clear's time scaled by how much stronger the character has grown since.
   const bool settled =
-      log.clears > 0 && power >= log.best_power &&
+      log.clears > 0 && log.best_power > 0 && power >= log.best_power &&
       log.best_seconds <= kSettledShare * difficulty.time_limit_seconds();
   BossOutcome outcome =
-      settled ? ClaimBoss(state, fight.first, fight.second, log.best_seconds)
+      settled ? ClaimBoss(state, fight.first, fight.second,
+                          log.best_seconds * log.best_power / power)
               : FightBoss(state, fight.first, fight.second);
   climb.ledger.boss_clears +=
       std::max<int64_t>(0, state.character.meso() - before_fight);
