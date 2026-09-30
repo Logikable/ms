@@ -682,7 +682,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   attack.credit = attack.name;
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
-      skill, level, PassiveOffenseFor(derived));
+      skill, level, PassiveOffenseFor(derived, skill));
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
@@ -718,9 +718,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // The plain stats everything triggered by the attack is priced from: no
   // skill, so no multiplier or lines, and no shadow, which copies the attack
   // but not what it triggers.
-  OffenseStats follow =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, weapon, nullptr, 0, PassiveOffenseFor(derived));
+  OffenseStats follow = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
+      nullptr, 0, PassiveOffenseFor(derived, nullptr));
   follow.mirror_lines = 0;
   AddBurns(skill, derived, offense, follow, level, types, speed_factor, attack);
   AddFinalAttacks(skill, derived, follow, level,

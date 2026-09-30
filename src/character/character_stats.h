@@ -489,6 +489,11 @@ double SymbolBossDamagePct(const CharacterInstance& character,
 // The offensive part of the derived stats, in the shape combat/damage.h wants,
 // so only this function has to keep them in step.
 PassiveOffense PassiveOffenseFor(const DerivedStats& derived);
+// The same, carrying only `attack`'s entry of skill_bonus, or none for a null
+// attack: all OffenseStatsFor reads for that attack. Copying every skill's
+// bonuses was most of what building an attack set cost.
+PassiveOffense PassiveOffenseFor(const DerivedStats& derived,
+                                 const Skill* attack);
 
 // Everything worn plus everything the passives grant. Use this wherever the
 // game wants the character's equipment stats: a skill granting LUK is worth the

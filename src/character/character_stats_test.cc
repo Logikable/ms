@@ -2018,11 +2018,24 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   stats.final_dmg_pct = 0.25;
   stats.crit_dmg = 0.05;
   stats.ied = 0.25;
-  PassiveOffense passives = PassiveOffenseFor(stats);
-  EXPECT_DOUBLE_EQ(passives.damage_pct, 0.15);
-  EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
-  EXPECT_DOUBLE_EQ(passives.crit_dmg, 0.05);
-  EXPECT_DOUBLE_EQ(passives.ied, 0.25);
+  stats.skill_bonus["Slash"].skill_pct = 0.3;
+  stats.skill_bonus["Stab"].skill_pct = 0.4;
+  Skill slash;
+  slash.set_name("Slash");
+  for (const PassiveOffense& passives :
+       {PassiveOffenseFor(stats), PassiveOffenseFor(stats, &slash),
+        PassiveOffenseFor(stats, nullptr)}) {
+    EXPECT_DOUBLE_EQ(passives.damage_pct, 0.15);
+    EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
+    EXPECT_DOUBLE_EQ(passives.crit_dmg, 0.05);
+    EXPECT_DOUBLE_EQ(passives.ied, 0.25);
+  }
+  EXPECT_EQ(PassiveOffenseFor(stats).skill_bonus.size(), 2u);
+  // One attack's stats read only its own bonus, so only that one is carried.
+  const PassiveOffense slashing = PassiveOffenseFor(stats, &slash);
+  ASSERT_EQ(slashing.skill_bonus.size(), 1u);
+  EXPECT_DOUBLE_EQ(slashing.skill_bonus.at("Slash").skill_pct, 0.3);
+  EXPECT_TRUE(PassiveOffenseFor(stats, nullptr).skill_bonus.empty());
 }
 
 // Shaped like Marksmanship: 6% of the monster's DEF ignored at level 1, plus a

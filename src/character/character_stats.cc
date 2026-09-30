@@ -1612,7 +1612,10 @@ double MesoBonus(const DerivedStats& derived) {
   return std::min(worn + derived.meso_pct, kMesoHardCap);
 }
 
-PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
+namespace {
+
+// Everything PassiveOffenseFor copies but the per-skill bonuses.
+PassiveOffense PassiveScalars(const DerivedStats& derived) {
   PassiveOffense passives;
   passives.crit_rate = derived.crit_rate;
   passives.crit_dmg = derived.crit_dmg;
@@ -1625,8 +1628,28 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
   passives.ier = derived.ier;
-  passives.skill_bonus = derived.skill_bonus;
   passives.force_pct = derived.force_damage_factor;
+  return passives;
+}
+
+}  // namespace
+
+PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
+  PassiveOffense passives = PassiveScalars(derived);
+  passives.skill_bonus = derived.skill_bonus;
+  return passives;
+}
+
+PassiveOffense PassiveOffenseFor(const DerivedStats& derived,
+                                 const Skill* attack) {
+  PassiveOffense passives = PassiveScalars(derived);
+  if (attack != nullptr) {
+    std::map<std::string, SkillBonus>::const_iterator bonus =
+        derived.skill_bonus.find(attack->name());
+    if (bonus != derived.skill_bonus.end()) {
+      passives.skill_bonus.insert(*bonus);
+    }
+  }
   return passives;
 }
 
