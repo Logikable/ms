@@ -514,6 +514,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "hyper_plan_test",
+    srcs = ["hyper_plan_test.cc"],
+    deps = [
+        ":character",
+        ":hyper_plan",
+        ":stat_preset",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "max_character",
     srcs = ["max_character.cc"],

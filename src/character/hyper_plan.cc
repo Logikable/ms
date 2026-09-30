@@ -24,6 +24,20 @@ double RateWith(CharacterInstance& character, StatPreset preset,
   return rate(character);
 }
 
+// Whether the highest level of `field` the pool reaches is worth exactly
+// `bare`. With level 1 worth the same, the stat does nothing for this rate,
+// and the levels between needn't be measured.
+bool NothingAtTheTop(CharacterInstance& character, StatPreset preset,
+                     HyperStatField field, double bare, const HyperRate& rate) {
+  for (int level = character.max_hyper_stat_level(); level > 1; --level) {
+    double paid = RateWith(character, preset, field, level, rate);
+    if (paid > 0.0) {
+      return paid == bare;
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 HyperWorth MeasureHyperWorth(CharacterInstance& character, StatPreset preset,
@@ -38,9 +52,15 @@ HyperWorth MeasureHyperWorth(CharacterInstance& character, StatPreset preset,
                            character.proto().level())) {
       continue;
     }
+    const HyperStatField named = static_cast<HyperStatField>(field);
+    const double first = RateWith(character, preset, named, 1, rate);
+    if (first == bare &&
+        NothingAtTheTop(character, preset, named, bare, rate)) {
+      continue;
+    }
     for (int level = 1; level <= ceiling; ++level) {
-      double paid = RateWith(character, preset,
-                             static_cast<HyperStatField>(field), level, rate);
+      double paid =
+          level == 1 ? first : RateWith(character, preset, named, level, rate);
       if (paid <= 0.0) {
         break;  // out of reach, and every level above it is too
       }
