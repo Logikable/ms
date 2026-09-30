@@ -38,6 +38,11 @@ struct BossOutcome {
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
                       int difficulty_index);
 
+// Pays a clear of `difficulty_index` in `seconds` without playing it, for a
+// fight the caller has already settled. See BossRun::ClaimClear.
+BossOutcome ClaimBoss(GameState& state, const std::string& boss_key,
+                      int difficulty_index, double seconds);
+
 // Total HP of `difficulty` across all its phases.
 int64_t BossTotalHp(const std::map<std::string, Mob>& mobs,
                     const BossDifficulty& difficulty);

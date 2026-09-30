@@ -868,6 +868,32 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 1);
 }
 
+// A sim claims a clear it has already settled instead of playing it, so a
+// claim must pay exactly what the played clear does.
+TEST(BossRunTest, AClaimedClearPaysWhatAPlayedOneDoes) {
+  std::unique_ptr<GameState> played = MakeState();
+  std::unique_ptr<GameState> claimed = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  BossRun fought("zakum", boss, 0);
+  RunToEnd(fought, *played);
+  BossRun claim("zakum", boss, 0);
+  claim.ClaimClear(*claimed, 90.0);
+
+  ASSERT_TRUE(claim.won());
+  EXPECT_DOUBLE_EQ(claim.clear_seconds(), 90.0);
+  EXPECT_EQ(claimed->character.proto().meso(),
+            played->character.proto().meso());
+  EXPECT_EQ(claimed->character.proto().level(),
+            played->character.proto().level());
+  EXPECT_EQ(claimed->character.proto().exp(), played->character.proto().exp());
+  EXPECT_EQ(claimed->character.honor(), played->character.honor());
+  EXPECT_EQ(claimed->character.CountItem(DropItems().at("shard")), 1);
+
+  claim.ClaimClear(*claimed, 90.0);
+  EXPECT_EQ(claimed->character.proto().meso(), played->character.proto().meso())
+      << "a finished run pays once";
+}
+
 // A practice run is only the fight. It still keeps time, since beating the
 // clock is the point.
 TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {

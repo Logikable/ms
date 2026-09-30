@@ -706,6 +706,17 @@ void BossRun::RunPhase(GameState& state, double dt) {
   hold_left_ = kBossPhaseGapSeconds;
 }
 
+void BossRun::ClaimClear(GameState& state, double seconds) {
+  if (state_ == BossRunState::kWon || state_ == BossRunState::kTimedOut ||
+      state_ == BossRunState::kAborted) {
+    return;
+  }
+  const double item_drop_pct = PhaseParams(state).drop_roll_item_drop_pct;
+  seconds_left_ = std::max(0.0, difficulty()->time_limit_seconds() - seconds);
+  PayReward(state, RollAwards(state, item_drop_pct));
+  Finish(BossRunState::kWon);
+}
+
 std::vector<SharedAward> BossRun::RollAwards(GameState& state,
                                              double item_drop_pct) const {
   std::vector<SharedAward> awards;

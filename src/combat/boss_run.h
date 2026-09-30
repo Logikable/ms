@@ -223,6 +223,10 @@ class BossRun {
   // Advances the run by `elapsed_seconds` of real time, paying the character
   // for anything that died. Does nothing once the run is finished.
   void Advance(GameState& state, double elapsed_seconds);
+  // Ends the run as a clear in `seconds` without playing it, paying what a won
+  // fight pays. For a sim that has already settled the outcome; a solo run
+  // only. Does nothing once the run has ended, won or lost.
+  void ClaimClear(GameState& state, double seconds);
   // Gives up the run. The screen returns immediately instead of pausing, since
   // the player chose to leave.
   void Abort();

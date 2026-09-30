@@ -102,6 +102,21 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   return outcome;
 }
 
+BossOutcome ClaimBoss(GameState& state, const std::string& boss_key,
+                      int difficulty_index, double seconds) {
+  std::map<std::string, Boss>::iterator found = state.bosses.find(boss_key);
+  if (found == state.bosses.end() ||
+      difficulty_index >= found->second.difficulties_size()) {
+    return BossOutcome();
+  }
+  BossRun run(boss_key, found->second, difficulty_index);
+  run.ClaimClear(state, seconds);
+  BossOutcome outcome;
+  outcome.won = run.won();
+  outcome.seconds = run.clear_seconds();
+  return outcome;
+}
+
 int64_t BossTotalHp(const std::map<std::string, Mob>& mobs,
                     const BossDifficulty& difficulty) {
   int64_t hp = 0;
