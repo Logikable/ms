@@ -2291,9 +2291,8 @@ void ClimbToCap(Session& run) {
   }
 }
 
-// The endgame's hourly look, replacing the climb's look on leveling up. The Etc
-// tab is sold off first, as in the climb's Retool: it holds 128 stacks, and
-// twenty days of drops fill it.
+// The endgame's look, replacing the climb's. The Etc tab is sold off first, as
+// in the climb's Retool: it holds 128 stacks, and twenty days of drops fill it.
 void RestockAtCap(Session& run, const CombatParams& params,
                   const Yield& yield) {
   run.climb.ledger.etc_sales += SellDrops(run.state.character);
@@ -2313,9 +2312,9 @@ void RestockAtCap(Session& run, const CombatParams& params,
   SpendHyperPoints(run);
   SpendHonor(run);
   ConsiderAlts(run);
-  // Hourly, but only re-picked once the character has outgrown the last answer.
-  // Probing the maps plays a fight on each, and twenty endgame days of hourly
-  // looks would make that most of the section's cost.
+  // Only re-picked once the character has outgrown the last answer. Probing
+  // the maps plays a fight on each, and would otherwise be most of the
+  // section's cost.
   int power = PowerNow(run.state);
   if (power >= run.mapped.power * kRemeasureGrowth) {
     run.mapped.power = power;
@@ -2365,10 +2364,9 @@ void FarmAtCap(Session& run) {
                run.shopper.power_per_meso(), run.shopper.yardstick());
   run.climb.money_map = run.state.current_map;
   CombatParams params = ComputeCombatParams(run.state);
-  // Retool on a timer rather than on leveling, since nothing levels anymore:
-  // often enough that a bought star makes a difference, rarely enough that the
-  // measurement behind it isn't the section's whole cost.
-  double next_retool = run.seconds + kDaySeconds / 24.0;
+  // Looks come on the climb's schedule for the cap's level: nothing levels
+  // anymore, and a player at the cap opens the game no more often than one
+  // grinding toward it.
   std::vector<double> carry;
   while (run.seconds < horizon) {
     Yield yield = MeasureYield(run.state, params, run.beats, run.step);
@@ -2382,9 +2380,9 @@ void FarmAtCap(Session& run) {
       params = again;
       continue;
     }
-    // Skipped ahead the same way as the climb, but to the next retool rather
-    // than a level, since the clock is the only thing that moves here.
-    double jump = std::min(next_retool, horizon) - run.seconds;
+    // Skipped ahead the same way as the climb, but to the next look alone,
+    // since the clock is the only thing that moves here.
+    double jump = std::min(run.next_look, horizon) - run.seconds;
     jump = std::max(jump, run.step);
     double farmed = PayAltDebt(run, jump);
     std::vector<int64_t> kills = KillsOver(yield, farmed, &carry);
@@ -2393,8 +2391,8 @@ void FarmAtCap(Session& run) {
     run.purse.Note(run.state.character);
     run.seconds += jump;
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
-    if (run.seconds >= next_retool) {
-      next_retool += kDaySeconds / 24.0;
+    if (run.seconds >= run.next_look) {
+      run.next_look = NextLook(run.seconds, level, &run.looks_left, run.rng);
       RestockAtCap(run, params, yield);
       fought = true;
     }
