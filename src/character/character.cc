@@ -1485,8 +1485,9 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
   while (HyperStatPointsSpent(allocation) > hyper_stat_points()) {
     int dearest = 0;
     int at = 0;
+    // The lowest field among equals, since a proto map iterates in any order.
     for (const std::pair<const int, int>& entry : allocation.levels()) {
-      if (entry.second > at) {
+      if (entry.second > at || (entry.second == at && entry.first < dearest)) {
         dearest = entry.first;
         at = entry.second;
       }

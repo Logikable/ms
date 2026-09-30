@@ -173,9 +173,12 @@ std::string KitKey(const GameState& state) {
        state.character.equipped(AutoswapSlotFor(Activity::kBossing))) {
     absl::StrAppend(&key, item.second->name(), "\n");
   }
-  for (const std::pair<const std::string, int32_t>& learned :
-       proto.skill_levels()) {
-    absl::StrAppend(&key, learned.first, "=", learned.second, "\n");
+  // Sorted: a proto map's order follows its address, so the same kit read
+  // twice could make two keys and throw away a yardstick that still held.
+  const std::map<std::string, int32_t> learned(proto.skill_levels().begin(),
+                                               proto.skill_levels().end());
+  for (const std::pair<const std::string, int32_t>& skill : learned) {
+    absl::StrAppend(&key, skill.first, "=", skill.second, "\n");
   }
   return key;
 }
