@@ -666,6 +666,12 @@ struct PlanKey {
 // behind a different defence wall or a character who has outgrown the plan; in
 // between, new points go on top. The wall rather than the boss: a replan is
 // for levers the wall zeroed, and most bosses past 190 share one.
+// How much stronger the character must get before the matrix is replanned
+// against an unchanged wall. Further than the worth tables: a replan past 230
+// is near a thousand measured fights, and the top-ups between follow the
+// values as they move.
+constexpr double kReplanGrowth = 4.0;
+
 struct MatrixChoice {
   bool planned = false;
   double defence = 0.0;
@@ -748,7 +754,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     double defence = AimedDefence(state);
     int power = PowerNow(state);
     bool replan = !matrix.planned || defence != matrix.defence ||
-                  power >= matrix.power * kRemeasureGrowth;
+                  power >= matrix.power * kReplanGrowth;
     if (replan && state.character.v_matrix_unlocked()) {
       matrix = {true, defence, power};
     }
