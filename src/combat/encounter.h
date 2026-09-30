@@ -576,6 +576,22 @@ struct CombatParams {
   // the readers below unsafe to call from two threads on one CombatParams; sims
   // give each worker its own copy.
   mutable std::map<int, AttackSet> buffed;
+  // The last entry Window found. A fight asks for the same mask several times a
+  // swing, and the lookup was a measured share of every sim. Emptied on copy,
+  // since it points into this object's own map.
+  struct LastWindow {
+    int mask = 0;
+    const AttackSet* set = nullptr;
+    LastWindow() = default;
+    LastWindow(const LastWindow&) {
+    }
+    LastWindow& operator=(const LastWindow&) {
+      mask = 0;
+      set = nullptr;
+      return *this;
+    }
+  };
+  mutable LastWindow last_window;
   // What those entries are built from. Empty for hand-built params, which fill
   // every entry up front.
   BuffedSetSource buffed_source;

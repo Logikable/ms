@@ -1990,8 +1990,13 @@ const AttackSet* CombatParams::Window(int mask) const {
   if (mask <= 0) {
     return nullptr;
   }
+  if (last_window.set != nullptr && last_window.mask == mask) {
+    return last_window.set;
+  }
   std::map<int, AttackSet>::iterator slot = buffed.find(mask);
   if (slot != buffed.end()) {
+    last_window.mask = mask;
+    last_window.set = &slot->second;
     return &slot->second;
   }
   // Hand-built params have no source to build from, so any other mask reads as
