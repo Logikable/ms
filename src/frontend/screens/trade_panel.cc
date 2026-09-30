@@ -32,7 +32,7 @@ constexpr int kBagWidth = 2 * (kOfferWidth + 2) - 2;
 // The rows an offer keeps for its items, and the rows the bag shows at once.
 // Both are fixed, since a window that grew with its contents would move the
 // other one's border.
-constexpr int kOfferRows = 7;
+constexpr int kOfferRows = 6;
 constexpr int kBagRows = 10;
 
 // The currency cells. Wide enough for the largest either can hold (a hundred
@@ -42,12 +42,11 @@ constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
 constexpr int kVPointCell = 13;
 
-// The stops on your top rows.
+// The stops on your top row.
 enum TopStop : int {
   kMesoStop = 0,
   kTraceStop = 1,
-  kAcceptStop = 2,
-  kVPointStop = 3,
+  kVPointStop = 2,
 };
 
 // An offer row's two columns, and the cursor column before them.
@@ -67,30 +66,47 @@ ftxui::Element AcceptMark(bool accepted) {
   return ftxui::text("✓") | ftxui::color(kGreen) | ftxui::bold;
 }
 
-// Your own two currencies, with the cursor's on the selection band: meso first,
-// where the eye already is, then traces to its right.
-ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces, int cursor) {
-  ftxui::Element meso_cell =
-      ftxui::text(PadRight(FormatMeso(meso), kMesoCell)) | ftxui::color(kTheme);
-  ftxui::Element trace_cell =
-      ftxui::text(PadRight(FormatSpellTraces(traces), kTraceCell)) |
-      ftxui::color(kTheme);
-  return ftxui::hbox({
-      HighlightRow(std::move(meso_cell), cursor == kMesoStop),
+// Your own currencies, with the cursor's on the selection band: meso first,
+// where the eye already is, then traces and V Points to its right.
+ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces,
+                               std::optional<int64_t> v_points, int cursor) {
+  std::vector<ftxui::Element> cells = {
+      HighlightRow(ftxui::text(PadRight(FormatMeso(meso), kMesoCell)) |
+                       ftxui::color(kTheme),
+                   cursor == kMesoStop),
       ftxui::text("  "),
-      HighlightRow(std::move(trace_cell), cursor == kTraceStop),
-  });
+      HighlightRow(
+          ftxui::text(PadRight(FormatSpellTraces(traces), kTraceCell)) |
+              ftxui::color(kTheme),
+          cursor == kTraceStop),
+  };
+  if (v_points.has_value()) {
+    cells.push_back(ftxui::text("  "));
+    cells.push_back(HighlightRow(
+        ftxui::text(PadRight(FormatVPoints(*v_points), kVPointCell)) |
+            ftxui::color(kTheme),
+        cursor == kVPointStop));
+  }
+  return ftxui::hbox(std::move(cells));
 }
 
-// The other player's, mirrored: traces, then meso against their window's right
-// border, so the two offers read outward from the middle.
-ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces) {
-  return ftxui::hbox({
-      ftxui::text(PadLeft(FormatSpellTraces(traces), kTraceCell)) |
-          ftxui::color(kTheme),
-      ftxui::text("  "),
-      ftxui::text(PadLeft(FormatMeso(meso), kMesoCell)) | ftxui::color(kTheme),
-  });
+// The other player's, mirrored: meso against their window's right border, so
+// the two offers read outward from the middle.
+ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces,
+                                  std::optional<int64_t> v_points) {
+  std::vector<ftxui::Element> cells;
+  if (v_points.has_value()) {
+    cells.push_back(
+        ftxui::text(PadLeft(FormatVPoints(*v_points), kVPointCell)) |
+        ftxui::color(kTheme));
+    cells.push_back(ftxui::text("  "));
+  }
+  cells.push_back(ftxui::text(PadLeft(FormatSpellTraces(traces), kTraceCell)) |
+                  ftxui::color(kTheme));
+  cells.push_back(ftxui::text("  "));
+  cells.push_back(ftxui::text(PadLeft(FormatMeso(meso), kMesoCell)) |
+                  ftxui::color(kTheme));
+  return ftxui::hbox(std::move(cells));
 }
 
 }  // namespace
@@ -154,6 +170,7 @@ void TradePanel::Reset() {
   zone_ = TradeZone::kMine;
   top_ = 0;
   own_list_ = false;
+  on_accept_ = false;
   own_row_ = 0;
   their_row_ = 0;
   bag_row_ = 0;
@@ -284,10 +301,14 @@ void TradePanel::NextZone(int delta) {
   // Your own window is the only one entered above its list; the other two are
   // just a list.
   own_list_ = false;
+  on_accept_ = false;
 }
 
 void TradePanel::MoveCursor(int delta) {
   if (zone_ == TradeZone::kMine && !own_list_) {
+    if (on_accept_) {
+      return;
+    }
     const int stops = can_offer_v_points() ? kVPointStop + 1 : kVPointStop;
     top_ = ((top_ + delta) % stops + stops) % stops;
     return;
@@ -309,20 +330,37 @@ void TradePanel::MoveRow(int delta) {
     bag_row_ = ClampedRow(bag_row_ + delta, static_cast<int>(BagRows().size()));
     return;
   }
-  if (!own_list_) {
-    // Down from the top row moves into what you have put up, if anything; Up
-    // there goes nowhere.
-    if (delta > 0 && own_.items() > 0) {
+  // Your window is one ring, top to bottom: the currencies, what you have put
+  // up, then Accept.
+  const int items = own_.items();
+  if (on_accept_) {
+    on_accept_ = false;
+    if (delta < 0 && items > 0) {
       own_list_ = true;
-      own_row_ = 0;
+      own_row_ = items - 1;
     }
     return;
   }
+  if (!own_list_) {
+    if (delta > 0 && items > 0) {
+      own_list_ = true;
+      own_row_ = 0;
+    } else {
+      on_accept_ = true;
+    }
+    return;
+  }
+  own_row_ = ClampedRow(own_row_, items);
   if (delta < 0 && own_row_ == 0) {
     own_list_ = false;
     return;
   }
-  own_row_ = ClampedRow(own_row_ + delta, own_.items());
+  if (delta > 0 && own_row_ == items - 1) {
+    own_list_ = false;
+    on_accept_ = true;
+    return;
+  }
+  own_row_ = ClampedRow(own_row_ + delta, items);
 }
 
 TradeCursor TradePanel::cursor() const {
@@ -330,7 +368,7 @@ TradeCursor TradePanel::cursor() const {
   switch (zone_) {
     case TradeZone::kMine:
       if (!own_list_) {
-        if (top_ == kAcceptStop) {
+        if (on_accept_) {
           cursor.kind = TradeCursor::Kind::kAccept;
           return cursor;
         }
@@ -542,56 +580,32 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
 }
 
 ftxui::Element TradePanel::RenderMyTopRow() const {
-  const int cursor = own_list_ ? -1 : top_;
-  ftxui::Element row = ftxui::hbox({
+  std::optional<int64_t> v_points;
+  if (can_offer_v_points()) {
+    v_points = own_.v_points;
+  }
+  return ftxui::hbox({
       ftxui::text(" "),
-      MyCurrencyCells(own_.meso, own_.spell_traces, cursor),
-      ftxui::text("   "),
-      ActionButton("Accept",
-                   zone_ == TradeZone::kMine && cursor == kAcceptStop),
+      MyCurrencyCells(own_.meso, own_.spell_traces, v_points,
+                      own_list_ || on_accept_ ? -1 : top_),
       ftxui::filler(),
       AcceptMark(trade_.mine_accepted()),
       ftxui::text(" "),
   });
-  if (!shows_v_points()) {
-    return row;
-  }
-  // Only a player who can't offer points yet sees this row for theirs alone,
-  // and it stays blank on their side.
-  ftxui::Element points = ftxui::text("");
-  if (can_offer_v_points()) {
-    points = HighlightRow(
-        ftxui::text(PadRight(FormatVPoints(own_.v_points), kVPointCell)) |
-            ftxui::color(kTheme),
-        cursor == kVPointStop);
-  }
-  return ftxui::vbox({
-      std::move(row),
-      ftxui::hbox({ftxui::text(" "), std::move(points), ftxui::filler()}),
-  });
 }
 
 ftxui::Element TradePanel::RenderTheirTopRow() const {
-  ftxui::Element row = ftxui::hbox({
+  std::optional<int64_t> v_points;
+  if (shows_v_points()) {
+    v_points = trade_.theirs().v_points();
+  }
+  return ftxui::hbox({
       ftxui::text(" "),
       AcceptMark(trade_.theirs_accepted()),
       ftxui::filler(),
-      TheirCurrencyCells(trade_.theirs().meso(),
-                         trade_.theirs().spell_traces()),
+      TheirCurrencyCells(trade_.theirs().meso(), trade_.theirs().spell_traces(),
+                         v_points),
       ftxui::text(" "),
-  });
-  if (!shows_v_points()) {
-    return row;
-  }
-  return ftxui::vbox({
-      std::move(row),
-      ftxui::hbox({
-          ftxui::filler(),
-          ftxui::text(
-              PadLeft(FormatVPoints(trade_.theirs().v_points()), kVPointCell)) |
-              ftxui::color(kTheme),
-          ftxui::text(" "),
-      }),
   });
 }
 
@@ -605,6 +619,11 @@ ftxui::Element TradePanel::RenderMine() const {
               own_.items() == 0 ? -1 : ClampedRow(own_row_, own_.items()),
               zone_ == TradeZone::kMine && own_list_,
               CursorBox(TradeZone::kMine)),
+          ThemedSeparator(),
+          ftxui::hbox(
+              {ftxui::filler(),
+               ActionButton("Accept", zone_ == TradeZone::kMine && on_accept_),
+               ftxui::filler()}),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
   return ThemedWindow(" " + character_.username() + " ", std::move(body),
@@ -626,6 +645,9 @@ ftxui::Element TradePanel::RenderTheirs() const {
               TheirRows(),
               ClampedRow(their_row_, static_cast<int>(TheirRows().size())),
               zone_ == TradeZone::kTheirs, CursorBox(TradeZone::kTheirs)),
+          // Matches your Accept row, so the two windows stay the same height.
+          ThemedSeparator(),
+          ftxui::text(""),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
   return ThemedWindow(title, std::move(body), zone_ == TradeZone::kTheirs,

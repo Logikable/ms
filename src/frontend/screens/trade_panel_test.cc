@@ -174,38 +174,76 @@ TEST_F(TradePanelTest, FocusLightsTheNameAndNotThePaddingBeforeIt) {
       << "the border run before it is not";
 }
 
-TEST_F(TradePanelTest, TheCursorWalksTheTopRowAndTheAcceptButton) {
+// Left and Right walk the currencies. Accept sits centred under the offer, the
+// last stop of a vertical ring through the window.
+TEST_F(TradePanelTest, AcceptIsTheFootOfTheWindow) {
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
   EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso);
   EXPECT_EQ(panel_.held(TradeCurrency::kMeso), 1234567);
-
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kSpellTraces);
   EXPECT_EQ(panel_.held(TradeCurrency::kSpellTraces), 900);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso) << "a ring of two";
 
+  // With nothing offered, Down goes straight to Accept, and Left and Right
+  // stay there.
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency) << "wraps";
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept) << "both ways";
 
-  // A ring of three.
-  panel_.MoveCursor(1);
-  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso);
-  panel_.MoveCursor(-1);
+  // With two items up, the ring runs through them.
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  panel_.PutUpEquip(1);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
+  EXPECT_EQ(panel_.cursor().index, 1);
+  panel_.MoveRow(-1);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+  panel_.MoveRow(1);
+  panel_.MoveRow(1);
+  panel_.MoveRow(1);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+
+  // Centred, on a row of its own below a divider.
+  std::vector<std::string> rows = Rows();
+  int line = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("[Accept]") != std::string::npos) {
+      line = i;
+    }
+  }
+  ASSERT_GT(line, 0);
+  EXPECT_NE(rows[line - 1].find("├"), std::string::npos);
+  EXPECT_EQ(rows[line].find("Sword"), std::string::npos);
+  EXPECT_EQ(rows[line].find("🪙"), std::string::npos);
+  std::string left = rows[line].substr(0, rows[line].find("[Accept]"));
+  int border = static_cast<int>(left.rfind("│"));
+  int gap_before = static_cast<int>(left.size()) - border - 3;
+  std::string right = rows[line].substr(rows[line].find("[Accept]") + 8);
+  int gap_after = static_cast<int>(right.find("│"));
+  EXPECT_LE(std::abs(gap_before - gap_after), 1) << rows[line];
 }
 
-// From the 5th job, V Points sit on a row of their own under meso: a fourth
-// stop after Accept, mirrored on their side.
-TEST_F(TradePanelTest, VPointsTakeASecondRow) {
+// From the 5th job, V Points take a third cell on the top row, mirrored on
+// their side.
+TEST_F(TradePanelTest, VPointsJoinTheTopRow) {
   UnlockEverything();
   c_.AddVPoints(5000);
-  for (int i = 0; i < 3; ++i) {
-    panel_.MoveCursor(1);
-  }
+  panel_.MoveCursor(2);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
   EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kVPoints);
   EXPECT_EQ(panel_.held(TradeCurrency::kVPoints), 5000);
   panel_.MoveCursor(1);
-  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso) << "a ring of four";
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso)
+      << "a ring of three";
 
   panel_.PutUpCurrency(TradeCurrency::kVPoints, 1200);
   EXPECT_EQ(panel_.offered(TradeCurrency::kVPoints), 1200);
@@ -216,30 +254,23 @@ TEST_F(TradePanelTest, VPointsTakeASecondRow) {
   panel_.SetTrade(trade);
 
   std::vector<std::string> rows = Rows();
-  int meso = -1;
-  int points = -1;
+  int line = -1;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    if (rows[i].find("120") != std::string::npos && meso < 0) {
-      meso = i;
-    }
     if (rows[i].find("1,200 VP") != std::string::npos) {
-      points = i;
+      line = i;
     }
   }
-  ASSERT_GE(meso, 0);
-  ASSERT_EQ(points, meso + 1);
-  EXPECT_LT(rows[points].find("1,200 VP"), rows[points].find("77 VP"));
+  ASSERT_GE(line, 0);
+  const std::string& row = rows[line];
+  EXPECT_LT(row.find("🪙"), row.find("1,200 VP")) << "meso first";
+  EXPECT_LT(row.find("1,200 VP"), row.find("77 VP"));
+  EXPECT_LT(row.find("77 VP"), row.find("120")) << "theirs mirrored";
   EXPECT_NE(Text().find("3,800 VP"), std::string::npos)
       << "the bag shows what is left";
 }
 
-// Below it, the row appears only to show what they offered.
+// Below it, the cell appears only to show what they offered.
 TEST_F(TradePanelTest, VPointsWaitForTheFifthJob) {
-  for (int i = 0; i < 3; ++i) {
-    panel_.MoveCursor(1);
-  }
-  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso)
-      << "a ring of three";
   EXPECT_EQ(Text().find("VP"), std::string::npos);
 
   TradeState trade = Trade("Wand", /*joined=*/true);
@@ -351,7 +382,9 @@ TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
   panel_.MoveRow(1);
   EXPECT_EQ(panel_.cursor().index, 1);
   panel_.MoveRow(1);
-  EXPECT_EQ(panel_.cursor().index, 1) << "the list does not wrap";
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().index, 1);
 
   panel_.TakeBack(1);
   EXPECT_EQ(panel_.own().items(), 1);
@@ -503,7 +536,7 @@ TEST_F(TradePanelTest, NoMenuOnACurrencyOrTheButton) {
   panel_.OpenMenu();
   EXPECT_FALSE(panel_.menu_open()) << "a currency is its own action";
 
-  panel_.MoveCursor(2);
+  panel_.MoveRow(1);
   ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
   panel_.OpenMenu();
   EXPECT_FALSE(panel_.menu_open());

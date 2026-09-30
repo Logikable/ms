@@ -185,17 +185,16 @@ class TradePanel {
     std::string quantity;
   };
 
-  // One side's window: the top row, then what is offered.
+  // One side's window: the top row, what is offered, and your Accept button.
   ftxui::Element RenderMine() const;
   ftxui::Element RenderTheirs() const;
-  // Meso, traces, the Accept button and the acceptance mark, with V Points on
-  // a row below when shown. Your own side draws them left to right with the
-  // button; theirs is mirrored and has no button.
+  // The currencies and the acceptance mark. Your own side draws them left to
+  // right; theirs is mirrored.
   ftxui::Element RenderMyTopRow() const;
   ftxui::Element RenderTheirTopRow() const;
-  // Whether you can offer V Points, which puts a fourth stop on your top row.
+  // Whether you can offer V Points, which puts a third stop on your top row.
   bool can_offer_v_points() const;
-  // Whether both windows draw the V Points row: you can offer them, or they
+  // Whether their window draws a V Points cell: you can offer them, or they
   // have, so an offer is never invisible.
   bool shows_v_points() const;
   // The Name and Quantity table in an offer window, padded to its fixed height.
@@ -235,9 +234,10 @@ class TradePanel {
   OwnTradeOffer own_;
 
   TradeZone zone_ = TradeZone::kMine;
-  // The cursor's position on your own top rows, in reading order: meso,
-  // traces, the Accept button, then V Points below.
+  // The cursor's position on your own top row: meso, traces, V Points.
   int top_ = 0;
+  // Whether it is on the Accept button under your offer instead.
+  bool on_accept_ = false;
   // The cursor's row in each window's list, and whether it is in your own list
   // at all (the other two windows have nothing above their lists).
   bool own_list_ = false;

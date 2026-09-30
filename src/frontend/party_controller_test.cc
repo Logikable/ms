@@ -264,15 +264,14 @@ class PartyControllerTest : public ::testing::Test {
     }));
   }
 
-  // Back to your own window, right along its top row to the Accept button, and
-  // press it.
+  // Back to your own window, up to the Accept button at its foot, and press it.
   void PressAccept(Client& client) {
     ASSERT_EQ(client.controller->screen(), kTrade);
     while (client.trade_panel->zone() != TradeZone::kMine) {
       client.controller->OnEvent(ftxui::Event::Tab);
     }
     while (client.trade_panel->cursor().kind != TradeCursor::Kind::kAccept) {
-      client.controller->OnEvent(ftxui::Event::ArrowRight);
+      client.controller->OnEvent(ftxui::Event::ArrowUp);
     }
     client.controller->OnEvent(ftxui::Event::Return);
   }
@@ -879,9 +878,9 @@ TEST_F(PartyControllerTest, AcceptingAndThenChangingTheTable) {
   }));
   ASSERT_TRUE(asker->session.Snapshot().trade.theirs_accepted());
 
-  // Adding meso afterwards withdraws the remaining acceptance.
-  asker->controller->OnEvent(ftxui::Event::ArrowLeft);
-  asker->controller->OnEvent(ftxui::Event::ArrowLeft);
+  // Adding meso afterwards withdraws the remaining acceptance. Down from Accept
+  // wraps to the meso cell.
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
   asker->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(asker->controller->screen(), kTradeAmount);
   asker->controller->OnEvent(ftxui::Event::Character('5'));
