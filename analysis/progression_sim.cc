@@ -117,6 +117,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/shop.h"
+#include "src/map_level.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -554,6 +555,12 @@ Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
 // Moves the character to the map, among those they survive, that pays best for
 // what they're farming. Leaves them where they are if every map kills them,
 // which the give-up clock then catches.
+// How far a map's level may sit from the character's for PickMapFor to probe
+// it. Wide above, since a map over the character's level pays the farming gap
+// bonus: at +25 a Marksman missed the 260s maps and took 13 days longer.
+constexpr double kMapLevelsBelow = 30.0;
+constexpr double kMapLevelsAbove = 40.0;
+
 void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
                 int beats, double step, double power_per_meso,
                 HeldYardstick& held, bool for_meso) {
@@ -562,7 +569,17 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
   DropBasis basis = DropBasisFor(state, power_per_meso, held);
   std::string best;
   double best_rate = 0.0;
+  const int level = state.character.proto().level();
   for (const std::string& map : candidates) {
+    // Only maps near the character's level are probed: every probe plays a
+    // fight, and a map far below pays little while one far above kills.
+    std::map<std::string, MapData>::const_iterator data = state.maps.find(map);
+    if (data != state.maps.end() && map != state.current_map) {
+      const double at = MapLevel(state.mobs, data->second);
+      if (at < level - kMapLevelsBelow || at > level + kMapLevelsAbove) {
+        continue;
+      }
+    }
     Probe probe = ProbeMap(state, basis, map, beats, step);
     double rate = for_meso ? probe.meso_per_second : probe.exp_per_second;
     if (probe.died || rate <= best_rate) {

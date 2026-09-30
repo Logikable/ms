@@ -455,6 +455,7 @@ sim_binary(
         ":skill_plan",
         "//src:embedded_data",
         "//src:game_state",
+        "//src:map_level",
         "//src:proto_loader",
         "//src/character",
         "//src/character:arcane_force",
