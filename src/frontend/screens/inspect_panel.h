@@ -32,12 +32,14 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 
+#include <chrono>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/scroll_card.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -217,6 +219,10 @@ class InspectPanel {
   // Whether the last render had room for the set card. The ring moves through
   // what is on screen, and the width is only known once the cards are built.
   mutable bool set_drawn_ = false;
+  // When the current item was first shown, the clock for set rows too long to
+  // fit.
+  std::chrono::steady_clock::time_point shown_since_ =
+      std::chrono::steady_clock::now();
 };
 
 }  // namespace ms

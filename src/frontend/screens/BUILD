@@ -141,6 +141,7 @@ cc_library(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:scroll_card",
         "//src/item",
         "//src/protos:equip_proto_cc",

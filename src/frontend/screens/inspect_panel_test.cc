@@ -794,6 +794,28 @@ TEST_F(InspectPanelTest, AWornFamilyPieceNamesItselfInItsSlot) {
   EXPECT_FALSE(DimAt(panel, "Weapon     Frozen Polearm"));
 }
 
+// A row too long for the card is cut at its right gutter until it scrolls,
+// rather than pushing the border out.
+TEST_F(InspectPanelTest, CutsALongPieceRowToTheCard) {
+  EquipSet set;
+  set.set_name(EQUIP_SET_NAME_BOSS_ACCESSORY);
+  EquipSetMember* member = set.add_members();
+  member->set_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  member->set_family("Arcane Umbra Magician Weapon");
+  c_.UseEquipSets({{"boss", set}});
+
+  EquipInstance staff(FrozenFamilyPiece("Plain Staff",
+                                        EQUIP_SLOT_PRIMARY_WEAPON,
+                                        "Arcane Umbra Magician Weapon"));
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&staff);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Weapon     Choose 1 Arcane Umbra Magician W │"),
+            std::string::npos)
+      << rendered;
+}
+
 // The set names no weapon, so a weapon has to match by family or the card would
 // never open beside one.
 TEST_F(InspectPanelTest, AFamilyPieceOpensTheSameCard) {

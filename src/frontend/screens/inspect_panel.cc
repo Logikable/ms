@@ -44,6 +44,8 @@ constexpr int kStackableWidth = 44;
 constexpr int kSetContentWidth = 45;
 constexpr int kSetSlotWidth = 11;
 constexpr int kSetTierWidth = 15;
+// What is left of a piece row after its gutter, its slot and the right gutter.
+constexpr int kSetNameWidth = kSetContentWidth - 1 - kSetSlotWidth - 1;
 // The borders and the bar's column: what the card needs beyond its rows. This
 // is its full width and also the narrowest it is worth drawing at, since a set
 // card with less room cuts the tier values off every line, which is the half of
@@ -239,6 +241,10 @@ std::vector<std::string> EffectLines(const SkillEffect& e) {
 }  // namespace
 
 void InspectPanel::SetItem(const EquipTabItem* item) {
+  // The screens call this every render, so only a new item restarts the clock.
+  if (item != item_) {
+    shown_since_ = std::chrono::steady_clock::now();
+  }
   item_ = item;
   stackable_ = nullptr;
   compare_ = {};
@@ -349,6 +355,7 @@ void InspectPanel::Reset() {
   set_card_.Reset();
   compare_card_.Reset();
   focus_ = kItemCard;
+  shown_since_ = std::chrono::steady_clock::now();
 }
 
 bool InspectPanel::HasSetCard() const {
@@ -597,9 +604,14 @@ std::vector<CardRow> InspectPanel::MemberRows(
   // later ones under the slot they share, like a tier's later lines.
   std::vector<CardRow> rows;
   std::string slot = FormatSlot(member.slot());
+  // No row is selected on this card, so a name too long for it scrolls for as
+  // long as the item is shown.
+  std::chrono::steady_clock::duration shown =
+      std::chrono::steady_clock::now() - shown_since_;
   for (const SetFill& fill : fills) {
     ftxui::Element label = ftxui::text(" " + PadRight(slot, kSetSlotWidth));
-    ftxui::Element name = ftxui::text(fill.text);
+    ftxui::Element name =
+        ftxui::text(ScrollingWindow(fill.text, kSetNameWidth, shown));
     // Dimmed unless the character is wearing it now, the same question the
     // tiers below ask one piece at a time. The slot asks a narrower one,
     // whether it is filled at all, so it stays lit whichever alternate fills
