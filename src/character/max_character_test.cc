@@ -43,9 +43,10 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   EXPECT_TRUE(MaxGearForLevel(200).hammered);
   EXPECT_EQ(MaxGearForLevel(200).stars, 12);
   EXPECT_EQ(MaxGearForLevel(200).weapon_stars, 14);
-  EXPECT_EQ(MaxGearForLevel(230).stars, 17);
+  EXPECT_EQ(MaxGearForLevel(200).potential_level, 0);
+  EXPECT_EQ(MaxGearForLevel(230).stars, 12);
+  EXPECT_EQ(MaxGearForLevel(260).stars, 17);
   EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 15);
-  EXPECT_EQ(MaxGearForLevel(229).potential_level, 200);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
 
@@ -76,7 +77,7 @@ TEST(MaxCharacterTest, EveryLineCouldHaveBeenRolled) {
   const StatField kStats[] = {STAT_FIELD_STR, STAT_FIELD_DEX, STAT_FIELD_INT,
                               STAT_FIELD_LUK};
   int checked = 0;
-  for (int level : {200, 230, 260}) {
+  for (int level : {230, 260}) {
     for (PotentialTrack track :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
       for (EquipSlot slot : kSlots) {
@@ -105,10 +106,11 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
   const MaxGear gear = MaxGearForLevel(260);
   const Potential top = MaxPotentialFor(EQUIP_SLOT_TOP, gear, STAT_FIELD_STR,
                                         PotentialTrack::kMain);
-  EXPECT_EQ(top.rank(), POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_STR_PCT), kPotentialLines);
-  EXPECT_EQ(top.lines(0).rank(), POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(top.lines(1).rank(), POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(top.rank(), POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_STR_PCT), 2);
+  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_ALL_STATS_PCT), 1);
+  EXPECT_EQ(top.lines(0).rank(), POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(top.lines(1).rank(), POTENTIAL_RANK_UNIQUE);
 
   const Potential ring = MaxPotentialFor(EQUIP_SLOT_RING, gear, STAT_FIELD_LUK,
                                          PotentialTrack::kBonus);
@@ -116,26 +118,30 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
   EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 2);
 }
 
-// The weapon holds ignored defence and two attack lines; the secondary and
-// emblem, kept long enough to reach Legendary, hold boss damage.
+// The weapon and secondary hold boss damage and ignored defence; bonus
+// weaponry holds attack.
 TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
   const MaxGear gear = MaxGearForLevel(260);
   const Potential weapon = MaxPotentialFor(
       EQUIP_SLOT_PRIMARY_WEAPON, gear, STAT_FIELD_INT, PotentialTrack::kMain);
-  EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
-  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 2);
+  EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30), 1);
 
-  const Potential secondary = MaxPotentialFor(
-      EQUIP_SLOT_SECONDARY, gear, STAT_FIELD_STR, PotentialTrack::kMain);
-  EXPECT_EQ(secondary.rank(), POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(secondary.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
-
-  // Bonus weaponry: two attack lines and the other kind's dead one.
   const Potential bonus = MaxPotentialFor(
-      EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_STR, PotentialTrack::kBonus);
-  EXPECT_EQ(LinesOf(bonus, POTENTIAL_LINE_TYPE_ATTACK_PCT), 2);
-  EXPECT_EQ(LinesOf(bonus, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
+      EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_INT, PotentialTrack::kBonus);
+  EXPECT_EQ(LinesOf(bonus, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 3);
+
+  // Crit damage only rolls at Legendary, so both its lines are prime.
+  const Potential gloves = MaxPotentialFor(
+      EQUIP_SLOT_GLOVES, gear, STAT_FIELD_DEX, PotentialTrack::kMain);
+  EXPECT_EQ(LinesOf(gloves, POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT), 2);
+  EXPECT_EQ(gloves.lines(1).rank(), POTENTIAL_RANK_LEGENDARY);
+
+  const Potential early =
+      MaxPotentialFor(EQUIP_SLOT_SECONDARY, MaxGearForLevel(230),
+                      STAT_FIELD_STR, PotentialTrack::kMain);
+  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
 }
 
 // A slot that takes no potential gets none, nor does a level with no cubing,
@@ -145,7 +151,7 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
                             STAT_FIELD_STR, PotentialTrack::kMain)
                 .lines_size(),
             0);
-  EXPECT_EQ(MaxPotentialFor(EQUIP_SLOT_HAT, MaxGearForLevel(170),
+  EXPECT_EQ(MaxPotentialFor(EQUIP_SLOT_HAT, MaxGearForLevel(229),
                             STAT_FIELD_STR, PotentialTrack::kMain)
                 .lines_size(),
             0);

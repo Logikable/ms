@@ -24,12 +24,12 @@ namespace ms {
 
 namespace {
 
-// What //analysis:progression_sim's 75-day sweep (2026-09-27, one seed, all
+// What //analysis:progression_sim's 75-day sweep (2026-09-30, two seeds, all
 // ten branches) wore on arriving at each level, read toward its better half as
 // kPotentialBands is. Every piece stands at its own star limit through 140.
-// From 170 whatever can go further sits at 11-13 stars, and from 230 most
-// pieces are at 17, the run the 16th star opens. The weapon stops at 15: a
-// boom needs a spare copy to recover from, and a weapon rarely has one.
+// From 170 whatever can go further sits at 11-12 stars, and at 260 most pieces
+// are at 17, the run the 16th star opens. The weapon stops at 15: a boom needs
+// a spare copy to recover from, and a weapon rarely has one.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -37,8 +37,8 @@ struct GearBand {
 
 constexpr GearBand kBands[] = {
     {0, {false, 10, 12, 0}},    {130, {false, 10, 14, 0}},
-    {170, {true, 12, 14, 0}},   {200, {true, 12, 14, 200}},
-    {230, {true, 17, 14, 230}}, {260, {true, 17, 15, 260}},
+    {170, {true, 12, 14, 0}},   {230, {true, 12, 14, 230}},
+    {260, {true, 17, 15, 260}},
 };
 
 // The %stat line for the stat the character fights with.
@@ -75,15 +75,6 @@ PotentialLineType AttackShareFor(StatField primary) {
                                    : POTENTIAL_LINE_TYPE_ATTACK_PCT;
 }
 
-// The other attack line, which does nothing for this character: a warrior's
-// weapon rolls M.ATT as easily as ATT. It's here so a weapon slot has two
-// useful lines and one useless one. //analysis:cube_sim puts two useful lines
-// on a weapon at 15 cubes and three at 70, and nobody pays for the third.
-PotentialLineType DeadShareFor(StatField primary) {
-  return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_ATTACK_PCT
-                                   : POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT;
-}
-
 void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
   PotentialLine& line = *potential.add_lines();
   line.set_type(type);
@@ -92,10 +83,10 @@ void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
 
 // What a line does for the character, turned into a line type by LineTypeFor.
 enum class Share {
-  kStat,       // %stat of the stat the character fights with
-  kAttack,     // %ATT, or %M.ATT for a magician
-  kOffAttack,  // the other one, which does nothing: a weapon's dead line
-  kMaxHp,      // %Max HP, an armour piece's dead line
+  kStat,     // %stat of the stat the character fights with
+  kAttack,   // %ATT, or %M.ATT for a magician
+  kAllStat,  // %all stats, a smaller line of the same kind
+  kMaxHp,    // %Max HP, an armour piece's dead line
   kIed,
   kBoss,
   kCritDamage,
@@ -133,9 +124,12 @@ SlotKind KindOf(EquipSlot slot) {
 }
 
 // One kind of item's potential: its rank and its three lines, prime first.
+// Only `prime` leading lines are at the rank, as a player keeps what the cube
+// offers; more than one is for a line only the rank itself rolls.
 struct Recipe {
   PotentialRank rank = POTENTIAL_RANK_UNSPECIFIED;
   Share lines[kPotentialLines] = {};
+  int prime = 1;
 };
 
 // Every kind's potential on both tracks, in SlotKind order.
@@ -145,54 +139,46 @@ struct PotentialBand {
   Recipe bonus[kSlotKinds];
 };
 
-constexpr PotentialRank R = POTENTIAL_RANK_RARE;
 constexpr PotentialRank E = POTENTIAL_RANK_EPIC;
 constexpr PotentialRank U = POTENTIAL_RANK_UNIQUE;
 constexpr PotentialRank L = POTENTIAL_RANK_LEGENDARY;
 constexpr Share S = Share::kStat;
 constexpr Share A = Share::kAttack;
-constexpr Share X = Share::kOffAttack;
 constexpr Share H = Share::kMaxHp;
+constexpr Share T = Share::kAllStat;
+constexpr Share B = Share::kBoss;
+constexpr Share I = Share::kIed;
+constexpr Share C = Share::kCritDamage;
 
-// What //analysis:progression_sim's 75-day sweep (2026-09-26, one seed, all
+// What //analysis:progression_sim's 75-day sweep (2026-09-30, two seeds, all
 // ten branches) wore on arriving at each level, read toward its better half:
-// a max character spent well, not luckily. The weapon stays Unique at 260
-// because it is replaced too often for the 2.4% step to Legendary to pay;
-// the secondary and emblem are kept, and get there. Bonus potential opens at
-// 230, so that level has none yet.
+// a max character spent well, not luckily. At 200 most pieces have not been
+// cubed yet, so there is no band for it. Bonus potential opens at 230, so that
+// level has none yet.
 constexpr PotentialBand kPotentialBands[] = {
-    {200,
-     {{E, {A, A, X}},
-      {E, {A, A, X}},
-      {E, {A, A, X}},
-      {R, {S, H, H}},
-      {R, {S, H, H}},
-      {R, {S, H, H}},
-      {R, {S, H, H}}},
-     {}},
     {230,
-     {{U, {Share::kIed, A, X}},
-      {E, {A, A, X}},
-      {L, {Share::kBoss, Share::kBoss, Share::kIed}},
-      {E, {S, S, H}},
-      {E, {S, S, H}},
-      {E, {S, S, H}},
-      {R, {S, S, H}}},
+     {{L, {A, B, I}},
+      {L, {A, B, I}},
+      {L, {B, B, I}},
+      {U, {S, S, T}},
+      {L, {C, S, S}},
+      {L, {S, S, T}},
+      {L, {S, T, H}}},
      {}},
     {260,
-     {{U, {Share::kIed, A, A}},
-      {L, {Share::kBoss, Share::kBoss, Share::kIed}},
-      {L, {Share::kBoss, Share::kBoss, Share::kIed}},
+     {{L, {B, B, I}},
+      {L, {B, B, I}},
+      {L, {B, I, I}},
+      {L, {S, S, T}},
+      {L, {C, C, S}, 2},
+      {L, {S, S, T}},
+      {L, {S, S, T}}},
+     {{L, {A, A, A}},
+      {L, {A, A, A}},
+      {L, {A, A, A}},
+      {E, {S, S, H}},
       {U, {S, S, H}},
-      {L, {Share::kCritDamage, S, S}},
-      {U, {S, S, S}},
-      {E, {S, S, H}}},
-     {{U, {A, A, X}},
-      {U, {A, A, X}},
-      {U, {A, A, X}},
-      {E, {S, S, H}},
-      {E, {S, S, H}},
-      {E, {S, S, H}},
+      {U, {S, S, H}},
       {E, {S, S, H}}}},
 };
 
@@ -218,8 +204,9 @@ PotentialLineType LineTypeFor(Share share, PotentialRank rank,
       return own_bonus ? BonusStatShareFor(primary) : StatShareFor(primary);
     case Share::kAttack:
       return AttackShareFor(primary);
-    case Share::kOffAttack:
-      return DeadShareFor(primary);
+    case Share::kAllStat:
+      return own_bonus ? POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT
+                       : POTENTIAL_LINE_TYPE_ALL_STATS_PCT;
     case Share::kMaxHp:
       return track == PotentialTrack::kBonus
                  ? POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT
@@ -327,9 +314,8 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
   potential.set_rank(recipe.rank);
   const bool weaponry = group == PotentialGroup::kWeaponry;
   for (int i = 0; i < kPotentialLines; ++i) {
-    // Only the first line is prime, as a player keeps what the cube offers.
     const PotentialRank rank =
-        i == 0 ? recipe.rank : PreviousPotentialRank(recipe.rank);
+        i < recipe.prime ? recipe.rank : PreviousPotentialRank(recipe.rank);
     AddLine(potential,
             LineTypeFor(recipe.lines[i], rank, track, weaponry, primary), rank);
   }

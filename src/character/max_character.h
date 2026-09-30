@@ -37,7 +37,7 @@ struct MaxGear {
   // The weapon's stars, set separately: it is starred first, but past 15 it
   // falls behind, having no spare copy to recover a boom with.
   int weapon_stars = 0;
-  // The level whose potentials every item wears: 200, 230 or 260, where
+  // The level whose potentials every item wears: 230 or 260, where
   // //analysis:progression_sim's sweep recorded them. 0 before cubing opens.
   int potential_level = 0;
 };

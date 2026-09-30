@@ -1137,12 +1137,12 @@ TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
 TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
-  EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(weapon.lines_size(), kPotentialLines);
-  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
+  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
 
   const Potential& hat = Worn(state, EQUIP_SLOT_HAT).potential();
-  EXPECT_EQ(hat.rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(hat.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(hat.lines_size(), kPotentialLines);
   EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
 
