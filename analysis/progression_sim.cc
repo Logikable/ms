@@ -638,9 +638,11 @@ int PowerNow(const GameState& state) {
       /*vs_boss=*/true);
 }
 
-// How much stronger the character must get before the worth table is
-// re-measured, since the ranking of line types changes with the kit.
-constexpr double kRemeasureGrowth = 1.5;
+// How much stronger the character must get before the worth tables, the matrix
+// and the money map are redone, since the ranking changes with the kit. Double
+// rather than half again: past 230 cubes lift a character that far every few
+// days, and each redo is hundreds of measured fights.
+constexpr double kRemeasureGrowth = 2.0;
 
 // What the book and the matrix were last planned against. Planning is the most
 // expensive thing a look does, so if two looks agree on every field, the second
