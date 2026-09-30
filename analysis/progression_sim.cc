@@ -3750,11 +3750,17 @@ void PrintTargets(const std::vector<Job>& branches,
 // One alt climb per line a main could level, all at once, on the sweep's seed.
 AltLadders ClimbAlts(const Catalogs& catalogs,
                      const std::vector<std::string>& maps) {
-  std::vector<Job> lines;
+  // One alt a line: the line's link skill is the same whichever branch
+  // carries it.
+  std::map<Job, Job> by_line;
   for (Job branch : EveryBranch()) {
     if (StageOf(branch) >= 4) {
-      lines.push_back(branch);
+      by_line[LineOf(branch)] = branch;
     }
+  }
+  std::vector<Job> lines;
+  for (const std::pair<const Job, Job>& entry : by_line) {
+    lines.push_back(entry.second);
   }
   std::vector<AltLadder> climbed(lines.size());
   const unsigned int seed =
