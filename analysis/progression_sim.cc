@@ -1603,11 +1603,10 @@ void SpendHonor(Session& run) {
       run.state, AbilityRankWanted(), StatPreset::kSecond, run.bossing_worth);
 }
 
-// After a fight: wear what dropped, and spend meso on it.
+// After a fight: wear what dropped. What it paid waits for the next look's
+// shopping, as a player spends once a session rather than after every boss.
 void AfterFighting(Session& run) {
   WearBestFromBag(run.state.character);
-  run.purse.Note(run.state.character);
-  run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
 }
 
