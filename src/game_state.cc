@@ -1050,37 +1050,15 @@ void BuyMaxConsumables(GameState& state) {
   }
 }
 
-// The level every Arcane Symbol of a max character is set to. A level-1 symbol
-// gives 30 Arcane Force against rivers requiring 190 and up, the worst bracket
-// (a tenth of the damage dealt and 2.8x taken). Level 10 gives 120 each, enough
-// for the maps the same levels unlocked.
-constexpr int kMaxModeSymbolLevel = 10;
-
-// A max character's Sacred Symbols: 50 Sacred Power each, past Cernium's 30.
-constexpr int kMaxModeSacredLevel = 5;
-
-// Whether a max character of `level` wears `proto`, and at what level: each
-// kind once its area opens, Sacred Symbols by GMS's area levels. 0 for one they
-// don't wear.
-int MaxModeSymbolLevel(const EquipPrototype& proto, int level) {
-  if (IsArcaneSymbol(proto) && proto.arcane_symbol().area_level() <= level) {
-    return kMaxModeSymbolLevel;
-  }
-  if (IsSacredSymbol(proto) && proto.sacred_symbol().area_level() <= level) {
-    return kMaxModeSacredLevel;
-  }
-  return 0;
-}
-
-// Every symbol whose area the level has reached, worn and levelled. Called
-// before the bag is cleared, so the replaced level-1 starter is removed with
-// the other leftovers.
+// Every symbol MaxSymbolLevel gives the level, worn and levelled. Called before
+// the bag is cleared, so the replaced level-1 starter is removed with the other
+// leftovers.
 void WearMaxSymbols(GameState& state) {
   const int level = state.character.proto().level();
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
-    int symbol_level = MaxModeSymbolLevel(proto, level);
+    int symbol_level = MaxSymbolLevel(proto.equip_slot(), level);
     if (symbol_level == 0) {
       continue;
     }

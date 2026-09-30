@@ -41,6 +41,21 @@ constexpr GearBand kBands[] = {
     {260, {true, 17, 15, 260}},
 };
 
+// Each Arcane Symbol's level on arrival, read off the same sweep as kBands, in
+// EQUIP_SLOT_SYMBOL_* order. At 200 it is the level reward alone; Morass waits
+// for the first daily claim after 230. No climb held a Sacred Symbol at 260:
+// they come only from drops.
+struct SymbolBand {
+  int level;
+  int arcane[6];
+};
+
+constexpr SymbolBand kSymbolBands[] = {
+    {200, {1, 0, 0, 0, 0, 0}},
+    {230, {9, 9, 7, 5, 0, 0}},
+    {260, {14, 14, 13, 13, 12, 11}},
+};
+
 // The %stat line for the stat the character fights with.
 PotentialLineType StatShareFor(StatField primary) {
   switch (primary) {
@@ -295,6 +310,20 @@ MaxGear MaxGearForLevel(int level) {
     }
   }
   return gear;
+}
+
+int MaxSymbolLevel(EquipSlot slot, int level) {
+  const int area = slot - EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
+  if (area < 0 || area >= 6) {
+    return 0;
+  }
+  int symbol_level = 0;
+  for (const SymbolBand& band : kSymbolBands) {
+    if (level >= band.level) {
+      symbol_level = band.arcane[area];
+    }
+  }
+  return symbol_level;
 }
 
 Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,

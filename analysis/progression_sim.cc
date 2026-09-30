@@ -1149,6 +1149,9 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   *slot.mutable_bonus() = item.equip_state().bonus_potential();
   slot.set_stars(item.stars());
   slot.set_hammers(item.equip_state().hammers());
+  if (IsSymbol(item.prototype())) {
+    slot.set_symbol_level(SymbolLevel(item.equip_state()));
+  }
 }
 
 // Both potentials and the stars on every piece boss fights wear that takes a
@@ -3367,6 +3370,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     std::map<EquipSlot, std::vector<PotentialRank>> bonus;
     std::map<EquipSlot, std::vector<int>> stars;
     std::map<EquipSlot, std::vector<int>> hammers;
+    std::map<EquipSlot, std::vector<int>> symbol_levels;
     int reached = 0;
     for (const Climb& climb : climbs) {
       const CheckpointPotentials* held = PotentialsAt(climb, level);
@@ -3377,6 +3381,10 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
       for (const CheckpointSlotPotential& slot : held->slots()) {
         if (slot.farm()) {
           continue;  // the table is the boss gear, which max mode copies
+        }
+        if (slot.symbol_level() > 0) {
+          symbol_levels[slot.slot()].push_back(slot.symbol_level());
+          continue;
         }
         main[slot.slot()].push_back(slot.main().rank());
         bonus[slot.slot()].push_back(slot.bonus().rank());
@@ -3402,6 +3410,13 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
           RankCounts(bonus[entry.first]).c_str(),
           CountsOf(stars[entry.first]).c_str(),
           CountsOf(hammers[entry.first]).c_str());
+    }
+    for (const std::pair<const EquipSlot, std::vector<int>>& entry :
+         symbol_levels) {
+      std::printf(
+          "  %-18s level %s\n",
+          WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
+          CountsOf(entry.second).c_str());
     }
   }
 }

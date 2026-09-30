@@ -45,6 +45,10 @@ struct MaxGear {
 // The gear a character at `level` has paid for.
 MaxGear MaxGearForLevel(int level);
 
+// The level of the symbol in `slot` a max character of `level` wears, or 0 for
+// one they don't hold yet.
+int MaxSymbolLevel(EquipSlot slot, int level);
+
 // The potential on `track` that `slot` wears under `gear`, for a character
 // whose damage is based on `primary`. Empty for a slot that takes no potential
 // and for a level without that track.

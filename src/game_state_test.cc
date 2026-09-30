@@ -1166,37 +1166,16 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   EXPECT_TRUE(state.character.stackables().empty());
 }
 
-// Every Arcane Symbol the level has unlocked, worn and levelled, and none it
-// hasn't. A max character is in the river, and Arcane Force is checked against
-// it.
-TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
-  // Below Esfera's 235, so one area is still locked.
-  const int kLevel = 230;
-  GameState state = MakeMaxState(kLevel);
-  int worn = 0;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
-       state.character.equipped()) {
-    if (!IsArcaneSymbol(entry.second->prototype())) {
-      continue;
-    }
-    ++worn;
-    EXPECT_LE(entry.second->prototype().arcane_symbol().area_level(), kLevel)
-        << entry.second->prototype().name();
-    EXPECT_EQ(SymbolLevel(entry.second->equip_state()), 10)
-        << entry.second->prototype().name();
+// A max character wears the symbols progression_sim's climbs held on arriving
+// at each level, so Arcane Force is checked against a real character.
+TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
+  const std::pair<int, int> kLevelForce[] = {
+      {200, 30}, {230, 4 * 20 + 30 * 10}, {kGrandisLevel, 77 * 10 + 6 * 20}};
+  for (const std::pair<int, int>& entry : kLevelForce) {
+    GameState state = MakeMaxState(entry.first);
+    EXPECT_EQ(state.character.arcane_force(), entry.second) << entry.first;
+    EXPECT_EQ(state.character.sacred_power(), 0) << entry.first;
   }
-  // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every area
-  // open at 230, but not Esfera at 235.
-  EXPECT_EQ(worn, 5);
-  EXPECT_EQ(state.character.arcane_force(), 5 * 120);
-  EXPECT_EQ(state.character.sacred_power(), 0) << "Grandis opens at 260";
-}
-
-// Sacred Symbols follow GMS's area levels, five apart from 260, so at 260 a
-// max character wears Cernium alone, at level 5.
-TEST(GameStateTest, MaxModeWearsTheSacredSymbolsItsLevelOpened) {
-  GameState state = MakeMaxState(kGrandisLevel);
-  EXPECT_EQ(state.character.sacred_power(), 50);
 }
 
 // Every pool is spent: AP into the job's main stat, SP into its book, and both

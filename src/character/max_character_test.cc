@@ -67,6 +67,26 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   }
 }
 
+// No symbol before the level-200 reward, none from Grandis, and no symbol ever
+// loses a level or goes back in the bag.
+TEST(MaxCharacterTest, SymbolsClimbWithTheLevel) {
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 199), 0);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 200), 1);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_MORASS, 230), 0);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 11);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 260), 0);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_HAT, 260), 0);
+  for (int slot = EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
+       slot <= EQUIP_SLOT_SYMBOL_ESFERA; ++slot) {
+    int last = 0;
+    for (int level = 1; level <= 260; ++level) {
+      const int now = MaxSymbolLevel(static_cast<EquipSlot>(slot), level);
+      EXPECT_GE(now, last) << slot << " at level " << level;
+      last = now;
+    }
+  }
+}
+
 // A line the cube could never put there would be a character no player can
 // be, so every line of every band must be in its slot's pool at its rank.
 TEST(MaxCharacterTest, EveryLineCouldHaveBeenRolled) {

@@ -99,6 +99,8 @@ message CheckpointSlotPotential {
   bool farm = 6;
   int32 stars = 7;
   int32 hammers = 8;
+  // A symbol's level, 0 for any other piece.
+  int32 symbol_level = 9;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,
