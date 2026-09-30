@@ -48,6 +48,7 @@
  *   bazelisk run //analysis:progression_sim -- --total_days=30 --runs=3
  */
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -186,6 +187,9 @@ ABSL_FLAG(double, attention, 1.0,
           "LooksPerDay; a larger number is a more attentive player, and 0 "
           "puts them there at every level, which is what this sim used to "
           "assume.");
+ABSL_FLAG(bool, wall_times, false,
+          "Print each climb's own running time to stderr, split at the cap, "
+          "for finding the climb a sweep waits on.");
 ABSL_FLAG(int, runs, 1,
           "Climbs per branch, each on its own seed. Drops are rolled, so one "
           "climb says almost nothing about whether a set completes.");
@@ -663,6 +667,7 @@ struct MatrixChoice {
   bool planned = false;
   std::pair<std::string, int> fight;
   int power = 0;
+  MatrixMemo memo;
 };
 
 PlanKey PlanKeyFor(const GameState& state) {
@@ -747,7 +752,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     }
     SpendVMatrix(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); },
-        replan);
+        replan, &matrix.memo);
   }
   LearnTheRest(state);
   // Record the key after the free skills, since the key reads their levels.
@@ -1263,6 +1268,10 @@ struct FightState {
   // Whether the last loss was close. Only a near miss is retried on time alone;
   // see WorthATry.
   bool near_miss = false;
+  // Whether a near miss already brought the player back early today. Once a
+  // day: a player retries a near miss that evening, not every half hour until
+  // it falls.
+  bool recalled_today = false;
   double retry_at = 0.0;
   int power_at_last_try = 0;
 };
@@ -1655,6 +1664,7 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
     run.next_daily += kDaySeconds;
     for (std::pair<const std::string, FightState>& entry : run.fights) {
       entry.second.cleared_today = false;
+      entry.second.recalled_today = false;
     }
   }
   int power = PowerNow(run.state);
@@ -1682,7 +1692,8 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
       fight.near_miss = outcome.left <= kNearMiss;
       // A near miss keeps the player at the keyboard, so the next look is moved
       // up to meet it rather than waiting for the evening.
-      if (fight.near_miss) {
+      if (fight.near_miss && !fight.recalled_today) {
+        fight.recalled_today = true;
         run.next_look = std::min(run.next_look, fight.retry_at);
       }
     }
@@ -1934,6 +1945,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
     fight->set_attempted(entry.second.attempted);
     fight->set_cleared_today(entry.second.cleared_today);
     fight->set_near_miss(entry.second.near_miss);
+    fight->set_recalled_today(entry.second.recalled_today);
     fight->set_retry_at(entry.second.retry_at);
     fight->set_power_at_last_try(entry.second.power_at_last_try);
   }
@@ -1948,6 +1960,8 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   saved.set_matrix_planned(run.matrix.planned);
   saved.set_matrix_power(run.matrix.power);
   SaveAim(run.matrix.fight, saved.mutable_matrix_aim());
+  saved.mutable_matrix_relative()->insert(run.matrix.memo.relative.begin(),
+                                          run.matrix.memo.relative.end());
   saved.set_world_rng(SaveRng(run.state.rng));
   saved.set_run_rng(SaveRng(run.rng));
   SaveClimb(run.climb, saved.mutable_climb());
@@ -1987,6 +2001,7 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
     fight.attempted = saved_fight.attempted();
     fight.cleared_today = saved_fight.cleared_today();
     fight.near_miss = saved_fight.near_miss();
+    fight.recalled_today = saved_fight.recalled_today();
     fight.retry_at = saved_fight.retry_at();
     fight.power_at_last_try = saved_fight.power_at_last_try();
   }
@@ -2000,6 +2015,8 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   LoadHyperWorth(saved.hyper_bossing(), &run.hyper_bossing);
   run.matrix = {saved.matrix_planned(), LoadAim(saved.matrix_aim()),
                 saved.matrix_power()};
+  run.matrix.memo.relative.insert(saved.matrix_relative().begin(),
+                                  saved.matrix_relative().end());
   LoadRng(saved.world_rng(), &run.state.rng);
   LoadRng(saved.run_rng(), &run.rng);
   LoadClimb(saved.climb(), &run.climb);
@@ -2444,10 +2461,22 @@ Climb Play(const Catalogs& catalogs, Job branch,
   run.key = ClimbKey(branch, seed);
   run.seed = seed;
   run.ladders = ladders;
+  const std::chrono::steady_clock::time_point began =
+      std::chrono::steady_clock::now();
   ClimbToCap(run);
+  const std::chrono::steady_clock::time_point capped =
+      std::chrono::steady_clock::now();
   if (absl::GetFlag(FLAGS_endgame) &&
       state.character.proto().level() >= kTrialLevelCap) {
     FarmAtCap(run);
+  }
+  if (absl::GetFlag(FLAGS_wall_times)) {
+    const std::chrono::duration<double> climbing = capped - began;
+    const std::chrono::duration<double> farming =
+        std::chrono::steady_clock::now() - capped;
+    std::fprintf(stderr, "%s seed %u: climb %.1fs, cap %.1fs\n",
+                 BranchName(branch).c_str(), seed, climbing.count(),
+                 farming.count());
   }
   // Read the shopper's lifetime totals where every run ends, not where the
   // endgame section does: it spends at every level of the climb, and a run that

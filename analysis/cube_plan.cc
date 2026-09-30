@@ -74,7 +74,7 @@ void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
                PassiveOffense& passives) {
   const CharacterInstance& character = state.character;
-  const PotentialTotals& worn = character.potential_totals(basis.derived.gear);
+  const PotentialTotals& worn = basis.worn;
   const EquipStats paid = PotentialStatGrant(character, basis.derived, totals);
   const EquipStats& held = basis.derived.potential_stats;
 
@@ -146,6 +146,7 @@ CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
   basis.passives = PassiveOffenseFor(basis.derived);
+  basis.worn = state.character.potential_totals(basis.derived.gear);
   basis.yard = yard;
   return basis;
 }
@@ -368,24 +369,56 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
   return program;
 }
 
-bool WorthTaking(const GameState& state, const CubeBasis& basis,
-                 StatPreset gear, EquipSlot slot, PotentialTrack track,
-                 const Potential& rolled, const CubeIncome& income,
-                 const CubeProgram& program) {
+struct CubeRun::Priced {
+  CubePricing pricing;
+};
+
+CubeRun::CubeRun(const GameState& state, const Yardstick& yard, StatPreset gear,
+                 EquipSlot slot, CubeType cube, const CubeIncome& income,
+                 const CubeProgram& program)
+    : gear_(gear),
+      slot_(slot),
+      track_(CubeOf(cube).track),
+      income_(income),
+      program_(program),
+      basis_(CubeBasisFor(state, yard)),
+      priced_(std::make_unique<Priced>()) {
   const EquipInstance* item = Worn(state, gear, slot);
+  if (item != nullptr) {
+    priced_->pricing = PricingFor(state, basis_, *item, slot, track_);
+  }
+}
+
+CubeRun::~CubeRun() = default;
+
+double CubeRun::GainOf(const GameState& state,
+                       const Potential& potential) const {
+  return program_.share *
+         ms::GainOf(state, basis_, priced_->pricing, potential, income_);
+}
+
+bool CubeRun::Continues(const GameState& state) const {
+  const EquipInstance* item = Worn(state, gear_, slot_);
+  if (item == nullptr || !item->CanCube()) {
+    return false;
+  }
+  const Potential& held = PotentialOf(item->equip_state(), track_);
+  return GainOf(state, held) < program_.reserve[held.rank()];
+}
+
+bool CubeRun::Takes(const GameState& state, const Potential& rolled) const {
+  const EquipInstance* item = Worn(state, gear_, slot_);
   if (item == nullptr) {
     return false;
   }
-  const PotentialRank held = PotentialOf(item->equip_state(), track).rank();
-  const double gain =
-      program.share * GainOf(state, basis,
-                             PricingFor(state, basis, *item, slot, track),
-                             rolled, income);
-  const double now = std::max(0.0, program.reserve[held]);
-  const double then = std::max(gain, program.reserve[rolled.rank()]);
+  const Potential& held = PotentialOf(item->equip_state(), track_);
+  const double kept = GainOf(state, held);
+  const double gain = GainOf(state, rolled);
+  const double now = std::max(kept, program_.reserve[held.rank()]);
+  const double then = std::max(gain, program_.reserve[rolled.rank()]);
   // Within the same state, the better lines: they are what the piece keeps if
   // the rule is never run again.
-  return then > now || (then == now && gain > 0.0);
+  return then > now || (then == now && gain > kept);
 }
 
 // Whether the character could ever buy `proto`. A tier priced in tokens only

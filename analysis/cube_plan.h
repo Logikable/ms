@@ -23,6 +23,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <random>
 
 #include "analysis/sim_gear.h"
@@ -71,6 +72,9 @@ struct CubeBasis {
   EquipStats raw;
   // The passives WorthOf takes, before the potentials move them.
   PassiveOffense passives;
+  // The potential totals `derived` was read with. Held rather than read off the
+  // character, so a run of cubes can still be valued against where it began.
+  PotentialTotals worn;
   // The fight lines are judged against. An ignored-defence line's value depends
   // on the fight, not the character, and changes threefold between Cygnus and
   // Lotus, so the monster itself is carried. See //analysis:yardstick.
@@ -103,15 +107,40 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng);
 
-// Whether a choosing cube's `rolled` should replace what `gear` wears in
-// `slot`, under `program`'s rule: the better of the two states, each worth its
-// lines or its rank's reservation value, whichever is more. A higher rank is
-// taken on its future even when its lines are worse. A replacing cube has no
-// choice to make.
-bool WorthTaking(const GameState& state, const CubeBasis& basis,
-                 StatPreset gear, EquipSlot slot, PotentialTrack track,
-                 const Potential& rolled, const CubeIncome& income,
-                 const CubeProgram& program);
+// A run of cubes on one piece, followed through under its program's rule:
+// rolled while what the piece holds is worth less than its rank's reservation
+// value. Every roll is valued against the lines the run began on, which is the
+// frame the program's reservation values are in, so the run is priced once
+// rather than once a cube.
+class CubeRun {
+ public:
+  // Reads the piece as it is now. `program` must have been priced on it.
+  CubeRun(const GameState& state, const Yardstick& yard, StatPreset gear,
+          EquipSlot slot, CubeType cube, const CubeIncome& income,
+          const CubeProgram& program);
+  ~CubeRun();
+
+  // Whether the rule rolls again on what the piece holds now.
+  bool Continues(const GameState& state) const;
+  // Whether a choosing cube's `rolled` should replace what the piece holds: the
+  // better of the two states, each worth its lines or its rank's reservation
+  // value, whichever is more. A higher rank is taken on its future even when
+  // its lines are worse.
+  bool Takes(const GameState& state, const Potential& rolled) const;
+
+ private:
+  struct Priced;
+  // Gain of `potential` over the lines the run began on.
+  double GainOf(const GameState& state, const Potential& potential) const;
+
+  StatPreset gear_;
+  EquipSlot slot_;
+  PotentialTrack track_;
+  CubeIncome income_;
+  CubeProgram program_;
+  CubeBasis basis_;
+  std::unique_ptr<Priced> priced_;
+};
 
 // Whether the shopper is likely to replace what boss fights wear in `slot`: a
 // higher-level piece the character can wear and afford. A weapon must match the

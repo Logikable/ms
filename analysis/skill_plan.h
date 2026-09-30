@@ -69,7 +69,15 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
 // With `replan` false, the matrix stays and only newly gained points are spent.
 // The caller decides when nothing that could lift the character over a wall has
 // changed.
-void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true);
+//
+// `memo`, when given, carries each node's last price from one call to the next,
+// as a share of the rate it was priced at. A top-up then starts from those
+// bounds and re-prices only the leaders, rather than every node at every rung.
+struct MatrixMemo {
+  std::map<std::string, double> relative;
+};
+void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true,
+                  MatrixMemo* memo = nullptr);
 
 }  // namespace ms
 

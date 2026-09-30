@@ -19,6 +19,7 @@ message CheckpointFight {
   bool near_miss = 4;
   double retry_at = 5;
   int32 power_at_last_try = 6;
+  bool recalled_today = 7;
 }
 
 // Totals for one fight: one boss at one difficulty.
@@ -198,4 +199,6 @@ message SimCheckpoint {
   repeated CheckpointAlt alts = 35;
   double alt_debt = 36;
   double next_alt_look = 37;
+  // MatrixMemo's prices, by node name.
+  map<string, double> matrix_relative = 38;
 }

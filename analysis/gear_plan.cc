@@ -579,8 +579,8 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       offer.cube_type = shelf.type;
       offer.cube_program = run;
       // Price and value the whole run, so a slot needing a dozen rolls is
-      // ranked on the dozen's cost. Cubes are bought one at a time; the next
-      // pass reprices the rest, so one cube is all the purse must cover.
+      // ranked on the dozen's cost. The run stops where the purse does, so one
+      // cube is all it must cover to start.
       offer.cost = run.cost;
       offer.outlay = shelf.cost;
       offer.gain = run.gain;
@@ -614,35 +614,41 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   return false;
 }
 
-// A replacing cube's roll always goes on; a choosing cube's goes on when the
-// run's rule would rather be there. The cube is spent either way.
+// Rolls `program`'s run through: a replacing cube's roll always goes on, a
+// choosing cube's when the run's rule would rather be there, and rolling stops
+// where the rule does or the purse runs dry. A player cubes a piece until it's
+// good enough rather than weighing the whole shelf between cubes.
 bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
                           CubeType cube, const CubeProgram& program,
                           GearSpend& spend) {
-  // Computed before buying the cube, since the comparison is against the
-  // character as they are now and buying changes them.
-  CubeBasis basis = CubeBasisFor(state, yard_.For(state));
-  std::optional<Potential> rolled = state.character.BuyCube(slot, cube, gear);
-  if (!rolled.has_value()) {
-    return false;  // refused for meso or by the item
-  }
+  // Read before the first cube, since the run is valued against the piece as
+  // it is now and every roll changes it.
+  const CubeRun run(state, yard_.For(state), gear, slot, cube, income_,
+                    program);
   const Cube& shelf = CubeOf(cube);
   const int which = static_cast<int>(cube);
-  spend.cubes += shelf.cost;
-  ++spend.cubes_bought;
-  ++spend.bought_by_cube[which];
   const bool farm =
       gear == kFarmGear && state.character.WornAt(kBossGear, slot) !=
                                state.character.WornAt(kFarmGear, slot);
-  spend.farm_cubes_bought += farm;
-  if (!shelf.choose || WorthTaking(state, basis, gear, slot, shelf.track,
-                                   *rolled, income_, program)) {
-    state.character.TakePotential(slot, shelf.track, *rolled, gear);
-    ++spend.cubes_kept;
-    ++spend.kept_by_cube[which];
-    spend.farm_cubes_kept += farm;
-  }
-  return true;
+  bool bought = false;
+  do {
+    std::optional<Potential> rolled = state.character.BuyCube(slot, cube, gear);
+    if (!rolled.has_value()) {
+      break;  // refused for meso or by the item
+    }
+    bought = true;
+    spend.cubes += shelf.cost;
+    ++spend.cubes_bought;
+    ++spend.bought_by_cube[which];
+    spend.farm_cubes_bought += farm;
+    if (!shelf.choose || run.Takes(state, *rolled)) {
+      state.character.TakePotential(slot, shelf.track, *rolled, gear);
+      ++spend.cubes_kept;
+      ++spend.kept_by_cube[which];
+      spend.farm_cubes_kept += farm;
+    }
+  } while (run.Continues(state));
+  return bought;
 }
 
 bool GearShopper::BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,

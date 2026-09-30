@@ -53,6 +53,11 @@ struct Offer {
   double score = std::numeric_limits<double>::max();
   double rate = 0.0;  // the character's damage rate after the purchase
   bool measured = false;
+  // The rate the character had when `score` was priced, which makes the score
+  // a share a later call can rescale; see MatrixMemo. Zero when no rung was
+  // affordable, since a score of nothing then says nothing about next time.
+  double held = 0.0;
+  bool afforded = false;  // whether any purchase priced was affordable
 };
 
 // Prices every purchase `offer` could make and keeps the best per point.
@@ -71,25 +76,43 @@ using TakeOffer = std::function<void(GameState&, const Offer&)>;
 // can come out wrong; an exact sweep would cost ten times as much.
 void SpendGreedily(GameState& state, const SkillRate& rate,
                    std::vector<Offer>& offers, const PriceOffer& price,
-                   const TakeOffer& take) {
+                   const TakeOffer& take, MatrixMemo* memo = nullptr) {
   double held = rate(state);
+  if (memo != nullptr) {
+    for (Offer& offer : offers) {
+      std::map<std::string, double>::const_iterator last =
+          memo->relative.find(offer.skill->name());
+      if (last != memo->relative.end()) {
+        offer.score = last->second * held;
+      }
+    }
+  }
   while (true) {
     std::vector<Offer>::iterator best = std::max_element(
         offers.begin(), offers.end(),
         [](const Offer& a, const Offer& b) { return a.score < b.score; });
     if (best == offers.end() || (best->measured && best->score <= 0.0)) {
-      return;
+      break;
     }
     // The leader hasn't been priced since the last purchase, so its score is
     // only the bound. Price it and look again.
     if (!best->measured) {
       price(state, held, &*best);
+      best->held = best->afforded ? held : 0.0;
       continue;
     }
     take(state, *best);
     held = best->rate;
     for (Offer& offer : offers) {
       offer.measured = false;
+    }
+  }
+  if (memo == nullptr) {
+    return;
+  }
+  for (const Offer& offer : offers) {
+    if (offer.held > 0.0) {
+      memo->relative[offer.skill->name()] = offer.score / offer.held;
     }
   }
 }
@@ -101,11 +124,13 @@ void PriceNode(GameState& state, double held, const SkillRate& rate,
   offer->measured = true;
   offer->score = 0.0;
   offer->levels = 0;
+  offer->afforded = false;
   for (int levels : NodeRungs(state.character, *offer->skill)) {
     int cost = state.character.VNodeCostFor(*offer->skill, levels);
     if (cost <= 0 || !state.character.LearnSkill(*offer->skill, levels)) {
       continue;
     }
+    offer->afforded = true;
     double measured = rate(state);
     double score = (measured - held) / cost;
     if (score > offer->score) {
@@ -281,12 +306,16 @@ void RefundMatrix(GameState& state) {
   state.character.RestoreFrom(proto, state.equips, state.items);
 }
 
-void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan) {
+void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan,
+                  MatrixMemo* memo) {
   if (!state.character.v_matrix_unlocked()) {
     return;
   }
   if (replan) {
     RefundMatrix(state);
+    if (memo != nullptr) {
+      memo->relative.clear();
+    }
   } else if (state.character.proto().v_points() <= 0) {
     return;
   }
@@ -303,7 +332,8 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan) {
       },
       [](GameState& inner, const Offer& offer) {
         inner.character.LearnSkill(*offer.skill, offer.levels);
-      });
+      },
+      memo);
 }
 
 }  // namespace ms
