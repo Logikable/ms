@@ -395,8 +395,8 @@ ftxui::Element Tui::SkillLearnDialog() {
     const int64_t held = state_.character.v_points();
     const int64_t cost =
         state_.character.VNodeCostFor(skill, controller_.sp_selector().value());
-    rows.push_back(PriceBlock(FormatWithCommas(held) + " VP",
-                              FormatWithCommas(cost) + " VP", cost <= held));
+    rows.push_back(
+        PriceBlock(FormatVPoints(held), FormatVPoints(cost), cost <= held));
     rows.push_back(ThemedSeparator());
   }
   rows.push_back(controller_.sp_selector().Render());
@@ -405,13 +405,10 @@ ftxui::Element Tui::SkillLearnDialog() {
 
 ftxui::Element Tui::TradeAmountDialog() {
   TradeCurrency currency = controller_.trade_currency();
-  const bool meso = currency == TradeCurrency::kMeso;
-  std::string held = meso ? FormatMeso(trade_panel_.held(currency))
-                          : FormatSpellTraces(trade_panel_.held(currency));
-  std::string offered = meso
-                            ? FormatMeso(trade_panel_.offered(currency))
-                            : FormatSpellTraces(trade_panel_.offered(currency));
-  return ThemedWindow(meso ? " Meso " : " Spell Traces ",
+  std::string held = FormatTradeCurrency(currency, trade_panel_.held(currency));
+  std::string offered =
+      FormatTradeCurrency(currency, trade_panel_.offered(currency));
+  return ThemedWindow(" " + TradeCurrencyName(currency) + " ",
                       ftxui::vbox({
                           OfferBlock(held, offered),
                           ThemedSeparator(),
@@ -420,12 +417,11 @@ ftxui::Element Tui::TradeAmountDialog() {
 }
 
 ftxui::Element Tui::BankAmountDialog() {
-  const bool meso = controller_.bank_currency() == BankCurrency::kMeso;
   // The direction is set by which half the cursor is in, and the question says
   // so, since the same dialog asks the opposite from the other half.
   const bool to_bank = bank_panel_.zone() == BankZone::kBag;
   return ThemedWindow(
-      meso ? " Meso " : " Spell Traces ",
+      " " + BankCurrencyName(controller_.bank_currency()) + " ",
       ftxui::vbox({
           CenteredRow("How much to move"),
           CenteredRow(to_bank ? "to the bank?" : "to the inventory?"),

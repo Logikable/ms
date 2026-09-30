@@ -300,7 +300,7 @@ message TradeStack {
   int32 count = 2;
 }
 
-// What one side of a trade offers: the two currencies worth trading, and the
+// What one side of a trade offers: the currencies worth trading, and the
 // items. An equip is sent whole, with its scrolls, stars, hammers and
 // potential, so the other end rebuilds that exact item and not a fresh copy of
 // its prototype.
@@ -309,6 +309,7 @@ message TradeOffer {
   int64 spell_traces = 2;
   repeated Equip equips = 3;
   repeated TradeStack stacks = 4;
+  int64 v_points = 5;
 }
 
 // Trade with the named player. Both sides send it: the first opens the trade

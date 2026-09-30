@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,6 +40,15 @@ constexpr int kBagRows = 10;
 // beside it.
 constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
+constexpr int kVPointCell = 13;
+
+// The stops on your top rows.
+enum TopStop : int {
+  kMesoStop = 0,
+  kTraceStop = 1,
+  kAcceptStop = 2,
+  kVPointStop = 3,
+};
 
 // An offer row's two columns, and the cursor column before them.
 constexpr int kOfferNameCell = 37;
@@ -66,9 +76,9 @@ ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces, int cursor) {
       ftxui::text(PadRight(FormatSpellTraces(traces), kTraceCell)) |
       ftxui::color(kTheme);
   return ftxui::hbox({
-      HighlightRow(std::move(meso_cell), cursor == 0),
+      HighlightRow(std::move(meso_cell), cursor == kMesoStop),
       ftxui::text("  "),
-      HighlightRow(std::move(trace_cell), cursor == 1),
+      HighlightRow(std::move(trace_cell), cursor == kTraceStop),
   });
 }
 
@@ -85,10 +95,35 @@ ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces) {
 
 }  // namespace
 
+std::string TradeCurrencyName(TradeCurrency currency) {
+  switch (currency) {
+    case TradeCurrency::kMeso:
+      return "Meso";
+    case TradeCurrency::kSpellTraces:
+      return "Spell Traces";
+    case TradeCurrency::kVPoints:
+      return "V Points";
+  }
+  return "";
+}
+
+std::string FormatTradeCurrency(TradeCurrency currency, int64_t amount) {
+  switch (currency) {
+    case TradeCurrency::kMeso:
+      return FormatMeso(amount);
+    case TradeCurrency::kSpellTraces:
+      return FormatSpellTraces(amount);
+    case TradeCurrency::kVPoints:
+      return FormatVPoints(amount);
+  }
+  return "";
+}
+
 TradeOffer OwnTradeOffer::ToWire(const CharacterInstance& character) const {
   TradeOffer offer;
   offer.set_meso(meso);
   offer.set_spell_traces(spell_traces);
+  offer.set_v_points(v_points);
   for (int index : equips) {
     if (index < 0 || index >= character.inventory().size()) {
       continue;
@@ -253,8 +288,8 @@ void TradePanel::NextZone(int delta) {
 
 void TradePanel::MoveCursor(int delta) {
   if (zone_ == TradeZone::kMine && !own_list_) {
-    constexpr int kStops = 3;  // meso, traces, Accept
-    top_ = ((top_ + delta) % kStops + kStops) % kStops;
+    const int stops = can_offer_v_points() ? kVPointStop + 1 : kVPointStop;
+    top_ = ((top_ + delta) % stops + stops) % stops;
     return;
   }
   if (zone_ == TradeZone::kBag) {
@@ -295,13 +330,14 @@ TradeCursor TradePanel::cursor() const {
   switch (zone_) {
     case TradeZone::kMine:
       if (!own_list_) {
-        if (top_ == 2) {
+        if (top_ == kAcceptStop) {
           cursor.kind = TradeCursor::Kind::kAccept;
           return cursor;
         }
         cursor.kind = TradeCursor::Kind::kCurrency;
-        cursor.currency =
-            top_ == 0 ? TradeCurrency::kMeso : TradeCurrency::kSpellTraces;
+        cursor.currency = top_ == kMesoStop    ? TradeCurrency::kMeso
+                          : top_ == kTraceStop ? TradeCurrency::kSpellTraces
+                                               : TradeCurrency::kVPoints;
         return cursor;
       }
       if (own_.items() == 0) {
@@ -333,22 +369,49 @@ TradeCursor TradePanel::cursor() const {
 }
 
 int64_t TradePanel::held(TradeCurrency currency) const {
-  if (currency == TradeCurrency::kMeso) {
-    return character_.meso();
+  switch (currency) {
+    case TradeCurrency::kMeso:
+      return character_.meso();
+    case TradeCurrency::kSpellTraces:
+      return character_.CountItem(kSpellTraceName);
+    case TradeCurrency::kVPoints:
+      return character_.v_points();
   }
-  return character_.CountItem(kSpellTraceName);
+  return 0;
 }
 
 int64_t TradePanel::offered(TradeCurrency currency) const {
-  return currency == TradeCurrency::kMeso ? own_.meso : own_.spell_traces;
+  switch (currency) {
+    case TradeCurrency::kMeso:
+      return own_.meso;
+    case TradeCurrency::kSpellTraces:
+      return own_.spell_traces;
+    case TradeCurrency::kVPoints:
+      return own_.v_points;
+  }
+  return 0;
 }
 
 void TradePanel::PutUpCurrency(TradeCurrency currency, int64_t amount) {
-  if (currency == TradeCurrency::kMeso) {
-    own_.meso = amount;
-    return;
+  switch (currency) {
+    case TradeCurrency::kMeso:
+      own_.meso = amount;
+      return;
+    case TradeCurrency::kSpellTraces:
+      own_.spell_traces = amount;
+      return;
+    case TradeCurrency::kVPoints:
+      own_.v_points = amount;
+      return;
   }
-  own_.spell_traces = amount;
+}
+
+bool TradePanel::can_offer_v_points() const {
+  return Unlocked(Feature::kVPoints, character_, account_);
+}
+
+bool TradePanel::shows_v_points() const {
+  return can_offer_v_points() || trade_.theirs().v_points() > 0;
 }
 
 void TradePanel::PutUpEquip(int index) {
@@ -479,26 +542,56 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
 }
 
 ftxui::Element TradePanel::RenderMyTopRow() const {
-  return ftxui::hbox({
+  const int cursor = own_list_ ? -1 : top_;
+  ftxui::Element row = ftxui::hbox({
       ftxui::text(" "),
-      MyCurrencyCells(own_.meso, own_.spell_traces, own_list_ ? -1 : top_),
+      MyCurrencyCells(own_.meso, own_.spell_traces, cursor),
       ftxui::text("   "),
       ActionButton("Accept",
-                   zone_ == TradeZone::kMine && !own_list_ && top_ == 2),
+                   zone_ == TradeZone::kMine && cursor == kAcceptStop),
       ftxui::filler(),
       AcceptMark(trade_.mine_accepted()),
       ftxui::text(" "),
   });
+  if (!shows_v_points()) {
+    return row;
+  }
+  // Only a player who can't offer points yet sees this row for theirs alone,
+  // and it stays blank on their side.
+  ftxui::Element points = ftxui::text("");
+  if (can_offer_v_points()) {
+    points = HighlightRow(
+        ftxui::text(PadRight(FormatVPoints(own_.v_points), kVPointCell)) |
+            ftxui::color(kTheme),
+        cursor == kVPointStop);
+  }
+  return ftxui::vbox({
+      std::move(row),
+      ftxui::hbox({ftxui::text(" "), std::move(points), ftxui::filler()}),
+  });
 }
 
 ftxui::Element TradePanel::RenderTheirTopRow() const {
-  return ftxui::hbox({
+  ftxui::Element row = ftxui::hbox({
       ftxui::text(" "),
       AcceptMark(trade_.theirs_accepted()),
       ftxui::filler(),
       TheirCurrencyCells(trade_.theirs().meso(),
                          trade_.theirs().spell_traces()),
       ftxui::text(" "),
+  });
+  if (!shows_v_points()) {
+    return row;
+  }
+  return ftxui::vbox({
+      std::move(row),
+      ftxui::hbox({
+          ftxui::filler(),
+          ftxui::text(
+              PadLeft(FormatVPoints(trade_.theirs().v_points()), kVPointCell)) |
+              ftxui::color(kTheme),
+          ftxui::text(" "),
+      }),
   });
 }
 
@@ -576,13 +669,18 @@ ftxui::Element TradePanel::RenderBag() const {
       ftxui::vbox({
           // The bar never has the cursor here: Left and Right switch tabs from
           // the list, so nothing has to move out of it first.
-          RenderBagTabBar(tabs, etc_tab_ ? 1 : 0,
-                          RenderBalances(held(TradeCurrency::kMeso) - own_.meso,
-                                         held(TradeCurrency::kSpellTraces) -
-                                             own_.spell_traces,
-                                         character_, account_),
-                          /*row_selected=*/false, /*highlighted=*/false,
-                          ftxui::text(""), kBagWidth, bar_box_),
+          RenderBagTabBar(
+              tabs, etc_tab_ ? 1 : 0,
+              RenderBalances(
+                  held(TradeCurrency::kMeso) - own_.meso,
+                  held(TradeCurrency::kSpellTraces) - own_.spell_traces,
+                  character_, account_, kBalancesReadOnly,
+                  can_offer_v_points()
+                      ? std::optional<int64_t>(held(TradeCurrency::kVPoints) -
+                                               own_.v_points)
+                      : std::nullopt),
+              /*row_selected=*/false, /*highlighted=*/false, ftxui::text(""),
+              kBagWidth, bar_box_),
           // The header, its rule and the rows, which make up the list.
           std::move(list) |
               ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBagRows + 2),

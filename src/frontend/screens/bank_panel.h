@@ -40,11 +40,15 @@ enum class BankZone {
   kBank,
 };
 
-// The two balances, which move on a line of their own instead of as a row.
+// The balances, which move on a line of their own instead of as a row.
 enum class BankCurrency {
   kMeso,
   kSpellTraces,
+  kVPoints,
 };
+
+// "Meso", "Spell Traces" or "V Points", for the amount dialog's title.
+std::string BankCurrencyName(BankCurrency currency);
 
 // What the cursor is on, in whichever half.
 struct BankCursor {
@@ -163,6 +167,8 @@ class BankPanel {
   int RowCount(BankZone zone) const;
   // The cursor row, clamped to the rows that exist.
   int ClampedRow(BankZone zone) const;
+  // The stops on a half's top row: the two chips and the balances shown.
+  int TopStops() const;
 
   // The two parts of MoveSelected, one per tab.
   std::string MoveEquip();

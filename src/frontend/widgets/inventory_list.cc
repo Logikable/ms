@@ -23,10 +23,11 @@ namespace ms {
 namespace {
 
 // The width of each balance when the bar's cursor can land on it. It fits the
-// largest value either can hold (a hundred billion meso, a million traces), so
-// the band stays the same size.
+// largest value each can hold (a hundred billion meso, a million traces, ten
+// million V Points), so the band stays the same size.
 constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
+constexpr int kVPointCell = 13;
 
 // The minimum gap between the balances and the last tab chip. Without it a
 // count reads as part of the tab beside it.
@@ -224,7 +225,8 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
 
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
-                              const AccountInstance& account, int cursor) {
+                              const AccountInstance& account, int cursor,
+                              std::optional<int64_t> v_points) {
   const bool selectable = cursor != kBalancesReadOnly;
   std::vector<ftxui::Element> counters = {HighlightRow(
       ftxui::text(selectable ? PadRight(FormatMeso(meso), kMesoCell)
@@ -239,6 +241,14 @@ ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                         : FormatSpellTraces(spell_traces)) |
             ftxui::color(kTheme),
         cursor == kTraceBalance));
+  }
+  if (v_points.has_value()) {
+    counters.push_back(ftxui::text("   "));
+    counters.push_back(HighlightRow(
+        ftxui::text(selectable ? PadRight(FormatVPoints(*v_points), kVPointCell)
+                               : FormatVPoints(*v_points)) |
+            ftxui::color(kTheme),
+        cursor == kVPointBalance));
   }
   return ftxui::hbox(std::move(counters));
 }

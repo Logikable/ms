@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,7 +38,7 @@ enum TopStop : int {
   kEtcChip = 1,
   kMesoStop = 2,
   kTraceStop = 3,
-  kNumTopStops = 4,
+  kVPointStop = 4,
 };
 
 // Where a menu opens inside its half: past the name at the start of a row, so
@@ -45,6 +46,18 @@ enum TopStop : int {
 constexpr int kMenuColumn = 40;
 
 }  // namespace
+
+std::string BankCurrencyName(BankCurrency currency) {
+  switch (currency) {
+    case BankCurrency::kMeso:
+      return "Meso";
+    case BankCurrency::kSpellTraces:
+      return "Spell Traces";
+    case BankCurrency::kVPoints:
+      return "V Points";
+  }
+  return "";
+}
 
 BankPanel::BankPanel(CharacterInstance& character, AccountInstance& account,
                      const std::map<std::string, ItemPrototype>& items)
@@ -97,7 +110,7 @@ void BankPanel::MoveCursor(int delta) {
   if (side.in_list) {
     return;  // Left and Right do nothing in a list of items
   }
-  side.top = StepCursor(side.top, delta, kNumTopStops);
+  side.top = StepCursor(side.top, delta, TopStops());
   // Moving onto a chip opens that tab; there is no separate key for it.
   if (side.top == kEquipChip || side.top == kEtcChip) {
     side.etc_tab = side.top == kEtcChip;
@@ -130,53 +143,68 @@ BankCursor BankPanel::cursor() const {
     }
     return {BankCursor::Kind::kRow, BankCurrency::kMeso, ClampedRow(zone_)};
   }
-  if (side.top == kMesoStop || side.top == kTraceStop) {
-    return {BankCursor::Kind::kCurrency,
-            side.top == kMesoStop ? BankCurrency::kMeso
-                                  : BankCurrency::kSpellTraces,
-            0};
+  switch (side.top) {
+    case kMesoStop:
+      return {BankCursor::Kind::kCurrency, BankCurrency::kMeso, 0};
+    case kTraceStop:
+      return {BankCursor::Kind::kCurrency, BankCurrency::kSpellTraces, 0};
+    case kVPointStop:
+      return {BankCursor::Kind::kCurrency, BankCurrency::kVPoints, 0};
   }
   return {BankCursor::Kind::kTab, BankCurrency::kMeso, 0};
 }
 
+int BankPanel::TopStops() const {
+  return Unlocked(Feature::kVPoints, character_, account_) ? kVPointStop + 1
+                                                           : kVPointStop;
+}
+
 int64_t BankPanel::held(BankCurrency currency) const {
-  const bool meso = currency == BankCurrency::kMeso;
-  if (zone_ == BankZone::kBag) {
-    return meso ? character_.meso() : character_.CountItem(kSpellTraceName);
+  const bool bag = zone_ == BankZone::kBag;
+  const BankInstance& bank = account_.bank();
+  switch (currency) {
+    case BankCurrency::kMeso:
+      return bag ? character_.meso() : bank.meso();
+    case BankCurrency::kSpellTraces:
+      return bag ? character_.CountItem(kSpellTraceName)
+                 : bank.CountCurrency(kSpellTraceName);
+    case BankCurrency::kVPoints:
+      return bag ? character_.v_points() : bank.v_points();
   }
-  return meso ? account_.bank().meso()
-              : account_.bank().CountCurrency(kSpellTraceName);
+  return 0;
 }
 
 void BankPanel::MoveCurrency(BankCurrency currency, int64_t amount) {
   amount = std::clamp<int64_t>(amount, 0, held(currency));
-  const bool meso = currency == BankCurrency::kMeso;
-  if (amount == 0 || (!meso && spell_trace_ == nullptr)) {
+  if (amount == 0) {
     return;
   }
   BankInstance& bank = account_.mutable_bank();
   const bool from_bag = zone_ == BankZone::kBag;
   // Taken from one side before being given to the other, so a purse that
   // refuses can't hand over what it still holds.
-  bool taken = from_bag ? (meso ? character_.SpendMeso(amount)
-                                : character_.SpendItem(kSpellTraceName, amount))
-                        : (meso ? bank.SpendMeso(amount)
-                                : bank.SpendCurrency(kSpellTraceName, amount));
-  if (!taken) {
-    return;
-  }
-  if (from_bag) {
-    if (meso) {
-      bank.AddMeso(amount);
-    } else {
-      bank.AddItem(*spell_trace_, static_cast<int>(amount));
-    }
-    return;
-  }
-  if (meso) {
-    character_.AddMeso(amount);
-  } else {
-    character_.AddItem(*spell_trace_, static_cast<int>(amount));
+  switch (currency) {
+    case BankCurrency::kMeso:
+      if (from_bag ? character_.SpendMeso(amount) : bank.SpendMeso(amount)) {
+        from_bag ? bank.AddMeso(amount) : character_.AddMeso(amount);
+      }
+      return;
+    case BankCurrency::kSpellTraces:
+      if (spell_trace_ == nullptr) {
+        return;
+      }
+      if (from_bag ? character_.SpendItem(kSpellTraceName, amount)
+                   : bank.SpendCurrency(kSpellTraceName, amount)) {
+        from_bag ? bank.AddItem(*spell_trace_, static_cast<int>(amount))
+                 : character_.AddItem(*spell_trace_, static_cast<int>(amount));
+      }
+      return;
+    case BankCurrency::kVPoints:
+      if (from_bag ? character_.SpendVPoints(amount)
+                   : bank.SpendVPoints(amount)) {
+        from_bag ? bank.AddVPoints(amount) : character_.AddVPoints(amount);
+      }
+      return;
   }
 }
 
@@ -316,13 +344,20 @@ ftxui::Element BankPanel::RenderTopRow(BankZone zone) const {
     balance_cursor = kMesoBalance;
   } else if (here_now && side.top == kTraceStop) {
     balance_cursor = kTraceBalance;
+  } else if (here_now && side.top == kVPointStop) {
+    balance_cursor = kVPointBalance;
   }
   const BankInstance& bank = account_.bank();
-  ftxui::Element balances = RenderBalances(
-      zone == BankZone::kBag ? character_.meso() : bank.meso(),
-      zone == BankZone::kBag ? character_.CountItem(kSpellTraceName)
-                             : bank.CountCurrency(kSpellTraceName),
-      character_, account_, balance_cursor);
+  const bool bag = zone == BankZone::kBag;
+  std::optional<int64_t> v_points;
+  if (TopStops() > kVPointStop) {
+    v_points = bag ? character_.v_points() : bank.v_points();
+  }
+  ftxui::Element balances =
+      RenderBalances(bag ? character_.meso() : bank.meso(),
+                     bag ? character_.CountItem(kSpellTraceName)
+                         : bank.CountCurrency(kSpellTraceName),
+                     character_, account_, balance_cursor, v_points);
   // A chip is lit only while the cursor is on it. A tab that is merely open
   // keeps the theme's inversion, so the two halves never both appear to have
   // the cursor.

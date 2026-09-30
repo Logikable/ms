@@ -2357,6 +2357,14 @@ void CharacterInstance::AddVPoints(int64_t amount) {
   character_.set_v_points(character_.v_points() + amount);
 }
 
+bool CharacterInstance::SpendVPoints(int64_t amount) {
+  if (amount <= 0 || character_.v_points() < amount) {
+    return amount <= 0;
+  }
+  character_.set_v_points(character_.v_points() - amount);
+  return true;
+}
+
 int64_t CharacterInstance::SellStackable(int index, int count) {
   if (index < 0 || index >= etc_items_.size()) {
     return 0;

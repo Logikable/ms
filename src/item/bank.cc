@@ -65,6 +65,20 @@ bool BankInstance::SpendMeso(int64_t amount) {
   return true;
 }
 
+void BankInstance::AddVPoints(int64_t amount) {
+  if (amount > 0) {
+    v_points_ += amount;
+  }
+}
+
+bool BankInstance::SpendVPoints(int64_t amount) {
+  if (amount <= 0 || v_points_ < amount) {
+    return amount <= 0;
+  }
+  v_points_ -= amount;
+  return true;
+}
+
 int64_t BankInstance::CountCurrency(const std::string& name) const {
   return currencies_.Count(name);
 }
@@ -98,6 +112,7 @@ void BankInstance::RestoreFrom(
   stacks_.RestoreFrom(saved.stacks(), items);
   currencies_.RestoreFrom(saved.currencies(), items);
   meso_ = saved.meso();
+  v_points_ = saved.v_points();
 }
 
 Bank BankInstance::ToProto() const {
@@ -108,6 +123,7 @@ Bank BankInstance::ToProto() const {
   stacks_.AppendTo(saved.mutable_stacks());
   *saved.mutable_currencies() = currencies_.ToProto();
   saved.set_meso(meso_);
+  saved.set_v_points(v_points_);
   return saved;
 }
 

@@ -193,6 +193,61 @@ TEST_F(TradePanelTest, TheCursorWalksTheTopRowAndTheAcceptButton) {
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
 }
 
+// From the 5th job, V Points sit on a row of their own under meso: a fourth
+// stop after Accept, mirrored on their side.
+TEST_F(TradePanelTest, VPointsTakeASecondRow) {
+  UnlockEverything();
+  c_.AddVPoints(5000);
+  for (int i = 0; i < 3; ++i) {
+    panel_.MoveCursor(1);
+  }
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kVPoints);
+  EXPECT_EQ(panel_.held(TradeCurrency::kVPoints), 5000);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso) << "a ring of four";
+
+  panel_.PutUpCurrency(TradeCurrency::kVPoints, 1200);
+  EXPECT_EQ(panel_.offered(TradeCurrency::kVPoints), 1200);
+  EXPECT_EQ(panel_.own().ToWire(c_).v_points(), 1200);
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_meso(120);
+  trade.mutable_theirs()->set_v_points(77);
+  panel_.SetTrade(trade);
+
+  std::vector<std::string> rows = Rows();
+  int meso = -1;
+  int points = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("120") != std::string::npos && meso < 0) {
+      meso = i;
+    }
+    if (rows[i].find("1,200 VP") != std::string::npos) {
+      points = i;
+    }
+  }
+  ASSERT_GE(meso, 0);
+  ASSERT_EQ(points, meso + 1);
+  EXPECT_LT(rows[points].find("1,200 VP"), rows[points].find("77 VP"));
+  EXPECT_NE(Text().find("3,800 VP"), std::string::npos)
+      << "the bag shows what is left";
+}
+
+// Below it, the row appears only to show what they offered.
+TEST_F(TradePanelTest, VPointsWaitForTheFifthJob) {
+  for (int i = 0; i < 3; ++i) {
+    panel_.MoveCursor(1);
+  }
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso)
+      << "a ring of three";
+  EXPECT_EQ(Text().find("VP"), std::string::npos);
+
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_v_points(77);
+  panel_.SetTrade(trade);
+  EXPECT_NE(Text().find("77 VP"), std::string::npos);
+}
+
 TEST_F(TradePanelTest, TabWalksTheThreeWindows) {
   EXPECT_EQ(panel_.zone(), TradeZone::kMine);
   panel_.NextZone(1);

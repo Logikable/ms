@@ -58,6 +58,9 @@ std::string FormatMeso(int64_t meso);
 // the number is what the column is read for.
 std::string FormatSpellTraces(int64_t traces);
 
+// A V Points balance or price: "5,000 VP".
+std::string FormatVPoints(int64_t points);
+
 // Appends "+val label" to out (with a "  " separator if out isn't empty). Does
 // nothing if val <= 0.
 void AppendStat(std::string& out, int val, const std::string& label);

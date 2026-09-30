@@ -754,7 +754,7 @@ std::string CharacterPanel::PoolText() const {
   // V Points buy a node's next level rather than one level per point, so the
   // pool is shown in full, and what it buys is on each row.
   if (IsVPage(SelectedSkillPage())) {
-    return FormatWithCommas(character_.v_points()) + " VP";
+    return FormatVPoints(character_.v_points());
   }
   if (IsHyperPage(SelectedSkillPage())) {
     return std::to_string(character_.hyper_sp()) + " SP";

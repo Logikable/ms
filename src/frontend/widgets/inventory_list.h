@@ -15,6 +15,7 @@
 #define MS_SRC_FRONTEND_WIDGETS_INVENTORY_LIST_H_
 
 #include <chrono>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -101,14 +102,16 @@ enum BalanceCell : int {
   kNoBalance = -1,
   kMesoBalance = 0,
   kTraceBalance = 1,
+  kVPointBalance = 2,
 };
 
-// The two balances in the middle of the bag's tab bar: meso, and spell traces
-// once the shop opens. That is the level traces can first be bought, so a trace
-// balance can't exist before it. Both are passed in rather than read from the
-// character, so a bag in a trade can show what is left.
+// The balances in the middle of the bag's tab bar: meso, spell traces once the
+// shop opens, and `v_points` when given. The shop is the level traces can first
+// be bought, so a trace balance can't exist before it. The caller decides on V
+// Points, since the main bag never shows them. All are passed in rather than
+// read from the character, so a bag in a trade can show what is left.
 //
-// Any `cursor` other than kBalancesReadOnly gives both cells a fixed width and
+// Any `cursor` other than kBalancesReadOnly gives every cell a fixed width and
 // bands the one `cursor` names. The band then stays the same size, a growing
 // number doesn't move its neighbour, and two bars on one screen line up. It
 // uses a band instead of inverting because the cells are in the theme colour,
@@ -116,7 +119,8 @@ enum BalanceCell : int {
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
                               const AccountInstance& account,
-                              int cursor = kBalancesReadOnly);
+                              int cursor = kBalancesReadOnly,
+                              std::optional<int64_t> v_points = std::nullopt);
 
 // The bag's tab row and the rule under it: the chips, `balances` in the middle,
 // and `trailing` on the right (the Expand button on the main screen, nothing in

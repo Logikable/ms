@@ -41,7 +41,13 @@ namespace ms {
 enum class TradeCurrency {
   kMeso,
   kSpellTraces,
+  kVPoints,
 };
+
+// "Meso", "Spell Traces" or "V Points", for the amount dialog's title.
+std::string TradeCurrencyName(TradeCurrency currency);
+// `amount` in that currency's own format.
+std::string FormatTradeCurrency(TradeCurrency currency, int64_t amount);
 
 // The three windows, in the order Tab moves through them.
 enum class TradeZone {
@@ -80,6 +86,7 @@ struct TradeCursor {
 struct OwnTradeOffer {
   int64_t meso = 0;
   int64_t spell_traces = 0;
+  int64_t v_points = 0;
   std::vector<int> equips;
   std::vector<TradeStack> stacks;
 
@@ -181,11 +188,16 @@ class TradePanel {
   // One side's window: the top row, then what is offered.
   ftxui::Element RenderMine() const;
   ftxui::Element RenderTheirs() const;
-  // The two currencies, the Accept button and the acceptance mark. Your own row
-  // draws them left to right with the button; theirs is mirrored and has no
-  // button.
+  // Meso, traces, the Accept button and the acceptance mark, with V Points on
+  // a row below when shown. Your own side draws them left to right with the
+  // button; theirs is mirrored and has no button.
   ftxui::Element RenderMyTopRow() const;
   ftxui::Element RenderTheirTopRow() const;
+  // Whether you can offer V Points, which puts a fourth stop on your top row.
+  bool can_offer_v_points() const;
+  // Whether both windows draw the V Points row: you can offer them, or they
+  // have, so an offer is never invisible.
+  bool shows_v_points() const;
   // The Name and Quantity table in an offer window, padded to its fixed height.
   // `rows` is what is offered, already named.
   ftxui::Element RenderOfferTable(const std::vector<OfferRow>& rows, int cursor,
@@ -223,8 +235,8 @@ class TradePanel {
   OwnTradeOffer own_;
 
   TradeZone zone_ = TradeZone::kMine;
-  // The cursor's position on your own top row: the two currencies, then the
-  // Accept button.
+  // The cursor's position on your own top rows, in reading order: meso,
+  // traces, the Accept button, then V Points below.
   int top_ = 0;
   // The cursor's row in each window's list, and whether it is in your own list
   // at all (the other two windows have nothing above their lists).

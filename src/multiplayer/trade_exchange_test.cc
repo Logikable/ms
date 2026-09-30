@@ -144,6 +144,7 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   character.AddMeso(10000);
   character.AddItem(Scroll(), 20);
   character.AddItem(Trace(), 50);
+  character.AddVPoints(900);
   Equip starred;
   starred.set_equip_name("Sword");
   starred.set_stars(4);
@@ -153,6 +154,7 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   TradeOffer given;
   given.set_meso(2500);
   given.set_spell_traces(30);
+  given.set_v_points(600);
   given.add_stacks()->set_name("Chaos Scroll");
   given.mutable_stacks(0)->set_count(5);
   *given.add_equips() = starred;
@@ -160,6 +162,7 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   TradeOffer received;
   received.set_meso(400);
   received.set_spell_traces(7);
+  received.set_v_points(45);
   Equip theirs;
   theirs.set_equip_name("Sword");
   theirs.set_stars(9);
@@ -169,6 +172,7 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
 
   EXPECT_EQ(character.meso(), 10000 - 2500 + 400);
   EXPECT_EQ(character.CountItem(kSpellTraceName), 50 - 30 + 7);
+  EXPECT_EQ(character.v_points(), 900 - 600 + 45);
   EXPECT_EQ(character.CountItem("Chaos Scroll"), 15);
   // The starred item left and theirs arrived whole; the plain one stayed.
   ASSERT_EQ(character.inventory().size(), 2);

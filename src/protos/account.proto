@@ -54,6 +54,8 @@ message Bank {
   // meso, so it is read far more often than the rest.
   int64 meso = 3;
   map<string, int64> currencies = 4;
+  // A counter on the character rather than an item, so not in `currencies`.
+  int64 v_points = 5;
 }
 
 // Where the game's music comes from. Zero is the shipped default, so a save

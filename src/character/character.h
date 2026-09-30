@@ -297,9 +297,11 @@ class CharacterInstance {
   // Adds `amount` honor, which pays for Inner Ability resets. Does nothing if
   // amount <= 0.
   void AddHonor(int64_t amount);
-  // Adds V Points. Negative amounts are ignored, since points only leave the
-  // pool by being spent on a node.
+  // Adds V Points. Does nothing if amount <= 0.
   void AddVPoints(int64_t amount);
+  // Takes V Points out for a trade or the bank. All or nothing, like
+  // SpendMeso.
+  bool SpendVPoints(int64_t amount);
 
   /* The potions. A buff is either owned or rented, and on or off; together
    * these decide what it does and what it costs. See

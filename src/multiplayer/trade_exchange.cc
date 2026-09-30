@@ -70,8 +70,8 @@ bool HasRoomForTrade(const CharacterInstance& character,
       character.inventory().room() + given.equips_size()) {
     return false;
   }
-  // Spell traces aren't counted: a currency is a balance, not a row, so any
-  // number of them fits.
+  // Spell traces and V Points aren't counted: a balance isn't a row, so any
+  // amount fits.
   Stacks stacks = character.stackables();
   for (const TradeStack& stack : given.stacks()) {
     TakeFrom(stacks, stack.name(), stack.count());
@@ -102,8 +102,10 @@ void ApplyTrade(CharacterInstance& character,
   }
   character.SpendItem(kSpellTraceName, given.spell_traces());
   character.SpendMeso(given.meso());
+  character.SpendVPoints(given.v_points());
 
   character.AddMeso(received.meso());
+  character.AddVPoints(received.v_points());
   for (const Equip& equip : received.equips()) {
     const EquipPrototype* proto = FindEquipByName(equips, equip.equip_name());
     if (proto == nullptr) {

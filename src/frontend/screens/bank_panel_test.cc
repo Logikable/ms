@@ -38,6 +38,7 @@ class BankPanelTest : public PanelTest {
     c_.AddItem(items_[kSpellTraceName], 900);
     c_.AddItem(items_["chaos"], 12);
     c_.AddItem(items_["shell"], 40);
+    c_.AddVPoints(5000);
     c_.PickUp(std::make_unique<EquipInstance>(sword_));
     panel_ = std::make_unique<BankPanel>(c_, account_, items_);
     panel_->Reset();
@@ -92,7 +93,7 @@ TEST_F(BankPanelTest, TabCrossesAndEachHalfKeepsItsPlace) {
   EXPECT_TRUE(panel_->on_etc_tab());
 }
 
-// The top row is a ring of four: the two chips, then the two balances.
+// The top row is a ring of five: the two chips, then the three balances.
 TEST_F(BankPanelTest, TheTopRowWalksChipsThenBalances) {
   ToStop(2);
   BankCursor cursor = panel_->cursor();
@@ -107,7 +108,24 @@ TEST_F(BankPanelTest, TheTopRowWalksChipsThenBalances) {
   EXPECT_EQ(panel_->held(BankCurrency::kSpellTraces), 900);
 
   ToStop(1);
+  EXPECT_EQ(panel_->cursor().currency, BankCurrency::kVPoints);
+  EXPECT_EQ(panel_->held(BankCurrency::kVPoints), 5000);
+  EXPECT_NE(Text().find("5,000 VP"), std::string::npos);
+
+  ToStop(1);
   EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab) << "round the ring";
+}
+
+// Below the 5th job the V Points cell and its stop aren't there.
+TEST_F(BankPanelTest, VPointsWaitForTheFifthJob) {
+  CharacterInstance young = MakeCharacter(199);
+  AccountInstance account;
+  BankPanel panel(young, account, items_);
+  panel.Reset();
+  for (int i = 0; i < 4; ++i) {
+    panel.MoveCursor(1);
+  }
+  EXPECT_EQ(panel.cursor().kind, BankCursor::Kind::kTab) << "a ring of four";
 }
 
 // Down enters the list, and Up from its first row returns to the chip of the
@@ -226,6 +244,11 @@ TEST_F(BankPanelTest, BalancesCrossBothWays) {
   EXPECT_EQ(c_.CountItem(kSpellTraceName), 500);
   EXPECT_EQ(bank().CountCurrency(kSpellTraceName), 400);
 
+  ToStop(1);
+  panel_->MoveCurrency(BankCurrency::kVPoints, 1500);
+  EXPECT_EQ(c_.v_points(), 3500);
+  EXPECT_EQ(bank().v_points(), 1500);
+
   // Asking for more than is held is clamped to what is there, and nothing is
   // created.
   panel_->NextZone();
@@ -233,6 +256,9 @@ TEST_F(BankPanelTest, BalancesCrossBothWays) {
   panel_->MoveCurrency(BankCurrency::kMeso, 99999999);
   EXPECT_EQ(bank().meso(), 0);
   EXPECT_EQ(c_.meso(), 1234567);
+  panel_->MoveCurrency(BankCurrency::kVPoints, 99999);
+  EXPECT_EQ(bank().v_points(), 0);
+  EXPECT_EQ(c_.v_points(), 5000);
 }
 
 TEST_F(BankPanelTest, SortFilesTheHalfTheCursorIsIn) {

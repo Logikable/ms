@@ -86,6 +86,9 @@ enum class Feature {
   // the same reasoning one level down: before it, the Sacred list could only be
   // empty, and a row with one chip is no choice.
   kSacredSymbols,
+  // The V Points balance in the bank and in a trade. Unlocked at the 5th job's
+  // level, where points first have a use.
+  kVPoints,
   // The gold trail to the Link Skills row, shown the first time the account
   // reaches the last threshold; see kLinkSkillsLevel. The row itself is always
   // on the beginner's page.

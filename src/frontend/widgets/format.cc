@@ -154,6 +154,10 @@ std::string FormatSpellTraces(int64_t traces) {
   return "📜 " + FormatWithCommas(traces);
 }
 
+std::string FormatVPoints(int64_t points) {
+  return FormatWithCommas(points) + " VP";
+}
+
 void AppendStat(std::string& out, int val, const std::string& label) {
   if (val <= 0) {
     return;

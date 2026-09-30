@@ -131,13 +131,13 @@ std::string AskedFor(const ClientMessage& message) {
       return absl::StrCat("asks to trade with ",
                           message.request_trade().account_id());
     case ClientMessage::kSetTradeOffer:
-      return absl::StrCat("offers ", message.set_trade_offer().offer().meso(),
-                          " meso, ",
-                          message.set_trade_offer().offer().spell_traces(),
-                          " spell traces and ",
-                          message.set_trade_offer().offer().equips_size() +
-                              message.set_trade_offer().offer().stacks_size(),
-                          " items");
+      return absl::StrCat(
+          "offers ", message.set_trade_offer().offer().meso(), " meso, ",
+          message.set_trade_offer().offer().spell_traces(), " spell traces, ",
+          message.set_trade_offer().offer().v_points(), " V Points and ",
+          message.set_trade_offer().offer().equips_size() +
+              message.set_trade_offer().offer().stacks_size(),
+          " items");
     case ClientMessage::kLeaveTrade:
       return "leaves the trade";
     case ClientMessage::kAcceptTrade:

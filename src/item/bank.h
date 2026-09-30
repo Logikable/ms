@@ -41,6 +41,9 @@ class BankInstance {
   int64_t meso() const {
     return meso_;
   }
+  int64_t v_points() const {
+    return v_points_;
+  }
 
   // Adds `item` to the end of the equip tab. Returns false and takes nothing if
   // the tab is full.
@@ -61,6 +64,9 @@ class BankInstance {
   // Meso in and out. Spending is all or nothing.
   void AddMeso(int64_t amount);
   bool SpendMeso(int64_t amount);
+  // V Points in and out, the same way.
+  void AddVPoints(int64_t amount);
+  bool SpendVPoints(int64_t amount);
   // The balance of a currency, and spending it. Both use the display name, as
   // everything in a save does.
   int64_t CountCurrency(const std::string& name) const;
@@ -82,6 +88,7 @@ class BankInstance {
   StackTab stacks_;
   CurrencyPurse currencies_;
   int64_t meso_ = 0;
+  int64_t v_points_ = 0;
 };
 
 }  // namespace ms

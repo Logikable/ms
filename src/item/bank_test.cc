@@ -93,7 +93,7 @@ TEST(BankTest, DropsAndCurrenciesAreRoutedApart) {
   EXPECT_EQ(bank.stacks().size(), 1);
 }
 
-TEST(BankTest, MesoIsAllOrNothing) {
+TEST(BankTest, MesoAndVPointsAreAllOrNothing) {
   BankInstance bank;
   bank.AddMeso(-5);
   EXPECT_EQ(bank.meso(), 0);
@@ -102,6 +102,13 @@ TEST(BankTest, MesoIsAllOrNothing) {
   EXPECT_EQ(bank.meso(), 1000);
   EXPECT_TRUE(bank.SpendMeso(1000));
   EXPECT_EQ(bank.meso(), 0);
+
+  bank.AddVPoints(-5);
+  EXPECT_EQ(bank.v_points(), 0);
+  bank.AddVPoints(300);
+  EXPECT_FALSE(bank.SpendVPoints(301));
+  EXPECT_TRUE(bank.SpendVPoints(300));
+  EXPECT_EQ(bank.v_points(), 0);
 }
 
 // Everything survives saving, and a row whose item left the data is dropped
@@ -116,6 +123,7 @@ TEST(BankTest, SaveAndLoadKeepWhatIsStillInTheCatalog) {
   bank.AddItem(shell, 30);
   bank.AddItem(trace, 700);
   bank.AddMeso(123456);
+  bank.AddVPoints(4505);
 
   Bank saved = bank.ToProto();
   ASSERT_EQ(saved.equip_tab_size(), 1);
@@ -140,6 +148,7 @@ TEST(BankTest, SaveAndLoadKeepWhatIsStillInTheCatalog) {
   EXPECT_EQ(loaded.stacks().Count("Green Snail Shell"), 30);
   EXPECT_EQ(loaded.CountCurrency(kSpellTraceName), 700);
   EXPECT_EQ(loaded.meso(), 123456);
+  EXPECT_EQ(loaded.v_points(), 4505);
 }
 
 TEST(BankTest, SortingFilesBothTabs) {
