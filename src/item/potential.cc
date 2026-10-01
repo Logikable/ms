@@ -332,7 +332,8 @@ PotentialGroup PotentialGroupOf(EquipSlot slot) {
     case EQUIP_SLOT_PENDANT_2:
       return PotentialGroup::kAccessory;
     default:
-      // The projectile, the six symbols, the badge, the medal and the pocket.
+      // The projectile, the symbols, the badge, the medal, the pocket and the
+      // totems.
       return PotentialGroup::kNone;
   }
 }

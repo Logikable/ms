@@ -1,0 +1,21 @@
+name: EQUIP_SET_NAME_ANTIQUE_TOTEM
+complete_pieces: 3
+members {
+  slot: EQUIP_SLOT_TOTEM
+  items { name: "Horseback Riding Doll Totem" }
+}
+members {
+  slot: EQUIP_SLOT_TOTEM_2
+  items { name: "Jade Kettle Totem" }
+}
+members {
+  slot: EQUIP_SLOT_TOTEM_3
+  items { name: "Bronze Incense Burner Totem" }
+}
+tiers {
+  pieces: 3
+  effect {
+    attack: 15
+    magic_attack: 15
+  }
+}

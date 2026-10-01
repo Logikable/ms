@@ -131,13 +131,16 @@ TEST(UpgradeSlotsTest, AFreshCopyStartsAsItDrops) {
   EXPECT_EQ(scrolled.main_potential().rank(), POTENTIAL_RANK_UNIQUE);
 }
 
-TEST(SlotFamilyTest, RingsAndPendantsAnswerWithTheirWholeFamily) {
+TEST(SlotFamilyTest, EachFamilyAnswersWithItsWholeFamily) {
   const std::vector<EquipSlot> kRings = {EQUIP_SLOT_RING, EQUIP_SLOT_RING_2,
                                          EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_RING), kRings);
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_RING_3), kRings) << "asked from anywhere";
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_PENDANT),
             (std::vector<EquipSlot>{EQUIP_SLOT_PENDANT, EQUIP_SLOT_PENDANT_2}));
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_TOTEM_2),
+            (std::vector<EquipSlot>{EQUIP_SLOT_TOTEM, EQUIP_SLOT_TOTEM_2,
+                                    EQUIP_SLOT_TOTEM_3}));
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_HAT),
             (std::vector<EquipSlot>{EQUIP_SLOT_HAT}));
 }

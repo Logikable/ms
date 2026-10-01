@@ -22,6 +22,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
+#include "src/item/tradeable.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -681,6 +682,46 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
     EXPECT_EQ(effect.luk(), effect.str());
     EXPECT_EQ(effect.magic_attack(), effect.attack());
   }
+}
+
+// The three Antique Totems, worn together off the shelf: one to each totem
+// slot, the wiki's stats and the set's +15 on top. GMS lends them for 30 days;
+// here they are bought once, so they refuse every upgrade instead.
+TEST(EquipDataTest, TheAntiqueTotemsWearTogetherForTheirWikiTotals) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::mt19937 rng(0);
+  Character proto;
+  proto.set_job(JOB_BEGINNER);
+  proto.set_level(125);
+  CharacterInstance character(rng, std::move(proto));
+  character.UseEquipSets(LoadSets());
+  const char* kTotems[] = {"Horseback Riding Doll Totem", "Jade Kettle Totem",
+                           "Bronze Incense Burner Totem"};
+  for (const char* name : kTotems) {
+    const EquipPrototype* totem = nullptr;
+    for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+      if (entry.second.name() == name) {
+        totem = &entry.second;
+      }
+    }
+    ASSERT_NE(totem, nullptr) << name;
+    EXPECT_EQ(totem->shop_price(), 250'000'000) << name;
+    EXPECT_TRUE(CanTrade(*totem)) << name;
+    EXPECT_EQ(totem->upgrade_slots(), 0) << name;
+    EXPECT_FALSE(Supports(*totem, UPGRADE_STAR_FORCE)) << name;
+    EXPECT_FALSE(Supports(*totem, UPGRADE_CUBE)) << name;
+    character.PickUp(std::make_unique<EquipInstance>(*totem));
+    ASSERT_TRUE(character.Equip(character.inventory().size() - 1)) << name;
+  }
+  EXPECT_EQ(character.equipped().at(EQUIP_SLOT_TOTEM_3)->prototype().name(),
+            "Bronze Incense Burner Totem");
+  EXPECT_EQ(character.equip_stats().luk(), 62);
+  EXPECT_EQ(character.equip_stats().magic_attack(), 32);
+  int set_attack = 0;
+  for (const SkillEffect& bonus : character.set_bonuses()) {
+    set_attack += bonus.attack();
+  }
+  EXPECT_EQ(set_attack, 15);
 }
 
 // The data states what each tier adds and the player sees the running total, so

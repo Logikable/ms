@@ -1,0 +1,16 @@
+name: "Bronze Incense Burner Totem"
+required_level: 125
+base_stats {
+  str: 22
+  dex: 22
+  int: 22
+  luk: 22
+  attack: 12
+  magic_attack: 12
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_TOTEM
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+unsupported_upgrades: UPGRADE_CUBE
+shop_price: 250000000

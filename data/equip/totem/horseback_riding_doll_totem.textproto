@@ -1,0 +1,17 @@
+name: "Horseback Riding Doll Totem"
+required_level: 125
+base_stats {
+  str: 20
+  dex: 20
+  int: 20
+  luk: 20
+  attack: 10
+  magic_attack: 10
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_TOTEM
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+unsupported_upgrades: UPGRADE_CUBE
+# A quest reward in GMS, and lent for 30 days. Sold here, and kept.
+shop_price: 250000000

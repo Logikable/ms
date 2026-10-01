@@ -117,6 +117,9 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_SYMBOL_SHANGRI_LA:
     case EQUIP_SLOT_SYMBOL_ARTERIA:
     case EQUIP_SLOT_SYMBOL_CARCION:
+    case EQUIP_SLOT_TOTEM:
+    case EQUIP_SLOT_TOTEM_2:
+    case EQUIP_SLOT_TOTEM_3:
       return SCROLL_TARGET_UNSPECIFIED;
   }
   return SCROLL_TARGET_UNSPECIFIED;

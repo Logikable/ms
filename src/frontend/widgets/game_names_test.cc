@@ -181,6 +181,7 @@ TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING_4), "Ring 4");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT), "Pendant 1");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT_2), "Pendant 2");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_TOTEM_3), "Totem 3");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_HAT), "Hat");
   EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_UNSPECIFIED), "");
   // The longest one still fits the slot column.

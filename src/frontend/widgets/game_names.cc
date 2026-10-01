@@ -274,6 +274,8 @@ std::string FormatEquipSet(EquipSetName set) {
       return "Arcane Umbra Set (Thief)";
     case EQUIP_SET_NAME_PITCHED_BOSS:
       return "Pitched Boss Set";
+    case EQUIP_SET_NAME_ANTIQUE_TOTEM:
+      return "Antique Totem Set";
     default:
       return "";
   }
@@ -345,6 +347,10 @@ std::string FormatSlot(EquipSlot slot) {
     case EQUIP_SLOT_SYMBOL_ARTERIA:
     case EQUIP_SLOT_SYMBOL_CARCION:
       return "Symbol";
+    case EQUIP_SLOT_TOTEM:
+    case EQUIP_SLOT_TOTEM_2:
+    case EQUIP_SLOT_TOTEM_3:
+      return "Totem";
     default:
       return "";
   }

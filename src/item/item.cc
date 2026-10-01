@@ -197,6 +197,9 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_SYMBOL_SHANGRI_LA:
     case EQUIP_SLOT_SYMBOL_ARTERIA:
     case EQUIP_SLOT_SYMBOL_CARCION:
+    case EQUIP_SLOT_TOTEM:
+    case EQUIP_SLOT_TOTEM_2:
+    case EQUIP_SLOT_TOTEM_3:
       return false;
   }
   return false;
@@ -325,7 +328,9 @@ std::vector<EquipSlot> SlotFamily(EquipSlot slot) {
       EQUIP_SLOT_RING, EQUIP_SLOT_RING_2, EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};
   static const std::vector<EquipSlot> kPendants = {EQUIP_SLOT_PENDANT,
                                                    EQUIP_SLOT_PENDANT_2};
-  for (const std::vector<EquipSlot>* family : {&kRings, &kPendants}) {
+  static const std::vector<EquipSlot> kTotems = {
+      EQUIP_SLOT_TOTEM, EQUIP_SLOT_TOTEM_2, EQUIP_SLOT_TOTEM_3};
+  for (const std::vector<EquipSlot>* family : {&kRings, &kPendants, &kTotems}) {
     if (std::find(family->begin(), family->end(), slot) != family->end()) {
       return *family;
     }

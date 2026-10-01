@@ -30,6 +30,7 @@ constexpr EquipSlot kSlotOrder[] = {
     EQUIP_SLOT_MEDAL,
     EQUIP_SLOT_POCKET,
     EQUIP_SLOT_PROJECTILE,
+    EQUIP_SLOT_TOTEM,
     EQUIP_SLOT_SECONDARY,
     EQUIP_SLOT_HEART,
     EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY,
@@ -49,9 +50,9 @@ constexpr EquipSlot kSlotOrder[] = {
 constexpr int kSlotOrderSize =
     static_cast<int>(sizeof(kSlotOrder) / sizeof(kSlotOrder[0]));
 
-// Every slot except UNSPECIFIED and the four extra family slots. A slot added
+// Every slot except UNSPECIFIED and the six extra family slots. A slot added
 // without a place in the list would silently sort to the bottom.
-static_assert(EquipSlot_ARRAYSIZE == kSlotOrderSize + 5,
+static_assert(EquipSlot_ARRAYSIZE == kSlotOrderSize + 7,
               "a new slot needs a place in kSlotOrder");
 
 }  // namespace
