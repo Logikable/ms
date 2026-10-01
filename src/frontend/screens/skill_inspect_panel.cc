@@ -2185,15 +2185,26 @@ void SkillInspectPanel::ScrollBy(int delta) {
   card_.ScrollBy(delta);
 }
 
+void SkillInspectPanel::ScrollXBy(int delta) {
+  Render();
+  card_.ScrollXBy(delta);
+}
+
 ftxui::Element SkillInspectPanel::Render() const {
   if (skill_ == nullptr) {
     return ThemedWindow(" Skill ", EmptyState("no skill"));
   }
   SkillRows card = CardRowsFor(*skill_, level_, bonus_, levels_);
   int content = ContentWidth(AllRows(card), min_width_, max_width_);
+  CardRows rows = Laid(card, content);
+  if (!tabs_.empty()) {
+    rows.head.insert(rows.head.begin(),
+                     {TextRow(TabBar(tabs_, active_tab_, focused_, content)),
+                      RuleRow(ThemedSeparator())});
+  }
   // What kind of skill it is, the first thing worth knowing about it.
   std::string title = IsActive(*skill_) ? " Active " : " Passive ";
-  return card_.Render(title, Laid(card, content), content);
+  return card_.Render(title, std::move(rows), content, focused_);
 }
 
 std::vector<SkillEffectLine> SkillEffectsAt(const Skill& skill, int level) {
@@ -2230,6 +2241,22 @@ PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
     panel.SetWidthBounds(size.columns, size.columns);
   }
   return size;
+}
+
+std::vector<std::string> BoostedSkillNames(const Skill& skill) {
+  std::vector<std::string> names;
+  auto add = [&](const google::protobuf::RepeatedPtrField<SkillBoost>& boosts) {
+    for (const SkillBoost& boost : boosts) {
+      const std::string& name = boost.skill_name();
+      if (name != skill.name() &&
+          std::find(names.begin(), names.end(), name) == names.end()) {
+        names.push_back(name);
+      }
+    }
+  };
+  add(skill.boost());
+  add(skill.buff().boost());
+  return names;
 }
 
 }  // namespace ms

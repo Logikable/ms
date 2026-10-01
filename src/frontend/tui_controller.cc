@@ -82,7 +82,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       player_inspect_panel_(screens.player_inspect_panel),
       player_item_panel_(screens.player_item_panel),
       job_inspect_panel_(screens.job_inspect_panel),
-      skill_inspect_panel_(screens.skill_inspect_panel),
+      skill_inspect_screen_(screens.skill_inspect_screen),
       buff_info_panel_(screens.buff_info_panel),
       menu_panel_(screens.menu_panel),
       keybinds_panel_(screens.keybinds_panel),
@@ -187,7 +187,7 @@ void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
   card_from_inspect_ = false;
   skill_card_return_ = screen_ == kLinkSkillMenu ? kLinkSkills : kMain;
-  skill_inspect_panel_.ResetScroll();
+  skill_inspect_screen_.Reset();
   screen_ = kSkillInspect;
 }
 
@@ -212,6 +212,28 @@ int TuiController::skill_inspect_level() const {
 
 int TuiController::skill_inspect_bonus() const {
   return BonusSkillLevels(card_character(), state_.skills);
+}
+
+std::vector<InspectedSkill> TuiController::skill_inspect_boosted() const {
+  const CharacterInstance& character = card_character();
+  const int bonus = skill_inspect_bonus();
+  std::vector<InspectedSkill> boosted;
+  for (const std::string& name : BoostedSkillNames(skill_inspect_)) {
+    const Skill* found = nullptr;
+    for (const auto& [key, skill] : state_.skills) {
+      if (skill.name() == name &&
+          (found == nullptr || character.HasBookFor(skill))) {
+        found = &skill;
+        if (character.HasBookFor(skill)) {
+          break;
+        }
+      }
+    }
+    if (found != nullptr) {
+      boosted.push_back({found, character.skill_level(*found), bonus});
+    }
+  }
+  return boosted;
 }
 
 void TuiController::OpenAllStats() {
@@ -1271,15 +1293,8 @@ bool TuiController::OnSkillMenuEvent(ftxui::Event event) {
 // Read-only, so either key leaves, the same way the item inspect screen closes.
 // The All Stats screen uses this too, since it has no card to scroll.
 bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
-  if (screen_ == kSkillInspect) {
-    if (event == ftxui::Event::ArrowUp) {
-      skill_inspect_panel_.ScrollBy(-1);
-      return true;
-    }
-    if (event == ftxui::Event::ArrowDown) {
-      skill_inspect_panel_.ScrollBy(1);
-      return true;
-    }
+  if (screen_ == kSkillInspect && skill_inspect_screen_.OnEvent(event)) {
+    return true;
   }
   if (IsBack(event) || IsForward(event)) {
     // Back to the screen that opened the card: the player's own panels, the
@@ -2836,7 +2851,7 @@ bool TuiController::OnLinkSkillMenuEvent(ftxui::Event event) {
         skill_inspect_ = *skill;
         card_from_inspect_ = false;
         skill_card_return_ = kLinkSkills;
-        skill_inspect_panel_.ResetScroll();
+        skill_inspect_screen_.Reset();
         screen_ = kSkillInspect;
       }
       break;
@@ -2921,7 +2936,7 @@ bool TuiController::OnBankAmountEvent(ftxui::Event event) {
 void TuiController::OpenPlayerSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
   card_from_inspect_ = true;
-  skill_inspect_panel_.ResetScroll();
+  skill_inspect_screen_.Reset();
   screen_ = kSkillInspect;
 }
 
