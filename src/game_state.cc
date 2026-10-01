@@ -659,9 +659,12 @@ std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
   return names;
 }
 
-// The Antique Totem Set, worn from this level in test and max mode. The shop
-// sells them from 125, but at 250M apiece a climb affords all three near 200.
+// The Antique Totem Set, worn from this level in test mode. The shop sells them
+// from 125, but at 250M apiece a climb affords all three near 200.
 constexpr int kTotemLevel = 200;
+// Max mode waits for the level progression_sim's climb has bought all three by,
+// since star force and cubes take the meso first.
+constexpr int kMaxTotemLevel = 230;
 
 std::vector<std::string> AntiqueTotems() {
   return {"horseback_riding_doll_totem", "jade_kettle_totem",
@@ -794,7 +797,7 @@ JobAdvancement HighestAdvancementAt(JobAdvancement advancement, int level) {
 // advancement is offered.
 void GrowToJob(GameState& state, JobAdvancement advancement, int level,
                int unspent_stage, const GearSetup& equips,
-               bool cygnus_shoulders = true) {
+               bool cygnus_shoulders = true, int totem_level = kTotemLevel) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
@@ -821,7 +824,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
     WearAll(state, PrincessNoSecondary(state.character.proto().job()), equips);
   }
-  if (state.character.proto().level() >= kTotemLevel) {
+  if (state.character.proto().level() >= totem_level) {
     WearAll(state, AntiqueTotems(), equips);
   }
   if (state.character.proto().level() >= kAbsoLabLevel) {
@@ -1189,7 +1192,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   state.character.SetUsername(UsernameFor(advancement));
   state.character.AddMeso(kMaxLeftoverMeso);
   GrowToJob(state, advancement, level, kSpendEveryStage, equips,
-            /*cygnus_shoulders=*/false);
+            /*cygnus_shoulders=*/false, kMaxTotemLevel);
   WearMaxSymbols(state);
   // The climb's leftovers: pieces a level gate says to carry instead of wear,
   // and weapons replaced later.

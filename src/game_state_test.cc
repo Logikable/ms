@@ -945,6 +945,15 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
       {"frozen_hat", hat},
       {"royal_black_metal_shoulder", shoulder},
       {"lionheart_battle_shoulder", cygnus}};
+  for (const char* key : {"horseback_riding_doll_totem", "jade_kettle_totem",
+                          "bronze_incense_burner_totem"}) {
+    EquipPrototype totem;
+    totem.set_name(key);
+    totem.set_equip_slot(EQUIP_SLOT_TOTEM);
+    totem.set_required_level(125);
+    totem.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    catalog[key] = totem;
+  }
   // The six river areas at the levels they open, since that decides which ones
   // a max character owns.
   const std::pair<EquipSlot, int> kSymbols[] = {
@@ -1041,6 +1050,17 @@ TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
+}
+
+// The totems wait for 230 in max mode, where the climb has bought all three,
+// though the workbench wears them from 200.
+TEST(GameStateTest, MaxModeWearsTheTotemsFrom230) {
+  EXPECT_EQ(MakeMaxState(220).character.equipped().count(EQUIP_SLOT_TOTEM), 0u);
+  GameState state = MakeMaxState(230);
+  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_TOTEM)) {
+    EXPECT_EQ(state.character.equipped().count(slot), 1u)
+        << EquipSlot_Name(slot);
+  }
 }
 
 // A max account has one character at the top of every other job line, so link
