@@ -268,6 +268,36 @@ enum Upgrade {
   // Both tracks: an item that refuses cubes keeps the potential it dropped
   // with.
   UPGRADE_CUBE = 3;
+  UPGRADE_FLAME = 4;
+}
+
+// What one flame line grants. A pair grants the same amount of both stats.
+enum FlameStat {
+  FLAME_STAT_UNSPECIFIED = 0;
+  FLAME_STAT_STR = 1;
+  FLAME_STAT_DEX = 2;
+  FLAME_STAT_INT = 3;
+  FLAME_STAT_LUK = 4;
+  FLAME_STAT_STR_DEX = 5;
+  FLAME_STAT_STR_INT = 6;
+  FLAME_STAT_STR_LUK = 7;
+  FLAME_STAT_DEX_INT = 8;
+  FLAME_STAT_DEX_LUK = 9;
+  FLAME_STAT_INT_LUK = 10;
+  FLAME_STAT_MAX_HP = 11;
+  FLAME_STAT_ATTACK = 12;
+  FLAME_STAT_MAGIC_ATTACK = 13;
+  FLAME_STAT_ALL_STAT = 14;
+  FLAME_STAT_BOSS_DAMAGE = 15;
+  FLAME_STAT_DAMAGE = 16;
+}
+
+// One line of an item's flame (GMS's Bonus Stats). Its value isn't stored;
+// FlameLineValue computes it from the stat, the tier and the item.
+message FlameLine {
+  FlameStat stat = 1;
+  // 3 to 7, GMS's boss-equipment tiers: every item here is flame advantaged.
+  int32 tier = 2;
 }
 
 // Which job branches can equip the item. UNIVERSAL means any job; BEGINNER
@@ -430,4 +460,6 @@ message Equip {
   // A second potential with pools of its own, unset until the first bonus cube
   // is used; see PotentialTrack.
   Potential bonus_potential = 11;
+  // Four distinct lines once flamed, empty before; see src/item/flame.h.
+  repeated FlameLine flame = 12;
 }

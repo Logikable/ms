@@ -17,6 +17,7 @@
 #include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -4333,6 +4334,45 @@ TEST_F(CharacterTest, BuyingACubeTakesNothingFromAPurseThatCannotCoverIt) {
   c.AddMeso(kCubeCost);
   EXPECT_FALSE(c.BuyCube(EQUIP_SLOT_MEDAL, CubeType::kRed).has_value());
   EXPECT_EQ(c.meso(), kCubeCost * 2 - 1);
+}
+
+// A flame is charged and handed back like a choosing cube's roll. Taken, its
+// flat lines join the worn stats and its percents the potential totals.
+TEST_F(CharacterTest, AFlameIsBoughtThenTakenIntoTheWornStats) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
+  ASSERT_TRUE(c.Equip(0));
+  const int64_t black = FlameOf(FlameType::kBlack).cost;
+  c.AddMeso(black);
+
+  std::optional<FlameLines> rolled =
+      c.BuyFlame(EQUIP_SLOT_HAT, FlameType::kBlack, {});
+  ASSERT_TRUE(rolled.has_value());
+  EXPECT_EQ(rolled->size(), kFlameLines);
+  EXPECT_EQ(c.meso(), 0);
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_HAT)->equip_state().flame_size(), 0);
+  EXPECT_FALSE(c.BuyFlame(EQUIP_SLOT_HAT, FlameType::kBurning, {}).has_value())
+      << "an empty purse buys nothing";
+
+  FlameLines lines;
+  FlameLine* str = lines.Add();
+  str->set_stat(FLAME_STAT_STR);
+  str->set_tier(7);
+  FlameLine* all = lines.Add();
+  all->set_stat(FLAME_STAT_ALL_STAT);
+  all->set_tier(5);
+  const int str_before = c.equip_stats().str();
+  ASSERT_TRUE(c.TakeFlame(EQUIP_SLOT_HAT, lines));
+  EXPECT_EQ(c.equip_stats().str(), str_before + 42);
+  EXPECT_DOUBLE_EQ(c.potential_totals().luk_pct, 0.05);
+
+  // A medal takes no flame, and isn't charged for one.
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_MEDAL)));
+  c.AddMeso(black);
+  EXPECT_FALSE(
+      c.BuyInventoryFlame(c.inventory().size() - 1, FlameType::kBlack, {})
+          .has_value());
+  EXPECT_EQ(c.meso(), black);
 }
 
 TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {

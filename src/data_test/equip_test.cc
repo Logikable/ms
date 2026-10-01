@@ -709,7 +709,9 @@ TEST(EquipDataTest, TheAntiqueTotemsWearTogetherForTheirWikiTotals) {
     EXPECT_TRUE(CanTrade(*totem)) << name;
     EXPECT_EQ(totem->upgrade_slots(), 0) << name;
     EXPECT_FALSE(Supports(*totem, UPGRADE_STAR_FORCE)) << name;
+    EXPECT_FALSE(Supports(*totem, UPGRADE_SCROLL)) << name;
     EXPECT_FALSE(Supports(*totem, UPGRADE_CUBE)) << name;
+    EXPECT_FALSE(EquipInstance(*totem).CanFlame()) << name;
     character.PickUp(std::make_unique<EquipInstance>(*totem));
     ASSERT_TRUE(character.Equip(character.inventory().size() - 1)) << name;
   }

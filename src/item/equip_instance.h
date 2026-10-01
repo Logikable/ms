@@ -12,6 +12,7 @@
 #include <memory>
 #include <random>
 
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
@@ -97,6 +98,19 @@ class EquipInstance : public EquipTabItem {
   bool CanCube() const {
     return SlotTakesPotential(prototype_.equip_slot()) &&
            Supports(prototype_, UPGRADE_CUBE);
+  }
+
+  // Whether a flame can be used on this item: it's worn in a slot flames apply
+  // to and doesn't refuse them.
+  bool CanFlame() const {
+    return SlotTakesFlame(prototype_.equip_slot()) &&
+           Supports(prototype_, UPGRADE_FLAME);
+  }
+
+  // Replaces the item's flame. Nothing is checked, since the lines came from
+  // this item's own pool; see CharacterInstance::BuyFlame.
+  void SetFlame(const FlameLines& lines) {
+    *state_.mutable_flame() = lines;
   }
 
   // Uses a golden hammer: one more upgrade slot, open and unspent. Returns

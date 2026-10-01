@@ -144,7 +144,9 @@ class EquipTabItem : public Item {
   // stars >= 0 to ask about a star level not yet reached; -1 means the current
   // level. What a star gives depends on where the item is worn.
   EquipStats StarForceStatGains(int stars = -1) const;
-  // Sum of prototype base stats, scroll stats, and star force stat gains.
+  // The flat part of the item's flame; see FlameStats.
+  EquipStats FlameStatGains() const;
+  // Sum of prototype base stats, scroll stats, star force and flame gains.
   EquipStats stats() const;
   // Maximum star force level for the given required_level, per the GMS
   // equipment-level scaling table.

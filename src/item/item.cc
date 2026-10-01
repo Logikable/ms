@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/item/equip_stats.h"
+#include "src/item/flame.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -477,9 +478,14 @@ EquipStats EquipTabItem::StarForceStatGains(int stars) const {
   return run.gains;
 }
 
+EquipStats EquipTabItem::FlameStatGains() const {
+  return FlameStats(state_.flame(), prototype_);
+}
+
 EquipStats EquipTabItem::stats() const {
-  const EquipStats stat_sources[] = {
-      prototype_.base_stats(), state_.scroll_stats(), StarForceStatGains()};
+  const EquipStats stat_sources[] = {prototype_.base_stats(),
+                                     state_.scroll_stats(),
+                                     StarForceStatGains(), FlameStatGains()};
   return SumEquipStats(stat_sources);
 }
 

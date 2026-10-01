@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["item.h"],
     deps = [
         ":equip_stats",
+        ":flame",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
     ],
@@ -19,10 +20,31 @@ cc_library(
     hdrs = ["equip_instance.h"],
     deps = [
         ":equip_stats",
+        ":flame",
         ":item",
         ":potential",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "flame",
+    srcs = ["flame.cc"],
+    hdrs = ["flame.h"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_test(
+    name = "flame_test",
+    size = "small",
+    srcs = ["flame_test.cc"],
+    deps = [
+        ":flame",
+        "@googletest//:gtest_main",
     ],
 )
 

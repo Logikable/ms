@@ -29,6 +29,7 @@
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
+#include "src/item/flame.h"
 #include "src/item/inventory.h"
 #include "src/item/inventory_sort.h"
 #include "src/item/item.h"
@@ -1929,6 +1930,16 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
                  potential_totals_[index]);
     AddPotential(item.bonus_potential(), item.prototype().required_level(),
                  potential_totals_[index]);
+    // A flame's percent lines scale what a potential's do, so they join its
+    // totals. Its flat lines are in item.stats().
+    const FlamePercents flame =
+        FlamePercentsOf(item.equip_state().flame(), item.prototype());
+    PotentialTotals& totals = potential_totals_[index];
+    for (double* pct :
+         {&totals.str_pct, &totals.dex_pct, &totals.int_pct, &totals.luk_pct}) {
+      *pct += flame.all_stat / 100.0;
+    }
+    totals.damage_pct += flame.damage / 100.0;
     // A symbol's stats aren't on its prototype: it grants its level in the
     // wearer's primary stat. Its force is added in the same pass.
     if (IsSymbol(item.prototype())) {
@@ -2152,6 +2163,49 @@ bool CharacterInstance::TakePotential(EquipSlot slot, PotentialTrack track,
   item->SetPotential(track, potential);
   // The lines are worn stats, so the totals have changed.
   RecomputeEquipStats();
+  return true;
+}
+
+std::optional<FlameLines> CharacterInstance::BuyFlameRoll(
+    const EquipInstance* item, FlameType flame, const FlameLines& from) {
+  const int64_t cost = FlameOf(flame).cost;
+  if (item == nullptr || !item->CanFlame() || cost > character_.meso()) {
+    return std::nullopt;
+  }
+  character_.set_meso(character_.meso() - cost);
+  return RollFlame(flame, item->prototype(), from, rng_);
+}
+
+std::optional<FlameLines> CharacterInstance::BuyFlame(EquipSlot slot,
+                                                      FlameType flame,
+                                                      const FlameLines& from,
+                                                      StatPreset preset) {
+  return BuyFlameRoll(WornAt(preset, slot), flame, from);
+}
+
+std::optional<FlameLines> CharacterInstance::BuyInventoryFlame(
+    int index, FlameType flame, const FlameLines& from) {
+  return BuyFlameRoll(inventory_.equip_instance(index), flame, from);
+}
+
+bool CharacterInstance::TakeFlame(EquipSlot slot, const FlameLines& lines,
+                                  StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr) {
+    return false;
+  }
+  item->SetFlame(lines);
+  // The lines are worn stats, so the totals have changed.
+  RecomputeEquipStats();
+  return true;
+}
+
+bool CharacterInstance::TakeInventoryFlame(int index, const FlameLines& lines) {
+  EquipInstance* item = inventory_.equip_instance(index);
+  if (item == nullptr) {
+    return false;
+  }
+  item->SetFlame(lines);
   return true;
 }
 

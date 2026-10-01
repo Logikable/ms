@@ -27,6 +27,7 @@
 #include "src/character/skill_placement.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -749,6 +750,21 @@ class CharacterInstance {
   // TakePotential for a bagged item.
   bool TakeInventoryPotential(int index, PotentialTrack track,
                               const Potential& potential);
+  // One flame on a worn or bagged item, charged but not applied: TakeFlame
+  // applies it, at once for a Burning flame and on Keep for a Black one. It
+  // rolls against `from`, the lines the player is still weighing, so it never
+  // offers those again. Empty, spending nothing, for an item that can't be
+  // flamed or a purse that can't pay.
+  std::optional<FlameLines> BuyFlame(EquipSlot slot, FlameType flame,
+                                     const FlameLines& from,
+                                     StatPreset preset = StatPreset::kFirst);
+  std::optional<FlameLines> BuyInventoryFlame(int index, FlameType flame,
+                                              const FlameLines& from);
+  // Puts `lines` on the item. Returns false, changing nothing, for an empty
+  // slot or index.
+  bool TakeFlame(EquipSlot slot, const FlameLines& lines,
+                 StatPreset preset = StatPreset::kFirst);
+  bool TakeInventoryFlame(int index, const FlameLines& lines);
   // Spare copies of the symbol for `slot` in the equip bag. Traces don't
   // count, as elsewhere; see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
@@ -862,6 +878,10 @@ class CharacterInstance {
   bool PayForStarForce(const EquipInstance& item);
   bool PayForHammer(const EquipInstance& item);
   bool PayForCube(const EquipInstance& item, CubeType cube);
+  // PayForCube's twin, then a roll against `from`.
+  std::optional<FlameLines> BuyFlameRoll(const EquipInstance* item,
+                                         FlameType flame,
+                                         const FlameLines& from);
   // PayForCube, then a roll from `from` for `item`'s slot.
   std::optional<Potential> BuyRoll(const EquipInstance* item, CubeType cube,
                                    const Potential& from);
