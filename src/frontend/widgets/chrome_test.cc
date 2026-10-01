@@ -709,6 +709,18 @@ TEST(DialogWindowTest, RulesBetweenTheBodyAndTheButtons) {
   EXPECT_EQ(ScreenRow(screen, 3), "│       [OK]       │");
 }
 
+// A titled rule joins the left border as a plain rule does, though it opens on
+// a space; text that merely starts with one leaves the border alone.
+TEST(DialogWindowTest, ATitledRuleTeesIntoTheBorder) {
+  ftxui::Screen screen = RenderSized(
+      DialogWindow(" Ask ",
+                   {TitledSeparator(" Part ", kTheme), ftxui::text(" plain")},
+                   ActionButton("OK", true)),
+      20, 6);
+  EXPECT_EQ(ScreenRow(screen, 1), "├ Part ────────────┤");
+  EXPECT_EQ(ScreenRow(screen, 2), "│ plain            │");
+}
+
 TEST(DialogWindowTest, TheAccentColoursTheRuleAndTheBorder) {
   ftxui::Screen screen = RenderSized(
       DialogWindow("", {CenteredRow("Gone")}, ActionButton("OK", false), kRed),

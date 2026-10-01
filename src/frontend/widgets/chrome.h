@@ -261,6 +261,7 @@ ftxui::Element CenteredRow(const std::string& text);
 ftxui::Element AccentSeparator(ftxui::Color accent);
 // A rule with `title` at its left, placed and spaced as a window's own title,
 // for naming the part of a window below it. Pass the spaces, as to a window.
+// Inside an AccentWindow it meets the left border in a tee.
 ftxui::Element TitledSeparator(const std::string& title, ftxui::Color accent);
 
 // The divider inside a main-screen panel, the counterpart of PanelAccent(): a

@@ -160,6 +160,60 @@ class FloatingNode : public ftxui::Node {
   }
 };
 
+// A titled rule opens on its title's leading space, which ftxui can't join to
+// the window's left border the way it joins a plain rule. The space is marked
+// with automerge, which ftxui ignores on a non-box glyph, and the window that
+// holds it draws its own left border there as a tee once the border is down.
+class TitledRuleNode : public ftxui::Node {
+ public:
+  explicit TitledRuleNode(ftxui::Element child)
+      : ftxui::Node(ftxui::Elements{std::move(child)}) {
+  }
+
+  void ComputeRequirement() override {
+    ftxui::Node::ComputeRequirement();
+    requirement_ = children_[0]->requirement();
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    children_[0]->SetBox(box);
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    ftxui::Node::Render(screen);
+    screen.PixelAt(box_.x_min, box_.y_min).automerge = true;
+  }
+};
+
+// The window's side of TitledRuleNode.
+class TeeTitledRulesNode : public ftxui::Node {
+ public:
+  explicit TeeTitledRulesNode(ftxui::Element window)
+      : ftxui::Node(ftxui::Elements{std::move(window)}) {
+  }
+
+  void ComputeRequirement() override {
+    ftxui::Node::ComputeRequirement();
+    requirement_ = children_[0]->requirement();
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    children_[0]->SetBox(box);
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    ftxui::Node::Render(screen);
+    for (int y = box_.y_min + 1; y < box_.y_max; ++y) {
+      const ftxui::Pixel& inside = screen.PixelAt(box_.x_min + 1, y);
+      if (inside.automerge && inside.character == " ") {
+        screen.PixelAt(box_.x_min, y).character = "├";
+      }
+    }
+  }
+};
+
 // The overlay's own left edge, and the half glyph that can be left outside it.
 // See ClearUnder.
 class ClearUnderNode : public ftxui::Node {
@@ -524,8 +578,9 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
         std::move(title_el),
     });
   }
-  return ftxui::window(std::move(title_el),
-                       std::move(content) | ftxui::color(ftxui::Color::White)) |
+  return std::make_shared<TeeTitledRulesNode>(ftxui::window(
+             std::move(title_el),
+             std::move(content) | ftxui::color(ftxui::Color::White))) |
          ftxui::color(accent);
 }
 
@@ -559,10 +614,10 @@ ftxui::Element AccentSeparator(ftxui::Color accent) {
 ftxui::Element TitledSeparator(const std::string& title, ftxui::Color accent) {
   // A separator one row high draws as a horizontal rule, so flex stretches it
   // across the rest of the row.
-  return ftxui::hbox({
+  return std::make_shared<TitledRuleNode>(ftxui::hbox({
              ftxui::text(title),
              ftxui::separator() | ftxui::flex,
-         }) |
+         })) |
          ftxui::color(accent);
 }
 
