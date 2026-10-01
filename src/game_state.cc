@@ -659,6 +659,15 @@ std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
   return names;
 }
 
+// The Antique Totem Set, worn from this level in test and max mode. The shop
+// sells them from 125, but at 250M apiece a climb affords all three near 200.
+constexpr int kTotemLevel = 200;
+
+std::vector<std::string> AntiqueTotems() {
+  return {"horseback_riding_doll_totem", "jade_kettle_totem",
+          "bronze_incense_burner_totem"};
+}
+
 // Passed as `unspent_stage` to spend every point earned.
 constexpr int kSpendEveryStage = 0;
 
@@ -811,6 +820,9 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   if (state.character.proto().level() >= kRootAbyssLevel) {
     WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
     WearAll(state, PrincessNoSecondary(state.character.proto().job()), equips);
+  }
+  if (state.character.proto().level() >= kTotemLevel) {
+    WearAll(state, AntiqueTotems(), equips);
   }
   if (state.character.proto().level() >= kAbsoLabLevel) {
     WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
@@ -1419,6 +1431,9 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {
     return kAbsoLabLevel;
+  }
+  if (BaseSlot(proto.equip_slot()) == EQUIP_SLOT_TOTEM) {
+    return kTotemLevel;
   }
   return proto.required_level();
 }

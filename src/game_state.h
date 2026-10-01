@@ -244,7 +244,8 @@ void GrantLevelRewards(GameState& state, int from_level, int to_level);
 // for it. Root Abyss gear is worn at 150 and paid for by bosses opening at 200;
 // AbsoLab is worn at 160 and paid for by bosses opening at 210; Arcane Umbra is
 // worn at 200 and paid for at 230. Gear a boss drops directly waits for that
-// boss the same way. Everything else can be owned as soon as it can be worn.
+// boss the same way, and the totems wait for the income that buys them, at 200.
+// Everything else can be owned as soon as it can be worn.
 int OwnedFromLevel(const EquipPrototype& proto);
 
 }  // namespace ms

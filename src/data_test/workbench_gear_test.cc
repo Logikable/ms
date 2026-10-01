@@ -270,6 +270,19 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   }
 }
 
+// The three Antique Totems are worn from 200, when a climb can afford them,
+// though the shop sells them from 125.
+TEST_F(WorkbenchGearTest, TheTotemsAreWornFrom200) {
+  GameState below = Workbench(JOB_ADVANCEMENT_HERO, 190);
+  EXPECT_EQ(below.character.equipped().count(EQUIP_SLOT_TOTEM), 0u);
+
+  GameState at = Workbench(JOB_ADVANCEMENT_HERO, 200);
+  const WornGear& worn = at.character.equipped();
+  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_TOTEM)) {
+    EXPECT_EQ(worn.count(slot), 1u) << EquipSlot_Name(slot);
+  }
+}
+
 // A Hero advances at 100 but their Frozen axe requires 120, so in between they
 // hold the tier below. --mode=max measures a boss at every level where one
 // opens.
