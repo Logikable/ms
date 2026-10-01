@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/component/event.hpp"
@@ -347,6 +348,31 @@ TEST_F(ChoosingCubeTest, TheQuestionStacksBeforeKeepAfterAndPrice) {
   }
   EXPECT_EQ(dashes, kPotentialLines);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
+}
+
+// The columns are sized by what the pool can roll, not by what rolled: no
+// roll, a short one and a long Legendary one leave the window and the STR
+// line's value where they were.
+TEST_F(ChoosingCubeTest, ARerollNeverMovesTheColumns) {
+  EquipInstance item = Cubed();
+  CubePanel panel = OpenBlack(item, 5 * kBlackCubeCost);
+  auto shape = [&] {
+    const std::vector<std::string> rows = Rows(panel);
+    const int str = RowOf(rows, "STR");
+    return std::pair(TextColumns(rows[0]), Column(rows[str], "+"));
+  };
+  const auto empty = shape();
+  panel.SetAfter(Roll());
+  EXPECT_EQ(shape(), empty);
+  Potential longest;
+  longest.set_rank(POTENTIAL_RANK_LEGENDARY);
+  for (int i = 0; i < kPotentialLines; ++i) {
+    PotentialLine* line = longest.add_lines();
+    line->set_type(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  }
+  panel.SetAfter(longest);
+  EXPECT_EQ(shape(), empty);
 }
 
 // Confirm stays on Confirm to reroll again; up reaches the Keep button above.

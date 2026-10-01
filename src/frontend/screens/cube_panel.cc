@@ -70,22 +70,38 @@ ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
       selected);
 }
 
-// The widest line name and value, over every potential shown together, so the
-// Before and After boxes line up.
+// The widest line name and value the item can show on `track`: every line its
+// pool rolls at any rank, and the lines it already has. Measured over what
+// could roll rather than what did, so a reroll never moves the columns.
 struct LineWidths {
   int name = 0;
   int value = 0;
 };
 
-LineWidths MeasureLines(std::initializer_list<const Potential*> potentials,
-                        int level) {
+void MeasureLine(const PotentialLine& line, int level, LineWidths& widths) {
+  widths.name =
+      std::max<int>(widths.name, TextColumns(PotentialLineName(line.type())));
+  widths.value = std::max<int>(
+      widths.value, TextColumns(PotentialLineValueText(line, level)));
+}
+
+LineWidths MeasureLines(const EquipInstance& item, PotentialTrack track,
+                        std::initializer_list<const Potential*> shown) {
+  const int level = item.prototype().required_level();
+  const PotentialGroup group = PotentialGroupOf(item.prototype().equip_slot());
   LineWidths widths;
-  for (const Potential* potential : potentials) {
+  for (int r = POTENTIAL_RANK_RARE; r <= POTENTIAL_RANK_LEGENDARY; ++r) {
+    const PotentialRank rank = static_cast<PotentialRank>(r);
+    for (PotentialLineType type : PotentialPool(track, group, rank)) {
+      PotentialLine line;
+      line.set_type(type);
+      line.set_rank(rank);
+      MeasureLine(line, level, widths);
+    }
+  }
+  for (const Potential* potential : shown) {
     for (const PotentialLine& line : potential->lines()) {
-      widths.name = std::max<int>(widths.name,
-                                  TextColumns(PotentialLineName(line.type())));
-      widths.value = std::max<int>(
-          widths.value, TextColumns(PotentialLineValueText(line, level)));
+      MeasureLine(line, level, widths);
     }
   }
   return widths;
@@ -245,7 +261,8 @@ ftxui::Element CubePanel::RenderChoice(ftxui::Color accent) const {
   const Potential empty;
   const Potential& before = SelectedPotential();
   const Potential& after = after_.has_value() ? *after_ : empty;
-  const LineWidths widths = MeasureLines({&before, &after}, level);
+  const LineWidths widths =
+      MeasureLines(*item_, CubeOf(selected_cube()).track, {&before, &after});
   std::vector<ftxui::Element> body = {
       CenteredRow(Prompt()),
       TitledSeparator(" Before ", accent),
@@ -278,7 +295,9 @@ ftxui::Element CubePanel::RenderConfirm() const {
   if (item_ != nullptr) {
     const Potential& potential = SelectedPotential();
     const int level = item_->prototype().required_level();
-    AppendLineRows(body, potential, level, MeasureLines({&potential}, level));
+    AppendLineRows(
+        body, potential, level,
+        MeasureLines(*item_, CubeOf(selected_cube()).track, {&potential}));
   }
   body.push_back(AccentSeparator(accent));
   // The purse above the price: the window is the only thing on screen saying
