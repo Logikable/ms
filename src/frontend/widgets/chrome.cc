@@ -625,6 +625,18 @@ ftxui::Element PanelSeparator(bool highlighted) {
   return AccentSeparator(PanelAccent(highlighted));
 }
 
+ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor,
+                          bool moot) {
+  ftxui::Element chip = ftxui::text((on ? kCheckedBox : kUncheckedBox) +
+                                    std::string(" ") + label);
+  if (moot) {
+    chip = std::move(chip) | ftxui::dim;
+  }
+  // A switch is a control rather than a row, so it inverts like every other
+  // button in the game.
+  return on_cursor ? std::move(chip) | ftxui::inverted : chip;
+}
+
 ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
   return ok ? cell : std::move(cell) | ftxui::color(kRed);
 }

@@ -216,7 +216,7 @@ void ShopPanel::Reset() {
   tab_ = kShopWeaponTab;
   pay_ = kShopMesoTab;
   show_all_ = false;
-  on_switch_ = false;
+  on_options_ = false;
   Restock();
   zone_ = kZoneList;
   selected_ = 0;
@@ -236,14 +236,8 @@ void ShopPanel::StepTab(int direction) {
 }
 
 void ShopPanel::StepPayTab(int direction) {
-  // The switch sits past both ends of the row, as Expand does on the bag's bar,
-  // so either shelf reaches it without passing through the other.
   int next = pay_ + direction;
-  if (on_switch_) {
-    on_switch_ = false;
-    next = direction > 0 ? 0 : kNumShopPayTabs - 1;
-  } else if (next < 0 || next >= kNumShopPayTabs) {
-    on_switch_ = true;
+  if (next < 0 || next >= kNumShopPayTabs) {
     return;
   }
   pay_ = next;
@@ -257,7 +251,6 @@ bool ShopPanel::HasPayRow() const {
 }
 
 void ShopPanel::MoveCursor(int delta) {
-  on_switch_ = false;
   int bars = HasPayRow() ? 2 : 1;
   int next = StepCursor(CursorStop(), delta, bars + RowCount());
   if (next < bars) {
@@ -288,7 +281,7 @@ void ShopPanel::ScrollToCursor() {
 }
 
 void ShopPanel::OpenMenu() {
-  if (zone_ != kZoneList) {
+  if (on_options_ || zone_ != kZoneList) {
     // Nothing to open a menu on, since the cursor is on a bar, not an item.
     return;
   }
@@ -383,12 +376,24 @@ const ItemPrototype* ShopPanel::selected_stackable() const {
 }
 
 bool ShopPanel::OnEvent(ftxui::Event event) {
-  if (IsForward(event) && zone_ == kZonePay && on_switch_) {
-    show_all_ = !show_all_;
-    Restock();
-    selected_ = 0;
-    first_visible_ = 0;
+  // Tab moves between the two windows. The shop keeps its cursor while the
+  // Options window has the keys, so Tab back finds it where it was.
+  if (event == ftxui::Event::Tab || event == ftxui::Event::TabReverse) {
+    on_options_ = !on_options_;
     return true;
+  }
+  if (on_options_) {
+    if (IsForward(event)) {
+      show_all_ = !show_all_;
+      Restock();
+      selected_ = 0;
+      first_visible_ = 0;
+    }
+    // The only switch has nowhere for an arrow to go.
+    return IsForward(event) || event == ftxui::Event::ArrowUp ||
+           event == ftxui::Event::ArrowDown ||
+           event == ftxui::Event::ArrowLeft ||
+           event == ftxui::Event::ArrowRight;
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
@@ -439,7 +444,7 @@ std::vector<const ItemPrototype*> ShopPanel::TabTokens() const {
 ftxui::Element ShopPanel::RenderTabBar() const {
   // Chips are white while the bar has the cursor and theme blue otherwise,
   // which shows the player the arrow keys are on the bar.
-  bool focused = zone_ == kZoneTabs;
+  bool focused = !on_options_ && zone_ == kZoneTabs;
   const std::vector<TabSpec> kTabs = {
       {"Weapon"}, {"Equips"}, {"Etc"}, {"Buy-Back"}};
   std::vector<ftxui::Element> chips;
@@ -499,18 +504,7 @@ ftxui::Element ShopPanel::RenderPayBar() const {
     return ftxui::text("");
   }
   const std::vector<TabSpec> kTabs = {{"Meso"}, {"Token"}};
-  ftxui::Element show_all = ftxui::text(
-      (show_all_ ? kCheckedBox : kUncheckedBox) + std::string(" Show All"));
-  if (zone_ == kZonePay && on_switch_) {
-    show_all = std::move(show_all) | ftxui::inverted;
-  }
-  return ftxui::hbox({
-      TabBar(kTabs, pay_, zone_ == kZonePay && !on_switch_, /*width=*/0),
-      ftxui::filler(),
-      std::move(show_all),
-      // Ends where the Cost column does, past the rows' gap and scroll bar.
-      ftxui::text("  "),
-  });
+  return TabBar(kTabs, pay_, !on_options_ && zone_ == kZonePay, /*width=*/0);
 }
 
 // The price is red when the player can't pay it, so the list shows what they
@@ -602,7 +596,7 @@ ftxui::Element ShopPanel::RenderStock() const {
   name_clock_.Follow(tab_ * kNameClockTabStride + selected_);
   int last = std::min(RowCount(), first_visible_ + kVisibleRows);
   for (int i = first_visible_; i < last; ++i) {
-    bool selected = zone_ == kZoneList && i == selected_;
+    bool selected = !on_options_ && zone_ == kZoneList && i == selected_;
     std::string cursor = selected ? "> " : "  ";
     std::chrono::steady_clock::duration elapsed =
         selected ? name_clock_.Elapsed()
@@ -653,9 +647,12 @@ ftxui::Element ShopPanel::Render() const {
                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
   // The balance panel's columns are part of the shop whichever shelf is open,
   // so the menu below still measures its column from the shop's own border.
-  ftxui::Element window = ftxui::hbox({
-      ThemedWindow(" Shop ", std::move(body)),
-      RenderTokenPanel(),
+  ftxui::Element window = ftxui::vbox({
+      ftxui::hbox({
+          ThemedWindow(" Shop ", std::move(body), !on_options_),
+          RenderTokenPanel(),
+      }),
+      RenderOptions(),
   });
   if (!menu_open_) {
     return window;
@@ -670,6 +667,22 @@ ftxui::Element ShopPanel::Render() const {
   return ftxui::dbox({
       std::move(window),
       Floating(menu_.Render(MenuRow(), kMenuCol)),
+  });
+}
+
+ftxui::Element ShopPanel::RenderOptions() const {
+  // Under the shop alone: the balance panel beside it is blank on a meso shelf,
+  // and a window running under blank space would look detached.
+  return ftxui::hbox({
+      ThemedWindow(" Options ",
+                   ftxui::hbox({
+                       ftxui::text("  "),
+                       // Etc and Buy-Back are never filtered.
+                       OptionChip("Show All", show_all_, on_options_,
+                                  /*moot=*/!HasPayRow()),
+                   }) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth),
+                   on_options_),
+      ftxui::filler(),
   });
 }
 

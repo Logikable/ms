@@ -545,14 +545,16 @@ TEST_F(ShopPanelTest, AMarksmanSeesOnlyCrossbowsAndTheirArrows) {
   EXPECT_NE(rendered.find("Bolts"), std::string::npos);
 }
 
-// Show All sits past both ends of the pay row. Enter lifts the filter, and an
-// item only it lists shows its type in red.
+// Show All lives in the Options window, which Tab reaches. Enter lifts the
+// filter, and an item only it lists shows its type in red.
 TEST_F(ShopPanelTest, ShowAllLiftsTheFilterUntilReset) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/1, JOB_SWORDMAN);
   ShopPanel panel(c, equips_, items_);
   ASSERT_NE(Render(panel).find("[ ] Show All"), std::string::npos);
-  panel.OnEvent(ftxui::Event::ArrowUp);    // list to pay bar
-  panel.OnEvent(ftxui::Event::ArrowLeft);  // Meso to the switch
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Tab));
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowDown)) << "held by Options";
+  panel.OpenMenu();
+  EXPECT_FALSE(panel.menu_open()) << "no item has the cursor";
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find(std::string(kCheckedBox) + " Show All"),
@@ -560,23 +562,34 @@ TEST_F(ShopPanelTest, ShowAllLiftsTheFilterUntilReset) {
   EXPECT_NE(rendered.find("Subi"), std::string::npos);
   EXPECT_EQ(CellColor(panel, "Subi", "Throwing Star"), kRed);
   EXPECT_NE(CellColor(panel, "Machete", "One-Handed"), kRed);
+  EXPECT_EQ(rendered.find("> "), std::string::npos) << "the list lost focus";
 
-  panel.OnEvent(ftxui::Event::ArrowRight);  // wraps onto Meso
-  EXPECT_EQ(panel.selected_token(), nullptr);
+  panel.OnEvent(ftxui::Event::TabReverse);
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::Return)) << "Enter is the caller's";
-  panel.OnEvent(ftxui::Event::ArrowRight);  // Token
-  panel.OnEvent(ftxui::Event::ArrowRight);  // the switch again
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
-  EXPECT_EQ(Render(panel).find("Subi"), std::string::npos) << "toggled off";
+  EXPECT_NE(Render(panel).find("> "), std::string::npos);
   panel.Reset();
   rendered = Render(panel);
   EXPECT_NE(rendered.find("[ ] Show All"), std::string::npos);
   EXPECT_EQ(rendered.find("Subi"), std::string::npos);
 }
 
-TEST_F(ShopPanelTest, TheEtcTabHasNoShowAll) {
+// The window stays under every tab so the shop keeps one height, but the
+// switch is moot on the shelves nothing filters.
+TEST_F(ShopPanelTest, ShowAllIsMootOnTheEtcTab) {
   OpenShelf(shop_, kShopEtcTab);
-  EXPECT_EQ(Render(shop_).find("Show All"), std::string::npos);
+  ftxui::Screen screen = Draw(shop_);
+  bool found = false;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x + 3 < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).character == "S" &&
+          screen.PixelAt(x + 1, y).character == "h" &&
+          screen.PixelAt(x + 3, y).character == "w") {
+        found = true;
+        EXPECT_TRUE(screen.PixelAt(x, y).dim);
+      }
+    }
+  }
+  EXPECT_TRUE(found);
 }
 
 TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {

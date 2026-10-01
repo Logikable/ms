@@ -6,7 +6,8 @@
  * 2nd job its own weapons and their ammunition. Items are left out because the
  * player could never use them, not because they can't use them yet: an item
  * above their level still shows, in red, as something to save for. A Show All
- * switch at the right of the second row lifts the filter until the shop closes.
+ * switch in the Options window under the shop lifts the filter until the shop
+ * closes; Tab moves between the two windows, as on the boss screen.
  *
  * Four tabs: Weapon, Equips for everything else worn, Etc for stackables, and
  * the player's own buyback shelf. They are separate lists rather than more rows
@@ -97,9 +98,10 @@ class ShopPanel {
   // away.
   void Reset();
   ftxui::Element Render() const;
-  // Handles Up and Down along the list, and Enter on the Show All switch. Other
-  // Enters and Escape are left to the caller, which owns the screen one opens
-  // and the other closes. Returns true if the event was consumed.
+  // Handles the arrows, Tab between the windows, and Enter on the Show All
+  // switch. Other Enters and Escape are left to the caller, which owns the
+  // screen one opens and the other closes. Returns true if the event was
+  // consumed.
   bool OnEvent(ftxui::Event event);
   // The equip under the cursor, or nullptr when the open tab isn't an equipment
   // tab or is empty. Exactly one of this, selected_stackable() and
@@ -148,8 +150,8 @@ class ShopPanel {
   int CursorStop() const;
   // Moves the cursor `delta` stops around the ring, including the tab bar.
   void MoveCursor(int delta);
-  // Moves one tab along whichever bar has the cursor and restocks. The tab
-  // bar's ends stop; the pay bar's lead to the Show All switch.
+  // Moves one tab along whichever bar has the cursor and restocks. The ends
+  // stop, as in the bag: stepping past the last tab does nothing.
   void StepTab(int direction);
   void StepPayTab(int direction);
   // Whether the filter lets `proto` onto this character's shelf.
@@ -170,6 +172,8 @@ class ShopPanel {
   ftxui::Element RenderTokenPanel() const;
   // One balance row of that panel: the currency's mark and the count.
   ftxui::Element RenderTokenBalance(const ItemPrototype& token) const;
+  // The Options window under the shop, holding the Show All switch.
+  ftxui::Element RenderOptions() const;
   // The second row: Meso and Token, or a blank row under a tab that has
   // neither. Blank rather than absent, so the window keeps one height.
   ftxui::Element RenderPayBar() const;
@@ -213,10 +217,9 @@ class ShopPanel {
   const std::map<std::string, ItemPrototype>& items_;
   int tab_ = kShopWeaponTab;
   int pay_ = kShopMesoTab;
-  // The Show All switch, and whether the cursor is on it rather than on the
-  // pay tabs.
+  // The Show All switch, and whether the Options window has the keys.
   bool show_all_ = false;
-  bool on_switch_ = false;
+  bool on_options_ = false;
   // The stock, in display order. Rebuilt by Reset(), the only thing that
   // changes it; buying doesn't.
   std::vector<StockRow> stock_;

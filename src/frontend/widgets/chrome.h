@@ -115,6 +115,12 @@ ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor);
 inline constexpr char kCheckedBox[] = "[✓]";
 inline constexpr char kUncheckedBox[] = "[ ]";
 
+// One switch on an Options row: its box, then its name, so a row of them reads
+// as a column of states. A `moot` switch still toggles but is dimmed, since
+// something else on the screen makes it change nothing.
+ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor,
+                          bool moot = false);
+
 // The standard way a panel says it has nothing to show: " (empty)". Use a
 // specific reason only when it tells the player something they can't see.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);

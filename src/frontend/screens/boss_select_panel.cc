@@ -47,20 +47,6 @@ constexpr int kPanelRows = kBossPanelHeight - 2;
 constexpr int kOptionsHeight = 3;
 // The switches on the row, left to right.
 constexpr int kOptionCount = 2;
-// One switch: its box, then its name. The box comes first so the row reads as a
-// column of states rather than a sentence.
-ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor,
-                          bool moot = false) {
-  ftxui::Element chip = ftxui::text((on ? kCheckedBox : kUncheckedBox) +
-                                    std::string(" ") + label);
-  // Still toggles, but the other switches make it change nothing.
-  if (moot) {
-    chip = std::move(chip) | ftxui::dim;
-  }
-  // A switch is a control rather than a row, so it inverts like every other
-  // button in the game.
-  return on_cursor ? std::move(chip) | ftxui::inverted : chip;
-}
 
 std::string ResetName(ResetPeriod period) {
   switch (period) {
