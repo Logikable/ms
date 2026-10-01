@@ -407,6 +407,39 @@ TEST_F(InspectPanelTest, ShowsPercentageStatsUnderTheFlatOnes) {
   EXPECT_EQ(rendered.find("Max MP"), std::string::npos);
 }
 
+// A flame's share is teal and comes after the other sources, and its three
+// percents sit at the very bottom with the item's own value beside them.
+TEST_F(InspectPanelTest, ShowsTheFlameInTealAndItsPercentsLast) {
+  sword_.mutable_base_stats()->set_max_hp_pct(10);
+  sword_.mutable_base_stats()->set_boss_damage(30);
+  Equip state;
+  for (auto [stat, tier] : {std::pair{FLAME_STAT_STR, 5},
+                            {FLAME_STAT_ALL_STAT, 6},
+                            {FLAME_STAT_BOSS_DAMAGE, 5}}) {
+    FlameLine* line = state.add_flame();
+    line->set_stat(stat);
+    line->set_tier(tier);
+  }
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  // A level 10 item's STR is 1 a tier.
+  EXPECT_NE(rendered.find("STR  +5 (0 +5)"), std::string::npos) << rendered;
+  const size_t all = rendered.find("All Stats  +6% (0% +6%)");
+  const size_t boss = rendered.find("Boss Damage  +40% (30% +10%)");
+  ASSERT_NE(all, std::string::npos);
+  ASSERT_NE(boss, std::string::npos);
+  EXPECT_LT(rendered.find("Max HP  +10%"), all);
+  EXPECT_LT(all, boss);
+  EXPECT_EQ(rendered.find("Damage  +"), rendered.find("Boss Damage  +") + 5)
+      << "no Damage row without a Damage line";
+
+  ftxui::Screen screen = Draw(panel);
+  EXPECT_EQ(ColorOf(screen, "+5)"), kTeal);
+  EXPECT_EQ(ColorOf(screen, "+6%)"), kTeal);
+}
+
 // A stat at zero has no row, and an item with no stats says so instead of
 // showing an empty column.
 TEST_F(InspectPanelTest, AnItemWithNoStatsSaysSoRatherThanShowingZeroes) {

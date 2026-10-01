@@ -54,6 +54,10 @@ inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);
 // line at a glance, and the two marks from each other.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(240, 140, 60);
 
+// A flame's share of a stat. GMS's own: sampled from the flame numbers in a
+// GMS tooltip, where the wiki's #55CCCC is an approximation.
+inline const ftxui::Color kTeal = ftxui::Color::RGB(10, 227, 173);
+
 // Star Force success rates, and the mark for a Root Abyss top's price.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
 // The mark for a Root Abyss bottom's price. Warm where kPurple is cool, so the

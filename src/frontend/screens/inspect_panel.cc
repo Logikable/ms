@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/scroll_card.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -759,10 +760,12 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
   const EquipStats& base = proto.base_stats();
   const EquipStats& scroll = item_state.scroll_stats();
   EquipStats sf = item.StarForceStatGains();
+  EquipStats flame = item.FlameStatGains();
   bool any_stat = false;
   for (const DisplayStat& stat : kDisplayStats) {
-    ftxui::Element row = StatLine(stat.label, stat.GetFrom(base),
-                                  stat.GetFrom(scroll), stat.GetFrom(sf));
+    ftxui::Element row =
+        StatLine(stat.label, stat.GetFrom(base), stat.GetFrom(scroll),
+                 stat.GetFrom(sf), stat.GetFrom(flame));
     if (row == nullptr) {
       continue;
     }
@@ -779,6 +782,26 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
     rows.push_back(TextRow(ftxui::text(" " + std::string(stat.label) + "  +" +
                                        std::to_string(value) + "% ")));
     any_stat = true;
+  }
+  // Last, the three percents a flame can add to, with what the item has of its
+  // own beside it: "All Stats  +6% (0% +6%)".
+  const FlamePercents percents = FlamePercentsOf(item_state.flame(), proto);
+  const struct {
+    const char* label;
+    int base;
+    int flame;
+  } flame_percents[] = {
+      {"All Stats", 0, percents.all_stat},
+      {"Damage", 0, percents.damage},
+      {"Boss Damage", base.boss_damage(), flame.boss_damage()},
+  };
+  for (const auto& stat : flame_percents) {
+    ftxui::Element row =
+        StatLine(stat.label, stat.base, 0, 0, stat.flame, /*unit=*/"%");
+    if (row != nullptr) {
+      rows.push_back(TextRow(std::move(row)));
+      any_stat = true;
+    }
   }
   if (!any_stat) {
     rows.push_back(TextRow(EmptyState("no stats")));
@@ -946,30 +969,27 @@ ftxui::Element InspectPanel::SymbolBar(int max_level, int level) {
 }
 
 ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
-                                      int scroll, int sf) {
-  if (base == 0 && scroll == 0 && sf == 0) {
+                                      int scroll, int sf, int flame,
+                                      const std::string& unit) {
+  if (base == 0 && scroll == 0 && sf == 0 && flame == 0) {
     return nullptr;
   }
-  int total = base + scroll + sf;
+  auto number = [&](int value) { return std::to_string(value) + unit; };
+  int total = base + scroll + sf + flame;
   // Base only: no breakdown needed, plain text.
-  if (scroll == 0 && sf == 0) {
-    return ftxui::text(" " + label + "  +" + std::to_string(total) + " ");
+  if (scroll == 0 && sf == 0 && flame == 0) {
+    return ftxui::text(" " + label + "  +" + number(total) + " ");
   }
-  // Breakdown: base in the default colour, scrolls in purple, star force in
-  // gold.
-  const ftxui::Color kScrollColor = kPurple;
-  const ftxui::Color kSfColor = kGold;
+  // Breakdown: base in the default colour, then each source in its own: scrolls
+  // purple, star force gold, flame teal.
   std::vector<ftxui::Element> parts;
-  parts.push_back(
-      ftxui::text(" " + label + "  +" + std::to_string(total) + " ("));
-  parts.push_back(ftxui::text(std::to_string(base)));
-  if (scroll > 0) {
-    parts.push_back(ftxui::text(" +" + std::to_string(scroll)) |
-                    ftxui::color(kScrollColor));
-  }
-  if (sf > 0) {
-    parts.push_back(ftxui::text(" +" + std::to_string(sf)) |
-                    ftxui::color(kSfColor));
+  parts.push_back(ftxui::text(" " + label + "  +" + number(total) + " ("));
+  parts.push_back(ftxui::text(number(base)));
+  for (const auto& [value, colour] :
+       {std::pair{scroll, kPurple}, {sf, kGold}, {flame, kTeal}}) {
+    if (value > 0) {
+      parts.push_back(ftxui::text(" +" + number(value)) | ftxui::color(colour));
+    }
   }
   parts.push_back(ftxui::text(") "));
   return ftxui::hbox(std::move(parts));

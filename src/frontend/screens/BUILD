@@ -144,6 +144,7 @@ cc_library(
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:scroll_card",
         "//src/item",
+        "//src/item:flame",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",

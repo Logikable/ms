@@ -41,13 +41,12 @@ inline const DisplayStat kDisplayStats[] = {
     {"DEF", &EquipStats::def},
 };
 
-// The percentage stats an equip can carry, in display order. They are kept
-// apart from kDisplayStats because scrolls and stars never grant them. They
-// come only from the prototype, and their rows show a % instead of a breakdown.
+// The percentage stats only the prototype grants, in display order. Their
+// rows show a % instead of a breakdown. Boss Damage isn't here: a flame adds to
+// it, so the inspect card lists it with the flame's other percents.
 inline const DisplayStat kDisplayPercentStats[] = {
     {"Max HP", &EquipStats::max_hp_pct},
     {"Max MP", &EquipStats::max_mp_pct},
-    {"Boss Damage", &EquipStats::boss_damage},
     {"Ignore DEF", &EquipStats::ignore_enemy_defense},
     {"Item Drop Rate", &EquipStats::item_drop_rate},
 };
