@@ -137,7 +137,7 @@ struct Client {
                         *player_inspect_panel, player_item_panel,
                         *shop_panel,           buy_panel,
                         *bank_panel,           *link_skill_panel,
-                        *job_inspect_panel,    skill_inspect_panel,
+                        *job_inspect_panel,    skill_inspect_screen,
                         buff_info_panel,       *menu_panel,
                         *keybinds_panel,       *options_panel,
                         *jukebox_panel},
@@ -170,7 +170,7 @@ struct Client {
   SellPanel sell_panel;
   SellEquipPanel sell_equip_panel;
   BuyPanel buy_panel;
-  SkillInspectPanel skill_inspect_panel;
+  SkillInspectScreen skill_inspect_screen;
   BuffInfoPanel buff_info_panel;
   InspectPanel inspect_panel;
   InspectPanel preview_inspect_panel;

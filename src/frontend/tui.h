@@ -59,6 +59,7 @@
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/screens/skill_inspect_screen.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
@@ -241,7 +242,9 @@ class Tui {
   InspectPanel inspect_panel_;
   // The second card: kTraceRecover's recovered item, kStarForce's next star.
   InspectPanel preview_inspect_panel_;
+  // The Job Inspect screen's card, beside the book.
   SkillInspectPanel skill_inspect_panel_;
+  SkillInspectScreen skill_inspect_screen_;
   StarForcePanel star_force_panel_;
   CubePanel cube_panel_;
   // The item the star force screen last drew, and the same item one star on.

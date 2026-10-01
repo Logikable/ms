@@ -174,7 +174,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
                                  player_inspect_panel_, player_item_panel_,
                                  shop_panel_,           buy_panel_,
                                  bank_panel_,           link_skill_panel_,
-                                 job_inspect_panel_,    skill_inspect_panel_,
+                                 job_inspect_panel_,    skill_inspect_screen_,
                                  buff_info_panel_,      menu_panel_,
                                  keybinds_panel_,       options_panel_,
                                  jukebox_panel_},
@@ -1112,12 +1112,13 @@ ftxui::Element Tui::RenderScreen() {
     case kJobInspect:
       return RenderJobInspect();
     case kSkillInspect:
-      skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
-                                    controller_.skill_inspect_level(),
-                                    controller_.skill_inspect_bonus());
-      skill_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
-      skill_inspect_panel_.SetWidthBounds(0, ftxui::Terminal::Size().dimx);
-      return Centred(skill_inspect_panel_.Render());
+      skill_inspect_screen_.SetSkills({&controller_.skill_inspect_skill(),
+                                       controller_.skill_inspect_level(),
+                                       controller_.skill_inspect_bonus()},
+                                      controller_.skill_inspect_boosted());
+      skill_inspect_screen_.SetSize(ftxui::Terminal::Size().dimx,
+                                    ftxui::Terminal::Size().dimy);
+      return Centred(skill_inspect_screen_.Render());
     case kInspect:
     case kItemInspect:
       return RenderInspect();

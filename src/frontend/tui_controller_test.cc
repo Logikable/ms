@@ -40,7 +40,7 @@
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
-#include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/screens/skill_inspect_screen.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
@@ -336,7 +336,7 @@ class TuiControllerTest : public testing::Test {
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
                          *bank_panel_,           *link_skill_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
                          buff_info_panel_,       *menu_panel_,
                          *keybinds_panel_,       *options_panel_,
                          *jukebox_panel_},
@@ -515,7 +515,7 @@ class TuiControllerTest : public testing::Test {
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
                          *bank_panel_,           *link_skill_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
                          buff_info_panel_,       *menu_panel_,
                          *keybinds_panel_,       *options_panel_,
                          *jukebox_panel_},
@@ -590,7 +590,7 @@ class TuiControllerTest : public testing::Test {
   std::string RenderSkillCard() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                               ftxui::Dimension::Fixed(20));
-    ftxui::Render(scr, skill_inspect_panel_.Render());
+    ftxui::Render(scr, skill_inspect_screen_.Render());
     return scr.ToString();
   }
 
@@ -657,7 +657,7 @@ class TuiControllerTest : public testing::Test {
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
                          *bank_panel_,           *link_skill_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
                          buff_info_panel_,       *menu_panel_,
                          *keybinds_panel_,       *options_panel_,
                          *jukebox_panel_},
@@ -704,7 +704,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BankPanel> bank_panel_;
   std::unique_ptr<LinkSkillPanel> link_skill_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
-  SkillInspectPanel skill_inspect_panel_;
+  SkillInspectScreen skill_inspect_screen_;
   BuffInfoPanel buff_info_panel_;
   InspectPanel inspect_panel_;
   InspectPanel preview_inspect_panel_;
@@ -957,9 +957,9 @@ TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
-  skill_inspect_panel_.SetSkill(&skill, 3, 0);
+  skill_inspect_screen_.SetSkills({&skill, 3, 0}, {});
   // Small enough that there is somewhere to scroll to.
-  skill_inspect_panel_.SetMaxRows(6);
+  skill_inspect_screen_.SetSize(60, 6);
 
   std::string head = RenderSkillCard();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -976,6 +976,30 @@ TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
   controller_->OpenSkillInspect(SlashBlast());
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// A boosted skill is found by name, and a name two jobs use resolves to the
+// one in the character's own book, at the level they have it. Tab reaches the
+// screen rather than closing it.
+TEST_F(TuiControllerTest, ABoostCardFindsTheSkillItBoosts) {
+  Skill own = SlashBlast();
+  ASSERT_TRUE(state_->character.LearnSkill(own, 3));
+  Skill other = own;
+  other.clear_placement();
+  PlaceIn(other, JOB_ADVANCEMENT_ARCHER);
+  state_->skills["a_slash_blast"] = other;
+  state_->skills["slash_blast"] = own;
+  Skill node;
+  node.set_name("Slash Blast Boost");
+  node.add_boost()->set_skill_name("Slash Blast");
+
+  controller_->OpenSkillInspect(node);
+  std::vector<InspectedSkill> boosted = controller_->skill_inspect_boosted();
+  ASSERT_EQ(boosted.size(), 1u);
+  EXPECT_EQ(boosted[0].skill, &state_->skills["slash_blast"]);
+  EXPECT_EQ(boosted[0].learned, 3);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kSkillInspect);
 }
 
 // --- Job advancement ---
@@ -3126,7 +3150,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   BankPanel bank(fresh.character, fresh.account, fresh.items);
   LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
-  SkillInspectPanel skill_card;
+  SkillInspectScreen skill_card;
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
@@ -3202,7 +3226,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   BankPanel bank(fresh.character, fresh.account, fresh.items);
   LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
-  SkillInspectPanel skill_card;
+  SkillInspectScreen skill_card;
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
@@ -3261,7 +3285,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   BankPanel bank(fresh.character, fresh.account, fresh.items);
   LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
-  SkillInspectPanel skill_card;
+  SkillInspectScreen skill_card;
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
@@ -3320,7 +3344,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   BankPanel bank(fresh.character, fresh.account, fresh.items);
   LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
-  SkillInspectPanel skill_card;
+  SkillInspectScreen skill_card;
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;

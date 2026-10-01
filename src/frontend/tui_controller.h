@@ -50,7 +50,7 @@
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
-#include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/screens/skill_inspect_screen.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/symbol_combine_panel.h"
 #include "src/frontend/screens/symbol_level_panel.h"
@@ -113,7 +113,7 @@ struct Screens {
   BankPanel& bank_panel;
   LinkSkillPanel& link_skill_panel;
   JobInspectPanel& job_inspect_panel;
-  SkillInspectPanel& skill_inspect_panel;
+  SkillInspectScreen& skill_inspect_screen;
   BuffInfoPanel& buff_info_panel;
   MenuPanel& menu_panel;
   KeybindsPanel& keybinds_panel;
@@ -373,6 +373,9 @@ class TuiController {
   }
   int skill_inspect_level() const;
   int skill_inspect_bonus() const;
+  // The skills the card's skill boosts, each at the card character's level. A
+  // name several jobs use resolves to the one in that character's books.
+  std::vector<InspectedSkill> skill_inspect_boosted() const;
 
   // What the pending advancement's dialog draws. The stage is the one ABOVE
   // where the character stands, an advancement being offered from below.
@@ -938,7 +941,7 @@ class TuiController {
   // main view, or the Link Skills screen that raised it.
   Screen skill_card_return_ = kMain;
   JobInspectPanel& job_inspect_panel_;
-  SkillInspectPanel& skill_inspect_panel_;
+  SkillInspectScreen& skill_inspect_screen_;
   BuffInfoPanel& buff_info_panel_;
   MenuPanel& menu_panel_;
   KeybindsPanel& keybinds_panel_;

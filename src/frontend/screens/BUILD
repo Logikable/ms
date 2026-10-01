@@ -314,6 +314,36 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "skill_inspect_screen",
+    srcs = ["skill_inspect_screen.cc"],
+    hdrs = ["skill_inspect_screen.h"],
+    deps = [
+        ":skill_inspect_panel",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:keys",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "skill_inspect_screen_test",
+    size = "small",
+    srcs = ["skill_inspect_screen_test.cc"],
+    deps = [
+        ":skill_inspect_panel",
+        ":skill_inspect_screen",
+        "//src/frontend/testing:panel_test_base",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "skill_inspect_panel_test",
     size = "small",

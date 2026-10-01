@@ -17,9 +17,11 @@
 #define MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_PANEL_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -66,6 +68,16 @@ class SkillInspectPanel {
   void ResetScroll() {
     offset_ = 0;
   }
+  // Inverts the title, for a screen where two cards take turns with the keys.
+  void SetFocused(bool focused) {
+    focused_ = focused;
+  }
+  // A tab bar above the skill's name, held to the card's width, with `active`
+  // lit. Empty tabs draw no bar.
+  void SetTabs(std::vector<TabSpec> tabs, int active) {
+    tabs_ = std::move(tabs);
+    active_tab_ = active;
+  }
 
   ftxui::Element Render() const;
 
@@ -82,6 +94,9 @@ class SkillInspectPanel {
   int min_width_ = 0;
   int max_width_ = 0;
   int offset_ = 0;
+  bool focused_ = false;
+  std::vector<TabSpec> tabs_;
+  int active_tab_ = 0;
 };
 
 // The size of the largest preview card of `skills`, borders included.
@@ -107,6 +122,11 @@ struct SkillEffectLine {
   std::string value;
 };
 std::vector<SkillEffectLine> SkillEffectsAt(const Skill& skill, int level);
+
+// The skills `skill` boosts, by name, in the order its boosts first name them,
+// each once and never itself. A grant to an empowered form names the skill it
+// is a form of, since that is the card it appears on.
+std::vector<std::string> BoostedSkillNames(const Skill& skill);
 
 }  // namespace ms
 
