@@ -69,6 +69,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       preview_inspect_panel_(screens.preview_inspect_panel),
       star_force_panel_(screens.star_force_panel),
       cube_panel_(screens.cube_panel),
+      flame_panel_(screens.flame_panel),
       trace_recover_panel_(screens.trace_recover_panel),
       sell_panel_(screens.sell_panel),
       sell_equip_panel_(screens.sell_equip_panel),
@@ -849,6 +850,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnStarForceEvent(event);
     case kCubing:
       return OnCubeEvent(event);
+    case kFlaming:
+      return OnFlameEvent(event);
     case kStarForceResult:
       return OnStarForceResultEvent(event);
     case kHammer:
@@ -1002,7 +1005,7 @@ void TuiController::EnsureFocusIsVisible() {
 
 Screen TuiController::SeedUpgradeScreen(Screen next) {
   if (next != kScrollSelect && next != kStarForce && next != kCubing &&
-      next != kHammer) {
+      next != kFlaming && next != kHammer) {
     return next;
   }
   // All four act on the item under the cursor. It is resolved here so nothing
@@ -1018,6 +1021,10 @@ Screen TuiController::SeedUpgradeScreen(Screen next) {
   }
   if (next == kCubing) {
     cube_panel_.Reset();
+    OpenInspectCards();
+  }
+  if (next == kFlaming) {
+    flame_panel_.Reset();
     OpenInspectCards();
   }
   if (next == kHammer) {
@@ -1758,6 +1765,66 @@ void TuiController::RerollCube(CubeType cube) {
   // steel blue.
   if (from.rank() != POTENTIAL_RANK_UNSPECIFIED && rolled > from.rank()) {
     cube_panel_.RaiseRankUp();
+  }
+}
+
+const EquipInstance* TuiController::flame_item() const {
+  if (screen_ != kFlaming) {
+    return nullptr;
+  }
+  return subject_.GetInstance(state_.character);
+}
+
+bool TuiController::OnFlameEvent(ftxui::Event event) {
+  // The meso before any key, as on the cubing screen.
+  flame_panel_.SetItem(flame_item(), state_.character.meso());
+  bool busy = flame_panel_.IsConfirming();
+  if (IsBack(event) && !busy) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!busy && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    if (right_card_focused_) {
+      inspect_panel_.ScrollBy(delta);
+    } else {
+      flame_panel_.MoveCursor(delta);
+    }
+    return true;
+  }
+  const FlameType flame = flame_panel_.selected_flame();
+  switch (flame_panel_.OnEvent(event)) {
+    case RerollAction::kReroll:
+      RerollFlame(flame);
+      break;
+    case RerollAction::kKeepAfter:
+      KeepFlame(state_.character, subject_, flame_panel_.TakeAfter());
+      break;
+    case RerollAction::kNone:
+    case RerollAction::kKeepBefore:
+    case RerollAction::kClosed:
+      break;
+  }
+  return true;
+}
+
+void TuiController::RerollFlame(FlameType flame) {
+  const FlameLines from =
+      flame_panel_.after().value_or(flame_item()->equip_state().flame());
+  std::optional<FlameLines> roll =
+      RollFlameItem(state_.character, subject_, flame, from);
+  if (!roll.has_value()) {
+    return;
+  }
+  if (FlameOf(flame).choose) {
+    flame_panel_.SetAfter(*std::move(roll));
+  } else {
+    KeepFlame(state_.character, subject_, *roll);
   }
 }
 

@@ -391,6 +391,19 @@ cc_test(
 )
 
 cc_library(
+    name = "reroll_prompt",
+    srcs = ["reroll_prompt.cc"],
+    hdrs = ["reroll_prompt.h"],
+    deps = [
+        ":chrome",
+        ":confirm_prompt",
+        ":keys",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
     name = "confirm_prompt",
     srcs = ["confirm_prompt.cc"],
     hdrs = ["confirm_prompt.h"],

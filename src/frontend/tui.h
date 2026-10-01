@@ -41,6 +41,7 @@
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/cube_panel.h"
+#include "src/frontend/screens/flame_panel.h"
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -173,6 +174,7 @@ class Tui {
   // The cubing screen: the cube shelf beside the item's card, with the
   // confirmation centred over both when one is open.
   ftxui::Element RenderCubing();
+  ftxui::Element RenderFlaming();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
   // Advances the game by the time since the previous call: combat, and the
@@ -248,6 +250,7 @@ class Tui {
   SkillInspectScreen skill_inspect_screen_;
   StarForcePanel star_force_panel_;
   CubePanel cube_panel_;
+  FlamePanel flame_panel_;
   // The item the star force screen last drew, and the same item with one more
   // star. Kept after the attempt because the result window is drawn over these
   // two cards, and a destroyed item is no longer in the bag.

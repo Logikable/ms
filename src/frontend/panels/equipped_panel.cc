@@ -37,7 +37,7 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cube",
-             "Close"}),
+             "Flame", "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
   // Opens on the preset the character is wearing, so the tab the player sees is
   // their current gear and an item's comparison card compares against it. The
@@ -178,6 +178,9 @@ void EquippedPanel::HideLockedEntries() {
   if (!Unlocked(Feature::kPotential, character_, account_)) {
     menu_.Hide(kGearMenuCube);
   }
+  if (!Unlocked(Feature::kFlame, character_, account_)) {
+    menu_.Hide(kGearMenuFlame);
+  }
 }
 
 // Hides what the worn item can never take. All of these check the prototype: an
@@ -212,6 +215,9 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (!item.CanCube()) {
     menu_.Hide(kGearMenuCube);
   }
+  if (!item.CanFlame()) {
+    menu_.Hide(kGearMenuFlame);
+  }
   if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kGearMenuStarForce);
   } else if (!item.CanStarForce()) {
@@ -235,6 +241,9 @@ void EquippedPanel::HighlightTrail() {
   }
   if (LeadToCubeMenu(character_, account_)) {
     menu_.Highlight(kGearMenuCube);
+  }
+  if (LeadToAction(Feature::kFlame, character_, account_)) {
+    menu_.Highlight(kGearMenuFlame);
   }
 }
 
@@ -311,6 +320,10 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   if (open.selected() == kGearMenuCube) {
     FollowedToCubeMenu(character_, account_);
     return kCubing;
+  }
+  if (open.selected() == kGearMenuFlame) {
+    FollowedToAction(Feature::kFlame, account_);
+    return kFlaming;
   }
   return kMain;
 }

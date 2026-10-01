@@ -16,6 +16,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/reroll_prompt.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/item/potential.h"
@@ -139,8 +140,8 @@ void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
   // The reroll that emptied the purse is also what moves the cursor. Checked
   // here rather than where the cube is bought, so the window is right however
   // the purse became short.
-  if (confirm_.open() && !Affordable()) {
-    confirm_.FocusCancel();
+  if (prompt_.open() && !Affordable()) {
+    prompt_.FocusCancel();
   }
 }
 
@@ -160,8 +161,7 @@ void CubePanel::Reset() {
   selected_ = 0;
   rank_up_ = false;
   after_.reset();
-  keep_focus_ = KeepFocus::kNone;
-  confirm_.Close();
+  prompt_.Close();
 }
 
 void CubePanel::RaiseRankUp() {
@@ -205,7 +205,7 @@ bool CubePanel::Affordable() const {
 }
 
 void CubePanel::MoveCursor(int delta) {
-  if (confirm_.open()) {
+  if (prompt_.open()) {
     return;
   }
   selected_ = StepCursor(selected_, delta, shelf_.size());
@@ -243,19 +243,6 @@ std::string CubePanel::Prompt() const {
              : "Grant potential?";
 }
 
-ftxui::Element CubePanel::KeepButtons() const {
-  // Spaced so each button starts in the column of the one below it: Confirm is
-  // a column wider than Keep.
-  ftxui::Element row = ftxui::hbox({
-      ftxui::text(" "),
-      ActionButton("Keep ↑", keep_focus_ == KeepFocus::kBefore),
-      ftxui::text("    "),
-      ActionButton("Keep ↓", keep_focus_ == KeepFocus::kAfter),
-      ftxui::text(" "),
-  });
-  return after_.has_value() ? row : std::move(row) | ftxui::dim;
-}
-
 ftxui::Element CubePanel::RenderChoice(ftxui::Color accent) const {
   const int level = item_->prototype().required_level();
   const Potential empty;
@@ -269,15 +256,14 @@ ftxui::Element CubePanel::RenderChoice(ftxui::Color accent) const {
   };
   AppendLineRows(body, before, level, widths);
   body.push_back(AccentSeparator(accent));
-  body.push_back(CenteredRow(KeepButtons()));
+  body.push_back(CenteredRow(prompt_.KeepButtons(after_.has_value())));
   body.push_back(TitledSeparator(" After ", accent));
   AppendLineRows(body, after, level, widths);
   body.push_back(AccentSeparator(accent));
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
-  const ConfirmFocus focus =
-      keep_focus_ == KeepFocus::kNone ? confirm_.focus() : ConfirmFocus::kNone;
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
-                      ConfirmButtons(focus, Affordable()), accent);
+                      ConfirmButtons(prompt_.confirm_focus(), Affordable()),
+                      accent);
 }
 
 ftxui::Element CubePanel::RenderConfirm() const {
@@ -305,74 +291,17 @@ ftxui::Element CubePanel::RenderConfirm() const {
   // below.
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
-                      ConfirmButtons(confirm_.focus(), Affordable()), accent);
-}
-
-void CubePanel::FocusConfirmRow(bool cancel) {
-  keep_focus_ = KeepFocus::kNone;
-  confirm_.Open(/*cancel_selected=*/cancel || !Affordable());
-}
-
-CubeAction CubePanel::OnKeepEvent(const ftxui::Event& event) {
-  if (event == ftxui::Event::ArrowLeft) {
-    keep_focus_ = KeepFocus::kBefore;
-  } else if (event == ftxui::Event::ArrowRight) {
-    keep_focus_ = KeepFocus::kAfter;
-  } else if (event == ftxui::Event::ArrowDown) {
-    FocusConfirmRow(/*cancel=*/keep_focus_ == KeepFocus::kAfter);
-  } else if (IsForward(event)) {
-    const bool keep_after = keep_focus_ == KeepFocus::kAfter;
-    // Back to Confirm, whichever was kept: the next thing a player does after
-    // keeping is roll again.
-    FocusConfirmRow(/*cancel=*/false);
-    if (keep_after) {
-      return CubeAction::kKeepAfter;
-    }
-    after_.reset();
-    return CubeAction::kKeepBefore;
-  }
-  return CubeAction::kNone;
+                      ConfirmButtons(prompt_.confirm_focus(), Affordable()),
+                      accent);
 }
 
 CubeAction CubePanel::OnEvent(ftxui::Event event) {
-  if (!confirm_.open()) {
-    if (IsForward(event)) {
-      // A cube the purse can't cover still opens the question, with Confirm
-      // greyed. It is the same window a player rerolls their way into, and not
-      // showing it would look like the shelf had gone away.
-      FocusConfirmRow(/*cancel=*/false);
-    }
-    return CubeAction::kNone;
-  }
-  if (IsBack(event)) {
+  const CubeAction action =
+      prompt_.OnEvent(std::move(event), Affordable(), after_.has_value());
+  if (action == CubeAction::kKeepBefore || action == CubeAction::kClosed) {
     after_.reset();
-    keep_focus_ = KeepFocus::kNone;
-    confirm_.Close();
-    return CubeAction::kClosed;
   }
-  if (keep_focus_ != KeepFocus::kNone) {
-    return OnKeepEvent(event);
-  }
-  if (event == ftxui::Event::ArrowUp) {
-    if (after_.has_value()) {
-      keep_focus_ = confirm_.focus() == ConfirmFocus::kCancel
-                        ? KeepFocus::kAfter
-                        : KeepFocus::kBefore;
-    }
-    return CubeAction::kNone;
-  }
-  switch (confirm_.OnEvent(std::move(event), Affordable())) {
-    case ConfirmChoice::kPending:
-      return CubeAction::kNone;
-    case ConfirmChoice::kConfirmed:
-      // The window stays open: Confirm buys another roll of the lines it shows.
-      confirm_.Open(/*cancel_selected=*/false);
-      return CubeAction::kReroll;
-    case ConfirmChoice::kCancelled:
-      after_.reset();
-      return CubeAction::kClosed;
-  }
-  return CubeAction::kNone;
+  return action;
 }
 
 }  // namespace ms

@@ -596,6 +596,43 @@ cc_test(
 )
 
 cc_library(
+    name = "flame_panel",
+    srcs = ["flame_panel.cc"],
+    hdrs = ["flame_panel.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:reroll_prompt",
+        "//src/frontend/widgets:text_columns",
+        "//src/item:equip_instance",
+        "//src/item:flame",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "flame_panel_test",
+    size = "small",
+    srcs = ["flame_panel_test.cc"],
+    deps = [
+        ":flame_panel",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/widgets:colors",
+        "//src/item:equip_instance",
+        "//src/item:flame",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "cube_panel",
     srcs = ["cube_panel.cc"],
     hdrs = ["cube_panel.h"],
@@ -606,6 +643,7 @@ cc_library(
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:reroll_prompt",
         "//src/frontend/widgets:text_columns",
         "//src/item:equip_instance",
         "//src/item:potential",

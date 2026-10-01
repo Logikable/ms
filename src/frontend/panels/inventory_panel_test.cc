@@ -1093,6 +1093,29 @@ TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
             std::string::npos);
 }
 
+// Flames follow Cube, gold until pressed, and a totem is offered none.
+TEST_F(InventoryPanelTest, FlamesFollowCubingAndSkipATotem) {
+  LevelTo(UnlockLevel(Feature::kFlame));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuFlame), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Cube"), rendered.find("Flame"));
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Flame"), kYellow);
+
+  EquipPrototype totem;
+  totem.set_name("Totem");
+  totem.set_equip_slot(EQUIP_SLOT_TOTEM);
+  CharacterInstance collector = MakeCharacter(UnlockLevel(Feature::kFlame));
+  collector.PickUp(std::make_unique<EquipInstance>(totem));
+  InventoryPanel totem_panel(collector, account_, panel_focus_);
+  totem_panel.OpenMenu();
+  EXPECT_EQ(RenderElement(totem_panel.menu().Render(0, 0)).find("Flame"),
+            std::string::npos);
+}
+
 // An item a hammer can't improve gets no entry, just as Scroll is hidden on an
 // item that refuses scrolls.
 TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {

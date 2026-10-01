@@ -386,6 +386,7 @@ cc_library(
         ":link",
         ":sacred_power",
         "//src:account",
+        "//src/item:flame",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
         "@abseil-cpp//absl/log",

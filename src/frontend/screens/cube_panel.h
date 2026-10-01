@@ -33,7 +33,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/reroll_prompt.h"
 #include "src/item/equip_instance.h"
 #include "src/item/potential.h"
 
@@ -48,18 +48,8 @@ struct ShelfEntry {
   bool lead = false;
 };
 
-// What a key did in the question.
-enum class CubeAction {
-  kNone,
-  // Confirm: buy another roll.
-  kReroll,
-  // A choosing cube's Keep buttons. Keep After is the caller's to apply, with
-  // TakeAfter.
-  kKeepBefore,
-  kKeepAfter,
-  // Cancel or Escape. A pending After is dropped, keeping the item as it was.
-  kClosed,
-};
+// What a key did in the question; see RerollAction.
+using CubeAction = RerollAction;
 
 class CubePanel {
  public:
@@ -79,7 +69,7 @@ class CubePanel {
   // about both columns, not just this one.
   ftxui::Element RenderConfirm() const;
   bool IsConfirming() const {
-    return confirm_.open();
+    return prompt_.open();
   }
   // Turns the window gold after a reroll that raised the rank of the potential
   // it rolled from. Raised by the caller, the only one that sees both.
@@ -105,9 +95,6 @@ class CubePanel {
   Potential TakeAfter();
 
  private:
-  // Which Keep button the cursor is on, if it is on that row.
-  enum class KeepFocus { kNone, kBefore, kAfter };
-
   const Potential& SelectedPotential() const;
   bool Choosing() const;
   // The price of the cube under the cursor, and whether the purse covers it.
@@ -115,11 +102,6 @@ class CubePanel {
   bool Affordable() const;
   // The prompt over the lines: a reroll, or a grant on an item with none.
   std::string Prompt() const;
-  // The Keep row's keys, while the cursor is on it.
-  CubeAction OnKeepEvent(const ftxui::Event& event);
-  // Back to the Confirm row, on Confirm unless the purse is short.
-  void FocusConfirmRow(bool cancel);
-  ftxui::Element KeepButtons() const;
   ftxui::Element RenderChoice(ftxui::Color accent) const;
 
   const EquipInstance* item_ = nullptr;
@@ -127,12 +109,11 @@ class CubePanel {
   int selected_ = 0;
   std::vector<ShelfEntry> shelf_ = {{CubeType::kRed}};
   std::optional<Potential> after_;
-  KeepFocus keep_focus_ = KeepFocus::kNone;
   // The rank-up gold; see RaiseRankUp.
   bool rank_up_ = false;
   double rank_up_seconds_ = 0.0;
   bool rank_up_touched_ = false;
-  ConfirmPrompt confirm_;
+  RerollPrompt prompt_;
 };
 
 }  // namespace ms

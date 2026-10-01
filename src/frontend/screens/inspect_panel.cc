@@ -364,8 +364,9 @@ bool InspectPanel::HasSetCard() const {
 }
 
 ftxui::Element InspectPanel::RenderItemOnly(bool focused,
-                                            const std::string& title) const {
-  return RenderCard(item_card_, item_, title, focused);
+                                            const std::string& title,
+                                            bool stats_in_head) const {
+  return RenderCard(item_card_, item_, title, focused, stats_in_head);
 }
 
 ftxui::Element InspectPanel::RenderComparison(bool focused) const {
@@ -404,8 +405,8 @@ ftxui::Element InspectPanel::RenderComparison(bool focused) const {
 
 ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
                                         const EquipTabItem* item,
-                                        const std::string& title,
-                                        bool focused) const {
+                                        const std::string& title, bool focused,
+                                        bool stats_in_head) const {
   // The stackable body is a paragraph, which wraps to as many lines as needed
   // and so can't be cut into a scrolling window. It is at most two lines and
   // never outgrows a terminal. Only the inspected item is ever stackable:
@@ -417,8 +418,8 @@ ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
   if (item == nullptr) {
     return ThemedWindow(title, EmptyState("no item"), focused);
   }
-  CardRows rows =
-      IsSymbol(item->prototype()) ? SymbolRows(*item) : EquipRows(*item);
+  CardRows rows = IsSymbol(item->prototype()) ? SymbolRows(*item)
+                                              : EquipRows(*item, stats_in_head);
   return card.Render(title, std::move(rows), /*content_width=*/0, focused);
 }
 
@@ -874,7 +875,8 @@ std::vector<CardRow> InspectPanel::PotentialRows(
   return rows;
 }
 
-CardRows InspectPanel::EquipRows(const EquipTabItem& item) const {
+CardRows InspectPanel::EquipRows(const EquipTabItem& item,
+                                 bool stats_in_head) const {
   std::vector<CardRow> head = HeadRows(item);
   std::vector<CardRow> stats = StatRows(item);
   std::vector<CardRow> slots = SlotRows(item);
@@ -892,6 +894,16 @@ CardRows InspectPanel::EquipRows(const EquipTabItem& item) const {
   Append(rows.head, head);
   Append(rows.head, jobs);
   rows.head.push_back(RuleRow(ThemedSeparator()));
+  if (stats_in_head) {
+    Append(rows.head, stats);
+    // The potentials open with their own rule, which belongs in the body so
+    // the bar stands on it; a second one here would draw two in a row.
+    if (!slots.empty() && !slots.front().separator) {
+      rows.head.push_back(RuleRow(ThemedSeparator()));
+    }
+    rows.body = std::move(slots);
+    return rows;
+  }
   rows.body = std::move(stats);
   rows.foot = std::move(slots);
   return rows;

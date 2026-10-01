@@ -33,6 +33,7 @@
 #include "src/frontend/screens/character_select_panel.h"
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/dailies_panel.h"
+#include "src/frontend/screens/flame_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -94,6 +95,7 @@ struct Screens {
   InspectPanel& preview_inspect_panel;
   StarForcePanel& star_force_panel;
   CubePanel& cube_panel;
+  FlamePanel& flame_panel;
   TraceRecoverPanel& trace_recover_panel;
   SellPanel& sell_panel;
   SellEquipPanel& sell_equip_panel;
@@ -633,6 +635,8 @@ class TuiController {
   const EquipInstance* cube_item() const;
   // The cubes unlocked for the account, each gold while its trail leads there.
   std::vector<ShelfEntry> cube_shelf() const;
+  // The item the flaming screen is working on, read live like cube_item.
+  const EquipInstance* flame_item() const;
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
@@ -699,6 +703,10 @@ class TuiController {
   // Buys one use of `cube` on the cubing screen's item: applied, or for a
   // choosing cube, offered as After.
   void RerollCube(CubeType cube);
+  bool OnFlameEvent(ftxui::Event event);
+  // Buys one `flame` on the flaming screen's item: applied for Burning, offered
+  // as After for Black.
+  void RerollFlame(FlameType flame);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
   bool OnBoxOpenEvent(ftxui::Event event);
@@ -928,6 +936,7 @@ class TuiController {
   InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;
   CubePanel& cube_panel_;
+  FlamePanel& flame_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;

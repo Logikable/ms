@@ -122,24 +122,41 @@ struct Client {
     options_panel = std::make_unique<OptionsPanel>(state->account);
     jukebox_panel =
         std::make_unique<JukeboxPanel>(*state, music_director, state->account);
-    controller = std::make_unique<TuiController>(
-        *state, Screens{*char_panel,           *equip_panel,
-                        *inventory_panel,      *scroll_panel,
-                        inspect_panel,         preview_inspect_panel,
-                        star_force_panel,      cube_panel,
-                        *trace_recover_panel,  sell_panel,
-                        sell_equip_panel,      *multi_sell_panel,
-                        *map_select_panel,     *mob_inspect_panel,
-                        *boss_select_panel,    party_panel,
-                        player_list_panel,     *trade_panel,
-                        *player_inspect_panel, player_item_panel,
-                        *shop_panel,           buy_panel,
-                        *bank_panel,           *link_skill_panel,
-                        *job_inspect_panel,    skill_inspect_screen,
-                        buff_info_panel,       *menu_panel,
-                        *keybinds_panel,       *options_panel,
-                        *jukebox_panel},
-        analysis, *keys, focus, &session);
+    controller =
+        std::make_unique<TuiController>(*state,
+                                        Screens{*char_panel,
+                                                *equip_panel,
+                                                *inventory_panel,
+                                                *scroll_panel,
+                                                inspect_panel,
+                                                preview_inspect_panel,
+                                                star_force_panel,
+                                                cube_panel,
+                                                flame_panel,
+                                                *trace_recover_panel,
+                                                sell_panel,
+                                                sell_equip_panel,
+                                                *multi_sell_panel,
+                                                *map_select_panel,
+                                                *mob_inspect_panel,
+                                                *boss_select_panel,
+                                                party_panel,
+                                                player_list_panel,
+                                                *trade_panel,
+                                                *player_inspect_panel,
+                                                player_item_panel,
+                                                *shop_panel,
+                                                buy_panel,
+                                                *bank_panel,
+                                                *link_skill_panel,
+                                                *job_inspect_panel,
+                                                skill_inspect_screen,
+                                                buff_info_panel,
+                                                *menu_panel,
+                                                *keybinds_panel,
+                                                *options_panel,
+                                                *jukebox_panel},
+                                        analysis, *keys, focus, &session);
   }
 
   // One turn of the game loop: the connection, then the screen, then any fight
@@ -165,6 +182,7 @@ struct Client {
   PlayerListPanel player_list_panel;
   StarForcePanel star_force_panel;
   CubePanel cube_panel;
+  FlamePanel flame_panel;
   SellPanel sell_panel;
   SellEquipPanel sell_equip_panel;
   BuyPanel buy_panel;

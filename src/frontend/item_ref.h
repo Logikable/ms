@@ -13,6 +13,7 @@
 #include "src/character/character.h"
 #include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
@@ -84,6 +85,15 @@ std::optional<Potential> RollCubeItem(CharacterInstance& character, ItemRef ref,
                                       CubeType cube, const Potential& from);
 bool KeepPotential(CharacterInstance& character, ItemRef ref,
                    PotentialTrack track, const Potential& potential);
+
+// Charges for one `flame` on the item `ref` names and returns its roll against
+// `from` without applying it; KeepFlame applies one. Empty, spending nothing,
+// if the item takes no flame or the character can't afford it.
+std::optional<FlameLines> RollFlameItem(CharacterInstance& character,
+                                        ItemRef ref, FlameType flame,
+                                        const FlameLines& from);
+bool KeepFlame(CharacterInstance& character, ItemRef ref,
+               const FlameLines& lines);
 
 }  // namespace ms
 

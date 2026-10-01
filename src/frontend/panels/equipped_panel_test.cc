@@ -917,6 +917,39 @@ TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
   EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cube"), kYellow);
 }
 
+// Flames come after cubing, gold until pressed, and only where GMS allows them.
+TEST_F(EquippedPanelTest, FlamesArriveAfterCubingAndOnlyWhereTheyReach) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+
+  LevelTo(UnlockLevel(Feature::kFlame) - 1);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuFlame), 0);
+
+  LevelTo(UnlockLevel(Feature::kFlame));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuFlame), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Cube"), rendered.find("Flame"));
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Flame"), kYellow);
+
+  EquipPrototype ring;
+  ring.set_name("Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  CharacterInstance ringed = MakeCharacter(UnlockLevel(Feature::kFlame));
+  ringed.PickUp(std::make_unique<EquipInstance>(ring));
+  ringed.Equip(0);
+  EquippedPanel ring_panel(ringed, account_, panel_focus_);
+  RenderComponent(ring_panel.MakeComponent([]() {}));
+  ring_panel.OpenMenu();
+  EXPECT_EQ(RenderElement(ring_panel.menu().Render(0, 0)).find("Flame"),
+            std::string::npos);
+}
+
 TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
   EquipPrototype medal;
   medal.set_name("Ludibrium Medal");

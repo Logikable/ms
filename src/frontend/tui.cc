@@ -162,22 +162,39 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       shop_panel_(state.character, state.equips, state.items),
       bank_panel_(state.character, state.account, state.items),
       link_skill_panel_(state.character, state.skills),
-      controller_(state, Screens{char_panel_,           equip_panel_,
-                                 inventory_panel_,      scroll_panel_,
-                                 inspect_panel_,        preview_inspect_panel_,
-                                 star_force_panel_,     cube_panel_,
-                                 trace_recover_panel_,  sell_panel_,
-                                 sell_equip_panel_,     multi_sell_panel_,
-                                 map_select_panel_,     mob_inspect_panel_,
-                                 boss_select_panel_,    party_select_panel_,
-                                 player_list_panel_,    trade_panel_,
-                                 player_inspect_panel_, player_item_panel_,
-                                 shop_panel_,           buy_panel_,
-                                 bank_panel_,           link_skill_panel_,
-                                 job_inspect_panel_,    skill_inspect_screen_,
-                                 buff_info_panel_,      menu_panel_,
-                                 keybinds_panel_,       options_panel_,
-                                 jukebox_panel_},
+      controller_(state,
+                  Screens{char_panel_,
+                          equip_panel_,
+                          inventory_panel_,
+                          scroll_panel_,
+                          inspect_panel_,
+                          preview_inspect_panel_,
+                          star_force_panel_,
+                          cube_panel_,
+                          flame_panel_,
+                          trace_recover_panel_,
+                          sell_panel_,
+                          sell_equip_panel_,
+                          multi_sell_panel_,
+                          map_select_panel_,
+                          mob_inspect_panel_,
+                          boss_select_panel_,
+                          party_select_panel_,
+                          player_list_panel_,
+                          trade_panel_,
+                          player_inspect_panel_,
+                          player_item_panel_,
+                          shop_panel_,
+                          buy_panel_,
+                          bank_panel_,
+                          link_skill_panel_,
+                          job_inspect_panel_,
+                          skill_inspect_screen_,
+                          buff_info_panel_,
+                          menu_panel_,
+                          keybinds_panel_,
+                          options_panel_,
+                          jukebox_panel_},
                   analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a set piece is
   // shown with its set, and which tiers are active depends on what is worn.
@@ -892,6 +909,26 @@ ftxui::Element Tui::RenderCubing() {
   return Overlay(std::move(columns), cube_panel_.RenderConfirm());
 }
 
+// Laid out like cubing. The card fixes its stats under the name, since they
+// are all a flame changes.
+ftxui::Element Tui::RenderFlaming() {
+  const EquipInstance* item = controller_.flame_item();
+  flame_panel_.SetItem(item, state_.character.meso());
+  inspect_panel_.SetItem(item);
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  bool right = controller_.right_card_focused();
+  ftxui::Element columns = SideBySide({
+      flame_panel_.Render(!right),
+      ftxui::text(" "),
+      inspect_panel_.RenderItemOnly(right, " Inspect ",
+                                    /*stats_in_head=*/true),
+  });
+  if (!flame_panel_.IsConfirming()) {
+    return columns;
+  }
+  return Overlay(std::move(columns), flame_panel_.RenderConfirm());
+}
+
 ftxui::Element Tui::RenderInspect() {
   // One screen for two kinds of item: the panel shows whichever the cursor was
   // on and frames both the same way. SetItem has two overloads, so this can't
@@ -1093,6 +1130,8 @@ ftxui::Element Tui::RenderScreen() {
       return RenderStarForce();
     case kCubing:
       return RenderCubing();
+    case kFlaming:
+      return RenderFlaming();
     case kStarForceResult:
       return RenderStarForceResult();
     case kTraceRecover:

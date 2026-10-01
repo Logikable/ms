@@ -80,4 +80,21 @@ bool KeepPotential(CharacterInstance& character, ItemRef ref,
   return character.TakeInventoryPotential(ref.index(), track, potential);
 }
 
+std::optional<FlameLines> RollFlameItem(CharacterInstance& character,
+                                        ItemRef ref, FlameType flame,
+                                        const FlameLines& from) {
+  if (ref.equipped()) {
+    return character.BuyFlame(ref.slot(), flame, from, ref.preset());
+  }
+  return character.BuyInventoryFlame(ref.index(), flame, from);
+}
+
+bool KeepFlame(CharacterInstance& character, ItemRef ref,
+               const FlameLines& lines) {
+  if (ref.equipped()) {
+    return character.TakeFlame(ref.slot(), lines, ref.preset());
+  }
+  return character.TakeInventoryFlame(ref.index(), lines);
+}
+
 }  // namespace ms

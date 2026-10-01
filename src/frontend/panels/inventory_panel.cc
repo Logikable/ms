@@ -53,7 +53,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
-             "Cube", "Recover", "Sell", "Multi-Sell", "Close"}),
+             "Cube", "Flame", "Recover", "Sell", "Multi-Sell", "Close"}),
       stack_menu_({"Open", "Inspect", "Sell", "Multi-Sell", "Close"}),
       tab_menu_({"Sort", "Close"}) {
 }
@@ -234,6 +234,7 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuHammer);
   menu_.Hide(kMenuStarForce);
   menu_.Hide(kMenuCube);
+  menu_.Hide(kMenuFlame);
   if (character_.equipped().count(symbol.prototype().equip_slot()) > 0) {
     menu_.Hide(kMenuAction);
   } else {
@@ -257,6 +258,9 @@ void InventoryPanel::HideLockedFeatures() {
   }
   if (!Unlocked(Feature::kPotential, character_, account_)) {
     menu_.Hide(kMenuCube);
+  }
+  if (!Unlocked(Feature::kFlame, character_, account_)) {
+    menu_.Hide(kMenuFlame);
   }
   // Recovery has no level gate of its own: owning a trace already means an item
   // was destroyed at the 16th star, so the item is the gate. Selling arrives
@@ -294,6 +298,9 @@ void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
   if (!equip.CanCube()) {
     menu_.Hide(kMenuCube);
   }
+  if (!equip.CanFlame()) {
+    menu_.Hide(kMenuFlame);
+  }
   if (!Supports(equip.prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kMenuStarForce);
   } else if (!equip.CanStarForce()) {
@@ -318,6 +325,9 @@ void InventoryPanel::HighlightUnusedUpgrades() {
   if (LeadToCubeMenu(character_, account_)) {
     menu_.Highlight(kMenuCube);
   }
+  if (LeadToAction(Feature::kFlame, character_, account_)) {
+    menu_.Highlight(kMenuFlame);
+  }
 }
 
 void InventoryPanel::OpenEquipMenu() {
@@ -332,6 +342,7 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Hide(kMenuHammer);
     menu_.Hide(kMenuStarForce);
     menu_.Hide(kMenuCube);
+    menu_.Hide(kMenuFlame);
     return;
   }
   menu_.Hide(kMenuRecover);  // only traces can be recovered
@@ -454,6 +465,10 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
   if (menu_.selected() == kMenuCube) {
     FollowedToCubeMenu(character_, account_);
     return kCubing;
+  }
+  if (menu_.selected() == kMenuFlame) {
+    FollowedToAction(Feature::kFlame, account_);
+    return kFlaming;
   }
   if (menu_.selected() == kMenuRecover) {
     return kTraceRecover;

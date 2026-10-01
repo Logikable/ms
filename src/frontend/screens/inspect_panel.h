@@ -119,8 +119,13 @@ class InspectPanel {
   // since three windows in a row would leave none of them enough width. `title`
   // names the window; a screen showing the same item twice says which is which,
   // as Star Force titles its cards Before and After.
+  //
+  // `stats_in_head` fixes the stat rows under the name and lets the upgrade
+  // history and potentials scroll, for a screen about the stats alone: on the
+  // flame screen, a reroll changes nothing else.
   ftxui::Element RenderItemOnly(bool focused = false,
-                                const std::string& title = " Inspect ") const;
+                                const std::string& title = " Inspect ",
+                                bool stats_in_head = false) const;
 
  private:
   // The card beside the item, with its tab bar when the item has a family of
@@ -136,7 +141,8 @@ class InspectPanel {
   // One card for `item`, whatever kind it is: the same framing for the
   // inspected item and the one it is compared with.
   ftxui::Element RenderCard(const ScrollCard& card, const EquipTabItem* item,
-                            const std::string& title, bool focused) const;
+                            const std::string& title, bool focused,
+                            bool stats_in_head = false) const;
   // The cards on screen, in drawing order, which the ring moves through.
   std::vector<Card> DrawnCards() const;
   // The card with the arrows, so a key doesn't need to name all three.
@@ -147,7 +153,8 @@ class InspectPanel {
   std::vector<ftxui::Element> SetCardIn(const EquipSet& set, int room) const;
   // The body for each kind. All three share the same card framing, so the
   // screens can't drift apart.
-  CardRows EquipRows(const EquipTabItem& item) const;
+  CardRows EquipRows(const EquipTabItem& item,
+                     bool stats_in_head = false) const;
   ftxui::Element RenderStackable() const;
   // A symbol's card. It has its own body rather than the equip one:
   // what a symbol grants comes from its level and the wearer's job, so none of

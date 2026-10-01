@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -965,6 +966,51 @@ TEST_F(InspectPanelTest, ScrollsTheItemCardBetweenItsHeadAndItsFoot) {
   EXPECT_NE(rendered.find("Req Lev"), std::string::npos) << "the head did not";
   EXPECT_NE(rendered.find("Successful Scroll"), std::string::npos)
       << "and neither did the foot";
+}
+
+// The flame screen's card fixes the stats under the name and scrolls the rest:
+// the upgrade history and the potentials, with the bar standing on their rules.
+TEST_F(InspectPanelTest, TheFlameCardKeepsItsStatsAndScrollsThePotentials) {
+  sword_.mutable_base_stats()->set_attack(5);
+  sword_.mutable_base_stats()->set_str(3);
+  Equip state;
+  state.set_remaining_upgrade_slots(7);
+  *state.mutable_main_potential() = WeaponPotential();
+  *state.mutable_bonus_potential() = WeaponPotential();
+  EquipInstance sword(sword_, state);
+  InspectPanel panel;
+  // A terminal 16 rows tall, passed as the game passes its own.
+  constexpr int kRows = 16;
+  panel.SetMaxRows(kRows);
+  panel.SetItem(&sword);
+  auto draw = [&] {
+    ftxui::Screen screen =
+        ftxui::Screen::Create(ftxui::Dimension::Fixed(kTestScreenWidth),
+                              ftxui::Dimension::Fixed(kRows));
+    ftxui::Render(screen, panel.RenderItemOnly(false, " Inspect ",
+                                               /*stats_in_head=*/true));
+    return ScreenText(screen);
+  };
+  const std::string top = draw();
+  ASSERT_NE(top.find("Legendary Potential"), std::string::npos) << top;
+  EXPECT_EQ(top.find("┤\n├"), std::string::npos) << "one rule, not two";
+
+  bool bar_on_rule = false;
+  std::istringstream lines(top);
+  for (std::string line; std::getline(lines, line);) {
+    if (line.rfind("├", 0) == 0 && line.find("┃") != std::string::npos) {
+      bar_on_rule = true;
+    }
+  }
+  EXPECT_TRUE(bar_on_rule) << "the bar stands on the potentials' rule\n" << top;
+
+  panel.ScrollBy(20);
+  const std::string bottom = draw();
+  EXPECT_NE(bottom.find("STR  +3"), std::string::npos) << bottom;
+  EXPECT_NE(bottom.find("ATT  +5"), std::string::npos) << "the stats stay";
+  EXPECT_EQ(bottom.find("Legendary Potential "), std::string::npos)
+      << "the main potential's heading scrolled away\n"
+      << bottom;
 }
 
 TEST_F(InspectPanelTest, ResetPutsBothCardsBackAtTheTop) {
