@@ -5,8 +5,7 @@ build --incompatible_autoload_externally=cc_library,cc_binary,cc_test
 # Suppress warnings from external dependencies (e.g. protobuf internals).
 build --per_file_copt=external/.*@-w
 
-# The default build is optimised a little. At -O0 the stat and combat code the
-# tests lean on runs ~20x slower than optimised, and -O1 halves the suite for
-# about the same compile time. The sim and release transitions strip it, so
-# their -O2 stands.
-build --copt=-O1
+# Every build is -c opt, tests included, so the suite, the sims and a hand run
+# all share one configuration: switching -c discards the analysis cache and
+# compiles each edit once per mode. Nothing here relies on assert().
+build -c opt
