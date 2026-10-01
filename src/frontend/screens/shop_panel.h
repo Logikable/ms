@@ -2,9 +2,11 @@
  * row of tabs over a Name / Cost list of what is for sale, with the player's
  * meso beside the title for comparing prices.
  *
- * The list has only what this character's class can use. Items are left out
- * because the player could never use them, not because they can't use them yet:
- * an item above their level still shows, in red, as something to save for.
+ * The list has only what this character's job can use: its category, and from
+ * 2nd job its own weapons and their ammunition. Items are left out because the
+ * player could never use them, not because they can't use them yet: an item
+ * above their level still shows, in red, as something to save for. A Show All
+ * switch at the right of the second row lifts the filter until the shop closes.
  *
  * Four tabs: Weapon, Equips for everything else worn, Etc for stackables, and
  * the player's own buyback shelf. They are separate lists rather than more rows
@@ -95,9 +97,9 @@ class ShopPanel {
   // away.
   void Reset();
   ftxui::Element Render() const;
-  // Handles Up and Down along the list. Enter and Escape are left to the
-  // caller, which owns the screen one opens and the other closes. Returns true
-  // if the event was consumed.
+  // Handles Up and Down along the list, and Enter on the Show All switch. Other
+  // Enters and Escape are left to the caller, which owns the screen one opens
+  // and the other closes. Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
   // The equip under the cursor, or nullptr when the open tab isn't an equipment
   // tab or is empty. Exactly one of this, selected_stackable() and
@@ -146,10 +148,12 @@ class ShopPanel {
   int CursorStop() const;
   // Moves the cursor `delta` stops around the ring, including the tab bar.
   void MoveCursor(int delta);
-  // Moves one tab along whichever bar has the cursor and restocks. The ends
-  // stop, as in the bag: stepping past the last tab does nothing.
+  // Moves one tab along whichever bar has the cursor and restocks. The tab
+  // bar's ends stop; the pay bar's lead to the Show All switch.
   void StepTab(int direction);
   void StepPayTab(int direction);
+  // Whether the filter lets `proto` onto this character's shelf.
+  bool ForThisJob(const EquipPrototype& proto) const;
   // Fills stock_ from the open tab.
   void Restock();
   // The number of rows in the open tab. The three shop shelves use stock_; the
@@ -209,6 +213,10 @@ class ShopPanel {
   const std::map<std::string, ItemPrototype>& items_;
   int tab_ = kShopWeaponTab;
   int pay_ = kShopMesoTab;
+  // The Show All switch, and whether the cursor is on it rather than on the
+  // pay tabs.
+  bool show_all_ = false;
+  bool on_switch_ = false;
   // The stock, in display order. Rebuilt by Reset(), the only thing that
   // changes it; buying doesn't.
   std::vector<StockRow> stock_;

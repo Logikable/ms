@@ -14,6 +14,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -513,6 +514,69 @@ TEST_F(ShopPanelTest, ResetRestocksAfterAJobAdvancement) {
   c.AdvanceJob(JOB_SWORDMAN);
   panel.Reset();
   EXPECT_NE(Render(panel).find("Machete"), std::string::npos);
+}
+
+// From 2nd job the weapon shelf narrows to the job's own weapons and the
+// ammunition they draw; a 1st job still sees its whole category.
+TEST_F(ShopPanelTest, AMarksmanSeesOnlyCrossbowsAndTheirArrows) {
+  std::map<std::string, EquipPrototype> equips = {
+      {"crossbow", MakeItem("Crossbow", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
+                            EQUIP_TYPE_CROSSBOW)},
+      {"bow",
+       MakeItem("Bow", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN, EQUIP_TYPE_BOW)},
+      {"bolts", MakeItem("Bolts", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
+                         EQUIP_TYPE_ARROW_FOR_CROSSBOW, EQUIP_SLOT_PROJECTILE)},
+      {"arrows", MakeItem("Arrows", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
+                          EQUIP_TYPE_ARROW_FOR_BOW, EQUIP_SLOT_PROJECTILE)},
+  };
+  CharacterInstance marksman =
+      MakeCharacter(100000, /*level=*/200, JOB_MARKSMAN, /*stage=*/4);
+  ShopPanel panel(marksman, equips, items_);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Crossbow"), std::string::npos);
+  EXPECT_NE(rendered.find("Bolts"), std::string::npos);
+  EXPECT_EQ(rendered.find("Bow "), std::string::npos);
+  EXPECT_EQ(rendered.find("Arrows"), std::string::npos);
+
+  CharacterInstance archer = MakeCharacter(100000, /*level=*/10, JOB_ARCHER);
+  ShopPanel first(archer, equips, items_);
+  rendered = Render(first);
+  EXPECT_NE(rendered.find("Bow "), std::string::npos);
+  EXPECT_NE(rendered.find("Bolts"), std::string::npos);
+}
+
+// Show All sits past both ends of the pay row. Enter lifts the filter, and an
+// item only it lists shows its type in red.
+TEST_F(ShopPanelTest, ShowAllLiftsTheFilterUntilReset) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/1, JOB_SWORDMAN);
+  ShopPanel panel(c, equips_, items_);
+  ASSERT_NE(Render(panel).find("[ ] Show All"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowUp);    // list to pay bar
+  panel.OnEvent(ftxui::Event::ArrowLeft);  // Meso to the switch
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find(std::string(kCheckedBox) + " Show All"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Subi"), std::string::npos);
+  EXPECT_EQ(CellColor(panel, "Subi", "Throwing Star"), kRed);
+  EXPECT_NE(CellColor(panel, "Machete", "One-Handed"), kRed);
+
+  panel.OnEvent(ftxui::Event::ArrowRight);  // wraps onto Meso
+  EXPECT_EQ(panel.selected_token(), nullptr);
+  EXPECT_FALSE(panel.OnEvent(ftxui::Event::Return)) << "Enter is the caller's";
+  panel.OnEvent(ftxui::Event::ArrowRight);  // Token
+  panel.OnEvent(ftxui::Event::ArrowRight);  // the switch again
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
+  EXPECT_EQ(Render(panel).find("Subi"), std::string::npos) << "toggled off";
+  panel.Reset();
+  rendered = Render(panel);
+  EXPECT_NE(rendered.find("[ ] Show All"), std::string::npos);
+  EXPECT_EQ(rendered.find("Subi"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, TheEtcTabHasNoShowAll) {
+  OpenShelf(shop_, kShopEtcTab);
+  EXPECT_EQ(Render(shop_).find("Show All"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {

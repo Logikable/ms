@@ -782,6 +782,7 @@ cc_test(
         ":shop_panel",
         "//src/character",
         "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/item",
         "//src/item:equip_instance",

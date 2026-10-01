@@ -3623,6 +3623,10 @@ bool TuiController::OnShopEvent(ftxui::Event event) {
     screen_ = kMain;
     return true;
   }
+  // The panel takes Enter first, for the Show All switch on its pay row.
+  if (shop_panel_.OnEvent(event)) {
+    return true;
+  }
   if (IsForward(event)) {
     shop_panel_.OpenMenu();
     if (shop_panel_.menu_open()) {
@@ -3630,7 +3634,6 @@ bool TuiController::OnShopEvent(ftxui::Event event) {
     }
     return true;
   }
-  shop_panel_.OnEvent(event);
   // Swallow everything else, since this is a modal screen.
   return true;
 }

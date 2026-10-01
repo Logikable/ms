@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/item/projectile.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -83,6 +84,20 @@ std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment) {
   return StockForShelf(
       equips, [](EquipSlot slot) { return !IsWeaponSlot(slot); }, payment);
+}
+
+bool FitsWeapons(const EquipPrototype& proto,
+                 const std::vector<EquipType>& weapons) {
+  EquipType weapon;
+  if (proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
+    weapon = proto.equip_type();
+  } else if (proto.equip_slot() == EQUIP_SLOT_PROJECTILE) {
+    weapon = WeaponDrawing(proto.equip_type());
+  } else {
+    return true;
+  }
+  return weapons.empty() ||
+         std::find(weapons.begin(), weapons.end(), weapon) != weapons.end();
 }
 
 std::vector<std::string> ShopEtcStock(

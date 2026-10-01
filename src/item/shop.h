@@ -36,6 +36,13 @@ std::vector<std::string> ShopWeaponStock(
 std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
+// Whether `proto` belongs on a shelf for a job that fights with `weapons`: a
+// weapon of one of those types, ammunition one of them draws, or anything that
+// is neither. An empty list fits everything, which is how a 1st job, not yet in
+// a branch, sees its whole category.
+bool FitsWeapons(const EquipPrototype& proto,
+                 const std::vector<EquipType>& weapons);
+
 // Catalog keys of the stackables the shop sells, cheapest first, then by name.
 // Stocking works as it does for equips: set a shop_price in the item's data
 // file. Meso only: tokens buy equipment, not stackables.

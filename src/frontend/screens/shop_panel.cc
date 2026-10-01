@@ -190,7 +190,7 @@ void ShopPanel::Restock() {
                                        : ShopWeaponStock(equips_, payment);
   for (const std::string& key : shelf) {
     const EquipPrototype& proto = equips_.at(key);
-    if (!character_.MeetsJob(proto)) {
+    if (!show_all_ && !ForThisJob(proto)) {
       continue;
     }
     if (payment == kPaidInMeso) {
@@ -203,9 +203,20 @@ void ShopPanel::Restock() {
   }
 }
 
+bool ShopPanel::ForThisJob(const EquipPrototype& proto) const {
+  // A 1st job isn't in a branch yet, so it sees every weapon of its category.
+  std::vector<EquipType> weapons;
+  if (character_.proto().job_stage() >= 2) {
+    weapons = ExpectedWeapons(character_.proto().job());
+  }
+  return character_.MeetsJob(proto) && FitsWeapons(proto, weapons);
+}
+
 void ShopPanel::Reset() {
   tab_ = kShopWeaponTab;
   pay_ = kShopMesoTab;
+  show_all_ = false;
+  on_switch_ = false;
   Restock();
   zone_ = kZoneList;
   selected_ = 0;
@@ -225,8 +236,14 @@ void ShopPanel::StepTab(int direction) {
 }
 
 void ShopPanel::StepPayTab(int direction) {
+  // The switch sits past both ends of the row, as Expand does on the bag's bar,
+  // so either shelf reaches it without passing through the other.
   int next = pay_ + direction;
-  if (next < 0 || next >= kNumShopPayTabs) {
+  if (on_switch_) {
+    on_switch_ = false;
+    next = direction > 0 ? 0 : kNumShopPayTabs - 1;
+  } else if (next < 0 || next >= kNumShopPayTabs) {
+    on_switch_ = true;
     return;
   }
   pay_ = next;
@@ -240,6 +257,7 @@ bool ShopPanel::HasPayRow() const {
 }
 
 void ShopPanel::MoveCursor(int delta) {
+  on_switch_ = false;
   int bars = HasPayRow() ? 2 : 1;
   int next = StepCursor(CursorStop(), delta, bars + RowCount());
   if (next < bars) {
@@ -365,6 +383,13 @@ const ItemPrototype* ShopPanel::selected_stackable() const {
 }
 
 bool ShopPanel::OnEvent(ftxui::Event event) {
+  if (IsForward(event) && zone_ == kZonePay && on_switch_) {
+    show_all_ = !show_all_;
+    Restock();
+    selected_ = 0;
+    first_visible_ = 0;
+    return true;
+  }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -474,7 +499,18 @@ ftxui::Element ShopPanel::RenderPayBar() const {
     return ftxui::text("");
   }
   const std::vector<TabSpec> kTabs = {{"Meso"}, {"Token"}};
-  return TabBar(kTabs, pay_, zone_ == kZonePay, /*width=*/0);
+  ftxui::Element show_all = ftxui::text(
+      (show_all_ ? kCheckedBox : kUncheckedBox) + std::string(" Show All"));
+  if (zone_ == kZonePay && on_switch_) {
+    show_all = std::move(show_all) | ftxui::inverted;
+  }
+  return ftxui::hbox({
+      TabBar(kTabs, pay_, zone_ == kZonePay && !on_switch_, /*width=*/0),
+      ftxui::filler(),
+      std::move(show_all),
+      // Ends where the Cost column does, past the rows' gap and scroll bar.
+      ftxui::text("  "),
+  });
 }
 
 // The price is red when the player can't pay it, so the list shows what they
@@ -495,8 +531,8 @@ ftxui::Element ShopPanel::RenderEtcRow(
   });
 }
 
-// The level is red by the bag's rule and in the bag's colour. There is no class
-// to colour, since the list only has items for this character's class.
+// The level is red by the bag's rule and in the bag's colour. The type is red
+// for an item only Show All lists, since the type is what rules it out.
 ftxui::Element ShopPanel::RenderEquipRow(
     const StockRow& row, const std::string& cursor,
     std::chrono::steady_clock::duration elapsed) const {
@@ -512,12 +548,14 @@ ftxui::Element ShopPanel::RenderEquipRow(
   ftxui::Element cost = CostCell(token, FormatWithCommas(price), price <= held);
   return ftxui::hbox({
       ftxui::text(cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) +
-                  "  " +
-                  // The type scrolls too: "Arrow for Crossbow" is wider than
-                  // the column, and a cut type reads as a different item. This
-                  // is the only other column that scrolls; the rest are sized
-                  // to fit.
-                  ScrollingWindow(TypeCell(proto), kTypeWidth, elapsed) + "  "),
+                  "  "),
+      // The type scrolls too: "Arrow for Crossbow" is wider than the column,
+      // and a cut type reads as a different item. This is the only other
+      // column that scrolls; the rest are sized to fit.
+      RedUnless(
+          ftxui::text(ScrollingWindow(TypeCell(proto), kTypeWidth, elapsed)),
+          ForThisJob(proto)),
+      ftxui::text("  "),
       std::move(level),
       std::move(cost),
       ftxui::text(" "),

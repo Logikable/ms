@@ -325,5 +325,29 @@ TEST(BoxStockTest, TheAbsoLabBoxesAreStocked) {
   EXPECT_EQ(BoxStock(items.at("absolab_armor_box"), equips).size(), 28u);
 }
 
+TEST(FitsWeaponsTest, WeaponsAmmoAndTheRest) {
+  auto make = [](EquipSlot slot, EquipType type) {
+    EquipPrototype e;
+    e.set_equip_slot(slot);
+    e.set_equip_type(type);
+    return e;
+  };
+  EquipPrototype crossbow =
+      make(EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_TYPE_CROSSBOW);
+  EquipPrototype bow = make(EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_TYPE_BOW);
+  EquipPrototype bolts =
+      make(EQUIP_SLOT_PROJECTILE, EQUIP_TYPE_ARROW_FOR_CROSSBOW);
+  EquipPrototype arrows = make(EQUIP_SLOT_PROJECTILE, EQUIP_TYPE_ARROW_FOR_BOW);
+  EquipPrototype thimble = make(EQUIP_SLOT_SECONDARY, EQUIP_TYPE_BOW_THIMBLE);
+  std::vector<EquipType> marksman = {EQUIP_TYPE_CROSSBOW};
+  EXPECT_TRUE(FitsWeapons(crossbow, marksman));
+  EXPECT_TRUE(FitsWeapons(bolts, marksman));
+  EXPECT_FALSE(FitsWeapons(bow, marksman));
+  EXPECT_FALSE(FitsWeapons(arrows, marksman));
+  EXPECT_TRUE(FitsWeapons(thimble, marksman)) << "secondaries filter elsewhere";
+  EXPECT_TRUE(FitsWeapons(bow, {})) << "a 1st job sees every weapon";
+  EXPECT_TRUE(FitsWeapons(arrows, {}));
+}
+
 }  // namespace
 }  // namespace ms
