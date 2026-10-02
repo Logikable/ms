@@ -94,9 +94,25 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   return cells;
 }
 
-ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
-                                   bool bag, const CharacterInstance& character,
-                                   const AccountInstance& account) {
+namespace {
+
+// Folds one row's effects into what its column needs.
+void Measure(const std::vector<std::string>& effects, EffectWidths& needs) {
+  needs.measured = true;
+  if (needs.widths.size() < effects.size()) {
+    needs.widths.resize(effects.size(), needs.For(needs.widths.size()));
+  }
+  for (int n = 1; n <= static_cast<int>(needs.widths.size()); ++n) {
+    needs.widths[n - 1] =
+        std::max(needs.widths[n - 1], JoinedEffectsWidth(effects, n));
+  }
+}
+
+}  // namespace
+
+ItemListOptions ItemListOptionsFor(
+    const std::vector<const EquipTabItem*>& items, bool bag,
+    const CharacterInstance& character, const AccountInstance& account) {
   ItemListOptions options;
   options.bag = bag;
   options.scrolling = Unlocked(Feature::kScrolling, character, account);
@@ -105,7 +121,24 @@ ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
   options.bonus_potential =
       Unlocked(Feature::kBonusPotential, character, account);
   options.flame = Unlocked(Feature::kFlame, character, account);
-  for (const Equip* item : items) {
+  const Job job = character.proto().job();
+  options.potential_effects.measured = true;
+  options.bonus_potential_effects.measured = true;
+  options.flame_effects.measured = true;
+  for (const EquipTabItem* row : items) {
+    const EquipPrototype& proto = row->prototype();
+    const Equip* item = &row->equip_state();
+    Measure(
+        PotentialCellEffects(item->main_potential(), proto.required_level(),
+                             PrimaryStatField(job), SecondaryStatField(job)),
+        options.potential_effects);
+    Measure(
+        PotentialCellEffects(item->bonus_potential(), proto.required_level(),
+                             PrimaryStatField(job), SecondaryStatField(job)),
+        options.bonus_potential_effects);
+    Measure(FlameCellEffects(item->flame(), proto, PrimaryStatField(job),
+                             SecondaryStatField(job)),
+            options.flame_effects);
     options.scrolling |= item->scroll_successes() > 0;
     options.star_force |= item->stars() > 0;
     options.potential |=

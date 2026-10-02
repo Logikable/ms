@@ -836,5 +836,27 @@ TEST(FlameCellTest, AWeaponRanksItsAttackAndPercents) {
       "Junk");
 }
 
+// A bonus potential's stat per 9 levels shows when it is this job's stat, after
+// its %stat.
+TEST(PotentialCellTest, StatPerNineLevelsFollowsThePercent) {
+  Potential potential;
+  potential.set_rank(POTENTIAL_RANK_LEGENDARY);
+  for (PotentialLineType type :
+       {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS, POTENTIAL_LINE_TYPE_BONUS_STR_PCT,
+        POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS}) {
+    PotentialLine* line = potential.add_lines();
+    line->set_type(type);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  }
+  std::vector<std::string> effects =
+      PotentialCellEffects(potential, 200, STAT_FIELD_STR, STAT_FIELD_DEX);
+  ASSERT_EQ(effects.size(), 2u);
+  EXPECT_NE(effects[0].find("% STR"), std::string::npos);
+  EXPECT_NE(effects[1].find(" STR/9Lv"), std::string::npos);
+  EXPECT_EQ(JoinedEffectsWidth(effects, 2),
+            static_cast<int>(effects[0].size() + effects[1].size()) + 2);
+  EXPECT_EQ(JoinedEffectsWidth(effects, 5), JoinedEffectsWidth(effects, 2));
+}
+
 }  // namespace
 }  // namespace ms

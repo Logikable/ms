@@ -750,6 +750,22 @@ PotentialLineType StatPercentLine(StatField stat) {
   }
 }
 
+// The bonus line granting `stat` per 9 character levels.
+PotentialLineType PerNineLevelsLine(StatField stat) {
+  switch (stat) {
+    case STAT_FIELD_STR:
+      return POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS;
+    case STAT_FIELD_DEX:
+      return POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS;
+    case STAT_FIELD_INT:
+      return POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS;
+    case STAT_FIELD_LUK:
+      return POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS;
+    default:
+      return POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  }
+}
+
 // The main line a bonus %stat line off weaponry grants the same stat as.
 PotentialLineType MainStatPercent(PotentialLineType bonus) {
   switch (bonus) {
@@ -818,6 +834,13 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_LUK_PCT:
       return type == StatPercentLine(primary) ? type
                                               : POTENTIAL_LINE_TYPE_UNSPECIFIED;
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+      return type == PerNineLevelsLine(primary)
+                 ? type
+                 : POTENTIAL_LINE_TYPE_UNSPECIFIED;
     // Flat lines and %HP. They roll on Rare items and stop mattering once an
     // item passes Rare, so the column leaves them out.
     default:
@@ -830,7 +853,8 @@ constexpr int kUnreported = -1;
 
 // Where `family` ranks in the column, best first: crit damage, cooldown,
 // %attack, boss damage and ignored defence, %damage, the meso and drop rates,
-// then the character's own stat. Ties go to whichever the item rolled more of.
+// the character's own %stat, then its stat per 9 levels. Ties go to whichever
+// the item rolled more of.
 int SummaryRank(PotentialLineType family) {
   switch (family) {
     case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
@@ -853,6 +877,11 @@ int SummaryRank(PotentialLineType family) {
     case POTENTIAL_LINE_TYPE_INT_PCT:
     case POTENTIAL_LINE_TYPE_LUK_PCT:
       return 6;
+    case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
+    case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
+      return 7;
     default:
       return kUnreported;
   }
@@ -951,21 +980,6 @@ std::vector<std::string> SecondaryStatEffect(const Potential& potential,
           PotentialLineShortName(family)};
 }
 
-// `effects` joined into a cell `width` wide. The first always shows; the others
-// are added only while they fit whole, so a cut-off number never looks like a
-// smaller one.
-std::string JoinWhole(const std::vector<std::string>& effects, int width) {
-  std::string text = effects.front();
-  for (size_t i = 1; i < effects.size(); ++i) {
-    int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
-    if (room > width) {
-      break;
-    }
-    text += ", " + effects[i];
-  }
-  return PadRight(text, width);
-}
-
 // "182 STR" for a flame's flat grant of `stat`, or nothing.
 void AddFlameStat(const EquipStats& stats, const DisplayStat* stat,
                   std::vector<std::string>& effects) {
@@ -1035,8 +1049,9 @@ std::string PotentialLineShortName(PotentialLineType type) {
   }
 }
 
-std::string PotentialCell(const Potential& potential, int item_level,
-                          StatField primary, StatField secondary, int width) {
+std::vector<std::string> PotentialCellEffects(const Potential& potential,
+                                              int item_level, StatField primary,
+                                              StatField secondary) {
   std::vector<std::string> effects =
       PotentialEffects(potential, item_level, primary);
   if (effects.empty()) {
@@ -1045,15 +1060,48 @@ std::string PotentialCell(const Potential& potential, int item_level,
   if (effects.empty()) {
     // "Junk" for a cubed item that still grants this character nothing, and "-"
     // for one that was never cubed.
-    return PadRight(potential.lines().empty() ? "-" : "Junk", width);
+    effects.push_back(potential.lines().empty() ? "-" : "Junk");
   }
-  return JoinWhole(effects, width);
+  return effects;
+}
+
+std::string PotentialCell(const Potential& potential, int item_level,
+                          StatField primary, StatField secondary, int width) {
+  return JoinEffects(
+      PotentialCellEffects(potential, item_level, primary, secondary), width);
+}
+
+std::string JoinEffects(const std::vector<std::string>& effects, int width) {
+  std::string text = effects.front();
+  for (size_t i = 1; i < effects.size(); ++i) {
+    int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
+    if (room > width) {
+      break;
+    }
+    text += ", " + effects[i];
+  }
+  return PadRight(text, width);
+}
+
+int JoinedEffectsWidth(const std::vector<std::string>& effects, int count) {
+  int width = 0;
+  for (int i = 0; i < std::min(count, static_cast<int>(effects.size())); ++i) {
+    width += static_cast<int>(effects[i].size()) + (i > 0 ? kEffectGap : 0);
+  }
+  return width;
 }
 
 std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
                       StatField primary, StatField secondary, int width) {
+  return JoinEffects(FlameCellEffects(flame, proto, primary, secondary), width);
+}
+
+std::vector<std::string> FlameCellEffects(const FlameLines& flame,
+                                          const EquipPrototype& proto,
+                                          StatField primary,
+                                          StatField secondary) {
   if (flame.empty()) {
-    return PadRight("-", width);
+    return {"-"};
   }
   const EquipStats stats = FlameStats(flame, proto);
   const FlamePercents percents = FlamePercentsOf(flame, proto);
@@ -1081,9 +1129,9 @@ std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
     AddFlameStat(stats, second, effects);
   }
   if (effects.empty()) {
-    return PadRight("Junk", width);
+    effects.push_back("Junk");
   }
-  return JoinWhole(effects, width);
+  return effects;
 }
 
 std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {

@@ -112,8 +112,29 @@ int ItemColumns::TotalWidth() const {
   return total;
 }
 
+int EffectWidths::For(int count) const {
+  if (widths.empty()) {
+    return 0;
+  }
+  return widths[std::min(count, static_cast<int>(widths.size())) - 1];
+}
+
 ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
   ItemColumns columns;
+  // A measured column starts as wide as its header and its widest first
+  // effect, rather than the widest effect any item could carry.
+  if (options.potential_effects.measured) {
+    columns.potential_width = std::max<int>(std::string("Potential").size(),
+                                            options.potential_effects.For(1));
+  }
+  if (options.bonus_potential_effects.measured) {
+    columns.bonus_potential_width = std::max(
+        kItemBonusPotentialWidth, options.bonus_potential_effects.For(1));
+  }
+  if (options.flame_effects.measured) {
+    columns.flame_width = std::max<int>(std::string("Flame").size(),
+                                        options.flame_effects.For(1));
+  }
   // The name is placed before anything is measured, since a list needs names.
   // Every other column depends on the room left.
   columns.shown[static_cast<int>(ItemColumn::kName)] = true;
@@ -163,12 +184,19 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
       continue;
     }
     const bool flame = growth.column == ItemColumn::kFlame;
-    int& width = flame ? columns.flame_width
-                 : growth.column == ItemColumn::kPotential
-                     ? columns.potential_width
-                     : columns.bonus_potential_width;
-    int want = EffectsWidth(growth.effects,
-                            flame ? kItemFlameWidth : kItemPotentialWidth);
+    const bool main = growth.column == ItemColumn::kPotential;
+    int& width = flame  ? columns.flame_width
+                 : main ? columns.potential_width
+                        : columns.bonus_potential_width;
+    const EffectWidths& rows = flame  ? options.flame_effects
+                               : main ? options.potential_effects
+                                      : options.bonus_potential_effects;
+    // A measured column grows only as far as its rows use, and a step its
+    // rows don't use costs nothing.
+    int want = rows.measured
+                   ? rows.For(growth.effects)
+                   : EffectsWidth(growth.effects, flame ? kItemFlameWidth
+                                                        : kItemPotentialWidth);
     if (want - width > left) {
       break;
     }

@@ -242,5 +242,25 @@ TEST(ItemColumnsTest, BonusPotentialRenamesTheMainColumn) {
   EXPECT_NE(ItemListHeader(alone).find("Bonus Potential"), std::string::npos);
 }
 
+// A measured column takes only what its rows use: two effects at most here, so
+// the third-effect steps cost nothing and the room passes to the flame column
+// and then the name.
+TEST(ItemColumnsTest, AColumnTakesOnlyWhatItsRowsUse) {
+  ItemListOptions options = Bag();
+  options.potential_effects = {true, {7, 16}};
+  options.bonus_potential_effects = {true, {7}};
+  options.flame_effects = {true, {7, 15, 24, 33}};
+  ItemColumns columns = FitItemColumns(250, options);
+  EXPECT_EQ(columns.potential_width, kItemMainPotentialWidth + 2);
+  EXPECT_EQ(columns.bonus_potential_width, kItemBonusPotentialWidth)
+      << "never narrower than its header";
+  EXPECT_EQ(columns.flame_width, 33);
+  EXPECT_EQ(columns.name_width, kItemNameMax);
+
+  // No flamed item: the column is as wide as "-" needs, its header.
+  options.flame_effects = {true, {1}};
+  EXPECT_EQ(FitItemColumns(250, options).flame_width, 5);
+}
+
 }  // namespace
 }  // namespace ms

@@ -151,9 +151,9 @@ std::vector<InventoryRowState> BuildEquipRows(
 ItemListOptions EquipListOptions(const CharacterInstance& character,
                                  const AccountInstance& account,
                                  const InventoryInstance& items) {
-  std::vector<const Equip*> states;
+  std::vector<const EquipTabItem*> states;
   for (int i = 0; i < items.size(); ++i) {
-    states.push_back(&items[i].equip_state());
+    states.push_back(&items[i]);
   }
   return ItemListOptionsFor(states, /*bag=*/true, character, account);
 }

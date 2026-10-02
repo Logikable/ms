@@ -122,6 +122,11 @@ std::string PotentialLineShortName(PotentialLineType type);
 // one.
 std::string PotentialCell(const Potential& potential, int item_level,
                           StatField primary, StatField secondary, int width);
+// The effects PotentialCell picks from, best first: "Junk" or "-" alone when
+// there are none.
+std::vector<std::string> PotentialCellEffects(const Potential& potential,
+                                              int item_level, StatField primary,
+                                              StatField secondary);
 
 // The flame column's cell, written the way PotentialCell writes its own: an
 // item's lines summed into one effect each, best first, as many as fit. A pair
@@ -131,6 +136,17 @@ std::string PotentialCell(const Potential& potential, int item_level,
 // the secondary. "Junk" when none of those, and "-" for an item never flamed.
 std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
                       StatField primary, StatField secondary, int width);
+std::vector<std::string> FlameCellEffects(const FlameLines& flame,
+                                          const EquipPrototype& proto,
+                                          StatField primary,
+                                          StatField secondary);
+
+// `effects` joined into a cell `width` wide: the first always, the others only
+// while they fit whole, so a cut-off number never looks like a smaller one.
+std::string JoinEffects(const std::vector<std::string>& effects, int width);
+// The width of the first `count` of `effects` joined, or of all of them if
+// there are fewer.
+int JoinedEffectsWidth(const std::vector<std::string>& effects, int count);
 
 // The tag at the start of a skill row, saying how the skill is used. Every tag
 // is four columns wide, so every name starts in the same place.

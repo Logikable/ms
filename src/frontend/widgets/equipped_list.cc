@@ -97,10 +97,10 @@ std::vector<EquippedRow> EquippedRows(
 ItemListOptions EquippedListOptions(const CharacterInstance& character,
                                     const AccountInstance& account,
                                     StatPreset preset) {
-  std::vector<const Equip*> states;
+  std::vector<const EquipTabItem*> states;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped(preset)) {
-    states.push_back(&kv.second->equip_state());
+    states.push_back(kv.second);
   }
   return ItemListOptionsFor(states, /*bag=*/false, character, account);
 }

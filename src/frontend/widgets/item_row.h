@@ -87,10 +87,11 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
 
 // The upgrade columns a list of `items` may show: each once the account unlocks
 // its mechanic, or earlier if one of `items` carries it, such as a traded item
-// with bonus potential. `bag` is ItemListOptions::bag.
-ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
-                                   bool bag, const CharacterInstance& character,
-                                   const AccountInstance& account);
+// with bonus potential. Also how wide the effect columns' rows run, as
+// `character` reads them. `bag` is ItemListOptions::bag.
+ItemListOptions ItemListOptionsFor(
+    const std::vector<const EquipTabItem*>& items, bool bag,
+    const CharacterInstance& character, const AccountInstance& account);
 
 // `cells` laid out in `columns`. `elapsed` is how long this row has been
 // selected, which scrolls a name too long for its column. Zero, the default and

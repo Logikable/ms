@@ -15,6 +15,7 @@
 #define MS_SRC_FRONTEND_WIDGETS_ITEM_COLUMNS_H_
 
 #include <string>
+#include <vector>
 
 namespace ms {
 
@@ -84,6 +85,17 @@ inline constexpr int kItemFlameMax = EffectsWidth(4, kItemFlameWidth);
 inline constexpr int kItemMainPotentialWidth = 14;
 inline constexpr int kItemBonusPotentialWidth = 15;
 
+// What an effect column's rows need: `widths[n - 1]` is the widest row's first
+// n effects. A list that wasn't measured grows its columns a whole widest
+// effect at a time instead.
+struct EffectWidths {
+  bool measured = false;
+  std::vector<int> widths;
+
+  // The width every row needs to show its first `count` effects.
+  int For(int count) const;
+};
+
 // Which upgrade columns a list may show (see ItemListOptionsFor).
 struct ItemListOptions {
   // True for the bag, which lists items the character may not be able to wear.
@@ -94,6 +106,10 @@ struct ItemListOptions {
   bool potential = false;
   bool bonus_potential = false;
   bool flame = false;
+  // What the rows hold, so a column takes no room its rows don't use.
+  EffectWidths potential_effects;
+  EffectWidths bonus_potential_effects;
+  EffectWidths flame_effects;
 };
 
 // The columns a list draws, and the widths its stretchable columns got.
