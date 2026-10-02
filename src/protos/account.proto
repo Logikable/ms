@@ -42,11 +42,13 @@ message Account {
   Bank bank = 8;
 }
 
-// The bank: two tabs of 128 slots and a purse, shared by every character on the
-// account. The tabs match the bag's (see Inventory and Character.stacks), since
-// everything in the bank came out of a bag.
+// The bank: an Equip tab of eight pages, an Etc tab and a purse, shared by
+// every character on the account. The tabs match the bag's (see Inventory and
+// Character.stacks), since everything in the bank came out of a bag.
 message Bank {
-  repeated Equip equip_tab = 1;
+  // Read only: a save from before the pages. Its items fill the pages in order.
+  repeated Equip legacy_equip_tab = 1;
+  repeated BankPage equip_pages = 6;
   repeated StackableStack stacks = 2;
 
   // Stored meso, with the other currencies beside it. Meso has its own field
@@ -56,6 +58,10 @@ message Bank {
   map<string, int64> currencies = 4;
   // A counter on the character rather than an item, so not in `currencies`.
   int64 v_points = 5;
+}
+
+message BankPage {
+  repeated Equip equips = 1;
 }
 
 // Where the game's music comes from. Zero is the shipped default, so a save

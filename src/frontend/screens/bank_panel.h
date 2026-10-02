@@ -6,10 +6,14 @@
  * halves, and each half keeps its own open tab and row, so coming back lands
  * where you left.
  *
- * Each half's top row is a ring of four stops: the two tab chips, then meso and
- * spell traces. Moving onto a chip opens that tab. Enter on a balance asks how
- * much to move. Down moves into the open tab's list, and Up from its first row
+ * Each half's top row is a ring of stops: the two tab chips, then the
+ * balances. Moving onto a chip opens that tab. Enter on a balance asks how much
+ * to move. Down moves into the open tab's list, and Up from its first row
  * returns to the chip of the tab being shown.
+ *
+ * The bank's Equip tab has a second row between the two, its pages 1 to 8,
+ * which Left and Right walk. Only the open page is listed, an item moved into
+ * the bank lands on it, and Sort sorts only it.
  *
  * The panel shows both containers and moves items between them, but it opens no
  * dialogs itself: the controller reads the cursor and does the asking.
@@ -53,7 +57,7 @@ std::string BankCurrencyName(BankCurrency currency);
 // What the cursor is on, in whichever half.
 struct BankCursor {
   enum class Kind {
-    // A tab chip. Enter opens the {Sort, Close} menu.
+    // A tab chip, or a bank page. Enter opens the {Sort, Close} menu.
     kTab,
     kCurrency,
     // A row of the open tab, with `index` its position in that half's list.
@@ -147,10 +151,13 @@ class BankPanel {
   // row, and which row it was last on.
   struct Half {
     bool etc_tab = false;
-    // A stop on the top row: the two chips, then the two balances.
+    // A stop on the top row: the two chips, then the balances.
     int top = 0;
+    // The open equip page. Only the bank has more than one.
+    int page = 0;
     int row = 0;
-    // Whether the cursor has moved from the top row into the list.
+    // Where the cursor is below the top row: on the page row, or in the list.
+    bool on_pages = false;
     bool in_list = false;
   };
 
@@ -163,6 +170,8 @@ class BankPanel {
     return half(zone_);
   }
 
+  // Whether `zone` draws the page row: only the bank, on its Equip tab.
+  bool HasPages(BankZone zone) const;
   // The number of rows in the named half's open tab.
   int RowCount(BankZone zone) const;
   // The cursor row, clamped to the rows that exist.
@@ -176,8 +185,9 @@ class BankPanel {
 
   // One half as a bordered window: its top row, then the open tab's list.
   ftxui::Element RenderHalf(BankZone zone) const;
-  // That half's top row, and the list below it.
+  // That half's top row, the bank's page row, and the list below them.
   ftxui::Element RenderTopRow(BankZone zone) const;
+  ftxui::Element RenderPageRow(BankZone zone) const;
   ftxui::Element RenderList(BankZone zone) const;
 
   // Where the open menu goes: the screen row of the cursor's row, or the row
@@ -214,6 +224,7 @@ class BankPanel {
   mutable ftxui::Box cursor_box_;
   mutable ftxui::Box scratch_box_;
   mutable ftxui::Box bar_box_;
+  mutable ftxui::Box page_box_;
   mutable ftxui::Box panel_box_;
 };
 

@@ -17,6 +17,7 @@
 #include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/item/bank.h"
 #include "src/item/currency.h"
 #include "src/item/item.h"
 #include "src/item/tradeable.h"
@@ -83,6 +84,10 @@ const BankPanel::Half& BankPanel::half(BankZone zone) const {
   return zone == BankZone::kBag ? bag_ : bank_;
 }
 
+bool BankPanel::HasPages(BankZone zone) const {
+  return zone == BankZone::kBank && !half(zone).etc_tab;
+}
+
 int BankPanel::RowCount(BankZone zone) const {
   const Half& side = half(zone);
   if (zone == BankZone::kBag) {
@@ -90,7 +95,7 @@ int BankPanel::RowCount(BankZone zone) const {
                         : character_.inventory().size();
   }
   const BankInstance& bank = account_.bank();
-  return side.etc_tab ? bank.stacks().size() : bank.equips().size();
+  return side.etc_tab ? bank.stacks().size() : bank.page(side.page).size();
 }
 
 int BankPanel::ClampedRow(BankZone zone) const {
@@ -110,6 +115,11 @@ void BankPanel::MoveCursor(int delta) {
   if (side.in_list) {
     return;  // Left and Right do nothing in a list of items
   }
+  if (side.on_pages) {
+    side.page = StepCursor(side.page, delta, kBankPages);
+    side.row = 0;
+    return;
+  }
   side.top = StepCursor(side.top, delta, TopStops());
   // Moving onto a chip opens that tab; there is no separate key for it.
   if (side.top == kEquipChip || side.top == kEtcChip) {
@@ -119,15 +129,21 @@ void BankPanel::MoveCursor(int delta) {
 
 void BankPanel::MoveRow(int delta) {
   Half& side = here();
-  // The top row is stop 0 of one ring and the list rows are the stops after it,
-  // so Down from the last row returns to the bar and Up from the bar goes to
-  // the last row.
+  // The top row is stop 0 of one ring, the page row (if drawn) the next, and
+  // the list rows are the stops after it, so Down from the last row returns to
+  // the bar and Up from the bar goes to the last row.
+  const int first_row = HasPages(zone_) ? 2 : 1;
   int rows = RowCount(zone_);
-  int stop = side.in_list ? ClampedRow(zone_) + 1 : 0;
-  int next = StepCursor(stop, delta, 1 + rows);
-  side.in_list = next > 0;
+  int stop =
+      side.in_list ? ClampedRow(zone_) + first_row : (side.on_pages ? 1 : 0);
+  int next = StepCursor(stop, delta, first_row + rows);
+  side.on_pages = first_row == 2 && next == 1;
+  side.in_list = next >= first_row;
   if (side.in_list) {
-    side.row = next - 1;
+    side.row = next - first_row;
+    return;
+  }
+  if (side.on_pages) {
     return;
   }
   // Coming back up lands on the chip of the tab being shown, not wherever the
@@ -142,6 +158,9 @@ BankCursor BankPanel::cursor() const {
       return {BankCursor::Kind::kNothing, BankCurrency::kMeso, 0};
     }
     return {BankCursor::Kind::kRow, BankCurrency::kMeso, ClampedRow(zone_)};
+  }
+  if (side.on_pages) {
+    return {BankCursor::Kind::kTab, BankCurrency::kMeso, 0};
   }
   switch (side.top) {
     case kMesoStop:
@@ -217,11 +236,13 @@ std::string BankPanel::MoveSelected() {
     return error;
   }
   // The row that moved up into this place is the next item. When the tab is
-  // empty there is nothing to select, and the cursor moves up to the chip.
+  // empty there is nothing to select, and the cursor moves up to the page, or
+  // to the chip.
   Half& side = here();
   int rows = RowCount(zone_);
   if (rows == 0) {
     side.in_list = false;
+    side.on_pages = HasPages(zone_);
     side.top = side.etc_tab ? kEtcChip : kEquipChip;
   } else {
     side.row = std::min(side.row, rows - 1);
@@ -236,16 +257,16 @@ std::string BankPanel::MoveEquip() {
     if (!CanTrade(character_.inventory()[index].prototype())) {
       return "Symbols can't be stored.";
     }
-    if (bank.equips().full()) {
-      return "Bank full.";
+    if (bank.PageFull(bank_.page)) {
+      return "This page is full.";
     }
-    bank.AddEquip(character_.TakeEquip(index));
+    bank.AddEquip(bank_.page, character_.TakeEquip(index));
     return "";
   }
   if (character_.inventory().full()) {
     return "Inventory full.";
   }
-  character_.PickUp(bank.TakeEquip(index));
+  character_.PickUp(bank.TakeEquip(bank_.page, index));
   return "";
 }
 
@@ -283,7 +304,7 @@ void BankPanel::SortActiveTab() {
   if (here().etc_tab) {
     bank.SortStacks();
   } else {
-    bank.SortEquips([this](const EquipPrototype& proto) {
+    bank.SortEquips(bank_.page, [this](const EquipPrototype& proto) {
       return character_.CanEquip(proto);
     });
   }
@@ -319,7 +340,7 @@ const EquipTabItem* BankPanel::selected_equip() const {
   }
   int index = ClampedRow(zone_);
   return zone_ == BankZone::kBag ? &character_.inventory()[index]
-                                 : &account_.bank().equips()[index];
+                                 : &account_.bank().page(bank_.page)[index];
 }
 
 const StackableItem* BankPanel::selected_stack() const {
@@ -337,7 +358,7 @@ ftxui::Box& BankPanel::CursorBox(BankZone zone) const {
 
 ftxui::Element BankPanel::RenderTopRow(BankZone zone) const {
   const Half& side = half(zone);
-  const bool here_now = zone == zone_ && !side.in_list;
+  const bool here_now = zone == zone_ && !side.in_list && !side.on_pages;
   std::vector<TabSpec> tabs = {{"Equip"}, {"Etc"}};
   int balance_cursor = kNoBalance;
   if (here_now && side.top == kMesoStop) {
@@ -361,11 +382,22 @@ ftxui::Element BankPanel::RenderTopRow(BankZone zone) const {
   // A chip is lit only while the cursor is on it. A tab that is merely open
   // keeps the theme's inversion, so the two halves never both appear to have
   // the cursor.
-  bool on_chip = here_now && side.top <= kEtcChip;
+  bool on_chip = here_now && !side.on_pages && side.top <= kEtcChip;
   return RenderBagTabBar(tabs, side.etc_tab ? kEtcChip : kEquipChip, balances,
                          on_chip, /*highlighted=*/false, ftxui::text(""),
                          kHalfWidth - 2,
                          zone == zone_ ? bar_box_ : scratch_box_);
+}
+
+ftxui::Element BankPanel::RenderPageRow(BankZone zone) const {
+  std::vector<TabSpec> pages;
+  for (int i = 1; i <= kBankPages; ++i) {
+    pages.push_back({std::to_string(i)});
+  }
+  const Half& side = half(zone);
+  return TabBar(pages, side.page, zone == zone_ && side.on_pages,
+                kHalfWidth - 2) |
+         ftxui::reflect(page_box_);
 }
 
 ftxui::Element BankPanel::RenderList(BankZone zone) const {
@@ -377,7 +409,8 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
   // list counts as a different name and starts from the beginning.
   if (focused) {
     name_clock_.Follow((zone == BankZone::kBank ? 2 : 0) * kHalfStride +
-                           (side.etc_tab ? kHalfStride : 0) + cursor,
+                           (side.etc_tab ? kHalfStride : 0) +
+                           side.page * kBankPageCapacity + cursor,
                        true);
   }
   std::chrono::steady_clock::duration elapsed =
@@ -392,7 +425,7 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
                            CursorBox(zone), /*highlighted=*/false, elapsed);
   }
   const InventoryInstance& items =
-      zone == BankZone::kBag ? character_.inventory() : bank.equips();
+      zone == BankZone::kBag ? character_.inventory() : bank.page(side.page);
   return RenderEquipList(
       character_, items, AllRows(rows), cursor, focused,
       FitItemColumns(kHalfWidth - 2,
@@ -401,14 +434,18 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
 }
 
 ftxui::Element BankPanel::RenderHalf(BankZone zone) const {
-  ftxui::Element body =
-      ftxui::vbox({
-          RenderTopRow(zone),
-          // The header, its rule and the rows, which make up the list.
-          RenderList(zone) |
-              ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kHalfRows + 2),
-      }) |
-      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kHalfWidth);
+  // The page row takes one of the list's rows, so the half keeps its height:
+  // the screen has no row to spare.
+  const bool pages = HasPages(zone);
+  std::vector<ftxui::Element> rows = {RenderTopRow(zone)};
+  if (pages) {
+    rows.push_back(RenderPageRow(zone));
+  }
+  // The header, its rule and the rows, which make up the list.
+  rows.push_back(RenderList(zone) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
+                                                kHalfRows + 2 - pages));
+  ftxui::Element body = ftxui::vbox(std::move(rows)) |
+                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kHalfWidth);
   return ThemedWindow(zone == BankZone::kBag ? " Inventory " : " Bank ",
                       std::move(body), zone == zone_);
 }
@@ -418,7 +455,9 @@ int BankPanel::MenuRow() const {
   // menu is placed from the panel's own corner, so the panel's top is
   // subtracted. One row back from the cursor, so the highlighted entry sits
   // beside what the menu is about rather than below it.
-  int row = here().in_list ? cursor_box_.y_min - 1 : bar_box_.y_min + 1;
+  int row = here().in_list    ? cursor_box_.y_min - 1
+            : here().on_pages ? page_box_.y_min + 1
+                              : bar_box_.y_min + 1;
   return row - panel_box_.y_min;
 }
 

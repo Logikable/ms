@@ -4893,10 +4893,11 @@ TEST_F(TuiControllerTest, TheBankMovesAnEquipAcrossAndBack) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBank);
   EXPECT_EQ(state_->character.inventory().size(), 0);
-  ASSERT_EQ(state_->account.bank().equips().size(), 1);
+  ASSERT_EQ(state_->account.bank().page(0).size(), 1);
 
-  controller_->OnEvent(ftxui::Event::Tab);  // -> the bank's half
-  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Tab);        // -> the bank's half
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // the chip -> the pages
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> the first row
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);  // Inspect
   ASSERT_EQ(controller_->screen(), kBankInspect);
@@ -4912,7 +4913,7 @@ TEST_F(TuiControllerTest, TheBankMovesAnEquipAcrossAndBack) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Move
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.inventory().size(), 1);
-  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+  EXPECT_EQ(state_->account.bank().page(0).size(), 0);
 
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
@@ -4937,7 +4938,7 @@ TEST_F(TuiControllerTest, TheBankMenusCloseAndSort) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Close
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBank);
-  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+  EXPECT_EQ(state_->account.bank().page(0).size(), 0);
   EXPECT_EQ(state_->character.inventory().size(), 2);
 
   controller_->OnEvent(ftxui::Event::ArrowUp);  // back to the Equip chip
@@ -4960,7 +4961,7 @@ TEST_F(TuiControllerTest, TheBankRefusesASymbolAndSaysSo) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(controller_->notification().visible());
   EXPECT_EQ(state_->character.inventory().size(), 1);
-  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+  EXPECT_EQ(state_->account.bank().page(0).size(), 0);
 }
 
 // Enter on a balance asks for an amount: the typed amount moves across, Escape

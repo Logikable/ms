@@ -52,8 +52,12 @@ class BankPanelTest : public PanelTest {
   }
 
   // Down onto the first row of whichever half has the cursor.
+  // Down from the top row into the list, past the bank's page row.
   void ToList() {
     panel_->MoveRow(1);
+    if (panel_->cursor().kind == BankCursor::Kind::kTab) {
+      panel_->MoveRow(1);
+    }
   }
 
   // Right until the cursor is on the given stop of the top row.
@@ -148,16 +152,57 @@ TEST_F(BankPanelTest, MovingAnEquipCrossesAndBackAgain) {
   ASSERT_EQ(panel_->cursor().kind, BankCursor::Kind::kRow);
   EXPECT_EQ(panel_->MoveSelected(), "");
   EXPECT_EQ(c_.inventory().size(), 0);
-  ASSERT_EQ(bank().equips().size(), 1);
-  EXPECT_EQ(bank().equips()[0].name(), "Sword");
+  ASSERT_EQ(bank().page(0).size(), 1);
+  EXPECT_EQ(bank().page(0)[0].name(), "Sword");
   EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab)
       << "nothing left to stand on, so the cursor climbs to the chip";
 
   panel_->NextZone();
   ToList();
   EXPECT_EQ(panel_->MoveSelected(), "");
-  EXPECT_EQ(bank().equips().size(), 0);
+  EXPECT_EQ(bank().page(0).size(), 0);
   EXPECT_EQ(c_.inventory().size(), 1);
+  panel_->MoveCursor(1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab)
+      << "an emptied page leaves the cursor on the page row";
+}
+
+// Down from the bank's top row stops at the pages, Right opens the next one,
+// and an item moved in lands on the page that is open.
+TEST_F(BankPanelTest, TheBankShowsOnePageAtATime) {
+  account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(sword_));
+  panel_->NextZone();
+  panel_->MoveRow(1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab);
+  panel_->MoveRow(1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kRow);
+  panel_->MoveRow(-1);
+  panel_->MoveCursor(1);
+  panel_->MoveRow(1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab)
+      << "page 2 is empty, so Down goes round to the top row";
+  EXPECT_FALSE(panel_->on_etc_tab());
+  panel_->MoveRow(-1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kTab) << "the pages";
+  EXPECT_EQ(panel_->selected_equip(), nullptr);
+
+  panel_->NextZone();
+  ToList();
+  EXPECT_EQ(panel_->MoveSelected(), "");
+  EXPECT_EQ(bank().page(1).size(), 1);
+  EXPECT_EQ(bank().page(0).size(), 1);
+
+  // The Etc tab has no pages.
+  ItemPrototype shell;
+  shell.set_name("Green Snail Shell");
+  shell.set_max_stack(100);
+  account_.mutable_bank().AddItem(shell, 1);
+  panel_->NextZone();
+  panel_->MoveRow(-1);  // the pages -> the Equip chip
+  panel_->MoveCursor(1);
+  ASSERT_TRUE(panel_->on_etc_tab());
+  panel_->MoveRow(1);
+  EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kRow);
 }
 
 // A whole stack row moves at once, and the cursor lands on the row that moved
@@ -191,13 +236,13 @@ TEST_F(BankPanelTest, ASymbolWillNotGoIntoTheBank) {
   ASSERT_EQ(panel_->cursor().index, 1);
   EXPECT_EQ(panel_->MoveSelected(), "Symbols can't be stored.");
   EXPECT_EQ(c_.inventory().size(), 2) << "and nothing left the bag";
-  EXPECT_EQ(bank().equips().size(), 0);
+  EXPECT_EQ(bank().page(0).size(), 0);
 
-  account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(symbol));
+  account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(symbol));
   panel_->NextZone();
   ToList();
   EXPECT_EQ(panel_->MoveSelected(), "");
-  EXPECT_EQ(bank().equips().size(), 0);
+  EXPECT_EQ(bank().page(0).size(), 0);
   EXPECT_EQ(c_.inventory().size(), 3);
 }
 
@@ -216,11 +261,12 @@ TEST_F(BankPanelTest, ABoxGoesIntoTheBank) {
 }
 
 TEST_F(BankPanelTest, AFullTabRefusesAndSaysWhich) {
-  for (int i = 0; i < kTabCapacity; ++i) {
-    account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(sword_));
+  for (int i = 0; i < kBankPageCapacity; ++i) {
+    account_.mutable_bank().AddEquip(0,
+                                     std::make_unique<EquipInstance>(sword_));
   }
   ToList();
-  EXPECT_EQ(panel_->MoveSelected(), "Bank full.");
+  EXPECT_EQ(panel_->MoveSelected(), "This page is full.");
   EXPECT_EQ(c_.inventory().size(), 1) << "and nothing left the bag";
 
   // The other way: a full bag refuses what the bank offers.
@@ -230,7 +276,7 @@ TEST_F(BankPanelTest, AFullTabRefusesAndSaysWhich) {
   panel_->NextZone();
   ToList();
   EXPECT_EQ(panel_->MoveSelected(), "Inventory full.");
-  EXPECT_EQ(bank().equips().size(), kTabCapacity);
+  EXPECT_EQ(bank().page(0).size(), kBankPageCapacity);
 }
 
 TEST_F(BankPanelTest, BalancesCrossBothWays) {
@@ -262,16 +308,16 @@ TEST_F(BankPanelTest, BalancesCrossBothWays) {
 }
 
 TEST_F(BankPanelTest, SortFilesTheHalfTheCursorIsIn) {
-  account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(sword_));
+  account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(sword_));
   EquipPrototype hat;
   hat.set_name("Hat");
   hat.set_equip_slot(EQUIP_SLOT_HAT);
   hat.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(hat));
+  account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(hat));
 
   panel_->NextZone();
   panel_->SortActiveTab();
-  EXPECT_EQ(bank().equips()[0].name(), "Hat")
+  EXPECT_EQ(bank().page(0)[0].name(), "Hat")
       << "the beginner can wear it, and what can be worn leads";
 }
 
@@ -321,7 +367,7 @@ TEST_F(BankPanelTest, InspectReachesTheItemInEitherHalf) {
   EXPECT_EQ(panel_->selected_equip(), nullptr);
   ASSERT_NE(panel_->selected_stack(), nullptr);
 
-  account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(sword_));
+  account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(sword_));
   panel_->NextZone();
   ToList();
   ASSERT_NE(panel_->selected_equip(), nullptr);

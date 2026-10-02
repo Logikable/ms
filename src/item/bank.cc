@@ -1,5 +1,7 @@
 #include "src/item/bank.h"
 
+#include <algorithm>
+#include <climits>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -16,19 +18,23 @@
 
 namespace ms {
 
-bool BankInstance::AddEquip(std::unique_ptr<EquipTabItem> item) {
-  if (item == nullptr || equips_.full()) {
+bool BankInstance::PageFull(int page) const {
+  return pages_[page].size() >= kBankPageCapacity;
+}
+
+bool BankInstance::AddEquip(int page, std::unique_ptr<EquipTabItem> item) {
+  if (item == nullptr || PageFull(page)) {
     return false;
   }
-  equips_.add(std::move(item));
+  pages_[page].add(std::move(item));
   return true;
 }
 
-std::unique_ptr<EquipTabItem> BankInstance::TakeEquip(int index) {
-  if (index < 0 || index >= equips_.size()) {
+std::unique_ptr<EquipTabItem> BankInstance::TakeEquip(int page, int index) {
+  if (index < 0 || index >= pages_[page].size()) {
     return nullptr;
   }
-  return equips_.remove_equip(index);
+  return pages_[page].remove_equip(index);
 }
 
 int BankInstance::AddItem(const ItemPrototype& proto, int count) {
@@ -88,8 +94,8 @@ bool BankInstance::SpendCurrency(const std::string& name, int64_t count) {
 }
 
 void BankInstance::SortEquips(
-    const std::function<bool(const EquipPrototype&)>& equippable) {
-  equips_.Sort(equippable);
+    int page, const std::function<bool(const EquipPrototype&)>& equippable) {
+  pages_[page].Sort(equippable);
 }
 
 void BankInstance::SortStacks() {
@@ -100,14 +106,26 @@ void BankInstance::RestoreFrom(
     const Bank& saved,
     const std::map<std::string, const EquipPrototype*>& equips,
     const std::map<std::string, const ItemPrototype*>& items) {
-  equips_ = InventoryInstance();
-  for (const Equip& state : saved.equip_tab()) {
+  pages_ = {};
+  auto restore = [&](int page, const Equip& state) {
     std::map<std::string, const EquipPrototype*>::const_iterator proto =
         equips.find(state.equip_name());
-    if (proto == equips.end()) {
-      continue;
+    if (proto != equips.end()) {
+      pages_[page].add(EquipItemFromState(*proto->second, state));
     }
-    equips_.add(EquipItemFromState(*proto->second, state));
+  };
+  // Positions count before names are resolved, so an item that left the data
+  // doesn't shift every later one onto the page before.
+  for (int i = 0; i < saved.legacy_equip_tab_size(); ++i) {
+    if (i / kBankPageCapacity < kBankPages) {
+      restore(i / kBankPageCapacity, saved.legacy_equip_tab(i));
+    }
+  }
+  for (int page = 0; page < std::min(saved.equip_pages_size(), kBankPages);
+       ++page) {
+    for (const Equip& state : saved.equip_pages(page).equips()) {
+      restore(page, state);
+    }
   }
   stacks_.RestoreFrom(saved.stacks(), items);
   currencies_.RestoreFrom(saved.currencies(), items);
@@ -117,8 +135,11 @@ void BankInstance::RestoreFrom(
 
 Bank BankInstance::ToProto() const {
   Bank saved;
-  for (int i = 0; i < equips_.size(); ++i) {
-    *saved.add_equip_tab() = equips_[i].SavedState();
+  for (const InventoryInstance& page : pages_) {
+    BankPage* out = saved.add_equip_pages();
+    for (int i = 0; i < page.size(); ++i) {
+      *out->add_equips() = page[i].SavedState();
+    }
   }
   stacks_.AppendTo(saved.mutable_stacks());
   *saved.mutable_currencies() = currencies_.ToProto();
