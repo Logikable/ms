@@ -24,12 +24,13 @@ namespace ms {
 
 namespace {
 
-// What //analysis:progression_sim's 75-day sweep (2026-09-30, two seeds, all
-// ten branches) wore on arriving at each level, read toward its better half as
-// kPotentialBands is. Every piece stands at its own star limit through 140.
-// From 170 whatever can go further sits at 11-12 stars, and at 260 most pieces
-// are at 17, the run the 16th star opens. The weapon stops at 15: a boom needs
-// a spare copy to recover from, and a weapon rarely has one.
+// What //analysis:progression_sim's sweep wore on arriving at each level, read
+// toward its better half as kPotentialBands is; 260 was re-read off the
+// 120-day sweep of 2026-10-01 and held. Every piece stands at its own star
+// limit through 140. From 170 whatever can go further sits at 11-12 stars, and
+// at 260 most pieces are at 17, the run the 16th star opens. The weapon stops
+// at 15: a boom needs a spare copy to recover from, and a weapon rarely has
+// one.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -165,9 +166,10 @@ constexpr Share B = Share::kBoss;
 constexpr Share I = Share::kIed;
 constexpr Share C = Share::kCritDamage;
 
-// What //analysis:progression_sim's 75-day sweep (2026-09-30, two seeds, all
-// ten branches) wore on arriving at each level, read toward its better half:
-// a max character spent well, not luckily. At 200 most pieces have not been
+// What //analysis:progression_sim's sweep (two seeds, all ten branches) wore
+// on arriving at each level, read toward its better half: a max character
+// spent well, not luckily. 230 is the 75-day sweep of 2026-09-30; 260 the
+// 120-day one of 2026-10-01. At 200 most pieces have not been
 // cubed yet, so there is no band for it. Bonus potential opens at 230, so that
 // level has none yet.
 constexpr PotentialBand kPotentialBands[] = {
@@ -183,7 +185,7 @@ constexpr PotentialBand kPotentialBands[] = {
     {260,
      {{L, {B, B, I}},
       {L, {B, B, I}},
-      {L, {B, I, I}},
+      {L, {B, B, I}},
       {L, {S, S, T}},
       {L, {C, C, S}, 2},
       {L, {S, S, T}},
@@ -191,10 +193,10 @@ constexpr PotentialBand kPotentialBands[] = {
      {{L, {A, A, A}},
       {L, {A, A, A}},
       {L, {A, A, A}},
-      {E, {S, S, H}},
-      {U, {S, S, H}},
-      {U, {S, S, H}},
-      {E, {S, S, H}}}},
+      {U, {S, S, S}},
+      {U, {S, S, T}},
+      {U, {S, S, T}},
+      {E, {S, S, S}}}},
 };
 
 // The band `level` names, or null for none.

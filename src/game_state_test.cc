@@ -1172,7 +1172,7 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
 
   const Potential& bonus =
       Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();
-  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_UNIQUE);
   ASSERT_EQ(bonus.lines_size(), kPotentialLines);
   EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
 }

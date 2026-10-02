@@ -135,7 +135,7 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
   const Potential ring = MaxPotentialFor(EQUIP_SLOT_RING, gear, STAT_FIELD_LUK,
                                          PotentialTrack::kBonus);
   EXPECT_EQ(ring.rank(), POTENTIAL_RANK_EPIC);
-  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 2);
+  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 3);
 }
 
 // The weapon and secondary hold boss damage and ignored defence; bonus
