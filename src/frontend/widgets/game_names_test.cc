@@ -852,7 +852,7 @@ TEST(PotentialCellTest, StatPerNineLevelsFollowsThePercent) {
       PotentialCellEffects(potential, 200, STAT_FIELD_STR, STAT_FIELD_DEX);
   ASSERT_EQ(effects.size(), 2u);
   EXPECT_NE(effects[0].find("% STR"), std::string::npos);
-  EXPECT_NE(effects[1].find(" STR/9Lv"), std::string::npos);
+  EXPECT_NE(effects[1].find(" STR/9"), std::string::npos);
   EXPECT_EQ(JoinedEffectsWidth(effects, 2),
             static_cast<int>(effects[0].size() + effects[1].size()) + 2);
   EXPECT_EQ(JoinedEffectsWidth(effects, 5), JoinedEffectsWidth(effects, 2));

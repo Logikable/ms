@@ -1016,13 +1016,13 @@ std::string PotentialLineShortName(PotentialLineType type) {
     case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
       return "HP";
     case POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS:
-      return "STR/9Lv";
+      return "STR/9";
     case POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS:
-      return "DEX/9Lv";
+      return "DEX/9";
     case POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS:
-      return "INT/9Lv";
+      return "INT/9";
     case POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS:
-      return "LUK/9Lv";
+      return "LUK/9";
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
