@@ -169,7 +169,7 @@ ABSL_FLAG(bool, alts, true,
           "Skills level, whenever one pays for the farming hours it costs.");
 ABSL_FLAG(double, endgame_days, 7.0,
           "Days played at the cap for the endgame section.");
-ABSL_FLAG(double, total_days, 40.0,
+ABSL_FLAG(double, total_days, 120.0,
           "Stop every branch this many days after it started -- the climb and "
           "the days after the cap are one budget, which is what makes a fight "
           "nobody beats a wall rather than a run that stopped short. 0 leaves "
