@@ -1655,10 +1655,15 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived,
 
 EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const DerivedStats& derived,
-                              const PotentialTotals& totals) {
+                              const PotentialTotals& totals,
+                              const EquipStats& worn_extra) {
   int pile[4];
   StatPileFor(character, derived.skill_stats, derived.potential_stats,
               derived.gear, pile);
+  pile[0] += worn_extra.str();
+  pile[1] += worn_extra.dex();
+  pile[2] += worn_extra.int_();
+  pile[3] += worn_extra.luk();
   return PotentialFlatGrant(pile, character.proto().level(), totals);
 }
 

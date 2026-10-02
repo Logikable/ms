@@ -55,6 +55,7 @@
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/projectile.h"
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
@@ -888,13 +889,18 @@ void PrintDetail(const Build& build, const Result& result) {
     const GearSpend& spend = result.spend;
     std::printf(
         "\n            spent %.2fB: scrolls %.2fB (%d slots)  stars %.2fB "
-        "(%d)  hammers %.2fB (%d)  cubes %.2fB (%d kept of %d)  symbols "
-        "%.2fB (%d)\n            %.2fB meso and %lld V Points left over",
+        "(%d)  hammers %.2fB (%d)  cubes %.2fB (%d kept of %d)  flames "
+        "%.2fB (%d Burning, %d of %d Black kept)  symbols %.2fB (%d)\n"
+        "            %.2fB meso and %lld V Points left over",
         spend.meso() / 1e9, spend.scrolls / 1e9, spend.slots_filled,
         spend.stars / 1e9, spend.stars_gained, spend.hammers / 1e9,
         spend.hammers_driven, spend.cubes / 1e9, spend.cubes_kept,
-        spend.cubes_bought, spend.symbols / 1e9, spend.symbol_levels,
-        result.meso_left / 1e9, static_cast<long long>(result.v_points_left));
+        spend.cubes_bought, spend.flames / 1e9,
+        spend.bought_by_flame[static_cast<int>(FlameType::kBurning)],
+        spend.kept_by_flame[static_cast<int>(FlameType::kBlack)],
+        spend.bought_by_flame[static_cast<int>(FlameType::kBlack)],
+        spend.symbols / 1e9, spend.symbol_levels, result.meso_left / 1e9,
+        static_cast<long long>(result.v_points_left));
   }
   std::printf("\n\n");
 }

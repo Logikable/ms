@@ -451,6 +451,8 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   }
   std::vector<Candidate> cubes = CubeOffers(state, best);
   offers.insert(offers.end(), cubes.begin(), cubes.end());
+  std::vector<Candidate> flames = FlameOffers(state, best);
+  offers.insert(offers.end(), flames.begin(), flames.end());
   return offers;
 }
 
@@ -591,6 +593,42 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
   return offers;
 }
 
+std::vector<GearShopper::Candidate> GearShopper::FlameOffers(GameState& state,
+                                                             double best) {
+  std::vector<Candidate> offers;
+  if (!plan_.flames ||
+      state.character.proto().level() < UnlockLevel(Feature::kFlame)) {
+    return offers;
+  }
+  const CubeBasis basis = CubeBasisFor(state, yard_.For(state));
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped(kBossGear)) {
+    if (entry.second->CanFlame()) {
+      slots.push_back(entry.first);
+    }
+  }
+  for (EquipSlot slot : slots) {
+    for (const Flame& shelf : kFlames) {
+      FlameProgram run =
+          BestFlameProgram(state, basis, slot, shelf.type, best, rng_);
+      if (!run.worth()) {
+        continue;
+      }
+      Candidate offer;
+      offer.slot = slot;
+      offer.flame = true;
+      offer.flame_type = shelf.type;
+      offer.flame_program = run;
+      offer.cost = run.cost;
+      offer.outlay = shelf.cost;
+      offer.gain = run.gain;
+      offers.push_back(offer);
+    }
+  }
+  return offers;
+}
+
 bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   std::vector<Candidate> offers = Offers(state);
   // Compare by cross-multiplying rather than dividing, so candidates within
@@ -647,6 +685,36 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
       ++spend.cubes_kept;
       ++spend.kept_by_cube[which];
       spend.farm_cubes_kept += farm;
+    }
+  } while (run.Continues(state));
+  return bought;
+}
+
+// Rolls `program`'s run through as BuyCube does: Burning's roll always goes on,
+// Black's when it beats what the piece holds.
+bool GearShopper::BuyFlame(GameState& state, EquipSlot slot, FlameType flame,
+                           const FlameProgram& program, GearSpend& spend) {
+  const FlameRun run(state, yard_.For(state), slot, program);
+  const Flame& shelf = FlameOf(flame);
+  const int which = static_cast<int>(flame);
+  bool bought = false;
+  do {
+    const EquipInstance* item = state.character.WornAt(kBossGear, slot);
+    if (item == nullptr) {
+      break;
+    }
+    std::optional<FlameLines> rolled = state.character.BuyFlame(
+        slot, flame, item->equip_state().flame(), kBossGear);
+    if (!rolled.has_value()) {
+      break;  // refused for meso or by the item
+    }
+    bought = true;
+    spend.flames += shelf.cost;
+    ++spend.bought_by_flame[which];
+    ++spend.flames_by_slot[slot][which];
+    if (!shelf.choose || run.Takes(state, *rolled)) {
+      state.character.TakeFlame(slot, *rolled, kBossGear);
+      ++spend.kept_by_flame[which];
     }
   } while (run.Continues(state));
   return bought;
@@ -768,6 +836,10 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (candidate.cube) {
     return BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
                    candidate.cube_program, spend);
+  }
+  if (candidate.flame) {
+    return BuyFlame(state, candidate.slot, candidate.flame_type,
+                    candidate.flame_program, spend);
   }
   if (candidate.hammer) {
     return BuyHammer(state, candidate.slot, candidate.gear, spend);

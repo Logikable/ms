@@ -115,6 +115,7 @@
 #include "src/game_state.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/shop.h"
 #include "src/map_level.h"
@@ -157,6 +158,9 @@ ABSL_FLAG(int, star_ceiling, ms::kMaxStarForce,
 ABSL_FLAG(bool, cubes, true,
           "Whether the shopper cubes. Off is the counterfactual: the same "
           "climb with every cube's meso left for the stars.");
+ABSL_FLAG(bool, flames, true,
+          "Whether the shopper uses Rebirth Flames. Off is the counterfactual, "
+          "as --cubes is.");
 ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
@@ -1152,6 +1156,7 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   if (IsSymbol(item.prototype())) {
     slot.set_symbol_level(SymbolLevel(item.equip_state()));
   }
+  *slot.mutable_flame() = item.equip_state().flame();
 }
 
 // Both potentials and the stars on every piece boss fights wear that takes a
@@ -2487,6 +2492,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.cubes = absl::GetFlag(FLAGS_cubes);
+  plan.flames = absl::GetFlag(FLAGS_flames);
 
   Session run = {state,          maps,
                  PathTo(branch), 0,
@@ -2552,6 +2558,7 @@ AltLadder ClimbAlt(const Catalogs& catalogs, Job branch,
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.cubes = false;
+  plan.flames = false;
   Session run = {state,          maps,
                  PathTo(branch), 0,
                  Purse(),        GearShopper(plan),
@@ -3304,6 +3311,52 @@ void PrintCubing(const std::vector<Job>& branches,
   }
 }
 
+// Flaming results: what each branch paid on each flame, how many Black rolls
+// were worth keeping, and which flame each slot was bought, over every branch.
+void PrintFlaming(const std::vector<Job>& branches,
+                  const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhat the flaming came to. Burning always replaces; kept is the Black "
+      "rolls taken.\n\n");
+  std::printf("%-13s %9s %9s %9s %7s %7s %7s\n", "branch", "meso", "burning",
+              "black", "burning", "black", "kept");
+  std::map<EquipSlot, std::array<int, std::size(kFlames)>> by_slot;
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const GearSpend& gear = climbs[i].ledger.gear;
+    const int burning =
+        gear.bought_by_flame[static_cast<int>(FlameType::kBurning)];
+    const int black = gear.bought_by_flame[static_cast<int>(FlameType::kBlack)];
+    char meso[16];
+    char burning_meso[16];
+    char black_meso[16];
+    FormatShort(static_cast<double>(gear.flames), meso, sizeof(meso));
+    FormatShort(
+        static_cast<double>(burning) * FlameOf(FlameType::kBurning).cost,
+        burning_meso, sizeof(burning_meso));
+    FormatShort(static_cast<double>(black) * FlameOf(FlameType::kBlack).cost,
+                black_meso, sizeof(black_meso));
+    std::printf("%-13s %9s %9s %9s %7d %7d %7d\n",
+                BranchName(branches[i]).c_str(), meso, burning_meso, black_meso,
+                burning, black,
+                gear.kept_by_flame[static_cast<int>(FlameType::kBlack)]);
+    for (const auto& [slot, counts] : gear.flames_by_slot) {
+      for (size_t f = 0; f < counts.size(); ++f) {
+        by_slot[slot][f] += counts[f];
+      }
+    }
+  }
+  if (by_slot.empty()) {
+    return;
+  }
+  std::printf("\n  %-18s %9s %9s\n", "slot", "burning", "black");
+  for (const auto& [slot, counts] : by_slot) {
+    std::printf("  %-18s %9d %9d\n",
+                WithoutPrefix(EquipSlot_Name(slot), "EQUIP_SLOT_").c_str(),
+                counts[static_cast<int>(FlameType::kBurning)],
+                counts[static_cast<int>(FlameType::kBlack)]);
+  }
+}
+
 // A potential's rank as one letter, "-" for none.
 std::string RankLetter(PotentialRank rank) {
   switch (rank) {
@@ -3370,6 +3423,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     std::map<EquipSlot, std::vector<PotentialRank>> bonus;
     std::map<EquipSlot, std::vector<int>> stars;
     std::map<EquipSlot, std::vector<int>> hammers;
+    std::map<EquipSlot, std::vector<int>> flames;
     std::map<EquipSlot, std::vector<int>> symbol_levels;
     int reached = 0;
     for (const Climb& climb : climbs) {
@@ -3390,6 +3444,11 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
         bonus[slot.slot()].push_back(slot.bonus().rank());
         stars[slot.slot()].push_back(slot.stars());
         hammers[slot.slot()].push_back(slot.hammers());
+        int tiers = 0;
+        for (const FlameLine& line : slot.flame()) {
+          tiers += line.tier();
+        }
+        flames[slot.slot()].push_back(tiers);
       }
     }
     std::printf("\nPotentials %s, %d of %zu branches:\n\n",
@@ -3399,17 +3458,18 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     if (reached == 0) {
       continue;
     }
-    std::printf("  %-18s %-16s %-16s %-28s %s\n", "slot", "main", "bonus",
-                "stars", "hammers");
+    std::printf("  %-18s %-16s %-16s %-28s %-12s %s\n", "slot", "main", "bonus",
+                "stars", "hammers", "flame tiers");
     for (const std::pair<const EquipSlot, std::vector<PotentialRank>>& entry :
          main) {
       std::printf(
-          "  %-18s %-16s %-16s %-28s %s\n",
+          "  %-18s %-16s %-16s %-28s %-12s %s\n",
           WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
           RankCounts(entry.second).c_str(),
           RankCounts(bonus[entry.first]).c_str(),
           CountsOf(stars[entry.first]).c_str(),
-          CountsOf(hammers[entry.first]).c_str());
+          CountsOf(hammers[entry.first]).c_str(),
+          CountsOf(flames[entry.first]).c_str());
     }
     for (const std::pair<const EquipSlot, std::vector<int>>& entry :
          symbol_levels) {
@@ -3423,7 +3483,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
 
 // One line per potential recorded, tab-separated: branch, level ("end" for the
 // run's end), days, slot, item, item level, stars, hammers, track, rank and
-// lines.
+// lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6".
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
                     const std::vector<Climb>& climbs) {
   std::ofstream out(path);
@@ -3451,6 +3511,23 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
               << RankLetter(potential->rank()) << '\t'
               << absl::StrJoin(lines, ", ") << '\n';
         }
+        if (slot.flame_size() == 0) {
+          continue;
+        }
+        std::vector<std::string> lines;
+        for (const FlameLine& line : slot.flame()) {
+          lines.push_back(
+              absl::StrCat(FlameStatName(line.stat()), " T", line.tier()));
+        }
+        out << BranchName(branches[i]) << '\t'
+            << (held.end() ? absl::StrCat("end:", held.level())
+                           : absl::StrCat(held.level()))
+            << '\t' << held.seconds() / kDaySeconds << '\t'
+            << (slot.farm() ? "FARM_" : "")
+            << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_") << '\t'
+            << slot.item() << '\t' << slot.item_level() << '\t' << slot.stars()
+            << '\t' << slot.hammers() << "\tflame\t-\t"
+            << absl::StrJoin(lines, ", ") << '\n';
       }
     }
   }
@@ -3464,10 +3541,10 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {"mobs",     "Etc sold", "gear sold", "bosses",
-                          "shelf",    "scrolls",  "stars",     "hammers",
-                          "cubes",    "symbols",  "copies",    "buffs",
-                          "buffs own"};
+  const char* kHeads[] = {"mobs",  "Etc sold", "gear sold", "bosses",
+                          "shelf", "scrolls",  "stars",     "hammers",
+                          "cubes", "flames",   "symbols",   "copies",
+                          "buffs", "buffs own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -3485,6 +3562,7 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.stars,
                       ledger.gear.hammers,
                       ledger.gear.cubes,
+                      ledger.gear.flames,
                       ledger.gear.symbols,
                       ledger.gear.replacements,
                       ledger.buffs.drained,
@@ -3948,6 +4026,7 @@ void Run() {
     PrintMesoLedger(branches, typical);
     PrintAlts(alts ? ladders.get() : AltLadders(), branches, typical);
     PrintCubing(branches, typical);
+    PrintFlaming(branches, typical);
     PrintPotentialLevels(branches, typical);
     PrintDefence(catalogs, branches, typical);
     int weakest = WeakestBranch(catalogs, typical);

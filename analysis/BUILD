@@ -168,11 +168,28 @@ cc_library(
 )
 
 cc_library(
+    name = "flame_plan",
+    srcs = ["flame_plan.cc"],
+    hdrs = ["flame_plan.h"],
+    deps = [
+        ":cube_plan",
+        ":yardstick",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/item:equip_instance",
+        "//src/item:flame",
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_library(
     name = "gear_plan",
     srcs = ["gear_plan.cc"],
     hdrs = ["gear_plan.h"],
     deps = [
         ":cube_plan",
+        ":flame_plan",
         ":sim_gear",
         ":star_force_curve",
         ":yardstick",
@@ -183,6 +200,7 @@ cc_library(
         "//src/combat:damage",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:flame",
         "//src/item:potential",
         "//src/item:spell_trace_cost",
         "//src/item:star_force_cost",
@@ -223,6 +241,27 @@ cc_library(
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "flame_plan_test",
+    size = "small",
+    srcs = ["flame_plan_test.cc"],
+    deps = [
+        ":cube_plan",
+        ":flame_plan",
+        ":yardstick",
+        "//src:game_state",
+        "//src/character:skill_placement",
+        "//src/item:equip_instance",
+        "//src/item:flame",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -416,6 +455,7 @@ sim_binary(
         "//src/combat:encounter",
         "//src/combat:measure",
         "//src/item:equip_instance",
+        "//src/item:flame",
         "//src/item:projectile",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
@@ -479,6 +519,7 @@ sim_binary(
         "//src/item",
         "//src/item:currency",
         "//src/item:equip_instance",
+        "//src/item:flame",
         "//src/item:shop",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

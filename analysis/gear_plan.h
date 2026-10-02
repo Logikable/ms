@@ -20,10 +20,12 @@
 #include <vector>
 
 #include "analysis/cube_plan.h"
+#include "analysis/flame_plan.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -38,6 +40,8 @@ struct GearPlan {
   // Whether the shopper cubes at all. Off is for comparison: the same climb
   // with all cube meso left for stars.
   bool cubes = true;
+  // Whether the shopper uses Rebirth Flames, off for the same comparison.
+  bool flames = true;
   // Success rate of the scrolls bought, as a whole percent. A lower rate gives
   // more per successful slot and wastes the rest, and on a drop-only piece a
   // wasted slot is gone for good.
@@ -51,6 +55,7 @@ struct GearSpend {
   int64_t stars = 0;         // every attempt, failures included
   int64_t hammers = 0;       // golden hammers, for the slots they open
   int64_t cubes = 0;         // every cube, whatever it rolled
+  int64_t flames = 0;        // every flame, whatever it rolled
   int64_t symbols = 0;       // Arcane Symbol level-ups
   int64_t replacements = 0;  // copies bought to replace destroyed pieces
   int64_t copies = 0;        // copies bought to give farming its own piece
@@ -68,6 +73,12 @@ struct GearSpend {
   std::array<int, std::size(kCubes)> kept_by_cube{};
   int farm_cubes_bought = 0;
   int farm_cubes_kept = 0;
+  // Flames bought and kept, indexed by FlameType. A Burning roll is always
+  // kept.
+  std::array<int, std::size(kFlames)> bought_by_flame{};
+  std::array<int, std::size(kFlames)> kept_by_flame{};
+  // Flames bought on each slot, by FlameType.
+  std::map<EquipSlot, std::array<int, std::size(kFlames)>> flames_by_slot;
   // Slots farming was given its own piece in; see GearShopper::SplitOffers.
   int farm_splits = 0;
   // Pieces destroyed and restored, and meso from bag items sold to make room
@@ -76,7 +87,8 @@ struct GearSpend {
   int64_t sold = 0;
 
   int64_t meso() const {
-    return scrolls + stars + hammers + replacements + copies + cubes + symbols;
+    return scrolls + stars + hammers + replacements + copies + cubes + flames +
+           symbols;
   }
 
   void Add(const GearSpend& other) {
@@ -84,6 +96,7 @@ struct GearSpend {
     stars += other.stars;
     hammers += other.hammers;
     cubes += other.cubes;
+    flames += other.flames;
     symbols += other.symbols;
     replacements += other.replacements;
     copies += other.copies;
@@ -96,6 +109,15 @@ struct GearSpend {
     for (size_t i = 0; i < bought_by_cube.size(); ++i) {
       bought_by_cube[i] += other.bought_by_cube[i];
       kept_by_cube[i] += other.kept_by_cube[i];
+    }
+    for (size_t i = 0; i < bought_by_flame.size(); ++i) {
+      bought_by_flame[i] += other.bought_by_flame[i];
+      kept_by_flame[i] += other.kept_by_flame[i];
+    }
+    for (const auto& [slot, counts] : other.flames_by_slot) {
+      for (size_t i = 0; i < counts.size(); ++i) {
+        flames_by_slot[slot][i] += counts[i];
+      }
     }
     farm_cubes_bought += other.farm_cubes_bought;
     farm_cubes_kept += other.farm_cubes_kept;
@@ -169,6 +191,11 @@ class GearShopper {
     bool cube = false;
     CubeType cube_type = CubeType::kRed;
     CubeProgram cube_program;
+    // A run of Rebirth Flames on the boss piece in the slot; which is
+    // `flame_type`.
+    bool flame = false;
+    FlameType flame_type = FlameType::kBurning;
+    FlameProgram flame_program;
     // A copy of what both presets wear in `slot`, put on for farming so a
     // meso line can be cubed onto it. Priced with the cube run that follows.
     bool split = false;
@@ -225,6 +252,9 @@ class GearShopper {
   // combat power a meso buys elsewhere on the shelf. Income lines convert at
   // this rate.
   std::vector<Candidate> CubeOffers(GameState& state, double best);
+  // Flame offers for every boss piece that takes one, priced against `best`
+  // as cubes are.
+  std::vector<Candidate> FlameOffers(GameState& state, double best);
   // Scroll and star offers for one piece in `basis.gear`; see ScrollOffer and
   // StarOffer.
   void PieceOffers(GameState& state, const Basis& basis, EquipSlot slot,
@@ -251,6 +281,8 @@ class GearShopper {
   // BuyBest tries the next offer.
   bool BuyCube(GameState& state, EquipSlot slot, StatPreset gear, CubeType cube,
                const CubeProgram& program, GearSpend& spend);
+  bool BuyFlame(GameState& state, EquipSlot slot, FlameType flame,
+                const FlameProgram& program, GearSpend& spend);
   // The main-track cube run on the farm piece in `slot` with the best value per
   // meso, out of the cubes on the shelf.
   CubeProgram BestMainCubeProgram(const GameState& state, EquipSlot slot);

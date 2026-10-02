@@ -4208,6 +4208,11 @@ TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
 
   // An empty potential removes the whole worn share.
   EXPECT_EQ(PotentialStatGrant(c, stats, PotentialTotals()).str(), 0);
+
+  // Gear not yet worn, such as a flame being priced, joins what it multiplies.
+  EquipStats flame;
+  flame.set_str(100);
+  EXPECT_EQ(PotentialStatGrant(c, stats, better, flame).str(), 132);
 }
 
 // A per-9-levels line pays its points once per nine of the wearer's levels,

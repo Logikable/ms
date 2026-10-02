@@ -505,10 +505,12 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
 // The flat stats `totals` would give, %stat lines included, using the same math
 // as DerivedStatsFor for a potential that is not worn. A %stat line takes a
 // share of the whole total, so only this file knows what one is worth. Pricing
-// a cube before buying it needs that.
+// a cube before buying it needs that. `worn_extra` is gear stats not yet worn,
+// such as a flame being priced, which the %stat lines scale too.
 EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const DerivedStats& derived,
-                              const PotentialTotals& totals);
+                              const PotentialTotals& totals,
+                              const EquipStats& worn_extra = EquipStats());
 
 // The character's offensive stats with no attack skill: what combat power is
 // read from, and where a caller gets the ied to price a stat. `gear` overrides
