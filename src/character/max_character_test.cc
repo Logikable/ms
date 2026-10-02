@@ -9,6 +9,7 @@
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/stat_preset.h"
+#include "src/item/flame.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -179,6 +180,53 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
                             STAT_FIELD_STR, PotentialTrack::kBonus)
                 .lines_size(),
             0);
+}
+
+EquipPrototype Flammable(EquipSlot slot, int level) {
+  EquipPrototype proto;
+  proto.set_equip_slot(slot);
+  proto.set_required_level(level);
+  return proto;
+}
+
+// Four distinct lines the item's own pool holds, at tiers a flame can roll,
+// with the job's own stat and attack; nothing before the band or on an item
+// that takes no flame.
+TEST(MaxCharacterTest, FlamesHoldDistinctLinesFromTheItemsPool) {
+  const std::pair<StatField, StatField> kJobs[] = {
+      {STAT_FIELD_STR, STAT_FIELD_DEX},
+      {STAT_FIELD_DEX, STAT_FIELD_STR},
+      {STAT_FIELD_INT, STAT_FIELD_LUK},
+      {STAT_FIELD_LUK, STAT_FIELD_DEX}};
+  for (EquipSlot slot :
+       {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_HAT, EQUIP_SLOT_PENDANT}) {
+    const EquipPrototype proto = Flammable(slot, 200);
+    const std::vector<FlameStat> pool = FlamePool(proto);
+    for (const auto& [primary, secondary] : kJobs) {
+      const FlameLines lines = MaxFlameFor(proto, 260, primary, secondary);
+      ASSERT_EQ(lines.size(), kFlameLines) << EquipSlot_Name(slot);
+      std::vector<FlameStat> seen;
+      for (const FlameLine& line : lines) {
+        EXPECT_NE(std::find(pool.begin(), pool.end(), line.stat()), pool.end())
+            << FlameStat_Name(line.stat());
+        EXPECT_EQ(std::count(seen.begin(), seen.end(), line.stat()), 0);
+        seen.push_back(line.stat());
+        EXPECT_GE(line.tier(), 3);
+        EXPECT_LE(line.tier(), 7);
+      }
+      const FlameStat attack = primary == STAT_FIELD_INT
+                                   ? FLAME_STAT_MAGIC_ATTACK
+                                   : FLAME_STAT_ATTACK;
+      if (slot != EQUIP_SLOT_PENDANT) {
+        EXPECT_EQ(std::count(seen.begin(), seen.end(), attack), 1);
+      }
+    }
+    EXPECT_TRUE(
+        MaxFlameFor(proto, 250, STAT_FIELD_STR, STAT_FIELD_DEX).empty());
+  }
+  EXPECT_TRUE(MaxFlameFor(Flammable(EQUIP_SLOT_RING, 200), 260, STAT_FIELD_STR,
+                          STAT_FIELD_DEX)
+                  .empty());
 }
 
 }  // namespace

@@ -1135,6 +1135,28 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   }
 }
 
+// The flame each worn piece wears at the character's level. Slots first, since
+// TakeFlame rebuilds equipped().
+void DressMaxFlames(GameState& state) {
+  const Job job = state.character.proto().job();
+  const int level = state.character.proto().level();
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       state.character.equipped()) {
+    if (worn.second->CanFlame()) {
+      slots.push_back(worn.first);
+    }
+  }
+  for (EquipSlot slot : slots) {
+    const FlameLines lines =
+        MaxFlameFor(state.character.equipped().at(slot)->prototype(), level,
+                    PrimaryStatField(job), SecondaryStatField(job));
+    if (!lines.empty()) {
+      state.character.TakeFlame(slot, lines);
+    }
+  }
+}
+
 // Every matrix node at its maximum level. The points are granted at each node's
 // cost, leaving nothing in the pool: this mode creates a character who spent
 // everything, not one holding points.
@@ -1223,6 +1245,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   state.character.ClearEquipInventory();
 
   DressMaxPotentials(state, gear);
+  DressMaxFlames(state);
   MaxVMatrix(state);
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);

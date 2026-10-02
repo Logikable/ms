@@ -1156,8 +1156,8 @@ TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
             MaxGearForLevel(kTrialLevelCap).stars);
 }
 
-// Every piece has the same lines on both potentials, set instead of rolled:
-// the weapon gets its own lines, and armour the job's main stat.
+// Every piece has the same lines on both potentials and its flame, set instead
+// of rolled: the weapon gets its own lines, and armour the job's main stat.
 TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
@@ -1169,6 +1169,11 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   EXPECT_EQ(hat.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(hat.lines_size(), kPotentialLines);
   EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state().flame_size(),
+            kFlameLines);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).equip_state().flame_size(),
+            kFlameLines);
 
   const Potential& bonus =
       Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();

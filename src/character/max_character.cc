@@ -13,6 +13,8 @@
 #include "src/character/job_branch.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/damage.h"
+#include "src/item/flame.h"
+#include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
@@ -241,6 +243,114 @@ PotentialLineType LineTypeFor(Share share, PotentialRank rank,
   return POTENTIAL_LINE_TYPE_UNSPECIFIED;
 }
 
+// What a flame line does for the character, turned into a FlameStat by
+// FlameStatFor.
+enum class FlameShare {
+  kPrimary,
+  kPrimaryPair,  // the primary stat with the secondary
+  kOtherPair,    // the primary stat with one of the other two
+  kAttack,       // ATT, or MATT for a magician
+  kAllStat,
+  kBoss,
+  kDamage,
+};
+
+struct FlameRecipeLine {
+  FlameShare share;
+  int tier;
+};
+
+// What //analysis:progression_sim's 120-day sweep (2026-10-01, two seeds, all
+// ten branches) wore on arriving at 260, at the upper quartile of the tiers on
+// lines the job uses: weapon 24, armour 21, accessories 20. The sweep shops
+// Burning almost always, so nothing reaches tier 7.
+constexpr int kFlameBandLevel = 260;
+constexpr FlameRecipeLine kWeaponFlame[kFlameLines] = {
+    {FlameShare::kAttack, 6},
+    {FlameShare::kBoss, 6},
+    {FlameShare::kDamage, 6},
+    {FlameShare::kPrimary, 6}};
+constexpr FlameRecipeLine kArmourFlame[kFlameLines] = {
+    {FlameShare::kPrimary, 6},
+    {FlameShare::kAttack, 5},
+    {FlameShare::kAllStat, 5},
+    {FlameShare::kOtherPair, 5}};
+constexpr FlameRecipeLine kAccessoryFlame[kFlameLines] = {
+    {FlameShare::kPrimary, 5},
+    {FlameShare::kPrimaryPair, 5},
+    {FlameShare::kAllStat, 5},
+    {FlameShare::kOtherPair, 5}};
+
+FlameStat SingleStat(StatField stat) {
+  switch (stat) {
+    case STAT_FIELD_DEX:
+      return FLAME_STAT_DEX;
+    case STAT_FIELD_INT:
+      return FLAME_STAT_INT;
+    case STAT_FIELD_LUK:
+      return FLAME_STAT_LUK;
+    default:
+      return FLAME_STAT_STR;
+  }
+}
+
+// The pair line holding both stats, in either order.
+FlameStat PairOf(StatField a, StatField b) {
+  auto has = [&](StatField x, StatField y) {
+    return (a == x && b == y) || (a == y && b == x);
+  };
+  if (has(STAT_FIELD_STR, STAT_FIELD_DEX)) {
+    return FLAME_STAT_STR_DEX;
+  }
+  if (has(STAT_FIELD_STR, STAT_FIELD_INT)) {
+    return FLAME_STAT_STR_INT;
+  }
+  if (has(STAT_FIELD_STR, STAT_FIELD_LUK)) {
+    return FLAME_STAT_STR_LUK;
+  }
+  if (has(STAT_FIELD_DEX, STAT_FIELD_INT)) {
+    return FLAME_STAT_DEX_INT;
+  }
+  if (has(STAT_FIELD_DEX, STAT_FIELD_LUK)) {
+    return FLAME_STAT_DEX_LUK;
+  }
+  return FLAME_STAT_INT_LUK;
+}
+
+// The primary stat's pair with the first stat that is neither it nor the
+// secondary, in STR DEX INT LUK order.
+FlameStat OtherPairOf(StatField primary, StatField secondary) {
+  for (StatField other :
+       {STAT_FIELD_STR, STAT_FIELD_DEX, STAT_FIELD_INT, STAT_FIELD_LUK}) {
+    if (other != primary && other != secondary) {
+      return PairOf(primary, other);
+    }
+  }
+  return PairOf(primary, secondary);
+}
+
+FlameStat FlameStatFor(FlameShare share, StatField primary,
+                       StatField secondary) {
+  switch (share) {
+    case FlameShare::kPrimary:
+      return SingleStat(primary);
+    case FlameShare::kPrimaryPair:
+      return PairOf(primary, secondary);
+    case FlameShare::kOtherPair:
+      return OtherPairOf(primary, secondary);
+    case FlameShare::kAttack:
+      return primary == STAT_FIELD_INT ? FLAME_STAT_MAGIC_ATTACK
+                                       : FLAME_STAT_ATTACK;
+    case FlameShare::kAllStat:
+      return FLAME_STAT_ALL_STAT;
+    case FlameShare::kBoss:
+      return FLAME_STAT_BOSS_DAMAGE;
+    case FlameShare::kDamage:
+      return FLAME_STAT_DAMAGE;
+  }
+  return FLAME_STAT_UNSPECIFIED;
+}
+
 // The monster the preset is spent against: for the Boss allocation, the
 // toughest boss the character's level allows; for the Farm one, the toughest
 // normal monster at or below their level. Both are read from the catalogs, not
@@ -351,6 +461,33 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
             LineTypeFor(recipe.lines[i], rank, track, weaponry, primary), rank);
   }
   return potential;
+}
+
+FlameLines MaxFlameFor(const EquipPrototype& proto, int level,
+                       StatField primary, StatField secondary) {
+  FlameLines lines;
+  if (level < kFlameBandLevel || !SlotTakesFlame(proto.equip_slot()) ||
+      !Supports(proto, UPGRADE_FLAME)) {
+    return lines;
+  }
+  const FlameRecipeLine* recipe =
+      proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON ? kWeaponFlame
+      : PotentialGroupOf(proto.equip_slot()) == PotentialGroup::kAccessory
+          ? kAccessoryFlame
+          : kArmourFlame;
+  // A line the item's pool lacks, such as ATT below level 60, is left off
+  // rather than replaced.
+  const std::vector<FlameStat> pool = FlamePool(proto);
+  for (int i = 0; i < kFlameLines; ++i) {
+    const FlameStat stat = FlameStatFor(recipe[i].share, primary, secondary);
+    if (std::find(pool.begin(), pool.end(), stat) == pool.end()) {
+      continue;
+    }
+    FlameLine& line = *lines.Add();
+    line.set_stat(stat);
+    line.set_tier(recipe[i].tier);
+  }
+  return lines;
 }
 
 void SpendMaxHyperStats(CharacterInstance& character,

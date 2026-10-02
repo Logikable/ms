@@ -17,6 +17,7 @@
 #include <string>
 
 #include "src/character/character.h"
+#include "src/item/flame.h"
 #include "src/item/potential.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
@@ -58,6 +59,13 @@ int MaxSymbolLevel(EquipSlot slot, int level);
 // random seed makes fight measurements meaningless.
 Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
                           StatField primary, PotentialTrack track);
+
+// The flame a max character of `level` wears on `proto`, for a job whose damage
+// is based on `primary` and helped by `secondary`. Empty below the first level
+// with a flame band, and for an item that takes no flame. Like a potential,
+// every item of one kind has the same lines.
+FlameLines MaxFlameFor(const EquipPrototype& proto, int level,
+                       StatField primary, StatField secondary);
 
 // Spends the whole Hyper Stat pool on both presets, best value per point first,
 // discarding any previous allocation. A stat's value is measured on this
