@@ -26,6 +26,7 @@
 #include "src/character/symbol.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
+#include "src/item/flame.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -965,6 +966,28 @@ void SeedPotentials(GameState& state) {
   }
 }
 
+// A flame on every worn piece that takes one, each from a flame picked at
+// random so the tiers of both are on screen.
+void SeedFlames(GameState& state) {
+  // Slots first: TakeFlame recomputes the stats, which rebuilds equipped().
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       state.character.equipped()) {
+    if (kv.second->CanFlame()) {
+      slots.push_back(kv.first);
+    }
+  }
+  std::bernoulli_distribution black(0.5);
+  for (EquipSlot slot : slots) {
+    const EquipInstance& item = *state.character.equipped().at(slot);
+    const FlameType flame =
+        black(state.rng) ? FlameType::kBlack : FlameType::kBurning;
+    FlameLines lines = RollFlame(flame, item.prototype(),
+                                 item.equip_state().flame(), state.rng);
+    state.character.TakeFlame(slot, lines);
+  }
+}
+
 // The workbench, where everything exists to reach a screen without playing up
 // to it. `chosen` is --job: unset uses kTestAdvancement and buys its whole
 // book, so the default workbench is complete instead of half-built.
@@ -1039,6 +1062,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   state.character.ClearEquipInventory();
   GiveSymbols(state);
   SeedPotentials(state);
+  SeedFlames(state);
 
   // The weakest hunting ground; the tester can pick any other on map select.
   state.current_map = "right_around_lith_harbor";

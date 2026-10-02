@@ -22,6 +22,7 @@
 #include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/protos/boss.pb.h"
@@ -738,7 +739,7 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
 // Both potentials should be visible at every rank, so the workbench assigns the
 // four ranks across its worn gear instead of letting each piece roll. A run
 // where nothing reached Legendary would leave the display half-tested.
-TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
+TEST(GameStateTest, TestModeCubesAndFlamesEveryPieceAndSpreadsTheRanks) {
   // The armour the workbench wears which, with the sword, gives five slots with
   // potential: enough to assign every rank.
   struct Piece {
@@ -773,6 +774,8 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
     EXPECT_EQ(bonus.lines_size(), kPotentialLines)
         << kv.second->prototype().name() << " has no bonus potential";
     bonus_ranks.insert(bonus.rank());
+    EXPECT_EQ(kv.second->equip_state().flame_size(), kFlameLines)
+        << kv.second->prototype().name() << " was never flamed";
     ++cubed;
   }
   ASSERT_EQ(cubed, 5) << "the four ranks need four pieces to be dealt over";
@@ -783,12 +786,13 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
   EXPECT_EQ(bonus_ranks, every_rank);
 }
 
-// Nothing is cubed for a player: potential is something they buy.
-TEST(GameStateTest, PlayModeStartsWithNoPotential) {
+// Nothing is cubed or flamed for a player: both are bought.
+TEST(GameStateTest, PlayModeStartsWithNoPotentialOrFlame) {
   GameState state = MakePlayModeState();
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        state.character.equipped()) {
     EXPECT_EQ(kv.second->potential().lines_size(), 0);
+    EXPECT_EQ(kv.second->equip_state().flame_size(), 0);
   }
 }
 
