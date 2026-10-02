@@ -50,8 +50,8 @@ struct Flame {
 inline constexpr int kFlameTiers = 4;
 
 inline constexpr Flame kFlames[] = {
-    {FlameType::kBurning, 3'000'000, 3, false},
-    {FlameType::kBlack, 10'000'000, 4, true},
+    {FlameType::kBurning, 5'000'000, 3, false},
+    {FlameType::kBlack, 15'000'000, 4, true},
 };
 
 const Flame& FlameOf(FlameType type);

@@ -46,8 +46,8 @@ TEST_F(FlamePanelTest, TheShelfListsBothFlamesAndTheirPrices) {
   EXPECT_NE(rendered.find("Flame Selection"), std::string::npos);
   EXPECT_LT(rendered.find("Burning Rebirth Flame"),
             rendered.find("Black Rebirth Flame"));
-  EXPECT_NE(rendered.find("3,000,000"), std::string::npos);
-  EXPECT_NE(rendered.find("10,000,000"), std::string::npos);
+  EXPECT_NE(rendered.find("5,000,000"), std::string::npos);
+  EXPECT_NE(rendered.find("15,000,000"), std::string::npos);
   EXPECT_EQ(panel.selected_flame(), FlameType::kBurning);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_flame(), FlameType::kBlack);
@@ -126,7 +126,7 @@ TEST_F(FlamePanelTest, AShortPurseGreysConfirmAndRedsThePrice) {
   ASSERT_TRUE(panel.IsConfirming());
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kClosed)
       << "the cursor opens on Cancel";
-  EXPECT_EQ(LabelColor(panel.Render(true), "3,000,000"), kRed);
+  EXPECT_EQ(LabelColor(panel.Render(true), "5,000,000"), kRed);
 }
 
 }  // namespace
