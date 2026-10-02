@@ -412,6 +412,25 @@ sim_binary(
 )
 
 sim_binary(
+    name = "flame_sim",
+    srcs = ["flame_sim.cc"],
+    deps = [
+        ":cube_plan",
+        ":flame_plan",
+        ":sim_jobs",
+        ":sim_world",
+        ":yardstick",
+        "//src:game_state",
+        "//src/character:job_advancement",
+        "//src/item:equip_instance",
+        "//src/item:flame",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+sim_binary(
     name = "breakdown_sim",
     srcs = ["breakdown_sim.cc"],
     deps = [

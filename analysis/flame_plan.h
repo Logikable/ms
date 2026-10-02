@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <random>
+#include <vector>
 
 #include "analysis/cube_plan.h"
 #include "analysis/yardstick.h"
@@ -38,6 +39,13 @@ struct FlameProgram {
     return flames > 0.0 && gain > 0.0 && cost > 0;
   }
 };
+
+// `samples` rolls of `flame` on what boss fights wear in `slot`, each as its
+// damage gain over the worn lines, sorted. Empty for a piece that takes none.
+// `standing`, when given, gets the damage with the worn lines.
+std::vector<double> FlameGains(const GameState& state, const CubeBasis& basis,
+                               EquipSlot slot, FlameType flame, int samples,
+                               std::mt19937& rng, double* standing = nullptr);
 
 // The run of `flame` on what boss fights wear in `slot`, with each roll costing
 // `power_per_meso` times its price; empty when no roll pays.

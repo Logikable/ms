@@ -123,28 +123,44 @@ const EquipInstance* Flammable(const GameState& state, EquipSlot slot) {
 
 }  // namespace
 
+std::vector<double> FlameGains(const GameState& state, const CubeBasis& basis,
+                               EquipSlot slot, FlameType flame, int samples,
+                               std::mt19937& rng, double* standing) {
+  std::vector<double> gains;
+  const EquipInstance* item = Flammable(state, slot);
+  if (item == nullptr) {
+    return gains;
+  }
+  const FlamePricing pricing = PricingFor(state, basis, *item);
+  if (standing != nullptr) {
+    *standing = pricing.standing;
+  }
+  gains.reserve(samples);
+  for (int i = 0; i < samples; ++i) {
+    const FlameLines rolled =
+        RollFlame(flame, item->prototype(), item->equip_state().flame(), rng);
+    gains.push_back(pricing.PowerWith(rolled) - pricing.standing);
+  }
+  std::sort(gains.begin(), gains.end());
+  return gains;
+}
+
 FlameProgram BestFlameProgram(const GameState& state, const CubeBasis& basis,
                               EquipSlot slot, FlameType flame,
                               double power_per_meso, std::mt19937& rng) {
   FlameProgram program;
-  const EquipInstance* item = Flammable(state, slot);
-  if (item == nullptr) {
+  std::vector<double> gains =
+      FlameGains(state, basis, slot, flame, kFlameSamples, rng);
+  if (gains.empty()) {
     return program;
   }
   program.share =
       Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
-  const FlamePricing pricing = PricingFor(state, basis, *item);
-  std::vector<double> gains;
-  gains.reserve(kFlameSamples);
-  for (int i = 0; i < kFlameSamples; ++i) {
-    const FlameLines rolled =
-        RollFlame(flame, item->prototype(), item->equip_state().flame(), rng);
-    gains.push_back(program.share *
-                    (pricing.PowerWith(rolled) - pricing.standing));
+  for (double& gain : gains) {
+    gain *= program.share;
   }
-  std::sort(gains.begin(), gains.end());
   const int64_t price = FlameOf(flame).cost;
   program.reserve = ReserveFor(gains, power_per_meso * price);
   // The piece's own lines are the zero every gain is measured from.
