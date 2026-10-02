@@ -13,6 +13,7 @@
 #include "ftxui/screen/color.hpp"
 #include "src/character/hyper_stats.h"
 #include "src/character/stat_preset.h"
+#include "src/item/flame.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -121,6 +122,15 @@ std::string PotentialLineShortName(PotentialLineType type);
 // one.
 std::string PotentialCell(const Potential& potential, int item_level,
                           StatField primary, StatField secondary, int width);
+
+// The flame column's cell, written the way PotentialCell writes its own: an
+// item's lines summed into one effect each, best first, as many as fit. A pair
+// counts toward both its stats. A weapon ranks ATT (MATT for a magician), Boss
+// Damage, Damage, All Stats and the primary stat, and falls back to the
+// secondary stat; anything else ranks the primary, All Stats, the attack and
+// the secondary. "Junk" when none of those, and "-" for an item never flamed.
+std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
+                      StatField primary, StatField secondary, int width);
 
 // The tag at the start of a skill row, saying how the skill is used. Every tag
 // is four columns wide, so every name starts in the same place.

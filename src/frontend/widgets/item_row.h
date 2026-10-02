@@ -40,6 +40,7 @@ struct ItemCells {
   std::string stars;
   std::string potential;
   std::string bonus_potential;
+  std::string flame;
   // Colour the two potential cells. UNSPECIFIED, an item never cubed, leaves a
   // cell plain.
   PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
@@ -76,11 +77,11 @@ struct ItemRowText {
 // attacks.
 std::string ItemStatsCell(Job job, const EquipStats& stats);
 
-// The scroll, star force and potential cells of an item, which read the same
-// wherever it is listed. An upgrade the item can't take reads "-", and so does
-// a potential with nothing this job uses. A blank would look like a column that
-// failed to draw. The potential columns' widths in `columns` decide how many
-// effects each cell names.
+// The scroll, star force, potential and flame cells of an item, which read the
+// same wherever it is listed. An upgrade the item can't take reads "-", and so
+// does a potential with nothing this job uses. A blank would look like a column
+// that failed to draw. The potential and flame columns' widths in `columns`
+// decide how many effects each cell names.
 ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
                             Job job, const ItemColumns& columns);
 

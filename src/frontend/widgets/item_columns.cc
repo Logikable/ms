@@ -34,6 +34,8 @@ bool Eligible(ItemColumn column, const ItemListOptions& options) {
       return options.potential;
     case ItemColumn::kBonusPotential:
       return options.bonus_potential;
+    case ItemColumn::kFlame:
+      return options.flame;
     default:
       return true;
   }
@@ -64,6 +66,8 @@ int ItemColumns::Width(ItemColumn column) const {
       return potential_width;
     case ItemColumn::kBonusPotential:
       return bonus_potential_width;
+    case ItemColumn::kFlame:
+      return flame_width;
   }
   return 0;
 }
@@ -89,6 +93,8 @@ const char* ItemColumns::Header(ItemColumn column) const {
                                                 : "Potential";
     case ItemColumn::kBonusPotential:
       return "Bonus Potential";
+    case ItemColumn::kFlame:
+      return "Flame";
   }
   return "";
 }
@@ -138,26 +144,36 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
     columns.potential_width += main_grows;
     left -= cost;
   }
-  // Leftover room goes to the potential columns first, a column at a time
-  // between the two, then to the name up to the longest name. A long name can
-  // still scroll under the cursor, but a second effect has nowhere else to
-  // show.
-  int* potentials[2] = {nullptr, nullptr};
-  if (columns.Shows(ItemColumn::kPotential)) {
-    potentials[0] = &columns.potential_width;
-  }
-  if (columns.Shows(ItemColumn::kBonusPotential)) {
-    potentials[1] = &columns.bonus_potential_width;
-  }
-  for (bool grew = true; left > 0 && grew;) {
-    grew = false;
-    for (int* potential : potentials) {
-      if (potential != nullptr && left > 0 && *potential < kItemPotentialMax) {
-        ++*potential;
-        --left;
-        grew = true;
-      }
+  // Leftover room widens the effect columns a whole effect at a time, in this
+  // order, stopping at the first that doesn't fit; the rest goes to the name. A
+  // long name can still scroll under the cursor, but a second effect has
+  // nowhere else to show. Only a flame's first line matters much.
+  struct Growth {
+    ItemColumn column;
+    int effects;
+  };
+  static constexpr Growth kGrowthOrder[] = {
+      {ItemColumn::kPotential, 2},      {ItemColumn::kBonusPotential, 2},
+      {ItemColumn::kFlame, 2},          {ItemColumn::kPotential, 3},
+      {ItemColumn::kBonusPotential, 3}, {ItemColumn::kFlame, 3},
+      {ItemColumn::kFlame, 4},
+  };
+  for (const Growth& growth : kGrowthOrder) {
+    if (!columns.Shows(growth.column)) {
+      continue;
     }
+    const bool flame = growth.column == ItemColumn::kFlame;
+    int& width = flame ? columns.flame_width
+                 : growth.column == ItemColumn::kPotential
+                     ? columns.potential_width
+                     : columns.bonus_potential_width;
+    int want = EffectsWidth(growth.effects,
+                            flame ? kItemFlameWidth : kItemPotentialWidth);
+    if (want - width > left) {
+      break;
+    }
+    left -= std::max(0, want - width);
+    width = std::max(width, want);
   }
   columns.name_width =
       std::clamp(kItemNameWidth + left, kItemNameWidth, kItemNameMax);

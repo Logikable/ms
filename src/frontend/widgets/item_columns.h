@@ -30,16 +30,18 @@ enum class ItemColumn {
   kStars,
   kPotential,
   kBonusPotential,
+  kFlame,
 };
-inline constexpr int kNumItemColumns = 9;
+inline constexpr int kNumItemColumns = 10;
 
 // The columns' ranking, highest first. Name and slot say what the item is. The
 // upgrades are what the player works on. The level and job gates and the stats
 // can be read on the item's card.
 inline constexpr ItemColumn kItemColumnPriority[kNumItemColumns] = {
     ItemColumn::kName,           ItemColumn::kSlot,  ItemColumn::kPotential,
-    ItemColumn::kBonusPotential, ItemColumn::kStars, ItemColumn::kScroll,
-    ItemColumn::kLevel,          ItemColumn::kJob,   ItemColumn::kStats,
+    ItemColumn::kBonusPotential, ItemColumn::kStars, ItemColumn::kFlame,
+    ItemColumn::kScroll,         ItemColumn::kLevel, ItemColumn::kJob,
+    ItemColumn::kStats,
 };
 
 // The name column at its narrowest. Longer names, such as "Fafnir Windwing
@@ -64,11 +66,18 @@ inline constexpr int kItemCellGap = 2;
 // the widest one.
 inline constexpr int kItemPotentialWidth = 12;
 
+// The flame column's effect at its widest, "7% Damage".
+inline constexpr int kItemFlameWidth = 9;
+
+// The width `effects` whole effects take in a column of `effect`-wide ones.
+constexpr int EffectsWidth(int effects, int effect) {
+  return effects * effect + (effects - 1) * kItemCellGap;
+}
+
 // The potential columns at their widest: all three of an item's lines, each as
-// one effect, with gaps. Gloves and rings are read for several effects at once,
-// so spare room goes here before the name.
-inline constexpr int kItemPotentialMax =
-    3 * kItemPotentialWidth + 2 * kItemCellGap;
+// one effect, with gaps.
+inline constexpr int kItemPotentialMax = EffectsWidth(3, kItemPotentialWidth);
+inline constexpr int kItemFlameMax = EffectsWidth(4, kItemFlameWidth);
 
 // Beside a bonus potential column the main one is headed "Main Potential", and
 // neither column narrows past its header.
@@ -84,6 +93,7 @@ struct ItemListOptions {
   bool star_force = false;
   bool potential = false;
   bool bonus_potential = false;
+  bool flame = false;
 };
 
 // The columns a list draws, and the widths its stretchable columns got.
@@ -91,6 +101,7 @@ struct ItemColumns {
   int name_width = kItemNameWidth;
   int potential_width = kItemPotentialWidth;
   int bonus_potential_width = kItemBonusPotentialWidth;
+  int flame_width = kItemFlameWidth;
   bool shown[kNumItemColumns] = {};
 
   bool Shows(ItemColumn column) const {

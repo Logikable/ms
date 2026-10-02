@@ -96,7 +96,7 @@ TEST_F(EquippedListTest, MarksAmmunitionWithNothingToDrawIt) {
 // and the split must still land where the columns begin.
 TEST_F(EquippedListTest, ReportsWhereTheNameCellEnds) {
   EquipPrototype sword = Weapon(EQUIP_TYPE_ONE_HANDED_SWORD);
-  sword.set_name("Frozen Blade of the Frigid North Wind");
+  sword.set_name("Frozen Blade of the Frigid North Wind Eternal");
   sword.mutable_base_stats()->set_attack(50);
 
   std::vector<EquippedRow> rows = RowsWearing(JOB_FIGHTER, sword);
@@ -104,8 +104,10 @@ TEST_F(EquippedListTest, ReportsWhereTheNameCellEnds) {
   CellSpan name = rows[0].text.Span(ItemColumn::kName);
   EXPECT_EQ(name.offset, 0);
   // A panel at its narrowest cuts the name to fit its column.
+  const int width = Columns().name_width;
+  ASSERT_LT(width, static_cast<int>(sword.name().size()));
   EXPECT_EQ(rows[0].text.text.substr(0, name.bytes),
-            "Frozen Blade of the Frigid");
+            sword.name().substr(0, width));
   // The columns follow the name cell, starting with the slot.
   EXPECT_NE(rows[0].text.text.substr(name.bytes).find("Weapon"),
             std::string::npos);

@@ -765,5 +765,76 @@ TEST(PresetSlotLabelTest, TheAutoswapNamesTheTwoItReads) {
             "Farm");
 }
 
+FlameLines Flame(std::vector<std::pair<FlameStat, int>> lines) {
+  FlameLines flame;
+  for (const auto& [stat, tier] : lines) {
+    FlameLine* line = flame.Add();
+    line->set_stat(stat);
+    line->set_tier(tier);
+  }
+  return flame;
+}
+
+std::string Trimmed(std::string cell) {
+  cell.erase(cell.find_last_not_of(' ') + 1);
+  return cell;
+}
+
+// Off a weapon: the primary (a pair counting toward both its stats), All
+// Stats, the attack and the secondary, as many as fit.
+TEST(FlameCellTest, ArmourRanksThePrimaryFirst) {
+  EquipPrototype hat;
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.set_required_level(200);
+  FlameLines flame = Flame({{FLAME_STAT_ATTACK, 5},
+                            {FLAME_STAT_STR_DEX, 5},
+                            {FLAME_STAT_ALL_STAT, 5},
+                            {FLAME_STAT_STR, 5}});
+  EXPECT_EQ(Trimmed(FlameCell(flame, hat, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+            "85 STR, 5% All, 5 ATT, 30 DEX");
+  EXPECT_EQ(Trimmed(FlameCell(flame, hat, STAT_FIELD_STR, STAT_FIELD_DEX, 9)),
+            "85 STR");
+  EXPECT_EQ(Trimmed(FlameCell(flame, hat, STAT_FIELD_INT, STAT_FIELD_LUK, 42)),
+            "5% All")
+      << "a magician swings MATT, and has no INT or LUK here";
+  EXPECT_EQ(Trimmed(FlameCell(
+                Flame({{FLAME_STAT_INT_LUK, 7}, {FLAME_STAT_MAX_HP, 7}}), hat,
+                STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+            "Junk");
+  EXPECT_EQ(Trimmed(FlameCell({}, hat, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+            "-");
+}
+
+// A weapon ranks its attack and percents first, and shows the secondary only
+// when nothing else is there.
+TEST(FlameCellTest, AWeaponRanksItsAttackAndPercents) {
+  EquipPrototype sword;
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_required_level(200);
+  EXPECT_EQ(Trimmed(FlameCell(Flame({{FLAME_STAT_STR, 5},
+                                     {FLAME_STAT_ALL_STAT, 4},
+                                     {FLAME_STAT_DAMAGE, 5},
+                                     {FLAME_STAT_BOSS_DAMAGE, 6}}),
+                              sword, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+            "12% Boss, 5% Damage, 4% All, 55 STR");
+  sword.mutable_base_stats()->set_attack(200);
+  FlameLines attack = Flame({{FLAME_STAT_BOSS_DAMAGE, 6},
+                             {FLAME_STAT_ATTACK, 5},
+                             {FLAME_STAT_MAGIC_ATTACK, 7}});
+  EXPECT_EQ(
+      Trimmed(FlameCell(attack, sword, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+      std::to_string(FlameLineValue(attack[1], sword)) + " ATT, 12% Boss");
+  FlameLines off_stat = Flame({{FLAME_STAT_DEX, 5}, {FLAME_STAT_MAX_HP, 7}});
+  EXPECT_EQ(
+      Trimmed(FlameCell(off_stat, sword, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
+      "55 DEX");
+  EXPECT_EQ(
+      Trimmed(FlameCell(off_stat, sword, STAT_FIELD_LUK, STAT_FIELD_DEX, 42)),
+      "55 DEX");
+  EXPECT_EQ(
+      Trimmed(FlameCell(off_stat, sword, STAT_FIELD_INT, STAT_FIELD_LUK, 42)),
+      "Junk");
+}
+
 }  // namespace
 }  // namespace ms

@@ -21,10 +21,10 @@
 namespace ms {
 
 const std::string& ItemCells::Get(ItemColumn column) const {
-  static_assert(kNumItemColumns == 9, "a new column needs a cell");
+  static_assert(kNumItemColumns == 10, "a new column needs a cell");
   const std::string* const cells[kNumItemColumns] = {
-      &name,  &slot,      &level,          &job, &stats, &scroll,
-      &stars, &potential, &bonus_potential};
+      &name,  &slot,      &level,           &job,  &stats, &scroll,
+      &stars, &potential, &bonus_potential, &flame};
   return *cells[static_cast<int>(column)];
 }
 
@@ -88,6 +88,9 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
       state.bonus_potential(), proto.required_level(), PrimaryStatField(job),
       SecondaryStatField(job), columns.Width(ItemColumn::kBonusPotential));
   cells.bonus_potential_rank = state.bonus_potential().rank();
+  cells.flame =
+      FlameCell(state.flame(), proto, PrimaryStatField(job),
+                SecondaryStatField(job), columns.Width(ItemColumn::kFlame));
   return cells;
 }
 
@@ -101,6 +104,7 @@ ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
   options.potential = Unlocked(Feature::kPotential, character, account);
   options.bonus_potential =
       Unlocked(Feature::kBonusPotential, character, account);
+  options.flame = Unlocked(Feature::kFlame, character, account);
   for (const Equip* item : items) {
     options.scrolling |= item->scroll_successes() > 0;
     options.star_force |= item->stars() > 0;
@@ -108,6 +112,7 @@ ItemListOptions ItemListOptionsFor(const std::vector<const Equip*>& items,
         item->main_potential().rank() != POTENTIAL_RANK_UNSPECIFIED;
     options.bonus_potential |=
         item->bonus_potential().rank() != POTENTIAL_RANK_UNSPECIFIED;
+    options.flame |= !item->flame().empty();
   }
   return options;
 }

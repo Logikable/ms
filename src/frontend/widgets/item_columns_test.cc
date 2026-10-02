@@ -13,8 +13,9 @@ namespace ms {
 namespace {
 
 ItemListOptions AllUnlocked() {
-  return {/*bag=*/false, /*scrolling=*/true, /*star_force=*/true,
-          /*potential=*/true, /*bonus_potential=*/true};
+  return {
+      /*bag=*/false,      /*scrolling=*/true,       /*star_force=*/true,
+      /*potential=*/true, /*bonus_potential=*/true, /*flame=*/true};
 }
 
 ItemListOptions Bag() {
@@ -36,17 +37,18 @@ std::vector<ItemColumn> Drawn(const ItemColumns& columns) {
 }
 
 TEST(ItemColumnsTest, WideEnoughForEverything) {
-  ItemColumns columns = FitItemColumns(200, Bag());
+  ItemColumns columns = FitItemColumns(250, Bag());
   EXPECT_EQ(Drawn(columns),
-            (std::vector<ItemColumn>{ItemColumn::kName, ItemColumn::kSlot,
-                                     ItemColumn::kLevel, ItemColumn::kJob,
-                                     ItemColumn::kStats, ItemColumn::kScroll,
-                                     ItemColumn::kStars, ItemColumn::kPotential,
-                                     ItemColumn::kBonusPotential}));
-  // The stretchable columns stop at their widest: three potential effects, and
-  // the longest name in the game.
+            (std::vector<ItemColumn>{
+                ItemColumn::kName, ItemColumn::kSlot, ItemColumn::kLevel,
+                ItemColumn::kJob, ItemColumn::kStats, ItemColumn::kScroll,
+                ItemColumn::kStars, ItemColumn::kPotential,
+                ItemColumn::kBonusPotential, ItemColumn::kFlame}));
+  // The stretchable columns stop at their widest: three potential effects, four
+  // flame ones, and the longest name in the game.
   EXPECT_EQ(columns.potential_width, kItemPotentialMax);
   EXPECT_EQ(columns.bonus_potential_width, kItemPotentialMax);
+  EXPECT_EQ(columns.flame_width, kItemFlameMax);
   EXPECT_EQ(columns.name_width, kItemNameMax);
 }
 
@@ -72,9 +74,9 @@ TEST(ItemColumnsTest, DropsInPriorityOrder) {
   // columns can't hold a name and a slot together.
   EXPECT_EQ(lost, (std::vector<ItemColumn>{
                       ItemColumn::kStats, ItemColumn::kJob, ItemColumn::kLevel,
-                      ItemColumn::kScroll, ItemColumn::kStars,
-                      ItemColumn::kBonusPotential, ItemColumn::kPotential,
-                      ItemColumn::kSlot}));
+                      ItemColumn::kScroll, ItemColumn::kFlame,
+                      ItemColumn::kStars, ItemColumn::kBonusPotential,
+                      ItemColumn::kPotential, ItemColumn::kSlot}));
 }
 
 // A column ranked below one that didn't fit stays out, however narrow it is.
@@ -113,42 +115,51 @@ TEST(ItemColumnsTest, GatesEachColumnOnItsMechanic) {
   EXPECT_TRUE(FitItemColumns(200, Bag()).Shows(ItemColumn::kLevel));
 }
 
-// Leftover room widens the potential columns evenly, then the name, each within
-// its limits, and the row never outgrows the panel. None keeps growing with the
-// width for long: a little wider and the next column takes the room.
-TEST(ItemColumnsTest, LeftoverRoomWidensPotentialThenTheName) {
-  for (int width = 40; width <= 200; ++width) {
+// Leftover room widens the effect columns a whole effect at a time, in order,
+// then the name, and the row never outgrows the panel.
+TEST(ItemColumnsTest, LeftoverRoomGoesAWholeEffectAtATime) {
+  const int potential[] = {kItemMainPotentialWidth,
+                           EffectsWidth(2, kItemPotentialWidth),
+                           kItemPotentialMax};
+  const int bonus[] = {kItemBonusPotentialWidth,
+                       EffectsWidth(2, kItemPotentialWidth), kItemPotentialMax};
+  const int flame[] = {kItemFlameWidth, EffectsWidth(2, kItemFlameWidth),
+                       EffectsWidth(3, kItemFlameWidth), kItemFlameMax};
+  for (int width = 40; width <= 250; ++width) {
     ItemColumns columns = FitItemColumns(width, Bag());
-    EXPECT_GE(columns.potential_width, kItemPotentialWidth);
-    EXPECT_LE(columns.potential_width, kItemPotentialMax);
-    if (columns.Shows(ItemColumn::kBonusPotential)) {
-      EXPECT_GE(columns.potential_width, kItemMainPotentialWidth);
-      EXPECT_GE(columns.bonus_potential_width, kItemBonusPotentialWidth);
-      EXPECT_LE(columns.bonus_potential_width, kItemPotentialMax);
-      // Each takes a column in turn, so neither runs ahead of the other.
-      EXPECT_LE(
-          std::abs(columns.bonus_potential_width - columns.potential_width),
-          kItemBonusPotentialWidth - kItemMainPotentialWidth)
-          << "width " << width;
-    }
+    EXPECT_LE(columns.TotalWidth(), width);
     EXPECT_GE(columns.name_width, kItemNameWidth);
     EXPECT_LE(columns.name_width, kItemNameMax);
-    // The gutter is reserved before anything is handed out, so a row always
-    // stops one column short of the border.
-    EXPECT_LE(columns.TotalWidth(), width);
-    // No room is wasted: either the name is at its widest or the next column in
-    // priority wouldn't have fit.
-    EXPECT_TRUE(columns.name_width == kItemNameMax ||
-                columns.TotalWidth() + kItemCellGap > width)
+    if (!columns.Shows(ItemColumn::kFlame)) {
+      continue;
+    }
+    // Each width is a whole number of effects.
+    int p = std::find(potential, potential + 3, columns.potential_width) -
+            potential;
+    int b = std::find(bonus, bonus + 3, columns.bonus_potential_width) - bonus;
+    int f = std::find(flame, flame + 4, columns.flame_width) - flame;
+    ASSERT_LT(p, 3) << "width " << width;
+    ASSERT_LT(b, 3) << "width " << width;
+    ASSERT_LT(f, 4) << "width " << width;
+    // How far down the order main 2nd, bonus 2nd, flame 2nd, main 3rd, bonus
+    // 3rd, flame 3rd, flame 4th the room reached: always a prefix of it.
+    const std::vector<std::vector<int>> kSteps = {
+        {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1},
+        {2, 1, 1}, {2, 2, 1}, {2, 2, 2}, {2, 2, 3}};
+    std::vector<int> reached = {p, b, f};
+    EXPECT_NE(std::find(kSteps.begin(), kSteps.end(), reached), kSteps.end())
         << "width " << width;
-    // The name takes nothing while the potential column can still use the room.
-    EXPECT_TRUE(columns.name_width == kItemNameWidth ||
-                ((!columns.Shows(ItemColumn::kPotential) ||
-                  columns.potential_width == kItemPotentialMax) &&
-                 (!columns.Shows(ItemColumn::kBonusPotential) ||
-                  columns.bonus_potential_width == kItemPotentialMax)))
-        << "width " << width;
+    // The name takes only room too small for the next effect.
+    if (reached != kSteps.back()) {
+      size_t next =
+          std::find(kSteps.begin(), kSteps.end(), reached) - kSteps.begin() + 1;
+      const std::vector<int>& to = kSteps[next];
+      int cost = potential[to[0]] - potential[p] + bonus[to[1]] - bonus[b] +
+                 flame[to[2]] - flame[f];
+      EXPECT_LT(columns.name_width - kItemNameWidth, cost) << "width " << width;
+    }
   }
+  EXPECT_EQ(FitItemColumns(250, Bag()).flame_width, kItemFlameMax);
 }
 
 // A locked potential column takes no room, so the leftover goes to the name, as
@@ -170,9 +181,9 @@ TEST(ItemColumnsTest, KeepsTheNameAtAnyWidth) {
 // The potential column is the one that grows, so its header moves with it and
 // the row still ends inside the panel.
 TEST(ItemColumnsTest, HeaderFollowsTheWidenedPotentialColumn) {
-  // At 106 columns every cell the bag can show but the stats fits with nothing
+  // At 117 columns every cell the bag can show but the stats fits with nothing
   // left over.
-  ItemColumns narrow = FitItemColumns(106, Bag());
+  ItemColumns narrow = FitItemColumns(117, Bag());
   ItemColumns wide = FitItemColumns(200, Bag());
   EXPECT_TRUE(narrow.Shows(ItemColumn::kJob));
   EXPECT_EQ(narrow.potential_width, kItemMainPotentialWidth);
@@ -199,7 +210,7 @@ TEST(ItemColumnsTest, HeaderStandsOverTheColumns) {
     at += columns.Width(column);
   }
   // No trailing blanks: the last label ends the row.
-  EXPECT_EQ(header.back(), 'l');  // "...Potential"
+  EXPECT_EQ(header.back(), 'e');  // "...Flame"
   EXPECT_LE(TextColumns(header) + kItemListGutter, 200);
 }
 
@@ -213,8 +224,9 @@ TEST(ItemColumnsTest, BonusPotentialRenamesTheMainColumn) {
   EXPECT_FALSE(both.Shows(ItemColumn::kScroll));
   EXPECT_STREQ(both.Header(ItemColumn::kPotential), "Main Potential");
   EXPECT_STREQ(both.Header(ItemColumn::kBonusPotential), "Bonus Potential");
-  EXPECT_EQ(both.potential_width, kItemMainPotentialWidth + 1);
-  EXPECT_EQ(both.bonus_potential_width, kItemBonusPotentialWidth + 1);
+  EXPECT_FALSE(both.Shows(ItemColumn::kFlame)) << "ranked below Stars";
+  EXPECT_EQ(both.potential_width, kItemMainPotentialWidth);
+  EXPECT_EQ(both.bonus_potential_width, kItemBonusPotentialWidth);
 
   ItemColumns main_only = FitItemColumns(60, AllUnlocked());
   EXPECT_TRUE(main_only.Shows(ItemColumn::kPotential));

@@ -951,6 +951,36 @@ std::vector<std::string> SecondaryStatEffect(const Potential& potential,
           PotentialLineShortName(family)};
 }
 
+// `effects` joined into a cell `width` wide. The first always shows; the others
+// are added only while they fit whole, so a cut-off number never looks like a
+// smaller one.
+std::string JoinWhole(const std::vector<std::string>& effects, int width) {
+  std::string text = effects.front();
+  for (size_t i = 1; i < effects.size(); ++i) {
+    int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
+    if (room > width) {
+      break;
+    }
+    text += ", " + effects[i];
+  }
+  return PadRight(text, width);
+}
+
+// "182 STR" for a flame's flat grant of `stat`, or nothing.
+void AddFlameStat(const EquipStats& stats, const DisplayStat* stat,
+                  std::vector<std::string>& effects) {
+  if (stat != nullptr && stat->GetFrom(stats) > 0) {
+    effects.push_back(std::to_string(stat->GetFrom(stats)) + " " + stat->label);
+  }
+}
+
+void AddFlamePercent(int value, const char* name,
+                     std::vector<std::string>& effects) {
+  if (value > 0) {
+    effects.push_back(std::to_string(value) + "% " + name);
+  }
+}
+
 }  // namespace
 
 std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
@@ -1017,17 +1047,43 @@ std::string PotentialCell(const Potential& potential, int item_level,
     // for one that was never cubed.
     return PadRight(potential.lines().empty() ? "-" : "Junk", width);
   }
-  // The best effect always shows. The others are added only while they fit
-  // whole, so a cut-off number never looks like a smaller one.
-  std::string text = effects.front();
-  for (size_t i = 1; i < effects.size(); ++i) {
-    int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
-    if (room > width) {
-      break;
-    }
-    text += ", " + effects[i];
+  return JoinWhole(effects, width);
+}
+
+std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
+                      StatField primary, StatField secondary, int width) {
+  if (flame.empty()) {
+    return PadRight("-", width);
   }
-  return PadRight(text, width);
+  const EquipStats stats = FlameStats(flame, proto);
+  const FlamePercents percents = FlamePercentsOf(flame, proto);
+  // The attack this job swings, as ItemStatsCell picks it.
+  static const DisplayStat kAttack = {"ATT", &EquipStats::attack};
+  static const DisplayStat kMagicAttack = {"MATT", &EquipStats::magic_attack};
+  const DisplayStat* attack =
+      primary == STAT_FIELD_INT ? &kMagicAttack : &kAttack;
+  const DisplayStat* main = DisplayStatFor(primary);
+  const DisplayStat* second = DisplayStatFor(secondary);
+  std::vector<std::string> effects;
+  if (proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
+    AddFlameStat(stats, attack, effects);
+    AddFlamePercent(stats.boss_damage(), "Boss", effects);
+    AddFlamePercent(percents.damage, "Damage", effects);
+    AddFlamePercent(percents.all_stat, "All", effects);
+    AddFlameStat(stats, main, effects);
+    if (effects.empty()) {
+      AddFlameStat(stats, second, effects);
+    }
+  } else {
+    AddFlameStat(stats, main, effects);
+    AddFlamePercent(percents.all_stat, "All", effects);
+    AddFlameStat(stats, attack, effects);
+    AddFlameStat(stats, second, effects);
+  }
+  if (effects.empty()) {
+    return PadRight("Junk", width);
+  }
+  return JoinWhole(effects, width);
 }
 
 std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {

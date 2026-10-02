@@ -104,6 +104,7 @@ cc_library(
         "//src/character:skill_placement",
         "//src/character:stat_preset",
         "//src/item",
+        "//src/item:flame",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
