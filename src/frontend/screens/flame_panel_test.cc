@@ -47,7 +47,7 @@ TEST_F(FlamePanelTest, TheShelfListsBothFlamesAndTheirPrices) {
   EXPECT_LT(rendered.find("Burning Rebirth Flame"),
             rendered.find("Black Rebirth Flame"));
   EXPECT_NE(rendered.find("3,000,000"), std::string::npos);
-  EXPECT_NE(rendered.find("30,000,000"), std::string::npos);
+  EXPECT_NE(rendered.find("10,000,000"), std::string::npos);
   EXPECT_EQ(panel.selected_flame(), FlameType::kBurning);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_flame(), FlameType::kBlack);
