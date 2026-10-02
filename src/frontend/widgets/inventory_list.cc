@@ -256,7 +256,8 @@ ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
 ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
                                ftxui::Element balances, bool row_selected,
                                bool highlighted, ftxui::Element trailing,
-                               int width, ftxui::Box& bar_box) {
+                               int width, ftxui::Box& bar_box,
+                               ftxui::Element second_row) {
   // Left to right: chips, balances, then whatever trails them. The chips get no
   // width limit because a bag's tabs are fixed and always fit.
   ftxui::Element chips = TabBar(tabs, active, row_selected, /*width=*/0);
@@ -277,10 +278,12 @@ ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
                                std::move(trailing),
                            }) |
                            ftxui::reflect(bar_box);
-  return ftxui::vbox({
-      std::move(tab_row),
-      PanelSeparator(highlighted),
-  });
+  std::vector<ftxui::Element> rows = {std::move(tab_row)};
+  if (second_row != nullptr) {
+    rows.push_back(std::move(second_row));
+  }
+  rows.push_back(PanelSeparator(highlighted));
+  return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,

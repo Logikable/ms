@@ -386,7 +386,8 @@ ftxui::Element BankPanel::RenderTopRow(BankZone zone) const {
   return RenderBagTabBar(tabs, side.etc_tab ? kEtcChip : kEquipChip, balances,
                          on_chip, /*highlighted=*/false, ftxui::text(""),
                          kHalfWidth - 2,
-                         zone == zone_ ? bar_box_ : scratch_box_);
+                         zone == zone_ ? bar_box_ : scratch_box_,
+                         HasPages(zone) ? RenderPageRow(zone) : nullptr);
 }
 
 ftxui::Element BankPanel::RenderPageRow(BankZone zone) const {
@@ -436,16 +437,15 @@ ftxui::Element BankPanel::RenderList(BankZone zone) const {
 ftxui::Element BankPanel::RenderHalf(BankZone zone) const {
   // The page row takes one of the list's rows, so the half keeps its height:
   // the screen has no row to spare.
-  const bool pages = HasPages(zone);
-  std::vector<ftxui::Element> rows = {RenderTopRow(zone)};
-  if (pages) {
-    rows.push_back(RenderPageRow(zone));
-  }
-  // The header, its rule and the rows, which make up the list.
-  rows.push_back(RenderList(zone) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
-                                                kHalfRows + 2 - pages));
-  ftxui::Element body = ftxui::vbox(std::move(rows)) |
-                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kHalfWidth);
+  const int list_rows = kHalfRows + 2 - (HasPages(zone) ? 1 : 0);
+  ftxui::Element body =
+      ftxui::vbox({
+          RenderTopRow(zone),
+          // The header, its rule and the rows, which make up the list.
+          RenderList(zone) |
+              ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, list_rows),
+      }) |
+      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kHalfWidth);
   return ThemedWindow(zone == BankZone::kBag ? " Inventory " : " Bank ",
                       std::move(body), zone == zone_);
 }

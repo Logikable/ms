@@ -11,7 +11,7 @@
  * to move. Down moves into the open tab's list, and Up from its first row
  * returns to the chip of the tab being shown.
  *
- * The bank's Equip tab has a second row between the two, its pages 1 to 8,
+ * The bank's Equip tab has a second row under the top row, its pages 1 to 8,
  * which Left and Right walk. Only the open page is listed, an item moved into
  * the bank lands on it, and Sort sorts only it.
  *
@@ -185,7 +185,7 @@ class BankPanel {
 
   // One half as a bordered window: its top row, then the open tab's list.
   ftxui::Element RenderHalf(BankZone zone) const;
-  // That half's top row, the bank's page row, and the list below them.
+  // That half's top row (with the bank's page row under it), and the list.
   ftxui::Element RenderTopRow(BankZone zone) const;
   ftxui::Element RenderPageRow(BankZone zone) const;
   ftxui::Element RenderList(BankZone zone) const;

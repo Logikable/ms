@@ -129,11 +129,13 @@ ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
 // than left to fillers, so the gutter is guaranteed.
 //
 // `active` is -1 when no chip is highlighted. `bar_box` is reflected so a menu
-// opening under the row knows where it is.
+// opening under the row knows where it is. `second_row`, when set, is drawn
+// between the row and its rule.
 ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
                                ftxui::Element balances, bool row_selected,
                                bool highlighted, ftxui::Element trailing,
-                               int width, ftxui::Box& bar_box);
+                               int width, ftxui::Box& bar_box,
+                               ftxui::Element second_row = nullptr);
 
 // Every index in a list of `count`, for a caller that shows all of it.
 std::vector<int> AllRows(int count);
