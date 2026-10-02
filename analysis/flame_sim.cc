@@ -64,14 +64,18 @@ void Roll(const Catalogs& catalogs, Job branch, int level, int samples,
   GameState state = NewMaxState(
       catalogs, AdvancementForJobStage(branch, StageOf(branch)), level, 1);
   state.bosses = catalogs.bosses;
-  const Yardstick yard = YardstickFor(state);
-  const CubeBasis basis = CubeBasisFor(state, yard);
   std::vector<EquipSlot> slots;
   for (const auto& [slot, item] : state.character.equipped(kBossGear)) {
     if (item->CanFlame()) {
       slots.push_back(slot);
     }
   }
+  // Bare pieces, so a gain is the whole flame's and not one over max mode's.
+  for (EquipSlot slot : slots) {
+    state.character.TakeFlame(slot, FlameLines(), kBossGear);
+  }
+  const Yardstick yard = YardstickFor(state);
+  const CubeBasis basis = CubeBasisFor(state, yard);
   const double burning_price = FlameOf(FlameType::kBurning).cost;
   const double black_price = FlameOf(FlameType::kBlack).cost;
   for (EquipSlot slot : slots) {
