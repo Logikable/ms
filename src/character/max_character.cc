@@ -497,6 +497,7 @@ void SpendMaxNoblesse(CharacterInstance& character,
                       const std::map<std::string, Mob>& mobs) {
   const Mob* target = NominalTarget(bosses, mobs, character.proto().level(),
                                     Activity::kBossing);
+  RefundNoblesseSp(character, skills);
   SpendNoblesseSp(character, skills, [&skills, target](CharacterInstance& c) {
     return MaxHyperRate(c, skills, Activity::kBossing, target);
   });

@@ -527,6 +527,7 @@ sim_binary(
         "//src/character:job_advancement",
         "//src/character:job_branch",
         "//src/character:link",
+        "//src/character:noblesse_plan",
         "//src/character:progression",
         "//src/character:symbol",
         "//src/combat",

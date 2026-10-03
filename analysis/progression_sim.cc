@@ -103,6 +103,7 @@
 #include "src/character/job_advancement.h"
 #include "src/character/job_branch.h"
 #include "src/character/link.h"
+#include "src/character/noblesse_plan.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
 #include "src/combat/combat.h"
@@ -1593,6 +1594,21 @@ void SpendHyperPoints(Session& run) {
   SpendHyperStats(run.state, StatPreset::kSecond, run.hyper_bossing);
 }
 
+// Spends Noblesse SP a new solo clear paid, a level at a time where it raises
+// the aimed fight's rate most. What is already bought stays: re-planning from
+// nothing would cost a measured fight per skill per point at every clear.
+void SpendNoblessePoints(Session& run) {
+  if (run.state.character.noblesse_sp() <= 0) {
+    return;
+  }
+  DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                 run.shopper.yardstick());
+  SpendNoblesseSp(run.state.character, run.state.skills,
+                  [&run, &basis](CharacterInstance&) {
+                    return BossRateOver(run.state, basis, kBookSeconds);
+                  });
+}
+
 // Spends collected honor on the bossing Inner Ability preset only: there's one
 // pool, and a character this early can't finish both.
 //
@@ -2132,6 +2148,7 @@ void Restock(Session& run) {
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
          run.matrix, run.mapped, run.climb.ledger);
+  SpendNoblessePoints(run);
   SpendHyperPoints(run);
   SpendHonor(run);
 }
@@ -2356,6 +2373,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
+  SpendNoblessePoints(run);
   SpendHyperPoints(run);
   SpendHonor(run);
   ConsiderAlts(run);

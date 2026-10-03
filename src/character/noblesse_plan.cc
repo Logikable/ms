@@ -16,7 +16,6 @@ int SpendNoblesseSp(CharacterInstance& character,
   for (const std::pair<const std::string, Skill>& entry : skills) {
     if (entry.second.guild() == GUILD_SKILL_NOBLESSE) {
       noblesse.push_back(&entry.second);
-      character.UnlearnSkill(entry.second, character.skill_level(entry.second));
     }
   }
   int bought = 0;
@@ -41,6 +40,15 @@ int SpendNoblesseSp(CharacterInstance& character,
     ++bought;
   }
   return bought;
+}
+
+void RefundNoblesseSp(CharacterInstance& character,
+                      const std::map<std::string, Skill>& skills) {
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (entry.second.guild() == GUILD_SKILL_NOBLESSE) {
+      character.UnlearnSkill(entry.second, character.skill_level(entry.second));
+    }
+  }
 }
 
 }  // namespace ms

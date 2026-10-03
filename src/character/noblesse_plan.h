@@ -3,8 +3,7 @@
  * One level at a time, to whichever Noblesse skill raises the rating most. The
  * four skills multiply into each other, so a level's worth depends on what is
  * already bought, which is why it is measured step by step and not ranked
- * once. Points come back for free, so a plan is redone from nothing whenever
- * the pool grows.
+ * once. Points come back for free, so a plan can be redone from nothing.
  *
  * The caller supplies the rating, as for hyper_plan.h: the game rates by the
  * expected hit on the toughest boss unlocked, and //analysis by damage in a
@@ -26,11 +25,15 @@ namespace ms {
 // changed, so it must read the character it is given, not one it captured.
 using NoblesseRate = std::function<double(CharacterInstance&)>;
 
-// Gives back every Noblesse level, then spends the whole pool. Returns the
-// levels bought.
+// Spends whatever is left of the pool on top of what is already bought.
+// Returns the levels bought.
 int SpendNoblesseSp(CharacterInstance& character,
                     const std::map<std::string, Skill>& skills,
                     const NoblesseRate& rate);
+
+// Gives back every Noblesse level, so the next spend starts from nothing.
+void RefundNoblesseSp(CharacterInstance& character,
+                      const std::map<std::string, Skill>& skills);
 
 }  // namespace ms
 
