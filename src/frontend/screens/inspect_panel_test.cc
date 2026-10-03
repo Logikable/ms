@@ -383,7 +383,7 @@ TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
   InspectPanel panel;
   panel.SetItem(&item);
   std::string rendered = RenderWide(panel);
-  const size_t name = rendered.find("Soul: Magnificent Damien Soul");
+  const size_t name = rendered.find("Soul: Damien ");
   ASSERT_NE(name, std::string::npos) << rendered;
   EXPECT_LT(rendered.find("◼  Ignore DEF"), name);
   const size_t effect = rendered.find("Boss Damage +7%, ATT +20");
@@ -407,7 +407,7 @@ TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
   EquipInstance alone(sword_, bare);
   panel.SetItem(&alone);
   rendered = RenderWide(panel);
-  const size_t alone_name = rendered.find("Soul: Magnificent Damien Soul");
+  const size_t alone_name = rendered.find("Soul: Damien ");
   ASSERT_NE(alone_name, std::string::npos) << rendered;
   EXPECT_NE(rendered.rfind("─", alone_name), std::string::npos);
 }

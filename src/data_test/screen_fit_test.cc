@@ -37,6 +37,7 @@
 #include "src/frontend/screens/trade_panel.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/keybinds.pb.h"
@@ -327,6 +328,45 @@ TEST_F(ScreenFitTest, Inspect) {
     panel.SetComparison(&item);
     ExpectFits(panel.Render(), entry.first + "'s card");
   }
+}
+
+// A soul never widens a weapon's card: every boss's soul with every line, on
+// every weapon, measured against the same card without one.
+TEST_F(ScreenFitTest, SoulRowsFitTheWeaponCard) {
+  InspectPanel panel;
+  int worst = 0;
+  std::string worst_what;
+  for (const std::pair<const std::string, EquipPrototype>& weapon :
+       state_.equips) {
+    if (!TakesSoul(weapon.second)) {
+      continue;
+    }
+    EquipInstance bare(weapon.second);
+    panel.SetItem(&bare);
+    const int width = Measure(panel.RenderItemOnly()).columns;
+    for (const std::pair<const std::string, ItemPrototype>& shard :
+         state_.items) {
+      if (shard.second.soul_tier() == SOUL_TIER_UNSPECIFIED) {
+        continue;
+      }
+      for (int line = SOUL_LINE_ATTACK; line <= SOUL_LINE_BOSS_DAMAGE; ++line) {
+        Equip state;
+        Soul& soul = *state.mutable_soul();
+        soul.set_boss(shard.second.short_name());
+        soul.set_tier(shard.second.soul_tier());
+        soul.set_line(static_cast<SoulLine>(line));
+        EquipInstance item(weapon.second, state);
+        panel.SetItem(&item);
+        const int over = Measure(panel.RenderItemOnly()).columns - width;
+        if (over > worst) {
+          worst = over;
+          worst_what = weapon.first + " with " + shard.first + " " +
+                       SoulLine_Name(soul.line());
+        }
+      }
+    }
+  }
+  EXPECT_EQ(worst, 0) << worst_what << " is " << worst << " columns wider";
 }
 
 // Every equip's scroll list, which is as long as the catalog makes it.

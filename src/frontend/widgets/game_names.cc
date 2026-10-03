@@ -649,8 +649,9 @@ std::string SoulLineName(SoulLine line) {
       return "All Stats";
     case SOUL_LINE_MAX_HP:
       return "Max HP";
+    // Short, so the longest line fits a weapon's card with MATT beside it.
     case SOUL_LINE_CRIT_RATE:
-      return "Critical Rate";
+      return "Crit Rate";
     case SOUL_LINE_IGNORE_DEFENSE:
       return "Ignore DEF";
     case SOUL_LINE_BOSS_DAMAGE:
@@ -661,10 +662,6 @@ std::string SoulLineName(SoulLine line) {
 }
 
 }  // namespace
-
-std::string SoulName(const Soul& soul) {
-  return "Magnificent " + soul.boss() + " Soul";
-}
 
 std::string SoulEffectText(const Soul& soul, bool magic) {
   const SoulLine gauge = magic ? SOUL_LINE_MAGIC_ATTACK : SOUL_LINE_ATTACK;

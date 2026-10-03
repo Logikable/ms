@@ -328,7 +328,7 @@ enum SoulLine {
 // grade to store. The tier is copied from the shard when the soul is applied,
 // as GMS's soul item carries its own stats.
 message Soul {
-  // The boss's short name, "Damien" in "Magnificent Damien Soul".
+  // The boss's short name, as its shard gives it: "Damien".
   string boss = 1;
   SoulTier tier = 2;
   SoulLine line = 3;

@@ -103,8 +103,6 @@ std::string CubeTrackName(PotentialTrack track);
 // and its percent version share a name, and the value shows the %.
 std::string PotentialLineName(PotentialLineType type);
 
-// "Magnificent Damien Soul".
-std::string SoulName(const Soul& soul);
 // "Boss Damage +7%, ATT +20". `magic` shows the gauge as MATT, and a flat line
 // of the gauge's own stat folds into it: "ATT +30", not "ATT +10, ATT +20".
 std::string SoulEffectText(const Soul& soul, bool magic);

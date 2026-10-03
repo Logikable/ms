@@ -242,6 +242,7 @@ cc_test(
         "//src/frontend/screens:skill_inspect_panel",
         "//src/frontend/screens:trade_panel",
         "//src/item:equip_instance",
+        "//src/item:soul",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:keybinds_proto_cc",

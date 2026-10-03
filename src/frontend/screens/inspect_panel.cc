@@ -879,7 +879,7 @@ std::vector<CardRow> InspectPanel::PotentialRows(
     const bool magic = base.magic_attack() > base.attack();
     rows.push_back(TextRow(ftxui::hbox({
         ftxui::text(" ◈") | ftxui::color(kSoul),
-        ftxui::text("  Soul: " + SoulName(soul) + " "),
+        ftxui::text("  Soul: " + soul.boss() + " "),
     })));
     rows.push_back(
         TextRow(ftxui::text("    " + SoulEffectText(soul, magic) + " ")));

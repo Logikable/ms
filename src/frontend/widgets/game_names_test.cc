@@ -271,7 +271,6 @@ TEST(GameNamesTest, ASoulReadsAsItsLineAndTheGauge) {
   soul.set_boss("Damien");
   soul.set_tier(SOUL_TIER_SS);
   soul.set_line(SOUL_LINE_BOSS_DAMAGE);
-  EXPECT_EQ(SoulName(soul), "Magnificent Damien Soul");
   EXPECT_EQ(SoulEffectText(soul, false), "Boss Damage +7%, ATT +20");
   EXPECT_EQ(SoulEffectText(soul, true), "Boss Damage +7%, MATT +20");
   soul.set_line(SOUL_LINE_ATTACK);
