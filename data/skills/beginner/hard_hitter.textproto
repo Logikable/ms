@@ -1,0 +1,8 @@
+name: "Hard Hitter"
+description: "Increases Critical Damage."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 7 }
+guild: GUILD_SKILL_NOBLESSE
+max_level: 15
+base { crit_dmg: 0.02 }
+per_level { crit_dmg: 0.02 }

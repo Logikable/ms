@@ -909,6 +909,59 @@ TEST_F(CharacterPanelTest, GuildPassivesAppearWithTheAccount) {
   EXPECT_NE(RenderComponent(comp).find("Guild Expertise"), std::string::npos);
 }
 
+// The Noblesse rows wait for bosses, then carry [-] and [+] around their level
+// with the account's points in the corner. The rows beside them take none.
+TEST_F(CharacterPanelTest, NoblesseRowsSpendAndRefundTheAccountsPoints) {
+  CharacterInstance c = MakeSpearman(rng_);  // level 35
+  c.set_noblesse_sp_earned(3);
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  catalog["blessing_of_the_fairy"] = MakeFairyBlessing();
+  Skill slayers;
+  slayers.set_name("Boss Slayers");
+  slayers.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(slayers, JOB_ADVANCEMENT_BEGINNER, 2);
+  slayers.set_guild(GUILD_SKILL_NOBLESSE);
+  slayers.set_max_level(15);
+  catalog["boss_slayers"] = slayers;
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
+  std::vector<std::string> learned;
+  std::vector<std::string> unlearned;
+  CharacterPanelActions actions;
+  actions.learn = [&](const Skill& s) { learned.push_back(s.name()); };
+  actions.unlearn = [&](const Skill& s) { unlearned.push_back(s.name()); };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> the page bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // their book -> the beginner's
+  EXPECT_EQ(RenderComponent(comp).find("Boss Slayers"), std::string::npos)
+      << "hidden until bosses open";
+
+  account_.RecordProgress(110, 2);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Boss Slayers"), std::string::npos);
+  EXPECT_NE(rendered.find("[-]"), std::string::npos);
+  EXPECT_NE(rendered.find("3 SP"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the Link Skills row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // Blessing of the Fairy
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(learned.empty()) << "a row with no buttons stays on its name";
+
+  comp->OnEvent(ftxui::Event::ArrowDown);   // Boss Slayers
+  comp->OnEvent(ftxui::Event::ArrowRight);  // its [-]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(unlearned.empty()) << "nothing to give back yet";
+  comp->OnEvent(ftxui::Event::ArrowRight);  // its [+]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(learned, std::vector<std::string>({"Boss Slayers"}));
+
+  ASSERT_TRUE(c.LearnSkill(slayers));
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // back to the [-]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(unlearned, std::vector<std::string>({"Boss Slayers"}));
+}
+
 // --- the Hyper page ---
 
 // The H chip comes after the numerals, and its page holds the Hyper Skills, not

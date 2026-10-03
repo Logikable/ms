@@ -100,6 +100,10 @@ enum class Feature {
   // reaches the last threshold; see kLinkSkillsLevel. The row itself is always
   // on the beginner's page.
   kLinkSkills,
+  // The Noblesse skills on the beginner's page, at the first boss's level:
+  // their
+  // points come only from soloing bosses.
+  kNoblesse,
   // The guild passives on the beginner's page. Hidden below their level, like
   // any other locked feature; see kGuildSkillsLevel.
   kGuildSkills,

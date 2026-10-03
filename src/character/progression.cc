@@ -26,6 +26,9 @@ struct Unlock {
   int level;
 };
 
+// Zakum's level, the first boss.
+constexpr int kBossLevel = 110;
+
 // The early game in one place, in the order the player sees it.
 constexpr Unlock kUnlocks[] = {
     // Level 2 unlocks nothing: the first level-up gives AP, and that is its
@@ -46,9 +49,8 @@ constexpr Unlock kUnlocks[] = {
     // Late enough that the player sees it after the early game, and late enough
     // that meso for spell traces is coming in.
     {Feature::kScrolling, 40},
-    // Zakum's level, the first boss. Opening it earlier would only show the
-    // player fights they can't take.
-    {Feature::kBoss, 110},
+    // Opening it earlier would only show the player fights they can't take.
+    {Feature::kBoss, kBossLevel},
     // Matched to the gear it's for: the Frozen weapons at 120 are the first
     // that take 15 stars, and opening the screen earlier only offers expensive
     // stars that are barely worth it.
@@ -88,6 +90,8 @@ constexpr Unlock kUnlocks[] = {
     // the skills are available from level 1.
     {Feature::kLinkSkills, kLinkSkillsLevel},
     {Feature::kGuildSkills, kGuildSkillsLevel},
+    // Bosses' level, since soloing them is the only source of the points.
+    {Feature::kNoblesse, kBossLevel},
 };
 
 // Features unlocked by an advancement instead of a level, and which advancement
@@ -283,6 +287,8 @@ std::string FeatureName(Feature feature) {
       return "Link Skills";
     case Feature::kGuildSkills:
       return "Guild Skills";
+    case Feature::kNoblesse:
+      return "Noblesse Skills";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:

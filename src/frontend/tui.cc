@@ -223,6 +223,9 @@ void Tui::BuildComponents() {
   char_actions.learn = [this](const Skill& skill) {
     controller_.OpenSkillLearn(skill);
   };
+  char_actions.unlearn = [this](const Skill& skill) {
+    controller_.UnlearnSkill(skill);
+  };
   char_actions.menu = [this](const Skill& skill) {
     controller_.OpenSkillMenu(skill);
   };

@@ -1,0 +1,9 @@
+# GMS's is a buff, 2 minutes a level; here it is always on.
+name: "Boss Slayers"
+description: "Increases Boss Damage."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 4 }
+guild: GUILD_SKILL_NOBLESSE
+max_level: 15
+base { boss_pct: 0.02 }
+per_level { boss_pct: 0.02 }

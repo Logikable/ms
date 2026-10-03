@@ -245,6 +245,10 @@ void TuiController::RaiseHyperStat(HyperStatField field, StatPreset preset) {
   state_.character.AllocateHyperStat(field, preset);
 }
 
+void TuiController::UnlearnSkill(const Skill& skill) {
+  state_.character.UnlearnSkill(skill);
+}
+
 void TuiController::LowerHyperStat(HyperStatField field, StatPreset preset) {
   state_.character.RefundHyperStat(field, preset);
 }

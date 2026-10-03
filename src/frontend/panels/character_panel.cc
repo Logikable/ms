@@ -218,9 +218,10 @@ void CharacterPanel::NoteFocus() const {
 // `row_width` is the width the row lays out in, which is one less than the
 // content width while the scroll bar takes a column.
 int CharacterPanel::SkillNameWidth(int level_width, int row_width,
-                                   bool has_plus) {
+                                   bool has_plus, bool has_minus) {
   return row_width - 1 - kSkillTagWidth - level_width -
-         (has_plus ? kSkillPlusWidth : 0) - 1;
+         (has_plus ? kSkillPlusWidth : 0) - (has_minus ? kSkillPlusWidth : 0) -
+         1;
 }
 
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
@@ -760,8 +761,10 @@ std::string CharacterPanel::PoolText() const {
     return std::to_string(character_.hyper_sp()) + " SP";
   }
   if (IsBeginnerPage(SelectedSkillPage())) {
-    // No pool: nothing on the page is bought.
-    return "";
+    // Noblesse SP, once its skills are on the page. Nothing else here is
+    // bought.
+    return ShowsSkillMinus() ? std::to_string(character_.noblesse_sp()) + " SP"
+                             : "";
   }
   return std::to_string(character_.sp(SelectedSkillPage())) + " SP";
 }
@@ -853,11 +856,38 @@ bool CharacterPanel::HasVPage() const {
 }
 
 bool CharacterPanel::ShowsSkillPlus() const {
-  return !read_only_ && !IsBeginnerPage(SelectedSkillPage());
+  return !read_only_ &&
+         (!IsBeginnerPage(SelectedSkillPage()) || ShowsSkillMinus());
+}
+
+bool CharacterPanel::ShowsSkillMinus() const {
+  if (read_only_ || !IsBeginnerPage(SelectedSkillPage())) {
+    return false;
+  }
+  for (const Skill* skill : SkillsForPage(SelectedSkillPage())) {
+    if (skill->guild() == GUILD_SKILL_NOBLESSE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool CharacterPanel::RowTakesPoints(const Skill& skill) const {
+  return ShowsSkillPlus() && (!IsBeginnerPage(SelectedSkillPage()) ||
+                              skill.guild() == GUILD_SKILL_NOBLESSE);
 }
 
 CharacterPanel::SkillCol CharacterPanel::EffectiveSkillCol() const {
-  return ShowsSkillPlus() ? skill_col_ : kColName;
+  std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
+  int index = SkillIndexFor(skill_sel_);
+  if (index < 0 || index >= static_cast<int>(skills.size()) ||
+      !RowTakesPoints(*skills[index])) {
+    return kColName;
+  }
+  if (skill_col_ == kColMinus && !ShowsSkillMinus()) {
+    return kColPlus;
+  }
+  return skill_col_;
 }
 
 int CharacterPanel::SelectedSkillPage() const {
@@ -932,12 +962,21 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // Locked guild skills are hidden, as every locked feature is.
   listed.erase(std::remove_if(listed.begin(), listed.end(),
                               [this](const Skill* skill) {
-                                return skill->guild() == GUILD_SKILL_PASSIVE &&
-                                       !Unlocked(Feature::kGuildSkills,
-                                                 character_, account_);
+                                return GuildSkillHidden(*skill);
                               }),
                listed.end());
   return listed;
+}
+
+bool CharacterPanel::GuildSkillHidden(const Skill& skill) const {
+  switch (skill.guild()) {
+    case GUILD_SKILL_PASSIVE:
+      return !Unlocked(Feature::kGuildSkills, character_, account_);
+    case GUILD_SKILL_NOBLESSE:
+      return !Unlocked(Feature::kNoblesse, character_, account_);
+    default:
+      return false;
+  }
 }
 
 bool CharacterPanel::SkillLocked(const Skill& skill) const {
@@ -970,7 +1009,12 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   //
   // A name too long for the column scrolls while the row is selected and is cut
   // otherwise. The column is a fixed width either way.
-  int name_width = SkillNameWidth(column.width, row_width, ShowsSkillPlus());
+  // A row with no buttons gives the [-] column to its name; the [+] column it
+  // keeps blank, so its level lines up with the rows that have one.
+  bool buttons = RowTakesPoints(skill);
+  bool minus_drawn = ShowsSkillMinus() && buttons;
+  int name_width =
+      SkillNameWidth(column.width, row_width, ShowsSkillPlus(), minus_drawn);
   std::string window =
       ScrollingWindow(skill.name(), name_width,
                       selected ? name_clock_.Elapsed()
@@ -996,11 +1040,23 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   if (locked) {
     level_text = level_text | ftxui::dim;
   }
-  std::vector<ftxui::Element> cells = {
-      ftxui::text(" "), tag_text, name, name_pad, level_text, ftxui::filler(),
-  };
+  std::vector<ftxui::Element> cells = {ftxui::text(" "), tag_text, name,
+                                       name_pad};
+  // The [-] sits left of the level and the [+] right of it, as on a Hyper Stat
+  // row.
+  if (minus_drawn) {
+    ftxui::Element minus = ftxui::text("[-]");
+    if (selected && EffectiveSkillCol() == kColMinus) {
+      minus = minus | ftxui::inverted;
+    } else if (learned <= 0) {
+      minus = minus | ftxui::dim;
+    }
+    cells.push_back(std::move(minus));
+  }
+  cells.push_back(level_text);
+  cells.push_back(ftxui::filler());
   if (ShowsSkillPlus()) {
-    ftxui::Element plus = ftxui::text("[+]");
+    ftxui::Element plus = ftxui::text(buttons ? "[+]" : "   ");
     if (selected && EffectiveSkillCol() == kColPlus) {
       plus = plus | ftxui::inverted;
     } else if (maxed || !has_sp || locked) {
@@ -1792,13 +1848,26 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
   }
   // Skill rows: Left and Right pick the column Enter acts on.
   std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
-  if (event == ftxui::Event::ArrowLeft) {
+  // A page without a [-] skips its column, and a row with no buttons keeps
+  // the cursor on its name.
+  int index = SkillIndexFor(skill_sel_);
+  bool buttons = index >= 0 && index < static_cast<int>(skills.size()) &&
+                 RowTakesPoints(*skills[index]);
+  if ((event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) &&
+      !buttons) {
     skill_col_ = kColName;
     return true;
   }
+  if (event == ftxui::Event::ArrowLeft) {
+    skill_col_ = EffectiveSkillCol() == kColPlus && ShowsSkillMinus()
+                     ? kColMinus
+                     : kColName;
+    return true;
+  }
   if (event == ftxui::Event::ArrowRight) {
-    // A page with no [+] has no second column to move to.
-    skill_col_ = ShowsSkillPlus() ? kColPlus : kColName;
+    skill_col_ = EffectiveSkillCol() == kColName && ShowsSkillMinus()
+                     ? kColMinus
+                     : kColPlus;
     return true;
   }
   if (IsForward(event)) {
@@ -1820,6 +1889,12 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
       // level table worth reading.
       if (actions.menu) {
         actions.menu(skill);
+      }
+      return true;
+    }
+    if (EffectiveSkillCol() == kColMinus) {
+      if (actions.unlearn && character_.skill_level(skill) > 0) {
+        actions.unlearn(skill);
       }
       return true;
     }

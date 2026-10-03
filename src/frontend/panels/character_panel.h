@@ -51,6 +51,8 @@ struct CharacterPanelActions {
   // The Skills tab.
   std::function<void(const Skill&)> learn;
   std::function<void(const Skill&)> menu;
+  // A Noblesse skill's [-], which gives one level back.
+  std::function<void(const Skill&)> unlearn;
   // The Link Skills row at the bottom of the beginner page.
   std::function<void()> link_skills;
   // The V page's [Reset], which empties the whole matrix.
@@ -79,10 +81,10 @@ class CharacterPanel {
  public:
   // The width a skill row leaves for its name. Public because the game's skill
   // names are tested against it: a name too long for the widest panel is cut
-  // off. `has_plus` is the narrow case and the default; a page with no [+]
-  // gives those columns to the name.
+  // off. `has_plus` is the default; a page with no [+] gives those columns to
+  // the name, and the beginner page's [-] takes as many again.
   static int SkillNameWidth(int level_width, int row_width,
-                            bool has_plus = true);
+                            bool has_plus = true, bool has_minus = false);
 
   // `skills` is the loaded catalog, keyed by file stem. The Skills tab lists
   // the entries whose stage matches the selected page.
@@ -262,15 +264,24 @@ class CharacterPanel {
     kZoneBuffRows
   };
 
-  // The two parts of a skill row, left to right. Left and Right move between
-  // them, and Enter does something different on each.
-  enum SkillCol { kColName, kColPlus };
+  // The parts of a skill row, left to right. Left and Right move between them,
+  // and Enter does something different on each. Only the beginner page's
+  // Noblesse rows have a [-], since only their points come back.
+  enum SkillCol { kColName, kColMinus, kColPlus };
 
   // Whether skill rows have a [+]. A read-only sheet has nothing to press, and
-  // the beginner page has nothing to buy.
+  // the beginner page has nothing to buy until a Noblesse skill is on it.
   bool ShowsSkillPlus() const;
-  // skill_col_, corrected for a page with no [+], since the cursor can't be on
-  // a column that isn't drawn. Render reads it, like EffectiveZone.
+  // Whether a guild skill is still hidden: the passives until the account's
+  // level opens them, and Noblesse until bosses do.
+  bool GuildSkillHidden(const Skill& skill) const;
+  // Whether they have a [-]: the beginner page, once it shows Noblesse.
+  bool ShowsSkillMinus() const;
+  // Whether `skill`'s row draws the buttons. On the beginner page only the
+  // Noblesse rows do; the rest leave the columns blank so the levels line up.
+  bool RowTakesPoints(const Skill& skill) const;
+  // skill_col_, corrected for a row with no buttons, since the cursor can't be
+  // on a column that isn't drawn. Render reads it, like EffectiveZone.
   SkillCol EffectiveSkillCol() const;
 
   // A Hyper Stat row's three parts in screen order: the stat to read about, the

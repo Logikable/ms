@@ -174,6 +174,9 @@ class TuiController {
   // the row's [-] undoes a [+].
   void RaiseHyperStat(HyperStatField field, StatPreset preset);
   void LowerHyperStat(HyperStatField field, StatPreset preset);
+  // A Noblesse skill's [-]: gives one level back, with no dialog, for the
+  // same reason.
+  void UnlearnSkill(const Skill& skill);
   // The tab's only confirmation: resetting a whole allocation.
   void OpenHyperReset(StatPreset preset);
 
