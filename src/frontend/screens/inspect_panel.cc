@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/scroll_card.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -37,6 +38,9 @@ constexpr char kEquippedTitle[] = " Equipped ";
 // cursor moves between items. The equip body sets its own width from its
 // columns.
 constexpr int kStackableWidth = 44;
+
+// kEquipCardWidth less the borders and the bar's column.
+constexpr int kEquipContentWidth = kEquipCardWidth - 3;
 
 // The width of the set card's rows. It is the same whatever the set holds, for
 // the same reason as the stackable body: the card sits beside the item, and a
@@ -391,7 +395,7 @@ ftxui::Element InspectPanel::RenderComparison(bool focused) const {
   if (worn == nullptr) {
     rows.body.push_back(TextRow(CenteredRow("(empty)")));
     return compare_card_.Render(kEquippedTitle, std::move(rows),
-                                /*content_width=*/0, focused);
+                                kEquipContentWidth, focused);
   }
   // The bar sits above the card's own heading, with no rule under it, so the
   // chips and the item they name read as one.
@@ -400,7 +404,7 @@ ftxui::Element InspectPanel::RenderComparison(bool focused) const {
   rows.body = std::move(body.body);
   rows.foot = std::move(body.foot);
   return compare_card_.Render(kEquippedTitle, std::move(rows),
-                              /*content_width=*/0, focused);
+                              kEquipContentWidth, focused);
 }
 
 ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
@@ -416,19 +420,19 @@ ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
   }
   if (item == nullptr) {
-    return ThemedWindow(title, EmptyState("no item"), focused);
+    return ThemedWindow(title, EmptyState("no item"), focused) |
+           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kEquipCardWidth);
   }
   CardRows rows = IsSymbol(item->prototype()) ? SymbolRows(*item)
                                               : EquipRows(*item, stats_in_head);
-  return card.Render(title, std::move(rows), /*content_width=*/0, focused);
+  return card.Render(title, std::move(rows), kEquipContentWidth, focused);
 }
 
 CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
   int level = SymbolLevel(item.equip_state());
   std::vector<CardRow> head = HeadRows(item);
   std::vector<CardRow> stats = SymbolStatRows(item, level);
-  std::vector<CardRow> jobs =
-      JobRows(item, std::max(NaturalWidth(head), NaturalWidth(stats)));
+  std::vector<CardRow> jobs = JobRows(item, kEquipContentWidth);
 
   CardRows rows;
   // The growth bar replaces the star bar, and the name, required level and jobs
@@ -693,7 +697,10 @@ std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   int level = item.prototype().required_level();
   std::vector<CardRow> delta = DeltaRows(item);
   std::vector<CardRow> rows = {
-      TextRow(CenteredRow(item.name())),
+      // A name as wide as the card gives up its gutters rather than widen it.
+      TextRow(TextColumns(item.name()) + 2 > kEquipContentWidth
+                  ? ftxui::text(item.name()) | ftxui::hcenter
+                  : CenteredRow(item.name())),
       RuleRow(ThemedSeparator()),
   };
   // The label goes above the number instead of beside it: "Combat Power Δ" is
@@ -891,11 +898,8 @@ CardRows InspectPanel::EquipRows(const EquipTabItem& item,
   std::vector<CardRow> stats = StatRows(item);
   std::vector<CardRow> slots = SlotRows(item);
   Append(slots, PotentialRows(item));
-  // The item's own content sets the width, and the two rows that can be split
-  // are measured against it rather than the other way round.
-  int fixed =
-      std::max({NaturalWidth(head), NaturalWidth(stats), NaturalWidth(slots)});
-
+  // The two rows that can be split are measured against the card's width.
+  const int fixed = kEquipContentWidth;
   std::vector<CardRow> jobs = JobRows(item, fixed);
   CardRows rows;
   // The item's name stays on screen, and so does its upgrade history; the stats

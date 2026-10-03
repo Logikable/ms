@@ -332,20 +332,22 @@ TEST_F(ScreenFitTest, Inspect) {
   }
 }
 
-// A soul never widens a weapon's card: every boss's soul with every line, on
-// every weapon, measured against the same card without one.
-TEST_F(ScreenFitTest, SoulRowsFitTheWeaponCard) {
+// Every item's card is one width as the game draws it: bare, as the max
+// character wears it, and with every boss's soul in every line.
+TEST_F(ScreenFitTest, EveryItemCardIsOneWidth) {
   InspectPanel panel;
-  int worst = 0;
-  std::string worst_what;
+  panel.SetMaxRows(kMinTerminalRows);
+  auto expect_width = [&panel](const EquipInstance& item,
+                               const std::string& what) {
+    panel.SetItem(&item);
+    EXPECT_EQ(Measure(panel.RenderItemOnly()).columns, kEquipCardWidth) << what;
+  };
   for (const std::pair<const std::string, EquipPrototype>& weapon :
        state_.equips) {
+    expect_width(EquipInstance(weapon.second), weapon.first);
     if (!TakesSoul(weapon.second)) {
       continue;
     }
-    EquipInstance bare(weapon.second);
-    panel.SetItem(&bare);
-    const int width = Measure(panel.RenderItemOnly()).columns;
     for (const std::pair<const std::string, ItemPrototype>& shard :
          state_.items) {
       if (shard.second.soul_tier() == SOUL_TIER_UNSPECIFIED) {
@@ -357,18 +359,15 @@ TEST_F(ScreenFitTest, SoulRowsFitTheWeaponCard) {
         soul.set_boss(shard.second.short_name());
         soul.set_tier(shard.second.soul_tier());
         soul.set_line(static_cast<SoulLine>(line));
-        EquipInstance item(weapon.second, state);
-        panel.SetItem(&item);
-        const int over = Measure(panel.RenderItemOnly()).columns - width;
-        if (over > worst) {
-          worst = over;
-          worst_what = weapon.first + " with " + shard.first + " " +
-                       SoulLine_Name(soul.line());
-        }
+        expect_width(EquipInstance(weapon.second, state),
+                     weapon.first + " with " + shard.first + " " +
+                         SoulLine_Name(soul.line()));
       }
     }
   }
-  EXPECT_EQ(worst, 0) << worst_what << " is " << worst << " columns wider";
+  for (const auto& [slot, worn] : state_.character.equipped()) {
+    expect_width(*worn, "worn " + worn->prototype().name());
+  }
 }
 
 // The soul question is one width for every boss's prompt and every soul it

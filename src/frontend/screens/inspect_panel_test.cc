@@ -636,10 +636,11 @@ TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
   EXPECT_EQ(back.find("Recovers 50 HP."), std::string::npos);
 }
 
-// --- a narrow item gets a narrow card ---
+// --- every card is one width ---
 
 // The six job categories are the same on every item, and the star bar is as
-// long as the item's level allows. Neither should decide how wide the card is.
+// long as the item's level allows. Both fold to fit the card. With no row
+// budget there is no bar column, so the card is one narrower.
 TEST_F(InspectPanelTest, FoldsTheJobRowWhenNothingElseIsWide) {
   sword_.clear_equip_job_categories();
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
@@ -650,16 +651,18 @@ TEST_F(InspectPanelTest, FoldsTheJobRowWhenNothingElseIsWide) {
   EXPECT_NE(rendered.find("Beginner / Warrior / Bowman"), std::string::npos);
   EXPECT_NE(rendered.find("Magician / Thief / Pirate"), std::string::npos);
   EXPECT_EQ(rendered.find("Bowman / Magician"), std::string::npos);
-  EXPECT_LT(NaturalWidth(panel), 35);
+  EXPECT_EQ(NaturalWidth(panel), kEquipCardWidth - 1);
 }
 
-TEST_F(InspectPanelTest, KeepsTheJobRowWholeWhenTheCardIsWideAnyway) {
-  sword_.set_name(
-      "Fafnir Windwing Shooter of Preposterous Length and Renown Trace");
+// The catalog's longest names give up their gutters instead of widening it.
+TEST_F(InspectPanelTest, ALongNameKeepsTheCardItsWidth) {
+  sword_.set_name("Metallic Blue Book (Antistrophe)");
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(RenderWide(panel).find("Bowman / Magician"), std::string::npos);
+  EXPECT_NE(RenderWide(panel).find("Metallic Blue Book (Antistrophe)"),
+            std::string::npos);
+  EXPECT_EQ(NaturalWidth(panel), kEquipCardWidth - 1);
 }
 
 TEST_F(InspectPanelTest, FoldsAStarBarPastFifteen) {
@@ -670,7 +673,7 @@ TEST_F(InspectPanelTest, FoldsAStarBarPastFifteen) {
   EXPECT_EQ(RowsWith(panel, "☆"), 2);
   // Fifteen per row, grouped in fives from the start of each row.
   EXPECT_EQ(RowsWith(panel, "☆☆☆☆☆ ☆☆☆☆☆ ☆☆☆☆☆"), 2);
-  EXPECT_LT(NaturalWidth(panel), 35);
+  EXPECT_EQ(NaturalWidth(panel), kEquipCardWidth - 1);
 }
 
 // The remainder gets its own row however short it is, centred under the first.

@@ -48,6 +48,13 @@
 
 namespace ms {
 
+// An equip or symbol card's width as the game draws it, borders and the
+// scroll bar's column included, whatever the item, so the card doesn't resize
+// as the cursor moves. Two of them leave a full set card its 48 of 120
+// columns. A card with no row budget has no bar column and is one narrower.
+// screen_fit_test checks every item fits.
+inline constexpr int kEquipCardWidth = 36;
+
 class InspectPanel {
  public:
   // Which card has the arrows. The values aren't the drawing order: the

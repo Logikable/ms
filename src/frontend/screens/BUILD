@@ -143,6 +143,7 @@ cc_library(
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:scroll_card",
+        "//src/frontend/widgets:text_columns",
         "//src/item",
         "//src/item:flame",
         "//src/protos:equip_proto_cc",
