@@ -82,6 +82,9 @@ message ItemPrototype {
   // This differs from currency_mark, which shows the token's stage of the game;
   // one stage can cover two levels. Data files never set this. FillTokenShelves
   // works it out from what the catalog sells for the token.
+  //
+  // For a soul shard, the level of the first fight that drops it, which orders
+  // a tier's shards by boss; FillShardLevels sets it.
   int32 currency_level = 12;
   EquipSlot currency_slot = 13;
   // A shorter name for lists whose column heading already says the rest, e.g.

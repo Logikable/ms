@@ -280,6 +280,19 @@ TEST(GameNamesTest, ASoulReadsAsItsLineAndTheGauge) {
   EXPECT_EQ(SoulEffectText(soul, true), "ATT +10, MATT +20");
   soul.set_line(SOUL_LINE_MAX_HP);
   EXPECT_EQ(SoulEffectText(soul, false), "Max HP +1,500, ATT +20");
+  EquipPrototype staff;
+  staff.mutable_base_stats()->set_magic_attack(200);
+  EXPECT_EQ(SoulEffectText(soul, staff), "Max HP +1,500, MATT +20");
+}
+
+TEST(GameNamesTest, EveryTierHasAName) {
+  EXPECT_EQ(SoulTierName(SOUL_TIER_C), "C");
+  EXPECT_EQ(SoulTierName(SOUL_TIER_SS), "SS");
+  for (int i = SoulTier_MIN; i <= SoulTier_MAX; ++i) {
+    if (i != SOUL_TIER_UNSPECIFIED) {
+      EXPECT_FALSE(SoulTierName(static_cast<SoulTier>(i)).empty()) << i;
+    }
+  }
 }
 
 TEST(GameNamesTest, EveryRankHasAName) {

@@ -106,6 +106,12 @@ std::string PotentialLineName(PotentialLineType type);
 // "Boss Damage +7%, ATT +20". `magic` shows the gauge as MATT, and a flat line
 // of the gauge's own stat folds into it: "ATT +30", not "ATT +10, ATT +20".
 std::string SoulEffectText(const Soul& soul, bool magic);
+// The same, with the gauge as MATT on a weapon whose base MATT outweighs its
+// ATT.
+std::string SoulEffectText(const Soul& soul, const EquipPrototype& weapon);
+
+// "C" through "SS".
+std::string SoulTierName(SoulTier tier);
 
 // What `line` is worth on an item of `item_level`: "+12", "+9%", or "-2s" for a
 // cooldown reduction.

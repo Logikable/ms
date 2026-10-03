@@ -53,6 +53,8 @@ enum class Feature {
   // The Flame entry and both flames on its shelf. Its trail is just the menu
   // entry: one screen, two flames that unlock together.
   kFlame,
+  // The Soul entry on a weapon's item menu. Its trail is just the entry.
+  kSoul,
   // Recovery isn't listed: it needs a trace, which only exists after an item is
   // destroyed, which no level causes by itself. The item is the gate.
   //

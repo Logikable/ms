@@ -11,15 +11,21 @@
 #ifndef MS_SRC_ITEM_SOUL_H_
 #define MS_SRC_ITEM_SOUL_H_
 
+#include <map>
 #include <random>
+#include <string>
 
 #include "src/item/potential.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
 
 inline constexpr int kShardsPerSoul = 10;
+
+// The level the Soul menu entry unlocks at, account-wide like flames.
+inline constexpr int kSoulUnlockLevel = 235;
 
 // The full soul gauge's ATT and MATT, the same at every tier we have (GMS's
 // Tier D gives 15, and no boss here is Tier D).
@@ -42,6 +48,12 @@ Soul RollSoul(const ItemPrototype& shard, std::mt19937& rng);
 EquipStats SoulStats(const Soul& soul);
 // Adds the soul's percent line to `totals`. Nothing for an unset soul.
 void AddSoul(const Soul& soul, PotentialTotals& totals);
+
+// Sets each soul shard's currency_level to the lowest unlock level of a fight
+// that drops it, so a tier's shards can be listed by boss. Computed rather
+// than stored, like FillTokenShelves, so it can't drift from the drop tables.
+void FillShardLevels(const std::map<std::string, Boss>& bosses,
+                     std::map<std::string, ItemPrototype>& items);
 
 }  // namespace ms
 

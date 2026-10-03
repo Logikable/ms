@@ -31,6 +31,7 @@
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -886,10 +887,12 @@ void SeedPlay(GameState& state) {
 // farming.
 constexpr int kTestExpMultiplier = 5;
 
-// How many of each currency the workbench starts with: enough tokens to buy a
-// shelf's worth with one left over, and enough shards to fill the Token tab's
-// column.
+// How many of each token the workbench starts with: enough to buy a shelf's
+// worth with one left over.
 constexpr int kTestTokens = 20;
+
+// Twenty souls of every boss, enough to reroll a weapon's soul a while.
+constexpr int kTestSoulShards = 200;
 
 // Enough spell traces to scroll every slot several times. Given instead of
 // bought, since the shop sells them 5,000 meso at a time and that's a long way
@@ -1027,9 +1030,11 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // farming the mobs that drop them, and both columns of the bag's Token tab
   // are filled without clearing every boss.
   for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
-    if (entry.second.kind() == ITEM_KIND_TOKEN ||
-        entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
+    if (entry.second.kind() == ITEM_KIND_TOKEN) {
       state.character.AddItem(entry.second, kTestTokens);
+    }
+    if (entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
+      state.character.AddItem(entry.second, kTestSoulShards);
     }
     // And boxes, so Open can be tried without a Hard clear.
     if (entry.second.has_box()) {
@@ -1359,6 +1364,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   FillTokenShelves(equips, items);
+  FillShardLevels(bosses, items);
   // Before seeding: a max character's allocations are measured by playing the
   // fight, and the fight reads this setting.
   account.SetAutoswapPresets(test.autoswap_presets);

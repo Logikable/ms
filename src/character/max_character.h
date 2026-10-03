@@ -88,7 +88,8 @@ void SpendMaxHyperStats(CharacterInstance& character,
                         const std::map<std::string, Boss>& bosses,
                         const std::map<std::string, Mob>& mobs);
 
-// Puts the best soul the character's level has unlocked on their weapon: the
+// Puts the best soul the character's level has unlocked on their weapon, from
+// the Soul entry's level on: the
 // highest tier any open boss's shard makes, with whichever of its seven lines
 // hits that boss hardest. Measured, not listed, since the best line depends on
 // the job. `items` is where a shard's tier is read.

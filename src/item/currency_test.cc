@@ -81,24 +81,31 @@ TEST(CurrencyTest, SpendingIsAllOrNothing) {
   EXPECT_TRUE(purse.entries().empty());
 }
 
+ItemPrototype Shard(const std::string& name, SoulTier tier, int level) {
+  ItemPrototype proto = Proto(name, ITEM_KIND_SOUL_SHARD);
+  proto.set_soul_tier(tier);
+  proto.set_currency_level(level);
+  return proto;
+}
+
 // The trace first, then tokens by what they buy (best gear first, and within a
-// level the weapon before the set), then shards by balance. A balance change
-// re-sorts the purse.
+// level the weapon before the set), then shards by soul: best tier, then the
+// latest boss. A shard's balance doesn't move it.
 TEST(CurrencyTest, ThePurseIsFiledByWhatEachOneBuys) {
   CurrencyPurse purse;
-  purse.Add(Proto("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD), 3);
+  purse.Add(Shard("Zakum's Soul Shard", SOUL_TIER_C, 110), 300);
   purse.Add(Token("Piece of Time", 150, EQUIP_SLOT_TOP), 8);
   purse.Add(Proto("Spell Trace", ITEM_KIND_SPELL_TRACE), 900);
   purse.Add(Token("AbsoLab Coin", 160, EQUIP_SLOT_UNSPECIFIED), 2);
   purse.Add(Token("Frozen Weapon Token", 150, EQUIP_SLOT_PRIMARY_WEAPON), 1);
-  purse.Add(Proto("Hilla's Soul Shard", ITEM_KIND_SOUL_SHARD), 1);
+  purse.Add(Shard("Magnus's Soul Shard", SOUL_TIER_SS, 175), 1);
+  purse.Add(Shard("Hilla's Soul Shard", SOUL_TIER_A, 120), 1);
+  purse.Add(Shard("Lucid's Soul Shard", SOUL_TIER_SS, 230), 2);
   EXPECT_EQ(Names(purse),
             (std::vector<std::string>{
                 "Spell Trace", "AbsoLab Coin", "Frozen Weapon Token",
-                "Piece of Time", "Zakum's Soul Shard", "Hilla's Soul Shard"}));
-  purse.Add(Proto("Hilla's Soul Shard", ITEM_KIND_SOUL_SHARD), 99);
-  EXPECT_EQ(Names(purse).back(), "Zakum's Soul Shard")
-      << "the bigger balance leads its kind";
+                "Piece of Time", "Lucid's Soul Shard", "Magnus's Soul Shard",
+                "Hilla's Soul Shard", "Zakum's Soul Shard"}));
 }
 
 // The Token tab's two columns each list their own kind, and neither includes

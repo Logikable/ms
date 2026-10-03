@@ -258,9 +258,9 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      7u)
-      << "star force, the hammer, cubing, all three cubes after Red and "
-         "flames are ahead of an account that stopped at 50";
+      8u)
+      << "star force, the hammer, cubing, all three cubes after Red, souls "
+         "and flames are ahead of an account that stopped at 50";
 }
 
 // Panels and tabs highlight themselves in gold when they unlock; only item menu
@@ -271,9 +271,9 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      8u)
+      9u)
       << "scrolling, star force, the hammer, cubing, all three cubes after "
-         "Red and flames, in the order they arrive";
+         "Red, souls and flames, in the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
@@ -285,7 +285,8 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
       Feature::kShop,           Feature::kLinkSkills,
       Feature::kBonusPotential, Feature::kBlackCube,
       Feature::kWhiteCube,      Feature::kFlame,
-      Feature::kGuildSkills,    Feature::kNoblesse,
+      Feature::kSoul,           Feature::kGuildSkills,
+      Feature::kNoblesse,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());
@@ -305,6 +306,15 @@ TEST_F(ProgressionTest, TheFlameEntryLeadsFrom240UntilPressed) {
   account_.RecordProgress(240, 4);
   EXPECT_FALSE(LeadToAction(Feature::kFlame, MakeCharacter(1), account_))
       << "one character following it clears it for all";
+}
+
+TEST_F(ProgressionTest, TheSoulEntryLeadsFrom235UntilPressed) {
+  EXPECT_EQ(UnlockLevel(Feature::kSoul), 235);
+  EXPECT_FALSE(LeadToAction(Feature::kSoul, MakeCharacter(234), account_));
+  CharacterInstance first = MakeCharacter(235);
+  EXPECT_TRUE(LeadToAction(Feature::kSoul, first, account_));
+  FollowedToAction(Feature::kSoul, account_);
+  EXPECT_FALSE(LeadToAction(Feature::kSoul, first, account_));
 }
 
 // The trail appears the first time the account reaches the last threshold, for

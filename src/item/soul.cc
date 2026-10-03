@@ -1,8 +1,12 @@
 #include "src/item/soul.h"
 
+#include <algorithm>
+#include <map>
 #include <random>
+#include <string>
 
 #include "absl/log/log.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -156,6 +160,26 @@ void AddSoul(const Soul& soul, PotentialTotals& totals) {
       break;
     default:
       break;
+  }
+}
+
+void FillShardLevels(const std::map<std::string, Boss>& bosses,
+                     std::map<std::string, ItemPrototype>& items) {
+  for (const std::pair<const std::string, Boss>& entry : bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const MobDrop& drop : difficulty.drops()) {
+        auto found = items.find(drop.item());
+        if (found == items.end() ||
+            found->second.kind() != ITEM_KIND_SOUL_SHARD) {
+          continue;
+        }
+        ItemPrototype& shard = found->second;
+        if (shard.currency_level() == 0 ||
+            difficulty.unlock_level() < shard.currency_level()) {
+          shard.set_currency_level(difficulty.unlock_level());
+        }
+      }
+    }
   }
 }
 

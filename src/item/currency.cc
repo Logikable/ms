@@ -140,12 +140,15 @@ void CurrencyPurse::Sort() {
                 const ItemPrototype& proto = entry.prototype();
                 // A token is sorted by what it buys, not its balance: a shelf
                 // the player can't use yet shouldn't come before ones they can.
-                // A shard can only be sorted by its count.
+                // A shard is sorted by its soul, best tier and latest boss
+                // first, so a soul's row stays put as its count changes.
                 bool token = proto.kind() == ITEM_KIND_TOKEN;
                 return std::make_tuple(
-                    KindRank(proto.kind()), token ? -proto.currency_level() : 0,
+                    KindRank(proto.kind()),
+                    -static_cast<int>(proto.soul_tier()),
+                    -proto.currency_level(),
                     token ? TokenSlotRank(proto.currency_slot()) : 0,
-                    -entry.count(), entry.name());
+                    token ? -entry.count() : 0, entry.name());
               };
               return key(a) < key(b);
             });

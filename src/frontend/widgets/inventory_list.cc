@@ -58,6 +58,8 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
 constexpr int kCurrencyMarkWidth = 2;
 constexpr int kTokenNameWidth = 24;
 constexpr int kShardNameWidth = 17;
+// "Tier" and its gap; the widest tier is SS.
+constexpr int kShardTierWidth = 6;
 constexpr int kCurrencyCountWidth = 10;
 // The gap between the token half of a row and the shard half. It is wider than
 // a normal column gap because it separates two lists.
@@ -70,14 +72,16 @@ ftxui::Element BlankCurrencyCell(int mark_width, int name_width) {
       std::string(mark_width + name_width + kCurrencyCountWidth, ' '));
 }
 
-// A name and its count. A token's mark keeps its own colour, which shows which
-// piece the currency buys.
+// A name, a shard's tier, and the count. A token's mark keeps its own colour,
+// which shows which piece the currency buys.
 ftxui::Element CurrencyCell(const CurrencyAmount& held, bool marked,
                             int name_width) {
   const ItemPrototype& proto = held.prototype();
-  std::string body =
-      PadRight(ShortName(proto), name_width) +
-      PadRight(FormatWithCommas(held.count()), kCurrencyCountWidth);
+  std::string body = PadRight(ShortName(proto), name_width);
+  if (proto.kind() == ITEM_KIND_SOUL_SHARD) {
+    body += PadRight(SoulTierName(proto.soul_tier()), kShardTierWidth);
+  }
+  body += PadRight(FormatWithCommas(held.count()), kCurrencyCountWidth);
   if (!marked) {
     return ftxui::text(body);
   }
@@ -103,7 +107,8 @@ ftxui::Element CurrencyHeader() {
   return ftxui::text("  " + std::string(kCurrencyMarkWidth, ' ') +
                      PadRight("Token", kTokenNameWidth) +
                      PadRight("Quantity", kCurrencyCountWidth) + kCurrencyGap +
-                     PadRight("Soul Shard", kShardNameWidth) + "Quantity");
+                     PadRight("Soul Shard", kShardNameWidth) +
+                     PadRight("Tier", kShardTierWidth) + "Quantity");
 }
 
 ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
@@ -114,7 +119,7 @@ ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
                        : CurrencyCell(*token, /*marked=*/true, kTokenNameWidth),
       ftxui::text(kCurrencyGap),
       shard == nullptr
-          ? BlankCurrencyCell(0, kShardNameWidth)
+          ? BlankCurrencyCell(0, kShardNameWidth + kShardTierWidth)
           : CurrencyCell(*shard, /*marked=*/false, kShardNameWidth),
   });
 }

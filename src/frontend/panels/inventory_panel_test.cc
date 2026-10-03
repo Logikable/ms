@@ -93,10 +93,12 @@ class InventoryPanelTest : public PanelTest {
 
   // Named the way the catalog names a shard: in full, with the short form the
   // Token tab's column uses.
-  ItemPrototype MakeShard(const std::string& boss) {
+  ItemPrototype MakeShard(const std::string& boss,
+                          SoulTier tier = SOUL_TIER_SS) {
     ItemPrototype proto = MakeStackable(boss + "'s Soul Shard");
     proto.set_short_name(boss);
     proto.set_kind(ITEM_KIND_SOUL_SHARD);
+    proto.set_soul_tier(tier);
     return proto;
   }
 
@@ -509,14 +511,14 @@ TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
   EXPECT_NE(RenderComponentText(comp).find("Arkarium"), std::string::npos);
 }
 
-// The Token sheet is sorted as items are added, so both columns read from most
-// to fewest without pressing Sort. The tab still offers Sort, which leaves a
-// sorted sheet unchanged.
+// The Token sheet is sorted as items are added, so both columns are in order
+// without pressing Sort: tokens by count here, shards by tier. The tab still
+// offers Sort, which leaves a sorted sheet unchanged.
 TEST_F(InventoryPanelTest, TheTokenSheetIsAlwaysFiled) {
   c_.AddItem(MakeToken("AbsoLab Coin", "◆"), 2);
   c_.AddItem(MakeToken("Frozen Weapon Token", "●"), 9);
-  c_.AddItem(MakeShard("Hilla"), 1);
-  c_.AddItem(MakeShard("Zakum"), 8);
+  c_.AddItem(MakeShard("Hilla", SOUL_TIER_A), 1);
+  c_.AddItem(MakeShard("Zakum", SOUL_TIER_C), 8);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -527,7 +529,11 @@ TEST_F(InventoryPanelTest, TheTokenSheetIsAlwaysFiled) {
 
   std::string text = RenderComponentText(comp);
   EXPECT_LT(text.find("Frozen Weapon Token"), text.find("AbsoLab Coin"));
-  EXPECT_LT(text.find("Zakum"), text.find("Hilla"));
+  EXPECT_LT(text.find("Hilla"), text.find("Zakum"));
+  EXPECT_LT(text.find("Soul Shard"), text.find("Tier"));
+  const size_t hilla = text.find("Hilla");
+  EXPECT_EQ(text[text.find_first_not_of(' ', hilla + 5)], 'A')
+      << "the tier follows the name";
 }
 
 // --- the Expand tab ---

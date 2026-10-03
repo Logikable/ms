@@ -875,14 +875,12 @@ std::vector<CardRow> InspectPanel::PotentialRows(
     AppendPotentialRows(bonus, "Bonus Potential", level, rows);
   }
   if (has_soul) {
-    const EquipStats& base = item.prototype().base_stats();
-    const bool magic = base.magic_attack() > base.attack();
     rows.push_back(TextRow(ftxui::hbox({
         ftxui::text(" ◈") | ftxui::color(kSoul),
         ftxui::text("  Soul: " + soul.boss() + " "),
     })));
-    rows.push_back(
-        TextRow(ftxui::text("    " + SoulEffectText(soul, magic) + " ")));
+    rows.push_back(TextRow(
+        ftxui::text("    " + SoulEffectText(soul, item.prototype()) + " ")));
   }
   return rows;
 }

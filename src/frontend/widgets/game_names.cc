@@ -663,6 +663,28 @@ std::string SoulLineName(SoulLine line) {
 
 }  // namespace
 
+std::string SoulTierName(SoulTier tier) {
+  switch (tier) {
+    case SOUL_TIER_C:
+      return "C";
+    case SOUL_TIER_B:
+      return "B";
+    case SOUL_TIER_A:
+      return "A";
+    case SOUL_TIER_S:
+      return "S";
+    case SOUL_TIER_SS:
+      return "SS";
+    default:
+      return "";
+  }
+}
+
+std::string SoulEffectText(const Soul& soul, const EquipPrototype& weapon) {
+  const EquipStats& base = weapon.base_stats();
+  return SoulEffectText(soul, base.magic_attack() > base.attack());
+}
+
 std::string SoulEffectText(const Soul& soul, bool magic) {
   const SoulLine gauge = magic ? SOUL_LINE_MAGIC_ATTACK : SOUL_LINE_ATTACK;
   const std::string gauge_name = SoulLineName(gauge);

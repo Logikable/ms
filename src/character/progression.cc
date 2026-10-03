@@ -16,6 +16,7 @@
 #include "src/character/sacred_power.h"
 #include "src/item/flame.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -66,6 +67,7 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kBlackCube, kBlackCubeUnlockLevel},
     {Feature::kWhiteCube, kWhiteCubeUnlockLevel},
     {Feature::kFlame, kFlameUnlockLevel},
+    {Feature::kSoul, kSoulUnlockLevel},
     // Hyper Stats' own level, where the points start; see
     // kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
@@ -118,7 +120,7 @@ constexpr StageUnlock kStageUnlocks[] = {
 constexpr Feature kUpgrades[] = {
     Feature::kScrolling, Feature::kStarForce,      Feature::kHammer,
     Feature::kPotential, Feature::kBonusPotential, Feature::kBlackCube,
-    Feature::kWhiteCube, Feature::kFlame,
+    Feature::kWhiteCube, Feature::kSoul,           Feature::kFlame,
 };
 
 // The upgrades with a gold trail, and the name their record keys are built
@@ -143,6 +145,7 @@ constexpr Led kLedUpgrades[] = {
     {Feature::kBlackCube, "black_cube", false},
     {Feature::kWhiteCube, "white_cube", false},
     {Feature::kFlame, "flame", false},
+    {Feature::kSoul, "soul", false},
 };
 
 // The features that put a cube on the shelf, one per cube.
@@ -257,6 +260,8 @@ std::string FeatureName(Feature feature) {
       return "the White Cube";
     case Feature::kFlame:
       return "Flames";
+    case Feature::kSoul:
+      return "Soul Weapons";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:

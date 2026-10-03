@@ -17,6 +17,7 @@
 #include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -525,6 +526,9 @@ void WearMaxSoul(CharacterInstance& character,
                  const std::map<std::string, Mob>& mobs,
                  const std::map<std::string, ItemPrototype>& items) {
   const int level = character.proto().level();
+  if (level < kSoulUnlockLevel) {
+    return;
+  }
   // The latest boss of the best tier, so the name is the one a player at this
   // level would be farming.
   const ItemPrototype* best = nullptr;

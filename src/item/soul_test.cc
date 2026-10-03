@@ -2,6 +2,7 @@
 
 #include <map>
 #include <random>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -95,6 +96,26 @@ TEST(SoulTest, ARollTakesTheShardsTierAndAnyLineEvenly) {
   for (const auto& [line, count] : seen) {
     EXPECT_NEAR(count, kRolls / 7, 100) << SoulLine_Name(line);
   }
+}
+
+// A shard's level is its first fight's, whichever boss and difficulty that
+// is; an item no fight drops, or that isn't a shard, is left alone.
+TEST(SoulTest, AShardTakesItsFirstFightsLevel) {
+  std::map<std::string, ItemPrototype> items;
+  items["zakum_shard"].set_kind(ITEM_KIND_SOUL_SHARD);
+  items["unseen_shard"].set_kind(ITEM_KIND_SOUL_SHARD);
+  items["coin"].set_kind(ITEM_KIND_TOKEN);
+  std::map<std::string, Boss> bosses;
+  for (int level : {180, 110}) {
+    BossDifficulty& difficulty = *bosses["zakum"].add_difficulties();
+    difficulty.set_unlock_level(level);
+    difficulty.add_drops()->set_item("zakum_shard");
+    difficulty.add_drops()->set_item("coin");
+  }
+  FillShardLevels(bosses, items);
+  EXPECT_EQ(items["zakum_shard"].currency_level(), 110);
+  EXPECT_EQ(items["unseen_shard"].currency_level(), 0);
+  EXPECT_EQ(items["coin"].currency_level(), 0);
 }
 
 }  // namespace

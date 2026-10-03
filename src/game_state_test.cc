@@ -26,6 +26,7 @@
 #include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -616,7 +617,8 @@ TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   GameState state = MakeTestModeStateWithItems();
   const CurrencyPurse& purse = state.character.currencies();
   EXPECT_GT(purse.Count("Weapon Token"), 1);
-  EXPECT_GT(purse.Count("Zakum's Soul Shard"), 1);
+  EXPECT_GE(purse.Count("Zakum's Soul Shard"), 10 * kShardsPerSoul)
+      << "souls to reroll a while";
   EXPECT_EQ(purse.Count("Beetle's Horn"), 0);
   EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
 }
@@ -1170,9 +1172,9 @@ TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
 }
 
 // The best tier the level opens, with whichever line hits that boss hardest;
-// nothing before any boss with a shard opens.
+// nothing before the Soul entry unlocks.
 TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
-  std::map<std::string, Boss> bosses = MaxBosses();
+  std::map<std::string, Boss> bosses = MaxBosses(/*unlock_level=*/240);
   BossDifficulty& wall = *bosses["wall"].mutable_difficulties(0);
   wall.add_drops()->set_item("wall_shard");
   BossDifficulty& early = *bosses["early"].add_difficulties();
@@ -1204,8 +1206,9 @@ TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
   EXPECT_NE(top.line(), SOUL_LINE_MAGIC_ATTACK);
   EXPECT_NE(top.line(), SOUL_LINE_MAX_HP);
   EXPECT_NE(top.line(), SOUL_LINE_UNSPECIFIED);
-  EXPECT_EQ(soul_at(170).boss(), "Early");
-  EXPECT_EQ(soul_at(140).line(), SOUL_LINE_UNSPECIFIED);
+  EXPECT_EQ(soul_at(kSoulUnlockLevel).boss(), "Early");
+  EXPECT_EQ(soul_at(kSoulUnlockLevel - 1).line(), SOUL_LINE_UNSPECIFIED)
+      << "Early's shards are open, but the Soul entry isn't";
 }
 
 // The max character at the cap: hammers used, every widened slot passed, and

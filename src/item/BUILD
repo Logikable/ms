@@ -56,6 +56,7 @@ cc_library(
     hdrs = ["soul.h"],
     deps = [
         ":potential",
+        "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "@abseil-cpp//absl/log",
