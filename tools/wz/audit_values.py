@@ -47,6 +47,7 @@ COMPARISONS = [
 # A row is (skill, field). Add one only after reading the textproto's comment
 # and agreeing with it.
 DEPARTURES = {
+    ('Arrow Blaster', 'duration_seconds'): 'the tooltip states u; v271 added a hidden time=3000',
     ('Arrow Illusion', 'max_enemies'): 'reach rule: 6 off its hitbox',
     ('Assassinate', 'lines'): 'GMS\'s two presses are one swing here',
     ('Brandish', 'max_enemies'): 'reach rule: 4 off a 300x220 hitbox',

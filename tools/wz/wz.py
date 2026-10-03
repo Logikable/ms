@@ -1,4 +1,4 @@
-"""Minimal reader for the classic PKG1 WZ container (GMS v270, XOR-only strings)."""
+"""Minimal reader for the classic PKG1 WZ container (GMS v271, XOR-only strings)."""
 import struct
 
 
@@ -107,7 +107,7 @@ class Reader:
 class Wz:
     """One `<Dir>_NNN.wz` file: a complete PKG1 container with its own header."""
 
-    def __init__(self, path, version=270):
+    def __init__(self, path, version=271):
         self.d = open(path, 'rb').read()
         assert self.d[:4] == b'PKG1', path
         self.fsize, self.fstart = struct.unpack_from('<QI', self.d, 4)

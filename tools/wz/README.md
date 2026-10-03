@@ -18,7 +18,7 @@ mounted. Rebuild it only when the client updates.
 `wz.py` reads it whole: header, version hash, encrypted offsets, directory
 walk and the img property serialisation.
 
-- **Version 270**, encver 29 at fstart 60.
+- **Version 271**, encver 30 at fstart 60.
 - Strings are **XOR-only** -- mask `0xAA` ascending for ASCII, `0xAAAA` for
   unicode. No AES key is needed.
 - Each `_NNN.wz` is a **complete standalone container** with its own header and
