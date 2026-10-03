@@ -660,7 +660,7 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
 void AddKillClockedAttack(CombatParams& params, int kills, double damage,
                           int reach = 1) {
   AttackOption cast;
-  cast.name = "Erda Fountain";
+  cast.name = "Fountain";
   cast.max_enemies = reach;
   cast.kills_per_cast = kills;
   cast.damage_per_hit.assign(params.types.size(), damage);
@@ -1972,7 +1972,7 @@ TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
   EXPECT_EQ(sim.view().kills_this_step[0], 6);
 }
 
-// Erda Fountain's timing: the twelfth enemy defeated releases what the previous
+// A twelve-kill clock: the twelfth enemy defeated releases what the previous
 // eleven built up. Defeats are counted one step late, so the release lands on
 // the step after the one that completed the count.
 TEST(CombatSimTest, AKillClockedAttackFiresOnTheTwelfthDefeat) {

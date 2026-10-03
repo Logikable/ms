@@ -1537,6 +1537,14 @@ enum VNodeKind {
   V_NODE_KIND_ARCHETYPE = 4;
 }
 
+// One job line's own numbers for a skill every line shares. The fields `skill`
+// sets replace the shared ones for a character of `line`; see ForJob.
+message LineOverride {
+  // Named by its 2nd job, as LineOf names it: JOB_FIGHTER for a Hero.
+  Job line = 1;
+  Skill skill = 2;
+}
+
 // The definition of a skill, loaded from data/skills at startup and keyed by
 // file stem. The Character's skill_levels map refers to the skill by its
 // display `name`. The effect at learned level L is base + per_level * (L - 1),
@@ -1594,6 +1602,11 @@ message Skill {
   string unlock_boss = 68;
   // Marks a guild skill. See GuildSkill.
   GuildSkill guild = 69;
+  // Per-line numbers for a shared skill: GMS v271 prices True Arachnid
+  // Reflection and Erda Fountain by job. At most one per line.
+  repeated LineOverride line_overrides = 70;
+  // Barred from boss fights, as GMS bars Erda Fountain from boss maps.
+  bool farming_only = 71;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.
   SkillRequirement required_skill = 8;
@@ -1736,8 +1749,7 @@ message Skill {
   // keeps the skill worth the same with a fast or slow swing, and it is how GMS
   // states these, because the player is being rewarded for attacking.
   int32 attacks_per_cast = 20;
-  // The third timer: enemies defeated instead of swings or seconds. Erda
-  // Fountain fires once every twelve kills.
+  // The third timer: enemies defeated instead of swings or seconds.
   //
   // A skill uses one of the three timers. Counting kills makes the skill useful
   // only against crowds: on a boss almost nothing dies, so it goes quiet

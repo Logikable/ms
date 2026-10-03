@@ -1,6 +1,7 @@
 #include "src/combat/encounter.h"
 
 #include <algorithm>
+#include <deque>
 #include <map>
 #include <memory>
 #include <set>
@@ -787,6 +788,9 @@ bool Available(const GameState& state, const Skill& skill,
   if (!state.character.HoldsSkillFrom(skill, activity)) {
     return false;
   }
+  if (skill.farming_only() && activity == Activity::kBossing) {
+    return false;
+  }
   // Skip skills the current weapon can't use. The basic attack is always
   // available, so the character is never left with nothing.
   return SkillGearMet(state.character, skill, activity);
@@ -1033,6 +1037,10 @@ struct LearnedBook {
   std::map<std::string, SkillBoosts> boosts;
   // Every skill with a level, in book order.
   std::vector<Entry> learned;
+  // The character's line's copy of each learned skill with a line override
+  // (see ForJob), which `learned` points at instead of the catalog's. A deque,
+  // so adding one never moves another.
+  std::deque<Skill> own;
 };
 
 namespace {
@@ -1096,13 +1104,19 @@ LearnedBook LearnBook(const GameState& state, Activity activity) {
   book.boosts = BoostsByTarget(state.character, state.skills, bonus, activity);
   std::set<std::string> superseded =
       DormantSkillNames(state.character, state.skills, bonus, activity);
+  const Job job = state.character.proto().job();
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    const Skill& skill = entry.second;
-    int level = EffectiveSkillLevel(state.character, skill, bonus, activity);
-    if (level > 0) {
-      book.learned.push_back(LearnedBook::Entry{
-          &skill, level, Available(state, skill, superseded, activity)});
+    const Skill* skill = &entry.second;
+    int level = EffectiveSkillLevel(state.character, *skill, bonus, activity);
+    if (level <= 0) {
+      continue;
     }
+    if (skill->line_overrides_size() > 0) {
+      book.own.emplace_back();
+      skill = &ForJob(*skill, job, book.own.back());
+    }
+    book.learned.push_back(LearnedBook::Entry{
+        skill, level, Available(state, *skill, superseded, activity)});
   }
   return book;
 }

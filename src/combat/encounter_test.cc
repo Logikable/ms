@@ -225,6 +225,108 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// Takes the character on to Fighter, the 2nd job a line override names.
+void AdvanceToFighter(GameState& state) {
+  GrantFirstJobSp(state, 2);
+  while (!state.character.CanAdvanceJob()) {
+    state.character.LevelUp();
+  }
+  state.character.AdvanceJob(JOB_FIGHTER);
+  ASSERT_EQ(state.character.proto().job(), JOB_FIGHTER);
+}
+
+// A swordman-book auto attack and a buff pulse, both 100%, each tripled for the
+// Fighter's line when `fighter` is set and otherwise only for the Page's.
+std::map<std::string, Skill> OverriddenPair(bool fighter) {
+  const Job line = fighter ? JOB_FIGHTER : JOB_PAGE;
+  Skill fountain;
+  fountain.set_name("Fountain");
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
+  fountain.set_max_level(10);
+  fountain.set_cast_interval_seconds(2.9);
+  fountain.mutable_base()->set_skill_pct(1.0);
+  LineOverride* own = fountain.add_line_overrides();
+  own->set_line(line);
+  own->mutable_skill()->mutable_base()->set_skill_pct(3.0);
+
+  Skill spider;
+  spider.set_name("Spider");
+  spider.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(spider, JOB_ADVANCEMENT_SWORDMAN);
+  spider.set_max_level(10);
+  spider.mutable_buff()->set_duration_seconds(30.0);
+  BuffPulse* legs = spider.mutable_buff()->mutable_pulse();
+  legs->set_label("Legs");
+  legs->set_cast_interval_seconds(3.0);
+  legs->mutable_base()->set_skill_pct(1.0);
+  LineOverride* lines = spider.add_line_overrides();
+  lines->set_line(line);
+  lines->mutable_skill()
+      ->mutable_buff()
+      ->mutable_pulse()
+      ->mutable_base()
+      ->set_skill_pct(3.0);
+  return {{"fountain", fountain}, {"spider", spider}};
+}
+
+// The damage of each auto attack, by name.
+std::map<std::string, double> AutoDamage(bool fighter) {
+  std::map<std::string, Skill> skills = OverriddenPair(fighter);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, skills);
+  state.current_map = "field";
+  EquipSword(state);
+  AdvanceToFighter(state);
+  EXPECT_TRUE(state.character.LearnSkill(skills["fountain"], 1));
+  EXPECT_TRUE(state.character.LearnSkill(skills["spider"], 1));
+  std::map<std::string, double> damage;
+  for (const AttackOption& attack : ComputeCombatParams(state).auto_attacks) {
+    damage[attack.name] = attack.damage_per_hit[0];
+  }
+  return damage;
+}
+
+// A Fighter fights with the Fighter line's numbers, in the attack itself and in
+// a buff's pulse, and another line's override changes nothing for them.
+TEST(ComputeCombatParamsTest, ALineOverrideReachesTheAttackAndThePulse) {
+  std::map<std::string, double> own = AutoDamage(/*fighter=*/true);
+  std::map<std::string, double> shared = AutoDamage(/*fighter=*/false);
+  ASSERT_EQ(own.size(), 2u);
+  ASSERT_EQ(shared.size(), 2u);
+  EXPECT_NEAR(own["Fountain"] / shared["Fountain"], 3.0, 1e-9);
+  EXPECT_NEAR(own["Spider"] / shared["Spider"], 3.0, 1e-9);
+}
+
+// A farming-only auto attack fires on a map and sits out a boss fight.
+TEST(ComputeBossParamsTest, AFarmingOnlySkillSitsOutBossFights) {
+  Skill fountain;
+  fountain.set_name("Fountain");
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
+  fountain.set_max_level(10);
+  fountain.set_cast_interval_seconds(2.9);
+  fountain.set_farming_only(true);
+  fountain.mutable_base()->set_skill_pct(1.0);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"fountain", fountain}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(fountain, 1));
+
+  EXPECT_EQ(ComputeCombatParams(state).auto_attacks.size(), 1u);
+  BossDifficulty normal;
+  normal.set_name("Normal");
+  normal.set_time_limit_seconds(300);
+  Spawn* snail = normal.add_phases()->add_spawns();
+  snail->set_mob("snail");
+  snail->set_count(1);
+  CombatParams boss = ComputeBossParams(state, "snail_boss", normal, 0);
+  ASSERT_TRUE(boss.active);
+  EXPECT_TRUE(boss.auto_attacks.empty());
+}
+
 // A held attack is priced as a full hold: every pulse plus the final strike.
 // The skill's own delay is the earliest release, so the pulses that fit in it
 // are the fewest a cast is worth.
@@ -4471,10 +4573,10 @@ TEST(ComputeCombatParamsTest, ASwingClockedHalfIsSilencedByItsOwnBuff) {
 // attack-timed ones. Both are counted, not timed, and the fight tells them
 // apart by which count they name.
 TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
-  // A common node, the only kind with this timing. It belongs to no book, so
-  // nothing here may gate the attack on an advancement.
+  // A common node belongs to no book, so nothing here may gate the attack on
+  // an advancement.
   Skill fountain;
-  fountain.set_name("Erda Fountain");
+  fountain.set_name("Fountain");
   fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
   PlaceIn(fountain, JOB_ADVANCEMENT_COMMON);
   fountain.set_v_node(V_NODE_KIND_COMMON);
@@ -4499,7 +4601,7 @@ TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
   EXPECT_TRUE(params.auto_attacks.empty());
   ASSERT_EQ(params.triggered_attacks.size(), 1u);
   const AttackOption& cast = params.triggered_attacks[0];
-  EXPECT_EQ(cast.name, "Erda Fountain");
+  EXPECT_EQ(cast.name, "Fountain");
   EXPECT_EQ(cast.kills_per_cast, 12);
   EXPECT_EQ(cast.attacks_per_cast, 0);  // it names one clock, not two
   EXPECT_EQ(cast.max_enemies, 10);

@@ -77,6 +77,7 @@ cc_library(
         "//src/character:job_advancement",
         "//src/character:symbol",
         "//src/combat:boss_run",
+        "//src/combat:damage",
         "//src/combat:offline",
         "//src/frontend/panels:character_panel",
         "//src/frontend/panels:equipped_panel",

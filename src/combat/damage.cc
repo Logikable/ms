@@ -339,6 +339,19 @@ SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
   return grown;
 }
 
+const Skill& ForJob(const Skill& skill, Job job, Skill& scratch) {
+  const Job line = LineOf(job);
+  for (const LineOverride& line_override : skill.line_overrides()) {
+    if (line_override.line() == line) {
+      scratch = skill;
+      scratch.clear_line_overrides();
+      scratch.MergeFrom(line_override.skill());
+      return scratch;
+    }
+  }
+  return skill;
+}
+
 int SkillLinesAt(const Skill& skill, int level) {
   int lines = std::max(1, skill.lines());
   if (skill.lines_per_level() <= 0.0 || level <= 1) {

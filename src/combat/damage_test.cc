@@ -17,6 +17,27 @@
 namespace ms {
 namespace {
 
+// A line's override replaces only what it sets, for that line at any stage of
+// it; any other line gets the shared skill back untouched.
+TEST(ForJobTest, OnlyTheNamedLineGetsItsNumbers) {
+  Skill skill;
+  skill.set_name("Spider");
+  skill.set_cooldown_seconds(230.0);
+  skill.mutable_base()->set_skill_pct(4.68);
+  LineOverride* page = skill.add_line_overrides();
+  page->set_line(JOB_PAGE);
+  page->mutable_skill()->mutable_base()->set_skill_pct(7.83);
+
+  Skill scratch;
+  const Skill& paladin = ForJob(skill, JOB_PALADIN, scratch);
+  EXPECT_EQ(&paladin, &scratch);
+  EXPECT_DOUBLE_EQ(paladin.base().skill_pct(), 7.83);
+  EXPECT_DOUBLE_EQ(paladin.cooldown_seconds(), 230.0);
+  EXPECT_EQ(paladin.name(), "Spider");
+  EXPECT_EQ(paladin.line_overrides_size(), 0);
+  EXPECT_EQ(&ForJob(skill, JOB_HERO, scratch), &skill);
+}
+
 // A ladder with a fractional step goes up every few levels instead of every
 // level, and flooring turns it back into a whole number. GMS's ceil(L/5), used
 // by the Decent nodes' All Stats, is `base 1, per_level 0.2`.

@@ -138,6 +138,11 @@ SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
 // not exactly 2 in floating point.
 int WholeValue(double value);
 
+// `skill` as `job`'s line has it: what that line's override sets replaces the
+// shared fields. Returns `skill` itself for a line with no override, else
+// `scratch`.
+const Skill& ForJob(const Skill& skill, Job job, Skill& scratch);
+
 // Hits per enemy at `level`: `lines` plus whole lines gained from
 // `lines_per_level` since level 1, minimum 1. All code reads lines through
 // here, so they rise everywhere at once.

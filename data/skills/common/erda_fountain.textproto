@@ -1,18 +1,61 @@
 # GMS's Erda Shower is either a blast or this object. Only the object is built:
 # it is the half a character with a matrix uses, and the blast is for bosses.
 #
-# GMS's 60-second cooldown is on placing the object, which lasts exactly that
-# long, so the twelve kills are the whole rule (see Skill.kills_per_cast).
+# GMS v271's object (400001064) attacks every 2.9s (attackDelay 2900) for 60s
+# on a 60s cooldown, so it is always up, and boss maps bar it.
 name: "Erda Fountain"
-description:
-  "Plants an object filled with pure Erda. Erda released by defeated enemies "
-  "condenses around it, and enough of it gathered is released at once."
+description: "Summons an object that releases pure Erda to attack enemies."
 kind: SKILL_KIND_AUTO_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 2 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 max_enemies: 10
 lines: 4
-kills_per_cast: 12
+cast_interval_seconds: 2.9
+farming_only: true
 base { skill_pct: 4.65 }
 per_level { skill_pct: 0.15 }
+# v271's per-job damage, from the client's attackInfo.
+line_overrides {
+  line: JOB_FIGHTER
+  skill { base { skill_pct: 5.39 } per_level { skill_pct: 0.17 } }
+}
+line_overrides {
+  line: JOB_PAGE
+  skill { base { skill_pct: 10.3 } per_level { skill_pct: 0.34 } }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill { base { skill_pct: 6.04 } per_level { skill_pct: 0.19 } }
+}
+line_overrides {
+  line: JOB_FIRE_POISON_WIZARD
+  skill { base { skill_pct: 5.23 } per_level { skill_pct: 0.16 } }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill { base { skill_pct: 5.06 } per_level { skill_pct: 0.17 } }
+}
+line_overrides {
+  line: JOB_CLERIC
+  skill { base { skill_pct: 5.31 } per_level { skill_pct: 0.18 } }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill { base { skill_pct: 13.88 } per_level { skill_pct: 0.44 } }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill { base { skill_pct: 10.98 } per_level { skill_pct: 0.35 } }
+}
+# Shadow Partner doesn't copy an auto attack; GMS gives the fountain 70% final
+# damage instead (checkSkillDamR), folded in here: 6.58 and 0.21 for the
+# Night Lord, 6.35 and 0.20 for the Shadower, x1.7.
+line_overrides {
+  line: JOB_ASSASSIN
+  skill { base { skill_pct: 11.186 } per_level { skill_pct: 0.357 } }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill { base { skill_pct: 10.795 } per_level { skill_pct: 0.34 } }
+}

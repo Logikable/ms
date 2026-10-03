@@ -17,6 +17,7 @@
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
+#include "src/combat/damage.h"
 #include "src/combat/encounter.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -185,7 +186,8 @@ void TuiController::OpenSkillMenu(const Skill& skill) {
 }
 
 void TuiController::OpenSkillInspect(const Skill& skill) {
-  skill_inspect_ = skill;
+  Skill scratch;
+  skill_inspect_ = ForJob(skill, state_.character.proto().job(), scratch);
   card_from_inspect_ = false;
   skill_card_return_ = screen_ == kLinkSkillMenu ? kLinkSkills : kMain;
   skill_inspect_screen_.Reset();
@@ -3005,7 +3007,9 @@ bool TuiController::OnBankAmountEvent(ftxui::Event event) {
 }
 
 void TuiController::OpenPlayerSkillInspect(const Skill& skill) {
-  skill_inspect_ = skill;
+  Skill scratch;
+  skill_inspect_ =
+      ForJob(skill, player_inspect_panel_.character().proto().job(), scratch);
   card_from_inspect_ = true;
   skill_inspect_screen_.Reset();
   screen_ = kSkillInspect;

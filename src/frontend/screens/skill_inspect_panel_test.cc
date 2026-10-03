@@ -360,6 +360,17 @@ TEST_F(SkillInspectPanelTest, SaysWhatCountSetsASkillOff) {
             std::string::npos);
 }
 
+// A skill barred from boss fights says so, since nothing else on the page
+// would.
+TEST_F(SkillInspectPanelTest, SaysAFarmingOnlySkillSitsOutBossFights) {
+  Skill fountain = MakeLuckySeven();
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  EXPECT_EQ(RenderAt(fountain, 1).find("Boss Fights"), std::string::npos);
+  fountain.set_farming_only(true);
+  EXPECT_NE(RowIn(RenderAt(fountain, 1), "Boss Fights", "Can't be used"),
+            std::string::npos);
+}
+
 // A passive that affects one other skill names it, since nothing on that
 // skill's own page would tell the player where the damage came from.
 TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {

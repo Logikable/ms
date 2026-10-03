@@ -16,7 +16,7 @@ v_node: V_NODE_KIND_COMMON
 unlock_boss: "will"
 max_level: 30
 base_delay_ms: 780
-cooldown_seconds: 250.0
+cooldown_seconds: 230.0
 max_enemies: 15
 lines: 15
 base { skill_pct: 4.68 }
@@ -31,5 +31,64 @@ buff {
     max_enemies: 1
     base { skill_pct: 1.82 }
     per_level { skill_pct: 0.07 }
+  }
+}
+# v271's per-job damage, from the client's attackInfo (400001039 for the
+# collapse, 400001040 and 400001041 for the legs). The Hero, Fire/Poison and
+# Bishop keep the shared numbers.
+line_overrides {
+  line: JOB_PAGE
+  skill {
+    base { skill_pct: 7.83 }
+    per_level { skill_pct: 0.31 }
+    buff { pulse { base { skill_pct: 3.07 } per_level { skill_pct: 0.12 } } }
+  }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill {
+    base { skill_pct: 6.53 }
+    per_level { skill_pct: 0.25 }
+    buff { pulse { base { skill_pct: 2.46 } per_level { skill_pct: 0.1 } } }
+  }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill {
+    base { skill_pct: 5.61 }
+    per_level { skill_pct: 0.21 }
+    buff { pulse { base { skill_pct: 2.23 } per_level { skill_pct: 0.08 } } }
+  }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill {
+    base { skill_pct: 9.27 }
+    per_level { skill_pct: 0.36 }
+    buff { pulse { base { skill_pct: 3.61 } per_level { skill_pct: 0.14 } } }
+  }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill {
+    base { skill_pct: 8.48 }
+    per_level { skill_pct: 0.33 }
+    buff { pulse { base { skill_pct: 3.3 } per_level { skill_pct: 0.13 } } }
+  }
+}
+line_overrides {
+  line: JOB_ASSASSIN
+  skill {
+    base { skill_pct: 9.46 }
+    per_level { skill_pct: 0.37 }
+    buff { pulse { base { skill_pct: 3.79 } per_level { skill_pct: 0.14 } } }
+  }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill {
+    base { skill_pct: 9.86 }
+    per_level { skill_pct: 0.37 }
+    buff { pulse { base { skill_pct: 3.66 } per_level { skill_pct: 0.15 } } }
   }
 }
