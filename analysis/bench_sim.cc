@@ -204,15 +204,15 @@ const char* PrimaryStatName(Job job) {
   }
 }
 
-// The charm the two bonus flags use: a hat, since nothing in the catalog fills
-// that slot, carrying only the stat and the attack. A player can't get it; it
-// exists to hold two jobs at the same numbers and see what difference remains.
+// The charm the bonus flags use, carrying only the stat and the attack. It
+// sits in Carcion's symbol slot, which nothing fills yet: a real item's slot
+// would swap that item out of the row being measured.
 constexpr char kCharm[] = "__sim_charm";
 
 EquipPrototype Charm(Job job, int stat, int attack, int boss_pct, int ied_pct) {
   EquipPrototype proto;
   proto.set_name("Sim Charm");
-  proto.set_equip_slot(EQUIP_SLOT_HAT);
+  proto.set_equip_slot(EQUIP_SLOT_SYMBOL_CARCION);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   proto.add_unsupported_upgrades(UPGRADE_SCROLL);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
