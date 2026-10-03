@@ -96,12 +96,9 @@ void SoulPanel::MoveCursor(int delta) {
 
 ftxui::Element SoulPanel::Render(bool focused) const {
   if (rows_.empty()) {
-    return ThemedWindow(" Soul Selection ",
-                        ftxui::vbox({
-                            CenteredRow("Collect 10 of any") | ftxui::dim,
-                            CenteredRow("Soul Shard.") | ftxui::dim,
-                        }),
-                        focused);
+    return ThemedWindow(
+        " Soul Selection ",
+        CenteredRow("Collect 10 of any Soul Shard.") | ftxui::dim, focused);
   }
   int name_width = TextColumns(kNameHeading);
   for (const Row& row : rows_) {

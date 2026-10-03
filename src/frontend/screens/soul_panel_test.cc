@@ -72,8 +72,7 @@ TEST_F(SoulPanelTest, AnEmptyListSaysHowToFillIt) {
   panel.Reset();
   panel.SetItem(&item, purse);
   const std::string rendered = RenderElement(panel.Render(true));
-  EXPECT_NE(rendered.find("Collect 10 of any"), std::string::npos);
-  EXPECT_NE(rendered.find("Soul Shard."), std::string::npos);
+  EXPECT_NE(rendered.find("Collect 10 of any Soul Shard."), std::string::npos);
   EXPECT_EQ(rendered.find("Quantity"), std::string::npos);
   EXPECT_EQ(panel.selected_shard(), nullptr);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kNone);
