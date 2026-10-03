@@ -34,8 +34,10 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/trade_panel.h"
 #include "src/game_state.h"
+#include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/soul.h"
 #include "src/protos/character.pb.h"
@@ -367,6 +369,49 @@ TEST_F(ScreenFitTest, SoulRowsFitTheWeaponCard) {
     }
   }
   EXPECT_EQ(worst, 0) << worst_what << " is " << worst << " columns wider";
+}
+
+// The soul question is one width for every boss's prompt and every soul it
+// could override, on an ATT weapon and a MATT one.
+TEST_F(ScreenFitTest, SoulQuestionIsOneWidth) {
+  EquipPrototype sword;
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.mutable_base_stats()->set_attack(100);
+  EquipPrototype staff = sword;
+  staff.mutable_base_stats()->set_magic_attack(200);
+  CurrencyPurse purse;
+  for (const std::pair<const std::string, ItemPrototype>& entry :
+       state_.items) {
+    if (entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
+      purse.Add(entry.second, kShardsPerSoul);
+    }
+  }
+  const int expected = kSoulDialogWidth + 2;
+  for (const CurrencyAmount& asked : purse.entries()) {
+    for (const EquipPrototype& weapon : {sword, staff}) {
+      for (const CurrencyAmount& held : purse.entries()) {
+        for (int line = SOUL_LINE_UNSPECIFIED; line <= SOUL_LINE_BOSS_DAMAGE;
+             ++line) {
+          Equip state;
+          if (line != SOUL_LINE_UNSPECIFIED) {
+            state.mutable_soul()->set_boss(held.prototype().short_name());
+            state.mutable_soul()->set_tier(held.prototype().soul_tier());
+            state.mutable_soul()->set_line(static_cast<SoulLine>(line));
+          }
+          EquipInstance item(weapon, state);
+          SoulPanel panel;
+          panel.SetItem(&item, purse);
+          while (panel.selected_shard()->name() != asked.name()) {
+            panel.MoveCursor(1);
+          }
+          panel.OnEvent(ftxui::Event::Return);
+          ASSERT_EQ(Measure(panel.RenderConfirm()).columns, expected)
+              << asked.name() << " over " << held.name() << " "
+              << SoulLine_Name(static_cast<SoulLine>(line));
+        }
+      }
+    }
+  }
 }
 
 // Every equip's scroll list, which is as long as the catalog makes it.

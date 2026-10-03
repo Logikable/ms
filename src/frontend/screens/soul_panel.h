@@ -27,6 +27,11 @@ namespace ms {
 // The most souls a row's Quantity shows.
 inline constexpr int kMaxSoulsShown = 999;
 
+// The question's width inside its border, fixed so it doesn't resize as a
+// soul is added or rolled. It fits the longest boss's prompt and every soul's
+// lines; screen_fit_test checks the catalog against it.
+inline constexpr int kSoulDialogWidth = 36;
+
 class SoulPanel {
  public:
   // The weapon and the purse whose shards make its souls. Called every frame,

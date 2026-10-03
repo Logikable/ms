@@ -149,7 +149,8 @@ std::vector<ftxui::Element> SoulPanel::CurrentSoulRows() const {
 ftxui::Element SoulPanel::RenderConfirm() const {
   const ItemPrototype* shard = selected_shard();
   std::vector<ftxui::Element> body = {
-      CenteredRow("Apply " + (shard == nullptr ? "" : SoulName(*shard)) + "?"),
+      CenteredRow("Apply " + (shard == nullptr ? "" : SoulName(*shard)) + "?") |
+          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kSoulDialogWidth),
   };
   for (ftxui::Element& row : CurrentSoulRows()) {
     body.push_back(std::move(row));
