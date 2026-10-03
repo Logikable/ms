@@ -230,8 +230,9 @@ void SpendBook(GameState& state, const SkillRate& rate) {
   std::map<std::string, const Skill*> named = SkillsByName(state);
   std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    // The V Matrix has its own pool and its own allocator.
-    if (!IsNode(entry.second)) {
+    // The V Matrix and Noblesse have their own pools and their own
+    // allocators.
+    if (!IsNode(entry.second) && entry.second.guild() != GUILD_SKILL_NOBLESSE) {
       offers.push_back({&entry.second});
     }
   }

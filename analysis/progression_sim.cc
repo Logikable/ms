@@ -256,8 +256,12 @@ void SpendPoints(CharacterInstance& character) {
 
 // Spends whatever the ranking left. A declined point is one with no measurable
 // gain, such as a utility skill; spending it in catalog order beats leaving it.
+// Noblesse SP is left to SpendNoblessePoints, which ranks every point.
 void LearnTheRest(GameState& state) {
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.guild() == GUILD_SKILL_NOBLESSE) {
+      continue;
+    }
     while (state.character.LearnSkill(entry.second)) {
     }
   }
