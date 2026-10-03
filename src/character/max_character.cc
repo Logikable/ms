@@ -11,6 +11,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
+#include "src/character/noblesse_plan.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/damage.h"
 #include "src/item/flame.h"
@@ -488,6 +489,17 @@ FlameLines MaxFlameFor(const EquipPrototype& proto, int level,
     line.set_tier(recipe[i].tier);
   }
   return lines;
+}
+
+void SpendMaxNoblesse(CharacterInstance& character,
+                      const std::map<std::string, Skill>& skills,
+                      const std::map<std::string, Boss>& bosses,
+                      const std::map<std::string, Mob>& mobs) {
+  const Mob* target = NominalTarget(bosses, mobs, character.proto().level(),
+                                    Activity::kBossing);
+  SpendNoblesseSp(character, skills, [&skills, target](CharacterInstance& c) {
+    return MaxHyperRate(c, skills, Activity::kBossing, target);
+  });
 }
 
 void SpendMaxHyperStats(CharacterInstance& character,

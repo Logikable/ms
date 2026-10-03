@@ -557,6 +557,30 @@ cc_test(
 )
 
 cc_library(
+    name = "noblesse_plan",
+    srcs = ["noblesse_plan.cc"],
+    hdrs = ["noblesse_plan.h"],
+    deps = [
+        ":character",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "noblesse_plan_test",
+    size = "small",
+    srcs = ["noblesse_plan_test.cc"],
+    deps = [
+        ":character",
+        ":noblesse_plan",
+        ":skill_placement",
+        "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "max_character",
     srcs = ["max_character.cc"],
     hdrs = ["max_character.h"],
@@ -567,6 +591,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":noblesse_plan",
         ":stat_preset",
         "//src/combat:damage",
         "//src/item",

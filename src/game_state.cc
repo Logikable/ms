@@ -847,16 +847,19 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   if (state.character.proto().level() >= kGloomAndDarknellLevel) {
     WearAll(state, {"estella_earrings"}, equips);
   }
-  // It wears what those fights drop, so it has beaten them, and holds whatever
-  // skill a first clear opens.
+  // It wears what those fights drop, so it has beaten them alone, holds
+  // whatever skill a first clear opens, and has the Noblesse SP they pay.
   for (const std::pair<const std::string, Boss>& entry : state.bosses) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (!difficulty.coming_soon() &&
           difficulty.unlock_level() <= state.character.proto().level()) {
         state.character.RecordDefeat(entry.first);
+        state.account.RecordSoloClear(entry.first, difficulty.name());
       }
     }
   }
+  state.character.set_noblesse_sp_earned(
+      NoblesseSpEarned(state.account.solo_clears(), state.bosses));
   WearStarterSymbol(state);
 }
 
@@ -1250,6 +1253,9 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   MaxVMatrix(state);
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);
+  // Before Hyper Stats, whose best allocation depends on the crit damage and
+  // Ignore Defense these give.
+  SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
   SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());

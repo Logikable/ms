@@ -1056,6 +1056,31 @@ const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
 }
 
+// A max character has soloed every boss its level opens, and spent what they
+// paid.
+TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsBossesPaid) {
+  std::map<std::string, Skill> skills = EveryStageBook();
+  Skill slayers;
+  slayers.set_name("Boss Slayers");
+  slayers.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(slayers, JOB_ADVANCEMENT_BEGINNER);
+  slayers.set_guild(GUILD_SKILL_NOBLESSE);
+  slayers.set_max_level(15);
+  slayers.mutable_base()->set_boss_pct(0.02);
+  slayers.mutable_per_level()->set_boss_pct(0.02);
+  skills["boss_slayers"] = slayers;
+  for (int level : {190, 230}) {
+    TestOptions options;
+    options.job = JOB_ADVANCEMENT_HERO;
+    options.level = level;
+    GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {}, skills,
+                    GameMode::kMax, options, std::nullopt, {}, MaxBosses());
+    int earned = level >= 200 ? 1 : 0;
+    EXPECT_EQ(state.character.noblesse_sp_earned(), earned) << level;
+    EXPECT_EQ(state.character.skill_level(slayers), earned) << level;
+  }
+}
+
 // The totems wait for 230 in max mode, where the climb has bought all three,
 // though the workbench wears them from 200.
 TEST(GameStateTest, MaxModeWearsTheTotemsFrom230) {

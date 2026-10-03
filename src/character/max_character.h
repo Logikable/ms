@@ -67,6 +67,15 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
 FlameLines MaxFlameFor(const EquipPrototype& proto, int level,
                        StatField primary, StatField secondary);
 
+// Spends the account's Noblesse SP, rated by the expected hit on the toughest
+// boss the character's level has unlocked, the same target Ignore Defense is
+// valued against below. Noblesse skills have one allocation for every preset,
+// and bosses are what they are for.
+void SpendMaxNoblesse(CharacterInstance& character,
+                      const std::map<std::string, Skill>& skills,
+                      const std::map<std::string, Boss>& bosses,
+                      const std::map<std::string, Mob>& mobs);
+
 // Spends the whole Hyper Stat pool on both presets, best value per point first,
 // discarding any previous allocation. A stat's value is measured on this
 // character instead of listed here (see hyper_plan.h), so the job's own stats
