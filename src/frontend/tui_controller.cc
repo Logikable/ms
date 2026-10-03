@@ -458,10 +458,6 @@ bool TuiController::capturing_key() const {
 }
 
 void TuiController::OpenMenuEntry(MenuEntry entry) {
-  if (entry == MenuEntry::kDailies) {
-    OpenDailies();
-    return;
-  }
   if (entry == MenuEntry::kCharacters) {
     // The fight stops as soon as this opens (see OnCharacterSelect) and resumes
     // on Escape or Play.
@@ -469,17 +465,24 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
     screen_ = kCharacterSelect;
     return;
   }
-  if (entry != MenuEntry::kBoss) {
-    // The box opens with the cursor still on the entry below it, which the
-    // player presses Up to leave.
-    menu_panel_.OpenBox(entry);
-    screen_ = kMenuBox;
-    return;
+  // The box opens with the cursor still on the entry below it, which the
+  // player presses Up to leave.
+  menu_panel_.OpenBox(entry);
+  screen_ = kMenuBox;
+}
+
+void TuiController::OpenDailiesEntry(DailiesEntry entry) {
+  // Opening the row is what the gold was pointing to, so it clears here.
+  state_.account.MarkSeen(MenuPanel::seen_key(entry));
+  switch (entry) {
+    case DailiesEntry::kBoss:
+      screen_ = kBossSelect;
+      boss_select_panel_.Reset();
+      return;
+    case DailiesEntry::kSymbols:
+      OpenSymbolClaim();
+      return;
   }
-  // Opening the screen is what the gold was pointing to, so it clears here.
-  state_.account.MarkSeen(MenuPanel::boss_seen_key());
-  screen_ = kBossSelect;
-  boss_select_panel_.Reset();
 }
 
 bool TuiController::Connected() {
@@ -3299,7 +3302,7 @@ void TuiController::OpenSentenceNotice(Screen screen,
   OpenNotice(screen, WrapBalanced(sentence, kNoticeWidth), refusal, button);
 }
 
-void TuiController::OpenDailies() {
+void TuiController::OpenSymbolClaim() {
   int64_t now = static_cast<int64_t>(std::time(nullptr));
   if (!DailiesAvailable(state_.character.DailiesClaimedAt(), now)) {
     OpenNotice(kDailiesNotice, {"Already claimed today."}, /*refusal=*/false,
@@ -3312,7 +3315,7 @@ void TuiController::OpenDailies() {
     // Nothing to claim: the character has never had a symbol. It is reported
     // here rather than at the confirmation, where the claim's own refusal is a
     // full bag.
-    OpenNotice(kDailiesNotice, {"You have no dailies to claim."},
+    OpenNotice(kDailiesNotice, {"You have no symbols to claim."},
                /*refusal=*/false, "Close");
     return;
   }
@@ -3525,7 +3528,10 @@ void TuiController::OpenBoxEntry() {
   switch (menu_panel_.box_entry()) {
     // It opens a screen directly from the menu, so there is nothing to open
     // here.
-    case MenuEntry::kBoss:
+    case MenuEntry::kCharacters:
+      return;
+    case MenuEntry::kDailies:
+      OpenDailiesEntry(menu_panel_.selected_dailies_entry());
       return;
     case MenuEntry::kMultiplayer:
       switch (menu_panel_.selected_multiplayer_entry()) {

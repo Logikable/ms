@@ -29,7 +29,7 @@ TEST(DailiesPanelTest, TheRowsAreSpacedOffBothBorders) {
   panel.Reset({{"Arcane Symbol: Vanishing Journey", 20},
                {"Arcane Symbol: Chu Chu Island", 20}});
   ftxui::Screen screen = Render(panel);
-  EXPECT_NE(ScreenRow(screen, 1).find("Claim today's dailies?"),
+  EXPECT_NE(ScreenRow(screen, 1).find("Claim today's symbols?"),
             std::string::npos);
   EXPECT_NE(
       ScreenRow(screen, 3).find("│ Arcane Symbol: Vanishing Journey  x20 │"),

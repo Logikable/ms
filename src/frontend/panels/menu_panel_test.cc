@@ -20,7 +20,7 @@ namespace {
 // progression table, so moving a gate is something the test notices.
 constexpr int kMultiplayerLevel = 10;
 constexpr int kBossLevel = 110;
-constexpr int kDailiesLevel = 200;
+constexpr int kSymbolsLevel = 200;
 constexpr int kCharactersLevel = 210;
 
 GameState EmptyState() {
@@ -68,21 +68,12 @@ TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   std::string early = Render(panel);
   EXPECT_NE(early.find("Analysis"), std::string::npos);
   EXPECT_NE(early.find("Settings"), std::string::npos);
-  EXPECT_EQ(early.find("Boss"), std::string::npos);
   EXPECT_EQ(early.find("Dailies"), std::string::npos);
 
   LevelTo(state, kBossLevel);
   std::string later = Render(panel);
-  EXPECT_LT(later.find("Analysis"), later.find("Boss"));
-  EXPECT_LT(later.find("Boss"), later.find("Settings"));
-  EXPECT_EQ(later.find("Dailies"), std::string::npos);
-
-  // The dailies are for the symbols, so the entry waits for them and appears
-  // left of Boss.
-  LevelTo(state, kDailiesLevel);
-  std::string last = Render(panel);
-  EXPECT_LT(last.find("Analysis"), last.find("Dailies"));
-  EXPECT_LT(last.find("Dailies"), last.find("Boss"));
+  EXPECT_LT(later.find("Analysis"), later.find("Dailies"));
+  EXPECT_LT(later.find("Dailies"), later.find("Settings"));
 }
 
 // The two entries not about this character's progress: the lobby, which opens
@@ -96,7 +87,7 @@ TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
   std::string lobby = Render(panel);
   EXPECT_NE(lobby.find("Multiplayer"), std::string::npos)
       << "the lobby does not wait for bossing";
-  EXPECT_EQ(lobby.find("Boss"), std::string::npos);
+  EXPECT_EQ(lobby.find("Dailies"), std::string::npos);
   EXPECT_EQ(lobby.find("Characters"), std::string::npos);
 
   LevelTo(state, kCharactersLevel);
@@ -109,16 +100,16 @@ TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
 // blank column inside each border.
 TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   GameState state = EmptyState();
-  LevelTo(state, kDailiesLevel);
+  LevelTo(state, kSymbolsLevel);
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(56),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  EXPECT_NE(ScreenRow(screen, 1).find(
-                "│ Analysis  Dailies  Boss  Multiplayer  Settings │"),
-            std::string::npos);
+  EXPECT_NE(
+      ScreenRow(screen, 1).find("│ Analysis  Dailies  Multiplayer  Settings │"),
+      std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -129,7 +120,7 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   MenuPanel panel(state, analysis, focus);
   EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
   panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
+  EXPECT_EQ(panel.selected(), MenuEntry::kDailies);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kMultiplayer);
   panel.MoveCursor(1);
@@ -153,28 +144,47 @@ TEST(MenuPanelTest, AnArrivingEntryLeavesTheCursorWhereItWas) {
   EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
 }
 
-// Boss is gold until the player has opened its screen, like a new tab that
-// hasn't been opened.
-TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
+// Each Dailies row is gold until the player has opened it, like a new tab, and
+// Dailies itself is gold while any of its rows is.
+TEST(MenuPanelTest, DailiesIsGoldUntilEveryRowHasBeenOpened) {
   GameState state = EmptyState();
-  LevelTo(state, kBossLevel);
+  LevelTo(state, kSymbolsLevel);
   BattleAnalysis analysis;
   int focus = kCharPanel;  // unfocused, so nothing is inverted
   MenuPanel panel(state, analysis, focus);
 
   // After the border, the blank column, Analysis and the gap after it.
-  constexpr int kBossColumn = 12;
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
-                                               ftxui::Dimension::Fixed(3));
-  ftxui::Render(screen, panel.Render());
-  ASSERT_EQ(screen.PixelAt(kBossColumn, 1).character, "B");
-  ftxui::Color gold = screen.PixelAt(kBossColumn, 1).foreground_color;
+  constexpr int kDailiesColumn = 12;
+  auto dailies_color = [&] {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(50),
+                                                 ftxui::Dimension::Fixed(3));
+    ftxui::Render(screen, panel.Render());
+    EXPECT_EQ(screen.PixelAt(kDailiesColumn, 1).character, "D");
+    return screen.PixelAt(kDailiesColumn, 1).foreground_color;
+  };
+  // A box row's first letter, flush right on a wide screen as the corner
+  // draws it.
+  auto row_color = [&](int row) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                                 ftxui::Dimension::Fixed(5));
+    ftxui::Render(screen, ftxui::hbox({ftxui::filler(), panel.RenderBox()}));
+    ScreenPos at = FindOnScreen(screen, row == 0 ? "Boss" : "Symbols");
+    EXPECT_GE(at.x, 0);
+    return screen.PixelAt(at.x, at.y).foreground_color;
+  };
+  ftxui::Color gold = dailies_color();
+  OpenBoxOn(panel, MenuEntry::kDailies);
+  EXPECT_EQ(row_color(0), gold);
+  EXPECT_EQ(row_color(1), gold);
 
-  state.account.MarkSeen(MenuPanel::boss_seen_key());
-  ftxui::Screen after = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
-                                              ftxui::Dimension::Fixed(3));
-  ftxui::Render(after, panel.Render());
-  EXPECT_NE(gold, after.PixelAt(kBossColumn, 1).foreground_color);
+  state.account.MarkSeen(MenuPanel::seen_key(DailiesEntry::kBoss));
+  EXPECT_EQ(dailies_color(), gold) << "Symbols is still new";
+  EXPECT_NE(row_color(0), gold);
+  EXPECT_EQ(row_color(1), gold);
+
+  state.account.MarkSeen(MenuPanel::seen_key(DailiesEntry::kSymbols));
+  EXPECT_NE(dailies_color(), gold);
+  EXPECT_NE(row_color(1), gold);
 }
 
 // The box is titled with the entry that opened it and lists where it leads.
@@ -387,13 +397,42 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
 // margin.
 TEST(MenuPanelTest, NeitherTheListNorABoxWeldsARowToItsBorder) {
   GameState state = EmptyState();
-  LevelTo(state, kDailiesLevel);
+  LevelTo(state, kSymbolsLevel);
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
-  OpenBoxOn(panel, MenuEntry::kBoss);
+  OpenBoxOn(panel, MenuEntry::kDailies);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderBox()).empty());
+}
+
+// Dailies arrives with Boss, the first of its rows, and Symbols joins it below.
+TEST(MenuPanelTest, TheDailiesBoxGrowsAsItsRowsUnlock) {
+  GameState state = EmptyState();
+  LevelTo(state, kBossLevel);
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  OpenBoxOn(panel, MenuEntry::kDailies);
+  // Flush right on a wide screen, as the corner draws it: Dailies sits far
+  // enough from the edge that its margin would squeeze the box in RenderBox's.
+  auto render = [&] {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                                 ftxui::Dimension::Fixed(5));
+    ftxui::Render(screen, ftxui::hbox({ftxui::filler(), panel.RenderBox()}));
+    return ScreenText(screen);
+  };
+  std::string boss_only = render();
+  EXPECT_NE(boss_only.find("Boss"), std::string::npos);
+  EXPECT_EQ(boss_only.find("Symbols"), std::string::npos);
+  panel.MoveBoxCursor(1);
+  EXPECT_EQ(panel.selected_dailies_entry(), DailiesEntry::kBoss);
+
+  LevelTo(state, kSymbolsLevel);
+  std::string both = render();
+  ASSERT_NE(both.find("Symbols"), std::string::npos);
+  EXPECT_LT(both.find("Boss"), both.find("Symbols"));
+  EXPECT_EQ(BoxRightColumn(panel) - BoxColumn(panel) + 1, panel.BoxWidth());
 }
 }  // namespace
 }  // namespace ms

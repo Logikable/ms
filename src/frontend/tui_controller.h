@@ -262,9 +262,12 @@ class TuiController {
   void OpenJobAdvance(Job job);
   // Opens the map selection screen on the current map.
   void OpenMapSelect();
-  // Enter on a corner menu entry. Boss opens the boss screen and clears the
-  // entry's gold; Settings opens its box over the corner.
+  // Enter on a corner menu entry. Characters opens its screen; every other
+  // entry opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
+  // Enter on a row of the Dailies box: Boss opens the boss screen, Symbols the
+  // claim. Either clears its row's gold.
+  void OpenDailiesEntry(DailiesEntry entry);
 
   // Keeps the party screen and its fight in sync with the connection: the
   // current lobby, any server messages, the fight screen as soon as the party
@@ -850,9 +853,8 @@ class TuiController {
   // look lopsided.
   void OpenSentenceNotice(Screen screen, const std::string& sentence,
                           bool refusal, const std::string& button);
-  // Enter on the menu's Dailies entry: the claim, or a notice that today's is
-  // already claimed.
-  void OpenDailies();
+  // The Symbols row: the claim, or a notice that today's is already claimed.
+  void OpenSymbolClaim();
   bool OnDailiesEvent(ftxui::Event event);
   bool OnDailiesNoticeEvent(ftxui::Event event);
   bool OnBossFightEvent(ftxui::Event event);

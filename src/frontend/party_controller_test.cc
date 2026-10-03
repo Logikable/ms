@@ -349,7 +349,7 @@ class PartyControllerTest : public ::testing::Test {
   // The leader starts the fight, and both arrive in the arena.
   void EnterTheFight(Client& leader, Client& guest) {
     leader.controller->OnEvent(ftxui::Event::Escape);
-    leader.controller->OpenMenuEntry(MenuEntry::kBoss);
+    leader.controller->OpenDailiesEntry(DailiesEntry::kBoss);
     leader.controller->OnEvent(ftxui::Event::Return);
     ASSERT_EQ(leader.controller->screen(), kBossConfirm);
     leader.controller->OnEvent(ftxui::Event::Return);
@@ -1276,7 +1276,7 @@ TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {
   MakeParty(*leader, *guest);
   guest->controller->OnEvent(ftxui::Event::Escape);
 
-  guest->controller->OpenMenuEntry(MenuEntry::kBoss);
+  guest->controller->OpenDailiesEntry(DailiesEntry::kBoss);
   ASSERT_EQ(guest->controller->screen(), kBossSelect);
   guest->controller->OnEvent(ftxui::Event::Return);
 
@@ -1288,7 +1288,7 @@ TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {
   // The leader may be refused for other reasons (these characters have no
   // weapon), but never because of whose party it is.
   leader->controller->OnEvent(ftxui::Event::Escape);
-  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
+  leader->controller->OpenDailiesEntry(DailiesEntry::kBoss);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->notice_lines().size(), 1u);
   EXPECT_EQ(leader->controller->notice_lines()[0],

@@ -132,11 +132,11 @@ enum Screen : int {
   kPlayerAllStats,
   // The confirmation for those member actions, and for leaving a party.
   kPartyConfirm,
-  // Enter on the menu panel's Dailies entry: what today's claim pays, over the
+  // Enter on the Dailies box's Symbols row: what today's claim pays, over the
   // current screen. If already claimed, it says so.
   kDailies,
   kDailiesNotice,
-  // Enter on the menu panel's Boss entry: pick a fight, then fight it.
+  // Enter on the Dailies box's Boss row: pick a fight, then fight it.
   kBossSelect,
   kBossConfirm,
   // Enter on a fight that can't be started (no weapon, or it hasn't reset yet).

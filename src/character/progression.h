@@ -62,9 +62,9 @@ enum class Feature {
   // still has the beginner's book.
   kSkills,
   kShop,
-  // The menu panel in the bottom-right corner, and its Boss entry. The menu
-  // replaces the hotkeys tip in that corner at the level the tip goes away, so
-  // the corner is never empty and never has both.
+  // The menu panel in the bottom-right corner, and the Boss row of its Dailies
+  // box. The menu replaces the hotkeys tip in that corner at the level the tip
+  // goes away, so the corner is never empty and never has both.
   kMenu,
   kBoss,
   // The Multiplayer entry on that menu. Unlocked once the player is clearly a

@@ -1,5 +1,5 @@
-/* DailiesPanel is the question the Dailies menu entry asks: what today's claim
- * pays, and whether to take it.
+/* DailiesPanel is the question the Dailies box's Symbols row asks: what today's
+ * claim pays, and whether to take it.
  *
  * The rows list the reward, name on the left and count on the right, with a
  * blank column inside each border so nothing touches the frame.

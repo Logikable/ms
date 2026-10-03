@@ -267,7 +267,7 @@ class TuiControllerTest : public testing::Test {
   // Starts the only fight in the catalog, so the test begins inside it.
   void EnterFight() {
     HoldASword();
-    controller_->OpenMenuEntry(MenuEntry::kBoss);
+    controller_->OpenDailiesEntry(DailiesEntry::kBoss);
     controller_->OnEvent(ftxui::Event::Return);
     controller_->OnEvent(ftxui::Event::Return);
   }
@@ -3876,11 +3876,22 @@ TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
 
 // --- the boss screen ---
 
-TEST_F(TuiControllerTest, TheBossEntryOpensTheBossScreenAndClearsItsGold) {
-  ASSERT_FALSE(state_->account.Seen(MenuPanel::boss_seen_key()));
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+// Boss sits above Symbols in the Dailies box, so Up reaches Symbols first.
+TEST_F(TuiControllerTest, TheDailiesBoxOpensTheBossScreenAndClearsItsGold) {
+  LevelTo(UnlockLevel(Feature::kSymbols));
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  ASSERT_EQ(controller_->screen(), kMenuBox);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(menu_panel_->selected_dailies_entry(), DailiesEntry::kSymbols);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  ASSERT_EQ(menu_panel_->selected_dailies_entry(), DailiesEntry::kBoss);
+
+  ASSERT_FALSE(state_->account.Seen(MenuPanel::seen_key(DailiesEntry::kBoss)));
+  controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
-  EXPECT_TRUE(state_->account.Seen(MenuPanel::boss_seen_key()));
+  EXPECT_TRUE(state_->account.Seen(MenuPanel::seen_key(DailiesEntry::kBoss)));
+  EXPECT_FALSE(
+      state_->account.Seen(MenuPanel::seen_key(DailiesEntry::kSymbols)));
 }
 
 // --- settings and keybinds ---
@@ -3907,7 +3918,7 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
 // the box too.
 TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   LevelTo(UnlockLevel(Feature::kBoss));
-  // Analysis, Boss, Multiplayer, Settings: the cursor starts on the first.
+  // Analysis, Dailies, Multiplayer, Settings: the cursor starts on the first.
   menu_panel_->MoveCursor(3);
   ASSERT_EQ(menu_panel_->selected(), MenuEntry::kSettings);
   controller_->OpenMenuEntry(MenuEntry::kSettings);
@@ -4145,14 +4156,14 @@ TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
   EXPECT_EQ(analysis_.state(), AnalysisState::kRunning);
 }
 
-// --- Dailies ---
+// --- the Symbols claim ---
 
 // The claim lists every symbol up to the highest one held, and Confirm puts a
 // day's worth of each into the bag.
 TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
   state_->character.PickUp(std::make_unique<EquipInstance>(
       state_->equips.at("Arcane Symbol: Chu Chu Island")));
-  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
   ASSERT_EQ(controller_->screen(), kDailies);
 
   controller_->OnEvent(ftxui::Event::Return);
@@ -4168,19 +4179,19 @@ TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
 // A character who has never had a symbol has nothing to claim, and is told so
 // rather than shown an empty list.
 TEST_F(TuiControllerTest, NoSymbolsMeansNoClaim) {
-  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
   EXPECT_EQ(controller_->screen(), kDailiesNotice);
   EXPECT_FALSE(controller_->notice_is_refusal())
       << "a level they have not reached, not a refusal";
   EXPECT_EQ(NoticeText(controller_->notice_lines()),
-            "You have no dailies to claim.");
+            "You have no symbols to claim.");
   EXPECT_EQ(state_->character.DailiesClaimedAt(), 0) << "the day is untouched";
 }
 
 TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
-  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.inventory().size(), 1);
@@ -4188,14 +4199,14 @@ TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
       << "the day is still there";
 }
 
-// Once claimed, the dailies say so rather than asking a question whose answer
-// would be no.
+// Once claimed, the Symbols row says so rather than asking a question whose
+// answer would be no.
 TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
   state_->character.RecordDailiesClaim(
       static_cast<int64_t>(std::time(nullptr)));
-  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
   EXPECT_EQ(controller_->screen(), kDailiesNotice);
   EXPECT_FALSE(controller_->notice_is_refusal()) << "the clock, not the player";
   EXPECT_EQ(NoticeText(controller_->notice_lines()), "Already claimed today.");
@@ -4213,7 +4224,7 @@ TEST_F(TuiControllerTest, AFullBagRefusesTheWholeClaim) {
   while (!state_->character.inventory().full()) {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   }
-  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
   ASSERT_EQ(controller_->screen(), kDailies);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kDailiesNotice);
@@ -4239,7 +4250,7 @@ TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
 // holds the switches.
 TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
   HoldASword();
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kList);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kFight);
@@ -4263,7 +4274,7 @@ TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
 
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
   HoldASword();
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossConfirm);
   EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
@@ -4280,7 +4291,7 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   HoldASword();
   state_->character.RecordBossClear("zakum", "Normal",
                                     static_cast<int64_t>(std::time(nullptr)));
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_FALSE(controller_->notice_is_refusal()) << "the reset, not the player";
@@ -4310,7 +4321,7 @@ TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
   *chaos->mutable_phases() = state_->bosses["zakum"].difficulties(0).phases();
   state_->character.RecordBossClear("zakum", "Normal",
                                     static_cast<int64_t>(std::time(nullptr)));
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
@@ -4324,7 +4335,7 @@ TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
 TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
   HoldASword();
   state_->bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
@@ -4342,7 +4353,7 @@ TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
   Spawn* spawn = chaos->add_phases()->add_spawns();
   spawn->set_mob("zakum");
   spawn->set_count(1);
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
@@ -4354,7 +4365,7 @@ TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
 
 // A character without a weapon can't fight, and is told so.
 TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
@@ -4377,7 +4388,7 @@ TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
   int64_t cleared = state_->character.BossClearedAt("zakum", "Normal");
   ASSERT_GT(cleared, 0);
 
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossNotice) << "cleared today";
   controller_->OnEvent(ftxui::Event::Return);
@@ -4407,7 +4418,7 @@ TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Tab);  // would cycle focus in kMain
   EXPECT_EQ(controller_->screen(), kBossSelect);
   controller_->OnEvent(ftxui::Event::Escape);
@@ -4442,7 +4453,7 @@ TEST_F(TuiControllerTest, TheGreenPotionIsChargedOnTheWayIntoAFight) {
 
 TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {
   HoldASword();
-  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OpenDailiesEntry(DailiesEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossConfirm);
   controller_->OnEvent(ftxui::Event::Return);  // the prompt opens on Confirm

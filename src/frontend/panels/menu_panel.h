@@ -9,9 +9,9 @@
  * the right. Settings holds the corner from the start so the panel is never
  * empty, and Analysis is always at the left end.
  *
- * An entry either opens a screen (as Boss does) or opens a box above the corner
- * listing where it leads. There is one box whichever entry opened it, so all
- * entries behave alike and the panel has one cursor.
+ * An entry either opens a screen (as Characters does) or opens a box above the
+ * corner listing where it leads. There is one box whichever entry opened it, so
+ * all entries behave alike and the panel has one cursor.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
@@ -31,7 +31,6 @@ namespace ms {
 enum class MenuEntry {
   kAnalysis,
   kDailies,
-  kBoss,
   kMultiplayer,
   kCharacters,
   kSettings,
@@ -43,6 +42,13 @@ enum class SettingsEntry {
   kJukebox,
   kKeybinds,
   kOptions,
+};
+
+// The Dailies box, top to bottom. Each row appears as its own feature unlocks,
+// so the box can hold Boss alone.
+enum class DailiesEntry {
+  kBoss,
+  kSymbols,
 };
 
 // The Multiplayer box, top to bottom.
@@ -104,18 +110,20 @@ class MenuPanel {
   // The Settings entries in this build, top to bottom.
   static std::vector<SettingsEntry> SettingsEntries();
   SettingsEntry selected_settings_entry() const;
+  // The Dailies rows this character has, top to bottom.
+  std::vector<DailiesEntry> DailiesEntries() const;
+  DailiesEntry selected_dailies_entry() const;
   MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;
   ftxui::Element RenderBox() const;
 
-  // The save key that turns off the Boss entry's gold once the player has
-  // opened its screen.
-  static const char* boss_seen_key() {
-    return kBossSeenKey;
-  }
+  // The save key that turns off a Dailies row's gold once the player has
+  // opened it. Dailies itself is gold while any of its rows is.
+  static const char* seen_key(DailiesEntry entry);
 
  private:
-  static constexpr char kBossSeenKey[] = "boss";
+  // Whether the Dailies row is still gold.
+  bool IsNew(DailiesEntry entry) const;
 
   // The entries this character has, left to right. Computed each time instead
   // of stored, because a new one can appear on a level-up the panel isn't told

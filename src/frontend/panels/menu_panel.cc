@@ -30,14 +30,22 @@ std::string SettingsEntryName(SettingsEntry entry) {
   return "";
 }
 
+std::string DailiesEntryName(DailiesEntry entry) {
+  switch (entry) {
+    case DailiesEntry::kBoss:
+      return "Boss";
+    case DailiesEntry::kSymbols:
+      return "Symbols";
+  }
+  return "";
+}
+
 std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
     case MenuEntry::kAnalysis:
       return "Analysis";
     case MenuEntry::kDailies:
       return "Dailies";
-    case MenuEntry::kBoss:
-      return "Boss";
     case MenuEntry::kMultiplayer:
       return "Multiplayer";
     case MenuEntry::kCharacters:
@@ -61,13 +69,8 @@ MenuPanel::MenuPanel(const GameState& state, const BattleAnalysis& analysis,
 std::vector<MenuEntry> MenuPanel::Entries() const {
   std::vector<MenuEntry> entries;
   entries.push_back(MenuEntry::kAnalysis);
-  // The dailies are for the symbols, so the entry appears with them. Below that
-  // level there is nothing to claim.
-  if (Unlocked(Feature::kSymbols, state_.character, state_.account)) {
+  if (!DailiesEntries().empty()) {
     entries.push_back(MenuEntry::kDailies);
-  }
-  if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
-    entries.push_back(MenuEntry::kBoss);
   }
   // A single-player build has nobody to play with, whatever the level.
   if (kMultiplayerEnabled &&
@@ -93,16 +96,20 @@ void MenuPanel::MoveCursor(int delta) {
 
 std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
-    // These open a screen or a dialog instead of a box.
-    case MenuEntry::kBoss:
+    // It opens a screen instead of a box.
     case MenuEntry::kCharacters:
       return {};
     case MenuEntry::kMultiplayer:
       return {"Players", "Party"};
     case MenuEntry::kAnalysis:
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
-    case MenuEntry::kDailies:
-      return {};
+    case MenuEntry::kDailies: {
+      std::vector<std::string> labels;
+      for (DailiesEntry entry : DailiesEntries()) {
+        labels.push_back(DailiesEntryName(entry));
+      }
+      return labels;
+    }
     case MenuEntry::kSettings: {
       std::vector<std::string> labels;
       for (SettingsEntry entry : SettingsEntries()) {
@@ -154,6 +161,41 @@ SettingsEntry MenuPanel::selected_settings_entry() const {
   std::vector<SettingsEntry> entries = SettingsEntries();
   return entries[std::clamp(box_cursor_, 0,
                             static_cast<int>(entries.size()) - 1)];
+}
+
+std::vector<DailiesEntry> MenuPanel::DailiesEntries() const {
+  std::vector<DailiesEntry> entries;
+  if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
+    entries.push_back(DailiesEntry::kBoss);
+  }
+  if (Unlocked(Feature::kSymbols, state_.character, state_.account)) {
+    entries.push_back(DailiesEntry::kSymbols);
+  }
+  return entries;
+}
+
+DailiesEntry MenuPanel::selected_dailies_entry() const {
+  std::vector<DailiesEntry> entries = DailiesEntries();
+  if (entries.empty()) {
+    return DailiesEntry::kBoss;
+  }
+  return entries[std::clamp(box_cursor_, 0,
+                            static_cast<int>(entries.size()) - 1)];
+}
+
+const char* MenuPanel::seen_key(DailiesEntry entry) {
+  // "boss" predates the Dailies box, and saves already hold it.
+  switch (entry) {
+    case DailiesEntry::kBoss:
+      return "boss";
+    case DailiesEntry::kSymbols:
+      return "symbols";
+  }
+  return "";
+}
+
+bool MenuPanel::IsNew(DailiesEntry entry) const {
+  return !state_.account.Seen(seen_key(entry));
 }
 
 MultiplayerEntry MenuPanel::selected_multiplayer_entry() const {
@@ -211,7 +253,11 @@ ftxui::Element MenuPanel::RenderBox() const {
   std::vector<std::string> entries = BoxEntries(box_entry_);
   ftxui::Elements rows;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
-    rows.push_back(ftxui::text(BoxRow(entries[i], i == box_cursor_)));
+    ftxui::Element row = ftxui::text(BoxRow(entries[i], i == box_cursor_));
+    if (box_entry_ == MenuEntry::kDailies && IsNew(DailiesEntries()[i])) {
+      row = std::move(row) | ftxui::color(kYellow);
+    }
+    rows.push_back(std::move(row));
   }
   // Cleared underneath, so the box covers whatever it sits on instead of
   // letting the panel below show through.
@@ -239,9 +285,13 @@ ftxui::Element MenuPanel::Render() const {
     // No brackets: the panel is small enough that the entries read as a menu on
     // their own, and the cursor is shown inverted.
     ftxui::Element button = ftxui::text(EntryLabel(entries[i]));
-    if (entries[i] == MenuEntry::kBoss && !state_.account.Seen(kBossSeenKey)) {
-      // Gold until the player has visited once, like a new tab.
-      button = std::move(button) | ftxui::color(kYellow);
+    if (entries[i] == MenuEntry::kDailies) {
+      std::vector<DailiesEntry> dailies = DailiesEntries();
+      // Gold until the player has visited every row once, like a new tab.
+      if (std::any_of(dailies.begin(), dailies.end(),
+                      [this](DailiesEntry d) { return IsNew(d); })) {
+        button = std::move(button) | ftxui::color(kYellow);
+      }
     }
     // Only one place has the cursor. With the box open and the cursor in it,
     // the entry it came from is no longer highlighted.

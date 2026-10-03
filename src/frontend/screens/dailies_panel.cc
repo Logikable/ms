@@ -30,7 +30,7 @@ ftxui::Element DailiesPanel::Render() const {
     widest = std::max(widest, TextColumns(reward.name));
   }
   ftxui::Elements rows;
-  rows.push_back(CenteredRow("Claim today's dailies?"));
+  rows.push_back(CenteredRow("Claim today's symbols?"));
   rows.push_back(ThemedSeparator());
   for (const Reward& reward : rewards_) {
     // A blank column at both ends, so neither the name nor the count touches
