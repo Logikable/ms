@@ -41,6 +41,8 @@ constexpr int kStackableWidth = 44;
 
 // kEquipCardWidth less the borders and the bar's column.
 constexpr int kEquipContentWidth = kEquipCardWidth - 3;
+// The room for an item's name between its centring gutters.
+constexpr int kNameWidth = kEquipContentWidth - 2;
 
 // The width of the set card's rows. It is the same whatever the set holds, for
 // the same reason as the stackable body: the card sits beside the item, and a
@@ -697,10 +699,10 @@ std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   int level = item.prototype().required_level();
   std::vector<CardRow> delta = DeltaRows(item);
   std::vector<CardRow> rows = {
-      // A name as wide as the card gives up its gutters rather than widen it.
-      TextRow(TextColumns(item.name()) + 2 > kEquipContentWidth
-                  ? ftxui::text(item.name()) | ftxui::hcenter
-                  : CenteredRow(item.name())),
+      // A name too long for the card scrolls within it rather than widen it.
+      TextRow(CenteredRow(ScrollingWindow(
+          item.name(), std::min(TextColumns(item.name()), kNameWidth),
+          std::chrono::steady_clock::now() - shown_since_))),
       RuleRow(ThemedSeparator()),
   };
   // The label goes above the number instead of beside it: "Combat Power Δ" is

@@ -654,13 +654,15 @@ TEST_F(InspectPanelTest, FoldsTheJobRowWhenNothingElseIsWide) {
   EXPECT_EQ(NaturalWidth(panel), kEquipCardWidth - 1);
 }
 
-// The catalog's longest names give up their gutters instead of widening it.
-TEST_F(InspectPanelTest, ALongNameKeepsTheCardItsWidth) {
+// A name longer than the card scrolls within it, starting from its start.
+TEST_F(InspectPanelTest, ALongNameScrollsInsteadOfWideningTheCard) {
   sword_.set_name("Metallic Blue Book (Antistrophe)");
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(RenderWide(panel).find("Metallic Blue Book (Antistrophe)"),
+  const std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Metallic Blue Book (Antistroph"), std::string::npos);
+  EXPECT_EQ(rendered.find("Metallic Blue Book (Antistrophe)"),
             std::string::npos);
   EXPECT_EQ(NaturalWidth(panel), kEquipCardWidth - 1);
 }
