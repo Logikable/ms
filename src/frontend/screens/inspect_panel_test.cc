@@ -370,8 +370,8 @@ TEST_F(InspectPanelTest, ShowsABonusPotentialAlone) {
             rendered.find(" Bonus Potential ") + 6);
 }
 
-// The soul's two rows sit under the potentials, its mark left of theirs and
-// its text level with their names. With no potential it still gets the rule.
+// The soul's two rows sit under the potentials, its mark and text level with
+// theirs. With no potential it still gets the rule.
 TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
   Equip state;
   *state.mutable_main_potential() = WeaponPotential();
@@ -400,7 +400,7 @@ TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
   EXPECT_EQ(column(name), column(rendered.find("Ignore DEF")))
       << "\"Soul: \" starts where the potential's name does";
   EXPECT_EQ(column(effect), column(name));
-  EXPECT_LT(column(rendered.find("◈")), column(potential_mark));
+  EXPECT_EQ(column(rendered.find("◈")), column(potential_mark));
 
   Equip bare;
   *bare.mutable_soul() = *soul;

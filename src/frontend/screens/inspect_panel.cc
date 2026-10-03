@@ -875,13 +875,11 @@ std::vector<CardRow> InspectPanel::PotentialRows(
     AppendPotentialRows(bonus, "Bonus Potential", level, rows);
   }
   if (has_soul) {
-    // The mark sits left of the potentials' so the soul reads as its own
-    // thing; the text lines up with theirs.
     const EquipStats& base = item.prototype().base_stats();
     const bool magic = base.magic_attack() > base.attack();
     rows.push_back(TextRow(ftxui::hbox({
-        ftxui::text("◈") | ftxui::color(kSoul),
-        ftxui::text("   Soul: " + SoulName(soul) + " "),
+        ftxui::text(" ◈") | ftxui::color(kSoul),
+        ftxui::text("  Soul: " + SoulName(soul) + " "),
     })));
     rows.push_back(
         TextRow(ftxui::text("    " + SoulEffectText(soul, magic) + " ")));
