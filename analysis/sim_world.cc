@@ -46,7 +46,8 @@ GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
   options.playable_roster = false;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
-                   GameMode::kMax, options, seed, catalogs.sets);
+                   GameMode::kMax, options, seed, catalogs.sets,
+                   catalogs.bosses);
 }
 
 std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
