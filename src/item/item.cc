@@ -8,6 +8,7 @@
 
 #include "src/item/equip_stats.h"
 #include "src/item/flame.h"
+#include "src/item/soul.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -483,9 +484,9 @@ EquipStats EquipTabItem::FlameStatGains() const {
 }
 
 EquipStats EquipTabItem::stats() const {
-  const EquipStats stat_sources[] = {prototype_.base_stats(),
-                                     state_.scroll_stats(),
-                                     StarForceStatGains(), FlameStatGains()};
+  const EquipStats stat_sources[] = {
+      prototype_.base_stats(), state_.scroll_stats(), StarForceStatGains(),
+      FlameStatGains(), SoulStats(state_.soul())};
   return SumEquipStats(stat_sources);
 }
 

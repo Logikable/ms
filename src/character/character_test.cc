@@ -4407,6 +4407,58 @@ TEST_F(CharacterTest, AFlameIsBoughtThenTakenIntoTheWornStats) {
   EXPECT_EQ(c.meso(), black);
 }
 
+// Ten shards roll a soul onto the weapon, worn or bagged, and a worn one's
+// stats move at once. Short of shards, or on a piece that isn't a weapon,
+// nothing is spent.
+TEST_F(CharacterTest, TenShardsPutASoulOnAWeapon) {
+  CharacterInstance c = MakeCharacter(rng_);
+  ItemPrototype shard;
+  shard.set_name("Damien's Soul Shard");
+  shard.set_short_name("Damien");
+  shard.set_kind(ITEM_KIND_SOUL_SHARD);
+  shard.set_soul_tier(SOUL_TIER_SS);
+  c.PickUp(
+      std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_PRIMARY_WEAPON)));
+  ASSERT_TRUE(c.Equip(0));
+  c.AddItem(shard, kShardsPerSoul - 1);
+  EXPECT_FALSE(c.ApplySoul(EQUIP_SLOT_PRIMARY_WEAPON, shard));
+  EXPECT_EQ(c.currencies().Count(shard.name()), kShardsPerSoul - 1);
+
+  c.AddItem(shard, 1);
+  const int attack_before = c.equip_stats().attack();
+  ASSERT_TRUE(c.ApplySoul(EQUIP_SLOT_PRIMARY_WEAPON, shard));
+  EXPECT_EQ(c.currencies().Count(shard.name()), 0);
+  const Soul& soul =
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->equip_state().soul();
+  EXPECT_EQ(soul.boss(), "Damien");
+  EXPECT_NE(soul.line(), SOUL_LINE_UNSPECIFIED);
+  EXPECT_EQ(c.equip_stats().attack(), attack_before + kSoulGaugeAttack);
+
+  ASSERT_TRUE(c.TakeSoul(EQUIP_SLOT_PRIMARY_WEAPON, [] {
+    Soul crit;
+    crit.set_boss("Damien");
+    crit.set_tier(SOUL_TIER_SS);
+    crit.set_line(SOUL_LINE_CRIT_RATE);
+    return crit;
+  }()));
+  EXPECT_DOUBLE_EQ(c.potential_totals().crit_rate, 0.12);
+
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
+  c.PickUp(
+      std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_PRIMARY_WEAPON)));
+  c.AddItem(shard, kShardsPerSoul);
+  EXPECT_FALSE(c.ApplyInventorySoul(c.inventory().size() - 2, shard));
+  EXPECT_EQ(c.currencies().Count(shard.name()), kShardsPerSoul);
+  ASSERT_TRUE(c.ApplyInventorySoul(c.inventory().size() - 1, shard));
+  EXPECT_EQ(c.currencies().Count(shard.name()), 0);
+  EXPECT_NE(c.inventory()
+                .equip_instance(c.inventory().size() - 1)
+                ->equip_state()
+                .soul()
+                .line(),
+            SOUL_LINE_UNSPECIFIED);
+}
+
 TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {
   CharacterInstance c = MakeCharacter(rng_);
   EXPECT_FALSE(c.CubeWorn(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed));

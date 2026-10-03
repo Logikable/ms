@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -1166,6 +1167,45 @@ TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
   GameState state = MakeMaxState(60);
   EXPECT_FALSE(state.inactive_characters.empty());
   EXPECT_EQ(state.character.link_tally().LevelFor(JOB_SWORDMAN), 0);
+}
+
+// The best tier the level opens, with whichever line hits that boss hardest;
+// nothing before any boss with a shard opens.
+TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
+  std::map<std::string, Boss> bosses = MaxBosses();
+  BossDifficulty& wall = *bosses["wall"].mutable_difficulties(0);
+  wall.add_drops()->set_item("wall_shard");
+  BossDifficulty& early = *bosses["early"].add_difficulties();
+  early.set_unlock_level(150);
+  early.add_drops()->set_item("early_shard");
+  std::map<std::string, ItemPrototype> items;
+  for (const auto& [key, boss, tier] :
+       {std::tuple{"wall_shard", "Wall", SOUL_TIER_SS},
+        std::tuple{"early_shard", "Early", SOUL_TIER_C}}) {
+    ItemPrototype& shard = items[key];
+    shard.set_name(std::string(boss) + "'s Soul Shard");
+    shard.set_short_name(boss);
+    shard.set_kind(ITEM_KIND_SOUL_SHARD);
+    shard.set_soul_tier(tier);
+  }
+  auto soul_at = [&](int level) {
+    TestOptions options;
+    options.job = JOB_ADVANCEMENT_HERO;
+    options.level = level;
+    GameState state(MaxCatalog(), MaxTraces(), items, MaxMobs(), {},
+                    EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
+                    bosses);
+    return Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state().soul();
+  };
+  const Soul top = soul_at(kTrialLevelCap);
+  EXPECT_EQ(top.boss(), "Wall");
+  EXPECT_EQ(top.tier(), SOUL_TIER_SS);
+  // MATT and Max HP never raise a Hero's hit.
+  EXPECT_NE(top.line(), SOUL_LINE_MAGIC_ATTACK);
+  EXPECT_NE(top.line(), SOUL_LINE_MAX_HP);
+  EXPECT_NE(top.line(), SOUL_LINE_UNSPECIFIED);
+  EXPECT_EQ(soul_at(170).boss(), "Early");
+  EXPECT_EQ(soul_at(140).line(), SOUL_LINE_UNSPECIFIED);
 }
 
 // The max character at the cap: hammers used, every widened slot passed, and

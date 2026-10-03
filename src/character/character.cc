@@ -35,6 +35,7 @@
 #include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/item/shop.h"
+#include "src/item/soul.h"
 #include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -1957,6 +1958,7 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
                  potential_totals_[index]);
     AddPotential(item.bonus_potential(), item.prototype().required_level(),
                  potential_totals_[index]);
+    AddSoul(item.equip_state().soul(), potential_totals_[index]);
     // A flame's percent lines scale what a potential's do, so they join its
     // totals. Its flat lines are in item.stats().
     const FlamePercents flame =
@@ -2234,6 +2236,42 @@ bool CharacterInstance::TakeInventoryFlame(int index, const FlameLines& lines) {
   }
   item->SetFlame(lines);
   return true;
+}
+
+bool CharacterInstance::TakeSoul(EquipSlot slot, const Soul& soul,
+                                 StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr || !item->CanTakeSoul()) {
+    return false;
+  }
+  item->SetSoul(soul);
+  RecomputeEquipStats();
+  return true;
+}
+
+bool CharacterInstance::SpendOnSoul(EquipInstance* item,
+                                    const ItemPrototype& shard) {
+  if (item == nullptr || !item->CanTakeSoul() ||
+      shard.soul_tier() == SOUL_TIER_UNSPECIFIED ||
+      !currencies_.Spend(shard.name(), kShardsPerSoul)) {
+    return false;
+  }
+  item->SetSoul(RollSoul(shard, rng_));
+  return true;
+}
+
+bool CharacterInstance::ApplySoul(EquipSlot slot, const ItemPrototype& shard,
+                                  StatPreset preset) {
+  if (!SpendOnSoul(WornIn(preset, slot), shard)) {
+    return false;
+  }
+  RecomputeEquipStats();
+  return true;
+}
+
+bool CharacterInstance::ApplyInventorySoul(int index,
+                                           const ItemPrototype& shard) {
+  return SpendOnSoul(inventory_.equip_instance(index), shard);
 }
 
 bool CharacterInstance::LevelUpSymbol(EquipSlot slot, StatPreset preset) {

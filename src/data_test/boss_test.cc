@@ -328,6 +328,8 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       // boss name under it, so a shard with no short name would repeat its own
       // column heading.
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
+      EXPECT_NE(items.at(shards[0]).soul_tier(), SOUL_TIER_UNSPECIFIED)
+          << where << " makes no soul";
     }
   }
   EXPECT_EQ(fights, 27) << "Arkarium, Cygnus, Princess No, Papulatus, the "

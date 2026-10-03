@@ -22,6 +22,7 @@
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -86,6 +87,16 @@ void SpendMaxHyperStats(CharacterInstance& character,
                         const std::map<std::string, Skill>& skills,
                         const std::map<std::string, Boss>& bosses,
                         const std::map<std::string, Mob>& mobs);
+
+// Puts the best soul the character's level has unlocked on their weapon: the
+// highest tier any open boss's shard makes, with whichever of its seven lines
+// hits that boss hardest. Measured, not listed, since the best line depends on
+// the job. `items` is where a shard's tier is read.
+void WearMaxSoul(CharacterInstance& character,
+                 const std::map<std::string, Skill>& skills,
+                 const std::map<std::string, Boss>& bosses,
+                 const std::map<std::string, Mob>& mobs,
+                 const std::map<std::string, ItemPrototype>& items);
 
 // The three Inner Ability lines each preset has: one Legendary line on top and
 // two Epic ones below, which is what the honor from leveling can reach.

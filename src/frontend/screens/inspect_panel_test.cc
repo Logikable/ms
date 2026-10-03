@@ -370,6 +370,48 @@ TEST_F(InspectPanelTest, ShowsABonusPotentialAlone) {
             rendered.find(" Bonus Potential ") + 6);
 }
 
+// The soul's two rows sit under the potentials, its mark left of theirs and
+// its text level with their names. With no potential it still gets the rule.
+TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
+  Equip state;
+  *state.mutable_main_potential() = WeaponPotential();
+  Soul* soul = state.mutable_soul();
+  soul->set_boss("Damien");
+  soul->set_tier(SOUL_TIER_SS);
+  soul->set_line(SOUL_LINE_BOSS_DAMAGE);
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  const size_t name = rendered.find("Soul: Magnificent Damien Soul");
+  ASSERT_NE(name, std::string::npos) << rendered;
+  EXPECT_LT(rendered.find("◼  Ignore DEF"), name);
+  const size_t effect = rendered.find("Boss Damage +7%, ATT +20");
+  ASSERT_NE(effect, std::string::npos) << rendered;
+  // In code points, since the marks and the border are multi-byte.
+  auto column = [&rendered](size_t at) {
+    int points = 0;
+    for (size_t i = rendered.rfind('\n', at) + 1; i < at; ++i) {
+      points += (static_cast<unsigned char>(rendered[i]) & 0xC0) != 0x80;
+    }
+    return points;
+  };
+  const size_t potential_mark = rendered.find("◼  Ignore DEF");
+  EXPECT_EQ(column(name), column(rendered.find("Ignore DEF")))
+      << "\"Soul: \" starts where the potential's name does";
+  EXPECT_EQ(column(effect), column(name));
+  EXPECT_LT(column(rendered.find("◈")), column(potential_mark));
+
+  Equip bare;
+  *bare.mutable_soul() = *soul;
+  EquipInstance alone(sword_, bare);
+  panel.SetItem(&alone);
+  rendered = RenderWide(panel);
+  const size_t alone_name = rendered.find("Soul: Magnificent Damien Soul");
+  ASSERT_NE(alone_name, std::string::npos) << rendered;
+  EXPECT_NE(rendered.rfind("─", alone_name), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, PaintsEveryPotentialLineItsOwnRank) {
   sword_.set_required_level(100);
   Equip state;

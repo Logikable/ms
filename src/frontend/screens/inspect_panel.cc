@@ -859,9 +859,11 @@ std::vector<CardRow> InspectPanel::PotentialRows(
     const EquipTabItem& item) const {
   const Potential& main = item.potential();
   const Potential& bonus = item.bonus_potential();
+  const Soul& soul = item.equip_state().soul();
   const bool has_main = main.rank() != POTENTIAL_RANK_UNSPECIFIED;
   const bool has_bonus = bonus.rank() != POTENTIAL_RANK_UNSPECIFIED;
-  if (!has_main && !has_bonus) {
+  const bool has_soul = soul.line() != SOUL_LINE_UNSPECIFIED;
+  if (!has_main && !has_bonus && !has_soul) {
     return {};
   }
   const int level = item.prototype().required_level();
@@ -871,6 +873,18 @@ std::vector<CardRow> InspectPanel::PotentialRows(
   }
   if (has_bonus) {
     AppendPotentialRows(bonus, "Bonus Potential", level, rows);
+  }
+  if (has_soul) {
+    // The mark sits left of the potentials' so the soul reads as its own
+    // thing; the text lines up with theirs.
+    const EquipStats& base = item.prototype().base_stats();
+    const bool magic = base.magic_attack() > base.attack();
+    rows.push_back(TextRow(ftxui::hbox({
+        ftxui::text("◈") | ftxui::color(kSoul),
+        ftxui::text("   Soul: " + SoulName(soul) + " "),
+    })));
+    rows.push_back(
+        TextRow(ftxui::text("    " + SoulEffectText(soul, magic) + " ")));
   }
   return rows;
 }

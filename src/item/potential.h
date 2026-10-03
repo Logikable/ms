@@ -174,6 +174,7 @@ struct PotentialTotals {
   // defence always combines.
   double ied = 0.0;
   double crit_dmg = 0.0;
+  double crit_rate = 0.0;
   double meso_pct = 0.0;
   double item_drop_pct = 0.0;
   // Seconds off every skill's cooldown. Summed, since a hat can have both

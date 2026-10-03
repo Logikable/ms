@@ -264,6 +264,25 @@ TEST(GameNamesTest, EveryPotentialLineHasBothNames) {
   }
 }
 
+// The gauge reads as the weapon's own attack, and a point line of that stat
+// folds into it.
+TEST(GameNamesTest, ASoulReadsAsItsLineAndTheGauge) {
+  Soul soul;
+  soul.set_boss("Damien");
+  soul.set_tier(SOUL_TIER_SS);
+  soul.set_line(SOUL_LINE_BOSS_DAMAGE);
+  EXPECT_EQ(SoulName(soul), "Magnificent Damien Soul");
+  EXPECT_EQ(SoulEffectText(soul, false), "Boss Damage +7%, ATT +20");
+  EXPECT_EQ(SoulEffectText(soul, true), "Boss Damage +7%, MATT +20");
+  soul.set_line(SOUL_LINE_ATTACK);
+  EXPECT_EQ(SoulEffectText(soul, false), "ATT +3%, ATT +20");
+  soul.set_tier(SOUL_TIER_S);
+  EXPECT_EQ(SoulEffectText(soul, false), "ATT +30");
+  EXPECT_EQ(SoulEffectText(soul, true), "ATT +10, MATT +20");
+  soul.set_line(SOUL_LINE_MAX_HP);
+  EXPECT_EQ(SoulEffectText(soul, false), "Max HP +1,500, ATT +20");
+}
+
 TEST(GameNamesTest, EveryRankHasAName) {
   for (int i = PotentialRank_MIN; i <= PotentialRank_MAX; ++i) {
     if (!PotentialRank_IsValid(i) || i == POTENTIAL_RANK_UNSPECIFIED) {

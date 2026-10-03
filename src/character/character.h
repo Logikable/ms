@@ -789,6 +789,18 @@ class CharacterInstance {
   bool TakeFlame(EquipSlot slot, const FlameLines& lines,
                  StatPreset preset = StatPreset::kFirst);
   bool TakeInventoryFlame(int index, const FlameLines& lines);
+  // Puts `soul` on the weapon worn in `slot` without spending shards, for a
+  // character written outright (max mode). False for a slot holding no
+  // weapon.
+  bool TakeSoul(EquipSlot slot, const Soul& soul,
+                StatPreset preset = StatPreset::kFirst);
+  // Spends 10 of `shard` on a soul of its boss, rolled onto the weapon worn in
+  // `slot` or bagged at `index` and replacing any soul it had. Returns false,
+  // spending nothing, for an item that takes no soul or a purse short of
+  // shards.
+  bool ApplySoul(EquipSlot slot, const ItemPrototype& shard,
+                 StatPreset preset = StatPreset::kFirst);
+  bool ApplyInventorySoul(int index, const ItemPrototype& shard);
   // Spare copies of the symbol for `slot` in the equip bag. Traces don't
   // count, as elsewhere; see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
@@ -905,6 +917,8 @@ class CharacterInstance {
   bool PayForHammer(const EquipInstance& item);
   bool PayForCube(const EquipInstance& item, CubeType cube);
   // PayForCube's twin, then a roll against `from`.
+  // ApplySoul's work once the item is found; it doesn't recompute.
+  bool SpendOnSoul(EquipInstance* item, const ItemPrototype& shard);
   std::optional<FlameLines> BuyFlameRoll(const EquipInstance* item,
                                          FlameType flame,
                                          const FlameLines& from);

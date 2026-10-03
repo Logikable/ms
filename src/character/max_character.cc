@@ -519,6 +519,62 @@ void SpendMaxHyperStats(CharacterInstance& character,
   }
 }
 
+void WearMaxSoul(CharacterInstance& character,
+                 const std::map<std::string, Skill>& skills,
+                 const std::map<std::string, Boss>& bosses,
+                 const std::map<std::string, Mob>& mobs,
+                 const std::map<std::string, ItemPrototype>& items) {
+  const int level = character.proto().level();
+  // The latest boss of the best tier, so the name is the one a player at this
+  // level would be farming.
+  const ItemPrototype* best = nullptr;
+  int best_unlock = 0;
+  for (const std::pair<const std::string, Boss>& entry : bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
+        continue;
+      }
+      for (const MobDrop& drop : difficulty.drops()) {
+        auto found = items.find(drop.item());
+        if (found == items.end() ||
+            found->second.soul_tier() == SOUL_TIER_UNSPECIFIED) {
+          continue;
+        }
+        const ItemPrototype& shard = found->second;
+        if (best == nullptr || shard.soul_tier() > best->soul_tier() ||
+            (shard.soul_tier() == best->soul_tier() &&
+             difficulty.unlock_level() > best_unlock)) {
+          best = &shard;
+          best_unlock = difficulty.unlock_level();
+        }
+      }
+    }
+  }
+  if (best == nullptr) {
+    return;
+  }
+  const Mob* target = NominalTarget(bosses, mobs, level, Activity::kBossing);
+  Soul soul;
+  soul.set_boss(best->short_name());
+  soul.set_tier(best->soul_tier());
+  SoulLine best_line = SOUL_LINE_UNSPECIFIED;
+  double best_rate = -1.0;
+  for (int line = SOUL_LINE_ATTACK; line <= SOUL_LINE_BOSS_DAMAGE; ++line) {
+    soul.set_line(static_cast<SoulLine>(line));
+    if (!character.TakeSoul(EQUIP_SLOT_PRIMARY_WEAPON, soul)) {
+      return;
+    }
+    const double rate =
+        MaxHyperRate(character, skills, Activity::kBossing, target);
+    if (rate > best_rate) {
+      best_rate = rate;
+      best_line = soul.line();
+    }
+  }
+  soul.set_line(best_line);
+  character.TakeSoul(EQUIP_SLOT_PRIMARY_WEAPON, soul);
+}
+
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary) {
   AbilityLineType stat = ABILITY_LINE_TYPE_STR;
   switch (primary) {

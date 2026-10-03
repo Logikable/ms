@@ -15,6 +15,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -634,6 +635,48 @@ std::string PotentialRankName(PotentialRank rank) {
     default:
       return "";
   }
+}
+
+namespace {
+
+std::string SoulLineName(SoulLine line) {
+  switch (line) {
+    case SOUL_LINE_ATTACK:
+      return "ATT";
+    case SOUL_LINE_MAGIC_ATTACK:
+      return "MATT";
+    case SOUL_LINE_ALL_STATS:
+      return "All Stats";
+    case SOUL_LINE_MAX_HP:
+      return "Max HP";
+    case SOUL_LINE_CRIT_RATE:
+      return "Critical Rate";
+    case SOUL_LINE_IGNORE_DEFENSE:
+      return "Ignore DEF";
+    case SOUL_LINE_BOSS_DAMAGE:
+      return "Boss Damage";
+    default:
+      return "";
+  }
+}
+
+}  // namespace
+
+std::string SoulName(const Soul& soul) {
+  return "Magnificent " + soul.boss() + " Soul";
+}
+
+std::string SoulEffectText(const Soul& soul, bool magic) {
+  const SoulLine gauge = magic ? SOUL_LINE_MAGIC_ATTACK : SOUL_LINE_ATTACK;
+  const std::string gauge_name = SoulLineName(gauge);
+  const int value = SoulLineValue(soul.tier(), soul.line());
+  const bool percent = SoulLineIsPercent(soul.tier(), soul.line());
+  if (soul.line() == gauge && !percent) {
+    return gauge_name + " +" + std::to_string(value + kSoulGaugeAttack);
+  }
+  return SoulLineName(soul.line()) + " +" + FormatWithCommas(value) +
+         (percent ? "%" : "") + ", " + gauge_name + " +" +
+         std::to_string(kSoulGaugeAttack);
 }
 
 std::string PotentialLineName(PotentialLineType type) {

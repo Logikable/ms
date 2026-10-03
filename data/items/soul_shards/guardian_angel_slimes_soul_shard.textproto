@@ -2,3 +2,5 @@ name: "Guardian Angel Slime's Soul Shard"
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Guardian Angel Slime"
 description: "A fragment that contains a piece of Guardian Angel Slime's Soul."
+# GMS has no soul for this boss; every boss beside it is SS.
+soul_tier: SOUL_TIER_SS

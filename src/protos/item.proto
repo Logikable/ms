@@ -90,6 +90,8 @@ message ItemPrototype {
   string short_name = 11;
   // Set only on a box, which the Etc menu's Open trades for a piece of gear.
   BoxContents box = 14;
+  // Set only on a soul shard: the tier of the soul 10 of them make.
+  SoulTier soul_tier = 15;
 }
 
 // One stack on the Etc tab. It stores the catalog key and a count, not the

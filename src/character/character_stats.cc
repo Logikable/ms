@@ -1139,6 +1139,7 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   totals.boss_pct += potential.boss_pct;
   totals.ied = CombineIgnoredDefense(totals.ied, potential.ied);
   totals.crit_dmg += potential.crit_dmg;
+  totals.crit_rate += potential.crit_rate;
   // This is worn, so it shares the worn cap.
   totals.equip_meso_pct += potential.meso_pct;
   totals.item_drop_pct += potential.item_drop_pct;

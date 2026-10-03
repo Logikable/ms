@@ -300,6 +300,40 @@ message FlameLine {
   int32 tier = 2;
 }
 
+// A boss soul's tier, which sets what its line is worth. GMS's tier lists
+// and its shard pages disagree; the tiers here follow the values the shard
+// pages give, so Hilla sits with Arkarium in A.
+enum SoulTier {
+  SOUL_TIER_UNSPECIFIED = 0;
+  SOUL_TIER_C = 1;
+  SOUL_TIER_B = 2;
+  SOUL_TIER_A = 3;
+  SOUL_TIER_S = 4;
+  SOUL_TIER_SS = 5;
+}
+
+// The seven lines a Magnificent soul can roll, at equal odds.
+enum SoulLine {
+  SOUL_LINE_UNSPECIFIED = 0;
+  SOUL_LINE_ATTACK = 1;
+  SOUL_LINE_MAGIC_ATTACK = 2;
+  SOUL_LINE_ALL_STATS = 3;
+  SOUL_LINE_MAX_HP = 4;
+  SOUL_LINE_CRIT_RATE = 5;
+  SOUL_LINE_IGNORE_DEFENSE = 6;
+  SOUL_LINE_BOSS_DAMAGE = 7;
+}
+
+// The soul on a weapon. Unlike GMS every soul is Magnificent, so there is no
+// grade to store. The tier is copied from the shard when the soul is applied,
+// as GMS's soul item carries its own stats.
+message Soul {
+  // The boss's short name, "Damien" in "Magnificent Damien Soul".
+  string boss = 1;
+  SoulTier tier = 2;
+  SoulLine line = 3;
+}
+
 // Which job branches can equip the item. UNIVERSAL means any job; BEGINNER
 // includes characters who haven't advanced yet (Noblesse, etc.). Used to filter
 // scrolls and to enforce equip requirements.
@@ -462,4 +496,6 @@ message Equip {
   Potential bonus_potential = 11;
   // Four distinct lines once flamed, empty before; see src/item/flame.h.
   repeated FlameLine flame = 12;
+  // Unset until 10 of a boss's soul shards are applied; weapons only.
+  Soul soul = 13;
 }

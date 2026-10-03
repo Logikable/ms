@@ -1250,6 +1250,8 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
 
   DressMaxPotentials(state, gear);
   DressMaxFlames(state);
+  WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
+              state.items);
   MaxVMatrix(state);
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);

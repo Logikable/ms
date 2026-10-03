@@ -2,3 +2,4 @@ name: "Lucid's Soul Shard"
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Lucid"
 description: "A fragment that contains a piece of Lucid's Soul."
+soul_tier: SOUL_TIER_SS

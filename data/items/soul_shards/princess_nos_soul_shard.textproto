@@ -2,3 +2,5 @@ name: "Princess No's Soul Shard"
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Princess No"
 description: "A fragment that contains a piece of Princess No's Soul."
+# GMS has no Princess No soul; this is the tier of Pierre and Von Bon beside it.
+soul_tier: SOUL_TIER_S

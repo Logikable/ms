@@ -2,3 +2,4 @@ name: "Von Bon's Soul Shard"
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Von Bon"
 description: "A fragment that contains a piece of Von Bon's Soul."
+soul_tier: SOUL_TIER_S

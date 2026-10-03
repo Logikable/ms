@@ -106,6 +106,7 @@ cc_library(
         "//src/item",
         "//src/item:flame",
         "//src/item:potential",
+        "//src/item:soul",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

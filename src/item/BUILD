@@ -9,6 +9,7 @@ cc_library(
     deps = [
         ":equip_stats",
         ":flame",
+        ":soul",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
     ],
@@ -23,6 +24,7 @@ cc_library(
         ":flame",
         ":item",
         ":potential",
+        ":soul",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
     ],
@@ -44,6 +46,28 @@ cc_test(
     srcs = ["flame_test.cc"],
     deps = [
         ":flame",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "soul",
+    srcs = ["soul.cc"],
+    hdrs = ["soul.h"],
+    deps = [
+        ":potential",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_test(
+    name = "soul_test",
+    size = "small",
+    srcs = ["soul_test.cc"],
+    deps = [
+        ":soul",
         "@googletest//:gtest_main",
     ],
 )

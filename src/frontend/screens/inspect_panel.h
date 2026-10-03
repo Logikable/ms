@@ -178,8 +178,8 @@ class InspectPanel {
   std::vector<CardRow> StatRows(const EquipTabItem& item) const;
   std::vector<CardRow> SlotRows(const EquipTabItem& item) const;
   // The potential lines, below the upgrade history, then the bonus potential's
-  // straight under them. Empty for an item with neither, which is every item
-  // until it is cubed.
+  // straight under them, then the soul's. Empty for an item with none of
+  // them, which is every item until it is cubed.
   std::vector<CardRow> PotentialRows(const EquipTabItem& item) const;
   // The set the inspected item belongs to, or nullptr. Most items belong to
   // none.

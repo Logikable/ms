@@ -15,6 +15,7 @@
 #include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/soul.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -111,6 +112,16 @@ class EquipInstance : public EquipTabItem {
   // this item's own pool; see CharacterInstance::BuyFlame.
   void SetFlame(const FlameLines& lines) {
     *state_.mutable_flame() = lines;
+  }
+
+  // Whether a soul can be applied: a primary weapon that doesn't refuse it.
+  bool CanTakeSoul() const {
+    return TakesSoul(prototype_);
+  }
+
+  // Replaces the item's soul, as applying another one does in GMS.
+  void SetSoul(const Soul& soul) {
+    *state_.mutable_soul() = soul;
   }
 
   // Uses a golden hammer: one more upgrade slot, open and unspent. Returns

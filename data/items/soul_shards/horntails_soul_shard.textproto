@@ -2,3 +2,6 @@ name: "Horntail's Soul Shard"
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Horntail"
 description: "A fragment that contains a piece of Horntail's Soul."
+# GMS has no Horntail soul; this is Hilla and Arkarium's tier, either side of
+# its level.
+soul_tier: SOUL_TIER_A
