@@ -370,6 +370,7 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
         entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
         entry.second.account_levels_per_level() > 0 ||
         entry.second.link_line() != JOB_UNSPECIFIED ||
+        entry.second.guild() != GUILD_SKILL_UNSPECIFIED ||
         !entry.second.replaces_skill_name().empty()) {
       continue;
     }

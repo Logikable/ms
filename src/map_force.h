@@ -7,12 +7,14 @@
 #ifndef MS_SRC_MAP_FORCE_H_
 #define MS_SRC_MAP_FORCE_H_
 
+#include <map>
 #include <string>
 
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -28,11 +30,13 @@ struct MapForce {
 
 // What `map` requires of `character`. On a map requiring neither force,
 // required is 0 and the factors are 1.
-MapForce MapForceFor(const MapData& map, const CharacterInstance& character);
+MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills);
 
 // What one difficulty of a boss requires of `character`, the same way.
 MapForce BossForceFor(const BossDifficulty& difficulty,
-                      const CharacterInstance& character);
+                      const CharacterInstance& character,
+                      const std::map<std::string, Skill>& skills);
 
 // Whether `map` requires either force: Arcane River and Grandis, which are also
 // where V Points drop.

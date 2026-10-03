@@ -187,6 +187,7 @@ const FlatLever kFlatLevers[] = {
     {"Max MP", &SkillEffect::max_mp, "", false},
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},
+    {"Arcane Force", &SkillEffect::arcane_force, "", false},
     {"Attack Speed", &SkillEffect::attack_speed, " stage", true},
     // The same row: the card shows what a stage is worth, and the cap it is
     // subject to belongs on the stats page.

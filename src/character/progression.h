@@ -100,6 +100,9 @@ enum class Feature {
   // reaches the last threshold; see kLinkSkillsLevel. The row itself is always
   // on the beginner's page.
   kLinkSkills,
+  // The guild passives on the beginner's page. Hidden below their level, like
+  // any other locked feature; see kGuildSkillsLevel.
+  kGuildSkills,
   // The Farm/Boss/Drop row under the Gear tab. Unlocked at cubing's level: a
   // second set of gear is worth keeping once an item is worth more than its
   // tier, which cubing makes true.

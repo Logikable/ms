@@ -1335,7 +1335,7 @@ StatPreset CharacterInstance::SlotFor(PresetKind kind,
   return autoswap_presets_ ? AutoswapSlotFor(activity) : SlotInUse(kind);
 }
 
-int CharacterInstance::arcane_force(Activity activity) const {
+int CharacterInstance::base_arcane_force(Activity activity) const {
   return arcane_force_[IndexOf(SlotFor(PresetKind::kEquip, activity))] +
          static_cast<int>(
              hyper_stat_bonus(HYPER_STAT_FIELD_ARCANE_FORCE,

@@ -21,6 +21,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
+#include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/link.h"
@@ -617,6 +618,9 @@ class CharacterInstance {
     if (skill.account_levels_per_level() > 0) {
       return DerivedSkillLevel(skill);
     }
+    if (skill.guild() == GUILD_SKILL_PASSIVE) {
+      return account_max_level() >= kGuildSkillsLevel ? skill.max_level() : 0;
+    }
     if (skill.link_line() != JOB_UNSPECIFIED) {
       return LinkSkillLevel(skill, activity);
     }
@@ -780,9 +784,9 @@ class CharacterInstance {
   // and carrying excess EXP into the next level. It needs a symbol with enough
   // duplicates absorbed, and enough meso.
   bool LevelUpSymbol(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
-  // The character's Arcane Force: worn symbols plus the Hyper Stat. Every
-  // Arcane River map checks it; see ArcaneFactorsFor.
-  int arcane_force(Activity activity = Activity::kFarming) const;
+  // Arcane Force from worn symbols and the Hyper Stat. Skills add to it, so
+  // ask OwnedArcaneForce (character_stats.h) for the character's total.
+  int base_arcane_force(Activity activity = Activity::kFarming) const;
   // The character's Sacred Power from worn Sacred Symbols, which every Grandis
   // map checks; see SacredFactorsFor.
   int sacred_power(Activity activity = Activity::kFarming) const;

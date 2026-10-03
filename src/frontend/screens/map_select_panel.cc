@@ -131,7 +131,7 @@ int WeightedLevel(const GameState& state, const MapData& map) {
 // because a map short of force can still be farmed: it is a penalty, not a
 // locked door.
 ftxui::Element ForceCell(const GameState& state, const MapData& map) {
-  MapForce force = MapForceFor(map, state.character);
+  MapForce force = MapForceFor(map, state.character, state.skills);
   if (force.required == 0) {
     return ftxui::text(std::string(kForceWidth, ' '));
   }
@@ -280,7 +280,8 @@ ftxui::Element MapSelectPanel::RenderBandBar() const {
 // player wondering what it is for.
 std::string MapSelectPanel::PageForceHeader() const {
   for (const std::string& key : pages_[page_]) {
-    MapForce force = MapForceFor(state_.maps.at(key), state_.character);
+    MapForce force =
+        MapForceFor(state_.maps.at(key), state_.character, state_.skills);
     if (force.required > 0) {
       return force.abbreviation;
     }

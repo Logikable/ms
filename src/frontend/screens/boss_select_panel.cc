@@ -373,7 +373,7 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   }
   if (difficulty.arcane_force() > 0) {
     // Red like the unlock level, though falling short only costs damage.
-    MapForce force = BossForceFor(difficulty, state_.character);
+    MapForce force = BossForceFor(difficulty, state_.character, state_.skills);
     rows.push_back(
         RedUnless(DetailRow("Arcane Force", std::to_string(force.required)),
                   force.owned >= force.required));

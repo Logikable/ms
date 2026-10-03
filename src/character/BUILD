@@ -30,6 +30,7 @@ cc_library(
         ":consumables",
         ":equip_presets",
         ":exp_table",
+        ":guild",
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
@@ -309,6 +310,11 @@ cc_test(
 )
 
 cc_library(
+    name = "guild",
+    hdrs = ["guild.h"],
+)
+
+cc_library(
     name = "link",
     srcs = ["link.cc"],
     hdrs = ["link.h"],
@@ -382,6 +388,7 @@ cc_library(
         ":character",
         ":consumables",
         ":exp_table",
+        ":guild",
         ":hyper_stats",
         ":link",
         ":sacred_power",
@@ -465,6 +472,7 @@ cc_test(
         ":character",
         ":character_stats",
         ":consumables",
+        ":guild",
         ":hyper_stats",
         ":inner_ability",
         ":symbol",

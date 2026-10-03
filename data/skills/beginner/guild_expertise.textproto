@@ -1,0 +1,22 @@
+# GMS's Guild Expertise I-VI in one skill, at the Interactive worlds' values:
+# attack 30+6+4+5, stats and HP from V, damage taken from I, normal damage from
+# III.
+name: "Guild Expertise"
+description:
+  "Increases guild members' Attack Power, Magic ATT, stats and damage against "
+  "normal enemies, and decreases damage taken."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 2 }
+guild: GUILD_SKILL_PASSIVE
+max_level: 1
+base {
+  attack: 45
+  magic_attack: 45
+  str: 40
+  dex: 40
+  int: 40
+  luk: 40
+  max_hp: 2000
+  damage_taken_pct: 0.10
+  normal_pct: 0.12
+}

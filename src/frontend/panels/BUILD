@@ -39,6 +39,7 @@ cc_test(
     deps = [
         ":character_panel",
         "//src/character:consumables",
+        "//src/character:guild",
         "//src/character:link",
         "//src/character:progression",
         "//src/character:v_matrix",

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "src/character/consumables.h"
+#include "src/character/guild.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
 #include "src/character/symbol.h"
@@ -1613,6 +1614,37 @@ TEST_F(DerivedStatsTest, ASkillNobodyBuysStillPays) {
   CharacterInstance fresh = MakeCharacter(rng_, 1, 0);
   EXPECT_EQ(DerivedStatsFor(fresh, skills).skill_stats.attack(), 0)
       << "nothing until the account reaches ten";
+}
+
+// A guild passive is held whole once the account reaches its level, whichever
+// character got there, and grants nothing a level short.
+TEST_F(DerivedStatsTest, GuildPassivesArriveWithTheAccount) {
+  Skill expertise;
+  expertise.set_name("Guild Expertise");
+  expertise.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(expertise, JOB_ADVANCEMENT_BEGINNER);
+  expertise.set_guild(GUILD_SKILL_PASSIVE);
+  expertise.set_max_level(1);
+  expertise.mutable_base()->set_attack(45);
+  Skill power = expertise;
+  power.set_name("Special Power");
+  power.clear_base();
+  power.mutable_base()->set_arcane_force(30);
+  std::map<std::string, Skill> skills = {{"guild_expertise", expertise},
+                                         {"special_power", power}};
+
+  CharacterInstance alt = MakeCharacter(rng_, 200, 0);
+  alt.set_account_max_level(kGuildSkillsLevel - 1);
+  EXPECT_EQ(DerivedStatsFor(alt, skills).skill_stats.attack(), 0);
+  EXPECT_EQ(OwnedArcaneForce(alt, skills), 0);
+
+  alt.set_account_max_level(kGuildSkillsLevel);
+  EXPECT_EQ(alt.skill_level(expertise), 1);
+  EXPECT_EQ(DerivedStatsFor(alt, skills).skill_stats.attack(), 45);
+  EXPECT_EQ(OwnedArcaneForce(alt, skills), 30);
+
+  CharacterInstance main = MakeCharacter(rng_, kGuildSkillsLevel, 0);
+  EXPECT_EQ(OwnedArcaneForce(main, skills), 30) << "their own level counts";
 }
 
 // Two rules for a skill not marked for the 4th job's rule: the bonus never
@@ -3237,11 +3269,11 @@ TEST_F(DerivedStatsTest, TheSlotInUseAnswersForEveryActivity) {
 TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
   CharacterInstance c = HyperStatCharacter(rng_);
   c.set_autoswap_presets(true);
-  EXPECT_EQ(c.arcane_force(), 0);
+  EXPECT_EQ(c.base_arcane_force(), 0);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
                                   StatPreset::kFirst, 10));
-  EXPECT_EQ(c.arcane_force(), 50);
-  EXPECT_EQ(c.arcane_force(Activity::kBossing), 0);
+  EXPECT_EQ(c.base_arcane_force(), 50);
+  EXPECT_EQ(c.base_arcane_force(Activity::kBossing), 0);
 }
 
 // --- Final Pact ---

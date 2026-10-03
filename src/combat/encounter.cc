@@ -2155,7 +2155,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // The effect of the map's force requirement on both sides. Stored on derived,
   // which every builder below uses, since the requirement belongs to the map
   // and neither side alone can compute it.
-  ForceFactors force = MapForceFor(map_it->second, state.character).factors;
+  ForceFactors force =
+      MapForceFor(map_it->second, state.character, state.skills).factors;
   derived.force_damage_factor = force.damage_dealt;
   derived.force_taken_factor = force.damage_taken;
   // V Points drop in Arcane River and Grandis, which are the maps with a force
@@ -2210,7 +2211,8 @@ CombatParams ComputeBossParams(const GameState& state,
                                          state.party, Activity::kBossing);
   derived.damage_pct +=
       SymbolBossDamagePct(state.character, boss_key, derived.gear);
-  ForceFactors force = BossForceFor(difficulty, state.character).factors;
+  ForceFactors force =
+      BossForceFor(difficulty, state.character, state.skills).factors;
   derived.force_damage_factor = force.damage_dealt;
   derived.force_taken_factor = force.damage_taken;
   // Boss fights run in real time at every level. Game speed stretches idle maps

@@ -1,0 +1,8 @@
+# GMS also grants 15 Star Force, which no map here asks for.
+name: "Special Power"
+description: "Increases the Arcane Power of guild members."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 3 }
+guild: GUILD_SKILL_PASSIVE
+max_level: 1
+base { arcane_force: 30 }

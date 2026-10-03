@@ -150,7 +150,8 @@ std::vector<StatLine> CombatStatLines(
          Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
     lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
-    lines.push_back({"Arcane Force", std::to_string(character.arcane_force())});
+    lines.push_back(
+        {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
     if (character.proto().level() >= kGrandisLevel) {
       lines.push_back(
           {"Sacred Power", std::to_string(character.sacred_power())});

@@ -357,6 +357,9 @@ message SkillEffect {
   double emergency_heal_seconds = 58;
   double emergency_heal_hp_threshold = 59;
   double emergency_heal_cooldown_seconds = 60;
+  // Flat Arcane Force, added to what symbols and Hyper Stats give. Read only
+  // from passives; see OwnedArcaneForce.
+  double arcane_force = 61;
   // Extra EXP per kill, as a fraction of the mob's normal EXP (0.50 == 50%
   // more). Summed across the passives granting it. It shortens the time to the
   // next level and does nothing in a fight.
@@ -1480,6 +1483,20 @@ message SkillRequirement {
   int32 level = 2;
 }
 
+// The two kinds of guild skill, both on the beginner's page. The game assumes
+// the player is in a maxed-out guild, so neither depends on one.
+enum GuildSkill {
+  GUILD_SKILL_UNSPECIFIED = 0;
+  // Held at level 1 by every character once the account reaches
+  // kGuildSkillsLevel. Nothing buys it.
+  GUILD_SKILL_PASSIVE = 1;
+  // Bought with Noblesse SP, which the account earns by soloing bosses; see
+  // //src/character:noblesse. GMS's are timed buffs that can't be cast in a
+  // boss map, but last 30 minutes on a 5-minute cooldown, so here they are
+  // passives.
+  GUILD_SKILL_NOBLESSE = 2;
+}
+
 // Where a skill is listed: a book, and its position on that book's page.
 //
 // The advancement's SP pool pays for the skill and the skills tab shows one
@@ -1575,6 +1592,8 @@ message Skill {
   // difficulty opens this skill. Until then no character has it in any book.
   // Empty for a skill that needs no boss.
   string unlock_boss = 68;
+  // Marks a guild skill. See GuildSkill.
+  GuildSkill guild = 69;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.
   SkillRequirement required_skill = 8;

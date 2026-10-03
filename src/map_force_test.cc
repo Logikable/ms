@@ -22,7 +22,7 @@ TEST(MapForceTest, ReadsTheForceTheMapNames) {
 
   MapData river;
   river.set_arcane_force(30);
-  MapForce arcane = MapForceFor(river, character);
+  MapForce arcane = MapForceFor(river, character, {});
   EXPECT_EQ(arcane.name, "Arcane Force");
   EXPECT_EQ(arcane.abbreviation, "AF");
   EXPECT_EQ(arcane.required, 30);
@@ -31,7 +31,7 @@ TEST(MapForceTest, ReadsTheForceTheMapNames) {
 
   MapData grandis;
   grandis.set_sacred_power(30);
-  MapForce sacred = MapForceFor(grandis, character);
+  MapForce sacred = MapForceFor(grandis, character, {});
   EXPECT_EQ(sacred.name, "Sacred Power");
   EXPECT_EQ(sacred.abbreviation, "SAC");
   EXPECT_EQ(sacred.owned, 0);
@@ -39,7 +39,7 @@ TEST(MapForceTest, ReadsTheForceTheMapNames) {
   EXPECT_TRUE(AsksForForce(grandis));
 
   MapData field;
-  MapForce none = MapForceFor(field, character);
+  MapForce none = MapForceFor(field, character, {});
   EXPECT_TRUE(none.name.empty());
   EXPECT_EQ(none.required, 0);
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
@@ -55,12 +55,12 @@ TEST(MapForceTest, ABossWeighsArcaneForceAsAMapDoes) {
 
   BossDifficulty lucid;
   lucid.set_arcane_force(360);
-  MapForce force = BossForceFor(lucid, character);
+  MapForce force = BossForceFor(lucid, character, {});
   EXPECT_EQ(force.name, "Arcane Force");
   EXPECT_EQ(force.required, 360);
   EXPECT_DOUBLE_EQ(force.factors.damage_dealt, 0.10);
 
-  MapForce none = BossForceFor(BossDifficulty(), character);
+  MapForce none = BossForceFor(BossDifficulty(), character, {});
   EXPECT_EQ(none.required, 0);
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
 }

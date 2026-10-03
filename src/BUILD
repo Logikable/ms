@@ -113,9 +113,11 @@ cc_library(
     deps = [
         "//src/character",
         "//src/character:arcane_force",
+        "//src/character:character_stats",
         "//src/character:sacred_power",
         "//src/protos:boss_proto_cc",
         "//src/protos:map_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 

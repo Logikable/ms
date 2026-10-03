@@ -4063,14 +4063,14 @@ class SymbolTest : public CharacterTest {
 TEST_F(SymbolTest, WornSymbolsGrantForceAndThePrimaryStat) {
   CharacterInstance c_ = MakeHero(rng_);
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 8);
-  EXPECT_EQ(c_.arcane_force(), 100);
+  EXPECT_EQ(c_.base_arcane_force(), 100);
   EXPECT_EQ(c_.equip_stats().str(), 1000);
   EXPECT_EQ(c_.equip_stats().dex(), 0);
 
   // A second area is a second slot, so the two add up rather than one replacing
   // the other.
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND), 1);
-  EXPECT_EQ(c_.arcane_force(), 130);
+  EXPECT_EQ(c_.base_arcane_force(), 130);
   EXPECT_EQ(c_.equip_stats().str(), 1300);
 }
 
@@ -4087,7 +4087,7 @@ TEST_F(SymbolTest, ASacredSymbolFeedsSacredPower) {
   ready.set_symbol_exp(29);
   c_.PickUp(std::make_unique<EquipInstance>(cernium, ready));
   ASSERT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.arcane_force(), 30);
+  EXPECT_EQ(c_.base_arcane_force(), 30);
   EXPECT_EQ(c_.sacred_power(), 10);
   EXPECT_EQ(c_.equip_stats().str(), 300 + 500);
   EXPECT_EQ(c_.symbol_stats().str(), 300 + 500);
@@ -4096,16 +4096,16 @@ TEST_F(SymbolTest, ASacredSymbolFeedsSacredPower) {
   ASSERT_TRUE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_CERNIUM));
   EXPECT_EQ(c_.proto().meso(), 40'000'000 - 36'500'000);
   EXPECT_EQ(c_.sacred_power(), 20);
-  EXPECT_EQ(c_.arcane_force(), 30);
+  EXPECT_EQ(c_.base_arcane_force(), 30);
   EXPECT_EQ(c_.equip_stats().str(), 300 + 700);
 }
 
 TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {
   CharacterInstance c_ = MakeHero(rng_);
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 5);
-  ASSERT_EQ(c_.arcane_force(), 70);
+  ASSERT_EQ(c_.base_arcane_force(), 70);
   ASSERT_TRUE(c_.Unequip(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
-  EXPECT_EQ(c_.arcane_force(), 0);
+  EXPECT_EQ(c_.base_arcane_force(), 0);
   EXPECT_EQ(c_.equip_stats().str(), 0);
 }
 
@@ -4179,11 +4179,11 @@ TEST_F(SymbolTest, LevellingChargesTheMesoAndMovesTheForce) {
   state.set_symbol_exp(20);  // 12 buys the rung, 8 carries over
   c_.PickUp(std::make_unique<EquipInstance>(proto, state));
   ASSERT_TRUE(c_.Equip(0));
-  ASSERT_EQ(c_.arcane_force(), 30);
+  ASSERT_EQ(c_.base_arcane_force(), 30);
 
   ASSERT_TRUE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
   EXPECT_EQ(c_.proto().meso(), 10'000'000 - 970'000);
-  EXPECT_EQ(c_.arcane_force(), 40);
+  EXPECT_EQ(c_.base_arcane_force(), 40);
   EXPECT_EQ(c_.equip_stats().str(), 400);
   const Equip& after =
       c_.equipped().at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)->equip_state();

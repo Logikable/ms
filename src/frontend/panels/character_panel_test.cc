@@ -16,6 +16,7 @@
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
+#include "src/character/guild.h"
 #include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
@@ -885,6 +886,27 @@ TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(inspected, "Blessing of the Fairy");
+}
+
+// The guild passives stay off the page until the account reaches them, as any
+// locked feature does, and then every character has them.
+TEST_F(CharacterPanelTest, GuildPassivesAppearWithTheAccount) {
+  CharacterInstance c = MakePendingBeginner(rng_);  // level 10
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  Skill expertise;
+  expertise.set_name("Guild Expertise");
+  expertise.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(expertise, JOB_ADVANCEMENT_BEGINNER);
+  expertise.set_guild(GUILD_SKILL_PASSIVE);
+  expertise.set_max_level(1);
+  catalog["guild_expertise"] = expertise;
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  EXPECT_EQ(RenderComponent(comp).find("Guild Expertise"), std::string::npos);
+
+  account_.RecordProgress(kGuildSkillsLevel, 4);
+  EXPECT_NE(RenderComponent(comp).find("Guild Expertise"), std::string::npos);
 }
 
 // --- the Hyper page ---

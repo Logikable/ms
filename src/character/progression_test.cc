@@ -285,6 +285,7 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
       Feature::kShop,           Feature::kLinkSkills,
       Feature::kBonusPotential, Feature::kBlackCube,
       Feature::kWhiteCube,      Feature::kFlame,
+      Feature::kGuildSkills,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());

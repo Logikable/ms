@@ -10,6 +10,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/link.h"
 #include "src/character/sacred_power.h"
@@ -86,6 +87,7 @@ constexpr Unlock kUnlocks[] = {
     // The last link skill threshold. Only the trail waits for it: the row and
     // the skills are available from level 1.
     {Feature::kLinkSkills, kLinkSkillsLevel},
+    {Feature::kGuildSkills, kGuildSkillsLevel},
 };
 
 // Features unlocked by an advancement instead of a level, and which advancement
@@ -279,6 +281,8 @@ std::string FeatureName(Feature feature) {
       return "Equip Presets";
     case Feature::kLinkSkills:
       return "Link Skills";
+    case Feature::kGuildSkills:
+      return "Guild Skills";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:

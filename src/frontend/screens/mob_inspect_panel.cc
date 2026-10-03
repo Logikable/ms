@@ -131,7 +131,7 @@ void MobInspectPanel::RenderForce(std::vector<ftxui::Element>& rows) const {
   if (it == state_.maps.end() || !AsksForForce(it->second)) {
     return;
   }
-  MapForce force = MapForceFor(it->second, state_.character);
+  MapForce force = MapForceFor(it->second, state_.character, state_.skills);
   ftxui::Element carried = RedUnless(ftxui::text(std::to_string(force.owned)),
                                      force.owned >= force.required);
   rows.push_back(ftxui::hbox({

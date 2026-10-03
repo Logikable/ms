@@ -428,6 +428,12 @@ struct BuffUp {
   int party_size = 0;
 };
 
+// A character's Arcane Force: symbols and the Hyper Stat, plus every held skill
+// granting SkillEffect.arcane_force. Every Arcane River map checks it.
+int OwnedArcaneForce(const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills,
+                     Activity activity = Activity::kFarming);
+
 // A character's total INT from AP, gear and skills. INT-scaled levers use this.
 int TotalIntFor(const CharacterInstance& character,
                 const std::map<std::string, Skill>& skills);

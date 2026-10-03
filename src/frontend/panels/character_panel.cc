@@ -927,7 +927,17 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
       IsBeginnerPage(page)
           ? JOB_ADVANCEMENT_BEGINNER
           : AdvancementForJobStage(character_.proto().job(), page);
-  return SkillsForAdvancement(skills_, book, /*hyper=*/false, toggles_on);
+  std::vector<const Skill*> listed =
+      SkillsForAdvancement(skills_, book, /*hyper=*/false, toggles_on);
+  // Locked guild skills are hidden, as every locked feature is.
+  listed.erase(std::remove_if(listed.begin(), listed.end(),
+                              [this](const Skill* skill) {
+                                return skill->guild() == GUILD_SKILL_PASSIVE &&
+                                       !Unlocked(Feature::kGuildSkills,
+                                                 character_, account_);
+                              }),
+               listed.end());
+  return listed;
 }
 
 bool CharacterPanel::SkillLocked(const Skill& skill) const {

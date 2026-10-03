@@ -1202,7 +1202,7 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
       {200, 30}, {230, 4 * 20 + 30 * 10}, {kGrandisLevel, 77 * 10 + 6 * 20}};
   for (const std::pair<int, int>& entry : kLevelForce) {
     GameState state = MakeMaxState(entry.first);
-    EXPECT_EQ(state.character.arcane_force(), entry.second) << entry.first;
+    EXPECT_EQ(state.character.base_arcane_force(), entry.second) << entry.first;
     EXPECT_EQ(state.character.sacred_power(), 0) << entry.first;
   }
 }

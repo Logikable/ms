@@ -1667,6 +1667,26 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
   return PotentialFlatGrant(pile, character.proto().level(), totals);
 }
 
+int OwnedArcaneForce(const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills,
+                     Activity activity) {
+  int force = character.base_arcane_force(activity);
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.base().arcane_force() == 0.0 &&
+        skill.per_level().arcane_force() == 0.0) {
+      continue;
+    }
+    int level = character.skill_level(skill, activity);
+    if (level <= 0 || !character.HoldsSkillFrom(skill, activity)) {
+      continue;
+    }
+    force += WholeValue(
+        EffectAt(skill.base(), skill.per_level(), level).arcane_force());
+  }
+  return force;
+}
+
 int TotalIntFor(const CharacterInstance& character,
                 const std::map<std::string, Skill>& skills) {
   DerivedStats derived = DerivedStatsFor(character, skills);
