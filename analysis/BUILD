@@ -191,6 +191,7 @@ cc_library(
         ":cube_plan",
         ":flame_plan",
         ":sim_gear",
+        ":soul_plan",
         ":star_force_curve",
         ":yardstick",
         "//src:game_state",
@@ -199,9 +200,11 @@ cc_library(
         "//src/character:symbol",
         "//src/combat:damage",
         "//src/item",
+        "//src/item:currency",
         "//src/item:equip_instance",
         "//src/item:flame",
         "//src/item:potential",
+        "//src/item:soul",
         "//src/item:spell_trace_cost",
         "//src/item:star_force_cost",
         "//src/protos:equip_proto_cc",
@@ -241,6 +244,44 @@ cc_library(
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "gear_plan_test",
+    size = "small",
+    srcs = ["gear_plan_test.cc"],
+    deps = [
+        ":gear_plan",
+        ":sim_gear",
+        "//src:game_state",
+        "//src/character:progression",
+        "//src/character:skill_placement",
+        "//src/item:equip_instance",
+        "//src/item:soul",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "soul_plan",
+    srcs = ["soul_plan.cc"],
+    hdrs = ["soul_plan.h"],
+)
+
+cc_test(
+    name = "soul_plan_test",
+    size = "small",
+    srcs = ["soul_plan_test.cc"],
+    deps = [
+        ":soul_plan",
+        "@googletest//:gtest_main",
     ],
 )
 

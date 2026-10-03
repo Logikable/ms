@@ -11,6 +11,7 @@
 
 #include "analysis/cube_plan.h"
 #include "analysis/sim_gear.h"
+#include "analysis/soul_plan.h"
 #include "analysis/star_force_curve.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
@@ -18,8 +19,10 @@
 #include "src/character/symbol.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
+#include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/soul.h"
 #include "src/item/spell_trace_cost.h"
 #include "src/item/star_force_cost.h"
 #include "src/protos/equip.pb.h"
@@ -926,10 +929,128 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
   }
 }
 
+// The souls in hand by tier, and a boss of each to name a trial soul after.
+// Every boss of a tier rolls the same lines, so a tier's shards pool.
+struct SoulRolls {
+  std::map<SoulTier, int> rolls;
+  std::map<SoulTier, std::string> boss;
+};
+
+namespace {
+
+SoulRolls SoulsInHand(const CharacterInstance& character) {
+  SoulRolls hand;
+  for (const CurrencyAmount& held : character.currencies().entries()) {
+    const ItemPrototype& shard = held.prototype();
+    if (shard.kind() == ITEM_KIND_SOUL_SHARD &&
+        held.count() >= kShardsPerSoul) {
+      hand.rolls[shard.soul_tier()] += held.count() / kShardsPerSoul;
+      hand.boss[shard.soul_tier()] = shard.short_name();
+    }
+  }
+  return hand;
+}
+
+std::string SoulsKey(int level, const Soul& held,
+                     const std::map<SoulTier, int>& rolls) {
+  std::string key = std::to_string(level) + "|" + held.SerializeAsString();
+  for (const auto& [tier, count] : rolls) {
+    if (count > 0) {
+      key += "|" + std::to_string(tier) + ":" + std::to_string(count);
+    }
+  }
+  return key;
+}
+
+// A shard of `tier` with a soul's worth, copied: spending the last of a boss
+// drops its purse entry.
+std::optional<ItemPrototype> ShardToSpend(const CharacterInstance& character,
+                                          SoulTier tier) {
+  for (const CurrencyAmount& entry : character.currencies().entries()) {
+    if (entry.prototype().kind() == ITEM_KIND_SOUL_SHARD &&
+        entry.prototype().soul_tier() == tier &&
+        entry.count() >= kShardsPerSoul) {
+      return entry.prototype();
+    }
+  }
+  return std::nullopt;
+}
+
+constexpr EquipSlot kSoulSlot = EQUIP_SLOT_PRIMARY_WEAPON;
+
+}  // namespace
+
+std::map<SoulTier, std::vector<double>> GearShopper::SoulLineWorths(
+    GameState& state, const SoulRolls& hand) {
+  CharacterInstance& character = state.character;
+  const Soul held =
+      character.WornAt(kBossGear, kSoulSlot)->equip_state().soul();
+  std::map<SoulTier, std::vector<double>> worths;
+  for (const auto& [tier, count] : hand.rolls) {
+    Soul trial;
+    trial.set_boss(hand.boss.at(tier));
+    trial.set_tier(tier);
+    for (int line = SOUL_LINE_ATTACK; line <= SOUL_LINE_BOSS_DAMAGE; ++line) {
+      trial.set_line(static_cast<SoulLine>(line));
+      character.TakeSoul(kSoulSlot, trial, kBossGear);
+      worths[tier].push_back(Power(state));
+    }
+  }
+  character.TakeSoul(kSoulSlot, held, kBossGear);
+  return worths;
+}
+
+void GearShopper::ApplySouls(GameState& state, GearSpend& spend) {
+  CharacterInstance& character = state.character;
+  const EquipInstance* weapon = character.WornAt(kBossGear, kSoulSlot);
+  if (!Unlocked(Feature::kSoul, character, state.account) ||
+      weapon == nullptr || !weapon->CanTakeSoul()) {
+    return;
+  }
+  SoulRolls hand = SoulsInHand(character);
+  const int level = character.proto().level();
+  if (hand.rolls.empty() || SoulsKey(level, weapon->equip_state().soul(),
+                                     hand.rolls) == souls_settled_) {
+    return;
+  }
+  const std::map<SoulTier, std::vector<double>> worths =
+      SoulLineWorths(state, hand);
+  double held_worth = Power(state);
+  while (true) {
+    SoulTier best = SOUL_TIER_UNSPECIFIED;
+    double best_worth = 0.0;
+    for (const auto& [tier, count] : hand.rolls) {
+      const double worth = SoulRollWorth(worths.at(tier), count);
+      if (worth > best_worth) {
+        best = tier;
+        best_worth = worth;
+      }
+    }
+    if (best == SOUL_TIER_UNSPECIFIED ||
+        !ShouldRollSoul(held_worth, worths.at(best), hand.rolls[best])) {
+      break;
+    }
+    std::optional<ItemPrototype> shard = ShardToSpend(character, best);
+    if (!shard.has_value() ||
+        !character.ApplySoul(kSoulSlot, *shard, kBossGear)) {
+      break;
+    }
+    --hand.rolls[best];
+    ++spend.souls;
+    const SoulLine line =
+        character.WornAt(kBossGear, kSoulSlot)->equip_state().soul().line();
+    held_worth = worths.at(best)[line - SOUL_LINE_ATTACK];
+  }
+  souls_settled_ = SoulsKey(
+      level, character.WornAt(kBossGear, kSoulSlot)->equip_state().soul(),
+      hand.rolls);
+}
+
 GearSpend GearShopper::Spend(GameState& state) {
   GearSpend spend;
   splits_.reset();
   SellSpares(state, spend);
+  ApplySouls(state, spend);
   while (BuyBest(state, spend)) {
   }
   life_.Add(spend);

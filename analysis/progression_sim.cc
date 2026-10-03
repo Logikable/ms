@@ -959,6 +959,10 @@ struct Climb {
   // Pieces destroyed and restored over the whole climb, which shows whether
   // stars past 15 were worth the risk.
   int booms = 0;
+  // Souls rolled over the climb, and the one the boss weapon ends on, as
+  // "Lucid BOSS_DAMAGE" ("none" for no soul).
+  int souls = 0;
+  std::string soul = "none";
   // Total meso paid over the whole run and meso held at the end: the two ends
   // of the ledger below.
   int64_t endgame_earned_total = 0;
@@ -2558,6 +2562,15 @@ Climb Play(const Catalogs& catalogs, Job branch,
   end.set_end(true);
   climb.potentials_at.push_back(std::move(end));
   climb.booms = run.shopper.life().booms;
+  climb.souls = run.shopper.life().souls;
+  if (const EquipInstance* weapon =
+          state.character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)) {
+    const Soul& soul = weapon->equip_state().soul();
+    if (soul.line() != SOUL_LINE_UNSPECIFIED) {
+      climb.soul = soul.boss() + " " +
+                   SoulLine_Name(soul.line()).substr(sizeof("SOUL_LINE_") - 1);
+    }
+  }
   climb.ability_farming = state.character.ability(StatPreset::kFirst);
   climb.ability_bossing = state.character.ability(StatPreset::kSecond);
   // Use ToProto, not proto(). The live containers hold the gear, and the
@@ -3886,14 +3899,15 @@ void PrintTargets(const std::vector<Job>& branches,
                   sizeof(spent));
       std::printf(
           "  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean, %d "
-          "hammers, %d booms\n",
+          "hammers, %d booms, %d souls (%s)\n",
           "  spent on gear", spent, typical.endgame_scrolled,
           typical.endgame_pieces,
           typical.endgame_pieces == 0
               ? 0.0
               : static_cast<double>(typical.endgame_stars_worn) /
                     typical.endgame_pieces,
-          typical.endgame_hammers, typical.booms);
+          typical.endgame_hammers, typical.booms, typical.souls,
+          typical.soul.c_str());
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

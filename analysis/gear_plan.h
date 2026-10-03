@@ -31,6 +31,8 @@
 
 namespace ms {
 
+struct SoulRolls;
+
 // How far the player intends to upgrade what they wear.
 struct GearPlan {
   // A star limit the shopper won't pass regardless of value. It exists so runs
@@ -81,6 +83,8 @@ struct GearSpend {
   std::map<EquipSlot, std::array<int, std::size(kFlames)>> flames_by_slot;
   // Slots farming was given its own piece in; see GearShopper::SplitOffers.
   int farm_splits = 0;
+  // Souls rolled onto the boss weapon, which cost shards rather than meso.
+  int souls = 0;
   // Pieces destroyed and restored, and meso from bag items sold to make room
   // and pay for it.
   int booms = 0;
@@ -122,6 +126,7 @@ struct GearSpend {
     farm_cubes_bought += other.farm_cubes_bought;
     farm_cubes_kept += other.farm_cubes_kept;
     farm_splits += other.farm_splits;
+    souls += other.souls;
     booms += other.booms;
     sold += other.sold;
   }
@@ -295,6 +300,14 @@ class GearShopper {
                GearSpend& spend);
   bool BuySplit(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuySymbol(GameState& state, EquipSlot slot, GearSpend& spend);
+  // Rolls souls onto the boss weapon while the shards' odds beat the soul it
+  // holds (see //analysis:soul_plan), each line measured against the
+  // yardstick.
+  void ApplySouls(GameState& state, GearSpend& spend);
+  // What each of the seven lines would make the boss weapon worth, by tier,
+  // for every tier in `hand`. Leaves the weapon's own soul on it.
+  std::map<SoulTier, std::vector<double>> SoulLineWorths(GameState& state,
+                                                         const SoulRolls& hand);
   // Sells bag items held for nothing: pieces the character can't wear at all,
   // and spares beyond what booms could ever use.
   void SellSpares(GameState& state, GearSpend& spend);
@@ -313,6 +326,10 @@ class GearShopper {
   // Random stream for cube valuations. Separate from the character's, so
   // measuring what a cube might roll never changes what the game rolls.
   std::mt19937 rng_{20260901};
+
+  // What ApplySouls last decided to keep: the level, the soul held and the
+  // rolls in hand. Measuring seven lines a tier is skipped until one changes.
+  std::string souls_settled_;
 
   // Keyed by prototype name, since that is what distinguishes an item from its
   // replacement. A slot whose item takes no scroll maps to null.
