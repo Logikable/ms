@@ -98,29 +98,30 @@ TEST_F(StarForcePanelTest, RenderShowsTheItemAndItsTwoRates) {
   EXPECT_NE(rendered.find("Sword"), std::string::npos);
   EXPECT_NE(rendered.find("0"), std::string::npos);
   EXPECT_NE(rendered.find("1"), std::string::npos);
-  EXPECT_NE(rendered.find("95%"), std::string::npos);
-  EXPECT_NE(rendered.find("5%"), std::string::npos);
+  EXPECT_NE(rendered.find("99.75%"), std::string::npos);
+  EXPECT_NE(rendered.find("0.25%"), std::string::npos);
   EXPECT_EQ(rendered.find("Destroy"), std::string::npos);
 }
 
 TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
-  // At 21 stars the destroy rate is 12.75%.
+  // At 21 stars the destroy rate is 12.64%.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/21);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
-  EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
+  EXPECT_NE(Render(panel).find("12.64%"), std::string::npos);
 }
 
-// At 15 stars destruction is possible, and the three rates are 30%, 67.9% and
-// 2.1%: names aligned left in their column, numbers aligned right in theirs.
+// At 15 stars destruction is possible, and the three rates are 31.5%, 66.44%
+// and 2.06%: names aligned left in their column, numbers aligned right in
+// theirs.
 TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Success    30%"), std::string::npos);
-  EXPECT_NE(rendered.find("Fail     67.9%"), std::string::npos);
-  EXPECT_NE(rendered.find("Destroy   2.1%"), std::string::npos);
+  EXPECT_NE(rendered.find("Success   31.5%"), std::string::npos);
+  EXPECT_NE(rendered.find("Fail     66.44%"), std::string::npos);
+  EXPECT_NE(rendered.find("Destroy   2.06%"), std::string::npos);
 }
 
 // A staff's next star adds +3 to each stat and +25 to HP and MP, giving two

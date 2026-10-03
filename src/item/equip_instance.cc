@@ -1,5 +1,7 @@
 #include "src/item/equip_instance.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <random>
 
@@ -19,9 +21,9 @@ std::unique_ptr<EquipTabItem> EquipItemFromState(const EquipPrototype& proto,
 
 namespace {
 
-// Success and destruction rates in hundredths of a percent (10000 = 100%).
-// Index i is the attempt from i★ to (i+1)★. Failure = 10000 - success -
-// destroy.
+// GMS's published success and destruction rates in hundredths of a percent
+// (10000 = 100%), before the star catch bonus. Index i is the attempt from i★
+// to (i+1)★. Failure = 10000 - success - destroy.
 constexpr StarForceRate kRates[kMaxStarForce] = {
     {9500, 0},     // 0★
     {9000, 0},     // 1★
@@ -54,6 +56,20 @@ constexpr StarForceRate kRates[kMaxStarForce] = {
     {300, 1940},   // 28★
     {100, 1980},   // 29★
 };
+
+// GMS v271 folded star catching into every attempt: success x1.05, with fail
+// and destroy shrinking in proportion. Rounded to the nearest hundredth.
+StarForceRate Caught(const StarForceRate& rate) {
+  int success = std::min(10000, (rate.success * 105 + 50) / 100);
+  int64_t remaining = 10000 - rate.success;
+  int destroy =
+      remaining == 0
+          ? 0
+          : static_cast<int>(
+                (int64_t{rate.destroy} * (10000 - success) + remaining / 2) /
+                remaining);
+  return {success, destroy};
+}
 
 }  // namespace
 
@@ -206,7 +222,7 @@ StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
   if (s >= max_stars()) {
     return kStarForceFail;
   }
-  const StarForceRate& rate = kRates[s];
+  StarForceRate rate = Caught(kRates[s]);
   std::uniform_int_distribution<int> dist(1, 10000);
   int roll = dist(rng);
   if (roll <= rate.success) {
@@ -223,7 +239,7 @@ StarForceRate EquipInstance::RateAt(int stars) {
   if (stars < 0 || stars >= kMaxStarForce) {
     return {0, 0};
   }
-  return kRates[stars];
+  return Caught(kRates[stars]);
 }
 
 int EquipInstance::RecoveryStars(int original_stars) {

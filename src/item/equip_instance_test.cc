@@ -185,7 +185,7 @@ TEST_F(EquipInstanceTest, CleanSlateBuysBackAHammerSlot) {
 TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {
   EquipPrototype proto = MakeEquip(0);
   EquipInstance item(proto);
-  // At 0★ success is 9500 (95%). Keep trying until one succeeds.
+  // At 0★ success is 9975 (99.75%). Keep trying until one succeeds.
   StarForceOutcome outcome = kStarForceFail;
   for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
     outcome = item.StarForce(rng_);
@@ -269,8 +269,14 @@ TEST_F(EquipInstanceTest, RefusingScrollsBeatsRemainingSlots) {
   EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 7);
 }
 
-TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
-  StarForceRate r = EquipInstance::RateAt(-1);
+TEST_F(EquipInstanceTest, RateAtFoldsInTheStarCatch) {
+  StarForceRate r = EquipInstance::RateAt(0);
+  EXPECT_EQ(r.success, 9975);  // 95% x1.05
+  EXPECT_EQ(r.destroy, 0);
+  r = EquipInstance::RateAt(15);
+  EXPECT_EQ(r.success, 3150);  // 30% x1.05
+  EXPECT_EQ(r.destroy, 206);   // 2.1% x 68.5/70
+  r = EquipInstance::RateAt(-1);
   EXPECT_EQ(r.success, 0);
   EXPECT_EQ(r.destroy, 0);
   r = EquipInstance::RateAt(kMaxStarForce);
@@ -278,7 +284,7 @@ TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
 }
 
 TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
-  // At 19★ destroy is 850 (8.5%). Use a level 138 item (max 30★) so 19★ is
+  // At 19★ destroy is 843 (8.43%). Use a level 138 item (max 30★) so 19★ is
   // reachable, and run enough attempts to see a destruction.
   EquipPrototype proto = MakeEquip(0, /*required_level=*/138);
   Equip state;
