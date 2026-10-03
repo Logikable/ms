@@ -256,6 +256,7 @@ cc_library(
         "//src/character",
         "//src/character:consumables",
         "//src/character:exp_table",
+        "//src/character:guild",
         "//src/character:honor",
         "//src/character:job_branch",
         "//src/character:job_name",

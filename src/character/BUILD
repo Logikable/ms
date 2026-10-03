@@ -311,7 +311,25 @@ cc_test(
 
 cc_library(
     name = "guild",
+    srcs = ["guild.cc"],
     hdrs = ["guild.h"],
+    deps = [
+        "//src/protos:account_proto_cc",
+        "//src/protos:boss_proto_cc",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "guild_test",
+    size = "small",
+    srcs = ["guild_test.cc"],
+    deps = [
+        ":guild",
+        "//src/protos:account_proto_cc",
+        "//src/protos:boss_proto_cc",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_library(

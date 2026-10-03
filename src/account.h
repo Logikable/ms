@@ -89,6 +89,13 @@ class AccountInstance {
   const std::string& multiplayer_token() const {
     return account_.multiplayer_token();
   }
+  // The boss difficulties the account has beaten alone.
+  const google::protobuf::RepeatedPtrField<SoloClear>& solo_clears() const {
+    return account_.solo_clears();
+  }
+  // Records one. Returns false, and records nothing, for one already there.
+  bool RecordSoloClear(const std::string& boss, const std::string& difficulty);
+
   // Saves what the server issued, so the next connection is recognised as the
   // same player.
   void SetMultiplayerAccount(const std::string& account_id,

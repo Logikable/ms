@@ -1234,6 +1234,38 @@ TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
   EXPECT_EQ(c.v_points(), 1000);
 }
 
+// A Noblesse skill spends the account's pool, which this character keeps a
+// tally against, and only it can hand its points back.
+TEST_F(LearnSkillTest, ANoblesseSkillSpendsAndRefundsTheAccountsPool) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, 1, 5);
+  Skill slayers = MakeSkill("Boss Slayers", JOB_ADVANCEMENT_BEGINNER, 15);
+  slayers.set_guild(GUILD_SKILL_NOBLESSE);
+  EXPECT_FALSE(c.LearnSkill(slayers)) << "nothing earned yet";
+
+  c.set_noblesse_sp_earned(3);
+  ASSERT_TRUE(c.LearnSkill(slayers, 2));
+  EXPECT_EQ(c.skill_level(slayers), 2);
+  EXPECT_EQ(c.noblesse_sp(), 1);
+  EXPECT_EQ(c.sp(1), 5) << "the stage's pool is untouched";
+  EXPECT_FALSE(c.LearnSkill(slayers, 2));
+
+  EXPECT_FALSE(c.UnlearnSkill(slayers, 3)) << "more than it has";
+  ASSERT_TRUE(c.UnlearnSkill(slayers));
+  EXPECT_EQ(c.noblesse_sp(), 2);
+  ASSERT_TRUE(c.LearnSkill(SlashBlast()));
+  EXPECT_FALSE(c.UnlearnSkill(SlashBlast())) << "a book's points are kept";
+
+  // Reloading counts the tally again from the levels.
+  std::map<std::string, Skill> catalog = {{"boss_slayers", slayers},
+                                          {"slash_blast", SlashBlast()}};
+  Character saved = c.ToProto();
+  saved.set_noblesse_sp_spent(0);
+  CharacterInstance loaded(rng_, saved);
+  loaded.set_noblesse_sp_earned(3);
+  loaded.ReconcileSp(catalog);
+  EXPECT_EQ(loaded.noblesse_sp(), 2);
+}
+
 TEST_F(LearnSkillTest, AHyperSkillSpendsTheHyperPool) {
   CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150, /*hyper_sp=*/2);
   ASSERT_TRUE(c.LearnSkill(MakeHyperSkill()));

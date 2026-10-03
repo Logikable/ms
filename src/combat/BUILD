@@ -236,6 +236,7 @@ cc_library(
         ":loot",
         "//src:game_state",
         "//src/character",
+        "//src/character:guild",
         "//src/character:honor",
         "//src/character:v_matrix",
         "//src/protos:boss_proto_cc",

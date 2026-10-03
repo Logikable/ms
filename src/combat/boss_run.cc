@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/guild.h"
 #include "src/character/honor.h"
 #include "src/combat/combat.h"
 #include "src/combat/drop.h"
@@ -767,6 +768,13 @@ void BossRun::PayReward(GameState& state,
                                DropIsPrize(state, award.drop),
                                award.drop.per_kill()});
     }
+  }
+  if (authority_ == nullptr) {
+    int before = NoblesseSpEarned(state.account.solo_clears(), state.bosses);
+    state.account.RecordSoloClear(boss_key_, chosen->name());
+    int after = NoblesseSpEarned(state.account.solo_clears(), state.bosses);
+    reward_.noblesse_sp = after - before;
+    state.character.set_noblesse_sp_earned(after);
   }
   if (state.character.RecordDefeat(boss_key_)) {
     for (const std::pair<const std::string, Skill>& entry : state.skills) {

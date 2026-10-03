@@ -18,6 +18,14 @@ TEST(AccountTest, SeenKeysLatch) {
   EXPECT_EQ(account.proto().seen_keys_size(), 1);
 }
 
+TEST(AccountTest, ASoloClearIsRecordedOnce) {
+  AccountInstance account;
+  EXPECT_TRUE(account.RecordSoloClear("lotus", "Normal"));
+  EXPECT_FALSE(account.RecordSoloClear("lotus", "Normal"));
+  EXPECT_TRUE(account.RecordSoloClear("lotus", "Hard"));
+  EXPECT_EQ(account.solo_clears().size(), 2);
+}
+
 TEST(AccountTest, ProgressOnlyClimbs) {
   AccountInstance account;
   account.RecordProgress(40, 2);

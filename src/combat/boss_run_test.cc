@@ -936,15 +936,16 @@ TEST(BossRunTest, VoidDropsPaysAllButEquips) {
   EXPECT_TRUE(state->character.HasDefeated("zakum"));
 }
 
-// The first clear records the boss and names the skills it opens; a second
-// opens nothing, and a practice clear records nothing.
-TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
+// The first clear records the boss, names the skills it opens and pays its
+// Noblesse SP; a second does neither, and a practice clear records nothing.
+TEST(BossRunTest, OnlyAFirstRealClearOpensSkillsAndPaysNoblesseSp) {
   std::unique_ptr<GameState> state = MakeState();
   Skill spider;
   spider.set_name("True Arachnid Reflection");
   spider.set_unlock_boss("zakum");
   state->skills[spider.name()] = spider;
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  state->bosses["zakum"] = boss;
 
   BossOptions practice_only;
   practice_only.set_practice(true);
@@ -952,6 +953,8 @@ TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
   RunToEnd(practice, *state);
   ASSERT_TRUE(practice.won());
   EXPECT_FALSE(state->character.HasDefeated("zakum"));
+  EXPECT_EQ(practice.reward().noblesse_sp, 0);
+  EXPECT_TRUE(state->account.solo_clears().empty());
 
   BossRun first("zakum", boss, 0);
   RunToEnd(first, *state);
@@ -959,11 +962,14 @@ TEST(BossRunTest, OnlyAFirstRealClearOpensTheBossesSkills) {
   EXPECT_TRUE(state->character.HasDefeated("zakum"));
   EXPECT_EQ(first.reward().skills,
             std::vector<std::string>({"True Arachnid Reflection"}));
+  EXPECT_EQ(first.reward().noblesse_sp, 1);
+  EXPECT_EQ(state->character.noblesse_sp(), 1);
 
   BossRun second("zakum", boss, 0);
   RunToEnd(second, *state);
   ASSERT_TRUE(second.won());
   EXPECT_TRUE(second.reward().skills.empty());
+  EXPECT_EQ(second.reward().noblesse_sp, 0);
 }
 
 // Paid once: not once per phase, and not again while the win is on screen.

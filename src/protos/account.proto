@@ -40,6 +40,17 @@ message Account {
   // Storage every character can reach. This is the only way an item moves from
   // one character to another.
   Bank bank = 8;
+
+  // Every boss difficulty a character on the account has beaten alone, Practice
+  // aside. They pay the Noblesse SP every character spends; see
+  // //src/character:guild.
+  repeated SoloClear solo_clears = 9;
+}
+
+// One boss difficulty, named as BossClear names it.
+message SoloClear {
+  string boss = 1;
+  string difficulty = 2;
 }
 
 // The bank: an Equip tab of eight pages, an Etc tab and a purse, shared by

@@ -408,6 +408,10 @@ message Character {
   // earned once every five levels from 140 to 195, a band inside the 4th job's,
   // and would need a stage the game doesn't have.
   int32 hyper_sp = 18;
+  // Noblesse SP spent, summed over the Noblesse skills' levels. The pool is the
+  // account's (see Account.solo_clears), so this character keeps only what it
+  // took from it.
+  int32 noblesse_sp_spent = 30;
 
   // Learned skill levels, keyed by the skill's display name (Skill.name).
   // Missing or zero means not learned. Raised by spending that stage's SP.

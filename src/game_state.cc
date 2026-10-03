@@ -16,6 +16,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/guild.h"
 #include "src/character/honor.h"
 #include "src/character/job_branch.h"
 #include "src/character/job_name.h"
@@ -1385,6 +1386,7 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
                                   int theirs) const {
   into.set_autoswap_presets(account.autoswap_presets());
   into.set_account_max_level(account.max_level());
+  into.set_noblesse_sp_earned(NoblesseSpEarned(account.solo_clears(), bosses));
   // Only the others: a character provides their own line's link skill
   // themselves, since their level can change mid-session while a slot's can't.
   LinkTally tally;

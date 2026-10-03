@@ -223,6 +223,10 @@ class CharacterInstance {
   // the pool is short, the character is under required_level, or it would pass
   // max_level.
   bool LearnSkill(const Skill& skill, int amount = 1);
+  // Takes `amount` levels back off a Noblesse skill and returns their SP. All
+  // or nothing, and only Noblesse skills: every other book's points are
+  // permanent.
+  bool UnlearnSkill(const Skill& skill, int amount = 1);
   // Raises `field` by `amount` levels in `preset`. All or nothing: returns
   // false and spends nothing if the stat is locked, over the cap, or short of
   // points.
@@ -496,6 +500,19 @@ class CharacterInstance {
   int account_max_level() const {
     return std::max(account_max_level_, character_.level());
   }
+  // The Noblesse SP the account's solo clears have earned, copied here for the
+  // same reason. See //src/character:guild.
+  void set_noblesse_sp_earned(int sp) {
+    noblesse_sp_earned_ = sp;
+  }
+  int noblesse_sp_earned() const {
+    return noblesse_sp_earned_;
+  }
+  // What this character has left of it. Never below 0, though a save can spend
+  // more than the account now has earned if a boss leaves the catalog.
+  int noblesse_sp() const {
+    return std::max(0, noblesse_sp_earned_ - character_.noblesse_sp_spent());
+  }
   // What the other characters on the account have reached, per job line, copied
   // here for the same reason. This character is not included: its own level is
   // added at every read, because it can change mid-session.
@@ -601,6 +618,9 @@ class CharacterInstance {
       // This returns V Points, not levels: a node's levels don't cost one point
       // each, so VNodeCostFor decides what they buy.
       return static_cast<int>(std::min<int64_t>(v_points(), INT_MAX));
+    }
+    if (skill.guild() == GUILD_SKILL_NOBLESSE) {
+      return noblesse_sp();
     }
     return skill.hyper() ? hyper_sp() : sp(StageForAdvancement(BookOf(skill)));
   }
@@ -860,6 +880,8 @@ class CharacterInstance {
   bool autoswap_presets_ = false;
   // Copy of the account's record; see account_max_level().
   int account_max_level_ = 0;
+  // Copy of the account's Noblesse SP; see noblesse_sp_earned().
+  int noblesse_sp_earned_ = 0;
   // Copy of what the account's other characters have reached; see link_tally().
   LinkTally link_tally_;
 

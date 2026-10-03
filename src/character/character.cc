@@ -1180,6 +1180,21 @@ int CharacterInstance::ReconcileSkills(
   return moved;
 }
 
+bool CharacterInstance::UnlearnSkill(const Skill& skill, int amount) {
+  int learned = skill_level(skill);
+  if (skill.guild() != GUILD_SKILL_NOBLESSE || amount <= 0 ||
+      amount > learned) {
+    return false;
+  }
+  if (learned == amount) {
+    character_.mutable_skill_levels()->erase(skill.name());
+  } else {
+    (*character_.mutable_skill_levels())[skill.name()] -= amount;
+  }
+  character_.set_noblesse_sp_spent(character_.noblesse_sp_spent() - amount);
+  return true;
+}
+
 int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
   // What the character has spent from each pool. It goes through the catalog,
   // since a display name repeats across branches and the book held says which
@@ -1187,6 +1202,7 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
   // another row.
   std::map<int, int> spent;
   int hyper_spent = 0;
+  int noblesse_spent = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     JobAdvancement book = BookHeldFor(skill);
@@ -1194,7 +1210,9 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
         book == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
     }
-    if (skill.hyper()) {
+    if (skill.guild() == GUILD_SKILL_NOBLESSE) {
+      noblesse_spent += skill_level(skill);
+    } else if (skill.hyper()) {
       hyper_spent += skill_level(skill);
     } else {
       spent[StageForAdvancement(book)] += skill_level(skill);
@@ -1217,6 +1235,10 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
   int delta = ExpectedHyperSp(level) - hyper - hyper_spent;
   moved += CorrectPool("Hyper SP", delta, &hyper);
   character_.set_hyper_sp(hyper);
+  // The pool is the account's, so only the record of what was taken from it
+  // can be wrong.
+  moved += std::abs(noblesse_spent - character_.noblesse_sp_spent());
+  character_.set_noblesse_sp_spent(noblesse_spent);
   return moved;
 }
 
@@ -1604,6 +1626,11 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   }
   if (skill.hyper()) {
     character_.set_hyper_sp(character_.hyper_sp() - amount);
+    (*character_.mutable_skill_levels())[skill.name()] += amount;
+    return true;
+  }
+  if (skill.guild() == GUILD_SKILL_NOBLESSE) {
+    character_.set_noblesse_sp_spent(character_.noblesse_sp_spent() + amount);
     (*character_.mutable_skill_levels())[skill.name()] += amount;
     return true;
   }

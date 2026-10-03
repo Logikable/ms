@@ -150,6 +150,9 @@ struct BossReward {
   // Skills this clear opened, by display name: only a first clear of the boss
   // opens any. See Skill.unlock_boss.
   std::vector<std::string> skills;
+  // Noblesse SP this clear earned: only a first solo clear of a difficulty
+  // earns any, and beating one first pays for those below it too.
+  int noblesse_sp = 0;
 };
 
 // One monster's bar. Created when the phase starts and never reused: a dead

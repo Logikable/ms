@@ -97,6 +97,17 @@ TEST(BossClearPanelTest, ASkillTheClearOpenedIsRuledOffLast) {
   EXPECT_NE(ScreenRows(screen)[gear + 1].find("\u2500"), std::string::npos);
 }
 
+// Noblesse SP joins that section, after the skills.
+TEST(BossClearPanelTest, NoblesseSpFollowsTheSkills) {
+  BossReward reward = FullReward();
+  reward.skills.push_back("True Arachnid Reflection");
+  reward.noblesse_sp = 2;
+  ftxui::Screen screen = RenderCard(reward);
+  int skill = RowOf(screen, "New Skill: True Arachnid Reflection");
+  ASSERT_GT(skill, 0);
+  EXPECT_EQ(RowOf(screen, "+2 Noblesse SP"), skill + 1);
+}
+
 // With only gear, there is nothing to separate from, so no rule is drawn above
 // the single line.
 TEST(BossClearPanelTest, GearAloneIsNotRuledOffFromNothing) {

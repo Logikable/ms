@@ -26,6 +26,19 @@ void AccountInstance::MarkSeen(const std::string& key) {
   account_.add_seen_keys(key);
 }
 
+bool AccountInstance::RecordSoloClear(const std::string& boss,
+                                      const std::string& difficulty) {
+  for (const SoloClear& clear : account_.solo_clears()) {
+    if (clear.boss() == boss && clear.difficulty() == difficulty) {
+      return false;
+    }
+  }
+  SoloClear* added = account_.add_solo_clears();
+  added->set_boss(boss);
+  added->set_difficulty(difficulty);
+  return true;
+}
+
 void AccountInstance::SetMultiplayerAccount(const std::string& account_id,
                                             const std::string& token) {
   account_.set_multiplayer_account_id(account_id);
