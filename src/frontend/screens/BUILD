@@ -633,6 +633,48 @@ cc_test(
 )
 
 cc_library(
+    name = "soul_panel",
+    srcs = ["soul_panel.cc"],
+    hdrs = ["soul_panel.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:reroll_prompt",
+        "//src/frontend/widgets:text_columns",
+        "//src/item",
+        "//src/item:currency",
+        "//src/item:equip_instance",
+        "//src/item:soul",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "soul_panel_test",
+    size = "small",
+    srcs = ["soul_panel_test.cc"],
+    deps = [
+        ":soul_panel",
+        "//src/frontend/testing:panel_test_base",
+        "//src/item:currency",
+        "//src/item:equip_instance",
+        "//src/item:soul",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "cube_panel",
     srcs = ["cube_panel.cc"],
     hdrs = ["cube_panel.h"],

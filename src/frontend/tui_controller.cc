@@ -71,6 +71,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       star_force_panel_(screens.star_force_panel),
       cube_panel_(screens.cube_panel),
       flame_panel_(screens.flame_panel),
+      soul_panel_(screens.soul_panel),
       trace_recover_panel_(screens.trace_recover_panel),
       sell_panel_(screens.sell_panel),
       sell_equip_panel_(screens.sell_equip_panel),
@@ -858,6 +859,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnCubeEvent(event);
     case kFlaming:
       return OnFlameEvent(event);
+    case kSouling:
+      return OnSoulEvent(event);
     case kStarForceResult:
       return OnStarForceResultEvent(event);
     case kHammer:
@@ -1011,7 +1014,7 @@ void TuiController::EnsureFocusIsVisible() {
 
 Screen TuiController::SeedUpgradeScreen(Screen next) {
   if (next != kScrollSelect && next != kStarForce && next != kCubing &&
-      next != kFlaming && next != kHammer) {
+      next != kFlaming && next != kSouling && next != kHammer) {
     return next;
   }
   // All four act on the item under the cursor. It is resolved here so nothing
@@ -1031,6 +1034,10 @@ Screen TuiController::SeedUpgradeScreen(Screen next) {
   }
   if (next == kFlaming) {
     flame_panel_.Reset();
+    OpenInspectCards();
+  }
+  if (next == kSouling) {
+    soul_panel_.Reset();
     OpenInspectCards();
   }
   if (next == kHammer) {
@@ -1832,6 +1839,42 @@ void TuiController::RerollFlame(FlameType flame) {
   } else {
     KeepFlame(state_.character, subject_, *roll);
   }
+}
+
+const EquipInstance* TuiController::soul_item() const {
+  if (screen_ != kSouling) {
+    return nullptr;
+  }
+  return subject_.GetInstance(state_.character);
+}
+
+bool TuiController::OnSoulEvent(ftxui::Event event) {
+  soul_panel_.SetItem(soul_item(), state_.character.currencies());
+  bool busy = soul_panel_.IsConfirming();
+  if (IsBack(event) && !busy) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!busy && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    if (right_card_focused_) {
+      inspect_panel_.ScrollBy(delta);
+    } else {
+      soul_panel_.MoveCursor(delta);
+    }
+    return true;
+  }
+  if (soul_panel_.OnEvent(event) == RerollAction::kReroll) {
+    // Copied: spending the last shards drops the purse's entry.
+    const ItemPrototype shard = *soul_panel_.selected_shard();
+    ApplySoulItem(state_.character, subject_, shard);
+  }
+  return true;
 }
 
 bool TuiController::OnHammerEvent(ftxui::Event event) {

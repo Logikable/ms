@@ -95,6 +95,11 @@ std::optional<FlameLines> RollFlameItem(CharacterInstance& character,
 bool KeepFlame(CharacterInstance& character, ItemRef ref,
                const FlameLines& lines);
 
+// Spends 10 of `shard` on a soul rolled onto the weapon `ref` names. False,
+// spending nothing, if it takes no soul or the shards are short.
+bool ApplySoulItem(CharacterInstance& character, ItemRef ref,
+                   const ItemPrototype& shard);
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_ITEM_REF_H_

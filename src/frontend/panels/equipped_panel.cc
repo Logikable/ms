@@ -37,7 +37,7 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cube",
-             "Flame", "Close"}),
+             "Flame", "Soul", "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
   // Opens on the preset the character is wearing, so the tab the player sees is
   // their current gear and an item's comparison card compares against it. The
@@ -181,6 +181,9 @@ void EquippedPanel::HideLockedEntries() {
   if (!Unlocked(Feature::kFlame, character_, account_)) {
     menu_.Hide(kGearMenuFlame);
   }
+  if (!Unlocked(Feature::kSoul, character_, account_)) {
+    menu_.Hide(kGearMenuSoul);
+  }
 }
 
 // Hides what the worn item can never take. All of these check the prototype: an
@@ -189,6 +192,7 @@ void EquippedPanel::HideLockedEntries() {
 // been upgraded.
 void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    menu_.Hide(kGearMenuSoul);
     return;
   }
   // A preset can only unequip its own items. An inherited item belongs to the
@@ -218,6 +222,9 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (!item.CanFlame()) {
     menu_.Hide(kGearMenuFlame);
   }
+  if (!item.CanTakeSoul()) {
+    menu_.Hide(kGearMenuSoul);
+  }
   if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kGearMenuStarForce);
   } else if (!item.CanStarForce()) {
@@ -244,6 +251,9 @@ void EquippedPanel::HighlightTrail() {
   }
   if (LeadToAction(Feature::kFlame, character_, account_)) {
     menu_.Highlight(kGearMenuFlame);
+  }
+  if (LeadToAction(Feature::kSoul, character_, account_)) {
+    menu_.Highlight(kGearMenuSoul);
   }
 }
 
@@ -324,6 +334,10 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   if (open.selected() == kGearMenuFlame) {
     FollowedToAction(Feature::kFlame, account_);
     return kFlaming;
+  }
+  if (open.selected() == kGearMenuSoul) {
+    FollowedToAction(Feature::kSoul, account_);
+    return kSouling;
   }
   return kMain;
 }

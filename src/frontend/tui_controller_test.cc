@@ -42,6 +42,7 @@
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_screen.h"
+#include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
@@ -51,6 +52,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/flame.h"
+#include "src/item/soul.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -322,22 +324,23 @@ class TuiControllerTest : public testing::Test {
     jukebox_panel_ = std::make_unique<JukeboxPanel>(*state_, music_director_,
                                                     state_->account);
     controller_ = std::make_unique<TuiController>(
-        *state_, Screens{*char_panel_,          *equip_panel_,
-                         *inventory_panel_,     *scroll_panel_,
-                         inspect_panel_,        preview_inspect_panel_,
-                         *star_force_panel_,    cube_panel_,
-                         flame_panel_,          *trace_recover_panel_,
-                         *sell_panel_,          *sell_equip_panel_,
-                         *multi_sell_panel_,    *map_select_panel_,
-                         *mob_inspect_panel_,   *boss_select_panel_,
-                         party_select_panel_,   player_list_panel_,
-                         *trade_panel_,         *player_inspect_panel_,
-                         player_item_panel_,    *shop_panel_,
-                         *buy_panel_,           *bank_panel_,
-                         *link_skill_panel_,    *job_inspect_panel_,
-                         skill_inspect_screen_, buff_info_panel_,
-                         *menu_panel_,          *keybinds_panel_,
-                         *options_panel_,       *jukebox_panel_},
+        *state_, Screens{*char_panel_,           *equip_panel_,
+                         *inventory_panel_,      *scroll_panel_,
+                         inspect_panel_,         preview_inspect_panel_,
+                         *star_force_panel_,     cube_panel_,
+                         flame_panel_,           soul_panel_,
+                         *trace_recover_panel_,  *sell_panel_,
+                         *sell_equip_panel_,     *multi_sell_panel_,
+                         *map_select_panel_,     *mob_inspect_panel_,
+                         *boss_select_panel_,    party_select_panel_,
+                         player_list_panel_,     *trade_panel_,
+                         *player_inspect_panel_, player_item_panel_,
+                         *shop_panel_,           *buy_panel_,
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can fill slots_.
@@ -498,22 +501,23 @@ class TuiControllerTest : public testing::Test {
     trade_panel_ =
         std::make_unique<TradePanel>(state_->character, state_->account);
     controller_ = std::make_unique<TuiController>(
-        *state_, Screens{*char_panel_,          *equip_panel_,
-                         *inventory_panel_,     *scroll_panel_,
-                         inspect_panel_,        preview_inspect_panel_,
-                         *star_force_panel_,    cube_panel_,
-                         flame_panel_,          *trace_recover_panel_,
-                         *sell_panel_,          *sell_equip_panel_,
-                         *multi_sell_panel_,    *map_select_panel_,
-                         *mob_inspect_panel_,   *boss_select_panel_,
-                         party_select_panel_,   player_list_panel_,
-                         *trade_panel_,         *player_inspect_panel_,
-                         player_item_panel_,    *shop_panel_,
-                         *buy_panel_,           *bank_panel_,
-                         *link_skill_panel_,    *job_inspect_panel_,
-                         skill_inspect_screen_, buff_info_panel_,
-                         *menu_panel_,          *keybinds_panel_,
-                         *options_panel_,       *jukebox_panel_},
+        *state_, Screens{*char_panel_,           *equip_panel_,
+                         *inventory_panel_,      *scroll_panel_,
+                         inspect_panel_,         preview_inspect_panel_,
+                         *star_force_panel_,     cube_panel_,
+                         flame_panel_,           soul_panel_,
+                         *trace_recover_panel_,  *sell_panel_,
+                         *sell_equip_panel_,     *multi_sell_panel_,
+                         *map_select_panel_,     *mob_inspect_panel_,
+                         *boss_select_panel_,    party_select_panel_,
+                         player_list_panel_,     *trade_panel_,
+                         *player_inspect_panel_, player_item_panel_,
+                         *shop_panel_,           *buy_panel_,
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -640,22 +644,23 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ =
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_, Screens{*char_panel_,          *equip_panel_,
-                         *inventory_panel_,     *scroll_panel_,
-                         inspect_panel_,        preview_inspect_panel_,
-                         *star_force_panel_,    cube_panel_,
-                         flame_panel_,          *trace_recover_panel_,
-                         *sell_panel_,          *sell_equip_panel_,
-                         *multi_sell_panel_,    *map_select_panel_,
-                         *mob_inspect_panel_,   *boss_select_panel_,
-                         party_select_panel_,   player_list_panel_,
-                         *trade_panel_,         *player_inspect_panel_,
-                         player_item_panel_,    *shop_panel_,
-                         *buy_panel_,           *bank_panel_,
-                         *link_skill_panel_,    *job_inspect_panel_,
-                         skill_inspect_screen_, buff_info_panel_,
-                         *menu_panel_,          *keybinds_panel_,
-                         *options_panel_,       *jukebox_panel_},
+        *state_, Screens{*char_panel_,           *equip_panel_,
+                         *inventory_panel_,      *scroll_panel_,
+                         inspect_panel_,         preview_inspect_panel_,
+                         *star_force_panel_,     cube_panel_,
+                         flame_panel_,           soul_panel_,
+                         *trace_recover_panel_,  *sell_panel_,
+                         *sell_equip_panel_,     *multi_sell_panel_,
+                         *map_select_panel_,     *mob_inspect_panel_,
+                         *boss_select_panel_,    party_select_panel_,
+                         player_list_panel_,     *trade_panel_,
+                         *player_inspect_panel_, player_item_panel_,
+                         *shop_panel_,           *buy_panel_,
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_screen_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -682,6 +687,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<StarForcePanel> star_force_panel_;
   CubePanel cube_panel_;
   FlamePanel flame_panel_;
+  SoulPanel soul_panel_;
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<SellPanel> sell_panel_;
   std::unique_ptr<SellEquipPanel> sell_equip_panel_;
@@ -2347,6 +2353,46 @@ TEST_F(TuiControllerTest, BurningFlamesTheItemOnEveryConfirm) {
       << "the worn totals follow the item";
 }
 
+// Each Confirm spends 10 shards on a new soul and keeps the window open; the
+// entry stops being gold once pressed.
+TEST_F(TuiControllerTest, ASoulCostsTenShardsAndStaysOpen) {
+  LevelTo(UnlockLevel(Feature::kSoul));
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  shard.set_short_name("Zakum");
+  shard.set_kind(ITEM_KIND_SOUL_SHARD);
+  shard.set_soul_tier(SOUL_TIER_C);
+  state_->character.AddItem(shard, 25);
+  const EquipInstance& worn =
+      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  const int attack_before = state_->character.equip_stats().attack();
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kGearMenuSoul);
+  controller_->OnEvent(ftxui::Event::Return);  // the screen
+  ASSERT_EQ(controller_->screen(), kSouling);
+  EXPECT_FALSE(
+      LeadToAction(Feature::kSoul, state_->character, state_->account));
+  controller_->OnEvent(ftxui::Event::Return);  // the question
+  controller_->OnEvent(ftxui::Event::Return);  // a soul
+  EXPECT_EQ(worn.equip_state().soul().boss(), "Zakum");
+  EXPECT_EQ(state_->character.currencies().Count(shard.name()), 15);
+  EXPECT_GE(state_->character.equip_stats().attack(),
+            attack_before + kSoulGaugeAttack)
+      << "the worn totals follow the weapon";
+  controller_->OnEvent(ftxui::Event::Return);  // another
+  EXPECT_EQ(state_->character.currencies().Count(shard.name()), 5);
+  EXPECT_TRUE(soul_panel_.IsConfirming());
+  controller_->OnEvent(
+      ftxui::Event::Return);  // Cancel, now the shards are short
+  EXPECT_EQ(state_->character.currencies().Count(shard.name()), 5);
+  EXPECT_FALSE(soul_panel_.IsConfirming());
+  EXPECT_EQ(controller_->screen(), kSouling);
+}
+
 // Black rolls into After and charges, and the item changes only on Keep ↓.
 TEST_F(TuiControllerTest, BlackFlamesChangeNothingUntilKept) {
   LevelTo(UnlockLevel(Feature::kFlame));
@@ -3307,6 +3353,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   InspectPanel worn_card;
   CubePanel cube;
   FlamePanel flame;
+  SoulPanel soul;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
@@ -3318,13 +3365,14 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   MusicDirector director(player, music_rng);
   JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,        scroll, item_card,
-                     trace_card, star,       cube,       flame,  trace,
-                     sell,       sell_equip, multi_sell, maps,   mobs,
-                     bosses,     party,      players,    trade,  player_inspect,
-                     worn_card,  shop,       buy,        bank,   links,
-                     jobs,       skill_card, buffs,      menu,   keybinds,
-                     options,    jukebox},
+      fresh,
+      Screens{chars,          equip,     bag,        scroll,     item_card,
+              trace_card,     star,      cube,       flame,      soul,
+              trace,          sell,      sell_equip, multi_sell, maps,
+              mobs,           bosses,    party,      players,    trade,
+              player_inspect, worn_card, shop,       buy,        bank,
+              links,          jobs,      skill_card, buffs,      menu,
+              keybinds,       options,   jukebox},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -3384,6 +3432,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   InspectPanel worn_card;
   CubePanel cube;
   FlamePanel flame;
+  SoulPanel soul;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
@@ -3395,13 +3444,14 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   MusicDirector director(player, music_rng);
   JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,        scroll, item_card,
-                     trace_card, star,       cube,       flame,  trace,
-                     sell,       sell_equip, multi_sell, maps,   mobs,
-                     bosses,     party,      players,    trade,  player_inspect,
-                     worn_card,  shop,       buy,        bank,   links,
-                     jobs,       skill_card, buffs,      menu,   keybinds,
-                     options,    jukebox},
+      fresh,
+      Screens{chars,          equip,     bag,        scroll,     item_card,
+              trace_card,     star,      cube,       flame,      soul,
+              trace,          sell,      sell_equip, multi_sell, maps,
+              mobs,           bosses,    party,      players,    trade,
+              player_inspect, worn_card, shop,       buy,        bank,
+              links,          jobs,      skill_card, buffs,      menu,
+              keybinds,       options,   jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -3444,6 +3494,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   InspectPanel worn_card;
   CubePanel cube;
   FlamePanel flame;
+  SoulPanel soul;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
@@ -3455,13 +3506,14 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   MusicDirector director(player, music_rng);
   JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,        scroll, item_card,
-                     trace_card, star,       cube,       flame,  trace,
-                     sell,       sell_equip, multi_sell, maps,   mobs,
-                     bosses,     party,      players,    trade,  player_inspect,
-                     worn_card,  shop,       buy,        bank,   links,
-                     jobs,       skill_card, buffs,      menu,   keybinds,
-                     options,    jukebox},
+      fresh,
+      Screens{chars,          equip,     bag,        scroll,     item_card,
+              trace_card,     star,      cube,       flame,      soul,
+              trace,          sell,      sell_equip, multi_sell, maps,
+              mobs,           bosses,    party,      players,    trade,
+              player_inspect, worn_card, shop,       buy,        bank,
+              links,          jobs,      skill_card, buffs,      menu,
+              keybinds,       options,   jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -3504,6 +3556,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   InspectPanel worn_card;
   CubePanel cube;
   FlamePanel flame;
+  SoulPanel soul;
   int focus = kEquipPanel;  // where the game starts
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
@@ -3515,13 +3568,14 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   MusicDirector director(player, music_rng);
   JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,        scroll, item_card,
-                     trace_card, star,       cube,       flame,  trace,
-                     sell,       sell_equip, multi_sell, maps,   mobs,
-                     bosses,     party,      players,    trade,  player_inspect,
-                     worn_card,  shop,       buy,        bank,   links,
-                     jobs,       skill_card, buffs,      menu,   keybinds,
-                     options,    jukebox},
+      fresh,
+      Screens{chars,          equip,     bag,        scroll,     item_card,
+              trace_card,     star,      cube,       flame,      soul,
+              trace,          sell,      sell_equip, multi_sell, maps,
+              mobs,           bosses,    party,      players,    trade,
+              player_inspect, worn_card, shop,       buy,        bank,
+              links,          jobs,      skill_card, buffs,      menu,
+              keybinds,       options,   jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all

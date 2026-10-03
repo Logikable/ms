@@ -1122,6 +1122,35 @@ TEST_F(InventoryPanelTest, FlamesFollowCubingAndSkipATotem) {
             std::string::npos);
 }
 
+// Soul sits under Flame from 235, gold until pressed, on a weapon alone.
+TEST_F(InventoryPanelTest, OnlyAWeaponIsOfferedASoul) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  LevelTo(UnlockLevel(Feature::kSoul) - 1);
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuSoul), 0);
+
+  LevelTo(UnlockLevel(Feature::kFlame));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kMenuSoul), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Flame"), rendered.find("Soul"));
+  EXPECT_LT(rendered.find("Soul"), rendered.find("Close"));
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Soul"), kYellow);
+
+  EquipPrototype hat;
+  hat.set_name("Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  CharacterInstance wearer = MakeCharacter(UnlockLevel(Feature::kSoul));
+  wearer.PickUp(std::make_unique<EquipInstance>(hat));
+  InventoryPanel hat_panel(wearer, account_, panel_focus_);
+  hat_panel.OpenMenu();
+  EXPECT_EQ(RenderElement(hat_panel.menu().Render(0, 0)).find("Soul"),
+            std::string::npos);
+}
+
 // An item a hammer can't improve gets no entry, just as Scroll is hidden on an
 // item that refuses scrolls.
 TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {

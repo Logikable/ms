@@ -950,6 +950,23 @@ TEST_F(EquippedPanelTest, FlamesArriveAfterCubingAndOnlyWhereTheyReach) {
             std::string::npos);
 }
 
+TEST_F(EquippedPanelTest, AWornWeaponIsOfferedASoulFrom235) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  LevelTo(UnlockLevel(Feature::kSoul) - 1);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuSoul), 0);
+
+  LevelTo(UnlockLevel(Feature::kSoul));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuSoul), 0);
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Soul"), kYellow);
+}
+
 TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
   EquipPrototype medal;
   medal.set_name("Ludibrium Medal");

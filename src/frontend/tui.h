@@ -61,6 +61,7 @@
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/skill_inspect_screen.h"
+#include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
@@ -175,6 +176,7 @@ class Tui {
   // confirmation centred over both when one is open.
   ftxui::Element RenderCubing();
   ftxui::Element RenderFlaming();
+  ftxui::Element RenderSouling();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
   // Advances the game by the time since the previous call: combat, and the
@@ -251,6 +253,7 @@ class Tui {
   StarForcePanel star_force_panel_;
   CubePanel cube_panel_;
   FlamePanel flame_panel_;
+  SoulPanel soul_panel_;
   // The item the star force screen last drew, and the same item with one more
   // star. Kept after the attempt because the result window is drawn over these
   // two cards, and a destroyed item is no longer in the bag.

@@ -66,6 +66,9 @@ enum Screen : int {
   // Flaming from an item menu, laid out like cubing: the flame shelf and the
   // item's card, with the flame's confirmation between them.
   kFlaming,
+  // Soul on a weapon's item menu, laid out like flaming: the souls the shards
+  // make and the weapon's card, with the soul's confirmation between them.
+  kSouling,
   // Hammer on the item menu: the confirmation for a piece that can still take a
   // hammer. The entry is greyed out once both hammers are used.
   kHammer,
@@ -217,11 +220,13 @@ enum MenuItem : int {
   // The last upgrades a piece gets, after the three that shape it.
   kMenuCube = 6,
   kMenuFlame = 7,
-  kMenuRecover = 8,
+  // A weapon's alone.
+  kMenuSoul = 8,
+  kMenuRecover = 9,
   // The two entries that get rid of the item, above Close. The cursor doesn't
   // start on them, since they can't be undone.
-  kMenuSell = 9,
-  kMenuMultiSell = 10,
+  kMenuSell = 10,
+  kMenuMultiSell = 11,
 };
 // Entries of the worn-gear context menu, from Enter in the Equipped panel's
 // Gear tab. Shorter than the bag's: worn items can't be sold or combined, and
@@ -237,7 +242,8 @@ enum GearMenuItem : int {
   kGearMenuStarForce = 4,
   kGearMenuCube = 5,
   kGearMenuFlame = 6,
-  kGearMenuClose = 7,
+  kGearMenuSoul = 7,
+  kGearMenuClose = 8,
 };
 // Entries of the Arcane Symbol context menu, from Enter in the Symbols tab. The
 // first two are at the same positions as on the item menu, so the unequip and

@@ -97,4 +97,12 @@ bool KeepFlame(CharacterInstance& character, ItemRef ref,
   return character.TakeInventoryFlame(ref.index(), lines);
 }
 
+bool ApplySoulItem(CharacterInstance& character, ItemRef ref,
+                   const ItemPrototype& shard) {
+  if (ref.equipped()) {
+    return character.ApplySoul(ref.slot(), shard, ref.preset());
+  }
+  return character.ApplyInventorySoul(ref.index(), shard);
+}
+
 }  // namespace ms

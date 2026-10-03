@@ -52,6 +52,7 @@
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_screen.h"
+#include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/symbol_combine_panel.h"
 #include "src/frontend/screens/symbol_level_panel.h"
@@ -96,6 +97,7 @@ struct Screens {
   StarForcePanel& star_force_panel;
   CubePanel& cube_panel;
   FlamePanel& flame_panel;
+  SoulPanel& soul_panel;
   TraceRecoverPanel& trace_recover_panel;
   SellPanel& sell_panel;
   SellEquipPanel& sell_equip_panel;
@@ -640,6 +642,8 @@ class TuiController {
   std::vector<ShelfEntry> cube_shelf() const;
   // The item the flaming screen is working on, read live like cube_item.
   const EquipInstance* flame_item() const;
+  // The weapon the soul screen is working on, read live like cube_item.
+  const EquipInstance* soul_item() const;
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
@@ -710,6 +714,7 @@ class TuiController {
   // Buys one `flame` on the flaming screen's item: applied for Burning, offered
   // as After for Black.
   void RerollFlame(FlameType flame);
+  bool OnSoulEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
   bool OnBoxOpenEvent(ftxui::Event event);
@@ -940,6 +945,7 @@ class TuiController {
   StarForcePanel& star_force_panel_;
   CubePanel& cube_panel_;
   FlamePanel& flame_panel_;
+  SoulPanel& soul_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;
