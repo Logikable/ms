@@ -3163,11 +3163,12 @@ TEST_F(CharacterPanelTest, AbilityLocksCanBeLetters) {
   panel_focus_ = kCharPanel;
   ftxui::Screen screen = RenderToScreen(OnAbilityRows(panel));
   EXPECT_EQ(ScreenText(screen).find("\U0001F512"), std::string::npos);
-  EXPECT_EQ(screen
-                .PixelAt(RowEndOf(screen, "Boss Damage"),
-                         FindCell(screen, "Boss Damage").second)
-                .character,
-            "L");
+  // The cursor is on the first line, and inverts the letter alone.
+  const int x = RowEndOf(screen, "Boss Damage");
+  const int y = FindCell(screen, "Boss Damage").second;
+  EXPECT_EQ(screen.PixelAt(x, y).character, "L");
+  EXPECT_TRUE(screen.PixelAt(x, y).inverted);
+  EXPECT_FALSE(screen.PixelAt(x + 1, y).inverted);
   EXPECT_EQ(
       screen.PixelAt(RowEndOf(screen, "STR"), FindCell(screen, "STR").second)
           .character,

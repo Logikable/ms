@@ -70,9 +70,10 @@ constexpr char kBossTabLabel[] = "Boss";
 // either way, so the lock is in the same column on every row.
 constexpr char kLockedGlyph[] = "\U0001F512";
 constexpr char kUnlockedGlyph[] = "\U0001F513";
-// The same in letters, for the Inner Ability Emoji option turned off.
-constexpr char kLockedLetter[] = "L ";
-constexpr char kUnlockedLetter[] = "U ";
+// The same in letters, for the Inner Ability Emoji option turned off. One
+// column, so the row pads the second.
+constexpr char kLockedLetter[] = "L";
+constexpr char kUnlockedLetter[] = "U";
 
 // The banner shown with the preset's rank, above its lines.
 constexpr char kAbilityBannerGlyph[] = "\u2691";
@@ -1357,7 +1358,7 @@ ftxui::Element CharacterPanel::RenderAbilityRow(const AbilityLine& line,
              ftxui::text(label) | ftxui::color(RarityColor(line.rank())),
              ftxui::filler(),
              std::move(lock_cell),
-             ftxui::text(" "),
+             ftxui::text(emoji ? " " : "  "),
          }) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth());
 }
