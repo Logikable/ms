@@ -29,11 +29,12 @@ enum class Option {
   kPanelTitleBlink,
   kAutoswapPresets,
   kBuffIndicators,
+  kInnerAbilityEmoji,
   kMute,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 6 : 3;
+inline constexpr int kOptionCount = kAudioEnabled ? 7 : 4;
 
 class OptionsPanel {
  public:

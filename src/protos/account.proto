@@ -124,6 +124,10 @@ message Options {
   // this. Remembered, unlike Practice, since it costs no clear.
   bool void_boss_drops = 9;
 
+  // Whether an Inner Ability line's lock is drawn as the letter L or U rather
+  // than a padlock emoji, for a terminal that can't draw one. Off by default.
+  bool plain_ability_locks = 10;
+
   // Field 5 was a shuffle switch on the Options screen, replaced by
   // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on
   // costs the player one keypress on the Jukebox screen, while reading it would

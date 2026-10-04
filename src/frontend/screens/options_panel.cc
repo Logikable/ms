@@ -20,6 +20,8 @@ std::string OptionName(Option option) {
       return "Autoswap Presets";
     case Option::kBuffIndicators:
       return "Buff Indicators";
+    case Option::kInnerAbilityEmoji:
+      return "Inner Ability Emoji";
     case Option::kMute:
       return "Mute";
     case Option::kMapBgmVolume:
@@ -70,6 +72,8 @@ bool OptionsPanel::IsOn(Option option) const {
       return account_.autoswap_presets();
     case Option::kBuffIndicators:
       return account_.buff_indicators();
+    case Option::kInnerAbilityEmoji:
+      return account_.inner_ability_emoji();
     case Option::kMute:
       return account_.mute();
     case Option::kMapBgmVolume:
@@ -88,6 +92,7 @@ int OptionsPanel::VolumeOf(Option option) const {
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
+    case Option::kInnerAbilityEmoji:
     case Option::kMute:
       return 0;
   }
@@ -107,6 +112,9 @@ void OptionsPanel::Toggle() {
       return;
     case Option::kBuffIndicators:
       account_.SetBuffIndicators(!account_.buff_indicators());
+      return;
+    case Option::kInnerAbilityEmoji:
+      account_.SetInnerAbilityEmoji(!account_.inner_ability_emoji());
       return;
     case Option::kMute:
       account_.SetMute(!account_.mute());
@@ -132,6 +140,7 @@ void OptionsPanel::Adjust(int delta) {
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
+    case Option::kInnerAbilityEmoji:
     case Option::kMute:
       return;
   }
