@@ -44,9 +44,7 @@ difficulties {
   }
 }
 difficulties {
-  # Not built yet: no time limit, unlock level or reward until it is.
   name: "Hard"
-  coming_soon: true
   phases {
     bgm: "SubterminalPoint"
     spawns {
@@ -67,5 +65,57 @@ difficulties {
     player_spots { x: 6 y: 5 }
     arena_width: 9
     arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 240
+  arcane_force: 850
+  # Five Intense Power Crystals at GMS's price (133,584,000), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 95400000
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "darknells_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
+  # Gloom, x2 for Hard.
+  drops {
+    equip: "estella_earrings"
+    per_kill: 0.2
+  }
+  # GMS never published the odds. The boxes pay one piece for every three the
+  # coins buy across the tier, shared with fights that drop no coin.
+  drops {
+    item: "arcane_umbra_weapon_box"
+    per_kill: 0.0222
+  }
+  drops {
+    item: "arcane_umbra_armor_box"
+    per_kill: 0.0667
+  }
+  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
+  drops {
+    equip: "commanding_force_earring"
+    per_kill: 0.2
+  }
+  # The user's planned rate (2026-10-04): GMS publishes none.
+  drops {
+    item: "black_jade_boss_ring_box"
+    per_kill: 0.02
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
   }
 }

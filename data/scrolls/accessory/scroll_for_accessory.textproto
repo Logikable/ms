@@ -1,0 +1,18 @@
+# GMS's Scroll - Accessory Coupon gives ATT or MATT, +2 at 70%, +3 at 20% and
+# +4 at 10%. Here one scroll gives both, always +3: the mean rounded up, as the
+# premium scroll's +5 is.
+name: "Scroll for Accessory"
+success_rate: 100
+stats {
+  attack: 3
+  magic_attack: 3
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_ATT
+target: SCROLL_TARGET_ACCESSORY
+paid_with: "Scroll for Accessory"

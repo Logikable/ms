@@ -188,16 +188,18 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
     }
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
-  // Chaos Zakum, for whom GMS gives no EXP; and both Lotus fights, the
-  // Guardian Angel Slime, Lucid, Will, Gloom and Darknell, which are the same
-  // case and are fought for their drops.
-  EXPECT_EQ(unpaid, std::vector<std::string>(
-                        {"crimson_queen", "darknell", "gloom",
-                         "guardian_angel_slime", "lotus", "lotus", "lucid",
-                         "pierre", "vellum", "von_bon", "will", "zakum"}));
+  // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
+  // the Guardian Angel Slime, Lucid, Will, Gloom and Darknell, which are the
+  // same case and are fought for their drops.
+  EXPECT_EQ(unpaid,
+            std::vector<std::string>({"crimson_queen", "darknell", "darknell",
+                                      "gloom", "gloom", "guardian_angel_slime",
+                                      "guardian_angel_slime", "lotus", "lotus",
+                                      "lucid", "lucid", "pierre", "vellum",
+                                      "von_bon", "will", "will", "zakum"}));
 }
 
-// A shell (Chaos Guardian Angel Slime) can't be entered, so a timer, gate or
+// A shell (none today) can't be entered, so a timer, gate or
 // reward on one would be a promise the screen never shows.
 TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   std::vector<std::string> shells;
@@ -216,9 +218,7 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(shells, std::vector<std::string>({"darknell Hard", "gloom Chaos",
-                                              "guardian_angel_slime Chaos",
-                                              "lucid Hard", "will Hard"}));
+  EXPECT_EQ(shells, std::vector<std::string>());
 }
 
 // Each harder fight is its Normal with GMS's Hard or Chaos numbers, and the
@@ -342,12 +342,11 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 27) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "Guardian Angel Slime, Lucid, Will, Gloom, "
-                           "Darknell, the "
-                           "four of Root Abyss, and "
-                           "both difficulties of Zakum, Magnus, Pink Bean, "
-                           "Hilla, Horntail, Lotus and Damien";
+  EXPECT_EQ(fights, 32) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "four of Root Abyss, and both difficulties of "
+                           "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
+                           "Damien, the Guardian Angel Slime, Lucid, Will, "
+                           "Gloom and Darknell";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -648,8 +647,9 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   }
 }
 
-// Hard Damien and Hard Lotus pay what Normal does plus the AbsoLab boxes and
-// their pitched pieces, on Normal's gate and GMS's thirty-minute clock.
+// Hard Damien and Hard Lotus pay what Normal does plus the AbsoLab boxes,
+// their pitched pieces and the accessory scroll, on Normal's gate and GMS's
+// thirty-minute clock.
 TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
   struct Want {
     std::string boss;
@@ -670,7 +670,7 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
     ASSERT_EQ(hard.drops_size(),
-              normal.drops_size() + 2 + static_cast<int>(want.pitched.size()));
+              normal.drops_size() + 3 + static_cast<int>(want.pitched.size()));
     for (int i = 0; i < normal.drops_size(); ++i) {
       EXPECT_EQ(DropKey(hard.drops(i)), DropKey(normal.drops(i)));
     }
@@ -680,20 +680,27 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
       EXPECT_EQ(hard.drops(normal.drops_size() + 2 + i).equip(),
                 want.pitched[i]);
     }
+    EXPECT_EQ(hard.drops(hard.drops_size() - 1).item(), "scroll_for_accessory");
   }
 }
 
 // Where a drop sits in the boss drop tiers (memory boss_drop_tiers.md). A
 // currency's Normal rate is its tier's; an accessory's is 1 / days to a full
 // set x the accessory multiplier, split between the bosses that drop it; a box
-// pays one piece for every three its currency buys.
-enum class DropKind { kCurrency, kAccessory, kBox };
+// pays one piece for every three its currency buys. A fixed rate is the user's,
+// outside the tiers.
+enum class DropKind { kCurrency, kAccessory, kBox, kFixed };
 struct TierDrop {
   int tier = 1;
   DropKind kind = DropKind::kCurrency;
-  // A box only: the currency it is judged against and what its piece costs.
-  std::string currency;
+  // A box only: what its piece costs, and the fights dropping the currency
+  // against the fights dropping the box, each counted at the box's
+  // difficulty (a Normal fight is half of one).
   int price = 0;
+  double currency_fights = 1;
+  double box_fights = 1;
+  // kFixed only.
+  double rate = 0.0;
 };
 
 // The two levers, and each tier's currency rate at Normal.
@@ -722,8 +729,8 @@ const std::map<std::string, TierDrop>& TierDrops() {
     for (const char* key : {"absolab_coin", "captivating_fragment"}) {
       (*drops)[key] = {2, DropKind::kCurrency};
     }
-    (*drops)["absolab_armor_box"] = {2, DropKind::kBox, "absolab_coin", 1};
-    (*drops)["absolab_weapon_box"] = {2, DropKind::kBox, "absolab_coin", 3};
+    (*drops)["absolab_armor_box"] = {2, DropKind::kBox, 1};
+    (*drops)["absolab_weapon_box"] = {2, DropKind::kBox, 3};
     for (const char* key :
          {"guardian_angel_ring", "twilight_mark", "estella_earrings"}) {
       (*drops)[key] = {2, DropKind::kAccessory};
@@ -731,9 +738,23 @@ const std::map<std::string, TierDrop>& TierDrops() {
     for (const char* key : {"phantasma_coin", "arachno_coin"}) {
       (*drops)[key] = {3, DropKind::kCurrency};
     }
-    for (const char* key : {"magic_eyepatch", "berserked", "black_heart"}) {
+    for (const char* key :
+         {"magic_eyepatch", "berserked", "black_heart", "dreamy_belt",
+          "wills_cursed_spellbook_selection_box", "endless_terror",
+          "commanding_force_earring"}) {
       (*drops)[key] = {3, DropKind::kAccessory};
     }
+    // Two coin fights (Hard Lucid, Hard Will) against six box fights, Normal
+    // Verus Hilla and Hard Black Mage among them at half (unbuilt).
+    (*drops)["arcane_umbra_armor_box"] = {3, DropKind::kBox, 1, 2, 5};
+    (*drops)["arcane_umbra_weapon_box"] = {3, DropKind::kBox, 3, 2, 5};
+    // The user's rates (2026-10-04, memory boss_ring_boxes.md).
+    (*drops)["black_jade_boss_ring_box"] = {3, DropKind::kFixed, 0, 1, 1, 0.02};
+    for (const char* key : {"premium_scroll_for_accessory",
+                            "premium_scroll_for_pet", "scroll_for_accessory"}) {
+      (*drops)[key] = {3, DropKind::kFixed, 0, 1, 1, 0.5};
+    }
+    (*drops)["magical_scroll_for_weapon"] = {3, DropKind::kFixed, 0, 1, 1, 0.1};
     return drops;
   }();
   return *kDrops;
@@ -796,7 +817,11 @@ TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
                    sources[key];
             break;
           case DropKind::kBox:
-            want = kCurrencyRate[tier.tier - 1] * steps / (3.0 * tier.price);
+            want = kCurrencyRate[tier.tier - 1] * steps * tier.currency_fights /
+                   (3.0 * tier.price * tier.box_fights);
+            break;
+          case DropKind::kFixed:
+            want = tier.rate;
             break;
         }
         EXPECT_NEAR(drop.per_kill() * DropRolls(drop), want, 0.005);

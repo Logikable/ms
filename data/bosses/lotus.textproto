@@ -157,4 +157,9 @@ difficulties {
     equip: "black_heart"
     per_kill: 0.2
   }
+  # The user's rate (2026-10-04); GMS publishes none.
+  drops {
+    item: "scroll_for_accessory"
+    per_kill: 0.5
+  }
 }

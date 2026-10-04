@@ -56,9 +56,7 @@ difficulties {
   }
 }
 difficulties {
-  # Not built yet: no time limit, unlock level or reward until it is.
   name: "Hard"
-  coming_soon: true
   phases {
     bgm: "WierldForestIntheGirlsdream"
     spawns {
@@ -89,8 +87,9 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # Hard only: she stands still in the middle of the clocktower, and GMS gives
-  # the party 45 seconds to finish her.
+  # Hard only: she stands still in the middle of the clocktower, and the party
+  # has 45 seconds to finish her. GMS sends her back to Phase 2 on a failure;
+  # here the fight is lost (the user's call, 2026-10-04).
   phases {
     spawns {
       mob: "hard_lucid_phase_3"
@@ -103,5 +102,49 @@ difficulties {
     player_spots { x: 6 y: 5 }
     arena_width: 9
     arena_height: 6
+    time_limit_seconds: 45
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 230
+  arcane_force: 360
+  # Five Intense Power Crystals at GMS's price (100,800,000), divided by seven and
+  # rounded to the nearest 50k.
+  meso: 72000000
+  # GMS lists no EXP on any of the three bodies.
+  exp: 0
+  drops {
+    item: "phantasma_coin"
+    per_kill: 0.5
+  }
+  drops {
+    item: "lucids_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
+  # Will, x2 for Hard.
+  drops {
+    equip: "twilight_mark"
+    per_kill: 0.2
+  }
+  # GMS never published the odds. The boxes pay one piece for every three the
+  # coins buy across the tier, shared with fights that drop no coin.
+  drops {
+    item: "arcane_umbra_weapon_box"
+    per_kill: 0.0222
+  }
+  drops {
+    item: "arcane_umbra_armor_box"
+    per_kill: 0.0667
+  }
+  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
+  drops {
+    equip: "dreamy_belt"
+    per_kill: 0.2
+  }
+  # The user's rate (2026-10-04); GMS publishes none.
+  drops {
+    item: "scroll_for_accessory"
+    per_kill: 0.5
   }
 }

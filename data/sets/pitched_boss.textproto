@@ -1,6 +1,6 @@
 name: EQUIP_SET_NAME_PITCHED_BOSS
-# GMS's ten slots. The badge, emblem, pendant, pocket, earrings, ring and belt
-# pieces drop from fights not built yet.
+# GMS's ten slots. The badge, emblem and pendant drop from fights not built
+# yet.
 complete_pieces: 10
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -13,6 +13,29 @@ members {
 members {
   slot: EQUIP_SLOT_HEART
   items { name: "Black Heart" }
+}
+members {
+  slot: EQUIP_SLOT_BELT
+  items { name: "Dreamy Belt" }
+}
+members {
+  slot: EQUIP_SLOT_POCKET
+  items {
+    name: [
+      "Cursed Red Spellbook",
+      "Cursed Blue Spellbook",
+      "Cursed Green Spellbook",
+      "Cursed Yellow Spellbook"
+    ]
+  }
+}
+members {
+  slot: EQUIP_SLOT_RING
+  items { name: "Endless Terror" }
+}
+members {
+  slot: EQUIP_SLOT_EARRINGS
+  items { name: "Commanding Force Earring" }
 }
 tiers {
   pieces: 2

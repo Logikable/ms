@@ -1,0 +1,17 @@
+name: "Commanding Force Earring"
+required_level: 200
+base_stats {
+  str: 7
+  dex: 7
+  int: 7
+  luk: 7
+  attack: 5
+  magic_attack: 5
+  max_hp: 500
+  max_mp: 500
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EARRINGS
+upgrade_slots: 8
+sell_price: 0

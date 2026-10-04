@@ -486,6 +486,23 @@ std::vector<std::string> HardBlackHeavenGear() {
   return {"berserked", "magic_eyepatch", "black_heart"};
 }
 
+// The pitched pieces Hard Lucid and Hard Will drop: the belt, and the
+// spellbook of the branch's main stat (every Explorer pirate is cut).
+std::vector<std::string> HardLucidAndWillGear(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return {"dreamy_belt", "cursed_red_spellbook"};
+    case JobBranch::kMagician:
+      return {"dreamy_belt", "cursed_blue_spellbook"};
+    case JobBranch::kArcher:
+      return {"dreamy_belt", "cursed_green_spellbook"};
+    case JobBranch::kRogue:
+      return {"dreamy_belt", "cursed_yellow_spellbook"};
+    default:
+      return {"dreamy_belt"};
+  }
+}
+
 std::vector<std::string> AbsoLabGear(Job job) {
   std::vector<std::string> names = AbsoLabArmour(job);
   std::string weapon = AbsoLabWeapon(job);
@@ -751,9 +768,17 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
   }
   if (level >= kLucidAndWillLevel) {
     WearAll(state, ArcaneUmbraGear(job), equips);
+    WearAll(state, HardLucidAndWillGear(job), equips);
   }
   if (level >= kGloomAndDarknellLevel) {
-    WearAll(state, {"estella_earrings"}, equips);
+    // The Commanding Force Earring outclasses the Estella Earrings.
+    WearAll(state, {"commanding_force_earring"}, equips);
+    std::map<std::string, EquipPrototype>::const_iterator ring =
+        state.equips.find("endless_terror");
+    if (ring != state.equips.end()) {
+      MakeRoomFor(state, ring->second);
+      WearAll(state, {"endless_terror"}, equips);
+    }
   }
 }
 
@@ -1479,10 +1504,12 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.name() == "Guardian Angel Ring") {
     return kGuardianAngelSlimeLevel;
   }
-  if (proto.name() == "Twilight Mark") {
+  if (proto.name() == "Twilight Mark" || proto.name() == "Dreamy Belt" ||
+      proto.name().find("Cursed ") == 0) {
     return kLucidAndWillLevel;
   }
-  if (proto.name() == "Estella Earrings") {
+  if (proto.name() == "Estella Earrings" || proto.name() == "Endless Terror" ||
+      proto.name() == "Commanding Force Earring") {
     return kGloomAndDarknellLevel;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||

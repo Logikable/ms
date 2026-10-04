@@ -1,0 +1,16 @@
+name: "Endless Terror"
+required_level: 200
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  attack: 4
+  magic_attack: 4
+  max_hp: 250
+  max_mp: 250
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 4
+sell_price: 0

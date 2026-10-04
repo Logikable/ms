@@ -217,6 +217,12 @@ constexpr Clear kClears[] = {
     {"damien", "Hard", 255},
     {"lotus", "Hard", 255},
     {"darknell", "Normal", 255},
+    // Not yet read off a sweep: the cap until one is.
+    {"guardian_angel_slime", "Chaos", 260},
+    {"lucid", "Hard", 260},
+    {"will", "Hard", 260},
+    {"gloom", "Chaos", 260},
+    {"darknell", "Hard", 260},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what
