@@ -22,6 +22,11 @@ std::vector<ArenaSpot> AllPlayerSpots(const BossPhase& phase);
 // the furthest cell anything stands on, with no margin.
 ArenaSpot ArenaSize(const BossPhase& phase);
 
+// Starts `phase`'s own clock, if it has one: cuts `seconds_left` to the
+// phase's limit and returns the seconds taken off, which the fight's elapsed
+// time must not lose.
+double CutToPhaseClock(const BossPhase& phase, double& seconds_left);
+
 // Whether the timed spots are open `fight_seconds` after the countdown ended.
 bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds);
 

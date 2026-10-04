@@ -223,6 +223,23 @@ TEST_F(FightTest, TheClockRunsOut) {
   EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
 }
 
+// A phase with its own clock cuts the fight's as it begins, as in solo play.
+TEST(FightClockTest, APhaseClockCutsTheFightsClockAndLosesIt) {
+  Boss boss = TwoPhases();
+  boss.mutable_difficulties(0)->mutable_phases(1)->set_time_limit_seconds(10);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Hit("one", 0, 100);
+  fight.Hit("one", 1, 100);
+  fight.Advance(0.1);
+  fight.Advance(kBossPhaseGapSeconds);
+  ASSERT_EQ(fight.phase(), 1);
+  EXPECT_DOUBLE_EQ(fight.seconds_left(), 10.0);
+  fight.Advance(10.0);
+  EXPECT_EQ(fight.state(), PartyFightState::kTimedOut);
+}
+
 TEST_F(FightTest, OneSpotHoldsOnePlayer) {
   CountIn();
 

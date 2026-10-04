@@ -86,14 +86,13 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   BossRun run(boss_key, found->second, difficulty_index);
   while (!run.done()) {
     run.Advance(state, kStepSeconds);
-    if (WalkedOut(LeftStanding(run, phase_hp), clock - run.seconds_left(),
-                  clock)) {
+    if (WalkedOut(LeftStanding(run, phase_hp), run.FightSeconds(), clock)) {
       break;
     }
   }
   BossOutcome outcome;
   outcome.won = run.won();
-  outcome.seconds = clock - run.seconds_left();
+  outcome.seconds = run.FightSeconds();
   if (!outcome.won) {
     outcome.left = LeftStanding(run, phase_hp);
     double pace = (1.0 - outcome.left) / std::max(outcome.seconds, 1.0);

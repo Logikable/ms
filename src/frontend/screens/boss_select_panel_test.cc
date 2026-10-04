@@ -180,6 +180,18 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   EXPECT_EQ(out.find("EXP"), std::string::npos);
 }
 
+// A phase with its own clock names it beside the fight's.
+TEST(BossSelectPanelTest, APhaseClockFollowsTheTimeLimit) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"]
+      .mutable_difficulties(0)
+      ->mutable_phases(1)
+      ->set_time_limit_seconds(45);
+  BossSelectPanel panel(state);
+  EXPECT_NE(Render(panel).find("5:00 (P2 0:45)"), std::string::npos);
+}
+
 // The rewards a clear pays, which is what the player compares when there is
 // more than one fight. An equip's name comes from the equip catalog.
 TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {

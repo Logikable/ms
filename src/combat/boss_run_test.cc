@@ -818,6 +818,35 @@ TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   EXPECT_EQ(run.phase(), 1);
 }
 
+// A phase with its own clock cuts the fight's to it as the phase begins, and
+// running that out loses the fight. The fight's own time keeps counting from
+// the start, and a clock longer than what is left changes nothing.
+TEST(BossRunTest, APhaseClockCutsTheFightsClockAndLosesIt) {
+  std::unique_ptr<GameState> state = MakeState(40, 1000000000);
+  Boss boss = TwoPhaseBoss();
+  boss.mutable_difficulties(0)->mutable_phases(1)->set_time_limit_seconds(10);
+  BossRun run("zakum", boss, 0);
+  while (!run.done() && run.phase() < 2) {
+    run.Advance(*state, 0.05);
+  }
+  ASSERT_EQ(run.phase(), 2);
+  EXPECT_LE(run.seconds_left(), 10.0);
+  const double started = run.FightSeconds();
+  EXPECT_GT(started, kBossPhaseGapSeconds);
+  RunToEnd(run, *state);
+  EXPECT_EQ(run.state(), BossRunState::kTimedOut);
+  EXPECT_EQ(run.phase(), 2);
+  EXPECT_NEAR(run.FightSeconds(), started + 10.0, 0.1);
+
+  boss.mutable_difficulties(0)->mutable_phases(1)->set_time_limit_seconds(400);
+  std::unique_ptr<GameState> again = MakeState(40, 1000000000);
+  BossRun longer("zakum", boss, 0);
+  while (!longer.done() && longer.phase() < 2) {
+    longer.Advance(*again, 0.05);
+  }
+  EXPECT_NEAR(longer.seconds_left() + longer.FightSeconds(), 300.0, 1e-9);
+}
+
 // A win holds its last moment on screen, but an abort doesn't. The player chose
 // to leave, so there's nothing left to watch.
 TEST(BossRunTest, AbortingEndsItWithNoClosingBeat) {

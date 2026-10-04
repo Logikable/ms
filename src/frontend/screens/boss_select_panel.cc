@@ -382,8 +382,15 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   RenderPhaseHp(rows, difficulty);
   rows.push_back(
       DetailRow("PDR", std::to_string(BossPdr(state_, difficulty)) + "%"));
-  rows.push_back(
-      DetailRow("Time Limit", Clock(difficulty.time_limit_seconds())));
+  std::string clock = Clock(difficulty.time_limit_seconds());
+  // A phase with a clock of its own, which the fight is lost on.
+  for (int i = 0; i < difficulty.phases_size(); ++i) {
+    if (difficulty.phases(i).time_limit_seconds() > 0) {
+      clock += " (P" + std::to_string(i + 1) + " " +
+               Clock(difficulty.phases(i).time_limit_seconds()) + ")";
+    }
+  }
+  rows.push_back(DetailRow("Time Limit", clock));
   rows.push_back(DetailRow("Reset", ResetName(difficulty.reset())));
   if (!Unlocked(difficulty)) {
     // Neither "Available" nor "Cleared" applies to a fight the character can't

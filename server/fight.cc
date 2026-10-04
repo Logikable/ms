@@ -83,6 +83,7 @@ void PartyFight::EnterPhase(int phase) {
   if (current == nullptr) {
     return;
   }
+  clock_cut_ += CutToPhaseClock(*current, seconds_left_);
   // Build the mob list the same way clients do, so slot numbers mean the same
   // mob on both ends.
   for (const Spawn& spawn : current->spawns()) {
@@ -288,7 +289,8 @@ double PartyFight::FightSeconds() const {
   if (chosen == nullptr) {
     return 0.0;
   }
-  return std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
+  return std::max(0.0,
+                  chosen->time_limit_seconds() - seconds_left_ - clock_cut_);
 }
 
 void PartyFight::DropFromClosedSpots() {

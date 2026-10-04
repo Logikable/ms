@@ -297,6 +297,9 @@ class BossRun {
   double seconds_left() const {
     return seconds_left_;
   }
+  // Seconds since the countdown ended, phase gaps included. Not the time limit
+  // less seconds_left(): a phase with its own clock cuts that.
+  double FightSeconds() const;
   // Seconds left in the countdown before the fight starts. 0 once it has
   // started.
   double countdown_left() const {
@@ -425,9 +428,6 @@ class BossRun {
   void TakeShared(const SharedFight& shared);
   // Drops everyone standing on a closed spot, the same way the server does.
   void DropShared(const SharedFight& shared);
-  // Seconds since the countdown ended, phase gaps included: the clock walks
-  // and timed spots follow.
-  double FightSeconds() const;
   // Runs the local fight against the shared monsters: this player's attacks
   // land, monster HP is capped to the server's values, and the damage is
   // reported.
@@ -463,6 +463,8 @@ class BossRun {
   int phase_ = 0;
   double countdown_left_ = kBossCountdownSeconds;
   double seconds_left_ = 0.0;
+  // Seconds a phase's own clock took off seconds_left_ (CutToPhaseClock).
+  double clock_cut_ = 0.0;
   double clear_seconds_ = 0.0;
   DamageBreakdown breakdown_;
   // Party damage breakdowns from the server, and this player's account ID.

@@ -35,6 +35,10 @@ message BossPhase {
   // Spots that open and close on the fight's clock, numbered after
   // `player_spots`.
   TimedSpots timed_spots = 6;
+  // When set, the fight's clock drops to this many seconds as the phase starts
+  // (if less is left, nothing changes), and running out ends the fight as a
+  // failure. GMS's Hard Lucid gives her last phase 45 seconds.
+  int32 time_limit_seconds = 7;
 }
 
 // Extra places to stand that open every `interval_ms` of fight time, measured

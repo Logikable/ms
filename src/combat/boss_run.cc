@@ -115,6 +115,9 @@ BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
   boss_name_ = boss.name();
   phases_ = chosen->phases_size();
   seconds_left_ = chosen->time_limit_seconds();
+  if (phases_ > 0) {
+    clock_cut_ = CutToPhaseClock(chosen->phases(0), seconds_left_);
+  }
   StandPlayerAtStart();
 }
 
@@ -226,7 +229,8 @@ double BossRun::FightSeconds() const {
   if (chosen == nullptr) {
     return 0.0;
   }
-  return std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
+  return std::max(0.0,
+                  chosen->time_limit_seconds() - seconds_left_ - clock_cut_);
 }
 
 int BossRun::arena_width() const {
@@ -739,7 +743,7 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
 void BossRun::PayReward(GameState& state,
                         const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
-  clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
+  clear_seconds_ = FightSeconds();
   // A practice run pays nothing: no meso, EXP, honor or drops. The clear time
   // above is still recorded, since beating it is the point.
   if (options_.practice()) {
@@ -825,6 +829,11 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
 void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.phase != phase_) {
     phase_ = shared.phase;
+    // The server cut the clock as the phase began; this player's last reading
+    // is the nearest thing to what it cut from.
+    if (current_phase() != nullptr) {
+      clock_cut_ += CutToPhaseClock(*current_phase(), seconds_left_);
+    }
     slots_.clear();
     // Mob IDs are only valid within the encounter that assigned them, and
     // damage waiting to be reported refers to slots of the finished phase.
@@ -1067,6 +1076,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
       // new phase is a different arena anyway.
       damage_stacks_.clear();
       StandPlayerAtStart();
+      clock_cut_ += CutToPhaseClock(*current_phase(), seconds_left_);
       state_ = BossRunState::kFighting;
       RunPhase(state, -hold_left_);
       return;

@@ -142,4 +142,14 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
   return tied ? from : best;
 }
 
+double CutToPhaseClock(const BossPhase& phase, double& seconds_left) {
+  const double limit = phase.time_limit_seconds();
+  if (limit <= 0.0 || seconds_left <= limit) {
+    return 0.0;
+  }
+  const double cut = seconds_left - limit;
+  seconds_left = limit;
+  return cut;
+}
+
 }  // namespace ms

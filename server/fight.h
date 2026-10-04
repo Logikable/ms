@@ -182,6 +182,8 @@ class PartyFight {
   int phase_ = 0;
   double countdown_left_ = 0.0;
   double seconds_left_ = 0.0;
+  // Seconds a phase's own clock took off seconds_left_ (CutToPhaseClock).
+  double clock_cut_ = 0.0;
   // Seconds left in the current pause: the gap between phases, or the pause
   // at the end before the fight is discarded.
   double hold_left_ = 0.0;
