@@ -2279,6 +2279,42 @@ TEST_F(OpenBoxTest, KeepsTheBoxWhenTheTabIsFull) {
   EXPECT_EQ(c_.CountItem(box_), 2);
 }
 
+// A ring box gives the ring picked at a rolled level, or the Etc item it
+// offers instead, one box a time.
+TEST_F(CharacterTest, ARingBoxGivesThePickAtARolledLevel) {
+  CharacterInstance c = MakeCharacter(rng_);
+  ItemPrototype box;
+  box.set_name("Life Boss Ring Box");
+  RingBox* rings = box.mutable_ring_box();
+  rings->add_skills("Ring of Restraint");
+  RingBox::LevelChance* four = rings->add_levels();
+  four->set_level(4);
+  four->set_chance(1.0);
+  rings->add_items("grindstone_of_life");
+  ItemPrototype grindstone;
+  grindstone.set_name("Grindstone of Life");
+  EquipPrototype ring;
+  ring.set_name("Ring of Restraint Lv. 4");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+  ring.mutable_equipment_skill()->set_level(4);
+  std::map<std::string, EquipPrototype> equips = {{"ring", ring}};
+  c.AddItem(box, 3);
+
+  const EquipPrototype* given = c.OpenRingBox(box, "Ring of Restraint", equips);
+  ASSERT_NE(given, nullptr);
+  EXPECT_EQ(given->name(), "Ring of Restraint Lv. 4");
+  ASSERT_EQ(c.inventory().size(), 1);
+  EXPECT_EQ(c.CountItem(box), 2);
+
+  EXPECT_EQ(c.OpenRingBox(box, "Continuous Ring", equips), nullptr)
+      << "not in the box";
+  EXPECT_TRUE(c.OpenBox(box, "grindstone_of_life", grindstone));
+  EXPECT_FALSE(c.OpenBox(box, "spell_trace", grindstone)) << "not in the box";
+  EXPECT_EQ(c.CountItem(grindstone), 1);
+  EXPECT_EQ(c.CountItem(box), 1);
+}
+
 // --- Buy, stackable ---
 
 class BuyStackableTest : public CharacterTest {

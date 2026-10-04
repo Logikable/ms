@@ -43,6 +43,22 @@ message BoxContents {
   repeated EquipSlot slots = 2;
 }
 
+// A Boss Ring Box. The player picks a ring by the equipment skill it grants
+// (EquipPrototype.equipment_skill), or one of `items` instead, and the ring's
+// level is rolled from `levels`. GMS rolls the ring too; here only the level is
+// left to chance.
+message RingBox {
+  message LevelChance {
+    int32 level = 1;
+    double chance = 2;
+  }
+  repeated string skills = 1;
+  // The chances sum to 1.
+  repeated LevelChance levels = 2;
+  // Etc item data file stems.
+  repeated string items = 3;
+}
+
 // The definition of a stackable item type, loaded from data/items at startup
 // and shared read-only by every stack of that type.
 message ItemPrototype {
@@ -91,8 +107,11 @@ message ItemPrototype {
   // "Zakum's" under a Soul Shard column. Empty means the full name is used,
   // which is true of everything but soul shards.
   string short_name = 11;
-  // Set only on a box, which the Etc menu's Open trades for a piece of gear.
-  BoxContents box = 14;
+  // Set only on a box, which the Etc menu's Open trades for what it holds.
+  oneof opens_into {
+    BoxContents box = 14;
+    RingBox ring_box = 16;
+  }
   // Set only on a soul shard: the tier of the soul 10 of them make.
   SoulTier soul_tier = 15;
 }

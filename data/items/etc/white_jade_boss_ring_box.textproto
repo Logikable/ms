@@ -1,0 +1,10 @@
+name: "White Jade Boss Ring Box"
+sell_price: 0
+description:
+  "A Ring Box shining brightly. Open the box to select a Special Skill Ring "
+  "between Lv. 3 and Lv. 4."
+ring_box {
+  skills: ["Ring of Restraint", "Continuous Ring"]
+  levels { level: 3 chance: 0.65 }
+  levels { level: 4 chance: 0.35 }
+}

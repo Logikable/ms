@@ -208,7 +208,8 @@ ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
 void InventoryPanel::OpenStackMenu() {
   stack_menu_.Reset();
   int row = selected_stack();
-  if (row < 0 || !character_.stackables()[row].prototype().has_box()) {
+  if (row < 0 || character_.stackables()[row].prototype().opens_into_case() ==
+                     ItemPrototype::OPENS_INTO_NOT_SET) {
     stack_menu_.Hide(kStackOpen);
   } else if (character_.inventory().full()) {
     // Grey rather than refused on Confirm: the piece would have nowhere to go.

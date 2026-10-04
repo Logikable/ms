@@ -34,6 +34,7 @@
 #include "src/item/inventory_sort.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
+#include "src/item/ring_box.h"
 #include "src/item/shop.h"
 #include "src/item/soul.h"
 #include "src/item/star_force_cost.h"
@@ -2698,11 +2699,36 @@ bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
 
 bool CharacterInstance::OpenBox(const ItemPrototype& box,
                                 const EquipPrototype& pick) {
-  if (!BoxHolds(box, pick) || !MeetsJob(pick) || RoomFor(pick) < 1 ||
-      !SpendItem(box.name(), 1)) {
+  if (!(BoxHolds(box, pick) || RingBoxHolds(box, pick)) || !MeetsJob(pick) ||
+      RoomFor(pick) < 1 || !SpendItem(box.name(), 1)) {
     return false;
   }
   PickUp(std::make_unique<EquipInstance>(pick));
+  return true;
+}
+
+const EquipPrototype* CharacterInstance::OpenRingBox(
+    const ItemPrototype& box, const std::string& skill,
+    const std::map<std::string, EquipPrototype>& equips) {
+  if (!box.has_ring_box()) {
+    return nullptr;
+  }
+  const EquipPrototype* ring =
+      RingAt(skill, RollRingLevel(box.ring_box(), rng_), equips);
+  if (ring == nullptr || !OpenBox(box, *ring)) {
+    return nullptr;
+  }
+  return ring;
+}
+
+bool CharacterInstance::OpenBox(const ItemPrototype& box,
+                                const std::string& item_key,
+                                const ItemPrototype& item) {
+  if (!RingBoxHolds(box, item_key) || RoomFor(item) < 1 ||
+      !SpendItem(box.name(), 1)) {
+    return false;
+  }
+  AddItem(item, 1);
   return true;
 }
 

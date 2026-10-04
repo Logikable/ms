@@ -46,6 +46,7 @@ cc_library(
         "//src/item:inventory",
         "//src/item:inventory_sort",
         "//src/item:projectile",
+        "//src/item:ring_box",
         "//src/item:shop",
         "//src/item:soul",
         "//src/item:stack_tab",

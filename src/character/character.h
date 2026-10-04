@@ -375,6 +375,17 @@ class CharacterInstance {
   // nothing, unless the box holds `pick` (BoxHolds), this class can wear it and
   // the equip tab has room.
   bool OpenBox(const ItemPrototype& box, const EquipPrototype& pick);
+  // Trades one ring box for the ring granting `skill`, at a level the box
+  // rolls. Returns that ring, or nullptr, spending nothing, when the box
+  // doesn't offer `skill`, the catalog lacks the rolled level or the equip tab
+  // is full.
+  const EquipPrototype* OpenRingBox(
+      const ItemPrototype& box, const std::string& skill,
+      const std::map<std::string, EquipPrototype>& equips);
+  // Trades one ring box for the `item` it offers instead, `item_key` being its
+  // data file stem.
+  bool OpenBox(const ItemPrototype& box, const std::string& item_key,
+               const ItemPrototype& item);
   // The same for a stackable. Price and bag space are both checked first, so a
   // purchase that can't finish takes nothing.
   bool Buy(const ItemPrototype& proto, int count);

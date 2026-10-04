@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/item/ring_box.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -34,20 +35,43 @@ std::string TypeCell(const EquipPrototype& proto) {
 }  // namespace
 
 BoxPanel::BoxPanel(const CharacterInstance& character,
-                   const std::map<std::string, EquipPrototype>& equips)
-    : character_(character), equips_(equips) {
+                   const std::map<std::string, EquipPrototype>& equips,
+                   const std::map<std::string, ItemPrototype>& items)
+    : character_(character), equips_(equips), items_(items) {
 }
 
 void BoxPanel::Reset(const ItemPrototype& box) {
   box_ = box;
   stock_.clear();
+  if (box.has_ring_box()) {
+    ListRingBox();
+  }
   for (const std::string& key : BoxStock(box, equips_)) {
-    if (character_.MeetsJob(equips_.at(key))) {
-      stock_.push_back(key);
+    const EquipPrototype& piece = equips_.at(key);
+    if (character_.MeetsJob(piece)) {
+      stock_.push_back({piece.name(), &piece, "", ""});
     }
   }
   selected_ = 0;
   confirm_.Close();
+}
+
+// A skill the catalog has no ring for is left out rather than offered and
+// refused on Confirm.
+void BoxPanel::ListRingBox() {
+  const RingBox& rings = box_.ring_box();
+  for (const std::string& skill : rings.skills()) {
+    if (rings.levels_size() > 0 &&
+        RingAt(skill, rings.levels(0).level(), equips_) != nullptr) {
+      stock_.push_back(
+          {skill + " " + RingLevelRange(rings), nullptr, skill, ""});
+    }
+  }
+  for (const std::string& key : rings.items()) {
+    if (items_.count(key) > 0) {
+      stock_.push_back({items_.at(key).name(), nullptr, "", key});
+    }
+  }
 }
 
 bool BoxPanel::OnEvent(const ftxui::Event& event) {
@@ -65,11 +89,38 @@ bool BoxPanel::OnEvent(const ftxui::Event& event) {
   return true;
 }
 
-const EquipPrototype* BoxPanel::selected() const {
+const BoxChoice* BoxPanel::selected() const {
   if (selected_ < 0 || selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
-  return &equips_.at(stock_[selected_]);
+  return &stock_[selected_];
+}
+
+// A ring row reads its slot and level off the lowest ring it can roll, which
+// every level shares. An Etc item has neither.
+ftxui::Element BoxPanel::RenderRow(const BoxChoice& choice,
+                                   bool on_cursor) const {
+  const EquipPrototype* piece = choice.equip;
+  if (!choice.ring_skill.empty()) {
+    piece =
+        RingAt(choice.ring_skill, box_.ring_box().levels(0).level(), equips_);
+  }
+  std::string type = piece == nullptr ? "Etc" : TypeCell(*piece);
+  // Red on a level not reached yet, as in the shop: the piece is still the
+  // player's to pick, and to wear later.
+  ftxui::Element level =
+      piece == nullptr
+          ? ftxui::text(PadRight("", kLevelWidth))
+          : RedUnless(ftxui::text(PadRight(
+                          "Lv" + std::to_string(piece->required_level()),
+                          kLevelWidth)),
+                      character_.MeetsLevel(*piece));
+  return ftxui::hbox({
+      ftxui::text(std::string(on_cursor ? "> " : "  ") +
+                  PadRight(choice.name, kNameWidth) + "  " +
+                  PadRight(type, kTypeWidth) + "  "),
+      std::move(level),
+  });
 }
 
 ftxui::Element BoxPanel::Render() const {
@@ -82,21 +133,8 @@ ftxui::Element BoxPanel::Render() const {
     rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
   for (int i = 0; i < static_cast<int>(stock_.size()); ++i) {
-    const EquipPrototype& proto = equips_.at(stock_[i]);
     bool on_cursor = i == selected_;
-    // Red on a level not reached yet, as in the shop: the piece is still the
-    // player's to pick, and to wear later.
-    ftxui::Element level = RedUnless(
-        ftxui::text(PadRight("Lv" + std::to_string(proto.required_level()),
-                             kLevelWidth)),
-        character_.MeetsLevel(proto));
-    ftxui::Element row = ftxui::hbox({
-        ftxui::text(std::string(on_cursor ? "> " : "  ") +
-                    PadRight(proto.name(), kNameWidth) + "  " +
-                    PadRight(TypeCell(proto), kTypeWidth) + "  "),
-        std::move(level),
-    });
-    rows.push_back(HighlightRow(std::move(row), on_cursor));
+    rows.push_back(HighlightRow(RenderRow(stock_[i], on_cursor), on_cursor));
   }
   return ThemedWindow(
       " " + box_.name() + " ",
@@ -113,8 +151,8 @@ ConfirmChoice BoxPanel::OnConfirmEvent(ftxui::Event event) {
 }
 
 ftxui::Element BoxPanel::RenderConfirm() const {
-  const EquipPrototype* pick = selected();
-  std::string name = pick == nullptr ? "" : pick->name();
+  const BoxChoice* pick = selected();
+  std::string name = pick == nullptr ? "" : pick->name;
   // No title: the question names the piece, and a title would say it twice.
   return DialogWindow("", {CenteredRow("Pick " + name + "?")},
                       confirm_.Render());

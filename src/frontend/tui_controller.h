@@ -852,7 +852,7 @@ class TuiController {
   // The Symbols row: the claim, or a notice that today's is already claimed.
   void OpenSymbolClaim();
   bool OnDailiesEvent(ftxui::Event event);
-  bool OnDailiesNoticeEvent(ftxui::Event event);
+  bool OnNoticeToMainEvent(ftxui::Event event);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnBossClearEvent(ftxui::Event event);
@@ -1065,7 +1065,7 @@ class TuiController {
   // that sets it keeps it and the key after clears it.
   bool ability_rank_up_ = false;
   SymbolCombinePanel symbol_combine_panel_;
-  BoxPanel box_panel_{state_.character, state_.equips};
+  BoxPanel box_panel_{state_.character, state_.equips, state_.items};
   // The worn symbol the two symbol dialogs are about. Stored so the answer
   // applies to it, wherever the cursor went meanwhile.
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;

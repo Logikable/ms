@@ -70,8 +70,9 @@ class BoxPanelTest : public testing::Test {
       {"mage_hat",
        Piece("AbsoLab Sage Hat", EQUIP_SLOT_HAT, EQUIP_JOB_CATEGORY_MAGICIAN)},
   };
+  std::map<std::string, ItemPrototype> items_;
   ItemPrototype box_;
-  BoxPanel panel_{c_, equips_};
+  BoxPanel panel_{c_, equips_, items_};
 };
 
 // Titled with the box, a Name / Type / Level header over this class's pieces
@@ -93,11 +94,11 @@ TEST_F(BoxPanelTest, ListsThisClasssPiecesUnderAHeader) {
 
 // The cursor wraps, and the question names the piece under it.
 TEST_F(BoxPanelTest, TheQuestionNamesThePick) {
-  ASSERT_EQ(panel_.selected()->name(), "AbsoLab Knight Helm");
+  ASSERT_EQ(panel_.selected()->name, "AbsoLab Knight Helm");
   panel_.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_.selected()->name(), "AbsoLab Knight Cape");
+  EXPECT_EQ(panel_.selected()->name, "AbsoLab Knight Cape");
   panel_.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_.selected()->name(), "AbsoLab Knight Helm");
+  EXPECT_EQ(panel_.selected()->name, "AbsoLab Knight Helm");
   panel_.OnEvent(ftxui::Event::ArrowUp);
   panel_.OpenConfirm();
   ftxui::Screen screen = Draw(panel_.RenderConfirm());
@@ -115,6 +116,49 @@ TEST_F(BoxPanelTest, NothingForThisClassIsEmpty) {
   EXPECT_EQ(panel_.selected(), nullptr);
   EXPECT_TRUE(panel_.OnEvent(ftxui::Event::ArrowDown));
   EXPECT_GE(RowIndexOf(Draw(panel_.Render()), "(empty)"), 0);
+}
+
+// A ring box lists each ring once, by the levels it can roll, then the Etc
+// item offered instead; a ring the catalog lacks is left out.
+TEST_F(BoxPanelTest, ARingBoxListsRingsByLevelRangeThenItems) {
+  for (int level : {3, 4}) {
+    EquipPrototype ring;
+    ring.set_name("Ring of Restraint Lv. " + std::to_string(level));
+    ring.set_required_level(110);
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+    ring.mutable_equipment_skill()->set_level(level);
+    equips_["restraint_" + std::to_string(level)] = ring;
+  }
+  ItemPrototype grindstone;
+  grindstone.set_name("Grindstone of Life");
+  items_["grindstone_of_life"] = grindstone;
+  ItemPrototype life;
+  life.set_name("Life Boss Ring Box");
+  RingBox* rings = life.mutable_ring_box();
+  rings->add_skills("Ring of Restraint");
+  rings->add_skills("Continuous Ring");
+  for (int level : {3, 4}) {
+    RingBox::LevelChance* chance = rings->add_levels();
+    chance->set_level(level);
+    chance->set_chance(0.5);
+  }
+  rings->add_items("grindstone_of_life");
+  panel_.Reset(life);
+
+  ftxui::Screen screen = Draw(panel_.Render());
+  int header = RowIndexOf(screen, "Name");
+  int ring = RowIndexOf(screen, "> Ring of Restraint Lv. 3-4");
+  EXPECT_EQ(ring, header + 2);
+  EXPECT_NE(ScreenRow(screen, ring).find("Lv110"), std::string::npos);
+  EXPECT_EQ(RowIndexOf(screen, "Continuous"), -1) << "no ring in the catalog";
+  int stone = RowIndexOf(screen, "Grindstone of Life");
+  EXPECT_EQ(stone, header + 3);
+  EXPECT_NE(ScreenRow(screen, stone).find("Etc"), std::string::npos);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+  EXPECT_EQ(panel_.selected()->ring_skill, "Ring of Restraint");
+  panel_.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel_.selected()->item_key, "grindstone_of_life");
 }
 
 }  // namespace

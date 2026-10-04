@@ -977,7 +977,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
       state.character.AddItem(entry.second, kTestSoulShards);
     }
     // And boxes, so Open can be tried without a Hard clear.
-    if (entry.second.has_box()) {
+    if (entry.second.opens_into_case() != ItemPrototype::OPENS_INTO_NOT_SET) {
       state.character.AddItem(entry.second, kTestTokens);
     }
   }

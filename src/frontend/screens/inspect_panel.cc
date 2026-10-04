@@ -690,11 +690,20 @@ ftxui::Element InspectPanel::RenderStackable() const {
     }
     description = ftxui::vbox(std::move(lines));
   }
-  return ftxui::vbox({
+  std::vector<ftxui::Element> rows = {
       CenteredRow(stackable_->name()),
       ThemedSeparator(),
       std::move(description),
-  });
+  };
+  // A ring box's level is the one thing left to chance, so its odds are shown.
+  if (stackable_->has_ring_box()) {
+    rows.push_back(ThemedSeparator());
+    for (const RingBox::LevelChance& chance : stackable_->ring_box().levels()) {
+      rows.push_back(ftxui::text(" Lv. " + std::to_string(chance.level()) +
+                                 "  " + DropChance(chance.chance()) + " "));
+    }
+  }
+  return ftxui::vbox(std::move(rows));
 }
 
 // The rows above the job categories: the item's name, its required level, and

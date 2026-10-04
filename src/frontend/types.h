@@ -82,6 +82,8 @@ enum Screen : int {
   // one box for the row picked.
   kBoxOpen,
   kBoxConfirm,
+  // The ring a ring box rolled.
+  kBoxResult,
   // Level Up on the Symbols tab: the next level's cost and the confirmation.
   kSymbolLevel,
   // Combine on a spare symbol in the bag: how many to feed into the worn one.

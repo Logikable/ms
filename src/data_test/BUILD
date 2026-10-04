@@ -181,6 +181,7 @@ cc_test(
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:projectile",
+        "//src/item:ring_box",
         "//src/item:tradeable",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

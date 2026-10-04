@@ -1015,6 +1015,8 @@ ftxui::Element Tui::RenderScreen() {
     case kBoxConfirm:
       return Overlay(Centred(controller_.box_panel().Render()),
                      controller_.box_panel().RenderConfirm());
+    case kBoxResult:
+      return OverMain(NoticeDialog());
     // The dialog belongs to the panel, so the screen and its dialog are one
     // state.
     case kMultiSell:

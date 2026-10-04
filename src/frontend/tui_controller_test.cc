@@ -2995,7 +2995,7 @@ TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
       << "Open sits first, above Inspect";
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBoxOpen);
-  EXPECT_EQ(controller_->box_panel().selected()->name(), "Frozen Sword");
+  EXPECT_EQ(controller_->box_panel().selected()->name, "Frozen Sword");
 
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBoxConfirm);
@@ -3008,6 +3008,40 @@ TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
   EXPECT_EQ(state_->character.CountItem(box), 1);
   ASSERT_EQ(state_->character.inventory().size(), 1);
   EXPECT_EQ(state_->character.inventory()[0].name(), "Frozen Sword");
+}
+
+// A ring box says which level it rolled, and closing that goes back to the
+// main view.
+TEST_F(TuiControllerTest, ARingBoxNamesTheRingItGave) {
+  EquipPrototype ring;
+  ring.set_name("Ring of Restraint Lv. 4");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+  ring.mutable_equipment_skill()->set_level(4);
+  state_->equips["ring_of_restraint_4"] = ring;
+  ItemPrototype box;
+  box.set_name("Black Jade Boss Ring Box");
+  box.mutable_ring_box()->add_skills("Ring of Restraint");
+  RingBox::LevelChance* four = box.mutable_ring_box()->add_levels();
+  four->set_level(4);
+  four->set_chance(1.0);
+  state_->character.AddItem(box, 1);
+  panel_focus_ = kInventoryPanel;
+  OpenBagTab(kEtcTab);
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
+  inventory_component_->OnEvent(ftxui::Event::Return);     // the stack menu
+  ASSERT_EQ(inventory_panel_->menu().selected(), kStackOpen);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBoxOpen);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
+  ASSERT_EQ(controller_->screen(), kBoxResult);
+  ASSERT_EQ(controller_->notice_lines().size(), 1u);
+  EXPECT_EQ(controller_->notice_lines()[0], "You got Ring of Restraint Lv. 4.");
+  EXPECT_EQ(state_->character.CountItem(box), 0);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {

@@ -22,6 +22,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
+#include "src/item/ring_box.h"
 #include "src/item/tradeable.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -737,6 +738,44 @@ TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
   EXPECT_EQ(rings, (std::map<std::string, int>{{"Continuous Ring", 6},
                                                {"Ring of Restraint", 6}}));
   EXPECT_DOUBLE_EQ(restraint.cooldown_seconds(), 120.0);
+}
+
+// GMS's level odds for each Boss Ring Box, and every ring and item a box
+// offers exists at every level it can roll.
+TEST(EquipDataTest, TheRingBoxesRollGmsLevelsOfRingsThatExist) {
+  const std::map<std::string, std::map<int, double>> kOdds = {
+      {"black_jade_boss_ring_box", {{1, 0.25}, {2, 0.25}, {3, 0.3}, {4, 0.2}}},
+      {"white_jade_boss_ring_box", {{3, 0.65}, {4, 0.35}}},
+      {"life_boss_ring_box", {{3, 0.3}, {4, 0.7}}},
+  };
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  int boxes = 0;
+  for (const std::pair<const std::string, ItemPrototype>& entry : items) {
+    if (!entry.second.has_ring_box()) {
+      continue;
+    }
+    ++boxes;
+    const RingBox& box = entry.second.ring_box();
+    ASSERT_TRUE(kOdds.count(entry.first)) << entry.first;
+    std::map<int, double> odds;
+    for (const RingBox::LevelChance& chance : box.levels()) {
+      odds[chance.level()] = chance.chance();
+    }
+    EXPECT_EQ(odds, kOdds.at(entry.first)) << entry.first;
+    EXPECT_EQ(box.skills_size(), 2) << entry.first;
+    for (const std::string& skill : box.skills()) {
+      for (const std::pair<const int, double>& level : odds) {
+        EXPECT_NE(RingAt(skill, level.first, equips), nullptr)
+            << entry.first << ": " << skill << " Lv. " << level.first;
+      }
+    }
+    for (const std::string& item : box.items()) {
+      EXPECT_TRUE(items.count(item)) << entry.first << ": " << item;
+    }
+  }
+  EXPECT_EQ(boxes, 3);
+  EXPECT_EQ(items.at("life_boss_ring_box").ring_box().items_size(), 1);
 }
 
 TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {

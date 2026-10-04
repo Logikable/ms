@@ -301,6 +301,28 @@ cc_test(
 )
 
 cc_library(
+    name = "ring_box",
+    srcs = ["ring_box.cc"],
+    hdrs = ["ring_box.h"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "ring_box_test",
+    size = "small",
+    srcs = ["ring_box_test.cc"],
+    deps = [
+        ":ring_box",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "shop",
     srcs = ["shop.cc"],
     hdrs = ["shop.h"],

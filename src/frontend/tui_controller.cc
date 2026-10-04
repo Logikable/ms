@@ -892,6 +892,8 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnBoxOpenEvent(event);
     case kBoxConfirm:
       return OnBoxConfirmEvent(event);
+    case kBoxResult:
+      return OnNoticeToMainEvent(event);
     case kSymbolLevel:
       return OnSymbolLevelEvent(event);
     case kHyperReset:
@@ -977,7 +979,7 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
     case kDailies:
       return OnDailiesEvent(event);
     case kDailiesNotice:
-      return OnDailiesNoticeEvent(event);
+      return OnNoticeToMainEvent(event);
     case kMenuBox:
       return OnMenuBoxEvent(event);
     case kAnalysis:
@@ -1920,8 +1922,20 @@ bool TuiController::OnBoxConfirmEvent(ftxui::Event event) {
     return true;
   }
   // One box a time: back to the bag, where the next box is one Open away.
-  state_.character.OpenBox(box_panel_.box(), *box_panel_.selected());
+  const BoxChoice& pick = *box_panel_.selected();
+  const ItemPrototype& box = box_panel_.box();
   screen_ = kMain;
+  if (pick.equip != nullptr) {
+    state_.character.OpenBox(box, *pick.equip);
+  } else if (!pick.item_key.empty()) {
+    state_.character.OpenBox(box, pick.item_key,
+                             state_.items.at(pick.item_key));
+  } else if (const EquipPrototype* ring = state_.character.OpenRingBox(
+                 box, pick.ring_skill, state_.equips)) {
+    // The level was the box's to choose, so the player is told which.
+    OpenNotice(kBoxResult, {"You got " + ring->name() + "."},
+               /*refusal=*/false, "Close");
+  }
   return true;
 }
 
@@ -3346,7 +3360,7 @@ bool TuiController::OnDailiesEvent(ftxui::Event event) {
   return true;
 }
 
-bool TuiController::OnDailiesNoticeEvent(ftxui::Event event) {
+bool TuiController::OnNoticeToMainEvent(ftxui::Event event) {
   if (notice_prompt_.OnEvent(event)) {
     screen_ = kMain;
   }
