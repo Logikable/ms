@@ -713,7 +713,8 @@ TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
     EXPECT_FALSE(item.CanStarForce()) << entry.first;
     EXPECT_FALSE(TakesUpgradeSlots(ring)) << entry.first;
     EXPECT_FALSE(item.CanFlame()) << entry.first;
-    EXPECT_TRUE(item.CanCube()) << entry.first;
+    EXPECT_FALSE(Supports(ring, UPGRADE_SCROLL)) << entry.first;
+    EXPECT_FALSE(item.CanCube()) << entry.first;
     ASSERT_GE(level, 1);
     ASSERT_LE(level, 6);
     if (skill == restraint.name()) {

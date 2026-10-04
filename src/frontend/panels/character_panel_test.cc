@@ -909,6 +909,63 @@ TEST_F(CharacterPanelTest, GuildPassivesAppearWithTheAccount) {
   EXPECT_NE(RenderComponent(comp).find("Guild Expertise"), std::string::npos);
 }
 
+// A ring's skill joins the beginner's page while the ring is worn, between
+// Blessing of the Fairy and the guild's skills, with a rule either side.
+TEST_F(CharacterPanelTest, AWornRingsSkillHasItsOwnBlock) {
+  CharacterInstance c = MakeSpearman(rng_);  // level 35
+  account_.RecordProgress(kGuildSkillsLevel, 4);
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  catalog["blessing_of_the_fairy"] = MakeFairyBlessing();
+  Skill restraint;
+  restraint.set_name("Ring of Restraint");
+  restraint.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(restraint, JOB_ADVANCEMENT_BEGINNER, 2);
+  restraint.set_granted_by_equip(true);
+  restraint.set_max_level(6);
+  catalog["ring_of_restraint"] = restraint;
+  Skill expertise;
+  expertise.set_name("Guild Expertise");
+  expertise.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(expertise, JOB_ADVANCEMENT_BEGINNER, 3);
+  expertise.set_guild(GUILD_SKILL_PASSIVE);
+  expertise.set_max_level(1);
+  catalog["guild_expertise"] = expertise;
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> the page bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // their book -> the beginner's
+  EXPECT_EQ(RenderComponent(comp).find("Ring of Restraint"), std::string::npos)
+      << "not worn";
+
+  EquipPrototype ring;
+  ring.set_name("Ring of Restraint Lv. 4");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+  ring.mutable_equipment_skill()->set_level(4);
+  c.PickUp(std::make_unique<EquipInstance>(ring));
+  ASSERT_TRUE(c.Equip(0));
+  std::vector<std::string> rows = PanelRows(comp->Render());
+  auto row_of = [&](const std::string& text) {
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+      if (rows[i].find(text) != std::string::npos) {
+        return i;
+      }
+    }
+    return -1;
+  };
+  int fairy = row_of("Blessing of the Fairy");
+  int ring_row = row_of("Ring of Restraint");
+  int guild = row_of("Guild Expertise");
+  ASSERT_GE(fairy, 0);
+  ASSERT_EQ(ring_row, fairy + 2) << "a rule between";
+  ASSERT_EQ(guild, ring_row + 2) << "a rule between";
+  EXPECT_NE(rows[fairy + 1].find("\u2500"), std::string::npos);
+  EXPECT_NE(rows[ring_row + 1].find("\u2500"), std::string::npos);
+  EXPECT_NE(rows[ring_row].find("4"), std::string::npos) << "the ring's level";
+}
+
 // The Noblesse rows wait for bosses, then carry [-] and [+] around their level
 // with the account's points in the corner. The rows beside them take none.
 TEST_F(CharacterPanelTest, NoblesseRowsSpendAndRefundTheAccountsPoints) {

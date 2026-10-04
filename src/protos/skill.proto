@@ -1621,8 +1621,8 @@ message Skill {
   bool farming_only = 71;
   // A skill a worn item grants, GMS's Equipment Skill: the item names it and
   // the level (EquipPrototype.equipment_skill), and the gear preset in use
-  // decides which item counts. It is in no book, costs no SP and gets no
-  // granted levels.
+  // decides which item counts. It costs no SP and gets no granted levels, and
+  // the beginner's page lists it only while it is worn.
   bool granted_by_equip = 72;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.

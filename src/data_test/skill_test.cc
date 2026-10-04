@@ -209,10 +209,16 @@ const std::map<std::string, Skill>& LoadSkills() {
 // which label starts its row in the book.
 TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    // An equipment skill is reached by wearing its item, and is in no book.
-    EXPECT_EQ(entry.second.placement().empty(), entry.second.granted_by_equip())
+    EXPECT_FALSE(entry.second.placement().empty())
         << entry.first << " would be unreachable: no tab shows it and no SP "
-        << "pool buys it, or a book lists a skill an item grants";
+        << "pool buys it";
+    // An equipment skill is reached by wearing its item, so no SP pool may
+    // list it.
+    if (entry.second.granted_by_equip()) {
+      EXPECT_TRUE(entry.second.placement_size() == 1 &&
+                  ListedIn(entry.second, JOB_ADVANCEMENT_BEGINNER))
+          << entry.first << " is in a book SP buys";
+    }
     EXPECT_NE(entry.second.kind(), SKILL_KIND_UNSPECIFIED)
         << entry.first << " would list with no tag and do nothing";
   }
@@ -366,8 +372,8 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     // A Hyper Skill is bought from its own pool, a V node with V Points, and a
     // link skill costs nothing. A Vengeance form uses the ladder of the skill
-    // it replaces.
-    if (entry.second.hyper() ||
+    // it replaces. An item grants its equipment skill.
+    if (entry.second.hyper() || entry.second.granted_by_equip() ||
         entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
         entry.second.account_levels_per_level() > 0 ||
         entry.second.link_line() != JOB_UNSPECIFIED ||

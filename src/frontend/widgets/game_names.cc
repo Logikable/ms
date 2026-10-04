@@ -220,6 +220,23 @@ std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes) {
   return breaks;
 }
 
+std::vector<int> BeginnerSectionBreaks(
+    const std::vector<const Skill*>& skills) {
+  auto section = [](const Skill* skill) {
+    if (skill->guild() != GUILD_SKILL_UNSPECIFIED) {
+      return 2;
+    }
+    return skill->granted_by_equip() ? 1 : 0;
+  };
+  std::vector<int> breaks;
+  for (int i = 1; i < static_cast<int>(skills.size()); ++i) {
+    if (section(skills[i]) != section(skills[i - 1])) {
+      breaks.push_back(i);
+    }
+  }
+  return breaks;
+}
+
 KindTag TagFor(const Skill& skill) {
   // The attack tag is orange, not red. Red means refused (colors.h), and attack
   // skills are never a problem, so red on every one of them would waste the

@@ -2,6 +2,7 @@
 name: "Ring of Restraint"
 description:
   "Creates a zone in which your Attack Power and Magic ATT are increased."
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 2 }
 kind: SKILL_KIND_ACTIVE
 granted_by_equip: true
 max_level: 6

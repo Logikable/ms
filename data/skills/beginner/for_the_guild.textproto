@@ -1,7 +1,7 @@
 name: "For the Guild!"
 description: "Increases Damage."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 8 }
 guild: GUILD_SKILL_NOBLESSE
 max_level: 15
 base { damage_pct: 0.02 }

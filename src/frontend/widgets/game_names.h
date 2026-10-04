@@ -194,6 +194,10 @@ std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
 // break.
 std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes);
 
+// The same for the beginner's page, whose blocks are Blessing of the Fairy, the
+// worn rings' skills, then the guild's.
+std::vector<int> BeginnerSectionBreaks(const std::vector<const Skill*>& skills);
+
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for an
 // unspecified one. The stage number is the enum value, so a caller can print
 // both.

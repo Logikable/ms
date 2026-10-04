@@ -538,6 +538,15 @@ class CharacterInstance {
   // The level of an equipment skill: the level the item `gear` wears that
   // grants it says, or 0 if none does. See Skill.granted_by_equip.
   int EquipmentSkillLevel(const Skill& skill, StatPreset gear) const;
+  // The level the Skills tab shows, which has no Farm/Boss row: an equipment
+  // skill reads the better of the two activities' gear.
+  int ListedSkillLevel(const Skill& skill) const {
+    if (!skill.granted_by_equip()) {
+      return skill_level(skill);
+    }
+    return std::max(skill_level(skill, Activity::kFarming),
+                    skill_level(skill, Activity::kBossing));
+  }
   // Equips `name` in `slot`, or removes it. Equipping fails if the preset is
   // full or already has it. Both fail for a name that is not a link skill,
   // which the caller must check. Returns whether anything changed.

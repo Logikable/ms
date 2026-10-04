@@ -211,7 +211,7 @@ int TuiController::skill_inspect_level() const {
     // equipped shows the level it would have rather than 0.
     return card_character().LinkSkillLevelOffered(skill_inspect_);
   }
-  return card_character().skill_level(skill_inspect_);
+  return card_character().ListedSkillLevel(skill_inspect_);
 }
 
 int TuiController::skill_inspect_bonus() const {

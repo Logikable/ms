@@ -169,7 +169,7 @@ constexpr int kSkillClockPageStride = 4096;
 // no bonus goes to a skill that hasn't been bought.
 std::string SkillLevelText(const CharacterInstance& character,
                            const Skill& skill, int bonus) {
-  int learned = character.skill_level(skill);
+  int learned = character.ListedSkillLevel(skill);
   int level = LevelWithBonus(skill, learned, bonus);
   std::string text = std::to_string(level);
   if (level > learned) {
@@ -963,12 +963,16 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
           : AdvancementForJobStage(character_.proto().job(), page);
   std::vector<const Skill*> listed =
       SkillsForAdvancement(skills_, book, /*hyper=*/false, toggles_on);
-  // Locked guild skills are hidden, as every locked feature is.
-  listed.erase(std::remove_if(listed.begin(), listed.end(),
-                              [this](const Skill* skill) {
-                                return GuildSkillHidden(*skill);
-                              }),
-               listed.end());
+  // Locked guild skills are hidden, as every locked feature is, and a ring's
+  // skill shows only while the ring is worn.
+  listed.erase(
+      std::remove_if(listed.begin(), listed.end(),
+                     [this](const Skill* skill) {
+                       return GuildSkillHidden(*skill) ||
+                              (skill->granted_by_equip() &&
+                               character_.ListedSkillLevel(*skill) == 0);
+                     }),
+      listed.end());
   return listed;
 }
 
@@ -992,7 +996,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               const LevelColumn& column,
                                               bool rows_focused,
                                               int row_width) const {
-  int learned = character_.skill_level(skill);
+  int learned = character_.ListedSkillLevel(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= SkillMaxLevel(skill);
   bool has_sp = character_.LevelsAffordable(skill) > 0;
@@ -1091,8 +1095,12 @@ int CharacterPanel::FirstSkillRow(int total, int selected, int visible) const {
 
 std::vector<int> CharacterPanel::SkillLines(
     int page, const std::vector<const Skill*>& skills) const {
-  std::vector<int> breaks =
-      IsVPage(page) ? VNodeSectionBreaks(skills) : std::vector<int>();
+  std::vector<int> breaks;
+  if (IsVPage(page)) {
+    breaks = VNodeSectionBreaks(skills);
+  } else if (IsBeginnerPage(page)) {
+    breaks = BeginnerSectionBreaks(skills);
+  }
   // Counted in cursor rows rather than book skills, since the Link Skills row
   // comes first on the beginner page and isn't one of its skills.
   std::vector<int> lines;
