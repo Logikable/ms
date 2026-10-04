@@ -65,6 +65,7 @@ message Scroll {
   string name = 1;
   ScrollType scroll_type = 2;
   ScrollCategory scroll_category = 3;
+  // Unset only on a scroll paid with an item, which works at every level.
   ScrollTier tier = 4;
   // Success probability in [0, 100].
   int32 success_rate = 5;

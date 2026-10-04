@@ -2,7 +2,6 @@
 # at 15%. Here one scroll gives both, always +5 (the user's call, 2026-10-03).
 name: "Premium Scroll for Pet"
 success_rate: 100
-tier: SCROLL_TIER_1
 stats {
   attack: 5
   magic_attack: 5

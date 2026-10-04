@@ -1,0 +1,18 @@
+name: "Magical Scroll for Weapon"
+success_rate: 100
+stats {
+  magic_attack: 10
+  str: 3
+  dex: 3
+  int: 3
+  luk: 3
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_MATT
+target: SCROLL_TARGET_WEAPON
+paid_with: "Magical Scroll for Weapon"

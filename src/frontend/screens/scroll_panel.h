@@ -95,8 +95,9 @@ class ScrollPanel {
   // calls Resort.
   std::string PinKeyOfSelected() const;
   bool SelectedIsPinned() const;
-  // Re-sorts the list after a pin changed, keeping the cursor on the same
-  // scroll rather than the same row number.
+  // Re-sorts the list after a pin changed or a held scroll was used, keeping
+  // the cursor on the same scroll rather than the same row number. The last
+  // copy of a held scroll takes its row with it.
   void Resort();
   int selected() const {
     return selected_;
@@ -120,11 +121,16 @@ class ScrollPanel {
   std::string PinKey(const Scroll& scroll) const;
   // Pinned first, then the usual order. Sorts ordered_.
   void SortRows();
+  // Removes the held scrolls the character has none of from ordered_.
+  void DropUnheld();
   // The spell traces the character owns.
   int TracesOwned() const;
   // Whether every row is a scroll the player holds, paid with itself, so the
   // list counts them instead of pricing them.
   bool Held() const;
+  // The last column's heading: Cost, Quantity when every row is held, and
+  // Cost/Qty when the two mix.
+  std::string CostHeading() const;
   // How many of a held scroll the character carries.
   int64_t HeldCount(const Scroll& scroll) const;
   void OpenMenu();

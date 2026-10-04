@@ -61,13 +61,11 @@ std::string CostCell(int traces) {
 
 // Two leading spaces match the "  " / "> " cursor the menu adds to entries.
 // Built from the widths rather than written out, so a column can't drift from
-// its heading. A list of scrolls the player holds has a Quantity column where
-// a list of scrolls bought with traces has Cost.
-std::string ColumnHeader(bool held) {
+// its heading. `cost` is the last column's heading: Cost, Quantity or both.
+std::string ColumnHeader(const std::string& cost) {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
-         PadRight("Stats", kStatsWidth) +
-         PadLeft(held ? "Quantity" : "Cost", kCostWidth) +
+         PadRight("Stats", kStatsWidth) + PadLeft(cost, kCostWidth) +
          PadLeft("Pin", kPinWidth) + std::string(kRightGutter, ' ');
 }
 
@@ -96,7 +94,17 @@ std::string ScrollStats(const Scroll& scroll) {
   return out;
 }
 
+// Clean slates, then the scrolls the player holds, then the traces by stat and
+// rate.
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
+  bool a_slate = a->scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE;
+  bool b_slate = b->scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE;
+  if (a_slate != b_slate) {
+    return a_slate;
+  }
+  if (a->paid_with().empty() != b->paid_with().empty()) {
+    return !a->paid_with().empty();
+  }
   if (a->scroll_type() != b->scroll_type()) {
     return a->scroll_type() < b->scroll_type();
   }
@@ -124,7 +132,8 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
   std::vector<const Scroll*> filtered;
   for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
     const Scroll& s = kv.second;
-    if (s.tier() != item_tier) {
+    // A scroll paid with an item has no tier: one copy works at any level.
+    if (s.tier() != SCROLL_TIER_UNSPECIFIED && s.tier() != item_tier) {
       continue;
     }
     // A clean slate restores a slot whoever holds the item, so it skips the job
@@ -162,6 +171,7 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
   ordered_ = std::move(filtered);
   target_level_ = required_level;
   target_target_ = target;
+  DropUnheld();
   SortRows();
   selected_ = 0;
   menu_open_ = false;
@@ -181,9 +191,29 @@ void ScrollPanel::SortRows() {
                    });
 }
 
+// A held scroll the player has none of is hidden, unless the list would offer
+// nothing else: a pet takes only its own scroll.
+void ScrollPanel::DropUnheld() {
+  std::vector<const Scroll*> kept;
+  for (const Scroll* scroll : ordered_) {
+    if (scroll->paid_with().empty() || HeldCount(*scroll) > 0) {
+      kept.push_back(scroll);
+    }
+  }
+  bool any_trace = std::any_of(
+      kept.begin(), kept.end(),
+      [](const Scroll* scroll) { return scroll->paid_with().empty(); });
+  if (any_trace) {
+    ordered_ = std::move(kept);
+  }
+}
+
 void ScrollPanel::Resort() {
   const Scroll* was = ordered_.empty() ? nullptr : ordered_[selected_];
+  DropUnheld();
   SortRows();
+  selected_ =
+      std::max(0, std::min(selected_, static_cast<int>(ordered_.size()) - 1));
   for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
     if (ordered_[i] == was) {
       selected_ = i;
@@ -196,9 +226,15 @@ void ScrollPanel::Resort() {
 // three tiers of one scroll are the same choice to a player, met at three
 // points in their progress, so a pin set at one tier holds at the next.
 std::string ScrollPanel::PinKey(const Scroll& scroll) const {
-  return std::to_string(static_cast<int>(target_target_)) + ":" +
-         std::to_string(static_cast<int>(scroll.scroll_type())) + ":" +
-         std::to_string(scroll.success_rate());
+  // A held scroll adds its item, or the Magical Scroll's ATT row would share
+  // the 100% ATT trace's pin.
+  std::string key = std::to_string(static_cast<int>(target_target_)) + ":" +
+                    std::to_string(static_cast<int>(scroll.scroll_type())) +
+                    ":" + std::to_string(scroll.success_rate());
+  if (!scroll.paid_with().empty()) {
+    key += ":" + scroll.paid_with();
+  }
+  return key;
 }
 
 std::string ScrollPanel::PinKeyOfSelected() const {
@@ -254,7 +290,7 @@ void ScrollPanel::ResetComponent() {
                             : std::chrono::steady_clock::duration()));
     }
     std::vector<ftxui::Element> rows = {
-        ftxui::text(ColumnHeader(Held())),
+        ftxui::text(ColumnHeader(CostHeading())),
         ThemedSeparator(),
         menu->Render(),
     };
@@ -370,6 +406,16 @@ bool ScrollPanel::Held() const {
          !ordered_.empty();
 }
 
+std::string ScrollPanel::CostHeading() const {
+  if (Held()) {
+    return "Quantity";
+  }
+  bool any_held = std::any_of(
+      ordered_.begin(), ordered_.end(),
+      [](const Scroll* scroll) { return !scroll->paid_with().empty(); });
+  return any_held ? "Cost/Qty" : "Cost";
+}
+
 int64_t ScrollPanel::HeldCount(const Scroll& scroll) const {
   return character_.CountItem(scroll.paid_with());
 }
@@ -392,8 +438,10 @@ ftxui::Element ScrollPanel::CostCellFor(int index) const {
   const Scroll& scroll = *ordered_[index];
   if (!scroll.paid_with().empty()) {
     int64_t held = HeldCount(scroll);
-    return RedUnless(ftxui::text(PadLeft(FormatWithCommas(held), kCostWidth)),
-                     held > 0);
+    // The × keeps a count from reading as a price beside the trace rows.
+    return RedUnless(
+        ftxui::text(PadLeft("×" + FormatWithCommas(held), kCostWidth)),
+        held > 0);
   }
   int cost = TraceCost(scroll, target_level_);
   // The same red the confirm window uses, so the list shows what the player can

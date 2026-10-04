@@ -265,8 +265,78 @@ TEST_F(ScrollPanelTest, APetListsOnlyItsScrollByQuantity) {
   ItemPrototype held;
   held.set_name("Pet Scroll");
   c_.AddItem(held, 2);
-  EXPECT_NE(Render(panel).find("Quantity 2"), std::string::npos);
+  drawn = Render(panel);
+  EXPECT_NE(drawn.find("Quantity 2"), std::string::npos);
+  EXPECT_NE(drawn.find("×2"), std::string::npos) << "counted like the rest";
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
+}
+
+// A scroll paid with an item shows only while the player has one, under the
+// clean slate and over the traces, at any item level. The column then both
+// prices and counts.
+TEST_F(ScrollPanelTest, HeldScrollsShowWhileOwnedBelowTheCleanSlate) {
+  Scroll& slate = scrolls_["Slate"];
+  slate.set_name("Slate");
+  slate.set_success_rate(100);
+  slate.set_tier(SCROLL_TIER_1);
+  slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  slate.set_trace_cost(20);
+  Scroll& trace = scrolls_["Trace"];
+  trace = scrolls_["AAA Scroll"];
+  trace.set_name("Trace");
+  trace.set_success_rate(100);
+  for (const char* type : {"Magic A", "Magic M"}) {
+    Scroll& magic = scrolls_[type];
+    magic.set_name(type);
+    magic.set_success_rate(100);
+    magic.set_scroll_type(std::string(type) == "Magic A" ? SCROLL_TYPE_ATT
+                                                         : SCROLL_TYPE_MATT);
+    magic.mutable_stats()->set_attack(10);
+    magic.set_target(SCROLL_TARGET_WEAPON);
+    magic.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    magic.set_paid_with("Magical");
+  }
+  ScrollPanel panel(c_, scrolls_);
+  EquipPrototype sword;
+  sword.set_required_level(1);
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword));
+  std::string drawn = Render(panel);
+  EXPECT_EQ(drawn.find("Magic"), std::string::npos) << "none held";
+  EXPECT_EQ(drawn.find("Cost/Qty"), std::string::npos);
+
+  ItemPrototype held;
+  held.set_name("Magical");
+  c_.AddItem(held, 3);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword));
+  drawn = Render(panel);
+  size_t at_slate = drawn.find("Slate");
+  size_t at_magic = drawn.find("Magic A");
+  size_t at_matt = drawn.find("Magic M");
+  size_t at_trace = drawn.find("Trace");
+  ASSERT_NE(at_trace, std::string::npos);
+  EXPECT_LT(at_slate, at_magic);
+  EXPECT_LT(at_magic, at_matt);
+  EXPECT_LT(at_matt, at_trace);
+  EXPECT_NE(drawn.find("Cost/Qty"), std::string::npos);
+  EXPECT_NE(drawn.find("×3"), std::string::npos) << drawn;
+
+  // Its pin is its own, not the 100% ATT trace's.
+  PinByName(&panel, "Magic A");
+  drawn = Render(panel);
+  EXPECT_EQ(drawn.find("\U0001F4CC"), drawn.rfind("\U0001F4CC")) << drawn;
+  PinByName(&panel, "Magic A");
+
+  sword.set_required_level(150);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword)) << "no tier";
+  EXPECT_EQ(panel.selected_scroll().name(), "Magic A");
+
+  sword.set_required_level(1);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword));
+  ASSERT_TRUE(c_.SpendItem("Magical", 3));
+  panel.Resort();
+  EXPECT_EQ(Render(panel).find("Magic"), std::string::npos) << "the last copy";
 }
 
 TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {

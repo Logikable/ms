@@ -167,6 +167,66 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
   }
 }
 
+constexpr char kPetScroll[] = "premium_scroll_for_pet";
+
+// Whether some fight or monster drops `item`. Max mode scrolls its pets only
+// once theirs drops, so it never wears stats no player can get.
+bool AnythingDrops(const GameState& state, const std::string& item) {
+  for (const std::pair<const std::string, Mob>& entry : state.mobs) {
+    for (const MobDrop& drop : entry.second.drops()) {
+      if (drop.item() == item) {
+        return true;
+      }
+    }
+  }
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const MobDrop& drop : difficulty.drops()) {
+        if (!difficulty.coming_soon() && drop.item() == item) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// The key of the item named `name`, or "" if the catalog has none.
+std::string ItemKeyNamed(const GameState& state, const std::string& name) {
+  for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
+    if (entry.second.name() == name) {
+      return entry.first;
+    }
+  }
+  return "";
+}
+
+// A scroll paid with an item that raises `attack` on `proto`, once something
+// drops that item; null otherwise. Every such scroll outdoes the traces on
+// its kind of equipment.
+const Scroll* DroppedScrollFor(const GameState& state,
+                               const EquipPrototype& proto, ScrollTarget target,
+                               ScrollType attack) {
+  std::set<int> item_categories(proto.equip_job_categories().begin(),
+                                proto.equip_job_categories().end());
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    bool raises = attack == SCROLL_TYPE_MATT ? scroll.stats().magic_attack() > 0
+                                             : scroll.stats().attack() > 0;
+    if (scroll.paid_with().empty() || scroll.target() != target || !raises) {
+      continue;
+    }
+    bool fits = false;
+    for (int category : scroll.applicable_job_categories()) {
+      fits = fits || item_categories.count(category) > 0;
+    }
+    if (fits && AnythingDrops(state, ItemKeyNamed(state, scroll.paid_with()))) {
+      return &scroll;
+    }
+  }
+  return nullptr;
+}
+
 // The best trace of one type for `proto`, at its lowest success rate. The odds
 // don't matter here, since every slot succeeds, so the biggest bonus wins. Null
 // if no trace of that type exists for the item.
@@ -232,12 +292,16 @@ const Scroll* BestScrollFor(const GameState& state,
     }
     return nullptr;
   }
+  ScrollType attack =
+      primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
+  const Scroll* dropped = DroppedScrollFor(state, proto, target, attack);
+  if (dropped != nullptr) {
+    return dropped;
+  }
   const Scroll* best = BestScrollOfType(state, proto, target, wanted);
   if (best != nullptr) {
     return best;
   }
-  ScrollType attack =
-      primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
   return BestScrollOfType(state, proto, target, attack);
 }
 
@@ -513,30 +577,6 @@ std::vector<std::string> MaxPets() {
   return {"lil_frieren", "lil_fern", "lil_stark"};
 }
 
-constexpr char kPetScroll[] = "premium_scroll_for_pet";
-
-// Whether some fight or monster drops `item`. Max mode scrolls its pets only
-// once theirs drops, so it never wears stats no player can get.
-bool AnythingDrops(const GameState& state, const std::string& item) {
-  for (const std::pair<const std::string, Mob>& entry : state.mobs) {
-    for (const MobDrop& drop : entry.second.drops()) {
-      if (drop.item() == item) {
-        return true;
-      }
-    }
-  }
-  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
-    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      for (const MobDrop& drop : difficulty.drops()) {
-        if (!difficulty.coming_soon() && drop.item() == item) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
 // Passed as `unspent_stage` to spend every point earned.
 constexpr int kSpendEveryStage = 0;
 
@@ -783,9 +823,10 @@ constexpr int kTestSoulShards = 200;
 // to the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
-// Pet scrolls for every slot of three pets, three times over. Nothing
-// drops them yet, so the workbench is the only way to try one.
-constexpr int kTestPetScrolls = 90;
+// Of each scroll paid with an item: every slot of three pets three times over,
+// and more than the accessories or the weapon take. Nothing drops them yet, so
+// the workbench is the only way to try one.
+constexpr int kTestHeldScrolls = 90;
 
 // Enough V Points to fill the whole matrix twice: the workbench is for looking
 // at nodes, not farming the sixty days one costs.
@@ -912,10 +953,16 @@ void SeedTest(GameState& state, const TestOptions& test) {
   if (trace != state.items.end()) {
     state.character.AddItem(trace->second, kTestSpellTraces);
   }
-  std::map<std::string, ItemPrototype>::const_iterator pet_scroll =
-      state.items.find(kPetScroll);
-  if (pet_scroll != state.items.end()) {
-    state.character.AddItem(pet_scroll->second, kTestPetScrolls);
+  std::set<std::string> held_scrolls;
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    if (!entry.second.paid_with().empty()) {
+      held_scrolls.insert(entry.second.paid_with());
+    }
+  }
+  for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
+    if (held_scrolls.count(entry.second.name()) > 0) {
+      state.character.AddItem(entry.second, kTestHeldScrolls);
+    }
   }
   state.character.AddVPoints(kTestVPoints);
 

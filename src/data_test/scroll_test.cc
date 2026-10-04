@@ -48,9 +48,11 @@ class ScrollDataTest : public ::testing::Test {
 TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     const Scroll& scroll = entry.second;
-    EXPECT_NE(scroll.tier(), SCROLL_TIER_UNSPECIFIED)
-        << entry.first << " belongs to no tier, so it is offered for every "
-        << "item at once";
+    // A scroll paid with an item is the one exception: a single copy is meant
+    // for every level.
+    EXPECT_EQ(scroll.tier() == SCROLL_TIER_UNSPECIFIED,
+              !scroll.paid_with().empty())
+        << entry.first;
     if (!scroll.paid_with().empty()) {
       continue;  // spends an item instead; see the next test
     }
@@ -60,9 +62,9 @@ TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
   }
 }
 
-// A scroll paid with an item names one the game has, and the pet's scroll is
-// the only one: everything else is bought with traces.
-TEST_F(ScrollDataTest, OnlyThePetScrollIsPaidWithAnItem) {
+// A scroll paid with an item names one the game has and never fails, and a pet
+// takes nothing else.
+TEST_F(ScrollDataTest, HeldScrollsSpendARealItem) {
   std::set<std::string> items;
   for (const std::pair<const std::string, ItemPrototype>& entry :
        LoadTestData<ItemPrototype>("items")) {
@@ -70,8 +72,9 @@ TEST_F(ScrollDataTest, OnlyThePetScrollIsPaidWithAnItem) {
   }
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     const Scroll& scroll = entry.second;
-    EXPECT_EQ(scroll.target() == SCROLL_TARGET_PET, !scroll.paid_with().empty())
-        << entry.first;
+    if (scroll.target() == SCROLL_TARGET_PET) {
+      EXPECT_FALSE(scroll.paid_with().empty()) << entry.first;
+    }
     if (!scroll.paid_with().empty()) {
       EXPECT_EQ(items.count(scroll.paid_with()), 1u)
           << entry.first << " is paid with an item that doesn't exist";
@@ -171,7 +174,9 @@ TEST_F(ScrollDataTest, EveryAccessoryScrollPaysOneThing) {
   int seen = 0;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     const Scroll& scroll = entry.second;
-    if (scroll.target() != SCROLL_TARGET_ACCESSORY) {
+    // The Premium Scroll is the attack one, and spends no traces.
+    if (scroll.target() != SCROLL_TARGET_ACCESSORY ||
+        !scroll.paid_with().empty()) {
       continue;
     }
     ++seen;

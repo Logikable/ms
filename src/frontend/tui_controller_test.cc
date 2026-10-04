@@ -1874,6 +1874,33 @@ TEST_F(TuiControllerTest, ScrollingAPetSpendsOneOfItsScrolls) {
   EXPECT_EQ(gained.magic_attack(), 5);
 }
 
+// Using the last copy of a held scroll takes its row off the list behind the
+// result.
+TEST_F(TuiControllerTest, TheLastHeldScrollLeavesTheList) {
+  Scroll magical;
+  magical.set_name("Magical");
+  magical.set_success_rate(100);
+  magical.set_target(SCROLL_TARGET_WEAPON);
+  magical.set_scroll_type(SCROLL_TYPE_ATT);
+  magical.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  magical.mutable_stats()->set_attack(10);
+  magical.set_paid_with("Magical");
+  state_->scrolls["Magical"] = magical;
+  WearASwordAndDraw();
+  ItemPrototype held;
+  held.set_name("Magical");
+  state_->character.AddItem(held, 1);
+
+  controller_->OpenEquipMenu();
+  ScrollTheFirstRow();
+
+  ASSERT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
+  EXPECT_EQ(state_->character.CountItem("Magical"), 0);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kScrollSelect);
+  EXPECT_EQ(scroll_panel_->selected_scroll().name(), "Test Scroll");
+}
+
 // Pin is the second entry of the row's menu, and the pin is stored on the
 // character rather than the screen, so it is still there next time.
 TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {

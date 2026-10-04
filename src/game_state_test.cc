@@ -82,9 +82,17 @@ TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
   }
   ItemPrototype scroll;
   scroll.set_name("Premium Scroll for Pet");
-  GameState state(catalog, {}, {{"premium_scroll_for_pet", scroll}}, {}, {}, {},
-                  GameMode::kTest);
+  ItemPrototype unused;
+  unused.set_name("Nothing Spends This");
+  Scroll pet_scroll;
+  pet_scroll.set_name("Premium Scroll for Pet");
+  pet_scroll.set_paid_with("Premium Scroll for Pet");
+  GameState state(catalog, {{"premium_scroll_for_pet", pet_scroll}},
+                  {{"premium_scroll_for_pet", scroll}, {"unused", unused}}, {},
+                  {}, {}, GameMode::kTest);
   EXPECT_EQ(state.character.CountItem(scroll), 90) << "and scrolls for them";
+  EXPECT_EQ(state.character.CountItem(unused), 0)
+      << "only an item some scroll spends";
   for (EquipSlot slot : SlotFamily(EQUIP_SLOT_PET)) {
     ASSERT_EQ(state.character.equipped().count(slot), 1u)
         << EquipSlot_Name(slot);
@@ -382,6 +390,34 @@ TEST(GameStateTest, ScrolledPassesEverySlot) {
   EXPECT_EQ(worn.scroll_stats().attack(), 45);
   EXPECT_EQ(worn.scroll_stats().str(), 27);
   EXPECT_EQ(worn.stars(), 0);
+}
+
+// A scroll paid with an item outdoes the traces, but the workbench uses it only
+// once something drops it, so it never shows stats no player can get.
+TEST(GameStateTest, ScrolledTakesAHeldScrollOnlyOnceItDrops) {
+  std::map<std::string, Scroll> scrolls = WarriorWeaponTraces();
+  Scroll& magical = scrolls["magical"];
+  magical.set_name("Magical");
+  magical.set_scroll_type(SCROLL_TYPE_ATT);
+  magical.set_target(SCROLL_TARGET_WEAPON);
+  magical.set_success_rate(100);
+  magical.mutable_stats()->set_attack(10);
+  magical.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  magical.set_paid_with("Magical");
+  ItemPrototype item;
+  item.set_name("Magical");
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips.scrolled = true;
+  auto attack_with = [&](const std::map<std::string, Mob>& mobs) {
+    GameState state(GladiusCatalog(), scrolls, {{"magical", item}}, mobs, {},
+                    {}, GameMode::kTest, test);
+    return WornWeapon(state).scroll_stats().attack();
+  };
+  EXPECT_EQ(attack_with({}), 45) << "the 30% trace";
+  Mob mob;
+  mob.add_drops()->set_item("magical");
+  EXPECT_EQ(attack_with({{"mob", mob}}), 90);
 }
 
 // --sf sets exactly the stars given, capped by the item: a level 30 weapon

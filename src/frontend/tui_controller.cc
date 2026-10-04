@@ -1252,6 +1252,9 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
       return true;
     }
     ScrollOutcome outcome = ScrollItem(state_.character, subject_, scroll);
+    if (!scroll.paid_with().empty()) {
+      scroll_panel_.Resort();
+    }
     int slots_remaining =
         item ? item->equip_state().remaining_upgrade_slots() : 0;
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining,

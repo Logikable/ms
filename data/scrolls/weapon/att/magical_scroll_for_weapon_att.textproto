@@ -1,0 +1,21 @@
+# GMS's Magical Scroll - Weapon rolls +9/10/11 at 50/40/10%; here it is a flat
+# +10 (the user's call, 2026-10-02). One item, offered as an ATT row and a MATT
+# row.
+name: "Magical Scroll for Weapon"
+success_rate: 100
+stats {
+  attack: 10
+  str: 3
+  dex: 3
+  int: 3
+  luk: 3
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_ATT
+target: SCROLL_TARGET_WEAPON
+paid_with: "Magical Scroll for Weapon"
