@@ -356,7 +356,7 @@ double BossPayout(const GameState& state, const DropBasis& basis,
                   const BossDifficulty& difficulty, double item_drop_pct) {
   double paid = difficulty.meso();
   for (const MobDrop& drop : difficulty.drops()) {
-    double rate = BossDropRate(drop, item_drop_pct);
+    double rate = BossDropRate(drop, item_drop_pct) * DropRolls(drop);
     if (rate <= 0.0) {
       continue;
     }
@@ -1010,7 +1010,8 @@ void NoteTokenChances(const CombatParams& params,
           continue;
         }
         climb.tokens[token].kills += kills[i];
-        climb.tokens[token].log_miss += kills[i] * std::log1p(-drop.per_kill());
+        climb.tokens[token].log_miss +=
+            kills[i] * DropRolls(drop) * std::log1p(-drop.per_kill());
       }
     }
   }

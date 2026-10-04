@@ -240,7 +240,8 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
     for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
       rows.push_back(DropRow(lines[i], ""));
     }
-    rows.push_back(DropRow(lines.back(), DropChance(drop.per_kill())));
+    rows.push_back(
+        DropRow(lines.back(), DropChance(drop.per_kill(), DropRolls(drop))));
   }
   return ftxui::vbox(std::move(rows));
 }

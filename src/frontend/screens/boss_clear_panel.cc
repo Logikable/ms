@@ -15,12 +15,12 @@ namespace ms {
 namespace {
 
 // One drop and how many came out. The count is left off a single item, since
-// "Zakum's Soul Shard x1" reads like a quantity someone chose.
+// "1x Zakum's Soul Shard" reads like a quantity someone chose.
 std::string DropLine(const BossRewardItem& item) {
   if (item.count <= 1) {
     return item.name;
   }
-  return item.name + " x" + std::to_string(item.count);
+  return std::to_string(item.count) + "x " + item.name;
 }
 
 // Puts the least likely of `items` first, keeping items with the same drop rate

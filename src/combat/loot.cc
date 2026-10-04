@@ -100,6 +100,10 @@ double BossDropRate(const MobDrop& drop, double item_drop_pct) {
   return whole + chance;
 }
 
+int DropRolls(const MobDrop& drop) {
+  return std::max(1, drop.rolls());
+}
+
 int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
                  std::mt19937& rng) {
   if (kills <= 0) {

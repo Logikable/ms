@@ -73,10 +73,11 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
   return lines;
 }
 
-std::string DropChance(double per_kill) {
+std::string DropChance(double per_kill, int rolls) {
+  std::string prefix = rolls > 1 ? std::to_string(rolls) + "x " : "";
   double pct = std::clamp(per_kill, 0.0, 1.0) * 100.0;
   if (pct > 0.0 && pct < 0.001) {
-    return "<0.001%";
+    return prefix + "<0.001%";
   }
   char buffer[32];
   std::snprintf(buffer, sizeof(buffer), "%.3f", pct);
@@ -87,7 +88,7 @@ std::string DropChance(double per_kill) {
   if (!text.empty() && text.back() == '.') {
     text.pop_back();
   }
-  return text + "%";
+  return prefix + text + "%";
 }
 
 std::string FormatWithCommas(int64_t n) {

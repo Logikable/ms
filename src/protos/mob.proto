@@ -14,6 +14,10 @@ message MobDrop {
   // Chance per kill, e.g. 0.4 for 40% or 0.00025 for one in four thousand. A
   // rate above one drops the whole part every kill and rolls for the remainder.
   double per_kill = 3;
+  // Separate rolls of `per_kill` each kill or clear; unset means one. A boss
+  // whose rate would be too coarse as one chance rolls it several times
+  // instead, so two rolls at 10% can pay none, one or two.
+  int32 rolls = 4;
 }
 
 // Where one monster stands in a boss arena: a cell on a grid `arena_width`

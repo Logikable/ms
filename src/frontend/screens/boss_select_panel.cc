@@ -15,6 +15,7 @@
 #include "src/character/boss_reset.h"
 #include "src/character/honor.h"
 #include "src/combat/drop.h"
+#include "src/combat/loot.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -534,10 +535,10 @@ void BossSelectPanel::RenderRewards(
     }
     (DropIsPrize(state_, drop) ? prizes : paid).push_back(&drop);
   }
-  std::stable_sort(prizes.begin(), prizes.end(),
-                   [](const MobDrop* a, const MobDrop* b) {
-                     return a->per_kill() > b->per_kill();
-                   });
+  std::stable_sort(
+      prizes.begin(), prizes.end(), [](const MobDrop* a, const MobDrop* b) {
+        return a->per_kill() * DropRolls(*a) > b->per_kill() * DropRolls(*b);
+      });
   for (const MobDrop* drop : paid) {
     RenderDropRow(rows, *drop, now);
   }
@@ -560,7 +561,7 @@ void BossSelectPanel::RenderDropRow(
   // Scrolled rather than wrapped: drop names are long, half a name means
   // nothing, and a second row would push the next drop out of the window. The
   // chance stays in the same column as every other value on this panel.
-  std::string chance = DropChance(drop.per_kill());
+  std::string chance = DropChance(drop.per_kill(), DropRolls(drop));
   int width = kDetailWidth - 3 - static_cast<int>(chance.size());
   ftxui::Element row = ftxui::text(
       " " +

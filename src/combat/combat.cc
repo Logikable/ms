@@ -124,8 +124,9 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     for (const MobDrop& drop : mob.drops()) {
       // Drop rate is uncapped here, unlike the meso chance. RollDrops treats a
       // rate above 1 as a guaranteed drop plus a chance at another.
-      int64_t dropped = RollDrops(
-          drop.per_kill() * (1.0 + params.item_drop_pct), kills[i], state.rng);
+      int64_t dropped =
+          RollDrops(drop.per_kill() * (1.0 + params.item_drop_pct),
+                    kills[i] * DropRolls(drop), state.rng);
       if (dropped <= 0) {
         continue;
       }

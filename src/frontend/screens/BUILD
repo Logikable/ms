@@ -990,6 +990,7 @@ cc_library(
         "//src/character:boss_reset",
         "//src/character:honor",
         "//src/combat:drop",
+        "//src/combat:loot",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",

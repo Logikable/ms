@@ -10,6 +10,7 @@
 #include "src/character/character_stats.h"
 #include "src/character/symbol.h"
 #include "src/combat/damage.h"
+#include "src/combat/loot.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
@@ -153,8 +154,8 @@ double DropsPerKill(const GameState& state, const DropBasis& basis,
       std::map<std::string, ItemPrototype>::const_iterator it =
           state.items.find(drop.item());
       if (it != state.items.end()) {
-        total +=
-            drop.per_kill() * ItemDropValue(basis, drop.item(), it->second);
+        total += drop.per_kill() * DropRolls(drop) *
+                 ItemDropValue(basis, drop.item(), it->second);
       }
       continue;
     }
@@ -164,7 +165,8 @@ double DropsPerKill(const GameState& state, const DropBasis& basis,
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(drop.equip());
     if (it != state.equips.end()) {
-      total += drop.per_kill() * EquipDropValue(state, basis, it->second);
+      total += drop.per_kill() * DropRolls(drop) *
+               EquipDropValue(state, basis, it->second);
     }
   }
   return total;

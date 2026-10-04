@@ -170,7 +170,8 @@ void PartyFight::DealDrops() {
     }
     // One roll per fight, where a map rolls once per kill. BossDropRate
     // decides how drop rate affects each drop.
-    int64_t rolled = RollDrops(BossDropRate(drop, best_drop_pct), 1, rng_);
+    int64_t rolled =
+        RollDrops(BossDropRate(drop, best_drop_pct), DropRolls(drop), rng_);
     std::uniform_int_distribution<size_t> who(0, takers.size() - 1);
     std::vector<int64_t> won(takers.size());
     for (int64_t i = 0; i < rolled; ++i) {

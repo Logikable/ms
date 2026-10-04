@@ -51,6 +51,10 @@ int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng);
 // written: a boss drops its gear once per clear.
 double BossDropRate(const MobDrop& drop, double item_drop_pct);
 
+// How many times `drop` is rolled each kill or clear: its `rolls`, or one when
+// unset.
+int DropRolls(const MobDrop& drop);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_LOOT_H_

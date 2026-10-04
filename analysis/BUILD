@@ -82,6 +82,7 @@ cc_library(
         "//src/character:character_stats",
         "//src/character:symbol",
         "//src/combat:damage",
+        "//src/combat:loot",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

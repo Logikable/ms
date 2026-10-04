@@ -58,6 +58,13 @@ TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
 
 // A boss table is paid once per clear, so drop rate raises the chance of a gear
 // drop but never past certain, and never adds a second copy.
+TEST(DropRollsTest, UnsetIsOneRoll) {
+  MobDrop drop;
+  EXPECT_EQ(DropRolls(drop), 1);
+  drop.set_rolls(8);
+  EXPECT_EQ(DropRolls(drop), 8);
+}
+
 TEST(BossDropRateTest, GearTakesTheChanceAndNeverTheCertainty) {
   EXPECT_DOUBLE_EQ(BossDropRate(Equip(1.0), 2.0), 1.0);
   EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.4), 1.0), 0.8);

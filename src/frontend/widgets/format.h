@@ -33,8 +33,9 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
 // A drop rate as a percent: "40%", "10%", "0.025%". Up to three decimals with
 // trailing zeros trimmed, because rare drops differ in the third decimal and
 // whole percents would show them as the same chance. A positive rate too small
-// even for that shows as "<0.001%" rather than zero.
-std::string DropChance(double per_kill);
+// even for that shows as "<0.001%" rather than zero. A drop rolled more than
+// once says how many times: "2x 10%".
+std::string DropChance(double per_kill, int rolls = 1);
 
 // Formats an integer with thousands-separator commas (e.g. 1234567 ->
 // "1,234,567"). Handles negatives.

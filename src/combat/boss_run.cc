@@ -727,7 +727,8 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
     }
     // Bosses roll each drop once per fight; maps roll once per kill. How drop
     // rate applies depends on the item; see BossDropRate.
-    int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct), 1, state.rng);
+    int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct),
+                               DropRolls(drop), state.rng);
     if (rolled > 0) {
       awards.push_back({drop, rolled});
     }
@@ -766,7 +767,7 @@ void BossRun::PayReward(GameState& state,
     if (granted > 0 && !name.empty()) {
       reward_.items.push_back({std::move(name), granted,
                                DropIsPrize(state, award.drop),
-                               award.drop.per_kill()});
+                               award.drop.per_kill() * DropRolls(award.drop)});
     }
   }
   if (authority_ == nullptr) {

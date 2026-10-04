@@ -918,6 +918,24 @@ TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }
 
+// A drop with several rolls rolls each one, so a sure drop rolled four times
+// pays four, and the reward card counts them.
+TEST(BossRunTest, EachRollOfADropPays) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  boss.mutable_difficulties(0)->mutable_drops(0)->set_rolls(4);
+  boss.mutable_difficulties(0)->mutable_drops(1)->set_rolls(4);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 4);
+  ASSERT_EQ(run.reward().items.size(), 2);
+  for (const BossRewardItem& item : run.reward().items) {
+    EXPECT_EQ(item.count, 4) << item.name;
+  }
+}
+
 // Void drops keeps a sure equip from dropping and pays everything else.
 TEST(BossRunTest, VoidDropsPaysAllButEquips) {
   std::unique_ptr<GameState> state = MakeState();

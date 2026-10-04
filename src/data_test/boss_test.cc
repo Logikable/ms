@@ -292,6 +292,7 @@ TEST_F(BossDataTest, EveryDropNamesAnItem) {
               << "\", which no equip file defines";
         }
         EXPECT_GT(drop.per_kill(), 0.0) << entry.first;
+        EXPECT_GE(drop.rolls(), 0) << entry.first;
       }
     }
   }

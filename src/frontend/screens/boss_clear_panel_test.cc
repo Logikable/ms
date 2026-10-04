@@ -62,8 +62,8 @@ TEST(BossClearPanelTest, NamesTheFightThePurseTheExpTheHonorAndEveryDrop) {
 // more than one.
 TEST(BossClearPanelTest, OnlyMoreThanOneCarriesACount) {
   ftxui::Screen screen = RenderCard(FullReward());
-  EXPECT_TRUE(AnyRowHas(screen, "Zakum's Soul Shard x3"));
-  EXPECT_FALSE(AnyRowHas(screen, "Condensed Power Crystal x1"));
+  EXPECT_TRUE(AnyRowHas(screen, "3x Zakum's Soul Shard"));
+  EXPECT_FALSE(AnyRowHas(screen, "1x Condensed Power Crystal"));
 }
 
 // The clear pays honor at any level, but a player who can't spend it yet isn't

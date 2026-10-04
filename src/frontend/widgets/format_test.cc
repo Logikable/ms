@@ -90,6 +90,11 @@ TEST(DropChanceTest, TrimsToTheDecimalsTheRateNeeds) {
   EXPECT_EQ(DropChance(0.0001), "0.01%");
 }
 
+TEST(DropChanceTest, CountsRepeatedRolls) {
+  EXPECT_EQ(DropChance(0.1, 2), "2x 10%");
+  EXPECT_EQ(DropChance(0.1, 1), "10%");
+}
+
 TEST(DropChanceTest, KeepsATinyRateAChance) {
   EXPECT_EQ(DropChance(0.0000001), "<0.001%");
   EXPECT_EQ(DropChance(0.0), "0%");
