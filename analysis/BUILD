@@ -333,10 +333,13 @@ cc_test(
     srcs = ["sim_gear_test.cc"],
     deps = [
         ":sim_gear",
+        "//src:game_state",
         "//src/character",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],
 )

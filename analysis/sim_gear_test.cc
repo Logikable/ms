@@ -7,9 +7,12 @@
 #include <string>
 
 #include "src/character/character.h"
+#include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -131,6 +134,49 @@ TEST(SplitFarmPieceTest, NothingSplitsBeforePresets) {
   character.PickUp(std::make_unique<EquipInstance>(Ring("Meister", 140)));
   EXPECT_FALSE(SharesFarmPiece(character, EQUIP_SLOT_RING));
   EXPECT_EQ(SplitFarmPiece(character, EQUIP_SLOT_RING), EQUIP_SLOT_UNSPECIFIED);
+}
+
+// The free pets go on with the rest of the shop's accessories, and their
+// scroll stays unbought: it spends an Etc item the sim never holds, which the
+// trace price would otherwise give away.
+TEST(OutfitTest, WearsThreeFreePetsUnscrolled) {
+  std::map<std::string, EquipPrototype> equips;
+  for (int i = 0; i < 4; ++i) {
+    EquipPrototype pet =
+        Accessory("Pet " + std::to_string(i), 0, EQUIP_SLOT_PET);
+    pet.set_shop_price(0);
+    pet.set_shelf_order(i);
+    pet.set_upgrade_slots(8);
+    equips["pet_" + std::to_string(i)] = pet;
+  }
+  Scroll premium;
+  premium.set_name("Premium Scroll for Pet");
+  premium.set_target(SCROLL_TARGET_PET);
+  premium.set_paid_with("Premium Scroll for Pet");
+  premium.mutable_stats()->set_attack(5);
+  premium.set_tier(SCROLL_TIER_1);
+  premium.set_success_rate(100);
+  premium.add_applicable_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EquipPrototype sword = Accessory("Sword", 0, EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  sword.mutable_base_stats()->set_attack(100);
+  equips["sword"] = sword;
+  GameState state(equips, {{"premium", premium}}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailMap()}});
+  state.current_map = "field";
+  while (state.character.proto().level() < 30) {
+    state.character.LevelUp();
+  }
+
+  state.character.PickUp(std::make_unique<EquipInstance>(sword));
+  ASSERT_TRUE(state.character.Equip(0));
+  OutfitWeapon(state, EQUIP_TYPE_ONE_HANDED_SWORD);
+  for (EquipSlot slot : {EQUIP_SLOT_PET, EQUIP_SLOT_PET_2, EQUIP_SLOT_PET_3}) {
+    EXPECT_NE(state.character.WornAt(StatPreset::kFirst, slot), nullptr);
+  }
+  EXPECT_FALSE(state.character.IsWearing("Pet 3"));
+  EXPECT_TRUE(ChooseScrolls(state, 0).empty());
 }
 
 }  // namespace

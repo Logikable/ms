@@ -356,7 +356,9 @@ std::vector<const Scroll*> ScrollsFor(const GameState& state,
     const Scroll& scroll = entry.second;
     if (scroll.tier() != TierForLevel(proto.required_level()) ||
         scroll.target() != target ||
-        scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+        scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE ||
+        // Spends an Etc item the sim never holds, and TraceCost prices it at 0.
+        !scroll.paid_with().empty()) {
       continue;
     }
     for (int category : scroll.applicable_job_categories()) {
@@ -504,12 +506,16 @@ void WearBestOfFamily(CharacterInstance& character, EquipSlot family,
   }
 }
 
-// The rest of the shop's equipment: rings, emblem and medal. Nothing is
-// measured, for the same reason as off-hands (plain stats, so a higher tier is
-// simply better), and a family takes as many as it has slots.
+// The rest of the shop's equipment: rings, emblem, medal and the free pets.
+// Nothing is measured, for the same reason as off-hands (plain stats, so a
+// higher tier is simply better), and a family takes as many as it has slots.
 void BuyAccessories(GameState& state, bool budget) {
   std::map<EquipSlot, std::vector<const EquipPrototype*>> by_family;
-  for (const std::string& key : EquipShelf(state)) {
+  std::vector<std::string> shelf = EquipShelf(state);
+  for (const std::string& pet : ShopPetStock(state.equips)) {
+    shelf.push_back(pet);
+  }
+  for (const std::string& key : shelf) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_slot() == EQUIP_SLOT_SECONDARY ||
         !state.character.MeetsLevel(proto) ||
