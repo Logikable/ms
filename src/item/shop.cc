@@ -156,7 +156,16 @@ int TokenPriceIn(const EquipPrototype& proto, const std::string& token) {
 }
 
 bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick) {
-  if (!box.has_box() || TokenPriceIn(pick, box.box().token_item()) <= 0) {
+  if (box.has_pick_box()) {
+    const google::protobuf::RepeatedPtrField<std::string>& names =
+        box.pick_box().equips();
+    return std::find(names.begin(), names.end(), pick.name()) != names.end();
+  }
+  if (!box.has_box() || std::none_of(box.box().token_items().begin(),
+                                     box.box().token_items().end(),
+                                     [&pick](const std::string& token) {
+                                       return TokenPriceIn(pick, token) > 0;
+                                     })) {
     return false;
   }
   const google::protobuf::RepeatedField<int>& slots = box.box().slots();
@@ -167,10 +176,20 @@ bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick) {
 std::vector<std::string> BoxStock(
     const ItemPrototype& box,
     const std::map<std::string, EquipPrototype>& equips) {
+  std::vector<std::string> keys;
+  if (box.has_pick_box()) {
+    for (const std::string& name : box.pick_box().equips()) {
+      for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+        if (entry.second.name() == name) {
+          keys.push_back(entry.first);
+        }
+      }
+    }
+    return keys;
+  }
   std::vector<std::string> shelf = ShopWeaponStock(equips, kPaidInTokens);
   std::vector<std::string> rest = ShopEquipStock(equips, kPaidInTokens);
   shelf.insert(shelf.end(), rest.begin(), rest.end());
-  std::vector<std::string> keys;
   for (int slot : box.box().slots()) {
     for (const std::string& key : shelf) {
       const EquipPrototype& pick = equips.at(key);

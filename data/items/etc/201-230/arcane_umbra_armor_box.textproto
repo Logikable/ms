@@ -1,7 +1,7 @@
-name: "AbsoLab Armor Box"
-description: "Select and obtain a piece of AbsoLab Armor for your job."
+name: "Arcane Umbra Armor Box"
+description: "Select and obtain an Arcane Umbra Armor for your job."
 box {
-  token_items: "absolab_coin"
+  token_items: ["phantasma_coin", "arachno_coin"]
   slots: EQUIP_SLOT_HAT
   slots: EQUIP_SLOT_TOP
   slots: EQUIP_SLOT_BOTTOM

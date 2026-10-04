@@ -1,0 +1,11 @@
+name: "Will's Cursed Spellbook Selection Box"
+sell_price: 0
+description: "Open the box to select one of Will's Cursed Spellbooks."
+pick_box {
+  equips: [
+    "Cursed Red Spellbook",
+    "Cursed Blue Spellbook",
+    "Cursed Green Spellbook",
+    "Cursed Yellow Spellbook"
+  ]
+}

@@ -249,7 +249,7 @@ TEST_F(BankPanelTest, ASymbolWillNotGoIntoTheBank) {
 TEST_F(BankPanelTest, ABoxGoesIntoTheBank) {
   ItemPrototype box;
   box.set_name("AbsoLab Armor Box");
-  box.mutable_box()->set_token_item("absolab_coin");
+  box.mutable_box()->add_token_items("absolab_coin");
   c_.AddItem(box, 1);
   panel_->MoveCursor(1);  // the Etc chip
   ToList();

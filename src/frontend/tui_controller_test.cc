@@ -2984,7 +2984,7 @@ TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
 TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
   ItemPrototype box;
   box.set_name("Weapon Box");
-  box.mutable_box()->set_token_item("weapon_token");
+  box.mutable_box()->add_token_items("weapon_token");
   box.mutable_box()->add_slots(EQUIP_SLOT_PRIMARY_WEAPON);
   state_->character.AddItem(box, 2);
   panel_focus_ = kInventoryPanel;

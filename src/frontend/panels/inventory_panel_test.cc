@@ -1456,7 +1456,7 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
 // for what it holds.
 TEST_F(InventoryPanelTest, OpenIsOnlyOnABoxWithRoom) {
   ItemPrototype box = MakeStackable("AbsoLab Weapon Box", 0);
-  box.mutable_box()->set_token_item("absolab_coin");
+  box.mutable_box()->add_token_items("absolab_coin");
   c_.AddItem(box, 1);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});

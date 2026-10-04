@@ -1,0 +1,6 @@
+name: "Arcane Umbra Weapon Box"
+description: "Select and obtain an Arcane Umbra Weapon for your job."
+box {
+  token_items: ["phantasma_coin", "arachno_coin"]
+  slots: EQUIP_SLOT_PRIMARY_WEAPON
+}

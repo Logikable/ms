@@ -34,13 +34,19 @@ enum ItemKind {
   ITEM_KIND_SOUL_SHARD = 3;
 }
 
-// What a box opens into: one piece of the equipment the shop sells for
-// `token_item`, in one of `slots`, chosen by the player from what their class
+// What a box opens into: one piece of the equipment the shop sells for any of
+// `token_items`, in one of `slots`, chosen by the player from what their class
 // can wear. Read from the shop rather than listed, so a piece added to the
 // shelf is in the box too.
 message BoxContents {
-  string token_item = 1;
+  repeated string token_items = 1;
   repeated EquipSlot slots = 2;
+}
+
+// A box the player opens for any one of `equips`, by name, whatever their
+// class.
+message PickBox {
+  repeated string equips = 1;
 }
 
 // A Boss Ring Box. The player picks a ring by the equipment skill it grants
@@ -111,6 +117,7 @@ message ItemPrototype {
   oneof opens_into {
     BoxContents box = 14;
     RingBox ring_box = 16;
+    PickBox pick_box = 17;
   }
   // Set only on a soul shard: the tier of the soul 10 of them make.
   SoulTier soul_tier = 15;

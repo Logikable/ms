@@ -310,7 +310,7 @@ EquipPrototype TokenPiece(const std::string& name, EquipSlot slot,
 ItemPrototype ArmorBox() {
   ItemPrototype box;
   box.set_name("Box");
-  box.mutable_box()->set_token_item("coin");
+  box.mutable_box()->add_token_items("coin");
   box.mutable_box()->add_slots(EQUIP_SLOT_SHOES);
   box.mutable_box()->add_slots(EQUIP_SLOT_HAT);
   return box;
@@ -338,6 +338,31 @@ TEST(BoxStockTest, TheTokenShelfInTheBoxsSlots) {
   ItemPrototype not_a_box;
   EXPECT_TRUE(BoxStock(not_a_box, equips).empty());
   EXPECT_FALSE(BoxHolds(not_a_box, equips.at("hat")));
+  // A second token adds its shelf, and a piece either token buys comes once.
+  box.mutable_box()->add_token_items("other_coin");
+  equips["both"] = TokenPiece("Both", EQUIP_SLOT_HAT, "coin");
+  TokenPrice* second = equips["both"].add_token_prices();
+  second->set_token_item("other_coin");
+  second->set_count(2);
+  expected = {"shoes", "both", "hat", "other"};
+  EXPECT_EQ(BoxStock(box, equips), expected);
+}
+
+// A pick box holds what it names, in its order, whatever buys it.
+TEST(BoxStockTest, APickBoxHoldsWhatItNames) {
+  EquipPrototype red = MakeItem("Red", 160, 0);
+  EquipPrototype blue = MakeItem("Blue", 160, 0);
+  std::map<std::string, EquipPrototype> equips{
+      {"red", red},
+      {"blue", blue},
+      {"hat", TokenPiece("Hat", EQUIP_SLOT_HAT, "coin")}};
+  ItemPrototype box;
+  box.mutable_pick_box()->add_equips("Blue");
+  box.mutable_pick_box()->add_equips("Red");
+  std::vector<std::string> expected{"blue", "red"};
+  EXPECT_EQ(BoxStock(box, equips), expected);
+  EXPECT_TRUE(BoxHolds(box, red));
+  EXPECT_FALSE(BoxHolds(box, equips.at("hat")));
 }
 
 // A weapon for each of the ten branches, and seven pieces for each of the four
@@ -348,6 +373,13 @@ TEST(BoxStockTest, TheAbsoLabBoxesAreStocked) {
       LoadTestData<ItemPrototype>("items");
   EXPECT_EQ(BoxStock(items.at("absolab_weapon_box"), equips).size(), 10u);
   EXPECT_EQ(BoxStock(items.at("absolab_armor_box"), equips).size(), 28u);
+  // Arcane Umbra: one weapon per branch even though both coins buy it, and
+  // seven armour pieces per line.
+  EXPECT_EQ(BoxStock(items.at("arcane_umbra_weapon_box"), equips).size(), 10u);
+  EXPECT_EQ(BoxStock(items.at("arcane_umbra_armor_box"), equips).size(), 28u);
+  EXPECT_EQ(
+      BoxStock(items.at("wills_cursed_spellbook_selection_box"), equips).size(),
+      4u);
 }
 
 TEST(FitsWeaponsTest, WeaponsAmmoAndTheRest) {

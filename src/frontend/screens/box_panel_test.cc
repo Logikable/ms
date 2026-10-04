@@ -37,7 +37,7 @@ class BoxPanelTest : public testing::Test {
  protected:
   void SetUp() override {
     box_.set_name("AbsoLab Armor Box");
-    box_.mutable_box()->set_token_item("absolab_coin");
+    box_.mutable_box()->add_token_items("absolab_coin");
     box_.mutable_box()->add_slots(EQUIP_SLOT_HAT);
     box_.mutable_box()->add_slots(EQUIP_SLOT_CAPE);
     panel_.Reset(box_);

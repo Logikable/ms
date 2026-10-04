@@ -1,0 +1,16 @@
+name: "Cursed Yellow Spellbook"
+required_level: 160
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 20
+  attack: 10
+  magic_attack: 10
+  max_hp: 100
+  max_mp: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_POCKET
+unsupported_upgrades: [UPGRADE_SCROLL, UPGRADE_STAR_FORCE, UPGRADE_CUBE]
+sell_price: 0

@@ -26,7 +26,7 @@ TEST(TradeableTest, ACurrencyStaysWhereItIs) {
 TEST(TradeableTest, ABoxTrades) {
   ItemPrototype box;
   box.set_name("AbsoLab Weapon Box");
-  box.mutable_box()->set_token_item("absolab_coin");
+  box.mutable_box()->add_token_items("absolab_coin");
   EXPECT_TRUE(CanTrade(box));
 }
 

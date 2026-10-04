@@ -2229,7 +2229,7 @@ class OpenBoxTest : public CharacterTest {
  protected:
   void SetUp() override {
     box_.set_name("AbsoLab Armor Box");
-    box_.mutable_box()->set_token_item("absolab_coin");
+    box_.mutable_box()->add_token_items("absolab_coin");
     box_.mutable_box()->add_slots(EQUIP_SLOT_HAT);
     hat_.set_name("AbsoLab Hat");
     hat_.set_equip_slot(EQUIP_SLOT_HAT);

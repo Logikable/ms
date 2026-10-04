@@ -60,12 +60,14 @@ std::vector<std::string> ShopEtcStock(
 // buy it.
 int TokenPriceIn(const EquipPrototype& proto, const std::string& token);
 
-// Whether `box` opens into `pick`: the token shelf sells it for the box's
-// token, in one of the box's slots. Says nothing about who can wear it.
+// Whether `box` opens into `pick`: the token shelf sells it for one of the
+// box's tokens, in one of the box's slots, or a pick box names it. Says nothing
+// about who can wear it.
 bool BoxHolds(const ItemPrototype& box, const EquipPrototype& pick);
 
 // Catalog keys of everything `box` opens into, in the order the box lists its
-// slots and in shop order within one slot. Empty for an item that isn't a box.
+// slots and in shop order within one slot; a pick box's in the order it names
+// them. Empty for an item that isn't a box.
 // Filtering by class is the caller's job, as for the shop.
 std::vector<std::string> BoxStock(
     const ItemPrototype& box,
