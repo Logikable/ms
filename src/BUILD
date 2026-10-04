@@ -271,6 +271,7 @@ cc_library(
         "//src/item:flame",
         "//src/item:inventory",
         "//src/item:potential",
+        "//src/item:shop",
         "//src/item:soul",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",

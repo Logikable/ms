@@ -31,11 +31,13 @@
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/shop.h"
 #include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -216,6 +218,16 @@ const Scroll* BestScrollFor(const GameState& state,
   }
   ScrollTarget target = TargetForSlot(proto.equip_slot());
   if (target == SCROLL_TARGET_UNSPECIFIED) {
+    return nullptr;
+  }
+  // A pet has one scroll, and it raises both attacks, so the stat doesn't
+  // choose.
+  if (target == SCROLL_TARGET_PET) {
+    for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+      if (entry.second.target() == SCROLL_TARGET_PET) {
+        return &entry.second;
+      }
+    }
     return nullptr;
   }
   const Scroll* best = BestScrollOfType(state, proto, target, wanted);
@@ -674,6 +686,51 @@ std::vector<std::string> AntiqueTotems() {
           "bronze_incense_burner_totem"};
 }
 
+// Three pets off the shelf, repeats allowed, since a player may keep three of
+// one.
+std::vector<std::string> RandomPets(GameState& state) {
+  std::vector<std::string> shelf = ShopPetStock(state.equips);
+  std::vector<std::string> picked;
+  if (shelf.empty()) {
+    return picked;
+  }
+  std::uniform_int_distribution<int> pick(0,
+                                          static_cast<int>(shelf.size()) - 1);
+  for (size_t i = 0; i < SlotFamily(EQUIP_SLOT_PET).size(); ++i) {
+    picked.push_back(shelf[pick(state.rng)]);
+  }
+  return picked;
+}
+
+// The user's pick for max mode.
+std::vector<std::string> MaxPets() {
+  return {"lil_frieren", "lil_fern", "lil_stark"};
+}
+
+constexpr char kPetScroll[] = "premium_scroll_for_pet";
+
+// Whether some fight or monster drops `item`. Max mode scrolls its pets only
+// once theirs drops, so it never wears stats no player can get.
+bool AnythingDrops(const GameState& state, const std::string& item) {
+  for (const std::pair<const std::string, Mob>& entry : state.mobs) {
+    for (const MobDrop& drop : entry.second.drops()) {
+      if (drop.item() == item) {
+        return true;
+      }
+    }
+  }
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const MobDrop& drop : difficulty.drops()) {
+        if (!difficulty.coming_soon() && drop.item() == item) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 // Passed as `unspent_stage` to spend every point earned.
 constexpr int kSpendEveryStage = 0;
 
@@ -1072,6 +1129,8 @@ void SeedTest(GameState& state, const TestOptions& test) {
   GiveSymbols(state);
   SeedPotentials(state);
   SeedFlames(state);
+  // Last, so the draw doesn't move the seeds the rolls above depend on.
+  WearAll(state, RandomPets(state), test.equips);
 
   // The weakest hunting ground; the tester can pick any other on map select.
   state.current_map = "right_around_lith_harbor";
@@ -1249,6 +1308,9 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   GrowToJob(state, advancement, level, kSpendEveryStage, equips,
             /*cygnus_shoulders=*/false, kMaxTotemLevel);
   WearMaxSymbols(state);
+  GearSetup pets = equips;
+  pets.scrolled = AnythingDrops(state, kPetScroll);
+  WearAll(state, MaxPets(), pets);
   // The climb's leftovers: pieces a level gate says to carry instead of wear,
   // and weapons replaced later.
   state.character.ClearEquipInventory();

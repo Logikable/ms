@@ -51,6 +51,26 @@ GameState MakeTestModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kTest);
 }
 
+// Test mode draws three pets off the shelf, any three, repeats allowed.
+TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
+  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
+  for (const char* key : {"husky", "pink_bunny"}) {
+    EquipPrototype pet;
+    pet.set_name(key);
+    pet.set_equip_slot(EQUIP_SLOT_PET);
+    pet.set_shop_price(0);
+    pet.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    catalog[key] = pet;
+  }
+  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_PET)) {
+    ASSERT_EQ(state.character.equipped().count(slot), 1u)
+        << EquipSlot_Name(slot);
+    std::string name = state.character.equipped().at(slot)->prototype().name();
+    EXPECT_TRUE(name == "husky" || name == "pink_bunny") << name;
+  }
+}
+
 GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
 }
@@ -961,6 +981,14 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
     totem.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
     catalog[key] = totem;
   }
+  for (const char* key : {"lil_frieren", "lil_fern", "lil_stark"}) {
+    EquipPrototype pet;
+    pet.set_name(key);
+    pet.set_equip_slot(EQUIP_SLOT_PET);
+    pet.set_upgrade_slots(8);
+    pet.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    catalog[key] = pet;
+  }
   // The six river areas at the levels they open, since that decides which ones
   // a max character owns.
   const std::pair<EquipSlot, int> kSymbols[] = {
@@ -1008,6 +1036,15 @@ std::map<std::string, Scroll> MaxTraces() {
   Scroll weapon = traces.at("str_100");
   weapon.set_tier(TierForLevel(120));
   traces["weapon_str_100"] = weapon;
+  Scroll& pet = traces["premium_scroll_for_pet"];
+  pet.set_name("Premium Scroll for Pet");
+  pet.set_success_rate(100);
+  pet.set_tier(SCROLL_TIER_1);
+  pet.set_target(SCROLL_TARGET_PET);
+  pet.add_applicable_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  pet.mutable_stats()->set_attack(5);
+  pet.mutable_stats()->set_magic_attack(5);
+  pet.set_paid_with("Premium Scroll for Pet");
   return traces;
 }
 
@@ -1093,6 +1130,30 @@ TEST(GameStateTest, MaxModeWearsTheTotemsFrom230) {
     EXPECT_EQ(state.character.equipped().count(slot), 1u)
         << EquipSlot_Name(slot);
   }
+}
+
+// Max mode wears the user's three pets, scrolled only once something drops
+// their scroll: before that no player could have one.
+TEST(GameStateTest, MaxModeWearsTheFrierenPetsScrolledOnceTheScrollDrops) {
+  GameState unscrolled = MakeMaxState(230);
+  const std::vector<std::string> kPets = {"lil_frieren", "lil_fern",
+                                          "lil_stark"};
+  std::vector<EquipSlot> family = SlotFamily(EQUIP_SLOT_PET);
+  for (size_t i = 0; i < family.size(); ++i) {
+    EXPECT_EQ(Worn(unscrolled, family[i]).prototype().name(), kPets[i]);
+    EXPECT_EQ(Worn(unscrolled, family[i]).equip_state().scroll_successes(), 0);
+  }
+
+  std::map<std::string, Boss> bosses = MaxBosses();
+  MobDrop* drop = bosses["wall"].mutable_difficulties(0)->add_drops();
+  drop->set_item("premium_scroll_for_pet");
+  drop->set_per_kill(1);
+  GameState scrolled = MakeMaxState(230, JOB_ADVANCEMENT_HERO, bosses);
+  const EquipInstance& pet = Worn(scrolled, EQUIP_SLOT_PET_3);
+  int slots = TotalUpgradeSlots(pet.prototype(), pet.equip_state());
+  EXPECT_GE(slots, 8);
+  EXPECT_EQ(pet.equip_state().scroll_stats().attack(), 5 * slots);
+  EXPECT_EQ(pet.equip_state().scroll_stats().magic_attack(), 5 * slots);
 }
 
 // A max account has one character at the top of every other job line, so link
