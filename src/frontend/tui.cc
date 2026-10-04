@@ -657,17 +657,20 @@ ftxui::Element Tui::BossConfirmDialog() {
 
 ftxui::Element Tui::NoticeDialog() {
   // Red when the player is the reason (no weapon, an item with no slots left),
-  // and theme blue when it is only a timer. The caller chooses the
-  // button's label: a result says to continue, a notice says to close.
-  bool refused = controller_.notice_is_refusal();
+  // gold for a ring box's reward, and theme blue when it is only a timer. The
+  // caller chooses the button's label: a result says to continue, a notice
+  // says to close.
+  ftxui::Color accent = controller_.notice_is_refusal() ? kRed : kTheme;
+  if (controller_.screen() == kBoxResult) {
+    accent = kGold;
+  }
   ftxui::Elements rows;
   for (const std::string& line : controller_.notice_lines()) {
     rows.push_back(CenteredRow(line));
   }
   return DialogWindow(
       "", std::move(rows),
-      controller_.notice_prompt().Render(controller_.notice_button()),
-      refused ? kRed : kTheme);
+      controller_.notice_prompt().Render(controller_.notice_button()), accent);
 }
 
 void Tui::ShowOfflineReport(OfflineReport report) {
