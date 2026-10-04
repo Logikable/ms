@@ -263,6 +263,7 @@ cc_library(
         "//src/character:link",
         "//src/character:max_character",
         "//src/character:sacred_power",
+        "//src/character:set_pieces",
         "//src/character:stat_preset",
         "//src/character:symbol",
         "//src/item",

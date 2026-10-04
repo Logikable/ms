@@ -583,6 +583,16 @@ cc_test(
 )
 
 cc_library(
+    name = "set_pieces",
+    srcs = ["set_pieces.cc"],
+    hdrs = ["set_pieces.h"],
+    deps = [
+        ":job_branch",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_library(
     name = "max_character",
     srcs = ["max_character.cc"],
     hdrs = ["max_character.h"],

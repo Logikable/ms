@@ -23,6 +23,7 @@
 #include "src/character/link.h"
 #include "src/character/max_character.h"
 #include "src/character/sacred_power.h"
+#include "src/character/set_pieces.h"
 #include "src/character/stat_preset.h"
 #include "src/character/symbol.h"
 #include "src/item/equip_instance.h"
@@ -390,57 +391,6 @@ std::vector<std::string> FrozenArmour() {
 // produce.
 constexpr int kRootAbyssLevel = 200;
 
-// The branch's Root Abyss set, worn over the Frozen tier: three armour pieces
-// and the weapon, which replace the Frozen hat, top, bottom and weapon. The
-// secondary isn't included; Princess No's secondary, from a fight opening at
-// the same level, fills it below.
-std::vector<std::string> RootAbyssArmour(Job job) {
-  switch (BranchOf(job)) {
-    case JobBranch::kWarrior:
-      return {"royal_warrior_helm", "eagle_eye_warrior_armor",
-              "trixter_warrior_pants"};
-    case JobBranch::kArcher:
-      return {"royal_ranger_beret", "eagle_eye_ranger_cowl",
-              "trixter_ranger_pants"};
-    case JobBranch::kMagician:
-      return {"royal_dunwitch_hat", "eagle_eye_dunwitch_robe",
-              "trixter_dunwitch_pants"};
-    case JobBranch::kRogue:
-      return {"royal_assassin_hood", "eagle_eye_assassin_shirt",
-              "trixter_assassin_pants"};
-    default:
-      return {};
-  }
-}
-
-// The Root Abyss weapon for a 4th job, following the same line choice as the
-// Frozen tier in WorkbenchGearFor. Empty below the 4th job, which only reaches
-// level 200 if a tester sets it by hand.
-std::string RootAbyssWeapon(Job job) {
-  switch (job) {
-    case JOB_HERO:
-      return "fafnir_battle_cleaver";
-    case JOB_PALADIN:
-      return "fafnir_lightning_striker";
-    case JOB_DARK_KNIGHT:
-      return "fafnir_brionak";
-    case JOB_BOW_MASTER:
-      return "fafnir_wind_chaser";
-    case JOB_MARKSMAN:
-      return "fafnir_windwing_shooter";
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
-      return "fafnir_mana_crown";
-    case JOB_NIGHT_LORD:
-      return "fafnir_risk_holder";
-    case JOB_SHADOWER:
-      return "fafnir_damascus";
-    default:
-      return "";
-  }
-}
-
 std::vector<std::string> RootAbyssGear(Job job) {
   std::vector<std::string> names = RootAbyssArmour(job);
   std::string weapon = RootAbyssWeapon(job);
@@ -448,37 +398,6 @@ std::vector<std::string> RootAbyssGear(Job job) {
     names.push_back(std::move(weapon));
   }
   return names;
-}
-
-// The secondary Princess No's fragments buy, the first to replace the Frozen
-// secondary. She opens at 200 like the Chaos Root Abyss, so one level gate
-// covers both. It belongs to no set, so the Frozen set loses a piece. Empty
-// below the 4th job, like the Root Abyss weapon.
-std::vector<std::string> PrincessNoSecondary(Job job) {
-  switch (job) {
-    case JOB_HERO:
-      return {"princess_nos_medal"};
-    case JOB_PALADIN:
-      return {"princess_nos_rosary"};
-    case JOB_DARK_KNIGHT:
-      return {"princess_nos_flower_chain"};
-    case JOB_FIRE_POISON_ARCH_MAGE:
-      return {"princess_nos_flaming_book"};
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-      return {"princess_nos_damp_book"};
-    case JOB_BISHOP:
-      return {"princess_nos_golden_book"};
-    case JOB_BOW_MASTER:
-      return {"princess_nos_feather"};
-    case JOB_MARKSMAN:
-      return {"princess_nos_wreath"};
-    case JOB_NIGHT_LORD:
-      return {"princess_nos_charm"};
-    case JOB_SHADOWER:
-      return {"princess_nos_purple_shadow"};
-    default:
-      return {};
-  }
 }
 
 // The level Damien and Lotus open at, and so the earliest anyone can own what
@@ -507,65 +426,6 @@ std::vector<std::string> HardBlackHeavenGear() {
   return {"berserked", "magic_eyepatch", "black_heart"};
 }
 
-// The AbsoLab weapon for a 4th job, following the same line choice as the two
-// tiers below. Empty below the 4th job, which only reaches level 210 if a
-// tester sets it by hand.
-std::string AbsoLabWeapon(Job job) {
-  switch (job) {
-    case JOB_HERO:
-      return "absolab_broad_axe";
-    case JOB_PALADIN:
-      return "absolab_broad_hammer";
-    case JOB_DARK_KNIGHT:
-      return "absolab_piercing_spear";
-    case JOB_BOW_MASTER:
-      return "absolab_sureshot_bow";
-    case JOB_MARKSMAN:
-      return "absolab_crossbow";
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
-      return "absolab_spellsong_staff";
-    case JOB_NIGHT_LORD:
-      return "absolab_revenge_guard";
-    case JOB_SHADOWER:
-      return "absolab_blade_lord";
-    default:
-      return "";
-  }
-}
-
-// The branch's AbsoLab armour, worn over the Root Abyss tier: six pieces, which
-// replace the Root Abyss hat, top and bottom and the Frozen cape, gloves and
-// boots. The shoulder takes Cygnus's slot, so the Boss Accessory Set loses a
-// piece to it.
-std::vector<std::string> AbsoLabArmour(Job job) {
-  switch (BranchOf(job)) {
-    case JobBranch::kWarrior:
-      return {"absolab_knight_helm",    "absolab_knight_armor",
-              "absolab_knight_pants",   "absolab_knight_shoes",
-              "absolab_knight_gloves",  "absolab_knight_cape",
-              "absolab_knight_shoulder"};
-    case JobBranch::kArcher:
-      return {"absolab_archer_hood",    "absolab_archer_armor",
-              "absolab_archer_pants",   "absolab_archer_shoes",
-              "absolab_archer_gloves",  "absolab_archer_cape",
-              "absolab_archer_shoulder"};
-    case JobBranch::kMagician:
-      return {"absolab_mage_crown",   "absolab_mage_armor",
-              "absolab_mage_pants",   "absolab_mage_shoes",
-              "absolab_mage_gloves",  "absolab_mage_cape",
-              "absolab_mage_shoulder"};
-    case JobBranch::kRogue:
-      return {"absolab_bandit_cap",     "absolab_bandit_armor",
-              "absolab_bandit_pants",   "absolab_bandit_shoes",
-              "absolab_bandit_gloves",  "absolab_bandit_cape",
-              "absolab_bandit_shoulder"};
-    default:
-      return {};
-  }
-}
-
 std::vector<std::string> AbsoLabGear(Job job) {
   std::vector<std::string> names = AbsoLabArmour(job);
   std::string weapon = AbsoLabWeapon(job);
@@ -575,56 +435,9 @@ std::vector<std::string> AbsoLabGear(Job job) {
   return names;
 }
 
-// The Arcane Umbra weapon for a 4th job, on the same line choice as AbsoLab's.
-std::string ArcaneUmbraWeapon(Job job) {
-  switch (job) {
-    case JOB_HERO:
-      return "arcane_umbra_two_handed_axe";
-    case JOB_PALADIN:
-      return "arcane_umbra_two_handed_hammer";
-    case JOB_DARK_KNIGHT:
-      return "arcane_umbra_spear";
-    case JOB_BOW_MASTER:
-      return "arcane_umbra_bow";
-    case JOB_MARKSMAN:
-      return "arcane_umbra_crossbow";
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
-      return "arcane_umbra_staff";
-    case JOB_NIGHT_LORD:
-      return "arcane_umbra_guards";
-    case JOB_SHADOWER:
-      return "arcane_umbra_dagger";
-    default:
-      return "";
-  }
-}
-
 // The branch's whole Arcane Umbra set, replacing AbsoLab piece for piece.
 std::vector<std::string> ArcaneUmbraGear(Job job) {
-  std::string branch;
-  switch (BranchOf(job)) {
-    case JobBranch::kWarrior:
-      branch = "knight";
-      break;
-    case JobBranch::kArcher:
-      branch = "archer";
-      break;
-    case JobBranch::kMagician:
-      branch = "mage";
-      break;
-    case JobBranch::kRogue:
-      branch = "thief";
-      break;
-    default:
-      return {};
-  }
-  std::vector<std::string> names;
-  for (const char* piece :
-       {"hat", "suit", "pants", "shoes", "gloves", "cape", "shoulder"}) {
-    names.push_back("arcane_umbra_" + branch + "_" + piece);
-  }
+  std::vector<std::string> names = ArcaneUmbraArmour(job);
   std::string weapon = ArcaneUmbraWeapon(job);
   if (!weapon.empty()) {
     names.push_back(std::move(weapon));
