@@ -46,11 +46,11 @@ difficulties {
   exp: 4750740
   drops {
     equip: "aquatic_letter_eye_accessory"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "condensed_power_crystal"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     item: "zakums_soul_shard"
@@ -106,11 +106,11 @@ difficulties {
   # Normal's drops. Chaos adds nothing of its own in GMS either.
   drops {
     equip: "aquatic_letter_eye_accessory"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     equip: "condensed_power_crystal"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     item: "zakums_soul_shard"

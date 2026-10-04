@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <map>
 #include <memory>
@@ -12,9 +13,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/match.h"
 #include "src/character/sacred_power.h"
 #include "src/character/symbol.h"
 #include "src/combat/arena_spots.h"
+#include "src/combat/loot.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/item/item.h"
@@ -42,6 +45,11 @@ std::map<std::string, ItemPrototype> LoadItems() {
 
 std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
+}
+
+// The item or equip a drop names.
+std::string DropKey(const MobDrop& drop) {
+  return drop.has_equip() ? drop.equip() : drop.item();
 }
 
 // The shipped catalogs, loaded once per test. Every test here reads the bosses,
@@ -390,11 +398,8 @@ TEST_F(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.meso(), 3062500);
   ASSERT_EQ(normal.drops_size(), 3);
   EXPECT_EQ(normal.drops(0).equip(), "aquatic_letter_eye_accessory");
-  EXPECT_EQ(normal.drops(0).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(1).equip(), "condensed_power_crystal");
-  EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(2).item(), "zakums_soul_shard");
-  EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
 // The first boss whose gate is thirty levels above the mob itself: he is fought
@@ -417,11 +422,8 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(magnus.pdr(), 50);
   ASSERT_EQ(normal.drops_size(), 3);
   EXPECT_EQ(normal.drops(0).equip(), "crystal_ventus_badge");
-  EXPECT_EQ(normal.drops(0).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(1).equip(), "royal_black_metal_shoulder");
-  EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(2).item(), "magnuss_soul_shard");
-  EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
 // A fight whose first phase is most of it: the five statues are 5.55B of the
@@ -620,19 +622,17 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
       }
     }
     EXPECT_EQ(total, want.hp);
-    // What Normal drops, in the same order.
+    // What Normal drops, in the same order; the rates are the tiers' to set.
     ASSERT_EQ(hard.drops_size(), normal.drops_size());
     for (int i = 0; i < hard.drops_size(); ++i) {
-      EXPECT_EQ(hard.drops(i).SerializeAsString(),
-                normal.drops(i).SerializeAsString())
+      EXPECT_EQ(DropKey(hard.drops(i)), DropKey(normal.drops(i)))
           << "drop " << i + 1;
     }
   }
 }
 
-// Hard Damien and Hard Lotus pay what Normal does plus a one-in-five chance at
-// each AbsoLab box and at each pitched piece, on Normal's gate and GMS's
-// thirty-minute clock.
+// Hard Damien and Hard Lotus pay what Normal does plus the AbsoLab boxes and
+// their pitched pieces, on Normal's gate and GMS's thirty-minute clock.
 TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
   struct Want {
     std::string boss;
@@ -655,41 +655,137 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
     ASSERT_EQ(hard.drops_size(),
               normal.drops_size() + 2 + static_cast<int>(want.pitched.size()));
     for (int i = 0; i < normal.drops_size(); ++i) {
-      EXPECT_EQ(hard.drops(i).SerializeAsString(),
-                normal.drops(i).SerializeAsString());
+      EXPECT_EQ(DropKey(hard.drops(i)), DropKey(normal.drops(i)));
     }
-    const MobDrop& weapon = hard.drops(normal.drops_size());
-    const MobDrop& armor = hard.drops(normal.drops_size() + 1);
-    EXPECT_EQ(weapon.item(), "absolab_weapon_box");
-    EXPECT_EQ(armor.item(), "absolab_armor_box");
-    EXPECT_DOUBLE_EQ(weapon.per_kill(), 0.2);
-    EXPECT_DOUBLE_EQ(armor.per_kill(), 0.2);
+    EXPECT_EQ(hard.drops(normal.drops_size()).item(), "absolab_weapon_box");
+    EXPECT_EQ(hard.drops(normal.drops_size() + 1).item(), "absolab_armor_box");
     for (size_t i = 0; i < want.pitched.size(); ++i) {
-      const MobDrop& piece = hard.drops(normal.drops_size() + 2 + i);
-      EXPECT_EQ(piece.equip(), want.pitched[i]);
-      EXPECT_DOUBLE_EQ(piece.per_kill(), 0.2);
+      EXPECT_EQ(hard.drops(normal.drops_size() + 2 + i).equip(),
+                want.pitched[i]);
     }
   }
 }
 
-// The user's rule for the tier: every gear drop from Hard Damien, Hard Lotus,
-// Lucid, Will, Gloom and Darknell, boxes included, is one in five.
-TEST_F(BossDataTest, TheLucidTierDropsItsGearAtOneInFive) {
-  int checked = 0;
-  for (const std::string& boss :
-       {"damien", "lotus", "lucid", "will", "gloom", "darknell"}) {
-    for (const BossDifficulty& difficulty : bosses_.at(boss).difficulties()) {
+// Where a drop sits in the boss drop tiers (memory boss_drop_tiers.md). A
+// currency's Normal rate is its tier's; an accessory's is 1 / days to a full
+// set x the accessory multiplier, split between the bosses that drop it; a box
+// pays one piece for every three its currency buys.
+enum class DropKind { kCurrency, kAccessory, kBox };
+struct TierDrop {
+  int tier = 1;
+  DropKind kind = DropKind::kCurrency;
+  // A box only: the currency it is judged against and what its piece costs.
+  std::string currency;
+  int price = 0;
+};
+
+// The two levers, and each tier's currency rate at Normal.
+constexpr double kAccessoryMultiplier = 2.0;
+constexpr double kDaysPerSet[] = {5, 10, 20, 40};
+constexpr double kCurrencyRate[] = {1.0, 0.5, 0.25, 0.1};
+
+const std::map<std::string, TierDrop>& TierDrops() {
+  static const std::map<std::string, TierDrop>* const kDrops = [] {
+    auto* drops = new std::map<std::string, TierDrop>;
+    for (const char* key :
+         {"piece_of_anguish", "piece_of_mockery", "piece_of_destruction",
+          "piece_of_time", "cygnus_shoulder_token"}) {
+      (*drops)[key] = {1, DropKind::kCurrency};
+    }
+    for (const char* key :
+         {"aquatic_letter_eye_accessory", "condensed_power_crystal",
+          "silver_blossom_ring", "horntail_necklace", "chaos_horntail_necklace",
+          "dea_sidus_earring", "black_bean_mark", "golden_clover_belt",
+          "pink_holy_cup", "crystal_ventus_badge", "royal_black_metal_shoulder",
+          "stone_of_eternal_life", "will_o_the_wisps", "dominator_pendant",
+          "papulatus_mark", "kannas_treasure", "ayames_treasure",
+          "hayatos_treasure"}) {
+      (*drops)[key] = {1, DropKind::kAccessory};
+    }
+    for (const char* key : {"absolab_coin", "captivating_fragment"}) {
+      (*drops)[key] = {2, DropKind::kCurrency};
+    }
+    (*drops)["absolab_armor_box"] = {2, DropKind::kBox, "absolab_coin", 1};
+    (*drops)["absolab_weapon_box"] = {2, DropKind::kBox, "absolab_coin", 3};
+    for (const char* key :
+         {"guardian_angel_ring", "twilight_mark", "estella_earrings"}) {
+      (*drops)[key] = {2, DropKind::kAccessory};
+    }
+    for (const char* key : {"phantasma_coin", "arachno_coin"}) {
+      (*drops)[key] = {3, DropKind::kCurrency};
+    }
+    for (const char* key : {"magic_eyepatch", "berserked", "black_heart"}) {
+      (*drops)[key] = {3, DropKind::kAccessory};
+    }
+    return drops;
+  }();
+  return *kDrops;
+}
+
+// Steps above Normal: Easy -1, Hard and Chaos +1, Extreme +2.
+int DifficultyRank(const std::string& name) {
+  if (name == "Easy") {
+    return 0;
+  }
+  if (name == "Normal") {
+    return 1;
+  }
+  if (name == "Extreme") {
+    return 3;
+  }
+  return 2;
+}
+
+// Every drop but a soul shard has the rate its tier gives it. A new boss's
+// drop fails here until it is placed in a tier, which is the point: rates come
+// from the design, never by hand.
+TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
+  std::map<std::string, int> sources;
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    std::set<std::string> keys;
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       for (const MobDrop& drop : difficulty.drops()) {
-        if (drop.has_equip() || drop.item().find("_box") != std::string::npos) {
-          ++checked;
-          EXPECT_DOUBLE_EQ(drop.per_kill(), 0.2)
-              << boss << " " << difficulty.name() << " " << drop.equip()
-              << drop.item();
+        keys.insert(DropKey(drop));
+      }
+    }
+    for (const std::string& key : keys) {
+      ++sources[key];
+    }
+  }
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    // The easiest difficulty a boss has counts as Normal.
+    const int base = DifficultyRank(entry.second.difficulties(0).name()) - 1;
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      const double steps =
+          std::pow(2.0, DifficultyRank(difficulty.name()) - 1 - base);
+      for (const MobDrop& drop : difficulty.drops()) {
+        const std::string key = DropKey(drop);
+        SCOPED_TRACE(entry.first + " " + difficulty.name() + " " + key);
+        if (absl::EndsWith(key, "_soul_shard")) {
+          EXPECT_DOUBLE_EQ(drop.per_kill(), 1.0);
+          continue;
         }
+        std::map<std::string, TierDrop>::const_iterator it =
+            TierDrops().find(key);
+        ASSERT_NE(it, TierDrops().end()) << "in no tier";
+        const TierDrop& tier = it->second;
+        double want = 0.0;
+        switch (tier.kind) {
+          case DropKind::kCurrency:
+            want = kCurrencyRate[tier.tier - 1] * steps;
+            break;
+          case DropKind::kAccessory:
+            want = steps * kAccessoryMultiplier / kDaysPerSet[tier.tier - 1] /
+                   sources[key];
+            break;
+          case DropKind::kBox:
+            want = kCurrencyRate[tier.tier - 1] * steps / (3.0 * tier.price);
+            break;
+        }
+        EXPECT_NEAR(drop.per_kill() * DropRolls(drop), want, 0.005);
       }
     }
   }
-  EXPECT_EQ(checked, 11);
 }
 
 // Hard Magnus and the Chaos Pink Bean statues have more than 100% PDR, so the
@@ -736,15 +832,14 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
     EXPECT_EQ(normal.phases(0).player_spots(i).x(), kSpots[i].first) << i;
     EXPECT_EQ(normal.phases(0).player_spots(i).y(), kSpots[i].second) << i;
   }
-  // The whole Sengoku Treasure Set in one clear, her own shard, and the
-  // fragment that buys one of her secondaries at fifteen.
+  // The Sengoku Treasure Set, her own shard, and the fragment that buys her
+  // secondaries.
   ASSERT_EQ(normal.drops_size(), 5);
   EXPECT_EQ(normal.drops(0).equip(), "kannas_treasure");
   EXPECT_EQ(normal.drops(1).equip(), "ayames_treasure");
   EXPECT_EQ(normal.drops(2).equip(), "hayatos_treasure");
   EXPECT_EQ(normal.drops(3).item(), "princess_nos_soul_shard");
   EXPECT_EQ(normal.drops(4).item(), "captivating_fragment");
-  EXPECT_EQ(normal.drops(4).per_kill(), 1.0);
 }
 
 // Three mobs totalling 1.575T behind 300% PDR at level 210, on a 25-minute
@@ -880,12 +975,9 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(walk.jump().interval_ms(), 30000);
   EXPECT_EQ(walk.jump().y(), 2);
   EXPECT_EQ(walk.jump().hang_ms(), 660);
-  // Her ring drops half the time; her shard always drops.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).equip(), "guardian_angel_ring");
-  EXPECT_DOUBLE_EQ(normal.drops(0).per_kill(), 0.5);
   EXPECT_EQ(normal.drops(1).item(), "guardian_angel_slimes_soul_shard");
-  EXPECT_DOUBLE_EQ(normal.drops(1).per_kill(), 1.0);
 }
 
 // A special must have a move to make and a wait to draw it in, and a fall

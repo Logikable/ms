@@ -22,11 +22,11 @@ difficulties {
   exp: 5300000
   drops {
     equip: "crystal_ventus_badge"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "royal_black_metal_shoulder"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     item: "magnuss_soul_shard"
@@ -56,11 +56,11 @@ difficulties {
   # GMS pays Hard in Tyrant gear, a set this game doesn't have.
   drops {
     equip: "crystal_ventus_badge"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     equip: "royal_black_metal_shoulder"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     item: "magnuss_soul_shard"

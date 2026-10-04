@@ -44,11 +44,11 @@ difficulties {
     item: "glooms_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. This game drops all of Hard Damien's, Hard
-  # Lotus's, Lucid's, Will's, Gloom's and Darknell's gear at 20%.
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
+  # Darknell.
   drops {
     equip: "estella_earrings"
-    per_kill: 0.2
+    per_kill: 0.1
   }
 }
 difficulties {

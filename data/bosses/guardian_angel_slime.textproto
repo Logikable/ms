@@ -35,7 +35,7 @@ difficulties {
   # kept here.
   drops {
     equip: "guardian_angel_ring"
-    per_kill: 0.5
+    per_kill: 0.2
   }
   drops {
     item: "guardian_angel_slimes_soul_shard"

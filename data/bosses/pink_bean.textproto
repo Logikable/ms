@@ -37,15 +37,15 @@ difficulties {
   exp: 9590000
   drops {
     equip: "black_bean_mark"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "golden_clover_belt"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "pink_holy_cup"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     item: "pink_beans_soul_shard"
@@ -90,15 +90,15 @@ difficulties {
   # Normal's drops. Chaos adds nothing of its own in GMS either.
   drops {
     equip: "black_bean_mark"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     equip: "golden_clover_belt"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     equip: "pink_holy_cup"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   drops {
     item: "pink_beans_soul_shard"

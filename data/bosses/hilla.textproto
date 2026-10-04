@@ -25,7 +25,7 @@ difficulties {
   }
   drops {
     equip: "stone_of_eternal_life"
-    per_kill: 1.0
+    per_kill: 0.4
   }
 }
 difficulties {
@@ -50,7 +50,7 @@ difficulties {
   exp: 20400000
   drops {
     equip: "will_o_the_wisps"
-    per_kill: 1.0
+    per_kill: 0.8
   }
   # The same shard as Normal: a soul belongs to the boss, not the difficulty.
   drops {

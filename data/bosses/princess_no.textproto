@@ -27,18 +27,18 @@ difficulties {
   meso: 11550000
   # GMS's own figure: she is fought for the set, not for levels.
   exp: 90000000
-  # The whole set in one clear, as GMS drops it.
+  # GMS drops the whole set every clear; here they are tier 1 accessories.
   drops {
     equip: "kannas_treasure"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "ayames_treasure"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     equip: "hayatos_treasure"
-    per_kill: 1.0
+    per_kill: 0.4
   }
   drops {
     item: "princess_nos_soul_shard"
@@ -48,6 +48,6 @@ difficulties {
   # pieces ask for a Fafnir weapon.
   drops {
     item: "captivating_fragment"
-    per_kill: 1.0
+    per_kill: 0.5
   }
 }
