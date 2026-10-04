@@ -659,6 +659,8 @@ class TuiController {
   // Moves focus off a panel that isn't shown. The game starts focused on the
   // equipped panel, which a level 1 character doesn't have yet.
   void EnsureFocusIsVisible();
+  // OnEvent's dispatch to the screen showing.
+  bool OnScreenEvent(ftxui::Event event);
 
   // Where the item under the focused panel's cursor is. The only place that
   // reads panel_focus_ to answer that.

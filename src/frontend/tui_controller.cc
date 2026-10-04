@@ -460,7 +460,9 @@ bool TuiController::capturing_key() const {
 void TuiController::OpenMenuEntry(MenuEntry entry) {
   if (entry == MenuEntry::kCharacters) {
     // The fight stops as soon as this opens (see OnCharacterSelect) and resumes
-    // on Escape or Play.
+    // on Escape or Play. No box stays open under it, or leaving it would land
+    // back in that box.
+    menu_panel_.CloseBox();
     character_select_panel_.Reset();
     screen_ = kCharacterSelect;
     return;
@@ -818,6 +820,18 @@ bool TuiController::OnEvent(ftxui::Event event) {
     party_notice_prompt_.OnEvent(event);
     return true;
   }
+  bool handled = OnScreenEvent(event);
+  // A screen opened from a Menu box leaves to the main view, but the box is
+  // still open, and the menu row draws no cursor while it is. Back to the box
+  // instead, wherever the screen was opened from. A screen that means to leave
+  // the menu behind closes the box first.
+  if (screen_ == kMain && menu_panel_.box_open()) {
+    screen_ = kMenuBox;
+  }
+  return handled;
+}
+
+bool TuiController::OnScreenEvent(ftxui::Event event) {
   switch (screen_) {
     case kItemMenu:
       return OnItemMenuEvent(event);

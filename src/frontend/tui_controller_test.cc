@@ -3894,6 +3894,35 @@ TEST_F(TuiControllerTest, TheDailiesBoxOpensTheBossScreenAndClearsItsGold) {
       state_->account.Seen(MenuPanel::seen_key(DailiesEntry::kSymbols)));
 }
 
+// Leaving a screen a box row opened goes back to that box, cursor on the row.
+// To the main view instead, the box would stay open and the menu row would
+// draw no cursor.
+TEST_F(TuiControllerTest, LeavingADailiesScreenGoesBackToTheBox) {
+  LevelTo(UnlockLevel(Feature::kSymbols));
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossSelect);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+  EXPECT_EQ(menu_panel_->selected_dailies_entry(), DailiesEntry::kBoss);
+
+  // Symbols, with nothing to claim, raises a notice; closing it comes back too.
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(menu_panel_->selected_dailies_entry(), DailiesEntry::kSymbols);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kDailiesNotice);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+  EXPECT_EQ(menu_panel_->selected_dailies_entry(), DailiesEntry::kSymbols);
+
+  // Escape from the box itself still reaches the main view.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(menu_panel_->box_open());
+}
+
 // --- settings and keybinds ---
 
 TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
