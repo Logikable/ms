@@ -69,9 +69,6 @@ enum Screen : int {
   // Soul on a weapon's item menu, laid out like flaming: the souls the shards
   // make and the weapon's card, with the soul's confirmation between them.
   kSouling,
-  // Hammer on the item menu: the confirmation for a piece that can still take a
-  // hammer. The entry is greyed out once both hammers are used.
-  kHammer,
   kTraceRecover,
   kTraceRecoverResult,
   kSell,
@@ -215,18 +212,17 @@ enum MenuItem : int {
   // into the worn one once it isn't.
   kMenuCombine = 2,
   kMenuScroll = 3,
-  kMenuHammer = 4,
-  kMenuStarForce = 5,
-  // The last upgrades a piece gets, after the three that shape it.
-  kMenuCube = 6,
-  kMenuFlame = 7,
+  kMenuStarForce = 4,
+  // The last upgrades a piece gets, after the two that shape it.
+  kMenuCube = 5,
+  kMenuFlame = 6,
   // A weapon's alone.
-  kMenuSoul = 8,
-  kMenuRecover = 9,
+  kMenuSoul = 7,
+  kMenuRecover = 8,
   // The two entries that get rid of the item, above Close. The cursor doesn't
   // start on them, since they can't be undone.
-  kMenuSell = 10,
-  kMenuMultiSell = 11,
+  kMenuSell = 9,
+  kMenuMultiSell = 10,
 };
 // Entries of the worn-gear context menu, from Enter in the Equipped panel's
 // Gear tab. Shorter than the bag's: worn items can't be sold or combined, and
@@ -234,16 +230,15 @@ enum MenuItem : int {
 enum GearMenuItem : int {
   kGearMenuUnequip = 0,
   kGearMenuInspect = 1,
-  // The upgrades in the order a piece gets them: scrolls fill the slots, a
-  // hammer adds a slot, stars wait for the slots to be full, and cubes and
-  // flames are what's left once it is finished.
+  // The upgrades in the order a piece gets them: scrolls fill the slots, stars
+  // wait for the slots to be full, and cubes and flames are what's left once
+  // it is finished.
   kGearMenuScroll = 2,
-  kGearMenuHammer = 3,
-  kGearMenuStarForce = 4,
-  kGearMenuCube = 5,
-  kGearMenuFlame = 6,
-  kGearMenuSoul = 7,
-  kGearMenuClose = 8,
+  kGearMenuStarForce = 3,
+  kGearMenuCube = 4,
+  kGearMenuFlame = 5,
+  kGearMenuSoul = 6,
+  kGearMenuClose = 7,
 };
 // Entries of the Arcane Symbol context menu, from Enter in the Symbols tab. The
 // first two are at the same positions as on the item menu, so the unequip and

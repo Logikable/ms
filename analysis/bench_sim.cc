@@ -889,13 +889,12 @@ void PrintDetail(const Build& build, const Result& result) {
     const GearSpend& spend = result.spend;
     std::printf(
         "\n            spent %.2fB: scrolls %.2fB (%d slots)  stars %.2fB "
-        "(%d)  hammers %.2fB (%d)  cubes %.2fB (%d kept of %d)  flames "
+        "(%d)  cubes %.2fB (%d kept of %d)  flames "
         "%.2fB (%d Burning, %d of %d Black kept)  symbols %.2fB (%d)\n"
         "            %.2fB meso and %lld V Points left over",
         spend.meso() / 1e9, spend.scrolls / 1e9, spend.slots_filled,
-        spend.stars / 1e9, spend.stars_gained, spend.hammers / 1e9,
-        spend.hammers_driven, spend.cubes / 1e9, spend.cubes_kept,
-        spend.cubes_bought, spend.flames / 1e9,
+        spend.stars / 1e9, spend.stars_gained, spend.cubes / 1e9,
+        spend.cubes_kept, spend.cubes_bought, spend.flames / 1e9,
         spend.bought_by_flame[static_cast<int>(FlameType::kBurning)],
         spend.kept_by_flame[static_cast<int>(FlameType::kBlack)],
         spend.bought_by_flame[static_cast<int>(FlameType::kBlack)],

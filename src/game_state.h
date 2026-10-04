@@ -10,7 +10,6 @@
 #include <map>
 #include <optional>
 #include <random>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -45,15 +44,12 @@ enum class GameMode {
 };
 
 // The upgrade state of a seeded character's gear. The workbench sets it from
-// --hammered, --scrolled and --sf; kMax sets it from the level's band. Every
+// --scrolled and --sf; kMax sets it from the level's band. Every
 // piece is treated alike: the question is what a character at this stage hits
 // for, not what one lucky item does. All unset means gear as it drops, with
 // slots unspent.
 struct GearSetup {
-  // Both Golden Hammers used, adding two upgrade slots.
-  bool hammered = false;
-  // Every upgrade slot passed, with the trace for the job's main stat. The
-  // slots `hammered` added are scrolled too.
+  // Every upgrade slot passed, with the trace for the job's main stat.
   bool scrolled = false;
   // Stars, capped at the item's own limit for its level. Zero leaves it
   // unstarred. Stars only go on an item with no slots left to scroll, the
@@ -62,8 +58,6 @@ struct GearSetup {
   // Stars for the weapon alone, which max mode sets apart from the rest. Zero
   // uses `stars` like everything else.
   int weapon_stars = 0;
-  // Hammered as `hammered` says, but only the pieces in these slots.
-  std::set<EquipSlot> hammered_slots;
 };
 
 // What the workbench does with its current job's book, as --skills says.

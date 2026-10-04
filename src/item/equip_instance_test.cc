@@ -63,12 +63,12 @@ TEST_F(EquipInstanceTest, TheChanceDecidesTheStatsAndTheSlotGoesRegardless) {
   EquipInstance won(proto);
   EXPECT_EQ(won.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
   EXPECT_EQ(won.stats().attack(), 2);
-  EXPECT_EQ(won.equip_state().remaining_upgrade_slots(), 0);
+  EXPECT_EQ(won.equip_state().remaining_upgrade_slots(), 2);
 
   EquipInstance lost(proto);
   EXPECT_EQ(lost.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
   EXPECT_EQ(lost.stats().attack(), 0);
-  EXPECT_EQ(lost.equip_state().remaining_upgrade_slots(), 0);
+  EXPECT_EQ(lost.equip_state().remaining_upgrade_slots(), 2);
 }
 
 TEST_F(EquipInstanceTest, NoSlotsReturnsNoSlots) {
@@ -85,7 +85,7 @@ TEST_F(EquipInstanceTest, StatsAccumulateAcrossScrolls) {
   item.Scroll(MakeScroll(100, 2), rng_);
   item.Scroll(MakeScroll(100, 2), rng_);
   EXPECT_EQ(item.stats().attack(), 6);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
 }
 
 // A scroll below 100% produces both successes and failures over enough trials
@@ -103,80 +103,37 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EXPECT_LT(successes, 20);
 }
 
-// --- Golden Hammer ---
+// --- Built-in slots ---
 
-TEST_F(EquipInstanceTest, HammerOpensASlot) {
+// Every item that takes scrolls has two slots past its prototype's, and an
+// item with none gets none: there is nothing to widen.
+TEST_F(EquipInstanceTest, ScrollableItemsHaveTwoBuiltInSlots) {
   EquipPrototype proto = MakeEquip(1);
-  EquipInstance item(proto);
-  ASSERT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
-  EXPECT_TRUE(item.Hammer());
-  EXPECT_EQ(item.equip_state().hammers(), 1);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 1);
-  EXPECT_EQ(TotalUpgradeSlots(proto, item.equip_state()), 2);
-  // The new slot scrolls like any other, and the stats add up.
-  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
-  EXPECT_EQ(item.stats().attack(), 4);
-}
-
-TEST_F(EquipInstanceTest, HammerStopsAtTwo) {
-  EquipInstance item(MakeEquip(1));
-  EXPECT_TRUE(item.Hammer());
-  EXPECT_TRUE(item.Hammer());
-  EXPECT_FALSE(item.CanHammer());
-  EXPECT_FALSE(item.Hammer());
-  EXPECT_EQ(item.equip_state().hammers(), kMaxHammers);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 3);
-}
-
-TEST_F(EquipInstanceTest, HammerNeedsAShelfToWiden) {
-  EquipInstance no_slots(MakeEquip(0));
-  EXPECT_FALSE(no_slots.CanHammer());
-  EXPECT_FALSE(no_slots.Hammer());
+  EXPECT_EQ(TotalUpgradeSlots(proto), 3);
+  EXPECT_EQ(EquipInstance(proto).equip_state().remaining_upgrade_slots(), 3);
+  EXPECT_EQ(TotalUpgradeSlots(MakeEquip(0)), 0);
 
   EquipPrototype refuses = MakeEquip(3);
   refuses.add_unsupported_upgrades(UPGRADE_SCROLL);
-  EquipInstance item(refuses);
-  EXPECT_FALSE(item.CanHammer());
-  EXPECT_FALSE(item.Hammer());
+  EXPECT_EQ(TotalUpgradeSlots(refuses), 3);
 }
 
-TEST_F(EquipInstanceTest, HammerAfterStarsKeepsThemAndHoldsTheNextOne) {
-  EquipInstance item(MakeEquip(1));
-  ASSERT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
-  StarForceOutcome outcome = kStarForceFail;
-  for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
-    outcome = item.StarForce(rng_);
-  }
-  ASSERT_EQ(item.stars(), 1);
-
-  ASSERT_TRUE(item.Hammer());
-  EXPECT_EQ(item.stars(), 1);  // existing stars are unchanged
-  EXPECT_FALSE(item.CanStarForce());
-  EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
-  EXPECT_EQ(item.stars(), 1);
-
-  // Using the hammer's slot, whether the scroll lands or not, allows another
-  // hammer.
-  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
-  EXPECT_TRUE(item.CanStarForce());
-}
-
-TEST_F(EquipInstanceTest, CleanSlateBuysBackAHammerSlot) {
+TEST_F(EquipInstanceTest, CleanSlateRestoresABuiltInSlot) {
   ms::Scroll slate;
   slate.set_success_rate(100);
   slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
 
   EquipInstance item(MakeEquip(1));
-  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
-  ASSERT_TRUE(item.Hammer());
-  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  for (int i = 0; i < 3; ++i) {
+    ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  }
   ASSERT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
 
-  // Both failures are restored: the cap counts the hammer's slot as the item's
-  // own.
-  EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
-  EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
+  // All three failures are restored: the cap counts the built-in slots as the
+  // item's own.
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
+  }
   EXPECT_EQ(item.Scroll(slate, rng_), kScrollNoSlots);
 }
 

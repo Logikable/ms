@@ -87,14 +87,10 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrTheDefault) {
   EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
 }
 
-// Total slots are the upgrade slots plus hammers.
-TEST(UpgradeSlotsTest, AShelfIsSlotsPlusHammers) {
+TEST(UpgradeSlotsTest, AShelfIsSlotsPlusTheBuiltInTwo) {
   EquipPrototype proto;
   proto.set_upgrade_slots(7);
-  Equip state;
-  EXPECT_EQ(TotalUpgradeSlots(proto, state), 7);
-  state.set_hammers(2);
-  EXPECT_EQ(TotalUpgradeSlots(proto, state), 9);
+  EXPECT_EQ(TotalUpgradeSlots(proto), 9);
 }
 
 TEST(UpgradeSlotsTest, AShelfNeedsScrollsAndSlots) {
@@ -119,14 +115,14 @@ TEST(UpgradeSlotsTest, AFreshCopyStartsAsItDrops) {
   proto.set_upgrade_slots(7);
   Equip plain = FreshEquip(proto);
   EXPECT_EQ(plain.equip_name(), "Plain");
-  EXPECT_EQ(plain.remaining_upgrade_slots(), 7);
+  EXPECT_EQ(plain.remaining_upgrade_slots(), 9);
 
   proto.mutable_dropped_as()->set_scroll_successes(5);
   proto.mutable_dropped_as()->mutable_scroll_stats()->set_attack(35);
   proto.mutable_dropped_as()->mutable_main_potential()->set_rank(
       POTENTIAL_RANK_UNIQUE);
   Equip scrolled = FreshEquip(proto);
-  EXPECT_EQ(scrolled.remaining_upgrade_slots(), 2);
+  EXPECT_EQ(scrolled.remaining_upgrade_slots(), 4);
   EXPECT_EQ(scrolled.scroll_stats().attack(), 35);
   EXPECT_EQ(scrolled.main_potential().rank(), POTENTIAL_RANK_UNIQUE);
 }

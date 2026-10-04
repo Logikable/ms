@@ -711,7 +711,7 @@ TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
     EXPECT_EQ(ring.base_stats().luk(), 4) << entry.first;
     EquipInstance item(ring);
     EXPECT_FALSE(item.CanStarForce()) << entry.first;
-    EXPECT_FALSE(item.CanHammer()) << entry.first;
+    EXPECT_FALSE(TakesUpgradeSlots(ring)) << entry.first;
     EXPECT_FALSE(item.CanFlame()) << entry.first;
     EXPECT_TRUE(item.CanCube()) << entry.first;
     ASSERT_GE(level, 1);
@@ -752,7 +752,7 @@ TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {
     EXPECT_EQ(pet.required_level(), 0) << entry.first;
     EXPECT_EQ(pet.upgrade_slots(), 8) << entry.first;
     EXPECT_EQ(pet.base_stats().ByteSizeLong(), 0u) << entry.first;
-    EXPECT_TRUE(EquipInstance(pet).CanHammer()) << entry.first;
+    EXPECT_EQ(TotalUpgradeSlots(pet), 10) << entry.first;
     EXPECT_FALSE(Supports(pet, UPGRADE_STAR_FORCE)) << entry.first;
     EXPECT_FALSE(Supports(pet, UPGRADE_CUBE)) << entry.first;
     EXPECT_FALSE(EquipInstance(pet).CanFlame()) << entry.first;
@@ -959,7 +959,6 @@ TEST(EquipDataTest, TheBlackHeartDropsFinishedAndStaysThatWay) {
   EXPECT_EQ(state.main_potential().lines(1).type(),
             POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
   EXPECT_FALSE(heart.CanCube());
-  EXPECT_FALSE(heart.CanHammer());
   EXPECT_FALSE(heart.CanStarForce());
   EXPECT_FALSE(Supports(heart.prototype(), UPGRADE_SCROLL));
 }

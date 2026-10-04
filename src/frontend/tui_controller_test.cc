@@ -1760,8 +1760,8 @@ TEST_F(TuiControllerTest, ScrollingTheWornSwordShowsTheResult) {
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
   EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
-  // sword_ has 3 upgrade slots; one was used.
-  EXPECT_EQ(controller_->scroll_result().slots_remaining, 2);
+  // sword_ has 3 upgrade slots and the two built in; one was used.
+  EXPECT_EQ(controller_->scroll_result().slots_remaining, 4);
 }
 
 TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
@@ -1779,7 +1779,9 @@ TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
 
 TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   LevelTo(UnlockLevel(Feature::kStarForce));
+  // Drops with all but one of its three slots spent.
   sword_.set_upgrade_slots(1);
+  sword_.mutable_dropped_as()->set_scroll_successes(2);
   WearASwordAndDraw();
   GiveTraces(100);
 
@@ -2017,101 +2019,6 @@ TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
-}
-
-// --- the Golden Hammer ---
-
-// The whole flow: the entry opens the confirmation, confirming pays the price,
-// and the new slot is there afterwards.
-TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  state_->character.AddMeso(kGoldenHammerCost);
-  WearASwordAndDraw();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Hammer
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kHammer);
-
-  controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
-  EXPECT_EQ(controller_->screen(), kMain);
-  const EquipInstance& worn =
-      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
-  EXPECT_EQ(worn.equip_state().hammers(), 1);
-  EXPECT_EQ(worn.equip_state().remaining_upgrade_slots(),
-            sword_.upgrade_slots() + 1);
-  EXPECT_EQ(state_->character.meso(), 0);
-}
-
-// If the character can't afford it, the price is red and the button greyed, and
-// the dialog stays open rather than closing as if something happened.
-TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  WearASwordAndDraw();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kHammer);
-  EXPECT_FALSE(controller_->hammer_panel().affordable());
-
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kHammer) << "it closed on a refusal";
-  EXPECT_EQ(state_->character.equipped()
-                .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                ->equip_state()
-                .hammers(),
-            0);
-}
-
-// The same flow from the bag, which covers the other half of ItemRef.
-TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  state_->character.AddMeso(kGoldenHammerCost);
-  BagASword();
-
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Hammer
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kHammer);
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_EQ(state_->character.inventory()[0].equip_state().hammers(), 1);
-}
-
-// A hammer adds a slot, and star force waits until an item has no slots left.
-// So the Star Force entry is dimmed until the new slot is used.
-TEST_F(TuiControllerTest, AHammerHoldsTheStarsUntilItsSlotIsSpent) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  state_->character.AddMeso(kGoldenHammerCost);
-  // Every slot used, so star force is available: PickUpScrolledSword's weapon
-  // has no slots at all, so a hammer has nothing to add to.
-  Equip spent;
-  spent.set_equip_name(sword_.name());
-  spent.set_scroll_successes(sword_.upgrade_slots());
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, spent));
-  state_->character.Equip(0);
-  RenderEquipPanel();
-  const EquipInstance& worn =
-      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
-  ASSERT_TRUE(worn.CanStarForce());
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_FALSE(state_->character.equipped()
-                   .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                   ->CanStarForce());
 }
 
 // --- Star Force via equip panel ---

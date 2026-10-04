@@ -511,10 +511,9 @@ message Equip {
   // Duplicates absorbed toward the next level. Whatever is left after a
   // level-up is paid carries over to the next level.
   int32 symbol_exp = 8;
-  // Golden hammers used on this item, each adding one upgrade slot on top of
-  // the prototype's. Capped at kMaxHammers. The item's total is
-  // TotalUpgradeSlots, not upgrade_slots; see src/item/item.h.
-  int32 hammers = 9;
+  // Golden Hammers used, before the slots they added were built in. Read only
+  // by the version 3 save upgrade.
+  int32 legacy_hammers = 9 [deprecated = true];
   // The potential lines on this item, unset until the first cube is used.
   Potential main_potential = 10;
   // A second potential with pools of its own, unset until the first bonus cube

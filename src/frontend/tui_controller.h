@@ -34,7 +34,6 @@
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/dailies_panel.h"
 #include "src/frontend/screens/flame_panel.h"
-#include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/jukebox_panel.h"
@@ -464,10 +463,6 @@ class TuiController {
   const SymbolCombinePanel& symbol_combine_panel() const {
     return symbol_combine_panel_;
   }
-  // The golden hammer's confirmation, owned for the same reason.
-  const HammerPanel& hammer_panel() const {
-    return hammer_panel_;
-  }
   const BoxPanel& box_panel() const {
     return box_panel_;
   }
@@ -721,7 +716,6 @@ class TuiController {
   void RerollFlame(FlameType flame);
   bool OnSoulEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
-  bool OnHammerEvent(ftxui::Event event);
   bool OnBoxOpenEvent(ftxui::Event event);
   bool OnBoxConfirmEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -1071,7 +1065,6 @@ class TuiController {
   // that sets it keeps it and the key after clears it.
   bool ability_rank_up_ = false;
   SymbolCombinePanel symbol_combine_panel_;
-  HammerPanel hammer_panel_;
   BoxPanel box_panel_{state_.character, state_.equips};
   // The worn symbol the two symbol dialogs are about. Stored so the answer
   // applies to it, wherever the cursor went meanwhile.

@@ -7,7 +7,7 @@
  * not to find each job's optimum.
  *
  * Everything here is what //analysis:progression_sim's sweep had on reaching
- * each level -- the gear, stars, hammers, potentials, symbols, boss clears,
+ * each level -- the gear, stars, potentials, symbols, boss clears,
  * alts, V Matrix and Inner Ability -- read toward its better half (the fifth
  * of ten branches from the top), so a max character is a rich player, not an
  * impossible one. A level between two of its checkpoints takes the one below.
@@ -31,14 +31,11 @@
 
 namespace ms {
 
-// What has been done to every item the character wears. Stars are capped at
-// each item's own limit for its level, so a low-level item in a high-level
-// outfit gets what it can, not what was asked for.
+// What has been done to every item the character wears, beyond scrolling
+// every upgrade slot. Stars are capped at each item's own limit for its level,
+// so a low-level item in a high-level outfit gets what it can, not what was
+// asked for.
 struct MaxGear {
-  // The slots whose piece has both Golden Hammers used, adding two upgrade
-  // slots, ending at the first EQUIP_SLOT_UNSPECIFIED. Every upgrade slot is
-  // then scrolled.
-  EquipSlot hammered[5] = {};
   int stars = 0;
   // The weapon's stars, set separately: it is starred first, but past 15 it
   // falls behind, having no spare copy to recover a boom with.

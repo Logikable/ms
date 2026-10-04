@@ -324,7 +324,7 @@ TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
       EXPECT_EQ(state.character.inventory()[i]
                     .equip_state()
                     .remaining_upgrade_slots(),
-                7)
+                9)
           << "it dropped in a state it can be scrolled from";
     }
   }

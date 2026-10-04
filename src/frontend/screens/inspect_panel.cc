@@ -829,7 +829,7 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
 std::vector<CardRow> InspectPanel::SlotRows(const EquipTabItem& item) const {
   const EquipPrototype& proto = item.prototype();
   const Equip& item_state = item.equip_state();
-  int slots = TotalUpgradeSlots(proto, item_state);
+  int slots = TotalUpgradeSlots(proto);
   if (slots <= 0) {
     return {};
   }

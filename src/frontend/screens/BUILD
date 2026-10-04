@@ -716,37 +716,6 @@ cc_test(
 )
 
 cc_library(
-    name = "hammer_panel",
-    srcs = ["hammer_panel.cc"],
-    hdrs = ["hammer_panel.h"],
-    deps = [
-        "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:colors",
-        "//src/frontend/widgets:confirm_prompt",
-        "//src/frontend/widgets:format",
-        "//src/item:equip_instance",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "hammer_panel_test",
-    size = "small",
-    srcs = ["hammer_panel_test.cc"],
-    deps = [
-        ":hammer_panel",
-        "//src/frontend/testing:panel_test_base",
-        "//src/frontend/testing:screen_text",
-        "//src/item:equip_instance",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "symbol_level_panel",
     srcs = ["symbol_level_panel.cc"],
     hdrs = ["symbol_level_panel.h"],

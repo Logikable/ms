@@ -2887,33 +2887,6 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
   return outcome;
 }
 
-// Pays for a hammer, or returns false and spends nothing. It also checks the
-// item, so a hammer that can't be used isn't charged.
-bool CharacterInstance::PayForHammer(const EquipInstance& item) {
-  if (!item.CanHammer() || kGoldenHammerCost > character_.meso()) {
-    return false;
-  }
-  character_.set_meso(character_.meso() - kGoldenHammerCost);
-  return true;
-}
-
-bool CharacterInstance::HammerEquipped(EquipSlot slot, StatPreset preset) {
-  EquipInstance* item = WornIn(preset, slot);
-  if (item == nullptr || !PayForHammer(*item) || !item->Hammer()) {
-    return false;
-  }
-  // Nothing a hammer adds changes worn stats yet, but the worn totals are
-  // rebuilt after every change to a worn item, and one exception is how they
-  // drift apart.
-  RecomputeEquipStats();
-  return true;
-}
-
-bool CharacterInstance::HammerInventory(int index) {
-  EquipInstance* item = inventory_.equip_instance(index);
-  return item != nullptr && PayForHammer(*item) && item->Hammer();
-}
-
 int CharacterInstance::RecoverTrace(int trace_index, int base_item_index) {
   int recovery_stars =
       EquipInstance::RecoveryStars(inventory_[trace_index].stars());

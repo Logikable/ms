@@ -171,9 +171,8 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
     return kScrollNoSlots;
   }
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-    // Against the item's full slot count, hammers included: a slot a hammer
-    // added is one a Clean Slate can restore.
-    int cap = TotalUpgradeSlots(prototype_, state_) - state_.scroll_successes();
+    // Against the item's full slot count, built-in slots included.
+    int cap = TotalUpgradeSlots(prototype_) - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {
       return kScrollNoSlots;
     }
@@ -202,15 +201,6 @@ bool EquipInstance::Cube(CubeType cube, std::mt19937& rng) {
   *MutablePotentialOf(state_, track) =
       CubePotential(PotentialOf(state_, track), cube,
                     PotentialGroupOf(prototype_.equip_slot()), rng);
-  return true;
-}
-
-bool EquipInstance::Hammer() {
-  if (!CanHammer()) {
-    return false;
-  }
-  state_.set_hammers(state_.hammers() + 1);
-  state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() + 1);
   return true;
 }
 

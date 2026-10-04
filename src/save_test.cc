@@ -96,6 +96,23 @@ class SaveTest : public testing::Test {
     WriteRaw(path_, bytes);
   }
 
+  // The same for version 3, the current layout with hammers on its items.
+  void WriteV3(SaveGame save) {
+    save.set_format_version(3);
+    std::string bytes;
+    ASSERT_TRUE(save.SerializeToString(&bytes));
+    WriteRaw(path_, bytes);
+  }
+
+  // A sword as version 3 stored one: `hammers` used and `remaining` slots open.
+  Equip OldSword(int hammers, int remaining) {
+    Equip sword;
+    sword.set_equip_name(sword_.name());
+    sword.set_legacy_hammers(hammers);
+    sword.set_remaining_upgrade_slots(remaining);
+    return sword;
+  }
+
   // A stack as version 2 stored one, on the Etc tab.
   static void AddStack(Character& character, const std::string& name,
                        int count) {
@@ -758,6 +775,54 @@ TEST_F(SaveTest, AVersion2SaveUpgradesEveryCharacter) {
   const Character& other = loaded->inactive_characters[0].character();
   EXPECT_EQ(other.stacks_size(), 0);
   EXPECT_EQ(other.currencies().at(kSpellTraceName), 200);
+}
+
+// The slots Golden Hammers used to add are built in now, so every item gains
+// the ones it wasn't hammered for, open and empty, wherever it is kept. A
+// starred piece is no exception: its stars wait on the new slots.
+TEST_F(SaveTest, AVersion3SaveOpensTheSlotsNoHammerAdded) {
+  SaveGame old;
+  Character* character = old.add_characters()->mutable_character();
+  Equip starred = OldSword(/*hammers=*/0, /*remaining=*/0);
+  starred.set_stars(12);
+  *character->mutable_inventory()->add_equip_tab() = starred;
+  *character->mutable_inventory()->add_equip_tab() =
+      OldSword(/*hammers=*/1, /*remaining=*/0);
+  (*character->mutable_equip_presets()
+        ->add_presets()
+        ->mutable_equipped())[EQUIP_SLOT_PRIMARY_WEAPON] =
+      OldSword(/*hammers=*/2, /*remaining=*/0);
+  Equip gone;
+  gone.set_equip_name("Something Since Deleted");
+  gone.set_remaining_upgrade_slots(1);
+  *character->mutable_inventory()->add_equip_tab() = gone;
+  *old.mutable_account()->mutable_bank()->add_equip_pages()->add_equips() =
+      OldSword(/*hammers=*/0, /*remaining=*/3);
+  WriteV3(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  ASSERT_TRUE(SaveGameToFile(*loaded, path_));
+  SaveGame on_disk;
+  ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
+  const Character& upgraded = on_disk.characters(0).character();
+  ASSERT_GE(upgraded.inventory().equip_tab_size(), 2);
+  EXPECT_EQ(upgraded.inventory().equip_tab(0).remaining_upgrade_slots(), 2);
+  EXPECT_EQ(upgraded.inventory().equip_tab(0).stars(), 12);
+  EXPECT_EQ(upgraded.inventory().equip_tab(1).remaining_upgrade_slots(), 1);
+  EXPECT_EQ(upgraded.equip_presets()
+                .presets(0)
+                .equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .remaining_upgrade_slots(),
+            0);
+  EXPECT_EQ(on_disk.account()
+                .bank()
+                .equip_pages(0)
+                .equips(0)
+                .remaining_upgrade_slots(),
+            5);
+  EXPECT_EQ(upgraded.inventory().equip_tab(0).legacy_hammers(), 0);
 }
 
 // Loading an old save and saving again writes the new format, and the upgrade

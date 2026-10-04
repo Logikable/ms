@@ -1,7 +1,7 @@
 /* EquipInstance wraps one piece of equipment. It pairs an EquipPrototype (the
  * static item definition from data/) with an Equip proto (per-item state:
  * remaining upgrade slots, scroll stats and star force level). It adds the
- * mutating methods (Scroll, StarForce, Hammer) to the read-only base class
+ * mutating methods (Scroll, StarForce, Cube) to the read-only base class
  * EquipTabItem (see item.h). EquipTrace, also in item.h, is the type for
  * destroyed items.
  */
@@ -42,12 +42,6 @@ enum StarForceOutcome {
 
 // Absolute maximum star force level (for level 138+ equipment).
 constexpr int kMaxStarForce = 30;
-
-// Golden hammers one piece of equipment can take, and their cost. The price is
-// flat: a hammer adds the same slot to any item, so nothing about the item
-// affects it.
-constexpr int kMaxHammers = 2;
-constexpr int64_t kGoldenHammerCost = 10000000;
 
 // Success and destruction rates for a single star force attempt, in hundredths
 // of a percent (10000 = 100%). Failure = 10000 - success - destroy.
@@ -124,11 +118,6 @@ class EquipInstance : public EquipTabItem {
     *state_.mutable_soul() = soul;
   }
 
-  // Uses a golden hammer: one more upgrade slot, open and unspent. Returns
-  // false and changes nothing if the item can't take another; see CanHammer.
-  // The caller charges for it, as with star force.
-  bool Hammer();
-
   // Returns the star force attempt rates for the given star level.
   // Returns {0, 0} for out-of-range values.
   static StarForceRate RateAt(int stars);
@@ -138,18 +127,10 @@ class EquipInstance : public EquipTabItem {
   // below 15 stars (not destroyable).
   static int RecoveryStars(int original_stars);
 
-  // Whether another hammer can be used: the item has upgrade slots to widen and
-  // isn't at kMaxHammers. The item's progress doesn't matter; a hammer can be
-  // used at any point, even with stars.
-  bool CanHammer() const {
-    return TakesUpgradeSlots(prototype_) && state_.hammers() < kMaxHammers;
-  }
-
   // False for an item that takes no star force, one with upgrade slots left
   // (scrolling comes first), or one already at max stars. The first case is why
   // this isn't just a slot count: an item with no slots has nothing to scroll
-  // and would look ready. A hammer adds a slot, so hammering a starred item
-  // blocks its stars: the same rule, not an exception.
+  // and would look ready.
   bool CanStarForce() const {
     return Supports(prototype_, UPGRADE_STAR_FORCE) &&
            state_.remaining_upgrade_slots() == 0 &&

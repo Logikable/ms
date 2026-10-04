@@ -55,7 +55,6 @@ struct GearPlan {
 struct GearSpend {
   int64_t scrolls = 0;       // Spell Traces, at the shop's price
   int64_t stars = 0;         // every attempt, failures included
-  int64_t hammers = 0;       // golden hammers, for the slots they open
   int64_t cubes = 0;         // every cube, whatever it rolled
   int64_t flames = 0;        // every flame, whatever it rolled
   int64_t symbols = 0;       // Arcane Symbol level-ups
@@ -64,7 +63,6 @@ struct GearSpend {
   int slots_filled = 0;
   int stars_gained = 0;
   int symbol_levels = 0;
-  int hammers_driven = 0;
   // Cubes bought, and those whose roll was kept. Tracked separately because a
   // choosing cube buys a chance, not an outcome: the gap is meso that bought
   // nothing. A replacing cube's roll is always kept.
@@ -91,14 +89,12 @@ struct GearSpend {
   int64_t sold = 0;
 
   int64_t meso() const {
-    return scrolls + stars + hammers + replacements + copies + cubes + flames +
-           symbols;
+    return scrolls + stars + replacements + copies + cubes + flames + symbols;
   }
 
   void Add(const GearSpend& other) {
     scrolls += other.scrolls;
     stars += other.stars;
-    hammers += other.hammers;
     cubes += other.cubes;
     flames += other.flames;
     symbols += other.symbols;
@@ -107,7 +103,6 @@ struct GearSpend {
     slots_filled += other.slots_filled;
     stars_gained += other.stars_gained;
     symbol_levels += other.symbol_levels;
-    hammers_driven += other.hammers_driven;
     cubes_bought += other.cubes_bought;
     cubes_kept += other.cubes_kept;
     for (size_t i = 0; i < bought_by_cube.size(); ++i) {
@@ -183,10 +178,6 @@ class GearShopper {
     bool star = false;
     // The last star of the run a star offer starts.
     int star_to = 0;
-    // A golden hammer: the slot it opens and the scroll that fills it, priced
-    // and valued together. A hammer alone is worth nothing; what's being bought
-    // is the scroll it makes room for.
-    bool hammer = false;
     // One level of an Arcane Symbol, priced at its meso cost and valued at the
     // stat it gives. The duplicates it uses aren't bought: they drop, and
     // CollectSymbols has already applied them.
@@ -245,7 +236,7 @@ class GearShopper {
   // the piece has no such offer.
   std::optional<Candidate> ScrollOffer(GameState& state, const Basis& basis,
                                        EquipSlot slot, int level,
-                                       int open_slots, bool can_hammer);
+                                       int open_slots);
   std::optional<Candidate> StarOffer(GameState& state, const Basis& basis,
                                      EquipSlot slot, int level, int stars);
   // The offer for one level of the Arcane Symbol worn in `slot`. Nothing when
@@ -263,7 +254,7 @@ class GearShopper {
   // Scroll and star offers for one piece in `basis.gear`; see ScrollOffer and
   // StarOffer.
   void PieceOffers(GameState& state, const Basis& basis, EquipSlot slot,
-                   bool hammers_open, std::vector<Candidate>& offers);
+                   std::vector<Candidate>& offers);
   // An offer for each accessory both presets wear that a bag or shop copy
   // could split, valued with a trial split: the cube run the copy would take,
   // less the farm damage it gives up by starting bare. Held for the rest of a
@@ -291,8 +282,6 @@ class GearShopper {
   // The main-track cube run on the farm piece in `slot` with the best value per
   // meso, out of the cubes on the shelf.
   CubeProgram BestMainCubeProgram(const GameState& state, EquipSlot slot);
-  bool BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,
-                 GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
                  GearSpend& spend);
   // Taps `slot` until it holds `to` stars or the purse runs dry.

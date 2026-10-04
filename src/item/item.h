@@ -44,19 +44,22 @@ const std::string& ShortName(const ItemPrototype& proto);
 bool Supports(const EquipPrototype& proto, Upgrade upgrade);
 
 // Whether `proto` has upgrade slots at all: it takes scrolls and drops with
-// somewhere to put one. A golden hammer checks this, since it widens existing
-// slots and can't create them.
+// somewhere to put one.
 bool TakesUpgradeSlots(const EquipPrototype& proto);
+
+// Slots every item that takes scrolls has beyond its prototype's: the two GMS's
+// Golden Hammers used to add, built in since GMS retired the hammer.
+constexpr int kBuiltInUpgradeSlots = 2;
 
 // A new copy of `proto`: its dropped_as state, named, with every slot the
 // prototype gives that dropped_as didn't already spend.
 Equip FreshEquip(const EquipPrototype& proto);
 
-// How many upgrade slots this item has: the prototype's, plus one for each
-// golden hammer used on it. Use this instead of upgrade_slots wherever the
-// number means the item's total slots, such as what a Clean Slate can restore
-// or the number a list shows after the slash.
-int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state);
+// How many upgrade slots an item of `proto` has: the prototype's plus
+// kBuiltInUpgradeSlots. Use this instead of upgrade_slots wherever the number
+// means the item's total slots, such as what a Clean Slate can restore or the
+// number a list shows after the slash.
+int TotalUpgradeSlots(const EquipPrototype& proto);
 
 // What a shop pays for one of these, in meso. A shop-stocked item sells for a
 // tenth of its price, GMS's buy-back rate, so it's computed instead of stored.

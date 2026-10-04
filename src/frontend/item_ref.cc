@@ -50,13 +50,6 @@ StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref) {
   return character.StarForceInventory(ref.index());
 }
 
-bool HammerItem(CharacterInstance& character, ItemRef ref) {
-  if (ref.equipped()) {
-    return character.HammerEquipped(ref.slot(), ref.preset());
-  }
-  return character.HammerInventory(ref.index());
-}
-
 bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube) {
   if (ref.equipped()) {
     return character.CubeEquipped(ref.slot(), cube, ref.preset());

@@ -36,8 +36,8 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cube",
-             "Flame", "Soul", "Close"}),
+      menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Cube", "Flame",
+             "Soul", "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
   // Opens on the preset the character is wearing, so the tab the player sees is
   // their current gear and an item's comparison card compares against it. The
@@ -169,9 +169,6 @@ void EquippedPanel::HideLockedEntries() {
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kGearMenuScroll);
   }
-  if (!Unlocked(Feature::kHammer, character_, account_)) {
-    menu_.Hide(kGearMenuHammer);
-  }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kGearMenuStarForce);
   }
@@ -205,15 +202,6 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kGearMenuScroll);
   }
-  // A hammer adds an upgrade slot to an item that has slots. An item with none
-  // has nothing for it to do, so the entry is hidden.
-  if (!TakesUpgradeSlots(item.prototype())) {
-    menu_.Hide(kGearMenuHammer);
-  } else if (!item.CanHammer()) {
-    // Grey, not hidden: both hammers are used, and an entry that vanished after
-    // the second would look like the feature going away.
-    menu_.Disable(kGearMenuHammer);
-  }
   // Where an item is worn decides whether it can be cubed, and the slots that
   // refuse cubes (medal, badge, pocket) always refuse them.
   if (!item.CanCube()) {
@@ -239,9 +227,6 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
 void EquippedPanel::HighlightTrail() {
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kGearMenuScroll);
-  }
-  if (LeadToAction(Feature::kHammer, character_, account_)) {
-    menu_.Highlight(kGearMenuHammer);
   }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kGearMenuStarForce);
@@ -318,10 +303,6 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
             character_.WornAt(gear_preset_, selected_slot())->prototype())) {
       return kScrollSelect;
     }
-  }
-  if (open.selected() == kGearMenuHammer) {
-    FollowedToAction(Feature::kHammer, account_);
-    return kHammer;
   }
   if (open.selected() == kGearMenuStarForce) {
     FollowedToAction(Feature::kStarForce, account_);

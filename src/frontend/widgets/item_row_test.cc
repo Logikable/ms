@@ -136,7 +136,7 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
 
   ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
-  EXPECT_EQ(cells.scroll, "3/7");
+  EXPECT_EQ(cells.scroll, "3/9");
   EXPECT_EQ(cells.stars, "12★");
   EXPECT_EQ(cells.potential, "12% ATT     ");
 

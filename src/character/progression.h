@@ -36,12 +36,8 @@ enum class Feature {
   kUnequip,
   kScrolling,
   kStarForce,
-  // The golden hammer, which adds a scroll slot to an item. Unlocked after
-  // scrolling and star force, since it's only worth the price on gear the
-  // player means to keep.
-  kHammer,
-  // Cubing, which rerolls an item's potential. Unlocked after the hammer and
-  // every other upgrade: it's the last thing a player does to an item, and
+  // Cubing, which rerolls an item's potential. Unlocked after every other
+  // upgrade: it's the last thing a player does to an item, and
   // worth doing again and again.
   kPotential,
   // The Green Cube on the cubing screen's shelf, which rerolls bonus

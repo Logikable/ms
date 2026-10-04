@@ -433,7 +433,7 @@ struct Ledger {
   int64_t etc_sales = 0;
   int64_t boss_clears = 0;
   int64_t gear_bought = 0;  // shop shelves: weapon, off-hand, equips
-  GearSpend gear;           // scrolls, stars, hammers, replacements
+  GearSpend gear;           // scrolls, stars, cubes, replacements
   BuffSpend buffs;          // per second, per fight, and permanent unlocks
   int64_t alt_meso = 0;     // what alts kept on the way up, handed over
 
@@ -955,7 +955,6 @@ struct Climb {
   int endgame_pieces = 0;
   int endgame_scrolled = 0;
   int endgame_stars_worn = 0;
-  int endgame_hammers = 0;
   // Pieces destroyed and restored over the whole climb, which shows whether
   // stars past 15 were worth the risk.
   int booms = 0;
@@ -1163,7 +1162,6 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   *slot.mutable_main() = item.equip_state().main_potential();
   *slot.mutable_bonus() = item.equip_state().bonus_potential();
   slot.set_stars(item.stars());
-  slot.set_hammers(item.equip_state().hammers());
   if (IsSymbol(item.prototype())) {
     slot.set_symbol_level(SymbolLevel(item.equip_state()));
   }
@@ -1528,7 +1526,6 @@ struct GearReached {
   int pieces = 0;
   int scrolled = 0;
   int stars = 0;
-  int hammers = 0;
 };
 
 // A line as the table shows it: "12% ATT", "40% boss". Uses the enum's own name
@@ -1575,14 +1572,12 @@ GearReached ReachedOnGear(const GameState& state) {
     const EquipInstance& item = *entry.second;
     bool takes_star =
         Supports(item.prototype(), UPGRADE_STAR_FORCE) && item.max_stars() > 0;
-    bool takes_scroll = Supports(item.prototype(), UPGRADE_SCROLL) &&
-                        item.prototype().upgrade_slots() > 0;
+    bool takes_scroll = TakesUpgradeSlots(item.prototype());
     if (!takes_scroll && !takes_star) {
       continue;  // an off-hand or pocket item, which takes neither
     }
     ++reached.pieces;
     reached.stars += item.stars();
-    reached.hammers += item.equip_state().hammers();
     if (item.equip_state().remaining_upgrade_slots() == 0) {
       ++reached.scrolled;
     }
@@ -2435,7 +2430,6 @@ void NoteEndgame(Session& run, double began, int64_t earned_at_cap,
   run.climb.endgame_pieces = reached.pieces;
   run.climb.endgame_scrolled = reached.scrolled;
   run.climb.endgame_stars_worn = reached.stars;
-  run.climb.endgame_hammers = reached.hammers;
   run.climb.potentials = PotentialsWorn(run.state);
 }
 
@@ -3468,7 +3462,7 @@ const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
   return nullptr;
 }
 
-// Main and bonus ranks, stars and hammers on every slot at each
+// Main and bonus ranks, stars and flames on every slot at each
 // --potential_levels level, counted across branches. The lines themselves go
 // to --potential_dump.
 void PrintPotentialLevels(const std::vector<Job>& branches,
@@ -3479,7 +3473,6 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     std::map<EquipSlot, std::vector<PotentialRank>> main;
     std::map<EquipSlot, std::vector<PotentialRank>> bonus;
     std::map<EquipSlot, std::vector<int>> stars;
-    std::map<EquipSlot, std::vector<int>> hammers;
     std::map<EquipSlot, std::vector<int>> flames;
     std::map<EquipSlot, std::vector<int>> symbol_levels;
     int reached = 0;
@@ -3500,7 +3493,6 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
         main[slot.slot()].push_back(slot.main().rank());
         bonus[slot.slot()].push_back(slot.bonus().rank());
         stars[slot.slot()].push_back(slot.stars());
-        hammers[slot.slot()].push_back(slot.hammers());
         int tiers = 0;
         for (const FlameLine& line : slot.flame()) {
           tiers += line.tier();
@@ -3515,17 +3507,16 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     if (reached == 0) {
       continue;
     }
-    std::printf("  %-18s %-16s %-16s %-28s %-12s %s\n", "slot", "main", "bonus",
-                "stars", "hammers", "flame tiers");
+    std::printf("  %-18s %-16s %-16s %-28s %s\n", "slot", "main", "bonus",
+                "stars", "flame tiers");
     for (const std::pair<const EquipSlot, std::vector<PotentialRank>>& entry :
          main) {
       std::printf(
-          "  %-18s %-16s %-16s %-28s %-12s %s\n",
+          "  %-18s %-16s %-16s %-28s %s\n",
           WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
           RankCounts(entry.second).c_str(),
           RankCounts(bonus[entry.first]).c_str(),
           CountsOf(stars[entry.first]).c_str(),
-          CountsOf(hammers[entry.first]).c_str(),
           CountsOf(flames[entry.first]).c_str());
     }
     for (const std::pair<const EquipSlot, std::vector<int>>& entry :
@@ -3539,7 +3530,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
 }
 
 // One line per potential recorded, tab-separated: branch, level ("end" for the
-// run's end), days, slot, item, item level, stars, hammers, track, rank and
+// run's end), days, slot, item, item level, stars, track, rank and
 // lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6".
 // The account follows as slot ACCOUNT, then a key, a name and a value.
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
@@ -3564,7 +3555,7 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
               << (slot.farm() ? "FARM_" : "")
               << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_")
               << '\t' << slot.item() << '\t' << slot.item_level() << '\t'
-              << slot.stars() << '\t' << slot.hammers() << '\t'
+              << slot.stars() << '\t'
               << (potential == &slot.main() ? "main" : "bonus") << '\t'
               << RankLetter(potential->rank()) << '\t'
               << absl::StrJoin(lines, ", ") << '\n';
@@ -3584,8 +3575,7 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
             << (slot.farm() ? "FARM_" : "")
             << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_") << '\t'
             << slot.item() << '\t' << slot.item_level() << '\t' << slot.stars()
-            << '\t' << slot.hammers() << "\tflame\t-\t"
-            << absl::StrJoin(lines, ", ") << '\n';
+            << "\tflame\t-\t" << absl::StrJoin(lines, ", ") << '\n';
       }
       const std::string at =
           absl::StrCat(BranchName(branches[i]), "\t",
@@ -3616,10 +3606,9 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {"mobs",  "Etc sold", "gear sold", "bosses",
-                          "shelf", "scrolls",  "stars",     "hammers",
-                          "cubes", "flames",   "symbols",   "copies",
-                          "buffs", "buffs own"};
+  const char* kHeads[] = {
+      "mobs",  "Etc sold", "gear sold", "bosses", "shelf", "scrolls",  "stars",
+      "cubes", "flames",   "symbols",   "copies", "buffs", "buffs own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -3635,7 +3624,6 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear_bought,
                       ledger.gear.scrolls,
                       ledger.gear.stars,
-                      ledger.gear.hammers,
                       ledger.gear.cubes,
                       ledger.gear.flames,
                       ledger.gear.symbols,
@@ -3743,8 +3731,8 @@ void PrintBag(const GameState& state) {
   }
 }
 
-// One equipped piece as a player reads it off the panel: name, slots used,
-// stars and hammers.
+// One equipped piece as a player reads it off the panel: name, slots used and
+// stars.
 void PrintWornRow(const EquipInstance& item) {
   const EquipPrototype& proto = item.prototype();
   // A symbol takes neither scrolls nor stars. It has a level and duplicates
@@ -3757,19 +3745,18 @@ void PrintWornRow(const EquipInstance& item) {
     char banked[16];
     std::snprintf(banked, sizeof(banked), "%d/%d", worn.symbol_exp(),
                   SymbolExpToNextLevel(proto, level));
-    std::printf("    %-30s Lv%-4d %-8s %-6s %s\n", proto.name().c_str(),
-                proto.required_level(), banked, rung, "");
+    std::printf("    %-30s Lv%-4d %-8s %s\n", proto.name().c_str(),
+                proto.required_level(), banked, rung);
     return;
   }
-  int slots = proto.upgrade_slots() + item.equip_state().hammers();
+  int slots = TotalUpgradeSlots(proto);
   char stars[16];
   std::snprintf(stars, sizeof(stars), "%d*", item.stars());
   char scrolled[16];
   std::snprintf(scrolled, sizeof(scrolled), "%d/%d",
                 slots - item.equip_state().remaining_upgrade_slots(), slots);
-  std::printf("    %-30s Lv%-4d %-8s %-6s %s\n", proto.name().c_str(),
-              proto.required_level(), scrolled, stars,
-              item.equip_state().hammers() > 0 ? "hammered" : "");
+  std::printf("    %-30s Lv%-4d %-8s %s\n", proto.name().c_str(),
+              proto.required_level(), scrolled, stars);
 }
 
 // A Hyper Stat allocation, listing stats with points in them. Sorted by field
@@ -3939,15 +3926,14 @@ void PrintTargets(const std::vector<Job>& branches,
                   sizeof(spent));
       std::printf(
           "  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean, %d "
-          "hammers, %d booms, %d souls (%s)\n",
+          "booms, %d souls (%s)\n",
           "  spent on gear", spent, typical.endgame_scrolled,
           typical.endgame_pieces,
           typical.endgame_pieces == 0
               ? 0.0
               : static_cast<double>(typical.endgame_stars_worn) /
                     typical.endgame_pieces,
-          typical.endgame_hammers, typical.booms, typical.souls,
-          typical.soul.c_str());
+          typical.booms, typical.souls, typical.soul.c_str());
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

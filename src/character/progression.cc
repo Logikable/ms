@@ -56,10 +56,7 @@ constexpr Unlock kUnlocks[] = {
     // that take 15 stars, and opening the screen earlier only offers expensive
     // stars that are barely worth it.
     {Feature::kStarForce, 120},
-    // Well past the gear a player scrolls early on: a hammer costs 10 million
-    // meso for one slot, which is only worth it on an item they mean to keep.
-    {Feature::kHammer, 150},
-    // Potential's own level; see kPotentialUnlockLevel. Well after the hammer:
+    // Potential's own level; see kPotentialUnlockLevel. Well after star force:
     // a cube is only worth using on gear the player won't replace soon.
     {Feature::kPotential, kPotentialUnlockLevel},
     // See kBonusPotentialUnlockLevel.
@@ -118,9 +115,9 @@ constexpr StageUnlock kStageUnlocks[] = {
 // condition in the card and another in the menus, so a new upgrade is added to
 // both at once.
 constexpr Feature kUpgrades[] = {
-    Feature::kScrolling, Feature::kStarForce,      Feature::kHammer,
-    Feature::kPotential, Feature::kBonusPotential, Feature::kBlackCube,
-    Feature::kWhiteCube, Feature::kSoul,           Feature::kFlame,
+    Feature::kScrolling,      Feature::kStarForce, Feature::kPotential,
+    Feature::kBonusPotential, Feature::kBlackCube, Feature::kWhiteCube,
+    Feature::kSoul,           Feature::kFlame,
 };
 
 // The upgrades with a gold trail, and the name their record keys are built
@@ -139,7 +136,6 @@ struct Led {
 constexpr Led kLedUpgrades[] = {
     {Feature::kScrolling, "scrolling", true},
     {Feature::kStarForce, "star_force", false},
-    {Feature::kHammer, "hammer", false},
     {Feature::kPotential, "potential", false},
     {Feature::kBonusPotential, "bonus_potential", false},
     {Feature::kBlackCube, "black_cube", false},
@@ -248,8 +244,6 @@ std::string FeatureName(Feature feature) {
       return "Scrolling";
     case Feature::kStarForce:
       return "Star Force";
-    case Feature::kHammer:
-      return "the Golden Hammer";
     case Feature::kPotential:
       return "Potential";
     case Feature::kBonusPotential:

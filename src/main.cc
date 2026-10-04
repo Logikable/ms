@@ -48,13 +48,9 @@ ABSL_FLAG(int32_t, level, 0,
           "--mode=test or --mode=max: the level to arrive at, instead of the "
           "top of the job's own band. Never below the level the job is taken "
           "at, and never above the highest level the game has.");
-ABSL_FLAG(bool, hammered, false,
-          "Workbench only (--mode=test): drive both Golden Hammers into every "
-          "piece of the character's gear, widening its upgrade shelf by two.");
 ABSL_FLAG(bool, scrolled, false,
           "Workbench only (--mode=test): pass every upgrade slot of the "
-          "character's gear, with the best trace it takes. Combines with "
-          "--hammered, which is what decides how many slots there are.");
+          "character's gear, with the best trace it takes.");
 ABSL_FLAG(int32_t, sf, 0,
           "Workbench only (--mode=test): stars on every piece of the "
           "character's gear, held to each item's own cap for its level. Stars "
@@ -130,11 +126,10 @@ void RefuseInPlay(const char* flag, ms::GameMode mode) {
 
 ms::GearSetup ParseEquips(ms::GameMode mode) {
   ms::GearSetup equips;
-  equips.hammered = absl::GetFlag(FLAGS_hammered);
   equips.scrolled = absl::GetFlag(FLAGS_scrolled);
   equips.stars = absl::GetFlag(FLAGS_sf);
-  if (equips.hammered || equips.scrolled || equips.stars != 0) {
-    RefuseOutsideTheWorkbench("--hammered/--scrolled/--sf", mode);
+  if (equips.scrolled || equips.stars != 0) {
+    RefuseOutsideTheWorkbench("--scrolled/--sf", mode);
   }
   if (equips.stars < 0) {
     LOG(FATAL) << "--sf is a number of stars; " << equips.stars

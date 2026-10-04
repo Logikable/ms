@@ -410,11 +410,6 @@ class CharacterInstance {
   // One star force attempt on the inventory item at `index`. On
   // kStarForceDestroy, removes the item from inventory. Priced as above.
   StarForceOutcome StarForceInventory(int index);
-  // Uses a golden hammer on the item for one more upgrade slot, at
-  // kGoldenHammerCost. Returns false, and spends nothing, if it can't be done.
-  bool HammerEquipped(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
-  bool HammerInventory(int index);
-
   // Restores the trace at `trace_index` onto the item at `base_item_index`.
   // Both leave the bag, and a new item gets the trace's scroll stats and
   // RecoveryStars() stars. Returns that star count.
@@ -920,7 +915,6 @@ class CharacterInstance {
   // Pays for one star force attempt, or returns false and spends nothing. Both
   // StarForce methods call it before rolling.
   bool PayForStarForce(const EquipInstance& item);
-  bool PayForHammer(const EquipInstance& item);
   bool PayForCube(const EquipInstance& item, CubeType cube);
   // PayForCube's twin, then a roll against `from`.
   // ApplySoul's work once the item is found; it doesn't recompute.

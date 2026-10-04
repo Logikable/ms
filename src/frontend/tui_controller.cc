@@ -880,8 +880,6 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnSoulEvent(event);
     case kStarForceResult:
       return OnStarForceResultEvent(event);
-    case kHammer:
-      return OnHammerEvent(event);
     case kTraceRecover:
       return OnTraceRecoverEvent(event);
     case kTraceRecoverResult:
@@ -1031,7 +1029,7 @@ void TuiController::EnsureFocusIsVisible() {
 
 Screen TuiController::SeedUpgradeScreen(Screen next) {
   if (next != kScrollSelect && next != kStarForce && next != kCubing &&
-      next != kFlaming && next != kSouling && next != kHammer) {
+      next != kFlaming && next != kSouling) {
     return next;
   }
   // All four act on the item under the cursor. It is resolved here so nothing
@@ -1056,9 +1054,6 @@ Screen TuiController::SeedUpgradeScreen(Screen next) {
   if (next == kSouling) {
     soul_panel_.Reset();
     OpenInspectCards();
-  }
-  if (next == kHammer) {
-    hammer_panel_.Reset(state_.character.meso());
   }
   return next;
 }
@@ -1230,7 +1225,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     int remaining = item->equip_state().remaining_upgrade_slots();
     bool no_slots;
     if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-      int cap = TotalUpgradeSlots(item->prototype(), item->equip_state()) -
+      int cap = TotalUpgradeSlots(item->prototype()) -
                 item->equip_state().scroll_successes();
       no_slots = remaining >= cap;
     } else {
@@ -1892,18 +1887,6 @@ bool TuiController::OnSoulEvent(ftxui::Event event) {
     const ItemPrototype shard = *soul_panel_.selected_shard();
     ApplySoulItem(state_.character, subject_, shard);
   }
-  return true;
-}
-
-bool TuiController::OnHammerEvent(ftxui::Event event) {
-  ConfirmChoice choice = hammer_panel_.OnEvent(event);
-  if (choice == ConfirmChoice::kPending) {
-    return true;
-  }
-  if (choice == ConfirmChoice::kConfirmed) {
-    HammerItem(state_.character, subject_);
-  }
-  screen_ = kMain;
   return true;
 }
 

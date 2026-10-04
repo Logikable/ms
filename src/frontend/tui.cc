@@ -656,8 +656,8 @@ ftxui::Element Tui::BossConfirmDialog() {
 }
 
 ftxui::Element Tui::NoticeDialog() {
-  // Red when the player is the reason (no weapon, an item that can't take more
-  // hammers), and theme blue when it is only a timer. The caller chooses the
+  // Red when the player is the reason (no weapon, an item with no slots left),
+  // and theme blue when it is only a timer. The caller chooses the
   // button's label: a result says to continue, a notice says to close.
   bool refused = controller_.notice_is_refusal();
   ftxui::Elements rows;
@@ -1010,8 +1010,6 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.symbol_level_panel().Render());
     case kSymbolCombine:
       return OverMain(controller_.symbol_combine_panel().Render());
-    case kHammer:
-      return OverMain(controller_.hammer_panel().Render());
     case kBoxOpen:
       return Centred(controller_.box_panel().Render());
     case kBoxConfirm:

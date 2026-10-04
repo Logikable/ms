@@ -334,7 +334,7 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
 
   EquippedPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(LineWith(rendered, "Sword").find("0/7"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Sword").find("0/9"), std::string::npos);
   EXPECT_NE(LineWith(rendered, "Sword").find("0\u2605"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("/"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
@@ -870,29 +870,6 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
       std::count(star_force.begin(), star_force.end(), kGearMenuStarForce), 0);
 }
 
-// The hammer's own gate, and an item it has nothing to do to. It sits between
-// the other two upgrades: scrolls use the slots, and a hammer adds one.
-TEST_F(EquippedPanelTest, TheHammerArrivesLastAndOnlyOnAPieceWithSlots) {
-  sword_.set_upgrade_slots(1);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  panel.OpenMenu();
-  std::vector<int> before = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuHammer), 0);
-
-  LevelTo(UnlockLevel(Feature::kHammer));
-  panel.OpenMenu();
-  std::vector<int> after = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuHammer), 0);
-  std::string rendered = RenderElement(panel.menu().Render(0, 0));
-  EXPECT_LT(rendered.find("Scroll"), rendered.find("Hammer"));
-  EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
-}
-
 // Cubing's own gate, above every other upgrade, and the slot that refuses cubes
 // outright.
 TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
@@ -901,7 +878,7 @@ TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
   EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
 
-  LevelTo(UnlockLevel(Feature::kHammer));
+  LevelTo(UnlockLevel(Feature::kStarForce));
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuCube), 0);
@@ -980,43 +957,6 @@ TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
 
   EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Cube"),
             std::string::npos);
-}
-
-// An item a hammer can't improve gets no entry, just as Scroll is hidden on an
-// item that refuses scrolls.
-TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {
-  sword_.set_upgrade_slots(0);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  LevelTo(UnlockLevel(Feature::kHammer));
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-  panel.OpenMenu();
-
-  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
-            std::string::npos);
-}
-
-// Both hammers used, and the entry stays dim. If it vanished, it would look
-// like the feature going away.
-TEST_F(EquippedPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
-  sword_.set_upgrade_slots(1);
-  Equip state;
-  state.set_equip_name(sword_.name());
-  state.set_hammers(kMaxHammers);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_, state));
-  c_.Equip(0);
-  LevelTo(UnlockLevel(Feature::kHammer));
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-  panel.OpenMenu();
-
-  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuHammer), 0)
-      << "a finished piece let the player onto the entry";
-  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
-            std::string::npos)
-      << "greyed, not gone";
 }
 
 // Every item that can take stars has the entry, greyed until its slots are

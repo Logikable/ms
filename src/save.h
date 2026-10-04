@@ -25,7 +25,7 @@ namespace ms {
 // The format this build writes, and the newest it can read. Older versions are
 // upgraded on read; see save_migration.h. See SaveGame.format_version for what
 // each version contains.
-constexpr int kSaveFormatVersion = 3;
+constexpr int kSaveFormatVersion = 4;
 
 // Where the save file lives: next to the running executable. `argv0` is the
 // program path the OS gave. Falls back to the working directory if that path

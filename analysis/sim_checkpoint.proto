@@ -88,7 +88,7 @@ message CheckpointToken {
   double log_miss = 3;
 }
 
-// Both potentials on one worn piece, and its stars and hammers.
+// Both potentials on one worn piece, and its stars.
 message CheckpointSlotPotential {
   EquipSlot slot = 1;
   string item = 2;
@@ -98,7 +98,7 @@ message CheckpointSlotPotential {
   // Worn only while farming, under a boss piece of its own.
   bool farm = 6;
   int32 stars = 7;
-  int32 hammers = 8;
+  reserved 8;  // hammers, before their slots were built in
   // A symbol's level, 0 for any other piece.
   int32 symbol_level = 9;
   repeated FlameLine flame = 10;

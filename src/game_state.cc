@@ -248,13 +248,6 @@ const Scroll* BestScrollFor(const GameState& state,
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
   Equip built = FreshEquip(proto);
-  // Hammers first, so the scrolls fill the widened set of slots.
-  if ((equips.hammered ||
-       equips.hammered_slots.count(proto.equip_slot()) > 0) &&
-      TakesUpgradeSlots(proto)) {
-    built.set_hammers(kMaxHammers);
-    built.set_remaining_upgrade_slots(TotalUpgradeSlots(proto, built));
-  }
   const Scroll* scroll = BestScrollFor(state, proto);
   if (equips.scrolled && scroll != nullptr && TakesUpgradeSlots(proto)) {
     int slots = built.remaining_upgrade_slots();
@@ -790,7 +783,7 @@ constexpr int kTestSoulShards = 200;
 // to the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
-// Pet scrolls for every slot of three hammered pets, three times over. Nothing
+// Pet scrolls for every slot of three pets, three times over. Nothing
 // drops them yet, so the workbench is the only way to try one.
 constexpr int kTestPetScrolls = 90;
 
@@ -1181,11 +1174,6 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
                      const LinkTally& tally) {
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
-  for (EquipSlot slot : gear.hammered) {
-    if (slot != EQUIP_SLOT_UNSPECIFIED) {
-      equips.hammered_slots.insert(slot);
-    }
-  }
   equips.scrolled = true;
   equips.stars = gear.stars;
   equips.weapon_stars = gear.weapon_stars;

@@ -365,50 +365,23 @@ const Equip& WornWeapon(const GameState& state) {
 // No flags: gear arrives as it drops, with slots to spend and no stars.
 TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
   GameState state = MakeEquipsState(GearSetup());
-  EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 7);
-  EXPECT_EQ(WornWeapon(state).hammers(), 0);
+  EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 9);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
   EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
-// Each flag does only its own job: hammers add slots and leave them all
-// unspent.
-TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
-  GearSetup equips;
-  equips.hammered = true;
-  GameState state = MakeEquipsState(equips);
-  const Equip& worn = WornWeapon(state);
-  EXPECT_EQ(worn.hammers(), kMaxHammers);
-  EXPECT_EQ(worn.remaining_upgrade_slots(), 9);
-  EXPECT_EQ(worn.scroll_successes(), 0);
-}
-
-// Scrolling alone passes the item's original slots, with the best-paying trace.
-TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
+// Scrolling passes every slot, the built-in two included, with the best-paying
+// trace.
+TEST(GameStateTest, ScrolledPassesEverySlot) {
   GearSetup equips;
   equips.scrolled = true;
   GameState state = MakeEquipsState(equips);
   const Equip& worn = WornWeapon(state);
-  EXPECT_EQ(worn.hammers(), 0);
-  EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
-  EXPECT_EQ(worn.scroll_successes(), 7);
-  EXPECT_EQ(worn.scroll_stats().attack(), 35);
-  EXPECT_EQ(worn.scroll_stats().str(), 21);
-  EXPECT_EQ(worn.stars(), 0);
-}
-
-// Together, the widened set of slots is what gets filled.
-TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
-  GearSetup equips;
-  equips.hammered = true;
-  equips.scrolled = true;
-  GameState state = MakeEquipsState(equips);
-  const Equip& worn = WornWeapon(state);
-  EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
   EXPECT_EQ(worn.scroll_successes(), 9);
   EXPECT_EQ(worn.scroll_stats().attack(), 45);
   EXPECT_EQ(worn.scroll_stats().str(), 27);
+  EXPECT_EQ(worn.stars(), 0);
 }
 
 // --sf sets exactly the stars given, capped by the item: a level 30 weapon
@@ -430,9 +403,6 @@ TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
   GearSetup equips;
   equips.stars = 3;
   EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
-
-  equips.hammered = true;
-  EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
 }
 
 // An item that can't take an upgrade type is left alone for it, whatever the
@@ -442,7 +412,7 @@ TEST(GameStateTest, TheFlagsLeaveAnItemThatRefusesThePathAlone) {
   catalog["gladius"].add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
+  test.equips = {/*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
                   GameMode::kTest, test);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 9);
@@ -473,11 +443,10 @@ TEST(GameStateTest, TheFlagsScrollGlovesWithTheAttackTrace) {
   scrolls["gloves_att_30"] = att;
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
+  test.equips = {/*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, scrolls, {}, {}, {}, {}, GameMode::kTest, test);
   const Equip& worn =
       state.character.equipped().at(EQUIP_SLOT_GLOVES)->equip_state();
-  EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.scroll_successes(), 7);
   EXPECT_EQ(worn.scroll_stats().attack(), 21);
   EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
@@ -498,23 +467,22 @@ TEST(GameStateTest, TheFlagsPreferTheStatTraceOverTheAttackOne) {
   scrolls["weapon_att_30"] = att;
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/0};
+  test.equips = {/*scrolled=*/true, /*stars=*/0};
   GameState state(GladiusCatalog(), scrolls, {}, {}, {}, {}, GameMode::kTest,
                   test);
   EXPECT_EQ(WornWeapon(state).scroll_stats().str(), 27);
 }
 
-// A piece with no scroll slots doesn't get hammered either, since there are no
-// slots to add to.
-TEST(GameStateTest, TheFlagsLeaveAPieceWithNoShelfUnhammered) {
+// A piece with no scroll slots gets no built-in ones either, so it goes
+// straight to its stars.
+TEST(GameStateTest, TheFlagsStarAPieceWithNoShelf) {
   std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
   catalog["gladius"].set_upgrade_slots(0);
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
+  test.equips = {/*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
                   GameMode::kTest, test);
-  EXPECT_EQ(WornWeapon(state).hammers(), 0);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
   EXPECT_EQ(WornWeapon(state).stars(), EquipTabItem::MaxStarsForLevel(30));
 }
@@ -1185,7 +1153,7 @@ TEST(GameStateTest, MaxModeWearsTheFrierenPetsScrolledOnceTheScrollDrops) {
   drop->set_per_kill(1);
   GameState scrolled = MakeMaxState(230, JOB_ADVANCEMENT_HERO, bosses);
   const EquipInstance& pet = Worn(scrolled, EQUIP_SLOT_PET_3);
-  int slots = TotalUpgradeSlots(pet.prototype(), pet.equip_state());
+  int slots = TotalUpgradeSlots(pet.prototype());
   EXPECT_GE(slots, 8);
   EXPECT_EQ(pet.equip_state().scroll_stats().attack(), 5 * slots);
   EXPECT_EQ(pet.equip_state().scroll_stats().magic_attack(), 5 * slots);
@@ -1282,12 +1250,11 @@ TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
       << "Early's shards are open, but the Soul entry isn't";
 }
 
-// The max character at the cap: hammers used, every widened slot passed, and
+// The max character at the cap: every slot passed, and
 // the stars the level's band pays for, with the weapon three stars higher.
 TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
-  EXPECT_EQ(weapon.hammers(), kMaxHammers);
   EXPECT_EQ(weapon.remaining_upgrade_slots(), 0);
   EXPECT_EQ(weapon.scroll_successes(), 9);
   EXPECT_EQ(weapon.stars(), MaxGearForLevel(kTrialLevelCap).weapon_stars);
@@ -1445,13 +1412,12 @@ TEST(GameStateTest, MaxModeFillsTheMatrixAsTheSweepDid) {
   }
 }
 
-// A level 140 character is well short of the cap's band: no hammers, which cost
-// 340M across all gear, and nothing cubed, since cubing opens at 180.
+// A level 140 character is well short of the cap's band: nothing cubed, since
+// cubing opens at 180.
 TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
   GameState state = MakeMaxState(kHyperStatUnlockLevel);
   const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
-  EXPECT_EQ(weapon.hammers(), 0);
-  EXPECT_EQ(weapon.scroll_successes(), 7);
+  EXPECT_EQ(weapon.scroll_successes(), 9);
   EXPECT_EQ(weapon.stars(), 14);
   EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(), 8);
   EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).potential().lines_size(), 0);

@@ -73,7 +73,7 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   ItemCells cells;
   // The slot count is included so a row shows how far the item can still go,
   // not only how far it has come.
-  int slots = TotalUpgradeSlots(proto, state);
+  int slots = TotalUpgradeSlots(proto);
   cells.scroll = slots > 0 ? std::to_string(state.scroll_successes()) + "/" +
                                  std::to_string(slots)
                            : "-";

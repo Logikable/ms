@@ -30,30 +30,17 @@ namespace ms {
 
 namespace {
 
-// The stars and hammers //analysis:progression_sim's sweep of 2026-10-04 wore
-// on arriving at each level. Stars are the fifth of ten branches from the top
-// over every starred piece; a fresh tier arrives at 10-11 whatever came
-// before it. Hammers go where most branches had them: the weapon, gloves and
-// shoes, and the Frozen bottom and shoulder until something replaces them.
+// The stars //analysis:progression_sim's sweep of 2026-10-04 wore on arriving
+// at each level: the fifth of ten branches from the top over every starred
+// piece. A fresh tier arrives at 10-11 whatever came before it.
 struct GearBand {
   int level;
   MaxGear gear;
 };
 
-constexpr EquipSlot W = EQUIP_SLOT_PRIMARY_WEAPON;
 constexpr GearBand kBands[] = {
-    {0, {{}, 5, 5, 0}},
-    {140, {{}, 8, 14, 0}},
-    {170,
-     {{W, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_GLOVES, EQUIP_SLOT_SHOES}, 10, 14, 0}},
-    {200,
-     {{W, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_GLOVES, EQUIP_SLOT_SHOES,
-       EQUIP_SLOT_SHOULDER},
-      10,
-      14,
-      0}},
-    {230, {{W, EQUIP_SLOT_GLOVES, EQUIP_SLOT_SHOES}, 10, 13, 230}},
-    {260, {{W, EQUIP_SLOT_GLOVES}, 11, 14, 260}},
+    {0, {5, 5, 0}},     {140, {8, 14, 0}},    {170, {10, 14, 0}},
+    {200, {10, 14, 0}}, {230, {10, 13, 230}}, {260, {11, 14, 260}},
 };
 
 // One piece of an outfit: a catalog key every job wears, or the job's own

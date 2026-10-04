@@ -5,10 +5,13 @@
 #include <string>
 #include <vector>
 
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/message.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "src/item/currency.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/save.pb.h"
 
@@ -80,10 +83,54 @@ void UpgradeFromV2(const std::map<std::string, ItemPrototype>& items,
   }
 }
 
+// Version 3 items got their extra slots from Golden Hammers. Now every item
+// that takes scrolls has them built in, so each gains the slots it wasn't
+// hammered for, open and unscrolled, even on a starred item: its stars wait
+// until the player scrolls them, as they would for a fresh drop.
+void OpenBuiltInSlots(const std::map<std::string, EquipPrototype>& equips,
+                      Equip& equip) {
+  const EquipPrototype* proto = FindEquipByName(equips, equip.equip_name());
+  if (proto != nullptr && TakesUpgradeSlots(*proto)) {
+    equip.set_remaining_upgrade_slots(equip.remaining_upgrade_slots() +
+                                      kBuiltInUpgradeSlots -
+                                      equip.legacy_hammers());
+  }
+  equip.clear_legacy_hammers();
+}
+
+// Every Equip anywhere under `message`: worn, in the bag, in a preset, in the
+// bank. Walked by reflection so a place to keep an item added later isn't
+// missed.
+void UpgradeFromV3(const std::map<std::string, EquipPrototype>& equips,
+                   google::protobuf::Message& message) {
+  if (message.GetDescriptor() == Equip::descriptor()) {
+    OpenBuiltInSlots(equips, static_cast<Equip&>(message));
+    return;
+  }
+  const google::protobuf::Reflection* reflection = message.GetReflection();
+  std::vector<const google::protobuf::FieldDescriptor*> fields;
+  reflection->ListFields(message, &fields);
+  for (const google::protobuf::FieldDescriptor* field : fields) {
+    if (field->cpp_type() !=
+        google::protobuf::FieldDescriptor::CPPTYPE_MESSAGE) {
+      continue;
+    }
+    if (!field->is_repeated()) {
+      UpgradeFromV3(equips, *reflection->MutableMessage(&message, field));
+      continue;
+    }
+    for (int i = 0; i < reflection->FieldSize(message, field); ++i) {
+      UpgradeFromV3(equips,
+                    *reflection->MutableRepeatedMessage(&message, field, i));
+    }
+  }
+}
+
 }  // namespace
 
 bool UpgradeSave(int version, const std::string& bytes,
                  const std::map<std::string, ItemPrototype>& items,
+                 const std::map<std::string, EquipPrototype>& equips,
                  SaveGame& save) {
   if (version < 2) {
     SaveGameV1 old;
@@ -96,6 +143,9 @@ bool UpgradeSave(int version, const std::string& bytes,
   }
   if (version < 3) {
     UpgradeFromV2(items, save);
+  }
+  if (version < 4) {
+    UpgradeFromV3(equips, save);
   }
   return true;
 }

@@ -684,7 +684,7 @@ TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   EXPECT_NE(drawn.find("Lv10"), std::string::npos);
   EXPECT_NE(drawn.find("Warrior"), std::string::npos);
   // A fresh item: no scrolls passed, no stars.
-  EXPECT_NE(drawn.find("0/7"), std::string::npos);
+  EXPECT_NE(drawn.find("0/9"), std::string::npos);
   EXPECT_NE(drawn.find("0\u2605"), std::string::npos);
 }
 
@@ -1058,22 +1058,6 @@ TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
       << "greyed, not gone";
 }
 
-// The same rule as the equipped panel: the hammer entry sits between the other
-// two upgrades, and appears only on an item that has slots.
-TEST_F(InventoryPanelTest, TheHammerSitsBetweenTheOtherTwoUpgrades) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  EquipPrototype proto = sword_;
-  proto.set_upgrade_slots(1);
-  c_.PickUp(std::make_unique<EquipInstance>(proto));
-  InventoryPanel panel(c_, account_, panel_focus_);
-  panel.OpenMenu();
-  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuHammer), 0);
-  std::string rendered = RenderElement(panel.menu().Render(0, 0));
-  EXPECT_LT(rendered.find("Scroll"), rendered.find("Hammer"));
-  EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
-}
-
 // The same cubing rule as the equipped panel: last of the upgrades, gold until
 // pressed, and absent from a trace, which is no longer an item.
 TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
@@ -1149,39 +1133,6 @@ TEST_F(InventoryPanelTest, OnlyAWeaponIsOfferedASoul) {
   hat_panel.OpenMenu();
   EXPECT_EQ(RenderElement(hat_panel.menu().Render(0, 0)).find("Soul"),
             std::string::npos);
-}
-
-// An item a hammer can't improve gets no entry, just as Scroll is hidden on an
-// item that refuses scrolls.
-TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  EquipPrototype slotless = sword_;
-  slotless.set_upgrade_slots(0);
-  c_.PickUp(std::make_unique<EquipInstance>(slotless));
-  InventoryPanel panel(c_, account_, panel_focus_);
-  panel.OpenMenu();
-  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
-            std::string::npos);
-}
-
-// Both hammers used, and the entry stays dim. If it vanished, it would look
-// like the feature going away.
-TEST_F(InventoryPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  sword_.set_upgrade_slots(1);
-  Equip state;
-  state.set_equip_name(sword_.name());
-  state.set_hammers(kMaxHammers);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_, state));
-  InventoryPanel panel(c_, account_, panel_focus_);
-  panel.OpenMenu();
-
-  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuHammer), 0)
-      << "a finished piece let the player onto the entry";
-  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
-            std::string::npos)
-      << "greyed, not gone";
 }
 
 // --- the gold trail to a new upgrade ---

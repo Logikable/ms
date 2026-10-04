@@ -52,9 +52,8 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
-             "Cube", "Flame", "Soul", "Recover", "Sell", "Multi-Sell",
-             "Close"}),
+      menu_({"Equip", "Inspect", "Combine", "Scroll", "Star Force", "Cube",
+             "Flame", "Soul", "Recover", "Sell", "Multi-Sell", "Close"}),
       stack_menu_({"Open", "Inspect", "Sell", "Multi-Sell", "Close"}),
       tab_menu_({"Sort", "Close"}) {
 }
@@ -232,7 +231,6 @@ void InventoryPanel::OpenStackMenu() {
 // second copy can only go into the first.
 void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuScroll);
-  menu_.Hide(kMenuHammer);
   menu_.Hide(kMenuStarForce);
   menu_.Hide(kMenuCube);
   menu_.Hide(kMenuFlame);
@@ -251,9 +249,6 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
 void InventoryPanel::HideLockedFeatures() {
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
-  }
-  if (!Unlocked(Feature::kHammer, character_, account_)) {
-    menu_.Hide(kMenuHammer);
   }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kMenuStarForce);
@@ -289,15 +284,6 @@ void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
   if (!Supports(equip.prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kMenuScroll);
   }
-  // A hammer adds an upgrade slot to an item that has slots. An item with none
-  // has nothing for it to do, so the entry is hidden.
-  if (!TakesUpgradeSlots(equip.prototype())) {
-    menu_.Hide(kMenuHammer);
-  } else if (!equip.CanHammer()) {
-    // Grey, not hidden: both hammers are used, and an entry that vanished after
-    // the second would look like the feature going away.
-    menu_.Disable(kMenuHammer);
-  }
   // Where an item is worn decides whether it can be cubed, and the slots that
   // refuse cubes (medal, badge, pocket) always refuse them.
   if (!equip.CanCube()) {
@@ -324,9 +310,6 @@ void InventoryPanel::HighlightUnusedUpgrades() {
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kMenuScroll);
   }
-  if (LeadToAction(Feature::kHammer, character_, account_)) {
-    menu_.Highlight(kMenuHammer);
-  }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
   }
@@ -350,7 +333,6 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Disable(kMenuAction);
     menu_.Hide(kMenuCombine);
     menu_.Hide(kMenuScroll);
-    menu_.Hide(kMenuHammer);
     menu_.Hide(kMenuStarForce);
     menu_.Hide(kMenuCube);
     menu_.Hide(kMenuFlame);
@@ -465,10 +447,6 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
             character_.inventory()[selected_].prototype())) {
       return kScrollSelect;
     }
-  }
-  if (menu_.selected() == kMenuHammer) {
-    FollowedToAction(Feature::kHammer, account_);
-    return kHammer;
   }
   if (menu_.selected() == kMenuStarForce) {
     FollowedToAction(Feature::kStarForce, account_);

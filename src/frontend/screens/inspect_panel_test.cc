@@ -318,9 +318,9 @@ TEST_F(InspectPanelTest, ShowsScrollInfo) {
   EquipInstance item(sword_, state);
   InspectPanel panel;
   panel.SetItem(&item);
-  // 7 slots, 4 left, 0 successes, so 3 were restored.
+  // 9 slots with the built-in two, 4 left, 0 successes, so 5 were restored.
   EXPECT_NE(Render(panel).find("0 Successful Scrolls"), std::string::npos);
-  EXPECT_NE(Render(panel).find("4 Left, 3 Restores"), std::string::npos);
+  EXPECT_NE(Render(panel).find("4 Left, 5 Restores"), std::string::npos);
 }
 
 // A Legendary potential on a weapon whose middle line rolled one rank lower,

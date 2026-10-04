@@ -29,6 +29,9 @@ import "src/protos/keybinds.proto";
 //      they are balances on `Character.currencies`. A version 2 save is read by
 //      folding those stacks in, which needs the item catalog to say which of
 //      them were currencies.
+//   4  Golden Hammers left the game, and every item that takes scrolls has
+//      their two slots built in. A version 3 save is read by opening the slots
+//      each item wasn't hammered for, which needs the equipment catalog.
 message SaveGame {
   // Bumped when a change to the fields below can't be read by an older build,
   // so that build refuses a newer save instead of misreading it. Every message

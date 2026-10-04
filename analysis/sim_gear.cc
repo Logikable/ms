@@ -371,27 +371,14 @@ std::vector<const Scroll*> ScrollsFor(const GameState& state,
   return taken;
 }
 
-// Golden hammers a character at `level` could have used. None below the unlock
-// level, since a ceiling is what the player could reach, not what the item
-// could hold.
-int HammersAt(int level) {
-  return level >= UnlockLevel(Feature::kHammer) ? kMaxHammers : 0;
-}
-
-// `proto` as a dedicated player would leave it: `hammers` applied, every slot
-// filled with `scroll`, and stars up to `star_cap`. A null scroll leaves the
-// slots unused, as for an item that takes none.
-Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
-                int hammers) {
+// `proto` as a dedicated player would leave it: every slot filled with
+// `scroll`, and stars up to `star_cap`. A null scroll leaves the slots unused,
+// as for an item that takes none.
+Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll,
+                int star_cap) {
   Equip state = FreshEquip(proto);
-  if (TakesUpgradeSlots(proto)) {
-    state.set_hammers(hammers);
-  }
-  int slots = TotalUpgradeSlots(proto, state);
-  if (scroll == nullptr) {
-    state.set_remaining_upgrade_slots(state.remaining_upgrade_slots() +
-                                      state.hammers());
-  } else {
+  int slots = TotalUpgradeSlots(proto);
+  if (scroll != nullptr) {
     state.set_remaining_upgrade_slots(0);
     state.set_scroll_successes(slots);
     EquipStats gained;
@@ -456,8 +443,7 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
   double best_rate = -1.0;
   for (const Scroll* candidate : candidates) {
     if (!WearMade(state.character, slot, proto,
-                  AtCeiling(proto, candidate, kMaxStarForce,
-                            HammersAt(state.character.proto().level())))) {
+                  AtCeiling(proto, candidate, kMaxStarForce))) {
       continue;
     }
     double rate = MeasureRate(state);
@@ -548,14 +534,13 @@ void FullyUpgrade(GameState& state, int star_cap) {
   // The character as they arrived, into which the maxed items are written,
   // since every try-on leaves the previous item in the bag.
   Character before = state.character.ToProto();
-  int hammers = HammersAt(state.character.proto().level());
   for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
     const Scroll* scroll =
         BestScrollForSlot(state, entry.first, /*success_rate=*/0);
     (*before.mutable_equip_presets()
           ->mutable_presets(IndexOf(StatPreset::kFirst))
           ->mutable_equipped())[entry.first] =
-        AtCeiling(entry.second, scroll, star_cap, hammers);
+        AtCeiling(entry.second, scroll, star_cap);
   }
   state.character.RestoreFrom(before, state.equips, state.items);
   CloseTryout(state, farming);

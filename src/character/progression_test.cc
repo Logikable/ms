@@ -78,9 +78,9 @@ TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
 // moving a gate doesn't require changing this test.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   const Feature kLevelGated[] = {
-      Feature::kEquipped, Feature::kBag,         Feature::kUnequip,
-      Feature::kShop,     Feature::kScrolling,   Feature::kStarForce,
-      Feature::kHammer,   Feature::kConsumables, Feature::kPotential,
+      Feature::kEquipped,  Feature::kBag,         Feature::kUnequip,
+      Feature::kShop,      Feature::kScrolling,   Feature::kStarForce,
+      Feature::kPotential, Feature::kConsumables,
   };
   for (Feature feature : kLevelGated) {
     int level = UnlockLevel(feature);
@@ -101,7 +101,7 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
 // other upgrade.
 TEST_F(ProgressionTest, PotentialOpensAboveEveryOtherUpgrade) {
   EXPECT_EQ(UnlockLevel(Feature::kPotential), kPotentialUnlockLevel);
-  EXPECT_GT(UnlockLevel(Feature::kPotential), UnlockLevel(Feature::kHammer));
+  EXPECT_GT(UnlockLevel(Feature::kPotential), UnlockLevel(Feature::kStarForce));
 }
 
 // An upgrade unlocked above the cap could only be used from the workbench, so
@@ -109,7 +109,6 @@ TEST_F(ProgressionTest, PotentialOpensAboveEveryOtherUpgrade) {
 TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
   EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
-  EXPECT_LE(UnlockLevel(Feature::kHammer), kTrialLevelCap);
 }
 
 // --- what the account opens ---
@@ -130,8 +129,8 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
     SCOPED_TRACE(FeatureName(feature));
     EXPECT_TRUE(Unlocked(feature, fresh, account_));
   }
-  EXPECT_FALSE(Unlocked(Feature::kHammer, fresh, account_))
-      << "an account that stopped at 140 never reached the hammer";
+  EXPECT_FALSE(Unlocked(Feature::kPotential, fresh, account_))
+      << "an account that stopped at 140 never reached cubing";
 }
 
 // The three features not tied to this character's level. The lobby unlocks with
@@ -258,8 +257,8 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      8u)
-      << "star force, the hammer, cubing, all three cubes after Red, souls "
+      7u)
+      << "star force, cubing, all three cubes after Red, souls "
          "and flames are ahead of an account that stopped at 50";
 }
 
@@ -271,21 +270,18 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      9u)
-      << "scrolling, star force, the hammer, cubing, all three cubes after "
+      8u)
+      << "scrolling, star force, cubing, all three cubes after "
          "Red, souls and flames, in the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
-      Feature::kEquipped,       Feature::kBag,
-      Feature::kUnequip,        Feature::kScrolling,
-      Feature::kStarForce,      Feature::kHammer,
-      Feature::kPotential,      Feature::kSkills,
-      Feature::kShop,           Feature::kLinkSkills,
-      Feature::kBonusPotential, Feature::kBlackCube,
-      Feature::kWhiteCube,      Feature::kFlame,
-      Feature::kSoul,           Feature::kGuildSkills,
+      Feature::kEquipped,       Feature::kBag,       Feature::kUnequip,
+      Feature::kScrolling,      Feature::kStarForce, Feature::kPotential,
+      Feature::kSkills,         Feature::kShop,      Feature::kLinkSkills,
+      Feature::kBonusPotential, Feature::kBlackCube, Feature::kWhiteCube,
+      Feature::kFlame,          Feature::kSoul,      Feature::kGuildSkills,
       Feature::kNoblesse,
   };
   for (Feature feature : kAll) {
@@ -415,19 +411,6 @@ TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
   EXPECT_FALSE(LeadToWeapon(c, account_));
   EXPECT_TRUE(LeadToAction(Feature::kStarForce, c, account_))
       << "opening the menu is not pressing the entry";
-}
-
-// The third item menu upgrade, after star force. It only highlights its entry,
-// for the same reason star force does.
-TEST_F(ProgressionTest, TheHammerIsTheThirdUpgradeAndLightsItsEntry) {
-  EXPECT_GT(UnlockLevel(Feature::kHammer), UnlockLevel(Feature::kStarForce));
-
-  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kHammer));
-  FollowedToWeapon(c, account_);
-  EXPECT_TRUE(LeadToAction(Feature::kHammer, c, account_));
-  EXPECT_FALSE(LeadToWeapon(c, account_)) << "the hammer lit the weapon";
-  FollowedToAction(Feature::kHammer, account_);
-  EXPECT_FALSE(LeadToAction(Feature::kHammer, c, account_));
 }
 
 // Only upgrades have trails. A tab that highlights itself when it unlocks isn't

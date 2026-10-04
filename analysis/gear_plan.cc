@@ -234,12 +234,11 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   return chosen_[name];
 }
 
-// The upgrade slot `slot`'s item could fill next, or the hammer that opens one
-// if none is left, priced together with the scroll that fills it.
+// The upgrade slot `slot`'s item could fill next.
 std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     GameState& state, const Basis& basis, EquipSlot slot, int level,
-    int open_slots, bool can_hammer) {
-  if (basis.trace == nullptr || (open_slots <= 0 && !can_hammer)) {
+    int open_slots) {
+  if (basis.trace == nullptr || open_slots <= 0) {
     return std::nullopt;
   }
   const Scroll* scroll = ScrollFor(state, slot);
@@ -258,10 +257,6 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
                           Plus(basis.worn, scroll->stats())) -
                 basis.power) *
                basis.scale * plan_.scroll_rate / 100.0;
-  if (open_slots <= 0) {
-    offer.hammer = true;
-    offer.cost += kGoldenHammerCost;
-  }
   return offer;
 }
 
@@ -376,8 +371,7 @@ GearShopper::Basis GearShopper::FarmBasis(GameState& state, const Basis& boss,
 }
 
 void GearShopper::PieceOffers(GameState& state, const Basis& basis,
-                              EquipSlot slot, bool hammers_open,
-                              std::vector<Candidate>& offers) {
+                              EquipSlot slot, std::vector<Candidate>& offers) {
   const EquipInstance* item = state.character.WornAt(basis.gear, slot);
   if (item == nullptr) {
     return;
@@ -388,9 +382,8 @@ void GearShopper::PieceOffers(GameState& state, const Basis& basis,
   int stars = item->stars();
   int open_slots = item->equip_state().remaining_upgrade_slots();
   bool can_star = item->CanStarForce();
-  bool can_hammer = item->CanHammer() && hammers_open;
   std::optional<Candidate> scroll =
-      ScrollOffer(state, basis, slot, level, open_slots, can_hammer);
+      ScrollOffer(state, basis, slot, level, open_slots);
   if (scroll.has_value()) {
     offers.push_back(*scroll);
   }
@@ -409,10 +402,6 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   basis.worn = WornAndGranted(state, basis.derived);
   basis.yard = yard_.For(state);
   basis.power = PowerWith(state, basis.yard, basis.derived, basis.worn);
-  // The hammer's unlock level. The shopper only buys what a player at this
-  // level could.
-  bool hammers_open =
-      state.character.proto().level() >= UnlockLevel(Feature::kHammer);
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped(kBossGear)) {
@@ -425,7 +414,7 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       offers.push_back(*symbol);
       continue;  // a symbol takes neither scrolls nor stars
     }
-    PieceOffers(state, basis, slot, hammers_open, offers);
+    PieceOffers(state, basis, slot, offers);
   }
   // Farm, split and cube offers come after the rest, which set what a meso is
   // worth. They pay in income, and only that rate lets it rank against damage.
@@ -445,7 +434,7 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       }
     }
     for (EquipSlot slot : farm_only) {
-      PieceOffers(state, farm, slot, hammers_open, offers);
+      PieceOffers(state, farm, slot, offers);
     }
     if (!splits_.has_value()) {
       splits_ = SplitOffers(state, farm);
@@ -723,16 +712,6 @@ bool GearShopper::BuyFlame(GameState& state, EquipSlot slot, FlameType flame,
   return bought;
 }
 
-bool GearShopper::BuyHammer(GameState& state, EquipSlot slot, StatPreset gear,
-                            GearSpend& spend) {
-  if (!state.character.HammerEquipped(slot, gear)) {
-    return false;  // refused for meso or by the item
-  }
-  spend.hammers += kGoldenHammerCost;
-  ++spend.hammers_driven;
-  return true;
-}
-
 bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
                             GearSpend& spend) {
   const ItemPrototype* trace = TraceItem(state);
@@ -843,9 +822,6 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (candidate.flame) {
     return BuyFlame(state, candidate.slot, candidate.flame_type,
                     candidate.flame_program, spend);
-  }
-  if (candidate.hammer) {
-    return BuyHammer(state, candidate.slot, candidate.gear, spend);
   }
   if (candidate.symbol) {
     return BuySymbol(state, candidate.slot, spend);

@@ -1,6 +1,6 @@
 /* ItemRef says where an item the player picked is: worn in an equip slot, or at
  * an index in the bag. Every modal opened on an item (inspect, scroll, star
- * force, hammer) opens on one of these.
+ * force, cube) opens on one of these.
  *
  * It means "is this item worn or in the bag?" is answered once, when the player
  * picks the item, instead of at every place that needs the item later.
@@ -68,10 +68,6 @@ ScrollOutcome ScrollItem(CharacterInstance& character, ItemRef ref,
 // Star forces the item `ref` names. Same split as ScrollItem: a destroyed worn
 // item moves to the bag as a trace, and a bag item is replaced in place.
 StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref);
-
-// Uses a golden hammer on the item `ref` names and returns whether it worked.
-// Same split again, because a worn item's totals are rebuilt.
-bool HammerItem(CharacterInstance& character, ItemRef ref);
 
 // Charges for one `cube` and applies its roll to the item `ref` names. Returns
 // false, spending nothing, if the item can't have potential or the character

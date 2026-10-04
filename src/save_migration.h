@@ -13,6 +13,7 @@
 #include <map>
 #include <string>
 
+#include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/save.pb.h"
 
@@ -22,9 +23,11 @@ namespace ms {
 // this build writes. Takes the bytes instead of a parsed SaveGame, because an
 // old layout must be read through the message it was written with, whose fields
 // no longer match SaveGame's. `items` is the item catalog, which version 2
-// needs to tell currencies from ordinary drops.
+// needs to tell currencies from ordinary drops, and `equips` the equipment
+// catalog, which version 3 needs to tell which items take scrolls.
 bool UpgradeSave(int version, const std::string& bytes,
                  const std::map<std::string, ItemPrototype>& items,
+                 const std::map<std::string, EquipPrototype>& equips,
                  SaveGame& save);
 
 }  // namespace ms

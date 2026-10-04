@@ -38,27 +38,17 @@ int LinesOf(const Potential& potential, PotentialLineType type) {
   return found;
 }
 
-bool Hammered(const MaxGear& gear, EquipSlot slot) {
-  return std::find(std::begin(gear.hammered), std::end(gear.hammered), slot) !=
-         std::end(gear.hammered);
-}
-
 // Stars and cubes only improve as the level rises. The weapon's stars may
-// drop, since a new weapon tier arrives with fewer, and a hammer goes with the
-// piece it was used on; the weapon, once hammered, always is.
+// drop, since a new weapon tier arrives with fewer.
 TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
-  EXPECT_FALSE(Hammered(MaxGearForLevel(140), EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(MaxGearForLevel(140).stars, 8);
   EXPECT_EQ(MaxGearForLevel(140).weapon_stars, 14);
   EXPECT_EQ(MaxGearForLevel(140).potential_level, 0);
 
   const MaxGear at200 = MaxGearForLevel(200);
-  EXPECT_TRUE(Hammered(at200, EQUIP_SLOT_SHOULDER));
-  EXPECT_FALSE(Hammered(at200, EQUIP_SLOT_HAT));
   EXPECT_EQ(at200.stars, 10);
   EXPECT_EQ(at200.potential_level, 0);
   EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
-  EXPECT_FALSE(Hammered(MaxGearForLevel(260), EQUIP_SLOT_SHOES));
   EXPECT_EQ(MaxGearForLevel(260).stars, 11);
   EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 14);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
@@ -66,16 +56,12 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
 
   int last_stars = 0;
   int last_potentials = 0;
-  bool weapon_hammered = false;
   for (int level = 1; level <= 260; ++level) {
     const MaxGear gear = MaxGearForLevel(level);
     EXPECT_GE(gear.stars, last_stars) << "at level " << level;
     EXPECT_GE(gear.potential_level, last_potentials) << "at level " << level;
-    EXPECT_TRUE(Hammered(gear, EQUIP_SLOT_PRIMARY_WEAPON) || !weapon_hammered)
-        << "at level " << level;
     last_stars = gear.stars;
     last_potentials = gear.potential_level;
-    weapon_hammered = Hammered(gear, EQUIP_SLOT_PRIMARY_WEAPON);
   }
 }
 
