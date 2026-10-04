@@ -11,5 +11,5 @@ equip_slot: EQUIP_SLOT_BOTTOM
 upgrade_slots: 7
 token_prices {
   token_item: "arachno_coin"
-  count: 12
+  count: 1
 }

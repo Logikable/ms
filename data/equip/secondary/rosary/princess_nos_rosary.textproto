@@ -12,6 +12,6 @@ unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 token_prices {
   token_item: "captivating_fragment"
-  count: 15
+  count: 5
 }
 sell_price: 0

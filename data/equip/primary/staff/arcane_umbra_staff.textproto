@@ -16,10 +16,10 @@ equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
 # Either coin buys it.
 token_prices {
   token_item: "phantasma_coin"
-  count: 24
+  count: 3
 }
 token_prices {
   token_item: "arachno_coin"
-  count: 24
+  count: 3
 }
 set_family: "Arcane Umbra Magician Weapon"

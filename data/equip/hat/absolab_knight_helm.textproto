@@ -12,5 +12,5 @@ equip_slot: EQUIP_SLOT_HAT
 upgrade_slots: 11
 token_prices {
   token_item: "absolab_coin"
-  count: 2
+  count: 1
 }
