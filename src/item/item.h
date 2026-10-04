@@ -72,6 +72,9 @@ std::vector<EquipSlot> SlotFamily(EquipSlot slot);
 EquipSlot BaseSlot(EquipSlot slot);
 // The position of `slot` within its family, counting from zero.
 int SlotIndex(EquipSlot slot);
+// Whether `slot`'s family may hold several copies of one item. Only pets: a
+// second ring replaces the first, but a second pet joins it.
+bool FamilyTakesCopies(EquipSlot slot);
 
 // Catalogs are keyed by data file stem ("sword"), while a saved item uses its
 // display name ("Sword"). This index maps between the two, which is why a save

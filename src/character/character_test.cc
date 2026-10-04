@@ -2829,6 +2829,31 @@ TEST_F(EquipTest, NoPresetShowsOneRingTwice) {
   EXPECT_EQ(boss.size(), 2);
 }
 
+// Pets are the one family that takes copies: three of one pet fill all three
+// slots, and a fourth displaces the first. A preset that owns a copy still
+// shows the copy it inherits.
+TEST_F(EquipTest, ThreeOfOnePetWearAtOnce) {
+  EquipPrototype pet;
+  pet.set_name("Lil Nezuko");
+  pet.set_equip_slot(EQUIP_SLOT_PET);
+  pet.mutable_base_stats()->set_attack(5);
+  for (int i = 0; i < 5; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(pet));
+  }
+  for (int i = 0; i < 3; ++i) {
+    ASSERT_TRUE(c_.Equip(0)) << "copy " << i;
+  }
+  EXPECT_EQ(c_.equipped().size(), 3);
+  EXPECT_EQ(c_.equip_stats().attack(), 15) << "every copy counts";
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
+  const WornGear& boss = c_.equipped(StatPreset::kSecond);
+  EXPECT_EQ(boss.size(), 3) << "its own copy beside the two it inherits";
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equipped().size(), 3);
+  EXPECT_EQ(c_.inventory().size(), 1) << "the first copy went back";
+  EXPECT_EQ(c_.equip_stats().attack(), 15);
+}
+
 // A one-slot family is exempt: putting on a second hat is the normal swap, and
 // the first goes to the bag position the second left.
 TEST_F(EquipTest, TheSameHatStillSwaps) {

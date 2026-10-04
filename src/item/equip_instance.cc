@@ -137,6 +137,10 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_TOTEM_2:
     case EQUIP_SLOT_TOTEM_3:
       return SCROLL_TARGET_UNSPECIFIED;
+    case EQUIP_SLOT_PET:
+    case EQUIP_SLOT_PET_2:
+    case EQUIP_SLOT_PET_3:
+      return SCROLL_TARGET_PET;
   }
   return SCROLL_TARGET_UNSPECIFIED;
 }

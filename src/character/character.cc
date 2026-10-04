@@ -2005,6 +2005,9 @@ namespace {
 // the same ring twice, and the preset keeps its own copy.
 bool OwnCopyElsewhere(const std::map<EquipSlot, EquipInstance>& own,
                       EquipSlot slot, const EquipInstance& inherited) {
+  if (FamilyTakesCopies(slot)) {
+    return false;
+  }
   for (EquipSlot other : SlotFamily(slot)) {
     if (other == slot) {
       continue;
@@ -2717,10 +2720,11 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
   // No two of the four rings may be the same ring, so the second copy replaces
   // the first instead of becoming a fifth ring. This checks what the preset
   // shows, not what it owns, since an inherited ring is worn just as much as
-  // its own.
+  // its own. Pets are the exception: a second copy joins the first.
   for (EquipSlot slot : family) {
     const EquipInstance* worn = WornAt(preset, slot);
-    if (worn != nullptr && worn->prototype().name() == proto.name()) {
+    if (!FamilyTakesCopies(slot) && worn != nullptr &&
+        worn->prototype().name() == proto.name()) {
       return slot;
     }
   }

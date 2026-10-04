@@ -55,6 +55,9 @@ enum ScrollTarget {
   // Hearts. Their scrolls add only the attack type the wearer's job uses.
   // Priced as accessories, which is how GMS prices them.
   SCROLL_TARGET_HEART = 5;
+  // Pets, which take only the Premium Scroll for Pet: a dropped item, not a
+  // spell-trace scroll.
+  SCROLL_TARGET_PET = 6;
 }
 
 // One fully specified scroll, e.g. "Spell Trace 100% STR, Warrior, Tier 1".

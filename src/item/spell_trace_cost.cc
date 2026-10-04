@@ -95,6 +95,8 @@ TraceCategory CategoryFor(ScrollTarget target) {
       return TraceCategory::kAccessory;
     case SCROLL_TARGET_GLOVES:
       return TraceCategory::kGloves;
+    // A pet's only scroll is a dropped item, which costs no traces.
+    case SCROLL_TARGET_PET:
     case SCROLL_TARGET_UNSPECIFIED:
       break;
   }

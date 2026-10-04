@@ -184,6 +184,14 @@ void ShopPanel::Restock() {
     }
     return;
   }
+  if (pay_ == kShopPetsTab) {
+    for (const std::string& key : ShopPetStock(equips_)) {
+      if (show_all_ || ForThisJob(equips_.at(key))) {
+        stock_.push_back({key});
+      }
+    }
+    return;
+  }
   Payment payment = pay_ == kShopTokenTab ? kPaidInTokens : kPaidInMeso;
   std::vector<std::string> shelf = tab_ == kShopEquipsTab
                                        ? ShopEquipStock(equips_, payment)
@@ -230,6 +238,10 @@ void ShopPanel::StepTab(int direction) {
     return;  // the ends of the bar stop instead of wrapping
   }
   tab_ = next;
+  // Pets is on Equips' row alone, so leaving Equips from it goes back to Meso.
+  if (pay_ >= PayTabCount()) {
+    pay_ = kShopMesoTab;
+  }
   Restock();
   selected_ = 0;
   first_visible_ = 0;
@@ -237,7 +249,7 @@ void ShopPanel::StepTab(int direction) {
 
 void ShopPanel::StepPayTab(int direction) {
   int next = pay_ + direction;
-  if (next < 0 || next >= kNumShopPayTabs) {
+  if (next < 0 || next >= PayTabCount()) {
     return;
   }
   pay_ = next;
@@ -248,6 +260,10 @@ void ShopPanel::StepPayTab(int direction) {
 
 bool ShopPanel::HasPayRow() const {
   return tab_ == kShopWeaponTab || tab_ == kShopEquipsTab;
+}
+
+int ShopPanel::PayTabCount() const {
+  return tab_ == kShopEquipsTab ? kNumShopPayTabs : kShopPetsTab;
 }
 
 void ShopPanel::MoveCursor(int delta) {
@@ -503,8 +519,9 @@ ftxui::Element ShopPanel::RenderPayBar() const {
   if (!HasPayRow()) {
     return ftxui::text("");
   }
-  const std::vector<TabSpec> kTabs = {{"Meso"}, {"Token"}};
-  return TabBar(kTabs, pay_, !on_options_ && zone_ == kZonePay, /*width=*/0);
+  std::vector<TabSpec> tabs = {{"Meso"}, {"Token"}, {"Pets"}};
+  tabs.resize(PayTabCount());
+  return TabBar(tabs, pay_, !on_options_ && zone_ == kZonePay, /*width=*/0);
 }
 
 // The price is red when the player can't pay it, so the list shows what they

@@ -16,8 +16,8 @@
  *
  * Under the first two tabs is a second row, Meso and Token, because the same
  * shelf is stocked twice: what meso buys, and what tokens dropped by mobs buy.
- * The row is drawn under every tab, blank where there is nothing to choose, so
- * the window keeps one height.
+ * Equips adds a third, Pets, for the free pets. The row is drawn under every
+ * tab, blank where there is nothing to choose, so the window keeps one height.
  *
  * A narrow panel on the right shows the balances for a token shelf, one
  * currency per row. They don't go in the tab bar: the equipment shelf uses
@@ -64,11 +64,13 @@ enum ShopTab : int {
 
 // The second row of tabs, which says what currency the shelf above uses. Only
 // the Weapon and Equips tabs have one; the Etc shelf and the buyback shelf use
-// only meso.
+// only meso. Pets is not a currency but a shelf of its own, and only Equips has
+// it.
 enum ShopPayTab : int {
   kShopMesoTab = 0,
   kShopTokenTab = 1,
-  kNumShopPayTabs = 2,
+  kShopPetsTab = 2,
+  kNumShopPayTabs = 3,
 };
 
 // The entries of an item's context menu, in display order.
@@ -145,6 +147,8 @@ class ShopPanel {
   // drawn either way so the window keeps one height, but an empty one isn't a
   // stop.
   bool HasPayRow() const;
+  // The tabs on that row: Meso and Token, and Pets under Equips.
+  int PayTabCount() const;
   // The cursor's position in that ring: the tab bar is stop 0, the pay bar stop
   // 1 where there is one, and the stock rows are the stops after that.
   int CursorStop() const;

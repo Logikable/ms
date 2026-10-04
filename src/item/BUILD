@@ -305,6 +305,7 @@ cc_library(
     hdrs = ["shop.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":item",
         ":projectile",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

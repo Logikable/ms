@@ -352,6 +352,10 @@ std::string FormatSlot(EquipSlot slot) {
     case EQUIP_SLOT_TOTEM_2:
     case EQUIP_SLOT_TOTEM_3:
       return "Totem";
+    case EQUIP_SLOT_PET:
+    case EQUIP_SLOT_PET_2:
+    case EQUIP_SLOT_PET_3:
+      return "Pet";
     default:
       return "";
   }

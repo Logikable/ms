@@ -202,6 +202,9 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_TOTEM:
     case EQUIP_SLOT_TOTEM_2:
     case EQUIP_SLOT_TOTEM_3:
+    case EQUIP_SLOT_PET:
+    case EQUIP_SLOT_PET_2:
+    case EQUIP_SLOT_PET_3:
       return false;
   }
   return false;
@@ -332,7 +335,10 @@ std::vector<EquipSlot> SlotFamily(EquipSlot slot) {
                                                    EQUIP_SLOT_PENDANT_2};
   static const std::vector<EquipSlot> kTotems = {
       EQUIP_SLOT_TOTEM, EQUIP_SLOT_TOTEM_2, EQUIP_SLOT_TOTEM_3};
-  for (const std::vector<EquipSlot>* family : {&kRings, &kPendants, &kTotems}) {
+  static const std::vector<EquipSlot> kPets = {EQUIP_SLOT_PET, EQUIP_SLOT_PET_2,
+                                               EQUIP_SLOT_PET_3};
+  for (const std::vector<EquipSlot>* family :
+       {&kRings, &kPendants, &kTotems, &kPets}) {
     if (std::find(family->begin(), family->end(), slot) != family->end()) {
       return *family;
     }
@@ -348,6 +354,10 @@ int SlotIndex(EquipSlot slot) {
   std::vector<EquipSlot> family = SlotFamily(slot);
   return static_cast<int>(std::find(family.begin(), family.end(), slot) -
                           family.begin());
+}
+
+bool FamilyTakesCopies(EquipSlot slot) {
+  return BaseSlot(slot) == EQUIP_SLOT_PET;
 }
 
 void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,

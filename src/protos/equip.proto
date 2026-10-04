@@ -162,6 +162,14 @@ enum EquipSlot {
   EQUIP_SLOT_TOTEM = 38;
   EQUIP_SLOT_TOTEM_2 = 39;
   EQUIP_SLOT_TOTEM_3 = 40;
+
+  // A character keeps three pets, a family like the totems but the only one
+  // that takes copies: three of the same pet fill all three slots. A pet is
+  // the item itself, scrolled with its own scroll; there is no separate pet
+  // equipment.
+  EQUIP_SLOT_PET = 41;
+  EQUIP_SLOT_PET_2 = 42;
+  EQUIP_SLOT_PET_3 = 43;
 }
 
 // The rank of a potential and of each of its lines. It has the same four ranks
@@ -467,6 +475,9 @@ message EquipPrototype {
   // scrolled or with a potential. Set only what differs from a plain drop;
   // FreshEquip fills in the name and the open slots.
   optional Equip dropped_as = 17;
+  // The pets' place on their shelf, lowest first, since they share a level,
+  // price and type and would otherwise list by name. The order is the user's.
+  int32 shelf_order = 18;
 }
 
 // The per-copy state of one dropped item, saved to disk. It refers to its

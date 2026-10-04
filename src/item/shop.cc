@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -83,7 +84,32 @@ std::vector<std::string> ShopWeaponStock(
 std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment) {
   return StockForShelf(
-      equips, [](EquipSlot slot) { return !IsWeaponSlot(slot); }, payment);
+      equips,
+      [](EquipSlot slot) {
+        return !IsWeaponSlot(slot) && BaseSlot(slot) != EQUIP_SLOT_PET;
+      },
+      payment);
+}
+
+std::vector<std::string> ShopPetStock(
+    const std::map<std::string, EquipPrototype>& equips) {
+  std::vector<std::string> keys;
+  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+    if (entry.second.has_shop_price() &&
+        BaseSlot(entry.second.equip_slot()) == EQUIP_SLOT_PET) {
+      keys.push_back(entry.first);
+    }
+  }
+  std::sort(keys.begin(), keys.end(),
+            [&equips](const std::string& a, const std::string& b) {
+              const EquipPrototype& pa = equips.at(a);
+              const EquipPrototype& pb = equips.at(b);
+              if (pa.shelf_order() != pb.shelf_order()) {
+                return pa.shelf_order() < pb.shelf_order();
+              }
+              return pa.name() < pb.name();
+            });
+  return keys;
 }
 
 bool FitsWeapons(const EquipPrototype& proto,

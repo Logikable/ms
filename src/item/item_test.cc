@@ -141,8 +141,13 @@ TEST(SlotFamilyTest, EachFamilyAnswersWithItsWholeFamily) {
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_TOTEM_2),
             (std::vector<EquipSlot>{EQUIP_SLOT_TOTEM, EQUIP_SLOT_TOTEM_2,
                                     EQUIP_SLOT_TOTEM_3}));
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_PET_3),
+            (std::vector<EquipSlot>{EQUIP_SLOT_PET, EQUIP_SLOT_PET_2,
+                                    EQUIP_SLOT_PET_3}));
   EXPECT_EQ(SlotFamily(EQUIP_SLOT_HAT),
             (std::vector<EquipSlot>{EQUIP_SLOT_HAT}));
+  EXPECT_TRUE(FamilyTakesCopies(EQUIP_SLOT_PET_2));
+  EXPECT_FALSE(FamilyTakesCopies(EQUIP_SLOT_RING));
 }
 
 // The base is what a prototype names, and the index is a worn slot's position

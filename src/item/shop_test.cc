@@ -137,12 +137,15 @@ TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNothingWorn) {
   EXPECT_GT(stars, 0) << "the stars have fallen off the weapon shelf";
 }
 
-// The two shelves split everything the shop stocks: every worn item that isn't
-// a weapon or thrown is on the other shelf, so nothing falls between them or
-// appears on both.
-TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
+// The shelves split everything the shop stocks: every worn item that isn't a
+// weapon, thrown or a pet is on the Equips shelf, so nothing falls between them
+// or appears on two.
+TEST(ShopTest, TheShelvesSplitEverythingTheShopStocks) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::set<std::string> shelved;
+  for (const std::string& key : ShopPetStock(equips)) {
+    EXPECT_TRUE(shelved.insert(key).second) << key << " is shelved twice";
+  }
   for (Payment payment : {kPaidInMeso, kPaidInTokens}) {
     for (const std::string& key : ShopWeaponStock(equips, payment)) {
       EXPECT_TRUE(shelved.insert(key).second) << key << " is shelved twice";
@@ -163,6 +166,28 @@ TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
     }
   }
   EXPECT_EQ(static_cast<int>(shelved.size()), stocked);
+}
+
+// The pets list in the order the user gave, all free, all sold for meso.
+TEST(ShopTest, ThePetShelfIsTheGivenOrderAndFree) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  const std::vector<std::string> kOrder = {
+      "brown_kitty",        "black_kitty",
+      "brown_puppy",        "husky",
+      "pink_bunny",         "white_bunny",
+      "white_tiger",        "lil_orange_mushroom",
+      "lil_green_mushroom", "lil_blue_mushroom",
+      "lil_tanjiro",        "lil_nezuko",
+      "lil_zenitsu",        "lil_frieren",
+      "lil_fern",           "lil_stark",
+      "lil_saitama",        "lil_genos",
+      "lil_tatsumaki",
+  };
+  EXPECT_EQ(ShopPetStock(equips), kOrder);
+  for (const std::string& key : kOrder) {
+    EXPECT_EQ(equips.at(key).shop_price(), 0) << key;
+    EXPECT_TRUE(equips.at(key).token_prices().empty()) << key;
+  }
 }
 
 // Nothing for sale is above the cap: the player could never use it, and an

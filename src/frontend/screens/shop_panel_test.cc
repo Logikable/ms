@@ -1116,6 +1116,40 @@ TEST_F(ShopPanelTest, EachTokenTabAsksInItsOwnToken) {
   EXPECT_EQ(other.selected_token()->name(), "Secondary Token");
 }
 
+// Equips alone has a third shelf, Pets, holding the pets and nothing else.
+// Leaving Equips from it lands on Meso, since Weapon's row has no Pets.
+TEST_F(ShopPanelTest, PetsAreAShelfOfTheirOwnUnderEquips) {
+  std::map<std::string, EquipPrototype> equips = {
+      {"ring", MakeItem("Gold Ring", 10, 100, EQUIP_JOB_CATEGORY_UNIVERSAL,
+                        EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_RING)},
+      {"pet", MakeItem("Lil Nezuko", 0, 0, EQUIP_JOB_CATEGORY_UNIVERSAL,
+                       EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_PET)},
+      {"sword", MakeItem("Long Sword", 10, 100)}};
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips, items_);
+  EXPECT_EQ(Render(panel).find("Pets"), std::string::npos) << "on Weapon";
+
+  OpenShelf(panel, kShopEquipsTab);
+  ASSERT_EQ(Render(panel).find("Lil Nezuko"), std::string::npos)
+      << "not on the Meso shelf";
+  panel.OnEvent(ftxui::Event::ArrowDown);  // tab bar to pay bar
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  panel.OnEvent(ftxui::Event::ArrowRight);  // the end of the row stops
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Lil Nezuko"), std::string::npos);
+  EXPECT_EQ(rendered.find("Gold Ring"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_item()->name(), "Lil Nezuko");
+  EXPECT_EQ(panel.selected_token(), nullptr) << "paid in meso";
+
+  panel.OnEvent(ftxui::Event::ArrowUp);  // the pet to the pay bar
+  panel.OnEvent(ftxui::Event::ArrowUp);  // to the tab bar
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_NE(Render(panel).find("Long Sword"), std::string::npos);
+}
+
 // An item either of two tokens buys has a row for each, priced in that token,
 // and the selection says which one the player is on.
 TEST_F(ShopPanelTest, AnItemTwoTokensBuyHasARowForEach) {

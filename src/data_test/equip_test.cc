@@ -684,6 +684,32 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   }
 }
 
+// Every pet is the same item under another name: free, worn by anyone, 8
+// slots that take hammers, and nothing else, so its stats come only from the
+// Premium Scroll for Pet.
+TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {
+  int pets = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& pet = entry.second;
+    if (BaseSlot(pet.equip_slot()) != EQUIP_SLOT_PET) {
+      continue;
+    }
+    ++pets;
+    EXPECT_EQ(pet.equip_slot(), EQUIP_SLOT_PET) << entry.first;
+    EXPECT_TRUE(pet.has_shop_price() && pet.shop_price() == 0) << entry.first;
+    EXPECT_EQ(pet.required_level(), 0) << entry.first;
+    EXPECT_EQ(pet.upgrade_slots(), 8) << entry.first;
+    EXPECT_EQ(pet.base_stats().ByteSizeLong(), 0u) << entry.first;
+    EXPECT_TRUE(EquipInstance(pet).CanHammer()) << entry.first;
+    EXPECT_FALSE(Supports(pet, UPGRADE_STAR_FORCE)) << entry.first;
+    EXPECT_FALSE(Supports(pet, UPGRADE_CUBE)) << entry.first;
+    EXPECT_FALSE(EquipInstance(pet).CanFlame()) << entry.first;
+    EXPECT_GT(pet.shelf_order(), 0) << entry.first;
+  }
+  EXPECT_EQ(pets, 19);
+}
+
 // The three Antique Totems, worn together off the shelf: one to each totem
 // slot, the wiki's stats and the set's +15 on top. GMS lends them for 30 days;
 // here they are bought once, so they refuse every upgrade instead.

@@ -31,10 +31,17 @@ std::vector<std::string> ShopWeaponStock(
 
 // Catalog keys of everything else the shop sells: secondaries, and the rings,
 // emblems and medals next to them, meaning everything worn that isn't a weapon
-// or thrown, so the two shelves never overlap. Filtering by class is the
-// caller's job: this says what's on the shelf, not who can buy it.
+// or thrown, so the two shelves never overlap. Pets are on their own shelf.
+// Filtering by class is the caller's job: this says what's on the shelf, not
+// who can buy it.
 std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
+
+// Catalog keys of the pets, which have a shelf of their own and are on no
+// other. In shelf_order: every pet is level 0, free and fits anyone, so no
+// other key tells them apart. Paid in meso.
+std::vector<std::string> ShopPetStock(
+    const std::map<std::string, EquipPrototype>& equips);
 
 // Whether `proto` belongs on a shelf for a job that fights with `weapons`: a
 // weapon of one of those types, ammunition one of them draws, or anything that

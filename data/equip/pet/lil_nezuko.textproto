@@ -1,0 +1,9 @@
+name: "Lil Nezuko"
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_PET
+upgrade_slots: 8
+unsupported_upgrades: UPGRADE_STAR_FORCE
+unsupported_upgrades: UPGRADE_CUBE
+unsupported_upgrades: UPGRADE_FLAME
+shop_price: 0
+shelf_order: 12
