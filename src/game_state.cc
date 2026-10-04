@@ -956,6 +956,10 @@ constexpr int kTestSoulShards = 200;
 // to the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
+// Pet scrolls for every slot of three hammered pets, three times over. Nothing
+// drops them yet, so the workbench is the only way to try one.
+constexpr int kTestPetScrolls = 90;
+
 // Enough V Points to fill the whole matrix twice: the workbench is for looking
 // at nodes, not farming the sixty days one costs.
 constexpr int64_t kTestVPoints = 5000;
@@ -1080,6 +1084,11 @@ void SeedTest(GameState& state, const TestOptions& test) {
       state.items.find("spell_trace");
   if (trace != state.items.end()) {
     state.character.AddItem(trace->second, kTestSpellTraces);
+  }
+  std::map<std::string, ItemPrototype>::const_iterator pet_scroll =
+      state.items.find(kPetScroll);
+  if (pet_scroll != state.items.end()) {
+    state.character.AddItem(pet_scroll->second, kTestPetScrolls);
   }
   state.character.AddVPoints(kTestVPoints);
 

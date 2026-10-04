@@ -51,7 +51,8 @@ GameState MakeTestModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kTest);
 }
 
-// Test mode draws three pets off the shelf, any three, repeats allowed.
+// Test mode draws three pets off the shelf, any three, repeats allowed, and
+// carries their scrolls, which nothing drops yet.
 TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
   std::map<std::string, EquipPrototype> catalog = SwordCatalog();
   for (const char* key : {"husky", "pink_bunny"}) {
@@ -62,7 +63,11 @@ TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
     pet.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
     catalog[key] = pet;
   }
-  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  ItemPrototype scroll;
+  scroll.set_name("Premium Scroll for Pet");
+  GameState state(catalog, {}, {{"premium_scroll_for_pet", scroll}}, {}, {}, {},
+                  GameMode::kTest);
+  EXPECT_EQ(state.character.CountItem(scroll), 90) << "and scrolls for them";
   for (EquipSlot slot : SlotFamily(EQUIP_SLOT_PET)) {
     ASSERT_EQ(state.character.equipped().count(slot), 1u)
         << EquipSlot_Name(slot);
