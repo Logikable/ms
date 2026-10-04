@@ -170,6 +170,11 @@ enum EquipSlot {
   EQUIP_SLOT_PET = 41;
   EQUIP_SLOT_PET_2 = 42;
   EQUIP_SLOT_PET_3 = 43;
+
+  // The Passive Ring slot, below the four rings: GMS's extra Special Skill Ring
+  // slot, which only a passive ring (the Continuous Ring) fits. GMS opens it
+  // only while a Lv. 4+ special ring is worn; here it is always open.
+  EQUIP_SLOT_PASSIVE_RING = 44;
 }
 
 // The rank of a potential and of each of its lines. It has the same four ranks

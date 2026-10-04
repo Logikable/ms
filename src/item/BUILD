@@ -179,6 +179,7 @@ cc_test(
     deps = [
         ":equip_instance",
         ":inventory_sort",
+        ":slot_order",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "@googletest//:gtest_main",

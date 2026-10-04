@@ -8,6 +8,7 @@
 
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/slot_order.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -84,6 +85,12 @@ StackableItem Stack(const std::string& name, int count) {
 // The Etc tab holds only ordinary drops (currencies are in the purse; see
 // currency_test), so the biggest stack comes first and equal counts sort by
 // name, making a repeated sort give the same result.
+// The Passive Ring lists right below Ring 4, ahead of the next family.
+TEST(SlotOrderTest, ThePassiveRingFollowsTheFourRings) {
+  EXPECT_GT(SlotOrder(EQUIP_SLOT_PASSIVE_RING), SlotOrder(EQUIP_SLOT_RING_4));
+  EXPECT_LT(SlotOrder(EQUIP_SLOT_PASSIVE_RING), SlotOrder(EQUIP_SLOT_EMBLEM));
+}
+
 TEST(SortStacksTest, RanksByCountThenName) {
   std::vector<StackableItem> stacks = {
       Stack("Egg Shell", 5),
