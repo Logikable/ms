@@ -636,6 +636,7 @@ TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
 CharacterInstance MakeFullyGeared(std::mt19937& rng) {
   const EquipSlot kSlots[] = {
       EQUIP_SLOT_PRIMARY_WEAPON,
+      EQUIP_SLOT_SECONDARY,
       EQUIP_SLOT_HAT,
       EQUIP_SLOT_TOP,
       EQUIP_SLOT_BOTTOM,
@@ -643,7 +644,6 @@ CharacterInstance MakeFullyGeared(std::mt19937& rng) {
       EQUIP_SLOT_FACE_ACCESSORY,
       EQUIP_SLOT_EYE_ACCESSORY,
       EQUIP_SLOT_PROJECTILE,
-      EQUIP_SLOT_SECONDARY,
   };
   Character proto;
   proto.set_job(JOB_SWORDMAN);

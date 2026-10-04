@@ -148,16 +148,34 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
 // enum's order: the rings and second pendant sit with their families.
 TEST_F(EquippedListTest, ListsWhatIsWornInTheWindowsOrder) {
   const std::vector<EquipSlot> kExpected = {
-      EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_HAT,           EQUIP_SLOT_TOP,
-      EQUIP_SLOT_BOTTOM,         EQUIP_SLOT_SHOES,         EQUIP_SLOT_GLOVES,
-      EQUIP_SLOT_CAPE,           EQUIP_SLOT_SHOULDER,      EQUIP_SLOT_BELT,
-      EQUIP_SLOT_FACE_ACCESSORY, EQUIP_SLOT_EYE_ACCESSORY, EQUIP_SLOT_EARRINGS,
-      EQUIP_SLOT_PENDANT,        EQUIP_SLOT_PENDANT_2,     EQUIP_SLOT_RING,
-      EQUIP_SLOT_RING_2,         EQUIP_SLOT_RING_3,        EQUIP_SLOT_RING_4,
-      EQUIP_SLOT_EMBLEM,         EQUIP_SLOT_BADGE,         EQUIP_SLOT_MEDAL,
-      EQUIP_SLOT_POCKET,         EQUIP_SLOT_PROJECTILE,    EQUIP_SLOT_TOTEM,
-      EQUIP_SLOT_TOTEM_2,        EQUIP_SLOT_TOTEM_3,       EQUIP_SLOT_HEART,
+      EQUIP_SLOT_PRIMARY_WEAPON,
       EQUIP_SLOT_SECONDARY,
+      EQUIP_SLOT_HAT,
+      EQUIP_SLOT_TOP,
+      EQUIP_SLOT_BOTTOM,
+      EQUIP_SLOT_SHOES,
+      EQUIP_SLOT_GLOVES,
+      EQUIP_SLOT_CAPE,
+      EQUIP_SLOT_SHOULDER,
+      EQUIP_SLOT_BELT,
+      EQUIP_SLOT_FACE_ACCESSORY,
+      EQUIP_SLOT_EYE_ACCESSORY,
+      EQUIP_SLOT_EARRINGS,
+      EQUIP_SLOT_PENDANT,
+      EQUIP_SLOT_PENDANT_2,
+      EQUIP_SLOT_RING,
+      EQUIP_SLOT_RING_2,
+      EQUIP_SLOT_RING_3,
+      EQUIP_SLOT_RING_4,
+      EQUIP_SLOT_EMBLEM,
+      EQUIP_SLOT_BADGE,
+      EQUIP_SLOT_MEDAL,
+      EQUIP_SLOT_POCKET,
+      EQUIP_SLOT_PROJECTILE,
+      EQUIP_SLOT_TOTEM,
+      EQUIP_SLOT_TOTEM_2,
+      EQUIP_SLOT_TOTEM_3,
+      EQUIP_SLOT_HEART,
   };
 
   Character proto;
@@ -184,10 +202,10 @@ TEST_F(EquippedListTest, ListsWhatIsWornInTheWindowsOrder) {
   }
   EXPECT_EQ(worn, kExpected);
   // Rows in a slot family say which slot they are; other rows don't.
-  EXPECT_NE(rows[16].text.text.find("Ring 3"), std::string::npos)
-      << rows[16].text.text;
-  EXPECT_NE(rows[13].text.text.find("Pendant 2"), std::string::npos)
-      << rows[13].text.text;
+  EXPECT_NE(rows[17].text.text.find("Ring 3"), std::string::npos)
+      << rows[17].text.text;
+  EXPECT_NE(rows[14].text.text.find("Pendant 2"), std::string::npos)
+      << rows[14].text.text;
 }
 
 // The list is fitted to the right column's minimum width in panel_widths.h, and
