@@ -53,6 +53,23 @@ GameState MakeTestModeState() {
 
 // Test mode draws three pets off the shelf, any three, repeats allowed, and
 // carries their scrolls, which nothing drops yet.
+// Test mode carries every Special Skill Ring, since nothing drops them.
+TEST(GameStateTest, TestModeCarriesTheSkillRings) {
+  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
+  EquipPrototype ring;
+  ring.set_name("Continuous Ring Lv. 6");
+  ring.set_equip_slot(EQUIP_SLOT_PASSIVE_RING);
+  ring.mutable_equipment_skill()->set_skill("Continuous Ring");
+  ring.mutable_equipment_skill()->set_level(6);
+  catalog["continuous_ring_6"] = ring;
+  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  int carried = 0;
+  for (int i = 0; i < state.character.inventory().size(); ++i) {
+    carried += state.character.inventory()[i].prototype().name() == ring.name();
+  }
+  EXPECT_EQ(carried, 1);
+}
+
 TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
   std::map<std::string, EquipPrototype> catalog = SwordCatalog();
   for (const char* key : {"husky", "pink_bunny"}) {

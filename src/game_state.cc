@@ -1135,6 +1135,14 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // wear, other branches' shoulders, weapons replaced later), and a tester
   // opening the Equip tab should see only what they put there.
   state.character.ClearEquipInventory();
+  // Every level of every Special Skill Ring, in the bag: nothing drops them
+  // yet.
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    if (entry.second.has_equipment_skill()) {
+      state.character.PickUp(std::make_unique<EquipInstance>(entry.second));
+    }
+  }
   GiveSymbols(state);
   SeedPotentials(state);
   SeedFlames(state);
