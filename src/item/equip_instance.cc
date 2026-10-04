@@ -101,7 +101,7 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_RING_2:
     case EQUIP_SLOT_RING_3:
     case EQUIP_SLOT_RING_4:
-    case EQUIP_SLOT_PASSIVE_RING:
+    case EQUIP_SLOT_CONT_RING:
     case EQUIP_SLOT_PENDANT:
     case EQUIP_SLOT_PENDANT_2:
     case EQUIP_SLOT_BELT:

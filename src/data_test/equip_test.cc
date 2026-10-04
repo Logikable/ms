@@ -726,7 +726,7 @@ TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
           << entry.first;
     } else {
       ASSERT_EQ(skill, continuous.name());
-      EXPECT_EQ(ring.equip_slot(), EQUIP_SLOT_PASSIVE_RING);
+      EXPECT_EQ(ring.equip_slot(), EQUIP_SLOT_CONT_RING);
       SkillEffect at =
           EffectAt(continuous.base(), continuous.per_level(), level);
       EXPECT_NEAR(at.attack_pct(), (2 + 2 * level) / 100.0, 1e-9);

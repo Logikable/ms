@@ -310,9 +310,8 @@ std::string FormatSlot(EquipSlot slot) {
     case EQUIP_SLOT_RING_3:
     case EQUIP_SLOT_RING_4:
       return "Ring";
-    // "Passive Ring" is two columns past the slot column.
-    case EQUIP_SLOT_PASSIVE_RING:
-      return "Passive";
+    case EQUIP_SLOT_CONT_RING:
+      return "Cont Ring";
     case EQUIP_SLOT_PENDANT:
     case EQUIP_SLOT_PENDANT_2:
       return "Pendant";

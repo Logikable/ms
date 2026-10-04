@@ -2856,7 +2856,7 @@ TEST_F(EquipTest, ThreeOfOnePetWearAtOnce) {
 
 // Only one Ring of Restraint is worn, whatever its level: another level swaps
 // for it as a second copy would. The Continuous Ring has a slot of its own.
-TEST_F(EquipTest, OneRingOfRestraintAndAPassiveRing) {
+TEST_F(EquipTest, OneRingOfRestraintAndAContRing) {
   auto ring = [](const std::string& skill, int level, EquipSlot slot) {
     EquipPrototype proto;
     proto.set_name(skill + " Lv. " + std::to_string(level));
@@ -2872,7 +2872,7 @@ TEST_F(EquipTest, OneRingOfRestraintAndAPassiveRing) {
   c_.PickUp(std::make_unique<EquipInstance>(
       ring("Ring of Restraint", 3, EQUIP_SLOT_RING)));
   c_.PickUp(std::make_unique<EquipInstance>(
-      ring("Continuous Ring", 4, EQUIP_SLOT_PASSIVE_RING)));
+      ring("Continuous Ring", 4, EQUIP_SLOT_CONT_RING)));
   c_.PickUp(std::make_unique<EquipInstance>(
       ring("Ring of Restraint", 4, EQUIP_SLOT_RING)));
   for (int i = 0; i < 4; ++i) {
@@ -2882,10 +2882,9 @@ TEST_F(EquipTest, OneRingOfRestraintAndAPassiveRing) {
   EXPECT_EQ(
       c_.WornAt(StatPreset::kFirst, EQUIP_SLOT_RING_2)->prototype().name(),
       "Ring of Restraint Lv. 4");
-  EXPECT_EQ(c_.WornAt(StatPreset::kFirst, EQUIP_SLOT_PASSIVE_RING)
-                ->prototype()
-                .name(),
-            "Continuous Ring Lv. 4");
+  EXPECT_EQ(
+      c_.WornAt(StatPreset::kFirst, EQUIP_SLOT_CONT_RING)->prototype().name(),
+      "Continuous Ring Lv. 4");
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Ring of Restraint Lv. 3");
 }

@@ -323,7 +323,7 @@ TEST_F(DerivedStatsTest, AnEquipmentSkillFollowsTheGearPreset) {
   for (int level : {1, 5}) {
     StatPreset gear = level == 1 ? StatPreset::kFirst : StatPreset::kSecond;
     c.PickUp(std::make_unique<EquipInstance>(
-        SkillRing("Continuous Ring", level, EQUIP_SLOT_PASSIVE_RING)));
+        SkillRing("Continuous Ring", level, EQUIP_SLOT_CONT_RING)));
     ASSERT_TRUE(c.Equip(c.inventory().size() - 1, gear));
     c.PickUp(std::make_unique<EquipInstance>(
         SkillRing("Ring of Restraint", level, EQUIP_SLOT_RING)));
@@ -353,7 +353,7 @@ TEST_F(DerivedStatsTest, AnEquipmentSkillFollowsTheGearPreset) {
   EXPECT_NEAR(DerivedStatsFor(c, skills, {&up, 1}).attack_pct, 0.17, 1e-9);
 
   // Nothing worn, nothing granted.
-  ASSERT_TRUE(c.Unequip(EQUIP_SLOT_PASSIVE_RING));
+  ASSERT_TRUE(c.Unequip(EQUIP_SLOT_CONT_RING));
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).boss_pct, 0.0);
   EXPECT_EQ(c.skill_level(skills.at("continuous_ring")), 0);
 }

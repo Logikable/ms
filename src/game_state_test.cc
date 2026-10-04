@@ -58,7 +58,7 @@ TEST(GameStateTest, TestModeCarriesTheSkillRings) {
   std::map<std::string, EquipPrototype> catalog = SwordCatalog();
   EquipPrototype ring;
   ring.set_name("Continuous Ring Lv. 6");
-  ring.set_equip_slot(EQUIP_SLOT_PASSIVE_RING);
+  ring.set_equip_slot(EQUIP_SLOT_CONT_RING);
   ring.mutable_equipment_skill()->set_skill("Continuous Ring");
   ring.mutable_equipment_skill()->set_level(6);
   catalog["continuous_ring_6"] = ring;
