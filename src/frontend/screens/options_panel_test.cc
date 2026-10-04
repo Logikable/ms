@@ -73,6 +73,16 @@ TEST_F(OptionsPanelTest, BuffIndicatorsShipOffAndEnterThrowsThem) {
   EXPECT_FALSE(account_.buff_indicators());
 }
 
+TEST_F(OptionsPanelTest, InnerAbilityEmojiShipsOnAndEnterThrowsIt) {
+  SelectOption(Option::kInnerAbilityEmoji);
+  EXPECT_NE(Render().find("Inner Ability Emoji"), std::string::npos);
+  EXPECT_TRUE(account_.inner_ability_emoji());
+  panel_.Toggle();
+  EXPECT_FALSE(account_.inner_ability_emoji());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.inner_ability_emoji());
+}
+
 TEST_F(OptionsPanelTest, CursorWrapsThroughCloseAndBack) {
   EXPECT_FALSE(panel_.on_close());
   EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);

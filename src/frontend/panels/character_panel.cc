@@ -70,6 +70,9 @@ constexpr char kBossTabLabel[] = "Boss";
 // either way, so the lock column is the same column on every row.
 constexpr char kLockedGlyph[] = "\U0001F512";
 constexpr char kUnlockedGlyph[] = "\U0001F513";
+// The same in letters, for the Inner Ability Emoji option turned off.
+constexpr char kLockedLetter[] = "L ";
+constexpr char kUnlockedLetter[] = "U ";
 
 // The banner the preset's own rank is written on, above the lines it deals.
 constexpr char kAbilityBannerGlyph[] = "\u2691";
@@ -1272,8 +1275,10 @@ ftxui::Element CharacterPanel::RenderAbilityRow(const AbilityLine& line,
 
   // The lock is never the rank's colour: the row's own is the line, not what
   // holds it.
+  const bool emoji = account_.inner_ability_emoji();
   ftxui::Element lock_cell =
-      ftxui::text(line.locked() ? kLockedGlyph : kUnlockedGlyph);
+      ftxui::text(line.locked() ? (emoji ? kLockedGlyph : kLockedLetter)
+                                : (emoji ? kUnlockedGlyph : kUnlockedLetter));
   if (rows_focused && ability_sel_ == index) {
     // The cursor inverts what Enter answers, as the [+] on a stat row does.
     lock_cell = std::move(lock_cell) | ftxui::inverted;

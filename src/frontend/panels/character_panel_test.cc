@@ -3092,6 +3092,26 @@ TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   EXPECT_EQ(ColorOf(comp, "Boss Damage"), kLegendary.ToColor());
 }
 
+// With Inner Ability Emoji off, the locks are the letters L and U.
+TEST_F(CharacterPanelTest, AbilityLocksCanBeLetters) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  account_.SetInnerAbilityEmoji(false);
+  ASSERT_TRUE(c.LockAbilityLine(0, true));
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Screen screen = RenderToScreen(OnAbilityRows(panel));
+  EXPECT_EQ(ScreenText(screen).find("\U0001F512"), std::string::npos);
+  EXPECT_EQ(screen
+                .PixelAt(RowEndOf(screen, "Boss Damage"),
+                         FindCell(screen, "Boss Damage").second)
+                .character,
+            "L");
+  EXPECT_EQ(
+      screen.PixelAt(RowEndOf(screen, "STR"), FindCell(screen, "STR").second)
+          .character,
+      "U");
+}
+
 // Every line is a stop on the ring, whatever its rank, and Enter on one asks
 // to hold it.
 TEST_F(CharacterPanelTest, EveryLineIsAStopOnTheRing) {

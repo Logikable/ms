@@ -123,6 +123,15 @@ class AccountInstance {
     account_.mutable_options()->set_buff_indicators(on);
   }
 
+  // Whether an Inner Ability lock is drawn as a padlock emoji, the shipped
+  // state, rather than a letter.
+  bool inner_ability_emoji() const {
+    return !account_.options().plain_ability_locks();
+  }
+  void SetInnerAbilityEmoji(bool on) {
+    account_.mutable_options()->set_plain_ability_locks(!on);
+  }
+
   // Whether the music is silenced. The volumes are left as they were.
   bool mute() const {
     return account_.options().mute();
