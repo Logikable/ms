@@ -102,6 +102,9 @@ message CheckpointSlotPotential {
   // A symbol's level, 0 for any other piece.
   int32 symbol_level = 9;
   repeated FlameLine flame = 10;
+  // Takes neither a cube nor a star (a totem, a badge): recorded only for the
+  // gear table, and left out of the potentials one.
+  bool plain = 11;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,
@@ -111,6 +114,14 @@ message CheckpointPotentials {
   double seconds = 2;
   bool end = 3;
   repeated CheckpointSlotPotential slots = 4;
+  // The account beside the gear, for max mode's schedules: each V node's level
+  // by skill name (nodes at 0 left out), the best level each other job line
+  // has reached (Job enum keys), and the Noblesse SP earned.
+  map<string, int32> v_nodes = 5;
+  map<int32, int32> link_lines = 6;
+  int32 noblesse_sp = 7;
+  AbilityRank ability_farming = 8;
+  AbilityRank ability_bossing = 9;
 }
 
 // Everything the tables have collected so far. Mirrors Climb field for field: a

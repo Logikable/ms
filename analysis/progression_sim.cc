@@ -1156,6 +1156,7 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
                       CheckpointPotentials& now) {
   CheckpointSlotPotential& slot = *now.add_slots();
   slot.set_slot(at);
+  slot.set_plain(!item.CanCube() && item.max_stars() == 0);
   slot.set_farm(farm);
   slot.set_item(item.prototype().name());
   slot.set_item_level(item.prototype().required_level());
@@ -1169,8 +1170,9 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   *slot.mutable_flame() = item.equip_state().flame();
 }
 
-// Both potentials and the stars on every piece boss fights wear that takes a
-// cube or a star, then on every farm piece they don't, as they stand now.
+// Both potentials and the stars on every piece boss fights wear, then on every
+// farm piece they don't that takes a cube or a star, and the account beside
+// them, as they stand now. Pets are left out: nothing upgrades them yet.
 CheckpointPotentials PotentialsNow(const GameState& state, int level,
                                    double seconds) {
   CheckpointPotentials now;
@@ -1180,14 +1182,33 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
     const bool farm = gear == kFarmGear;
     for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
          state.character.equipped(gear)) {
-      if ((!entry.second->CanCube() && entry.second->max_stars() == 0) ||
-          (farm &&
-           state.character.WornAt(kBossGear, entry.first) == entry.second)) {
+      const bool plain =
+          !entry.second->CanCube() && entry.second->max_stars() == 0;
+      if ((farm && (plain || state.character.WornAt(kBossGear, entry.first) ==
+                                 entry.second)) ||
+          BaseSlot(entry.first) == EQUIP_SLOT_PET) {
         continue;
       }
       AddSlotPotential(entry.first, *entry.second, farm, now);
     }
   }
+  const CharacterInstance& character = state.character;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.v_node() != V_NODE_KIND_UNSPECIFIED &&
+        character.skill_level(entry.second) > 0) {
+      (*now.mutable_v_nodes())[entry.first] =
+          character.skill_level(entry.second);
+    }
+  }
+  for (const std::pair<const Job, int>& line :
+       character.link_tally().best_by_line()) {
+    (*now.mutable_link_lines())[line.first] = line.second;
+  }
+  now.set_noblesse_sp(character.noblesse_sp_earned());
+  now.set_ability_farming(
+      character.ability(AutoswapSlotFor(Activity::kFarming)).rank());
+  now.set_ability_bossing(
+      character.ability(AutoswapSlotFor(Activity::kBossing)).rank());
   return now;
 }
 
@@ -3469,7 +3490,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
       }
       ++reached;
       for (const CheckpointSlotPotential& slot : held->slots()) {
-        if (slot.farm()) {
+        if (slot.farm() || slot.plain()) {
           continue;  // the table is the boss gear, which max mode copies
         }
         if (slot.symbol_level() > 0) {
@@ -3520,6 +3541,7 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
 // One line per potential recorded, tab-separated: branch, level ("end" for the
 // run's end), days, slot, item, item level, stars, hammers, track, rank and
 // lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6".
+// The account follows as slot ACCOUNT, then a key, a name and a value.
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
                     const std::vector<Climb>& climbs) {
   std::ofstream out(path);
@@ -3565,6 +3587,23 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
             << '\t' << slot.hammers() << "\tflame\t-\t"
             << absl::StrJoin(lines, ", ") << '\n';
       }
+      const std::string at =
+          absl::StrCat(BranchName(branches[i]), "\t",
+                       held.end() ? absl::StrCat("end:", held.level())
+                                  : absl::StrCat(held.level()),
+                       "\t", held.seconds() / kDaySeconds, "\tACCOUNT\t");
+      for (const auto& [node, level] : held.v_nodes()) {
+        out << at << "v_node\t" << node << '\t' << level << '\n';
+      }
+      for (const auto& [line, level] : held.link_lines()) {
+        out << at << "link\t" << Job_Name(static_cast<Job>(line)) << '\t'
+            << level << '\n';
+      }
+      out << at << "noblesse_sp\t-\t" << held.noblesse_sp() << '\n';
+      out << at << "ability\tfarming\t"
+          << AbilityRank_Name(held.ability_farming()) << '\n';
+      out << at << "ability\tbossing\t"
+          << AbilityRank_Name(held.ability_bossing()) << '\n';
     }
   }
 }
