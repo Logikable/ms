@@ -101,6 +101,13 @@ TEST_F(InventoryListTest, StackRowsNameTheirCount) {
       stack, /*on_cursor=*/true, std::chrono::steady_clock::duration::zero()));
   EXPECT_NE(text.find("> Green Snail Shell"), std::string::npos);
   EXPECT_NE(text.find("42"), std::string::npos);
+
+  // The longest Etc name still leaves a gap before its count.
+  ItemPrototype shard;
+  shard.set_name("Guardian Angel Slime's Soul Shard");
+  text = RowText(RenderStackRow(StackableItem(shard, 7), /*on_cursor=*/false,
+                                std::chrono::steady_clock::duration::zero()));
+  EXPECT_NE(text.find("Soul Shard  "), std::string::npos);
 }
 
 // A wide terminal gives the name column more room, and the columns after it

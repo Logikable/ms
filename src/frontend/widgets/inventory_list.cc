@@ -210,7 +210,7 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
 ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail,
                            int body_width) {
   return Row(std::move(lead),
-             {ftxui::text("  " + PadRight("Name", kItemNameWidth) +
+             {ftxui::text("  " + PadRight("Name", kItemNameMax) +
                           PadRight("Quantity", 10))},
              std::move(tail), body_width);
 }
@@ -221,7 +221,7 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
                               int body_width) {
   std::string cursor = on_cursor ? "> " : "  ";
   std::string text = cursor +
-                     ScrollingWindow(stack.name(), kItemNameWidth, elapsed) +
+                     ScrollingWindow(stack.name(), kItemNameMax, elapsed) +
                      PadRight(std::to_string(stack.count()), 10);
   return HighlightRow(
       Row(std::move(lead), {ftxui::text(text)}, std::move(tail), body_width),
