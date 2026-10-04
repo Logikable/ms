@@ -4,10 +4,11 @@
  * ConfirmChoice every dialog returns: kConfirmed once the player agrees to a
  * scroll they can pay for.
  *
- * Every scroll costs spell traces, so the list has a Cost column and the title
- * shows how many the player owns, the two numbers the choice depends on. The
- * name column gives up width for it and scrolls longer names instead, like the
- * bag's rows.
+ * A scroll costs spell traces, so the list has a Cost column and the title
+ * shows how many the player owns, the two numbers the choice depends on. A
+ * pet's scroll is a dropped item instead, so its list has a Quantity column.
+ * The name column gives up width for it and scrolls longer names instead, like
+ * the bag's rows.
  *
  * A Cost only means something once the target item is known, since the price
  * comes from the item's level band and the same scroll costs more on better
@@ -22,6 +23,7 @@
 #define MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
 
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -83,6 +85,7 @@ class ScrollPanel {
   const Scroll& selected_scroll() const;
   // The traces the selected scroll costs on the item being scrolled. The price
   // depends on the item, not the scroll, so the caller can't compute it alone.
+  // A scroll paid with an item costs one of that item instead.
   int CostOfSelected() const;
   // Whether the player has enough traces for the selected scroll. The panel
   // spends nothing itself; the caller checks this before it does.
@@ -119,6 +122,11 @@ class ScrollPanel {
   void SortRows();
   // The spell traces the character owns.
   int TracesOwned() const;
+  // Whether every row is a scroll the player holds, paid with itself, so the
+  // list counts them instead of pricing them.
+  bool Held() const;
+  // How many of a held scroll the character carries.
+  int64_t HeldCount(const Scroll& scroll) const;
   void OpenMenu();
   // The menu's own key handling while it is open. It is modal and consumes what
   // it doesn't use, so nothing reaches the list behind it.

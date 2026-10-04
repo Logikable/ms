@@ -228,6 +228,47 @@ TEST_F(ScrollPanelTest, ACleanSlateIsOfferedForEveryKindOfItem) {
   EXPECT_TRUE(panel.SetFilterForPrototype(hat));
 }
 
+// A pet is offered its own scroll alone, not even a clean slate, and the list
+// counts the ones the player holds instead of pricing them. Using one needs
+// one in the bag.
+TEST_F(ScrollPanelTest, APetListsOnlyItsScrollByQuantity) {
+  scrolls_["AAA Scroll"].set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  scrolls_["AAA Scroll"].set_target(SCROLL_TARGET_UNSPECIFIED);
+  Scroll& premium = scrolls_["Pet Scroll"];
+  premium.set_name("Pet Scroll");
+  premium.set_success_rate(100);
+  premium.set_tier(SCROLL_TIER_1);
+  premium.set_scroll_type(SCROLL_TYPE_ATT);
+  premium.mutable_stats()->set_attack(5);
+  premium.mutable_stats()->set_magic_attack(5);
+  premium.set_target(SCROLL_TARGET_PET);
+  premium.add_applicable_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  premium.set_paid_with("Pet Scroll");
+  ScrollPanel panel(c_, scrolls_);
+  EquipPrototype pet;
+  pet.set_name("Lil Nezuko");
+  pet.set_equip_slot(EQUIP_SLOT_PET_2);
+  pet.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  ASSERT_TRUE(panel.SetFilterForPrototype(pet));
+
+  std::string drawn = Render(panel);
+  EXPECT_NE(drawn.find("Pet Scroll"), std::string::npos);
+  EXPECT_NE(drawn.find("+5 ATT  +5 MATT"), std::string::npos) << drawn;
+  EXPECT_EQ(drawn.find("AAA Scroll"), std::string::npos) << "no clean slate";
+  EXPECT_NE(drawn.find("Quantity"), std::string::npos);
+  EXPECT_EQ(drawn.find("Cost"), std::string::npos);
+  EXPECT_EQ(panel.CostOfSelected(), 1);
+
+  OpenConfirmThroughTheMenu(&panel);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending)
+      << "none held";
+  ItemPrototype held;
+  held.set_name("Pet Scroll");
+  c_.AddItem(held, 2);
+  EXPECT_NE(Render(panel).find("Quantity 2"), std::string::npos);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
+}
+
 TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
   Render(panel_);
   panel_.OnEvent(ftxui::Event::ArrowDown);

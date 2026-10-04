@@ -78,4 +78,8 @@ message Scroll {
   // data test rejects a value here, because it would be ignored.
   int32 trace_cost = 8;
   ScrollTarget target = 9;
+  // The name of the Etc item one use spends, for a scroll that drops instead
+  // of being bought with traces. Such a scroll costs no traces, and the list
+  // shows how many the player holds instead of a price.
+  string paid_with = 10;
 }

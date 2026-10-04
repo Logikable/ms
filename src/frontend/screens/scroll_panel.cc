@@ -61,11 +61,13 @@ std::string CostCell(int traces) {
 
 // Two leading spaces match the "  " / "> " cursor the menu adds to entries.
 // Built from the widths rather than written out, so a column can't drift from
-// its heading.
-std::string ColumnHeader() {
+// its heading. A list of scrolls the player holds has a Quantity column where
+// a list of scrolls bought with traces has Cost.
+std::string ColumnHeader(bool held) {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
-         PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth) +
+         PadRight("Stats", kStatsWidth) +
+         PadLeft(held ? "Quantity" : "Cost", kCostWidth) +
          PadLeft("Pin", kPinWidth) + std::string(kRightGutter, ' ');
 }
 
@@ -126,8 +128,13 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
       continue;
     }
     // A clean slate restores a slot whoever holds the item, so it skips the job
-    // check, but not the tier check, since its price depends on the tier.
+    // check, but not the tier check, since its price depends on the tier. A pet
+    // is offered its own scroll alone: that one never fails, so there is never
+    // a slot to restore.
     if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      if (item_target == SCROLL_TARGET_PET) {
+        continue;
+      }
       filtered.push_back(&s);
       continue;
     }
@@ -247,15 +254,16 @@ void ScrollPanel::ResetComponent() {
                             : std::chrono::steady_clock::duration()));
     }
     std::vector<ftxui::Element> rows = {
-        ftxui::text(ColumnHeader()),
+        ftxui::text(ColumnHeader(Held())),
         ThemedSeparator(),
         menu->Render(),
     };
     // The balance is in the title: every row's Cost is compared against it, and
     // up there it never scrolls away with the list.
-    ftxui::Element main =
-        ThemedWindow(" Scrolls — " + FormatSpellTraces(TracesOwned()) + " ",
-                     ftxui::vbox(std::move(rows)), focused_);
+    ftxui::Element main = ThemedWindow(
+        Held() ? " Scrolls "
+               : " Scrolls — " + FormatSpellTraces(TracesOwned()) + " ",
+        ftxui::vbox(std::move(rows)), focused_);
     if (confirm_.open()) {
       // Over the list rather than under it: the question is about the row under
       // the cursor, and a window that pushed the list around would move that
@@ -354,9 +362,25 @@ int ScrollPanel::TracesOwned() const {
   return static_cast<int>(character_.CountItem(kSpellTraceName));
 }
 
+bool ScrollPanel::Held() const {
+  return std::all_of(ordered_.begin(), ordered_.end(),
+                     [](const Scroll* scroll) {
+                       return !scroll->paid_with().empty();
+                     }) &&
+         !ordered_.empty();
+}
+
+int64_t ScrollPanel::HeldCount(const Scroll& scroll) const {
+  return character_.CountItem(scroll.paid_with());
+}
+
 bool ScrollPanel::CanAffordSelected() const {
   if (ordered_.empty()) {
     return false;
+  }
+  const Scroll& scroll = selected_scroll();
+  if (!scroll.paid_with().empty()) {
+    return HeldCount(scroll) >= CostOfSelected();
   }
   return TracesOwned() >= CostOfSelected();
 }
@@ -365,7 +389,13 @@ ftxui::Element ScrollPanel::CostCellFor(int index) const {
   if (index < 0 || index >= static_cast<int>(ordered_.size())) {
     return ftxui::text(std::string(kCostWidth, ' '));
   }
-  int cost = TraceCost(*ordered_[index], target_level_);
+  const Scroll& scroll = *ordered_[index];
+  if (!scroll.paid_with().empty()) {
+    int64_t held = HeldCount(scroll);
+    return RedUnless(ftxui::text(PadLeft(FormatWithCommas(held), kCostWidth)),
+                     held > 0);
+  }
+  int cost = TraceCost(scroll, target_level_);
   // The same red the confirm window uses, so the list shows what the player can
   // afford without opening every row.
   return RedUnless(ftxui::text(CostCell(cost)), cost <= TracesOwned());
@@ -374,6 +404,9 @@ ftxui::Element ScrollPanel::CostCellFor(int index) const {
 int ScrollPanel::CostOfSelected() const {
   if (ordered_.empty()) {
     return 0;
+  }
+  if (!selected_scroll().paid_with().empty()) {
+    return 1;
   }
   return TraceCost(selected_scroll(), target_level_);
 }
@@ -397,9 +430,12 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   // window, and showing the subtraction here would only crowd the one number
   // they are deciding on. Red says they can't pay, and the grey Confirm below
   // says the same, so neither needs words.
-  ftxui::Element money_row =
-      RedUnless(CenteredRow("Cost " + FormatWithCommas(cost) + " \U0001F4DC"),
-                affordable);
+  // A held scroll spends one of the player's own, so the row says how many
+  // they have rather than a price.
+  std::string price = scroll.paid_with().empty()
+                          ? "Cost " + FormatWithCommas(cost) + " \U0001F4DC"
+                          : "Quantity " + FormatWithCommas(HeldCount(scroll));
+  ftxui::Element money_row = RedUnless(CenteredRow(price), affordable);
 
   // Three blocks with a rule between each: which scroll on which item, what it
   // does and costs, and the answer. The middle block is the only one the player

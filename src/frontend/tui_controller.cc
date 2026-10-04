@@ -1251,8 +1251,9 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     // Paid for before it is used, and only used if paid for. The panel won't
     // confirm what the player can't afford, so this is a second check rather
     // than the first.
-    if (!state_.character.SpendItem(kSpellTraceName,
-                                    scroll_panel_.CostOfSelected())) {
+    std::string currency =
+        scroll.paid_with().empty() ? kSpellTraceName : scroll.paid_with();
+    if (!state_.character.SpendItem(currency, scroll_panel_.CostOfSelected())) {
       return true;
     }
     ScrollOutcome outcome = ScrollItem(state_.character, subject_, scroll);

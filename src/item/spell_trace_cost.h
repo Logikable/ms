@@ -31,7 +31,8 @@ int SpellTraceCost(int required_level, TraceCategory category,
 // What `scroll` costs on an item of this level; this is what the game calls.
 // Where GMS prices the scroll, that price is used and the file's `trace_cost`
 // is ignored; where GMS doesn't sell it, the file's price is used. A scroll
-// costing nothing would be free, and a data test rejects it.
+// costing nothing would be free, and a data test rejects it, unless it is paid
+// with an item (`paid_with`), which costs no traces.
 int TraceCost(const Scroll& scroll, int required_level);
 
 }  // namespace ms

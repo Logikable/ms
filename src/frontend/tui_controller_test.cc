@@ -1836,6 +1836,42 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 95);
 }
 
+// A pet's scroll spends one of the player's own copies, never traces.
+TEST_F(TuiControllerTest, ScrollingAPetSpendsOneOfItsScrolls) {
+  sword_.set_name("Lil Nezuko");
+  sword_.set_equip_slot(EQUIP_SLOT_PET);
+  sword_.clear_equip_job_categories();
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  Scroll premium;
+  premium.set_name("Pet Scroll");
+  premium.set_success_rate(100);
+  premium.set_tier(SCROLL_TIER_1);
+  premium.set_target(SCROLL_TARGET_PET);
+  premium.add_applicable_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  premium.mutable_stats()->set_attack(5);
+  premium.mutable_stats()->set_magic_attack(5);
+  premium.set_paid_with("Pet Scroll");
+  state_->scrolls["Pet Scroll"] = premium;
+  WearASwordAndDraw();
+  GiveTraces(100);
+  ItemPrototype held;
+  held.set_name("Pet Scroll");
+  state_->character.AddItem(held, 2);
+
+  controller_->OpenEquipMenu();
+  ScrollTheFirstRow();
+
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
+  EXPECT_EQ(state_->character.CountItem("Pet Scroll"), 1);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 100);
+  const EquipStats& gained = state_->character.equipped()
+                                 .at(EQUIP_SLOT_PET)
+                                 ->equip_state()
+                                 .scroll_stats();
+  EXPECT_EQ(gained.attack(), 5);
+  EXPECT_EQ(gained.magic_attack(), 5);
+}
+
 // Pin is the second entry of the row's menu, and the pin is stored on the
 // character rather than the screen, so it is still there next time.
 TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {

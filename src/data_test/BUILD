@@ -116,10 +116,14 @@ cc_test(
     name = "scroll_test",
     size = "small",
     srcs = ["scroll_test.cc"],
-    data = ["//data/scrolls:all"],
+    data = [
+        "//data/items:all",
+        "//data/scrolls:all",
+    ],
     deps = [
         "//src/item:spell_trace_cost",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/testing:data_files",
         "@bazel_tools//tools/cpp/runfiles",

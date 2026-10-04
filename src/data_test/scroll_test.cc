@@ -11,6 +11,7 @@
 
 #include "src/item/spell_trace_cost.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/testing/data_files.h"
 
@@ -50,9 +51,32 @@ TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
     EXPECT_NE(scroll.tier(), SCROLL_TIER_UNSPECIFIED)
         << entry.first << " belongs to no tier, so it is offered for every "
         << "item at once";
+    if (!scroll.paid_with().empty()) {
+      continue;  // spends an item instead; see the next test
+    }
     EXPECT_GT(CostOf(scroll), 0)
         << entry.first << " costs nothing to use on an item of its own tier, "
         << "which means GMS sells no such scroll";
+  }
+}
+
+// A scroll paid with an item names one the game has, and the pet's scroll is
+// the only one: everything else is bought with traces.
+TEST_F(ScrollDataTest, OnlyThePetScrollIsPaidWithAnItem) {
+  std::set<std::string> items;
+  for (const std::pair<const std::string, ItemPrototype>& entry :
+       LoadTestData<ItemPrototype>("items")) {
+    items.insert(entry.second.name());
+  }
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    const Scroll& scroll = entry.second;
+    EXPECT_EQ(scroll.target() == SCROLL_TARGET_PET, !scroll.paid_with().empty())
+        << entry.first;
+    if (!scroll.paid_with().empty()) {
+      EXPECT_EQ(items.count(scroll.paid_with()), 1u)
+          << entry.first << " is paid with an item that doesn't exist";
+      EXPECT_EQ(scroll.success_rate(), 100) << entry.first;
+    }
   }
 }
 

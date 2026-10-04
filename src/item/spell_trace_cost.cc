@@ -122,6 +122,9 @@ int SpellTraceCost(int required_level, TraceCategory category,
 }
 
 int TraceCost(const Scroll& scroll, int required_level) {
+  if (!scroll.paid_with().empty()) {
+    return 0;
+  }
   // A scroll for no particular equipment type (the Clean Slate) isn't sold by
   // GMS for traces, so there's no band to read.
   if (scroll.target() == SCROLL_TARGET_UNSPECIFIED) {
