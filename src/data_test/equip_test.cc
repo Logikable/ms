@@ -687,6 +687,57 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
 // Every pet is the same item under another name: free, worn by anyone, 8
 // slots that take hammers, and nothing else, so its stats come only from the
 // Premium Scroll for Pet.
+// The two Special Skill Rings, Lv. 1-6 each: GMS's item at every level, worn
+// where its kind goes, granting its skill at its own level with GMS's numbers.
+TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
+  std::map<std::string, Skill> skills = LoadTestData<Skill>("skills");
+  const Skill& restraint = skills.at("ring_of_restraint");
+  const Skill& continuous = skills.at("continuous_ring");
+  const int kRestraintAtt[] = {17, 34, 51, 68, 68, 85};
+  const int kRestraintSeconds[] = {9, 11, 13, 15, 20, 20};
+  std::map<std::string, int> rings;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& ring = entry.second;
+    if (!ring.has_equipment_skill()) {
+      continue;
+    }
+    const int level = ring.equipment_skill().level();
+    const std::string& skill = ring.equipment_skill().skill();
+    ++rings[skill];
+    EXPECT_EQ(ring.name(), skill + " Lv. " + std::to_string(level));
+    EXPECT_EQ(ring.required_level(), 110) << entry.first;
+    EXPECT_EQ(ring.base_stats().attack(), 4) << entry.first;
+    EXPECT_EQ(ring.base_stats().luk(), 4) << entry.first;
+    EquipInstance item(ring);
+    EXPECT_FALSE(item.CanStarForce()) << entry.first;
+    EXPECT_FALSE(item.CanHammer()) << entry.first;
+    EXPECT_FALSE(item.CanFlame()) << entry.first;
+    EXPECT_TRUE(item.CanCube()) << entry.first;
+    ASSERT_GE(level, 1);
+    ASSERT_LE(level, 6);
+    if (skill == restraint.name()) {
+      EXPECT_EQ(ring.equip_slot(), EQUIP_SLOT_RING);
+      EXPECT_NEAR(BuffEffectAt(restraint.buff(), level).attack_pct(),
+                  kRestraintAtt[level - 1] / 100.0, 1e-9)
+          << entry.first;
+      EXPECT_DOUBLE_EQ(BuffSecondsAt(restraint.buff(), level),
+                       kRestraintSeconds[level - 1])
+          << entry.first;
+    } else {
+      ASSERT_EQ(skill, continuous.name());
+      EXPECT_EQ(ring.equip_slot(), EQUIP_SLOT_PASSIVE_RING);
+      SkillEffect at =
+          EffectAt(continuous.base(), continuous.per_level(), level);
+      EXPECT_NEAR(at.attack_pct(), (2 + 2 * level) / 100.0, 1e-9);
+      EXPECT_NEAR(at.boss_pct(), 9 * level / 100.0, 1e-9);
+    }
+  }
+  EXPECT_EQ(rings, (std::map<std::string, int>{{"Continuous Ring", 6},
+                                               {"Ring of Restraint", 6}}));
+  EXPECT_DOUBLE_EQ(restraint.cooldown_seconds(), 120.0);
+}
+
 TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {
   int pets = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :

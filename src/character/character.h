@@ -540,6 +540,9 @@ class CharacterInstance {
   // screen offering it shows this. The character's own line's skill is at least
   // 1 from level 1, and another line's waits for its first rung.
   int LinkSkillLevelOffered(const Skill& skill) const;
+  // The level of an equipment skill: the level the item `gear` wears that
+  // grants it says, or 0 if none does. See Skill.granted_by_equip.
+  int EquipmentSkillLevel(const Skill& skill, StatPreset gear) const;
   // Equips `name` in `slot`, or removes it. Equipping fails if the preset is
   // full or already has it. Both fail for a name that is not a link skill,
   // which the caller must check. Returns whether anything changed.
@@ -643,6 +646,9 @@ class CharacterInstance {
     }
     if (skill.link_line() != JOB_UNSPECIFIED) {
       return LinkSkillLevel(skill, activity);
+    }
+    if (skill.granted_by_equip()) {
+      return EquipmentSkillLevel(skill, SlotFor(PresetKind::kEquip, activity));
     }
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()

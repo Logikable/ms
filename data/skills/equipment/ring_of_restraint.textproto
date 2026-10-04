@@ -1,0 +1,25 @@
+# GMS skill 80001455. The zone is not modelled: the fight never leaves it.
+name: "Ring of Restraint"
+description:
+  "Creates a zone in which your Attack Power and Magic ATT are increased."
+kind: SKILL_KIND_ACTIVE
+granted_by_equip: true
+max_level: 6
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 9.0
+  duration_seconds_per_level: 2.0
+  base { attack_pct: 0.17 }
+  per_level { attack_pct: 0.17 }
+  # GMS: ATT 17x - 17*log5(x), seconds 7 + 2x + 3*log5(x) - 2*log6(x).
+  step {
+    from_level: 5
+    base { attack_pct: -0.17 }
+    duration_seconds: 3.0
+  }
+  step {
+    from_level: 6
+    duration_seconds: -2.0
+  }
+}

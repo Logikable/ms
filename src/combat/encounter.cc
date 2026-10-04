@@ -1595,10 +1595,9 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
   BuffOption option;
   // Buff Duration lengthens the buff, not its cooldown, which is why it's worth
   // having even though it grants nothing itself.
-  option.duration_seconds = (buff.duration_seconds() +
-                             buff.duration_seconds_per_level() * (level - 1) +
-                             boost.buff_duration_seconds) *
-                            (1.0 + buff_duration_pct) * speed_factor;
+  option.duration_seconds =
+      (BuffSecondsAt(buff, level) + boost.buff_duration_seconds) *
+      (1.0 + buff_duration_pct) * speed_factor;
   // One stage of a buff that fades in stages: the first ends one stage interval
   // in, the last lasts the full duration. Clamped, so a buff shorter than its
   // stages ends the rest with it.
@@ -1735,7 +1734,7 @@ void AddBuffs(const GameState& state,
     if (buff.party_shared()) {
       option.cooldown_seconds /= PartyHolders(character, party, *skill);
     }
-    SkillEffect held = EffectAt(buff.base(), buff.per_level(), level);
+    SkillEffect held = BuffEffectAt(buff, level);
     option.damage_taken_pct = held.damage_taken_pct();
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;

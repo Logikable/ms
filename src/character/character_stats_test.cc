@@ -280,6 +280,84 @@ TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {
   EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).max_hp, 950);
 }
 
+// Shaped like the two Special Skill Rings: the item names its skill's level.
+EquipPrototype SkillRing(const std::string& skill, int level, EquipSlot slot) {
+  EquipPrototype ring;
+  ring.set_name(skill + " Lv. " + std::to_string(level));
+  ring.set_equip_slot(slot);
+  ring.mutable_equipment_skill()->set_skill(skill);
+  ring.mutable_equipment_skill()->set_level(level);
+  return ring;
+}
+
+std::map<std::string, Skill> RingSkills() {
+  Skill continuous;
+  continuous.set_name("Continuous Ring");
+  continuous.set_kind(SKILL_KIND_PASSIVE);
+  continuous.set_granted_by_equip(true);
+  continuous.set_max_level(6);
+  continuous.mutable_base()->set_boss_pct(0.09);
+  continuous.mutable_per_level()->set_boss_pct(0.09);
+  Skill restraint;
+  restraint.set_name("Ring of Restraint");
+  restraint.set_kind(SKILL_KIND_ACTIVE);
+  restraint.set_granted_by_equip(true);
+  restraint.set_max_level(6);
+  restraint.set_cooldown_seconds(120.0);
+  Buff& buff = *restraint.mutable_buff();
+  buff.set_duration_seconds(9.0);
+  buff.mutable_base()->set_attack_pct(0.17);
+  buff.mutable_per_level()->set_attack_pct(0.17);
+  BuffStep& step = *buff.add_step();
+  step.set_from_level(5);
+  step.mutable_base()->set_attack_pct(-0.17);
+  return {{"continuous_ring", continuous}, {"ring_of_restraint", restraint}};
+}
+
+// An equipment skill is the worn item's, at its level, and the gear preset in
+// use picks the item: farming wears level 1 of each ring, bossing level 5.
+TEST_F(DerivedStatsTest, AnEquipmentSkillFollowsTheGearPreset) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  c.set_autoswap_presets(true);
+  const std::map<std::string, Skill> skills = RingSkills();
+  for (int level : {1, 5}) {
+    StatPreset gear = level == 1 ? StatPreset::kFirst : StatPreset::kSecond;
+    c.PickUp(std::make_unique<EquipInstance>(
+        SkillRing("Continuous Ring", level, EQUIP_SLOT_PASSIVE_RING)));
+    ASSERT_TRUE(c.Equip(c.inventory().size() - 1, gear));
+    c.PickUp(std::make_unique<EquipInstance>(
+        SkillRing("Ring of Restraint", level, EQUIP_SLOT_RING)));
+    ASSERT_TRUE(c.Equip(c.inventory().size() - 1, gear));
+  }
+  const Skill& restraint = skills.at("ring_of_restraint");
+  EXPECT_EQ(c.skill_level(restraint, Activity::kFarming), 1);
+  EXPECT_EQ(c.skill_level(restraint, Activity::kBossing), 5);
+  EXPECT_EQ(BuffSkillsFor(c, skills, Activity::kBossing),
+            (std::vector<const Skill*>{&restraint}))
+      << "a passive is never cast";
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).boss_pct, 0.09);
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(c, skills, {}, {}, Activity::kBossing).boss_pct, 0.45);
+  // Weighing the boss gear while farming still reads the boss gear's ring.
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills, {}, {}, Activity::kFarming,
+                                   StatPreset::kSecond)
+                       .boss_pct,
+                   0.45);
+
+  // The buff is read at the gear's level, step included: 17 x 5 - 17.
+  const BuffUp up{&restraint};
+  EXPECT_NEAR(
+      DerivedStatsFor(c, skills, {&up, 1}, {}, Activity::kBossing).attack_pct,
+      0.68, 1e-9);
+  EXPECT_NEAR(DerivedStatsFor(c, skills, {&up, 1}).attack_pct, 0.17, 1e-9);
+
+  // Nothing worn, nothing granted.
+  ASSERT_TRUE(c.Unequip(EQUIP_SLOT_PASSIVE_RING));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).boss_pct, 0.0);
+  EXPECT_EQ(c.skill_level(skills.at("continuous_ring")), 0);
+}
+
 // With autoswap off, one preset is used for both activities.
 TEST_F(DerivedStatsTest, WithTheAutoswapOffOnePresetAnswersForBoth) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);

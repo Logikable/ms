@@ -33,6 +33,7 @@
 #define MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 
 #include <chrono>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -45,6 +46,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -93,6 +95,9 @@ class InspectPanel {
   // unset, an item is described alone and no set card appears, which suits
   // tests with no sets.
   void UseCharacter(const CharacterInstance& character);
+  // The skill catalog, which says what an item's equipment skill does. If
+  // unset, such an item shows no skill rows.
+  void UseSkills(const std::map<std::string, Skill>& skills);
   // The most rows either card may take, borders included. Beyond this it
   // scrolls. Zero, the default, means no limit, which suits tests and cards
   // with plenty of room. It isn't read from the terminal here, for the reason
@@ -188,6 +193,9 @@ class InspectPanel {
   // straight under them, then the soul's. Empty for an item with none of
   // them, which is every item until it is cubed.
   std::vector<CardRow> PotentialRows(const EquipTabItem& item) const;
+  // The skill the item grants while worn, under the upgrade history. Empty for
+  // nearly every item.
+  std::vector<CardRow> EquipmentSkillRows(const EquipTabItem& item) const;
   // The set the inspected item belongs to, or nullptr. Most items belong to
   // none.
   const EquipSet* SetOfItem() const;
@@ -223,6 +231,7 @@ class InspectPanel {
   std::optional<int> delta_;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;
+  const std::map<std::string, Skill>* skills_ = nullptr;
   int max_columns_ = 0;
   ScrollCard item_card_;
   ScrollCard set_card_;

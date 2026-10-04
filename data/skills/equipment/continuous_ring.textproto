@@ -1,0 +1,11 @@
+# GMS skill 80003341. Its 30-second window is renewed by every skill used and
+# has no cooldown, so in a fight it never lapses: a passive here. The
+# preparation after equipping is dropped, since gear is changed between fights.
+name: "Continuous Ring"
+description:
+  "Using skills increases your Attack Power, Magic ATT, and Boss Damage."
+kind: SKILL_KIND_PASSIVE
+granted_by_equip: true
+max_level: 6
+base { attack_pct: 0.04 boss_pct: 0.09 }
+per_level { attack_pct: 0.02 boss_pct: 0.09 }

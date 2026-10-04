@@ -483,6 +483,16 @@ message EquipPrototype {
   // The pets' place on their shelf, lowest first, since they share a level,
   // price and type and would otherwise list by name. The order is the user's.
   int32 shelf_order = 18;
+  // The skill this item grants while worn; unset on almost everything. Each
+  // level of a Special Skill Ring is its own item, so the level is the item's.
+  EquipmentSkill equipment_skill = 19;
+}
+
+// A skill a worn item grants. See Skill.granted_by_equip.
+message EquipmentSkill {
+  // The skill's display name.
+  string skill = 1;
+  int32 level = 2;
 }
 
 // The per-copy state of one dropped item, saved to disk. It refers to its

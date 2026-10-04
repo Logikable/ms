@@ -72,7 +72,7 @@ bool GrantsSkillLevels(const Skill& skill) {
 // which includes the book itself and the link skills.
 bool TakesGrantedLevels(const Skill& skill) {
   return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
-         skill.account_levels_per_level() == 0 &&
+         skill.account_levels_per_level() == 0 && !skill.granted_by_equip() &&
          skill.link_line() == JOB_UNSPECIFIED &&
          !ListedIn(skill, JOB_ADVANCEMENT_BEGINNER);
 }
@@ -768,12 +768,21 @@ struct PayingSkill {
 std::vector<PayingSkill> PayingSkills(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus,
-    absl::Span<const CharacterInstance> allies, Activity activity) {
+    absl::Span<const CharacterInstance> allies, Activity activity,
+    StatPreset gear) {
   std::set<std::string> superseded =
       DormantSkillNames(character, skills, bonus, activity);
   std::vector<PayingSkill> paying;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
+    // Read from the gear being weighed, which need not be the activity's.
+    if (skill.granted_by_equip()) {
+      int level = character.EquipmentSkillLevel(skill, gear);
+      if (level > 0 && skill.kind() == SKILL_KIND_PASSIVE) {
+        paying.push_back(PayingSkill{&skill, level});
+      }
+      continue;
+    }
     // An Advanced X includes all of the X it replaces rather than a difference,
     // so both must never count. The replaced skill keeps its level and its page
     // but loses its levers. See Skill.supersedes_skill_name.
@@ -813,16 +822,16 @@ SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
   if (buff.ally_int_lever().empty()) {
     return half;
   }
-  return GrownByCasterInt(
-      buff, half, EffectAt(buff.base(), buff.per_level(), up.caster_level),
-      up.caster_int, up.party_size);
+  return GrownByCasterInt(buff, half, BuffEffectAt(buff, up.caster_level),
+                          up.caster_int, up.party_size);
 }
 
 // Adds one active buff. A buff grants what a passive grants while it is up, and
 // is added the same way, as its own source. So its ignored defence combines
 // with the character's instead of adding.
 void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
-                     int bonus, bool in_company, PassiveTotals& totals) {
+                     int bonus, bool in_company, StatPreset gear,
+                     PassiveTotals& totals) {
   const Skill& skill = *up.skill;
   // An ally's buff is read from its party part at the ally's level. Only its
   // levers count; a Final Attack or a boost follows the caster's own swings.
@@ -831,8 +840,10 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
     return;
   }
   int level = EffectiveSkillLevel(character, skill, bonus);
-  SkillEffect held =
-      EffectAt(skill.buff().base(), skill.buff().per_level(), level);
+  if (skill.granted_by_equip()) {
+    level = character.EquipmentSkillLevel(skill, gear);
+  }
+  SkillEffect held = BuffEffectAt(skill.buff(), level);
   AddEffect(held, totals);
   // The share the buff gives only while in a party. It gets its own AddEffect
   // call rather than being summed into the one above, so two final damage
@@ -859,6 +870,7 @@ struct PassivesBeforeBuffs {
   PassiveTotals totals;
   int bonus = 0;
   bool in_company = false;
+  StatPreset gear = StatPreset::kFirst;
   std::vector<AllyGrant> party;
   ExclusiveBest exclusive;
 };
@@ -874,7 +886,8 @@ PassivesBeforeBuffs LearnedBeforeBuffs(
   before.bonus = BonusSkillLevels(character, skills, allies);
   before.in_company = !allies.empty();
   std::vector<PayingSkill> paying =
-      PayingSkills(character, skills, before.bonus, allies, activity);
+      PayingSkills(character, skills, before.bonus, allies, activity, gear);
+  before.gear = gear;
   before.party = PartyGrants(character, skills, allies, activity);
   // Both sources use one group table: a group includes everything that pays
   // into it, from the character's own book and the party alike.
@@ -903,7 +916,8 @@ PassiveTotals LearnedWithBuffs(const CharacterInstance& character,
                                absl::Span<const BuffUp> buffs_up) {
   PassiveTotals totals = before.totals;
   for (const BuffUp& up : buffs_up) {
-    AddStandingBuff(character, up, before.bonus, before.in_company, totals);
+    AddStandingBuff(character, up, before.bonus, before.in_company, before.gear,
+                    totals);
   }
   // What the party grants them, at each caster's level, added the same way.
   for (const AllyGrant& grant : before.party) {

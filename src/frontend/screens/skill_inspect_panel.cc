@@ -1619,7 +1619,7 @@ std::map<std::string, std::string> LeverValuesByLabel(const SkillEffect& at) {
 // depends on the caster's own INT, which is the point.
 std::vector<Row> AllyIntLeverRows(const Buff& buff, int level) {
   std::map<std::string, std::string> own =
-      LeverValuesByLabel(EffectAt(buff.base(), buff.per_level(), level));
+      LeverValuesByLabel(BuffEffectAt(buff, level));
   std::map<std::string, std::string> ceiling;
   std::vector<Row> rows;
   for (const AllyIntLever& lever : buff.ally_int_lever()) {
@@ -1753,8 +1753,7 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
 // How long the buff lasts, for its heading. A duration the burns extend shows
 // its range and the rule that changes it, as ScatterText does.
 std::string BuffWindowText(const Buff& buff, int level) {
-  double seconds =
-      buff.duration_seconds() + buff.duration_seconds_per_level() * (level - 1);
+  double seconds = BuffSecondsAt(buff, level);
   if (buff.duration_seconds_per_dot() <= 0.0 || buff.dot_count_cap() <= 0) {
     return FormatNumber(seconds) + "s";
   }
@@ -1810,9 +1809,11 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   // The heal is given once, when the buff is activated, so it is shown
   // separately from the fields that apply for as long as it lasts.
-  SkillEffect base = buff.base();
-  SkillEffect per = buff.per_level();
-  double heal = base.heal_pct() + per.heal_pct() * (level - 1);
+  // Resolved at the level up front, so a Buff.step is counted; `per` stays
+  // empty.
+  SkillEffect base = BuffEffectAt(buff, level);
+  SkillEffect per;
+  double heal = base.heal_pct();
   if (heal > 0.0) {
     rows.push_back(
         EffectRow("Heal on Cast", "+" + FormatPercent(heal) + " HP"));

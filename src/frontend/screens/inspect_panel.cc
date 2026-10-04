@@ -295,6 +295,10 @@ void InspectPanel::UseCharacter(const CharacterInstance& character) {
   character_ = &character;
 }
 
+void InspectPanel::UseSkills(const std::map<std::string, Skill>& skills) {
+  skills_ = &skills;
+}
+
 void InspectPanel::SetMaxRows(int rows) {
   item_card_.SetMaxRows(rows);
   set_card_.SetMaxRows(rows);
@@ -894,11 +898,54 @@ std::vector<CardRow> InspectPanel::PotentialRows(
   return rows;
 }
 
+std::vector<CardRow> InspectPanel::EquipmentSkillRows(
+    const EquipTabItem& item) const {
+  const EquipmentSkill& granted = item.prototype().equipment_skill();
+  if (skills_ == nullptr || granted.skill().empty()) {
+    return {};
+  }
+  const Skill* skill = nullptr;
+  for (const std::pair<const std::string, Skill>& entry : *skills_) {
+    if (entry.second.name() == granted.skill()) {
+      skill = &entry.second;
+    }
+  }
+  if (skill == nullptr) {
+    return {};
+  }
+  std::vector<CardRow> rows = {
+      RuleRow(ThemedSeparator()),
+      TextRow(ftxui::text(" " + skill->name() + " Lv. " +
+                          std::to_string(granted.level()) + " ") |
+              ftxui::color(kGold)),
+  };
+  // A buff says how long it lasts and how often; a passive is simply worn.
+  SkillEffect effect =
+      EffectAt(skill->base(), skill->per_level(), granted.level());
+  std::string timing;
+  if (skill->has_buff()) {
+    effect = BuffEffectAt(skill->buff(), granted.level());
+    timing = std::to_string(
+                 WholeValue(BuffSecondsAt(skill->buff(), granted.level()))) +
+             "s, every " +
+             std::to_string(WholeValue(CooldownAt(*skill, granted.level()))) +
+             "s";
+  }
+  for (const std::string& line : EffectLines(effect)) {
+    rows.push_back(TextRow(ftxui::text("   " + line + " ")));
+  }
+  if (!timing.empty()) {
+    rows.push_back(TextRow(ftxui::text("   " + timing + " ")));
+  }
+  return rows;
+}
+
 CardRows InspectPanel::EquipRows(const EquipTabItem& item,
                                  bool stats_in_head) const {
   std::vector<CardRow> head = HeadRows(item);
   std::vector<CardRow> stats = StatRows(item);
   std::vector<CardRow> slots = SlotRows(item);
+  Append(slots, EquipmentSkillRows(item));
   Append(slots, PotentialRows(item));
   // The two rows that can be split are measured against the card's width.
   const int fixed = kEquipContentWidth;

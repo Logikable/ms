@@ -167,6 +167,7 @@ cc_test(
         "//data/equip:all",
         "//data/items:all",
         "//data/sets:all",
+        "//data/skills:all",
     ],
     deps = [
         "//src/character",

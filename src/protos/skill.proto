@@ -952,6 +952,18 @@ message Buff {
   // Any of the character's swings can trigger it; no specific attack applies
   // the buff. Read with cooldown_seconds, which is the wait between windows.
   bool needs_afflicted_target = 31;
+  // What the buff adds from a level up, on top of its ladder. GMS writes a
+  // ladder's bends as logN(x) terms, worth 1 once the level reaches N: the
+  // Ring of Restraint's ATT is 17x - 17*log5(x). Read through BuffEffectAt and
+  // BuffSecondsAt.
+  repeated BuffStep step = 32;
+}
+
+// One of Buff.step.
+message BuffStep {
+  int32 from_level = 1;
+  SkillEffect base = 2;
+  double duration_seconds = 3;
 }
 
 // A chance for a swing to hit one of the enemies it reached harder, and what
@@ -1607,6 +1619,11 @@ message Skill {
   repeated LineOverride line_overrides = 70;
   // Barred from boss fights, as GMS bars Erda Fountain from boss maps.
   bool farming_only = 71;
+  // A skill a worn item grants, GMS's Equipment Skill: the item names it and
+  // the level (EquipPrototype.equipment_skill), and the gear preset in use
+  // decides which item counts. It is in no book, costs no SP and gets no
+  // granted levels.
+  bool granted_by_equip = 72;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.
   SkillRequirement required_skill = 8;

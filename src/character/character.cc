@@ -1658,7 +1658,23 @@ bool CharacterInstance::HoldsSkillFrom(const Skill& skill,
   if (skill.link_line() != JOB_UNSPECIFIED) {
     return HoldsLinkSkill(skill, activity);
   }
+  if (skill.granted_by_equip()) {
+    return skill_level(skill, activity) > 0;
+  }
   return HasBookFor(skill);
+}
+
+int CharacterInstance::EquipmentSkillLevel(const Skill& skill,
+                                           StatPreset gear) const {
+  int level = 0;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       equipped(gear)) {
+    const EquipmentSkill& granted = worn.second->prototype().equipment_skill();
+    if (granted.skill() == skill.name()) {
+      level = std::max(level, granted.level());
+    }
+  }
+  return level;
 }
 
 const google::protobuf::RepeatedPtrField<std::string>&
@@ -2014,7 +2030,7 @@ bool OwnCopyElsewhere(const std::map<EquipSlot, EquipInstance>& own,
     }
     std::map<EquipSlot, EquipInstance>::const_iterator it = own.find(other);
     if (it != own.end() &&
-        it->second.prototype().name() == inherited.prototype().name()) {
+        CountsAsCopy(it->second.prototype(), inherited.prototype())) {
       return true;
     }
   }
@@ -2724,7 +2740,7 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
   for (EquipSlot slot : family) {
     const EquipInstance* worn = WornAt(preset, slot);
     if (!FamilyTakesCopies(slot) && worn != nullptr &&
-        worn->prototype().name() == proto.name()) {
+        CountsAsCopy(worn->prototype(), proto)) {
       return slot;
     }
   }

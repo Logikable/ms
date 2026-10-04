@@ -292,6 +292,28 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
   return at;
 }
 
+SkillEffect BuffEffectAt(const Buff& buff, int level) {
+  SkillEffect at = EffectAt(buff.base(), buff.per_level(), level);
+  for (const BuffStep& step : buff.step()) {
+    if (level >= step.from_level()) {
+      // Level 2 of a one-step ladder is its base plus the step.
+      at = EffectAt(at, step.base(), 2);
+    }
+  }
+  return at;
+}
+
+double BuffSecondsAt(const Buff& buff, int level) {
+  double seconds =
+      buff.duration_seconds() + buff.duration_seconds_per_level() * (level - 1);
+  for (const BuffStep& step : buff.step()) {
+    if (level >= step.from_level()) {
+      seconds += step.duration_seconds();
+    }
+  }
+  return seconds;
+}
+
 namespace {
 
 // The cap for one field of one lever: the cap it names, or else the caster's

@@ -185,6 +185,9 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
   inspect_panel_.UseCharacter(state.character);
   preview_inspect_panel_.UseCharacter(state.character);
   player_item_panel_.UseCharacter(player_inspect_panel_.character());
+  inspect_panel_.UseSkills(state.skills);
+  preview_inspect_panel_.UseSkills(state.skills);
+  player_item_panel_.UseSkills(state.skills);
 }
 
 void Tui::BuildComponents() {

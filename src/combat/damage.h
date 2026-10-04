@@ -121,6 +121,12 @@ bool DealsDamage(SkillKind kind);
 SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
                      int level);
 
+// A buff's levers at `level`: its ladder, plus every Buff.step it has reached.
+SkillEffect BuffEffectAt(const Buff& buff, int level);
+// Seconds a buff lasts at `level` the same way, before any boost or Buff
+// Duration.
+double BuffSecondsAt(const Buff& buff, int level);
+
 // A buff's party portion after scaling with the caster's INT. Each
 // ally_int_lever adds its effect per full `caster_int` step, capped at the
 // ceiling it names or else at the caster's own value divided by `party_size`.

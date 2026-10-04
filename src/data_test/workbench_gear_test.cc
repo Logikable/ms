@@ -123,6 +123,11 @@ std::vector<int> TiersOnLadder(
   std::vector<int> levels;
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
     const EquipPrototype& proto = entry.second;
+    // A Special Skill Ring has no source yet, so the workbench carries every
+    // level in the bag rather than wearing one.
+    if (proto.has_equipment_skill()) {
+      continue;
+    }
     if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&
         proto.equip_type() == worn.equip_type() && character.CanEquip(proto) &&
         character.proto().level() >= OwnedFromLevel(proto)) {

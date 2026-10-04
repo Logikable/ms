@@ -226,6 +226,44 @@ TEST_F(InspectPanelTest, ShowsTheItemsOwnFields) {
             std::string::npos);
 }
 
+// A Special Skill Ring states its skill at the ring's level: a buff its
+// window and cooldown, a passive only what it grants.
+TEST_F(InspectPanelTest, ASkillRingStatesItsSkill) {
+  Skill restraint;
+  restraint.set_name("Ring of Restraint");
+  restraint.set_cooldown_seconds(120.0);
+  restraint.mutable_buff()->set_duration_seconds(9.0);
+  restraint.mutable_buff()->set_duration_seconds_per_level(2.0);
+  restraint.mutable_buff()->mutable_per_level()->set_attack_pct(0.17);
+  restraint.mutable_buff()->mutable_base()->set_attack_pct(0.17);
+  Skill continuous;
+  continuous.set_name("Continuous Ring");
+  continuous.mutable_base()->set_boss_pct(0.36);
+  const std::map<std::string, Skill> skills = {{"restraint", restraint},
+                                               {"continuous", continuous}};
+  InspectPanel panel;
+  panel.UseSkills(skills);
+
+  EquipPrototype ring;
+  ring.set_name("Ring of Restraint Lv. 4");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+  ring.mutable_equipment_skill()->set_level(4);
+  EquipInstance item(ring);
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("ATT +68%"), std::string::npos);
+  EXPECT_NE(rendered.find("15s, every 120s"), std::string::npos);
+
+  ring.set_name("Continuous Ring Lv. 4");
+  ring.mutable_equipment_skill()->set_skill("Continuous Ring");
+  EquipInstance passive(ring);
+  panel.SetItem(&passive);
+  rendered = Render(panel);
+  EXPECT_NE(rendered.find("Boss Damage +36%"), std::string::npos);
+  EXPECT_EQ(rendered.find("every"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, IneligibleJobsStillRendered) {
   EquipInstance item(sword_);
   InspectPanel panel;

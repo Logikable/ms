@@ -361,6 +361,14 @@ bool FamilyTakesCopies(EquipSlot slot) {
   return BaseSlot(slot) == EQUIP_SLOT_PET;
 }
 
+bool CountsAsCopy(const EquipPrototype& a, const EquipPrototype& b) {
+  if (a.name() == b.name()) {
+    return true;
+  }
+  const std::string& skill = a.equipment_skill().skill();
+  return !skill.empty() && skill == b.equipment_skill().skill();
+}
+
 void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
                       std::map<std::string, ItemPrototype>& items) {
   std::map<std::string, int> levels;

@@ -209,9 +209,10 @@ const std::map<std::string, Skill>& LoadSkills() {
 // which label starts its row in the book.
 TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    EXPECT_FALSE(entry.second.placement().empty())
+    // An equipment skill is reached by wearing its item, and is in no book.
+    EXPECT_EQ(entry.second.placement().empty(), entry.second.granted_by_equip())
         << entry.first << " would be unreachable: no tab shows it and no SP "
-        << "pool buys it";
+        << "pool buys it, or a book lists a skill an item grants";
     EXPECT_NE(entry.second.kind(), SKILL_KIND_UNSPECIFIED)
         << entry.first << " would list with no tag and do nothing";
   }
@@ -467,8 +468,9 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
     books.insert(JOB_ADVANCEMENT_COMMON);
     std::vector<std::string> raised;
     for (const std::pair<const std::string, Skill>& entry : skills) {
+      // Anyone can wear the ring that grants an equipment skill.
       if (entry.second.buff().duration_seconds() > 0.0 &&
-          ReachedBy(books, entry.second)) {
+          (ReachedBy(books, entry.second) || entry.second.granted_by_equip())) {
         // A buff with stages or stacks uses one window for each, so it counts
         // that many times against the limit.
         raised.insert(raised.end(), BuffWindowsFor(entry.second.buff()),

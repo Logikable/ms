@@ -75,6 +75,10 @@ int SlotIndex(EquipSlot slot);
 // Whether `slot`'s family may hold several copies of one item. Only pets: a
 // second ring replaces the first, but a second pet joins it.
 bool FamilyTakesCopies(EquipSlot slot);
+// Whether `a` counts as a copy of `b` for the one-of-each rule above: the same
+// item, or two levels of one Special Skill Ring, since GMS lets a character
+// wear only one Ring of Restraint.
+bool CountsAsCopy(const EquipPrototype& a, const EquipPrototype& b);
 
 // Catalogs are keyed by data file stem ("sword"), while a saved item uses its
 // display name ("Sword"). This index maps between the two, which is why a save
