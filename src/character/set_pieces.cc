@@ -1,10 +1,12 @@
 #include "src/character/set_pieces.h"
 
+#include <iterator>
 #include <string>
 #include <vector>
 
 #include "src/character/job_branch.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -180,6 +182,66 @@ std::vector<std::string> ArcaneUmbraArmour(Job job) {
     names.push_back("arcane_umbra_" + branch + "_" + piece);
   }
   return names;
+}
+
+std::string CygnusShoulder(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return "lionheart_battle_shoulder";
+    case JobBranch::kArcher:
+      return "falcon_wing_sentinel_shoulder";
+    case JobBranch::kMagician:
+      return "dragon_tail_mage_shoulder";
+    case JobBranch::kRogue:
+      return "raven_horn_chaser_shoulder";
+    default:
+      return "";
+  }
+}
+
+namespace {
+
+// The slots AbsoLabArmour and ArcaneUmbraArmour list, in their order. Root
+// Abyss lists the first three.
+constexpr EquipSlot kArmourSlots[] = {
+    EQUIP_SLOT_HAT,    EQUIP_SLOT_TOP,  EQUIP_SLOT_BOTTOM,  EQUIP_SLOT_SHOES,
+    EQUIP_SLOT_GLOVES, EQUIP_SLOT_CAPE, EQUIP_SLOT_SHOULDER};
+
+std::string ArmourPiece(const std::vector<std::string>& armour,
+                        EquipSlot slot) {
+  for (size_t i = 0; i < armour.size() && i < std::size(kArmourSlots); ++i) {
+    if (kArmourSlots[i] == slot) {
+      return armour[i];
+    }
+  }
+  return "";
+}
+
+}  // namespace
+
+std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
+  switch (family) {
+    case SetFamily::kRootAbyss:
+      return slot == EQUIP_SLOT_PRIMARY_WEAPON
+                 ? RootAbyssWeapon(job)
+                 : ArmourPiece(RootAbyssArmour(job), slot);
+    case SetFamily::kPrincessNo: {
+      const std::vector<std::string> secondary = PrincessNoSecondary(job);
+      return slot == EQUIP_SLOT_SECONDARY && !secondary.empty() ? secondary[0]
+                                                                : "";
+    }
+    case SetFamily::kAbsoLab:
+      return slot == EQUIP_SLOT_PRIMARY_WEAPON
+                 ? AbsoLabWeapon(job)
+                 : ArmourPiece(AbsoLabArmour(job), slot);
+    case SetFamily::kArcaneUmbra:
+      return slot == EQUIP_SLOT_PRIMARY_WEAPON
+                 ? ArcaneUmbraWeapon(job)
+                 : ArmourPiece(ArcaneUmbraArmour(job), slot);
+    case SetFamily::kCygnus:
+      return slot == EQUIP_SLOT_SHOULDER ? CygnusShoulder(job) : "";
+  }
+  return "";
 }
 
 }  // namespace ms

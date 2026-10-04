@@ -989,9 +989,13 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   shoulder.set_equip_slot(EQUIP_SLOT_SHOULDER);
   EquipPrototype cygnus = shoulder;
   cygnus.set_name("Lionheart Battle Shoulder");
+  EquipPrototype helm = hat;
+  helm.set_name("AbsoLab Knight Helm");
+  helm.set_required_level(160);
   std::map<std::string, EquipPrototype> catalog = {
       {"frozen_two_handed_axe", axe},
       {"frozen_hat", hat},
+      {"absolab_knight_helm", helm},
       {"royal_black_metal_shoulder", shoulder},
       {"lionheart_battle_shoulder", cygnus}};
   for (const char* key : {"horseback_riding_doll_totem", "jade_kettle_totem",
@@ -1118,9 +1122,9 @@ const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
 }
 
-// A max character has soloed every boss its level opens, and spent what they
-// paid.
-TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsBossesPaid) {
+// A max character has soloed the fights the sweep had by their level, and
+// spent what they paid.
+TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsClearsPaid) {
   std::map<std::string, Skill> skills = EveryStageBook();
   Skill slayers;
   slayers.set_name("Boss Slayers");
@@ -1131,22 +1135,31 @@ TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsBossesPaid) {
   slayers.mutable_base()->set_boss_pct(0.02);
   slayers.mutable_per_level()->set_boss_pct(0.02);
   skills["boss_slayers"] = slayers;
-  for (int level : {190, 230}) {
+  // Open from 190, first beaten at 200.
+  std::map<std::string, Boss> bosses;
+  BossDifficulty& chaos = *bosses["horntail"].add_difficulties();
+  chaos.set_name("Chaos");
+  chaos.set_unlock_level(190);
+  chaos.add_phases()->add_spawns()->set_mob("wall");
+  for (int level : {199, 200}) {
     TestOptions options;
     options.job = JOB_ADVANCEMENT_HERO;
     options.level = level;
     GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {}, skills,
-                    GameMode::kMax, options, std::nullopt, {}, MaxBosses());
-    int earned = level >= 200 ? 1 : 0;
+                    GameMode::kMax, options, std::nullopt, {}, bosses);
+    int earned = level >= MaxClearLevel("horntail", "Chaos") ? 1 : 0;
     EXPECT_EQ(state.character.noblesse_sp_earned(), earned) << level;
     EXPECT_EQ(state.character.skill_level(slayers), earned) << level;
   }
 }
 
-// The totems wait for 230 in max mode, where the climb has bought all three,
-// though the workbench wears them from 200.
-TEST(GameStateTest, MaxModeWearsTheTotemsFrom230) {
-  EXPECT_EQ(MakeMaxState(220).character.equipped().count(EQUIP_SLOT_TOTEM), 0u);
+// Max mode buys the totems as the climb did: one at 200, all three by 230,
+// though the workbench wears all three from 200.
+TEST(GameStateTest, MaxModeWearsTheTotemsTheClimbBought) {
+  EXPECT_EQ(MakeMaxState(199).character.equipped().count(EQUIP_SLOT_TOTEM), 0u);
+  const GameState first = MakeMaxState(200);
+  EXPECT_EQ(first.character.equipped().count(EQUIP_SLOT_TOTEM), 1u);
+  EXPECT_EQ(first.character.equipped().count(EQUIP_SLOT_TOTEM_2), 0u);
   GameState state = MakeMaxState(230);
   for (EquipSlot slot : SlotFamily(EQUIP_SLOT_TOTEM)) {
     EXPECT_EQ(state.character.equipped().count(slot), 1u)
@@ -1178,55 +1191,31 @@ TEST(GameStateTest, MaxModeWearsTheFrierenPetsScrolledOnceTheScrollDrops) {
   EXPECT_EQ(pet.equip_state().scroll_stats().magic_attack(), 5 * slots);
 }
 
-// A max account has one character at the top of every other job line, so link
-// skills stand where a fully played account has them: 9 for three-line
-// branches, 6 for two-line ones.
-TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
+// A max account holds the alts the sweep levelled for link skills: at the cap
+// five lines at 120, none of them the Hero's own. Lines of one branch sum, so
+// the two archer alts give 4 and the lone rogue 2.
+TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   GameState state = MakeMaxState(kTrialLevelCap);
-  EXPECT_EQ(state.inactive_characters.size(), 9u);
-
-  LinkTally tally = state.character.link_tally();
-  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 6)
-      << "the Hero being played is not in the mirrored half";
-  const CharacterInstance& hero = state.character;
-  EXPECT_EQ(hero.link_tally().LevelFor(JOB_SWORDMAN, hero.proto().job(),
-                                       hero.proto().level()),
-            9);
-  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 9);
-  EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 6);
-  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
-}
-
-// Every slot is a fully built max character, not a sheet with a level set. The
-// test catalog has only warrior gear, so this checks the character, not the
-// outfit.
-TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
-  GameState state = MakeMaxState(kTrialLevelCap);
-  ASSERT_EQ(state.inactive_characters.size(), 9u);
+  ASSERT_EQ(state.inactive_characters.size(), 5u);
   for (const CharacterSave& slot : state.inactive_characters) {
     const Character& sheet = slot.character();
     SCOPED_TRACE(sheet.name());
     EXPECT_FALSE(sheet.name().empty());
-    EXPECT_EQ(sheet.level(), kTrialLevelCap);
+    EXPECT_EQ(sheet.level(), 120);
+    EXPECT_EQ(sheet.job_stage(), 4);
     EXPECT_EQ(sheet.ap(), 0);
     EXPECT_EQ(sheet.meso(), 50000000);
     EXPECT_EQ(slot.current_map(), kHomeMap);
-    EXPECT_EQ(sheet.consumables().owned_size(),
-              static_cast<int>(AllConsumables().size()));
-    EXPECT_EQ(sheet.consumables().active_size(),
-              static_cast<int>(AllConsumables().size()));
-    // Every area the cap opens, worn: levelling really happened, instead of a
-    // level written onto a blank sheet.
-    ASSERT_GT(sheet.equip_presets().presets_size(), 0);
-    const EquipPreset& worn = sheet.equip_presets().presets(0);
-    for (EquipSlot symbol :
-         {EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
-          EQUIP_SLOT_SYMBOL_LACHELEIN, EQUIP_SLOT_SYMBOL_ARCANA,
-          EQUIP_SLOT_SYMBOL_MORASS, EQUIP_SLOT_SYMBOL_ESFERA}) {
-      EXPECT_EQ(worn.equipped().count(symbol), 1u) << EquipSlot_Name(symbol);
-    }
     EXPECT_GT(sheet.inner_ability().presets_size(), 0);
   }
+
+  LinkTally tally = state.character.link_tally();
+  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 0)
+      << "the Hero being played is not in the mirrored half";
+  EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 4);
+  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 4);
+  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 2);
+  EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 2);
 }
 
 // A sim's bare roster gives the same link skills as the playable one, without
@@ -1246,12 +1235,11 @@ TEST(GameStateTest, MaxModeBareRosterGivesTheSameLinks) {
   EXPECT_FALSE(bare.character.link_tally().empty());
 }
 
-// The roster levels with the max character, not ahead of it: below the first
-// link skill threshold, the roster gives nothing.
-TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
-  GameState state = MakeMaxState(60);
-  EXPECT_FALSE(state.inactive_characters.empty());
-  EXPECT_EQ(state.character.link_tally().LevelFor(JOB_SWORDMAN), 0);
+// The sweep levelled no alt before 230.
+TEST(GameStateTest, MaxModeBefore230HasNoAlts) {
+  GameState state = MakeMaxState(229);
+  EXPECT_TRUE(state.inactive_characters.empty());
+  EXPECT_TRUE(state.character.link_tally().empty());
 }
 
 // The best tier the level opens, with whichever line hits that boss hardest;
@@ -1328,7 +1316,7 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
 
   const Potential& bonus =
       Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();
-  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
   ASSERT_EQ(bonus.lines_size(), kPotentialLines);
   EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
 }
@@ -1350,7 +1338,7 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 // at each level, so Arcane Force is checked against a real character.
 TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   const std::pair<int, int> kLevelForce[] = {
-      {200, 30}, {230, 4 * 20 + 30 * 10}, {kGrandisLevel, 77 * 10 + 6 * 20}};
+      {200, 30}, {230, 4 * 20 + 36 * 10}, {kGrandisLevel, 90 * 10 + 6 * 20}};
   for (const std::pair<int, int>& entry : kLevelForce) {
     GameState state = MakeMaxState(entry.first);
     EXPECT_EQ(state.character.base_arcane_force(), entry.second) << entry.first;
@@ -1435,22 +1423,26 @@ TEST(GameStateTest, MaxModeStaysPutWhenTheLineDoesNotBranch) {
   EXPECT_EQ(state.character.proto().job_stage(), 1);
 }
 
-// Every matrix node at its maximum, common ones included, and nothing left in
-// the pool: the max character spent everything.
-TEST(GameStateTest, MaxModeMaxesTheWholeMatrix) {
-  GameState state = MakeMaxState(kTrialLevelCap);
-  int nodes = 0;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (entry.second.v_node() == V_NODE_KIND_UNSPECIFIED) {
-      continue;
+// The matrix fills as the sweep's did: none of it bought at 200, part at 230,
+// every node at its maximum by the cap. Nothing is left in the pool.
+TEST(GameStateTest, MaxModeFillsTheMatrixAsTheSweepDid) {
+  for (int level : {200, 230, kTrialLevelCap}) {
+    GameState state = MakeMaxState(level);
+    int nodes = 0;
+    for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      if (entry.second.v_node() == V_NODE_KIND_UNSPECIFIED) {
+        continue;
+      }
+      ++nodes;
+      // A job node's first level is free, so the climb took it.
+      EXPECT_EQ(state.character.skill_level(entry.second),
+                std::max(MaxMatrixLevel(entry.second, level),
+                         entry.second.v_node() == V_NODE_KIND_JOB ? 1 : 0))
+          << entry.first << " at " << level;
     }
-    ++nodes;
-    EXPECT_EQ(state.character.skill_level(entry.second),
-              entry.second.max_level())
-        << entry.first;
+    EXPECT_EQ(nodes, 2);
+    EXPECT_EQ(state.character.v_points(), 0);
   }
-  EXPECT_EQ(nodes, 2);
-  EXPECT_EQ(state.character.v_points(), 0);
 }
 
 // A level 140 character is well short of the cap's band: no hammers, which cost
@@ -1461,20 +1453,21 @@ TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
   EXPECT_EQ(weapon.hammers(), 0);
   EXPECT_EQ(weapon.scroll_successes(), 7);
   EXPECT_EQ(weapon.stars(), 14);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(), 10);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(), 8);
   EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).potential().lines_size(), 0);
   for (const ConsumableInfo& potion : AllConsumables()) {
     EXPECT_FALSE(state.character.ConsumableOwned(potion.type)) << potion.name;
   }
 }
 
-// The Cygnus shoulder is bought with a token from the fight nobody has won, so
-// a character measured against the boss roster doesn't wear one, and the three
-// the workbench gets aren't in the bag either.
-TEST(GameStateTest, MaxModeWearsNoCygnusShoulder) {
-  GameState state = MakeMaxState(kTrialLevelCap);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(),
+// The shoulder follows the sweep: the Magnus drop from 170, the Cygnus one
+// once Cygnus falls, and nothing the outfit replaced is left in the bag.
+TEST(GameStateTest, MaxModeWearsTheShoulderTheSweepWore) {
+  EXPECT_EQ(Worn(MakeMaxState(200), EQUIP_SLOT_SHOULDER).name(),
             "Royal Black Metal Shoulder");
+  GameState state = MakeMaxState(230);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(),
+            "Lionheart Battle Shoulder");
   EXPECT_TRUE(state.character.inventory().empty());
 }
 

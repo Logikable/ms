@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdint>
 #include <ctime>
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -248,7 +249,9 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
   Equip built = FreshEquip(proto);
   // Hammers first, so the scrolls fill the widened set of slots.
-  if (equips.hammered && TakesUpgradeSlots(proto)) {
+  if ((equips.hammered ||
+       equips.hammered_slots.count(proto.equip_slot()) > 0) &&
+      TakesUpgradeSlots(proto)) {
     built.set_hammers(kMaxHammers);
     built.set_remaining_upgrade_slots(TotalUpgradeSlots(proto, built));
   }
@@ -490,9 +493,6 @@ std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
 // The Antique Totem Set, worn from this level in test mode. The shop sells them
 // from 125, but at 250M apiece a climb affords all three near 200.
 constexpr int kTotemLevel = 200;
-// Max mode waits for the level progression_sim's climb has bought all three by,
-// since star force and cubes take the meso first.
-constexpr int kMaxTotemLevel = 230;
 
 std::vector<std::string> AntiqueTotems() {
   return {"horseback_riding_doll_totem", "jade_kettle_totem",
@@ -666,11 +666,10 @@ JobAdvancement HighestAdvancementAt(JobAdvancement advancement, int level) {
 }
 
 // Levels into `advancement`: its job, having taken every earlier advancement on
-// the way. `level` is where to stop, or 0 for the last level before the next
-// advancement is offered.
-void GrowToJob(GameState& state, JobAdvancement advancement, int level,
-               int unspent_stage, const GearSetup& equips,
-               bool cygnus_shoulders = true, int totem_level = kTotemLevel) {
+// the way, wearing the job's own gear. `level` is where to stop, or 0 for the
+// last level before the next advancement is offered.
+void ClimbToJob(GameState& state, JobAdvancement advancement, int level,
+                int unspent_stage, const GearSetup& equips) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
@@ -678,33 +677,38 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
   }
   GrowTo(state, LevelForJob(advancement, level), path, unspent_stage);
-  // The job's own gear, worn instead of carried, since there's no advancement
-  // moment here to equip it. Lower stages' gear fills whatever the level can't
-  // yet wear.
+  // Worn instead of carried, since there's no advancement moment here to equip
+  // it. Lower stages' gear fills whatever the level can't yet wear.
   WearThePath(state, path, equips);
+}
+
+// Every boss tier the workbench's level opens, over the job's own gear.
+void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
+  const int level = state.character.proto().level();
+  const Job job = state.character.proto().job();
   // The Frozen set on top, from the 3rd job up. It drops instead of selling, so
   // only a workbench will ever wear the whole set. Every piece fits a 3rd job
   // at level 100, giving four slots; a 4th job adds the two from the token shop
   // above, for six.
-  if (stage >= 3) {
+  if (state.character.proto().job_stage() >= 3) {
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
-    WearAll(state, ShopAccessories(cygnus_shoulders), equips);
+    WearAll(state, ShopAccessories(/*cygnus_shoulders=*/true), equips);
   }
   // Last, so it replaces the Frozen pieces it supersedes and not the other way
   // round.
-  if (state.character.proto().level() >= kRootAbyssLevel) {
-    WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
-    WearAll(state, PrincessNoSecondary(state.character.proto().job()), equips);
+  if (level >= kRootAbyssLevel) {
+    WearAll(state, RootAbyssGear(job), equips);
+    WearAll(state, PrincessNoSecondary(job), equips);
   }
-  if (state.character.proto().level() >= totem_level) {
+  if (level >= kTotemLevel) {
     WearAll(state, AntiqueTotems(), equips);
   }
-  if (state.character.proto().level() >= kAbsoLabLevel) {
-    WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
+  if (level >= kAbsoLabLevel) {
+    WearAll(state, AbsoLabGear(job), equips);
     WearAll(state, HardBlackHeavenGear(), equips);
   }
-  if (state.character.proto().level() >= kGuardianAngelSlimeLevel) {
+  if (level >= kGuardianAngelSlimeLevel) {
     std::map<std::string, EquipPrototype>::const_iterator ring =
         state.equips.find("guardian_angel_ring");
     if (ring != state.equips.end()) {
@@ -712,18 +716,22 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
       WearAll(state, {"guardian_angel_ring"}, equips);
     }
   }
-  if (state.character.proto().level() >= kLucidAndWillLevel) {
-    WearAll(state, ArcaneUmbraGear(state.character.proto().job()), equips);
+  if (level >= kLucidAndWillLevel) {
+    WearAll(state, ArcaneUmbraGear(job), equips);
   }
-  if (state.character.proto().level() >= kGloomAndDarknellLevel) {
+  if (level >= kGloomAndDarknellLevel) {
     WearAll(state, {"estella_earrings"}, equips);
   }
-  // It wears what those fights drop, so it has beaten them alone, holds
-  // whatever skill a first clear opens, and has the Noblesse SP they pay.
+}
+
+// Records a solo clear of every fight `cleared` accepts, with whatever skill a
+// first clear opens and the Noblesse SP they pay.
+void RecordClears(GameState& state,
+                  const std::function<bool(const std::string&,
+                                           const BossDifficulty&)>& cleared) {
   for (const std::pair<const std::string, Boss>& entry : state.bosses) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      if (!difficulty.coming_soon() &&
-          difficulty.unlock_level() <= state.character.proto().level()) {
+      if (!difficulty.coming_soon() && cleared(entry.first, difficulty)) {
         state.character.RecordDefeat(entry.first);
         state.account.RecordSoloClear(entry.first, difficulty.name());
       }
@@ -731,6 +739,19 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   }
   state.character.set_noblesse_sp_earned(
       NoblesseSpEarned(state.account.solo_clears(), state.bosses));
+}
+
+// The workbench: the job, every tier its level opens, and every fight that
+// level opens beaten alone, since it wears what those fights drop.
+void GrowToJob(GameState& state, JobAdvancement advancement, int level,
+               int unspent_stage, const GearSetup& equips) {
+  ClimbToJob(state, advancement, level, unspent_stage, equips);
+  WearWorkbenchTiers(state, equips);
+  const int reached = state.character.proto().level();
+  RecordClears(state,
+               [reached](const std::string&, const BossDifficulty& difficulty) {
+                 return difficulty.unlock_level() <= reached;
+               });
   WearStarterSymbol(state);
 }
 
@@ -1055,21 +1076,25 @@ void DressMaxFlames(GameState& state) {
   }
 }
 
-// Every matrix node at its maximum level. The points are granted at each node's
-// cost, leaving nothing in the pool: this mode creates a character who spent
-// everything, not one holding points.
+// Every matrix node at the level MaxMatrixLevel gives. The points are granted
+// at each node's cost, leaving nothing in the pool: this mode creates a
+// character who spent everything, not one holding points.
 void MaxVMatrix(GameState& state) {
   CharacterInstance& character = state.character;
   if (!character.v_matrix_unlocked()) {
     return;
   }
+  const int level = character.proto().level();
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     if (skill.v_node() == V_NODE_KIND_UNSPECIFIED ||
         !character.ReachesVNode(skill)) {
       continue;
     }
-    int room = SkillMaxLevel(skill) - character.skill_level(skill);
+    int room = MaxMatrixLevel(skill, level) - character.skill_level(skill);
+    if (room <= 0) {
+      continue;
+    }
     character.AddVPoints(character.VNodeCostFor(skill, room));
     character.LearnSkill(skill, room);
   }
@@ -1105,17 +1130,45 @@ JobAdvancement CeilingAdvancementFor(Job job, int level) {
   return AdvancementForJobStage(job, stage);
 }
 
-// What the rest of a max account gives the character on `line`. Every slot is
-// at the same level in a different line, so this is arithmetic instead of a
-// loop over characters, which lets the roster be built before any character
-// exists.
-LinkTally CeilingTally(Job line, int level) {
-  LinkTally tally;
+// One character of a max account.
+struct MaxMember {
+  JobAdvancement advancement = JOB_ADVANCEMENT_UNSPECIFIED;
+  int level = 0;
+};
+
+// The 4th job of `line`, named by its 2nd job.
+Job FourthJobOf(Job line) {
   for (Job job : EveryFourthJob()) {
     if (LineOf(job) == line) {
-      continue;
+      return job;
     }
-    tally.Record(JobForAdvancement(CeilingAdvancementFor(job, level)), level);
+  }
+  return JOB_UNSPECIFIED;
+}
+
+// The alts a max account around a main on `played_line` at `level` holds, the
+// ones MaxAlts names.
+std::vector<MaxMember> MaxAltMembers(Job played_line, int level) {
+  std::vector<MaxMember> alts;
+  for (const MaxAlt& alt : MaxAlts(played_line, level)) {
+    const Job job = FourthJobOf(alt.line);
+    if (job != JOB_UNSPECIFIED) {
+      alts.push_back({CeilingAdvancementFor(job, alt.level), alt.level});
+    }
+  }
+  return alts;
+}
+
+// What the rest of the account gives `member`: everyone in `account` but them.
+// Arithmetic instead of a walk over characters, which lets the roster be built
+// before any character exists.
+LinkTally MaxTally(const std::vector<MaxMember>& account,
+                   const MaxMember& member) {
+  LinkTally tally;
+  for (const MaxMember& other : account) {
+    if (other.advancement != member.advancement) {
+      tally.Record(JobForAdvancement(other.advancement), other.level);
+    }
   }
   return tally;
 }
@@ -1128,15 +1181,26 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
                      const LinkTally& tally) {
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
-  equips.hammered = gear.hammered;
+  for (EquipSlot slot : gear.hammered) {
+    if (slot != EQUIP_SLOT_UNSPECIFIED) {
+      equips.hammered_slots.insert(slot);
+    }
+  }
   equips.scrolled = true;
   equips.stars = gear.stars;
   equips.weapon_stars = gear.weapon_stars;
 
   state.character.SetUsername(UsernameFor(advancement));
   state.character.AddMeso(kMaxLeftoverMeso);
-  GrowToJob(state, advancement, level, kSpendEveryStage, equips,
-            /*cygnus_shoulders=*/false, kMaxTotemLevel);
+  ClimbToJob(state, advancement, level, kSpendEveryStage, equips);
+  const int reached = state.character.proto().level();
+  WearAll(state, MaxOutfit(state.character.proto().job(), reached), equips);
+  RecordClears(state, [reached](const std::string& boss,
+                                const BossDifficulty& difficulty) {
+    const int cleared = MaxClearLevel(boss, difficulty.name());
+    return cleared > 0 && cleared <= reached;
+  });
+  WearStarterSymbol(state);
   WearMaxSymbols(state);
   GearSetup pets = equips;
   pets.scrolled = AnythingDrops(state, kPetScroll);
@@ -1159,36 +1223,32 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
     for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
-      state.character.SetAbility(MaxAbilityPreset(activity, primary),
+      state.character.SetAbility(MaxAbilityPreset(activity, primary, reached),
                                  AutoswapSlotFor(activity));
     }
   }
   BuyMaxConsumables(state);
 }
 
-// The rest of a max account: a max character at the top of every other job
-// line, at the played character's level, so the roster provides the account's
-// link skills. Built before the played character, who is then the only one
-// never converted to and from a proto. Unless `playable`, each is only the job
-// and level the link tally reads.
-void SeedMaxRoster(GameState& state, Job played_line, int level,
+// The rest of a max account: the alts in `account` past its first member, the
+// main, so the roster provides the account's link skills. Built before the
+// main, who is then the only one never converted to and from a proto. Unless
+// `playable`, each is only the job and level the link tally reads.
+void SeedMaxRoster(GameState& state, const std::vector<MaxMember>& account,
                    bool playable) {
   const int64_t now = static_cast<int64_t>(std::time(nullptr));
   state.inactive_characters.clear();
-  for (Job job : EveryFourthJob()) {
-    if (LineOf(job) == played_line) {
-      continue;
-    }
+  for (size_t i = 1; i < account.size(); ++i) {
+    const MaxMember& alt = account[i];
     if (!playable) {
       Character& bare =
           *state.inactive_characters.emplace_back().mutable_character();
-      bare.set_job(JobForAdvancement(CeilingAdvancementFor(job, level)));
-      bare.set_level(level);
+      bare.set_job(JobForAdvancement(alt.advancement));
+      bare.set_level(alt.level);
       continue;
     }
     ResetToBeginner(state);
-    MaxOneCharacter(state, CeilingAdvancementFor(job, level), level,
-                    CeilingTally(LineOf(job), level));
+    MaxOneCharacter(state, alt.advancement, alt.level, MaxTally(account, alt));
     CharacterSave& slot = state.inactive_characters.emplace_back();
     *slot.mutable_character() = state.character.ToProto();
     slot.set_current_map(kHomeMap);
@@ -1221,9 +1281,13 @@ void SeedMax(GameState& state, const TestOptions& options) {
   const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
   const Job played_line = LineOf(JobForAdvancement(advancement));
 
-  SeedMaxRoster(state, played_line, level, options.playable_roster);
+  std::vector<MaxMember> account = {{advancement, level}};
+  for (const MaxMember& alt : MaxAltMembers(played_line, level)) {
+    account.push_back(alt);
+  }
+  SeedMaxRoster(state, account, options.playable_roster);
   ResetToBeginner(state);
-  MaxOneCharacter(state, advancement, level, CeilingTally(played_line, level));
+  MaxOneCharacter(state, advancement, level, MaxTally(account, account[0]));
   // Recompute the tally from the roster: from now on the account provides it,
   // and removing a slot changes it.
   state.MirrorAccount();

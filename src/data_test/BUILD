@@ -36,6 +36,7 @@ cc_test(
     ],
     deps = [
         "//src:spawn",
+        "//src/character:max_character",
         "//src/character:sacred_power",
         "//src/character:symbol",
         "//src/combat:arena_spots",
@@ -97,6 +98,7 @@ cc_test(
         "//src:proto_loader",
         "//src/character",
         "//src/character:exp_table",
+        "//src/character:max_character",
         "//src/character:v_matrix",
         "//src/item",
         "//src/item:equip_instance",

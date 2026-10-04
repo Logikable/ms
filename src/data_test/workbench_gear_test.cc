@@ -11,6 +11,7 @@
 
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/max_character.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -321,6 +322,26 @@ TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
   // it stops it.
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT_V).character.proto().level(),
             kTrialLevelCap);
+}
+
+// Max mode's outfit names catalog keys and set families by hand, so every
+// piece it would put on any 4th job at any level must exist and be wearable by
+// then.
+TEST_F(WorkbenchGearTest, MaxModesOutfitIsInTheCatalogForEveryJob) {
+  for (JobAdvancement advancement : EveryAdvancement()) {
+    if (StageForAdvancement(advancement) != 4) {
+      continue;
+    }
+    const Job job = JobForAdvancement(advancement);
+    for (int level : {100, 140, 170, 200, 230, 260}) {
+      for (const std::string& key : MaxOutfit(job, level)) {
+        SCOPED_TRACE(Job_Name(job) + " at " + std::to_string(level));
+        auto found = equips_.find(key);
+        ASSERT_NE(found, equips_.end()) << key;
+        EXPECT_LE(found->second.required_level(), level) << key;
+      }
+    }
+  }
 }
 
 }  // namespace

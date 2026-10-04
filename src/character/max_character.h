@@ -6,15 +6,18 @@
  * job: the point of the mode is to measure fights against a known character,
  * not to find each job's optimum.
  *
- * The stars, hammers and potentials are what //analysis:progression_sim's
- * sweep wore at each level, read toward its better half, so a max character is
- * a rich player, not an impossible one.
+ * Everything here is what //analysis:progression_sim's sweep had on reaching
+ * each level -- the gear, stars, hammers, potentials, symbols, boss clears,
+ * alts, V Matrix and Inner Ability -- read toward its better half (the fifth
+ * of ten branches from the top), so a max character is a rich player, not an
+ * impossible one. A level between two of its checkpoints takes the one below.
  */
 #ifndef MS_SRC_CHARACTER_MAX_CHARACTER_H_
 #define MS_SRC_CHARACTER_MAX_CHARACTER_H_
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/item/flame.h"
@@ -32,9 +35,10 @@ namespace ms {
 // each item's own limit for its level, so a low-level item in a high-level
 // outfit gets what it can, not what was asked for.
 struct MaxGear {
-  // Both Golden Hammers used, which adds two upgrade slots. Every upgrade slot
-  // is then scrolled.
-  bool hammered = false;
+  // The slots whose piece has both Golden Hammers used, adding two upgrade
+  // slots, ending at the first EQUIP_SLOT_UNSPECIFIED. Every upgrade slot is
+  // then scrolled.
+  EquipSlot hammered[5] = {};
   int stars = 0;
   // The weapon's stars, set separately: it is starred first, but past 15 it
   // falls behind, having no spare copy to recover a boom with.
@@ -46,6 +50,10 @@ struct MaxGear {
 
 // The gear a character at `level` has paid for.
 MaxGear MaxGearForLevel(int level);
+
+// The catalog keys a max character of `level` wears over their job's own
+// weapon, secondary and ammunition, in the order to put them on.
+std::vector<std::string> MaxOutfit(Job job, int level);
 
 // The level of the symbol in `slot` a max character of `level` wears, or 0 for
 // one they don't hold yet.
@@ -99,9 +107,23 @@ void WearMaxSoul(CharacterInstance& character,
                  const std::map<std::string, Mob>& mobs,
                  const std::map<std::string, ItemPrototype>& items);
 
-// The three Inner Ability lines each preset has: one Legendary line on top and
-// two Epic ones below, which is what the honor from leveling can reach.
-AbilityPreset MaxAbilityPreset(Activity preset, StatField primary);
+// The level by which a max character has first beaten `boss` on `difficulty`
+// alone, or 0 for a fight they haven't.
+int MaxClearLevel(const std::string& boss, const std::string& difficulty);
+
+// The alts a max account of `level` has levelled for their link skills: each
+// one's line, named by its 2nd job, and level. None is on `played_line`.
+struct MaxAlt {
+  Job line = JOB_UNSPECIFIED;
+  int level = 0;
+};
+std::vector<MaxAlt> MaxAlts(Job played_line, int level);
+
+// The level a max character of `level` has bought `node` to.
+int MaxMatrixLevel(const Skill& node, int level);
+
+// The three Inner Ability lines `preset` has at `level`.
+AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level);
 
 }  // namespace ms
 

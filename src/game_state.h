@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <random>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -61,6 +62,8 @@ struct GearSetup {
   // Stars for the weapon alone, which max mode sets apart from the rest. Zero
   // uses `stars` like everything else.
   int weapon_stars = 0;
+  // Hammered as `hammered` says, but only the pieces in these slots.
+  std::set<EquipSlot> hammered_slots;
 };
 
 // What the workbench does with its current job's book, as --skills says.

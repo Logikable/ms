@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -37,6 +38,23 @@ std::vector<std::string> ArcaneUmbraArmour(Job job);
 
 // The Arcane Umbra weapon, on the same line choice as AbsoLab's.
 std::string ArcaneUmbraWeapon(Job job);
+
+// The branch's Cygnus shoulder, sold on the shop's Equips shelf.
+std::string CygnusShoulder(Job job);
+
+// A family of per-class pieces, for a table that names the family and the slot
+// instead of each job's item.
+enum class SetFamily {
+  kRootAbyss,   // hat, top, bottom and the Fafnir weapon
+  kPrincessNo,  // the secondary
+  kAbsoLab,
+  kArcaneUmbra,
+  kCygnus,  // the shoulder
+};
+
+// `job`'s piece of `family` in `slot`, or "" for a slot the family has none
+// in.
+std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job);
 
 }  // namespace ms
 

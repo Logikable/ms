@@ -3,16 +3,20 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <iterator>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/inner_ability.h"
 #include "src/character/stat_preset.h"
 #include "src/item/flame.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -34,38 +38,134 @@ int LinesOf(const Potential& potential, PotentialLineType type) {
   return found;
 }
 
-// The bands only improve: nothing is removed as the level rises.
+bool Hammered(const MaxGear& gear, EquipSlot slot) {
+  return std::find(std::begin(gear.hammered), std::end(gear.hammered), slot) !=
+         std::end(gear.hammered);
+}
+
+// Stars and cubes only improve as the level rises. The weapon's stars may
+// drop, since a new weapon tier arrives with fewer, and a hammer goes with the
+// piece it was used on; the weapon, once hammered, always is.
 TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
-  EXPECT_FALSE(MaxGearForLevel(140).hammered);
-  EXPECT_EQ(MaxGearForLevel(140).stars, 10);
+  EXPECT_FALSE(Hammered(MaxGearForLevel(140), EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(MaxGearForLevel(140).stars, 8);
   EXPECT_EQ(MaxGearForLevel(140).weapon_stars, 14);
   EXPECT_EQ(MaxGearForLevel(140).potential_level, 0);
 
-  EXPECT_TRUE(MaxGearForLevel(200).hammered);
-  EXPECT_EQ(MaxGearForLevel(200).stars, 12);
-  EXPECT_EQ(MaxGearForLevel(200).weapon_stars, 14);
-  EXPECT_EQ(MaxGearForLevel(200).potential_level, 0);
-  EXPECT_EQ(MaxGearForLevel(230).stars, 12);
-  EXPECT_EQ(MaxGearForLevel(260).stars, 17);
-  EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 15);
+  const MaxGear at200 = MaxGearForLevel(200);
+  EXPECT_TRUE(Hammered(at200, EQUIP_SLOT_SHOULDER));
+  EXPECT_FALSE(Hammered(at200, EQUIP_SLOT_HAT));
+  EXPECT_EQ(at200.stars, 10);
+  EXPECT_EQ(at200.potential_level, 0);
+  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
+  EXPECT_FALSE(Hammered(MaxGearForLevel(260), EQUIP_SLOT_SHOES));
+  EXPECT_EQ(MaxGearForLevel(260).stars, 11);
+  EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 14);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
 
   int last_stars = 0;
-  int last_weapon_stars = 0;
   int last_potentials = 0;
-  bool last_hammered = false;
+  bool weapon_hammered = false;
   for (int level = 1; level <= 260; ++level) {
     const MaxGear gear = MaxGearForLevel(level);
     EXPECT_GE(gear.stars, last_stars) << "at level " << level;
-    EXPECT_GE(gear.weapon_stars, last_weapon_stars) << "at level " << level;
-    EXPECT_TRUE(gear.hammered || !last_hammered) << "at level " << level;
     EXPECT_GE(gear.potential_level, last_potentials) << "at level " << level;
+    EXPECT_TRUE(Hammered(gear, EQUIP_SLOT_PRIMARY_WEAPON) || !weapon_hammered)
+        << "at level " << level;
     last_stars = gear.stars;
-    last_weapon_stars = gear.weapon_stars;
-    last_hammered = gear.hammered;
     last_potentials = gear.potential_level;
+    weapon_hammered = Hammered(gear, EQUIP_SLOT_PRIMARY_WEAPON);
   }
+}
+
+// Each job wears its own piece of a set, every slot holds one piece, and a
+// level between checkpoints wears the one below.
+TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
+  auto wears = [](Job job, int level, const std::string& key) {
+    const std::vector<std::string> keys = MaxOutfit(job, level);
+    return std::find(keys.begin(), keys.end(), key) != keys.end();
+  };
+  EXPECT_TRUE(MaxOutfit(JOB_HERO, 99).empty());
+  EXPECT_TRUE(wears(JOB_HERO, 100, "frozen_hat"));
+  EXPECT_FALSE(wears(JOB_HERO, 100, "lightning_god_ring"));
+  EXPECT_TRUE(wears(JOB_HERO, 229, "frozen_hat"));
+  EXPECT_TRUE(wears(JOB_HERO, 230, "royal_warrior_helm"));
+  EXPECT_TRUE(wears(JOB_BISHOP, 230, "royal_dunwitch_hat"));
+  EXPECT_TRUE(wears(JOB_HERO, 230, "absolab_broad_axe"));
+  EXPECT_TRUE(wears(JOB_BISHOP, 230, "absolab_spellsong_staff"));
+  EXPECT_TRUE(wears(JOB_NIGHT_LORD, 230, "princess_nos_charm"));
+  EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "falcon_wing_sentinel_shoulder"));
+  EXPECT_TRUE(wears(JOB_SHADOWER, 260, "absolab_bandit_shoulder"));
+  EXPECT_TRUE(wears(JOB_HERO, 260, "guardian_angel_ring"));
+  EXPECT_FALSE(wears(JOB_HERO, 260, "lightning_god_ring"));
+  for (Job job : {JOB_HERO, JOB_BISHOP, JOB_BOW_MASTER, JOB_NIGHT_LORD}) {
+    for (int level : {100, 140, 170, 200, 230, 260}) {
+      const std::vector<std::string> keys = MaxOutfit(job, level);
+      std::vector<std::string> sorted = keys;
+      std::sort(sorted.begin(), sorted.end());
+      EXPECT_EQ(std::adjacent_find(sorted.begin(), sorted.end()), sorted.end())
+          << Job_Name(job) << " at " << level;
+    }
+  }
+}
+
+// Fights fall when the sweep first beat them, which for the hardest is long
+// after they open; a fight it never named never falls.
+TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
+  EXPECT_EQ(MaxClearLevel("zakum", "Normal"), 110);
+  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 255);
+  EXPECT_EQ(MaxClearLevel("zakum", "Hard"), 0);
+  EXPECT_EQ(MaxClearLevel("wall", ""), 0);
+}
+
+// Three alts at 70 from 230, five at 120 at 260, never on the main's line.
+TEST(MaxCharacterTest, AltsComeLateAndSkipTheMainsLine) {
+  EXPECT_TRUE(MaxAlts(JOB_FIGHTER, 229).empty());
+  const std::vector<MaxAlt> at230 = MaxAlts(JOB_FIGHTER, 230);
+  ASSERT_EQ(at230.size(), 3u);
+  EXPECT_EQ(at230[0].line, JOB_CROSSBOWMAN);
+  EXPECT_EQ(at230[0].level, 70);
+  const std::vector<MaxAlt> marksman = MaxAlts(JOB_CROSSBOWMAN, 260);
+  ASSERT_EQ(marksman.size(), 5u);
+  for (const MaxAlt& alt : marksman) {
+    EXPECT_NE(alt.line, JOB_CROSSBOWMAN);
+    EXPECT_EQ(alt.level, 120);
+  }
+}
+
+Skill Node(VNodeKind kind, int max_level) {
+  Skill node;
+  node.set_v_node(kind);
+  node.set_max_level(max_level);
+  return node;
+}
+
+// Nothing at 200, the sweep's share of each kind at 230, all of it at 260.
+TEST(MaxCharacterTest, TheMatrixFillsByKind) {
+  const Skill job = Node(V_NODE_KIND_JOB, 30);
+  const Skill boost = Node(V_NODE_KIND_BOOST, 60);
+  const Skill common = Node(V_NODE_KIND_COMMON, 30);
+  EXPECT_EQ(MaxMatrixLevel(boost, 200), 0);
+  EXPECT_EQ(MaxMatrixLevel(job, 230), 20);
+  EXPECT_EQ(MaxMatrixLevel(boost, 230), 40);
+  EXPECT_EQ(MaxMatrixLevel(Node(V_NODE_KIND_ARCHETYPE, 30), 230), 12);
+  EXPECT_EQ(MaxMatrixLevel(common, 230), 6);
+  EXPECT_EQ(MaxMatrixLevel(common, 260), 30);
+}
+
+// Farming stays on the Rare preset a character starts with; bossing reaches
+// Legendary at 170.
+TEST(MaxCharacterTest, OnlyBossingAbilityClimbs) {
+  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 260).rank(),
+            ABILITY_RANK_RARE);
+  EXPECT_EQ(MaxAbilityPreset(Activity::kBossing, STAT_FIELD_STR, 169).rank(),
+            ABILITY_RANK_RARE);
+  const AbilityPreset boss =
+      MaxAbilityPreset(Activity::kBossing, STAT_FIELD_INT, 170);
+  EXPECT_EQ(boss.rank(), ABILITY_RANK_LEGENDARY);
+  ASSERT_EQ(boss.lines_size(), kAbilityLines);
+  EXPECT_EQ(boss.lines(1).type(), ABILITY_LINE_TYPE_MAGIC_ATTACK);
 }
 
 // No symbol before the level-200 reward, none from Grandis, and no symbol ever
@@ -74,7 +174,7 @@ TEST(MaxCharacterTest, SymbolsClimbWithTheLevel) {
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 199), 0);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 200), 1);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_MORASS, 230), 0);
-  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 11);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 13);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 260), 0);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_HAT, 260), 0);
   for (int slot = EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
@@ -135,8 +235,9 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
 
   const Potential ring = MaxPotentialFor(EQUIP_SLOT_RING, gear, STAT_FIELD_LUK,
                                          PotentialTrack::kBonus);
-  EXPECT_EQ(ring.rank(), POTENTIAL_RANK_EPIC);
-  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 3);
+  EXPECT_EQ(ring.rank(), POTENTIAL_RANK_RARE);
+  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 2);
+  EXPECT_EQ(ring.lines(2).rank(), POTENTIAL_RANK_RARE);
 }
 
 // The weapon and secondary hold boss damage and ignored defence; bonus

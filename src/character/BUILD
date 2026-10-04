@@ -589,6 +589,7 @@ cc_library(
     deps = [
         ":job_branch",
         "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
     ],
 )
 
@@ -604,6 +605,7 @@ cc_library(
         ":inner_ability",
         ":job_branch",
         ":noblesse_plan",
+        ":set_pieces",
         ":stat_preset",
         "//src/combat:damage",
         "//src/item",
@@ -625,11 +627,13 @@ cc_test(
     deps = [
         ":character",
         ":hyper_stats",
+        ":inner_ability",
         ":max_character",
         "//src/item:flame",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
