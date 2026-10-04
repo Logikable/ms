@@ -38,6 +38,8 @@ constexpr char kEquippedTitle[] = " Equipped ";
 // cursor moves between items. The equip body sets its own width from its
 // columns.
 constexpr int kStackableWidth = 44;
+// Inside the borders and a blank column on each side.
+constexpr int kStackableTextWidth = kStackableWidth - 4;
 
 // kEquipCardWidth less the borders and the bar's column.
 constexpr int kEquipContentWidth = kEquipCardWidth - 3;
@@ -413,10 +415,9 @@ ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
                                         const EquipTabItem* item,
                                         const std::string& title, bool focused,
                                         bool stats_in_head) const {
-  // The stackable body is a paragraph, which wraps to as many lines as needed
-  // and so can't be cut into a scrolling window. It is at most two lines and
-  // never outgrows a terminal. Only the inspected item is ever stackable:
-  // nothing stackable is worn, so nothing is compared against one.
+  // The stackable body is a few wrapped lines, never more than a terminal
+  // holds, so it needs no scrolling window. Only the inspected item is ever
+  // stackable: nothing stackable is worn, so nothing is compared against one.
   if (item == item_ && stackable_ != nullptr) {
     return ThemedWindow(title, RenderStackable(), focused) |
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
@@ -676,15 +677,14 @@ ftxui::Element InspectPanel::RenderStackable() const {
   if (stackable_->description().empty()) {
     description = CenteredRow(EmptyState("no description", /*gutter=*/0));
   } else {
-    // paragraph wraps on spaces, so a description longer than the window
-    // continues on another line instead of running off the edge. Spaced from
-    // both borders by hand, since every other row includes its gutter in its
-    // string and a paragraph has no string to put it in.
-    description = ftxui::hbox({
-        ftxui::text(" "),
-        ftxui::paragraph(stackable_->description()),
-        ftxui::text(" "),
-    });
+    // Wrapped here rather than by ftxui::paragraph, which can hand a line the
+    // column meant for the right gutter and set its last letter on the border.
+    std::vector<ftxui::Element> lines;
+    for (const std::string& line :
+         WrapBalanced(stackable_->description(), kStackableTextWidth)) {
+      lines.push_back(ftxui::text(" " + line + " "));
+    }
+    description = ftxui::vbox(std::move(lines));
   }
   return ftxui::vbox({
       CenteredRow(stackable_->name()),

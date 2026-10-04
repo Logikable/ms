@@ -606,6 +606,31 @@ TEST_F(InspectPanelTest, EveryStackableIsTheSameWidth) {
             ftxui::Screen::Create(ftxui::Dimension::Fit(wide)).dimx());
 }
 
+// Every line keeps a blank column on both sides, even one that would fill the
+// window if wrapped greedily: "...small enough to tuck" is 41 columns.
+TEST_F(InspectPanelTest, ADescriptionStandsOffBothBorders) {
+  ItemPrototype item = MakeStackable(
+      "Blue Cloth", "A blue cloth, folded small enough to tuck away.");
+  InspectPanel panel;
+  panel.SetItem(&item);
+  ftxui::Element element = panel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fit(element));
+  ftxui::Render(screen, element);
+  // A cell nothing was drawn in is empty, and shows as blank all the same.
+  auto blank = [&screen](int x, int y) {
+    const std::string& c = screen.PixelAt(x, y).character;
+    return c.empty() || c == " ";
+  };
+  int text_rows = 0;
+  for (int y = 3; y < screen.dimy() - 1; ++y) {
+    EXPECT_TRUE(blank(1, y)) << "row " << y;
+    EXPECT_TRUE(blank(screen.dimx() - 2, y)) << "row " << y;
+    ++text_rows;
+  }
+  EXPECT_EQ(text_rows, 2);
+}
+
 TEST_F(InspectPanelTest, SaysSoWhenAStackableHasNoDescription) {
   ItemPrototype item = MakeStackable("Green Snail Shell", "");
   InspectPanel panel;
