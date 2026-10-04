@@ -1933,7 +1933,7 @@ bool TuiController::OnBoxConfirmEvent(ftxui::Event event) {
   } else if (const EquipPrototype* ring = state_.character.OpenRingBox(
                  box, pick.ring_skill, state_.equips)) {
     // The level was the box's to choose, so the player is told which.
-    OpenNotice(kBoxResult, {"You got " + ring->name() + "."},
+    OpenNotice(kBoxResult, {"You received a", ring->name() + "."},
                /*refusal=*/false, "Close");
   }
   return true;

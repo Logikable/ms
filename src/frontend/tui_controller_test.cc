@@ -3037,8 +3037,9 @@ TEST_F(TuiControllerTest, ARingBoxNamesTheRingItGave) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
   ASSERT_EQ(controller_->screen(), kBoxResult);
-  ASSERT_EQ(controller_->notice_lines().size(), 1u);
-  EXPECT_EQ(controller_->notice_lines()[0], "You got Ring of Restraint Lv. 4.");
+  EXPECT_EQ(
+      controller_->notice_lines(),
+      (std::vector<std::string>{"You received a", "Ring of Restraint Lv. 4."}));
   EXPECT_EQ(state_->character.CountItem(box), 0);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
