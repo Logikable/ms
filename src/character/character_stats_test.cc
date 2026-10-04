@@ -3442,6 +3442,24 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
 }
 
+// Every source together stops at +400%, and a total under it is untouched.
+TEST_F(DerivedStatsTest, DropRateCapsAtFourHundred) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 10, 0);
+  EquipPrototype charm;
+  charm.set_name("Lucky Charm");
+  charm.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  charm.mutable_base_stats()->set_item_drop_rate(399);
+  c.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_NEAR(DerivedStatsFor(c, {}).item_drop_pct, 3.99, 1e-9);
+
+  charm.mutable_base_stats()->set_item_drop_rate(460);
+  c.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).item_drop_pct, kItemDropCap);
+}
+
 // Meso comes in the same two units, but the worn part has its own cap and the
 // granted part doesn't.
 TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {

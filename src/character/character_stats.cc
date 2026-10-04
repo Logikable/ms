@@ -1449,6 +1449,7 @@ void AddDropAndMesoRates(const CharacterInstance& character,
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
+  stats.item_drop_pct = std::min(stats.item_drop_pct, kItemDropCap);
 }
 
 // A maxed Sacred Symbol's EXP. Its boss damage waits for the boss; see

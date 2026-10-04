@@ -316,6 +316,10 @@ struct DerivedStats {
 inline constexpr double kEquipMesoSoftCap = 1.00;
 inline constexpr double kMesoHardCap = 3.00;
 
+// GMS's cap on item drop rate from every source together: +400%, five times
+// the base rate. Boss drop rates are tuned assuming late-game players reach it.
+inline constexpr double kItemDropCap = 4.00;
+
 // The character's %meso: the worn share capped at its soft cap, plus everything
 // else, with the total capped at the hard cap. meso_final_mult then multiplies
 // the result.
