@@ -201,19 +201,22 @@ std::string ItemKeyNamed(const GameState& state, const std::string& name) {
   return "";
 }
 
-// A scroll paid with an item that raises `attack` on `proto`, once something
-// drops that item; null otherwise. Every such scroll outdoes the traces on
-// its kind of equipment.
+// The biggest scroll paid with an item that raises `attack` on `proto`, once
+// something drops that item; null otherwise. Every such scroll outdoes the
+// traces on its kind of equipment.
 const Scroll* DroppedScrollFor(const GameState& state,
                                const EquipPrototype& proto, ScrollTarget target,
                                ScrollType attack) {
   std::set<int> item_categories(proto.equip_job_categories().begin(),
                                 proto.equip_job_categories().end());
+  const Scroll* best = nullptr;
+  int best_raise = 0;
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
     const Scroll& scroll = entry.second;
-    bool raises = attack == SCROLL_TYPE_MATT ? scroll.stats().magic_attack() > 0
-                                             : scroll.stats().attack() > 0;
-    if (scroll.paid_with().empty() || scroll.target() != target || !raises) {
+    const int raise = attack == SCROLL_TYPE_MATT ? scroll.stats().magic_attack()
+                                                 : scroll.stats().attack();
+    if (scroll.paid_with().empty() || scroll.target() != target ||
+        raise <= best_raise) {
       continue;
     }
     bool fits = false;
@@ -221,10 +224,11 @@ const Scroll* DroppedScrollFor(const GameState& state,
       fits = fits || item_categories.count(category) > 0;
     }
     if (fits && AnythingDrops(state, ItemKeyNamed(state, scroll.paid_with()))) {
-      return &scroll;
+      best = &scroll;
+      best_raise = raise;
     }
   }
-  return nullptr;
+  return best;
 }
 
 // The best trace of one type for `proto`, at its lowest success rate. The odds

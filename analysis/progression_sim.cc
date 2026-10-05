@@ -436,6 +436,8 @@ struct Ledger {
   GearSpend gear;           // scrolls, stars, cubes, replacements
   BuffSpend buffs;          // per second, per fight, and permanent unlocks
   int64_t alt_meso = 0;     // what alts kept on the way up, handed over
+  int boxes_opened = 0;     // AbsoLab, Arcane Umbra, pick and ring boxes
+  int dropped_scrolls = 0;  // scrolls paid for with a boss drop
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears + alt_meso;
@@ -641,6 +643,19 @@ struct MapChoice {
 
 // One line per slot with just the item's name. Both decisions below re-run on
 // this: a different item counts as a change, a star on the same item doesn't.
+// The Special Skill Rings boss fights wear, as "Ring of Restraint Lv. 4,
+// Continuous Ring Lv. 3", or "none".
+std::string SkillRingsWorn(const CharacterInstance& character) {
+  std::string rings;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       character.equipped(kBossGear)) {
+    if (worn.second->prototype().has_equipment_skill()) {
+      rings += (rings.empty() ? "" : ", ") + worn.second->name();
+    }
+  }
+  return rings.empty() ? "none" : rings;
+}
+
 std::string WornNames(const GameState& state) {
   std::string worn;
   for (StatPreset gear : {kFarmGear, kBossGear}) {
@@ -734,7 +749,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
             PlanKey& planned, ToggleChoice& toggles, MatrixChoice& matrix,
-            MapChoice& mapped, Ledger& ledger) {
+            MapChoice& mapped, Ledger& ledger, std::string* ring_memo) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -751,6 +766,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   SpendPoints(state.character);
   ledger.etc_sales += SellDrops(state.character);
   purse.Note(state.character);
+  ledger.boxes_opened += OpenBoxes(state);
   // Wear dropped gear before buying, so the weapon measurement sees the rest of
   // the outfit. Spare symbols are absorbed at the same time to free bag rows.
   WearBestFromBag(state.character);
@@ -768,6 +784,9 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   Outfit(state, /*budget=*/true, scout.settled);
   ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - state.character.meso());
+  WearSkillRings(
+      state, [&shopper](GameState& inner) { return shopper.Power(inner); },
+      ring_memo);
   // Plan the book after the weapon, since a point's value depends on the weapon
   // in hand. Only replan when the PlanKey changed.
   if (!(PlanKeyFor(state) == planned)) {
@@ -794,7 +813,9 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // stored and replan regardless.
   planned = PlanKeyFor(state);
   // After the weapon, because scrolling last tier's weapon wastes meso: the
-  // next weapon replaces it, slots and stars included.
+  // next weapon replaces it, slots and stars included. Dropped scrolls first,
+  // so a trace doesn't take a slot one of them would fill for free.
+  ledger.dropped_scrolls += UseDroppedScrolls(state);
   shopper.Spend(state);
   purse.Note(state.character);
   std::string worn = WornNames(state);
@@ -962,6 +983,8 @@ struct Climb {
   // "Lucid BOSS_DAMAGE" ("none" for no soul).
   int souls = 0;
   std::string soul = "none";
+  // The Special Skill Rings boss fights end on, as "Restraint 4, Continuous 3".
+  std::string rings = "none";
   // Total meso paid over the whole run and meso held at the end: the two ends
   // of the ledger below.
   int64_t endgame_earned_total = 0;
@@ -1423,6 +1446,8 @@ struct Session {
   double next_alt_look = 0.0;
   // Where the climb stops: the cap, or the last link rung for an alt.
   int stop_level = kTrialLevelCap;
+  // The Special Skill Rings last weighed; see WearSkillRings.
+  std::string ring_memo;
 };
 
 // Converts the --buffs flag to a BuffMode.
@@ -2172,7 +2197,7 @@ void Restock(Session& run) {
   ClaimDailySymbols(run);
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
-         run.matrix, run.mapped, run.climb.ledger);
+         run.matrix, run.mapped, run.climb.ledger, &run.ring_memo);
   SpendNoblessePoints(run);
   SpendHyperPoints(run);
   SpendHonor(run);
@@ -2579,6 +2604,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   climb.potentials_at.push_back(std::move(end));
   climb.booms = run.shopper.life().booms;
   climb.souls = run.shopper.life().souls;
+  climb.rings = SkillRingsWorn(state.character);
   if (const EquipInstance* weapon =
           state.character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)) {
     const Soul& soul = weapon->equip_state().soul();
@@ -3934,6 +3960,10 @@ void PrintTargets(const std::vector<Job>& branches,
               : static_cast<double>(typical.endgame_stars_worn) /
                     typical.endgame_pieces,
           typical.booms, typical.souls, typical.soul.c_str());
+      std::printf(
+          "  %-46s %d boxes opened, %d dropped scrolls used, rings: %s\n",
+          "  from boss boxes", typical.ledger.boxes_opened,
+          typical.ledger.dropped_scrolls, typical.rings.c_str());
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

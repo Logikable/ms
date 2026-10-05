@@ -392,8 +392,10 @@ class CharacterInstance {
   // Moves the item at `inventory_index` into the slot SlotToFill picks, and the
   // item it replaces goes into the bag. `preset` is the setup it goes into. For
   // any preset but the first, the item becomes that preset's own and the others
-  // are unchanged.
-  bool Equip(int inventory_index, StatPreset preset = StatPreset::kFirst);
+  // are unchanged. `slot` puts it in that slot of its family instead, as a
+  // player drags a ring onto the one it replaces.
+  bool Equip(int inventory_index, StatPreset preset = StatPreset::kFirst,
+             std::optional<EquipSlot> slot = std::nullopt);
   // The slot this item would go in: the slot where a copy of the same item is
   // already worn, otherwise the first free slot of its family, otherwise the
   // first slot of the family. A second copy replaces the first because in GMS

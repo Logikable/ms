@@ -5,6 +5,7 @@
 #ifndef MS_ANALYSIS_SIM_GEAR_H_
 #define MS_ANALYSIS_SIM_GEAR_H_
 
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -69,7 +70,8 @@ int CollectSymbols(CharacterInstance& character);
 // sim asking whether a fight can be won without the gear only that fight drops.
 void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 
-// Wears the best items from the bag in the slots the shop doesn't stock. A
+// Wears the best items from the bag in the slots the shop doesn't stock, all
+// but Special Skill Rings (see WearSkillRings). A
 // piece goes on when its slot is empty or it outranks what is there, so a
 // second copy never replaces a first that has scrolls and stars.
 //
@@ -101,6 +103,27 @@ void FullyUpgrade(GameState& state, int star_cap = kMaxStarForce);
 // Restores the character, so it wears and buys nothing.
 std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate);
+
+// Opens every box in the bag for what helps most, as a player would: from a
+// token box, the piece not yet owned in the slot it raises most (a weapon only
+// of the type in hand); from a pick box, the piece richest in the main stat;
+// from a ring box, the ring held at the lower level, Continuous on a tie since
+// it has a slot of its own. A box with nothing left to give stays shut. Returns
+// how many were opened.
+int OpenBoxes(GameState& state);
+
+// Wears the best Special Skill Rings held. The best Continuous Ring goes in its
+// slot. The best Ring of Restraint goes on for boss fights in place of the ring
+// it beats by most, judged by `power`, since Combat Power leaves out its buff;
+// `memo` holds the rings last judged, so the same question isn't measured
+// again.
+void WearSkillRings(GameState& state,
+                    const std::function<double(GameState&)>& power,
+                    std::string* memo);
+
+// Spends the scrolls bosses drop on open upgrade slots of what boss fights
+// wear, the biggest first. Returns how many were used.
+int UseDroppedScrolls(GameState& state);
 
 }  // namespace ms
 

@@ -1,6 +1,7 @@
 #include "analysis/sim_gear.h"
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -16,6 +17,7 @@
 #include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/item/projectile.h"
+#include "src/item/ring_box.h"
 #include "src/item/shop.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -92,6 +94,17 @@ std::vector<std::string> SecondaryShelf(const GameState& state) {
   return keys;
 }
 
+// Whether an unworn copy of `name` sits in the bag, as a box leaves one.
+bool HeldInBag(const CharacterInstance& character, const std::string& name) {
+  const InventoryInstance& bag = character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    if (!bag[i].is_trace() && bag[i].prototype().name() == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // The first of `proto`'s token prices the character can pay, or null when
 // they can pay none of them.
 const TokenPrice* PayablePrice(const GameState& state,
@@ -113,11 +126,17 @@ bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
   if (proto.token_prices().empty()) {
     return proto.shop_price() <= state.character.meso();
   }
-  return PayablePrice(state, proto) != nullptr;
+  return PayablePrice(state, proto) != nullptr ||
+         HeldInBag(state.character, proto.name());
 }
 
-// Buys one `proto` in whichever currency it's priced in.
+// Buys one `proto` in whichever currency it's priced in. A token piece a box
+// already gave costs nothing more.
 bool BuyOne(GameState& state, const EquipPrototype& proto) {
+  if (!proto.token_prices().empty() &&
+      HeldInBag(state.character, proto.name())) {
+    return true;
+  }
   if (proto.token_prices().empty()) {
     return state.character.Buy(proto, 1);
   }
@@ -640,7 +659,8 @@ void WearBestFromBag(CharacterInstance& character) {
       const EquipPrototype& proto = bag[i].prototype();
       const StatPreset gear =
           presets && SplitsFarmGear(proto.equip_slot()) ? kBossGear : kFarmGear;
-      if (bag[i].is_trace() || Shopped(proto) ||
+      // A skill ring outranks nothing by level; WearSkillRings judges it.
+      if (bag[i].is_trace() || Shopped(proto) || proto.has_equipment_skill() ||
           !ReachedSymbolArea(character, proto) || !character.CanEquip(proto) ||
           WearsCopyOf(character, gear, proto)) {
         continue;
@@ -650,6 +670,12 @@ void WearBestFromBag(CharacterInstance& character) {
       if (worn != character.equipped(gear).end() &&
           worn->second->prototype().required_level() >=
               proto.required_level()) {
+        continue;
+      }
+      const EquipInstance* displaced =
+          character.WornAt(gear, character.SlotToFill(proto, gear));
+      if (displaced != nullptr &&
+          displaced->prototype().has_equipment_skill()) {
         continue;
       }
       if (character.Equip(i, gear)) {
@@ -762,6 +788,303 @@ void Outfit(GameState& state, bool budget, EquipType settled) {
     WearCopy(state.character, *off_hand);
   }
   BuyAccessories(state, budget);
+}
+
+namespace {
+
+// Whether the character owns `name`, worn in either preset or in the bag.
+bool Owns(const CharacterInstance& character, const std::string& name) {
+  return character.IsWearing(name, kFarmGear) ||
+         character.IsWearing(name, kBossGear) || HeldInBag(character, name);
+}
+
+int MainStatOf(const EquipStats& stats, StatField field) {
+  switch (field) {
+    case STAT_FIELD_STR:
+      return stats.str();
+    case STAT_FIELD_DEX:
+      return stats.dex();
+    case STAT_FIELD_INT:
+      return stats.int_();
+    case STAT_FIELD_LUK:
+      return stats.luk();
+    default:
+      return 0;
+  }
+}
+
+// The piece to take from a token or pick box, or null when it holds nothing
+// the character lacks.
+const EquipPrototype* BoxPick(const GameState& state,
+                              const ItemPrototype& box) {
+  const CharacterInstance& character = state.character;
+  std::vector<const EquipPrototype*> offered;
+  for (const std::string& key : BoxStock(box, state.equips)) {
+    const EquipPrototype& piece = state.equips.at(key);
+    if (character.MeetsJob(piece)) {
+      offered.push_back(&piece);
+    }
+  }
+  const EquipPrototype* best = nullptr;
+  if (box.has_pick_box()) {
+    // One slot, so owning any of them leaves nothing to gain.
+    const StatField main = PrimaryStatField(character.proto().job());
+    for (const EquipPrototype* piece : offered) {
+      if (Owns(character, piece->name())) {
+        return nullptr;
+      }
+      if (best == nullptr || MainStatOf(piece->base_stats(), main) >
+                                 MainStatOf(best->base_stats(), main)) {
+        best = piece;
+      }
+    }
+    return best;
+  }
+  int lowest = 0;
+  for (const EquipPrototype* piece : offered) {
+    if (Owns(character, piece->name())) {
+      continue;
+    }
+    const EquipInstance* worn =
+        character.WornAt(kFarmGear, piece->equip_slot());
+    if (piece->equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON &&
+        (worn == nullptr ||
+         worn->prototype().equip_type() != piece->equip_type())) {
+      continue;
+    }
+    const int tier = worn == nullptr ? 0 : worn->prototype().required_level();
+    if (best == nullptr || tier < lowest) {
+      best = piece;
+      lowest = tier;
+    }
+  }
+  return best;
+}
+
+// The best level of `skill`'s ring the character holds anywhere, or 0.
+int HeldRingLevel(const CharacterInstance& character,
+                  const std::string& skill) {
+  int level = 0;
+  auto consider = [&](const EquipPrototype& proto) {
+    if (proto.has_equipment_skill() &&
+        proto.equipment_skill().skill() == skill) {
+      level = std::max(level, proto.equipment_skill().level());
+    }
+  };
+  for (StatPreset gear : {kFarmGear, kBossGear}) {
+    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+         character.equipped(gear)) {
+      consider(worn.second->prototype());
+    }
+  }
+  const InventoryInstance& bag = character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    if (!bag[i].is_trace()) {
+      consider(bag[i].prototype());
+    }
+  }
+  return level;
+}
+
+// The ring to ask a ring box for, or "" when no roll could beat what is held.
+std::string RingPick(const GameState& state, const RingBox& box) {
+  int top = 0;
+  for (const RingBox::LevelChance& chance : box.levels()) {
+    top = std::max(top, chance.level());
+  }
+  std::string best;
+  int lowest = top;
+  bool own_slot = false;
+  for (const std::string& skill : box.skills()) {
+    const EquipPrototype* ring = RingAt(skill, top, state.equips);
+    if (ring == nullptr) {
+      continue;
+    }
+    const int held = HeldRingLevel(state.character, skill);
+    const bool alone = ring->equip_slot() != EQUIP_SLOT_RING;
+    if (held < lowest ||
+        (held == lowest && !best.empty() && alone && !own_slot)) {
+      best = skill;
+      lowest = held;
+      own_slot = alone;
+    }
+  }
+  return best;
+}
+
+// Index in the bag of the best ring of `skill` there, or -1.
+int BestRingInBag(const CharacterInstance& character,
+                  const std::string& skill) {
+  int index = -1;
+  int level = 0;
+  const InventoryInstance& bag = character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    const EquipPrototype& proto = bag[i].prototype();
+    if (!bag[i].is_trace() && proto.has_equipment_skill() &&
+        proto.equipment_skill().skill() == skill &&
+        proto.equipment_skill().level() > level) {
+      index = i;
+      level = proto.equipment_skill().level();
+    }
+  }
+  return index;
+}
+
+// Level of the ring of `skill` that `gear` wears, or 0.
+int WornRingLevel(const CharacterInstance& character, StatPreset gear,
+                  const std::string& skill) {
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       character.equipped(gear)) {
+    const EquipPrototype& proto = worn.second->prototype();
+    if (proto.has_equipment_skill() &&
+        proto.equipment_skill().skill() == skill) {
+      return proto.equipment_skill().level();
+    }
+  }
+  return 0;
+}
+
+constexpr char kRestraint[] = "Ring of Restraint";
+constexpr char kContinuous[] = "Continuous Ring";
+
+}  // namespace
+
+int OpenBoxes(GameState& state) {
+  int opened = 0;
+  bool again = true;
+  while (again) {
+    again = false;
+    for (const StackableItem& stack : state.character.stackables()) {
+      const ItemPrototype box = stack.prototype();
+      if (box.has_ring_box()) {
+        const std::string skill = RingPick(state, box.ring_box());
+        if (!skill.empty() &&
+            state.character.OpenRingBox(box, skill, state.equips) != nullptr) {
+          again = true;
+        }
+      } else if (box.has_box() || box.has_pick_box()) {
+        const EquipPrototype* pick = BoxPick(state, box);
+        if (pick != nullptr && state.character.OpenBox(box, *pick)) {
+          again = true;
+        }
+      }
+      if (again) {
+        ++opened;
+        break;  // opening may have emptied the stack the loop stands on
+      }
+    }
+  }
+  return opened;
+}
+
+void WearSkillRings(GameState& state,
+                    const std::function<double(GameState&)>& power,
+                    std::string* memo) {
+  CharacterInstance& character = state.character;
+  int cont = BestRingInBag(character, kContinuous);
+  if (cont >= 0 &&
+      character.inventory()[cont].prototype().equipment_skill().level() >
+          WornRingLevel(character, kFarmGear, kContinuous)) {
+    character.Equip(cont, kFarmGear);
+  }
+  const bool presets =
+      character.proto().level() >= UnlockLevel(Feature::kEquipPresets);
+  const StatPreset gear = presets ? kBossGear : kFarmGear;
+  int restraint = BestRingInBag(character, kRestraint);
+  if (restraint < 0) {
+    return;
+  }
+  const int held =
+      character.inventory()[restraint].prototype().equipment_skill().level();
+  const int worn = WornRingLevel(character, gear, kRestraint);
+  if (held <= worn) {
+    return;
+  }
+  // A better copy simply replaces the worn one, which SlotToFill finds.
+  if (worn > 0) {
+    character.Equip(restraint, gear);
+    return;
+  }
+  std::string key = std::to_string(held);
+  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_RING)) {
+    const EquipInstance* ring = character.WornAt(gear, slot);
+    key += "," + (ring == nullptr ? std::string() : ring->name());
+  }
+  if (*memo == key) {
+    return;
+  }
+  *memo = key;
+  const std::string name = character.inventory()[restraint].prototype().name();
+  const Character before = character.ToProto();
+  const double base = power(state);
+  double best = base;
+  EquipSlot best_slot = EQUIP_SLOT_UNSPECIFIED;
+  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_RING)) {
+    if (!character.Equip(BestRingInBag(character, kRestraint), gear, slot)) {
+      continue;
+    }
+    const double tried = power(state);
+    if (tried > best) {
+      best = tried;
+      best_slot = slot;
+    }
+    character.RestoreFrom(before, state.equips, state.items);
+  }
+  if (best_slot != EQUIP_SLOT_UNSPECIFIED) {
+    character.Equip(BestRingInBag(character, kRestraint), gear, best_slot);
+  }
+}
+
+int UseDroppedScrolls(GameState& state) {
+  CharacterInstance& character = state.character;
+  const bool magic =
+      PrimaryStatField(character.proto().job()) == STAT_FIELD_INT;
+  std::vector<const Scroll*> scrolls;
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    // One that raises only the other attack does this job no good.
+    const int raise =
+        magic ? scroll.stats().magic_attack() : scroll.stats().attack();
+    if (!scroll.paid_with().empty() && raise > 0) {
+      scrolls.push_back(&scroll);
+    }
+  }
+  std::sort(scrolls.begin(), scrolls.end(),
+            [magic](const Scroll* a, const Scroll* b) {
+              return (magic ? a->stats().magic_attack() : a->stats().attack()) >
+                     (magic ? b->stats().magic_attack() : b->stats().attack());
+            });
+  int used = 0;
+  for (const Scroll* scroll : scrolls) {
+    std::set<int> categories(scroll->applicable_job_categories().begin(),
+                             scroll->applicable_job_categories().end());
+    std::vector<EquipSlot> slots;
+    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+         character.equipped(kBossGear)) {
+      const EquipPrototype& proto = worn.second->prototype();
+      bool fits = false;
+      for (int category : proto.equip_job_categories()) {
+        fits = fits || categories.count(category) > 0;
+      }
+      if (fits && TargetForSlot(proto.equip_slot()) == scroll->target() &&
+          Supports(proto, UPGRADE_SCROLL)) {
+        slots.push_back(worn.first);
+      }
+    }
+    for (EquipSlot slot : slots) {
+      while (character.CountItem(scroll->paid_with()) > 0) {
+        const EquipInstance* item = character.WornAt(kBossGear, slot);
+        if (item == nullptr ||
+            item->equip_state().remaining_upgrade_slots() <= 0 ||
+            !character.SpendItem(scroll->paid_with(), 1)) {
+          break;
+        }
+        character.ScrollEquipped(slot, *scroll, kBossGear);
+        ++used;
+      }
+    }
+  }
+  return used;
 }
 
 }  // namespace ms

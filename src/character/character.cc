@@ -2780,12 +2780,21 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
   return family.front();
 }
 
-bool CharacterInstance::Equip(int inventory_index, StatPreset preset) {
+bool CharacterInstance::Equip(int inventory_index, StatPreset preset,
+                              std::optional<EquipSlot> slot_override) {
   EquipInstance* raw = inventory_.equip_instance(inventory_index);
   if (raw == nullptr) {
     return false;
   }
   EquipSlot slot = SlotToFill(raw->prototype(), preset);
+  if (slot_override.has_value()) {
+    std::vector<EquipSlot> family = SlotFamily(raw->prototype().equip_slot());
+    if (std::find(family.begin(), family.end(), *slot_override) ==
+        family.end()) {
+      return false;
+    }
+    slot = *slot_override;
+  }
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
