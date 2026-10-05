@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <map>
 #include <memory>
 #include <random>
@@ -344,6 +345,18 @@ class ShopPanelTest : public testing::Test {
   CharacterInstance shopper_ = MakeCharacter(100000);
   ShopPanel shop_{shopper_, equips_, items_};
 };
+
+// The cost column holds the largest price an item can have, so no price is cut
+// short and no price widens the window.
+TEST_F(ShopPanelTest, TheCostColumnHoldsAnyPrice) {
+  int width = RenderWidth(shop_);
+  std::map<std::string, EquipPrototype> equips = equips_;
+  equips["dear_sword"] =
+      MakeItem("Dear Sword", 0, std::numeric_limits<int32_t>::max());
+  ShopPanel shop(shopper_, equips, items_);
+  EXPECT_NE(Render(shop).find("2,147,483,647"), std::string::npos);
+  EXPECT_EQ(RenderWidth(shop), width);
+}
 
 // The shop opens with its title, on the Weapon tab, showing its stock.
 TEST_F(ShopPanelTest, OpensOnTheWeaponTabOverItsStock) {

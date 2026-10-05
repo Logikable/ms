@@ -25,12 +25,12 @@ namespace ms {
 namespace {
 
 // Column widths. Name and level match the bag's Equip tab, so the same item
-// looks the same in both. Type fits the longest weapon name, and cost fits the
-// most expensive item on the shelf exactly.
+// looks the same in both. Type fits the longest weapon name, and cost fits a
+// coin and the largest price `shop_price` can hold, "2,147,483,647".
 constexpr int kNameWidth = 26;
 constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
-constexpr int kCostWidth = 13;
+constexpr int kCostWidth = 16;
 
 // Stock rows on screen at once. Deep enough for most of a warrior's list, the
 // longest of any class, and short enough that the window still fits a modest
