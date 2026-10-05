@@ -6,8 +6,8 @@
  *
  * Every window is a fixed height, so nothing on the screen moves as the cursor
  * moves through the list. What doesn't fit scrolls: a name too long for its
- * column scrolls inside it, and the rewards scroll in whatever space the fight
- * details leave.
+ * column scrolls inside it, and the fight details scroll in whatever space the
+ * rewards under them leave.
  *
  * The options row holds the switches a fight is started with (currently only
  * Practice), which the player toggles with Enter and the server applies to the
@@ -17,7 +17,7 @@
  * fights and Left and Right between difficulties. The column belongs to the
  * grid rather than to a fight, so moving down from Chaos lands on the next
  * fight's Chaos; only a fight with fewer difficulties pulls the cursor back to
- * its own last one. On the fight card, Up and Down scroll the rewards.
+ * its own last one. On the fight card, Up and Down scroll the fight details.
  *
  * The panel only displays: it moves its own cursor and never changes the game
  * state. The controller reads selected_boss() when the player confirms.
@@ -42,8 +42,9 @@ namespace ms {
 inline constexpr int kBossNameWidth = 21;
 // The detail card beside it: a label, a right-aligned value, and the blank
 // column on each side that every row here has. The scroll bar's lane is outside
-// it.
-inline constexpr int kDetailWidth = 29;
+// it. Wide enough for the longest drop row, Will's Cursed Spellbook Selection
+// Box at 20%, so only a name longer than any yet scrolls.
+inline constexpr int kDetailWidth = 44;
 
 // The rows each of the two panels takes, borders included. Fixed rather than
 // fitted, so moving through the list (where one fight has more drops than the
@@ -75,7 +76,7 @@ class BossSelectPanel {
   // Moves focus `delta` windows around the ring.
   void SwitchPanel(int delta);
   // Up and Down. On the grid they move `delta` fights, wrapping at the ends. On
-  // the fight card they scroll its rewards, which stop at both ends.
+  // the fight card they scroll its details, which stop at both ends.
   void MoveCursor(int delta);
   // Left and Right: `delta` columns across the grid, stopping at the ends.
   // There is no wrapping, since the player should feel that a difficulty ladder
@@ -138,27 +139,27 @@ class BossSelectPanel {
   ftxui::Element RenderDetailTitle(
       std::chrono::steady_clock::time_point now) const;
 
-  // One row of the rewards. A separator spans the whole card, including the
-  // scroll bar's lane, so the rule meets the border on both sides.
-  struct RewardRow {
-    ftxui::Element element;
-    bool separator = false;
-  };
-  // The fight card split where the scroll bar starts: everything about the
-  // fight above, and the scrolling rewards below. Built by both the render and
-  // the scroll, which needs the count to clamp against.
+  // The fight card in three parts: the title on top, the details about the
+  // fight in the middle, and the rewards fixed at the bottom. Only the details
+  // scroll, with the scroll bar beside them. Built by both the render and the
+  // scroll, which needs the count to clamp against.
   struct DetailRows {
     std::vector<ftxui::Element> head;
-    std::vector<RewardRow> rewards;
+    std::vector<ftxui::Element> info;
+    // Starts with the rule and heading above them. A rule spans the whole card,
+    // including the scroll bar's lane, so it meets the border on both sides.
+    std::vector<ftxui::Element> rewards;
   };
   DetailRows BuildDetail(const BossDifficulty& difficulty,
                          std::chrono::steady_clock::time_point now) const;
-  // Appends the rewards the window has room for, each with its scroll bar cell.
-  // `rows` is the top part, whose height decides how much room is left.
-  void AppendRewardWindow(std::vector<ftxui::Element>& rows,
-                          std::vector<RewardRow>& rewards) const;
-  // Scrolls the rewards `delta` rows, stopping at both ends.
-  void ScrollRewards(int delta);
+  // The rows the details have between the title and the rewards.
+  static int InfoRoom(const DetailRows& detail);
+  // Appends `visible` rows of the details, each with its scroll bar cell,
+  // padded with blank rows when there are fewer.
+  void AppendInfoWindow(std::vector<ftxui::Element>& rows,
+                        std::vector<ftxui::Element>& info, int visible) const;
+  // Scrolls the details `delta` rows, stopping at both ends.
+  void ScrollInfo(int delta);
   // Appends one HP row per phase. A fight with a single monster shows just
   // "HP"; a fight with phases numbers them, since then which HP it is matters.
   void RenderPhaseHp(std::vector<ftxui::Element>& rows,
@@ -166,12 +167,12 @@ class BossSelectPanel {
   // Appends the reward rows to the detail panel: what every clear pays, then
   // the drops (the shard and similar), then the prizes under their own rule,
   // most common first.
-  void RenderRewards(std::vector<RewardRow>& rows,
+  void RenderRewards(std::vector<ftxui::Element>& rows,
                      const BossDifficulty& difficulty,
                      std::chrono::steady_clock::time_point now) const;
   // Appends one drop's name and chance, scrolling a name too long for its
   // column.
-  void RenderDropRow(std::vector<RewardRow>& rows, const MobDrop& drop,
+  void RenderDropRow(std::vector<ftxui::Element>& rows, const MobDrop& drop,
                      std::chrono::steady_clock::time_point now) const;
 
   // The number of grid columns: as many as the fight with the most
@@ -196,8 +197,8 @@ class BossSelectPanel {
   BossPanel focus_ = BossPanel::kList;
   // The switch on the options row under the cursor.
   int option_ = 0;
-  // The first reward row drawn. Reset to the top whenever the cursor moves,
-  // since a fight with two drops has nothing to show at another fight's offset.
+  // The first detail row drawn. Reset to the top whenever the cursor moves,
+  // since a fight with one phase has nothing to show at another fight's offset.
   int scroll_ = 0;
 };
 

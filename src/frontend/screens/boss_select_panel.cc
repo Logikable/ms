@@ -179,7 +179,7 @@ void BossSelectPanel::SwitchPanel(int delta) {
 
 void BossSelectPanel::MoveCursor(int delta) {
   if (focus_ == BossPanel::kFight) {
-    ScrollRewards(delta);
+    ScrollInfo(delta);
     return;
   }
   if (focus_ != BossPanel::kList) {
@@ -209,7 +209,7 @@ void BossSelectPanel::ChangeDifficulty(int delta) {
   scroll_ = 0;
 }
 
-void BossSelectPanel::ScrollRewards(int delta) {
+void BossSelectPanel::ScrollInfo(int delta) {
   const BossDifficulty* difficulty = selected();
   if (difficulty == nullptr || difficulty->coming_soon()) {
     scroll_ = 0;
@@ -217,8 +217,8 @@ void BossSelectPanel::ScrollRewards(int delta) {
   }
   DetailRows detail =
       BuildDetail(*difficulty, std::chrono::steady_clock::now());
-  int visible = std::max(0, kPanelRows - static_cast<int>(detail.head.size()));
-  int last = std::max(0, static_cast<int>(detail.rewards.size()) - visible);
+  int last =
+      std::max(0, static_cast<int>(detail.info.size()) - InfoRoom(detail));
   scroll_ = std::clamp(scroll_ + delta, 0, last);
 }
 
@@ -358,9 +358,9 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     const BossDifficulty& difficulty,
     std::chrono::steady_clock::time_point now) const {
   DetailRows detail;
-  std::vector<ftxui::Element>& rows = detail.head;
-  rows.push_back(RenderDetailTitle(now));
-  rows.push_back(ThemedSeparator());
+  detail.head.push_back(RenderDetailTitle(now));
+  detail.head.push_back(ThemedSeparator());
+  std::vector<ftxui::Element>& rows = detail.info;
   rows.push_back(
       DetailRow("Level", std::to_string(BossLevel(state_, difficulty))));
   // Under the fight's own level, because together they show where the player
@@ -408,41 +408,43 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   } else {
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
-  rows.push_back(ThemedSeparator());
-  ftxui::Element heading = ftxui::text(" Rewards ") | ftxui::color(kTheme);
-  RenderRewards(detail.rewards, difficulty, now);
+  std::vector<ftxui::Element>& rewards = detail.rewards;
+  rewards.push_back(ThemedSeparator());
+  rewards.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
+  RenderRewards(rewards, difficulty, now);
   // Dimmed rather than removed: a practice run pays none of it, and the player
-  // still reads the card to decide what a real clear is worth.
+  // still reads the card to decide what a real clear is worth. The rule above
+  // the heading stays lit, since it belongs to the card's frame.
   if (practice()) {
-    heading = std::move(heading) | ftxui::dim;
-    for (RewardRow& row : detail.rewards) {
-      row.element = std::move(row.element) | ftxui::dim;
+    for (std::size_t i = 1; i < rewards.size(); ++i) {
+      rewards[i] = std::move(rewards[i]) | ftxui::dim;
     }
   }
-  rows.push_back(std::move(heading));
   return detail;
 }
 
-void BossSelectPanel::AppendRewardWindow(
-    std::vector<ftxui::Element>& rows, std::vector<RewardRow>& rewards) const {
-  int total = static_cast<int>(rewards.size());
-  int visible = std::max(0, kPanelRows - static_cast<int>(rows.size()));
-  // Clamped here as well as in ScrollRewards: the window shrinks as the fight
-  // details above it grow, and a card scrolled to the bottom then has too far
-  // to go.
+int BossSelectPanel::InfoRoom(const DetailRows& detail) {
+  return std::max(0, kPanelRows - static_cast<int>(detail.head.size()) -
+                         static_cast<int>(detail.rewards.size()));
+}
+
+void BossSelectPanel::AppendInfoWindow(std::vector<ftxui::Element>& rows,
+                                       std::vector<ftxui::Element>& info,
+                                       int visible) const {
+  int total = static_cast<int>(info.size());
+  // Clamped here as well as in ScrollInfo: the window shrinks as the rewards
+  // under it grow, and a card scrolled to the bottom then has too far to go.
   int offset = std::clamp(scroll_, 0, std::max(0, total - visible));
   std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
-  for (int row = 0; row < visible && offset + row < total; ++row) {
-    RewardRow& reward = rewards[offset + row];
-    if (reward.separator) {
-      rows.push_back(std::move(reward.element));
-      continue;
-    }
+  for (int row = 0; row < visible; ++row) {
+    // Padded to the window's height, so the rewards sit at the bottom however
+    // little there is to say about the fight.
+    ftxui::Element line =
+        offset + row < total ? std::move(info[offset + row]) : ftxui::text("");
     ftxui::Element cell =
         cells.empty() ? ftxui::text(" ") : std::move(cells[row]);
     rows.push_back(ftxui::hbox({
-        std::move(reward.element) |
-            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kDetailWidth),
+        std::move(line) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kDetailWidth),
         std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
     }));
   }
@@ -468,8 +470,12 @@ ftxui::Element BossSelectPanel::RenderDetail(
     RenderPhaseHp(rows, *difficulty);
   } else {
     DetailRows detail = BuildDetail(*difficulty, now);
+    const int room = InfoRoom(detail);
     rows = std::move(detail.head);
-    AppendRewardWindow(rows, detail.rewards);
+    AppendInfoWindow(rows, detail.info, room);
+    for (ftxui::Element& reward : detail.rewards) {
+      rows.push_back(std::move(reward));
+    }
   }
   return ThemedWindow(
              " Fight ",
@@ -509,17 +515,17 @@ void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
 }
 
 void BossSelectPanel::RenderRewards(
-    std::vector<RewardRow>& rows, const BossDifficulty& difficulty,
+    std::vector<ftxui::Element>& rows, const BossDifficulty& difficulty,
     std::chrono::steady_clock::time_point now) const {
   // Meso first, since every clear pays it, and everything below is a chance at
   // something.
   int named = 0;
   if (difficulty.meso() > 0) {
-    rows.push_back({DetailRow("Meso", FormatWithCommas(difficulty.meso()))});
+    rows.push_back(DetailRow("Meso", FormatWithCommas(difficulty.meso())));
     ++named;
   }
   if (difficulty.exp() > 0) {
-    rows.push_back({DetailRow("EXP", FormatWithCommas(difficulty.exp()))});
+    rows.push_back(DetailRow("EXP", FormatWithCommas(difficulty.exp())));
     ++named;
   }
   // Honor is paid for a clear that has a reset, as PayReward does, and is shown
@@ -527,7 +533,7 @@ void BossSelectPanel::RenderRewards(
   if (difficulty.reset() != RESET_PERIOD_UNSPECIFIED &&
       HonorVisible(state_.character.proto().level(),
                    state_.account.max_level())) {
-    rows.push_back({DetailRow("Honor", FormatWithCommas(kBossClearHonor))});
+    rows.push_back(DetailRow("Honor", FormatWithCommas(kBossClearHonor)));
     ++named;
   }
   // The prizes last and separate, most common first: what every clear pays
@@ -551,19 +557,19 @@ void BossSelectPanel::RenderRewards(
   }
   named += static_cast<int>(paid.size());
   if (!prizes.empty() && named > 0) {
-    rows.push_back({ThemedSeparator(), /*separator=*/true});
+    rows.push_back(ThemedSeparator());
   }
   for (const MobDrop* drop : prizes) {
     RenderDropRow(rows, *drop, now);
   }
   named += static_cast<int>(prizes.size());
   if (named == 0) {
-    rows.push_back({EmptyState("empty")});
+    rows.push_back(EmptyState("empty"));
   }
 }
 
 void BossSelectPanel::RenderDropRow(
-    std::vector<RewardRow>& rows, const MobDrop& drop,
+    std::vector<ftxui::Element>& rows, const MobDrop& drop,
     std::chrono::steady_clock::time_point now) const {
   // Scrolled rather than wrapped: drop names are long, half a name means
   // nothing, and a second row would push the next drop out of the window. The
@@ -578,7 +584,7 @@ void BossSelectPanel::RenderDropRow(
   if (void_drops() && drop.has_equip()) {
     row = std::move(row) | ftxui::dim;
   }
-  rows.push_back({std::move(row)});
+  rows.push_back(std::move(row));
 }
 
 ftxui::Element BossSelectPanel::Render(

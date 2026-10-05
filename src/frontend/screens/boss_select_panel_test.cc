@@ -112,7 +112,7 @@ std::vector<std::string> RenderRows(
     const BossSelectPanel& panel, int height = 32,
     std::chrono::steady_clock::time_point now = kHead) {
   ftxui::Element element = ftxui::hbox({panel.Render(now), ftxui::filler()});
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(height));
   ftxui::Render(screen, element);
   return ScreenRows(screen);
@@ -141,7 +141,7 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
 // isn't in the text.
 ftxui::Screen RenderScreen(const BossSelectPanel& panel) {
   ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(32));
   ftxui::Render(screen, element);
   return screen;
@@ -152,7 +152,7 @@ ftxui::Screen RenderScreen(const BossSelectPanel& panel) {
 // the same string.
 ftxui::Color RowColor(const BossSelectPanel& panel, const std::string& needle) {
   ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(32));
   ftxui::Render(screen, element);
   return ColorOf(screen, needle);
@@ -219,10 +219,7 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_NE(out.find("EXP"), std::string::npos);
   EXPECT_NE(out.find("4,750,740"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
-  // A name too long for its column is cut to fit and scrolls; at the start of
-  // the scroll its end isn't shown yet. A name that fits is shown whole.
-  EXPECT_NE(out.find("Royal Black Metal"), std::string::npos);
-  EXPECT_EQ(out.find("Royal Black Metal Shoulder"), std::string::npos);
+  EXPECT_NE(out.find("Royal Black Metal Shoulder"), std::string::npos);
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
   EXPECT_NE(out.find("100%"), std::string::npos);
   EXPECT_EQ(out.find("(empty)"), std::string::npos);
@@ -334,7 +331,7 @@ TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
   EquipPrototype crystal;
-  crystal.set_name("Aquatic Letter Eye Accessory");
+  crystal.set_name("Aquatic Letter Eye Accessory of the Depths");
   state.equips["aquatic_letter_eye_accessory"] = crystal;
   BossSelectPanel bare(state);
   int narrow = Width(bare);
@@ -346,12 +343,12 @@ TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   BossSelectPanel wide(state);
   EXPECT_EQ(Width(wide), narrow);
   EXPECT_NE(Render(wide).find("Aquatic Letter"), std::string::npos);
-  EXPECT_EQ(Render(wide).find("Eye Accessory"), std::string::npos);
+  EXPECT_EQ(Render(wide).find("the Depths"), std::string::npos);
   // Past the pause at the start and the 600ms scroll, inside the pause at the
   // far end with the end of the name showing.
   std::chrono::steady_clock::time_point slid =
       kHead + std::chrono::milliseconds(2000);
-  EXPECT_NE(Render(wide, 32, slid).find("Eye Accessory"), std::string::npos);
+  EXPECT_NE(Render(wide, 32, slid).find("the Depths"), std::string::npos);
 }
 
 // A single monster is just "HP", since there is no other phase to confuse it
@@ -454,7 +451,7 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
   BossSelectPanel panel(state);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(16));
   ftxui::Render(screen, panel.Render());
   std::string out = screen.ToString();
@@ -466,7 +463,7 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   EXPECT_NE(out.find("\033[7mEasy"), std::string::npos)
       << "the chosen cell is inverted";
   panel.ChangeDifficulty(1);
-  ftxui::Screen moved = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen moved = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                               ftxui::Dimension::Fixed(16));
   ftxui::Render(moved, panel.Render());
   out = moved.ToString();
@@ -671,7 +668,7 @@ TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
   AddChaosZakum(state);
   BossSelectPanel panel(state);
   panel.ChangeDifficulty(1);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(24));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
   int at = -1;
@@ -698,7 +695,7 @@ TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
   EXPECT_FALSE(panel.selected_coming_soon()) << "Normal is built";
 
   auto render = [&panel]() {
-    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                  ftxui::Dimension::Fixed(16));
     ftxui::Render(screen, panel.Render());
     return screen.ToString();
@@ -730,66 +727,67 @@ TEST(BossSelectPanelTest, TabWalksTheThreeWindows) {
   EXPECT_EQ(panel.focus(), BossPanel::kList);
 }
 
-// A fight card with more rewards than fit scrolls them with a bar, and the
-// arrows that scroll it don't move the grid's cursor. They stop at both ends,
-// since a list at its bottom has nowhere further to go.
-TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
-  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
-  GameState& state = *owner;
+// Gives Zakum more details and rewards than its card has rows for: an unlock
+// level and Arcane Force over the details, and twelve drops under them.
+void CrowdZakum(GameState& state) {
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
   state.items["zakums_soul_shard"] = shard;
   BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
-  for (int i = 0; i < 20; ++i) {
+  normal->set_unlock_level(50);
+  normal->set_arcane_force(30);
+  for (int i = 0; i < 12; ++i) {
     MobDrop* drop = normal->add_drops();
     drop->set_item("zakums_soul_shard");
     drop->set_per_kill(1.0 / (i + 1));
   }
+}
+
+// A fight card with more details than fit scrolls them with a bar, while the
+// rewards under them stay put. The arrows that scroll it don't move the grid's
+// cursor, and they stop at both ends.
+TEST(BossSelectPanelTest, TheFightCardScrollsItsDetails) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  CrowdZakum(state);
   BossSelectPanel panel(state);
-  panel.MoveCursor(1);  // Balrog sorts first, being the smaller fight.
+  // Zakum sorts first now, since Balrog unlocks later.
+  ASSERT_EQ(panel.selected_boss(), "zakum");
   std::string top = Render(panel);
   // The bar is drawn only once something is below the window.
   EXPECT_NE(top.find("\u2503"), std::string::npos);
+  EXPECT_NE(top.find("Level"), std::string::npos);
+  EXPECT_EQ(top.find("Status"), std::string::npos);
   EXPECT_NE(top.find("100%"), std::string::npos);
 
   panel.SwitchPanel(1);
-  panel.MoveCursor(3);
+  panel.MoveCursor(9);
   EXPECT_EQ(panel.selected_boss(), "zakum");
   std::string scrolled = Render(panel);
-  EXPECT_EQ(scrolled.find("100%"), std::string::npos);
+  EXPECT_NE(scrolled.find("Status"), std::string::npos);
+  EXPECT_NE(scrolled.find("100%"), std::string::npos);
   // Left and Right belong to the grid, and a card with the keys doesn't change
   // its column.
   panel.ChangeDifficulty(1);
   EXPECT_EQ(panel.selected_difficulty(), 0);
 
-  panel.MoveCursor(-9);
-  EXPECT_EQ(Render(panel), top);
-  for (int i = 0; i < 30; ++i) {
-    panel.MoveCursor(1);
-  }
-  std::string foot = Render(panel);
   panel.MoveCursor(1);
-  EXPECT_EQ(Render(panel), foot);
+  EXPECT_EQ(Render(panel), scrolled);
+  panel.MoveCursor(-20);
+  EXPECT_EQ(Render(panel), top);
 }
 
-// The rewards reset to the top when the cursor moves: a fight with two drops
+// The details go back to the top when the cursor moves: a fight with one phase
 // has nothing to show at another fight's offset.
-TEST(BossSelectPanelTest, MovingTheCursorPutsTheRewardsBackAtTheTop) {
+TEST(BossSelectPanelTest, MovingTheCursorPutsTheDetailsBackAtTheTop) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
-  ItemPrototype shard;
-  shard.set_name("Zakum's Soul Shard");
-  state.items["zakums_soul_shard"] = shard;
-  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
-  for (int i = 0; i < 20; ++i) {
-    MobDrop* drop = normal->add_drops();
-    drop->set_item("zakums_soul_shard");
-    drop->set_per_kill(1.0 / (i + 1));
-  }
+  CrowdZakum(state);
   BossSelectPanel panel(state);
   std::string top = Render(panel);
   panel.SwitchPanel(1);
   panel.MoveCursor(5);
+  ASSERT_NE(Render(panel), top);
   panel.SwitchPanel(-1);
   panel.MoveCursor(1);
   panel.MoveCursor(-1);
@@ -816,14 +814,19 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   GameState& state = *owner;
   state.bosses["zakum"].set_name("Zakum The Everlasting Flame");
   BossSelectPanel panel(state);
-  EXPECT_NE(Render(panel).find("Zakum The Everlasting"), std::string::npos);
-  EXPECT_EQ(Render(panel).find("Flame "), std::string::npos);
+  // The grid's first fight; the card beside it has room for the whole name.
+  constexpr int kFirstFight = 3;
+  std::string row = RenderRows(panel)[kFirstFight];
+  EXPECT_NE(row.find("Zakum The Everlasting"), std::string::npos);
+  EXPECT_EQ(row.find("Flame"), std::string::npos);
   // Past the pause at the start and the 750ms scroll.
   std::chrono::steady_clock::time_point slid =
       kHead + std::chrono::milliseconds(2200);
-  EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
+  EXPECT_NE(RenderRows(panel, 32, slid)[kFirstFight].find("Flame"),
+            std::string::npos);
   panel.SwitchPanel(2);
-  EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
+  EXPECT_NE(RenderRows(panel, 32, slid)[kFirstFight].find("Flame"),
+            std::string::npos);
 }
 
 // The row draws each switch in its current state, and Left and Right walk

@@ -1088,6 +1088,10 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
                          "only one that jumps";
 }
 
+// The fewest rows the fight card's details may be left: enough for the level,
+// the unlock level and two phases' HP before the reader has to scroll.
+constexpr int kMinDetailRows = 4;
+
 // A name too wide for its column scrolls, and a grid where nothing moves reads
 // at a glance, so the shipped names must fit their columns.
 TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
@@ -1103,6 +1107,12 @@ TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
       std::string title = difficulty.name() + " " + entry.second.name();
       EXPECT_LE(static_cast<int>(title.size()), kDetailWidth - 2)
           << title << " fills the card it heads";
+      // The rewards are fixed under the details, which scroll in what is left:
+      // the title and its rule, then at most meso, EXP, Honor, the drops and a
+      // rule between them, under a rule and a heading of their own.
+      int rewards = 2 + 3 + difficulty.drops_size() + 1;
+      EXPECT_GE(kBossPanelHeight - 2 - 2 - rewards, kMinDetailRows)
+          << title << " leaves its details too few rows";
     }
   }
 }
