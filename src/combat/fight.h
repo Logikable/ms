@@ -63,6 +63,10 @@ class CombatSim {
                : 0.0;
   }
 
+  // Readies every attack and buff on a cooldown, and fills every hold's
+  // charges. A buff already up keeps running.
+  void ResetCooldowns(const CombatParams& params);
+
   // Seconds until the next event that can change an attack's value: the attack
   // landing, or a buff starting or ending. A longer step still works but may
   // use the wrong buffs. Infinite when nothing will change on its own.

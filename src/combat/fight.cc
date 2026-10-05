@@ -2680,6 +2680,19 @@ void CombatSim::GrowForAttacks(const CombatParams& params) {
   by_attack_.resize(fresh.size());
 }
 
+void CombatSim::ResetCooldowns(const CombatParams& params) {
+  GrowForAttacks(params);
+  const std::vector<AttackOption>& options = Attacks(params);
+  for (std::size_t i = 0; i < attack_clocks_.size(); ++i) {
+    attack_clocks_[i].cooldown_left = 0.0;
+    attack_clocks_[i].side_cooldown_left = 0.0;
+    attack_clocks_[i].hold_charges = options[i].channel.max_charges;
+  }
+  for (BuffClock& buff : buffs_) {
+    buff.cooldown_left = 0.0;
+  }
+}
+
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   OpenStep(params);
   if (!CanFight(params)) {

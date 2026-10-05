@@ -89,7 +89,8 @@ difficulties {
   }
   # Hard only: she stands still in the middle of the clocktower, and the party
   # has 45 seconds to finish her. GMS sends her back to Phase 2 on a failure;
-  # here the fight is lost (the user's call, 2026-10-04).
+  # here the fight is lost (the user's call, 2026-10-04). Every cooldown is
+  # ready as it starts, as in GMS.
   phases {
     spawns {
       mob: "hard_lucid_phase_3"
@@ -103,6 +104,7 @@ difficulties {
     arena_width: 9
     arena_height: 6
     time_limit_seconds: 45
+    reset_cooldowns: true
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1800

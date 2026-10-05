@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/character/honor.h"
+#include "src/character/skill_placement.h"
 #include "src/combat/test_authority.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -19,6 +20,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 #include "src/testing/prototypes.h"
 
 namespace ms {
@@ -845,6 +847,45 @@ TEST(BossRunTest, APhaseClockCutsTheFightsClockAndLosesIt) {
     longer.Advance(*again, 0.05);
   }
   EXPECT_NEAR(longer.seconds_left() + longer.FightSeconds(), 300.0, 1e-9);
+}
+
+// Hard Lucid's last phase readies every cooldown: a buff spent in the first
+// phase goes up again in a second that resets them, and only then.
+TEST(BossRunTest, APhaseThatResetsCooldownsReadiesThem) {
+  Skill rage;
+  rage.set_name("Rage");
+  rage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(rage, JOB_ADVANCEMENT_SWORDMAN);
+  rage.set_max_level(1);
+  rage.set_cooldown_seconds(1000.0);
+  rage.mutable_buff()->set_duration_seconds(0.5);
+  rage.mutable_buff()->mutable_base()->set_damage_pct(0.1);
+  for (bool reset : {false, true}) {
+    GameState state(DropEquips(), {}, DropItems(),
+                    {{"arm", MakeMob("Zakum's Arm", 40, 0)},
+                     {"body", MakeMob("Zakum", 1000000000, 0)}},
+                    {}, {{"rage", rage}});
+    while (state.character.proto().level() < 30) {
+      state.character.LevelUp();
+    }
+    state.character.AdvanceJob(JOB_SWORDMAN);
+    ASSERT_TRUE(state.character.LearnSkill(rage, 1));
+    state.character.PickUp(std::make_unique<EquipInstance>(PlainSword()));
+    state.character.Equip(0);
+    Boss boss = TwoPhaseBoss();
+    boss.mutable_difficulties(0)->mutable_phases(1)->set_reset_cooldowns(reset);
+    BossRun run("zakum", boss, 0);
+    bool raised = false;
+    while (!run.done() && run.phase() < 2) {
+      run.Advance(state, 0.05);
+      raised = raised || run.members()[0].buff_count > 0;
+    }
+    ASSERT_EQ(run.phase(), 2);
+    ASSERT_TRUE(raised);
+    run.Advance(state, 0.05);
+    run.Advance(state, 0.05);
+    EXPECT_EQ(run.members()[0].buff_count, reset ? 1 : 0);
+  }
 }
 
 // A win holds its last moment on screen, but an abort doesn't. The player chose

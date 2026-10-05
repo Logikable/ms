@@ -39,6 +39,9 @@ message BossPhase {
   // (if less is left, nothing changes), and running out ends the fight as a
   // failure. GMS's Hard Lucid gives her last phase 45 seconds.
   int32 time_limit_seconds = 7;
+  // Readies every skill on a cooldown as the phase starts. GMS's Hard Lucid
+  // does this for her last phase.
+  bool reset_cooldowns = 8;
 }
 
 // Extra places to stand that open every `interval_ms` of fight time, measured

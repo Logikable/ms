@@ -4474,6 +4474,26 @@ TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
   EXPECT_NEAR(full.cooldown_left(1), full_unpaid.cooldown_left(1), 1e-9);
 }
 
+// Hard Lucid's last phase: every attack and buff on a cooldown is ready again.
+TEST(CombatSimTest, AResetReadiesEveryCooldown) {
+  Mob boss = MakeMob("Lucid", 1000000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 1.0, 1)});
+  params.attacks.push_back(MakeSkill("Burst", 100.0, /*cooldown=*/1000.0));
+  GiveBuff(params, /*duration=*/5.0, /*cooldown=*/1000.0, /*factor=*/2.0);
+  CombatSim sim;
+  for (int step = 0; step < 80; ++step) {
+    sim.Advance(params, 0.1);
+  }
+  ASSERT_GT(sim.cooldown_left(1), 900.0);
+  ASSERT_EQ(sim.buff_mask(), 0);
+
+  sim.ResetCooldowns(params);
+  EXPECT_EQ(sim.cooldown_left(1), 0.0);
+  sim.Advance(params, 0.1);
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.buff_mask(), 1);
+}
+
 // Two barrages at once, as with an I/L Arch Mage who has both Jupiter Thunder
 // and Bolt Barrage. Each keeps its own timing: casting the second doesn't
 // cancel what the first has left to land.

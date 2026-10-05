@@ -673,6 +673,13 @@ const CombatParams& BossRun::PhaseParams(const GameState& state) {
   return params_;
 }
 
+void BossRun::ResetCooldownsIfDue(const CombatParams& params) {
+  if (cooldowns_due_) {
+    sim_.ResetCooldowns(params);
+    cooldowns_due_ = false;
+  }
+}
+
 void BossRun::RunPhase(GameState& state, double dt) {
   const CombatParams& params = PhaseParams(state);
   if (!params.active) {
@@ -681,6 +688,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     Finish(BossRunState::kAborted);
     return;
   }
+  ResetCooldownsIfDue(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   CollectDamageWrites();
@@ -833,6 +841,7 @@ void BossRun::TakeShared(const SharedFight& shared) {
     // is the nearest thing to what it cut from.
     if (current_phase() != nullptr) {
       clock_cut_ += CutToPhaseClock(*current_phase(), seconds_left_);
+      cooldowns_due_ = current_phase()->reset_cooldowns();
     }
     slots_.clear();
     // Mob IDs are only valid within the encounter that assigned them, and
@@ -937,6 +946,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     return;
   }
   item_drop_pct_ = params.drop_roll_item_drop_pct;
+  ResetCooldownsIfDue(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   if (slots_.empty()) {
@@ -1077,6 +1087,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
       damage_stacks_.clear();
       StandPlayerAtStart();
       clock_cut_ += CutToPhaseClock(*current_phase(), seconds_left_);
+      cooldowns_due_ = current_phase()->reset_cooldowns();
       state_ = BossRunState::kFighting;
       RunPhase(state, -hold_left_);
       return;

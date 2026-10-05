@@ -410,6 +410,8 @@ class BossRun {
   static void JumpSlot(BossSlot& slot);
   // Computes the phase's remaining HP as a fraction of its full HP.
   void ComputePhaseHp(const CombatParams& params);
+  // Readies the player's cooldowns if a phase that resets them just started.
+  void ResetCooldownsIfDue(const CombatParams& params);
   // Advances one phase of the fight, moving on when all its monsters are dead.
   void RunPhase(GameState& state, double dt);
   // Pays the difficulty's reward once for a clear and records what was
@@ -465,6 +467,9 @@ class BossRun {
   double seconds_left_ = 0.0;
   // Seconds a phase's own clock took off seconds_left_ (CutToPhaseClock).
   double clock_cut_ = 0.0;
+  // Set when a phase that resets cooldowns starts; the next step does it, since
+  // that is where the phase's params are.
+  bool cooldowns_due_ = false;
   double clear_seconds_ = 0.0;
   DamageBreakdown breakdown_;
   // Party damage breakdowns from the server, and this player's account ID.
