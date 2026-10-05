@@ -1189,11 +1189,16 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
     slot.set_symbol_level(SymbolLevel(item.equip_state()));
   }
   *slot.mutable_flame() = item.equip_state().flame();
+  const Equip& state = item.equip_state();
+  slot.set_scroll_successes(state.scroll_successes());
+  slot.set_scroll_attack(std::max(state.scroll_stats().attack(),
+                                  state.scroll_stats().magic_attack()));
+  slot.set_open_slots(state.remaining_upgrade_slots());
 }
 
 // Both potentials and the stars on every piece boss fights wear, then on every
 // farm piece they don't that takes a cube or a star, and the account beside
-// them, as they stand now. Pets are left out: nothing upgrades them yet.
+// them, as they stand now.
 CheckpointPotentials PotentialsNow(const GameState& state, int level,
                                    double seconds) {
   CheckpointPotentials now;
@@ -1205,9 +1210,8 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
          state.character.equipped(gear)) {
       const bool plain =
           !entry.second->CanCube() && entry.second->max_stars() == 0;
-      if ((farm && (plain || state.character.WornAt(kBossGear, entry.first) ==
-                                 entry.second)) ||
-          BaseSlot(entry.first) == EQUIP_SLOT_PET) {
+      if (farm && (plain || state.character.WornAt(kBossGear, entry.first) ==
+                                entry.second)) {
         continue;
       }
       AddSlotPotential(entry.first, *entry.second, farm, now);
@@ -1226,6 +1230,12 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
     (*now.mutable_link_lines())[line.first] = line.second;
   }
   now.set_noblesse_sp(character.noblesse_sp_earned());
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const std::string& item = entry.second.paid_with();
+    if (!item.empty()) {
+      (*now.mutable_scroll_items_held())[item] = character.CountItem(item);
+    }
+  }
   now.set_ability_farming(
       character.ability(AutoswapSlotFor(Activity::kFarming)).rank());
   now.set_ability_bossing(
@@ -2411,6 +2421,9 @@ void RestockAtCap(Session& run, const CombatParams& params,
                   const Yield& yield) {
   run.climb.ledger.etc_sales += SellDrops(run.state.character);
   ClaimDailySymbols(run);
+  // The boxes, rings and dropped scrolls come from fights cleared at the cap,
+  // so the endgame must spend them as the climb's Retool does.
+  run.climb.ledger.boxes_opened += OpenBoxes(run.state);
   WearBestFromBag(run.state.character);
   CollectSymbols(run.state.character);
   // Before the shelf, for the same reason the climb does it before Retool.
@@ -2421,6 +2434,11 @@ void RestockAtCap(Session& run, const CombatParams& params,
   Outfit(run.state, /*budget=*/true);
   run.climb.ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
+  WearSkillRings(
+      run.state, [&run](GameState& inner) { return run.shopper.Power(inner); },
+      &run.ring_memo);
+  // Before the shopper, so a trace doesn't take a slot one of them would fill.
+  run.climb.ledger.dropped_scrolls += UseDroppedScrolls(run.state);
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
   SpendNoblessePoints(run);
@@ -3557,8 +3575,9 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
 
 // One line per potential recorded, tab-separated: branch, level ("end" for the
 // run's end), days, slot, item, item level, stars, track, rank and
-// lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6".
-// The account follows as slot ACCOUNT, then a key, a name and a value.
+// lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6",
+// and every piece a "scroll" track: scrolls taken, attack, open slots. The
+// account follows as slot ACCOUNT, then a key, a name and a value.
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
                     const std::vector<Climb>& climbs) {
   std::ofstream out(path);
@@ -3569,6 +3588,16 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
   for (std::size_t i = 0; i < branches.size(); ++i) {
     for (const CheckpointPotentials& held : climbs[i].potentials_at) {
       for (const CheckpointSlotPotential& slot : held.slots()) {
+        out << BranchName(branches[i]) << '\t'
+            << (held.end() ? absl::StrCat("end:", held.level())
+                           : absl::StrCat(held.level()))
+            << '\t' << held.seconds() / kDaySeconds << '\t'
+            << (slot.farm() ? "FARM_" : "")
+            << WithoutPrefix(EquipSlot_Name(slot.slot()), "EQUIP_SLOT_") << '\t'
+            << slot.item() << '\t' << slot.item_level() << '\t' << slot.stars()
+            << "\tscroll\t-\t" << slot.scroll_successes() << " took, +"
+            << slot.scroll_attack() << " att, " << slot.open_slots()
+            << " open\n";
         for (const Potential* potential : {&slot.main(), &slot.bonus()}) {
           std::vector<std::string> lines;
           for (const PotentialLine& line : potential->lines()) {
@@ -3616,6 +3645,9 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
             << level << '\n';
       }
       out << at << "noblesse_sp\t-\t" << held.noblesse_sp() << '\n';
+      for (const auto& [item, count] : held.scroll_items_held()) {
+        out << at << "scroll_item_held\t" << item << '\t' << count << '\n';
+      }
       out << at << "ability\tfarming\t"
           << AbilityRank_Name(held.ability_farming()) << '\n';
       out << at << "ability\tbossing\t"

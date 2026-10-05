@@ -105,6 +105,11 @@ message CheckpointSlotPotential {
   // Takes neither a cube nor a star (a totem, a badge): recorded only for the
   // gear table, and left out of the potentials one.
   bool plain = 11;
+  // Scrolls that took, the attack (or magic attack, whichever is larger) they
+  // added, and the upgrade slots still open.
+  int32 scroll_successes = 12;
+  int32 scroll_attack = 13;
+  int32 open_slots = 14;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,
@@ -122,6 +127,8 @@ message CheckpointPotentials {
   int32 noblesse_sp = 7;
   AbilityRank ability_farming = 8;
   AbilityRank ability_bossing = 9;
+  // Unspent boss drops that pay for a scroll, by item name.
+  map<string, int32> scroll_items_held = 10;
 }
 
 // Everything the tables have collected so far. Mirrors Climb field for field: a
