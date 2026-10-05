@@ -257,8 +257,8 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
   rows.push_back(CardTitle("Lv" + PadLeft(std::to_string(p.level()), 3) + " " +
                            ShortJobName(p.job())));
   const Activity doing = activity();
-  rows.push_back(CardTitle(
-      CombatPowerText(CharacterCombatPower(preview_, state_.skills, doing))));
+  rows.push_back(CardTitle(CombatPowerText(
+      ShownCombatPower(state_.account, preview_, state_.skills, doing))));
   rows.push_back(ThemedSeparator());
   if (ShowsActivityBar()) {
     // Lit while the arrows reach it, which is while the cursor is on a

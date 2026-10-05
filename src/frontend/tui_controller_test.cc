@@ -4106,12 +4106,12 @@ TEST_F(TuiControllerTest, OptionsOpensFromTheBoxAndComesBackToIt) {
 // before the panels use the new setting.
 TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
   OpenOptions();
-  ASSERT_FALSE(state_->account.panel_title_blink());
+  ASSERT_FALSE(state_->account.gms_combat_power());
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(state_->account.panel_title_blink());
+  EXPECT_TRUE(state_->account.gms_combat_power());
   EXPECT_EQ(controller_->screen(), kOptions) << "the screen stays up";
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(state_->account.panel_title_blink());
+  EXPECT_FALSE(state_->account.gms_combat_power());
 }
 
 TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
@@ -4124,7 +4124,7 @@ TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMenuBox);
   // Close didn't toggle anything on the way out.
-  EXPECT_FALSE(state_->account.panel_title_blink());
+  EXPECT_FALSE(state_->account.gms_combat_power());
 }
 
 // --- battle analysis ---
@@ -4137,7 +4137,7 @@ TEST_F(TuiControllerTest, ArrowsMoveTheVolumeUnderTheCursor) {
   OpenOptions();
   // The cursor starts on the switch, which the arrows must leave alone.
   controller_->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_FALSE(state_->account.panel_title_blink());
+  EXPECT_FALSE(state_->account.gms_combat_power());
 
   for (int i = 0; i < static_cast<int>(Option::kMapBgmVolume); ++i) {
     controller_->OnEvent(ftxui::Event::ArrowDown);

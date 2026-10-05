@@ -1538,9 +1538,10 @@ ftxui::Element CharacterPanel::Render() const {
   std::string title =
       Centered("Lv" + lvl + " " + ShortJobName(p.job()), ContentWidth());
 
-  std::string power = Centered(CombatPowerText(CharacterCombatPower(
-                                   character_, skills_, SelectedActivity())),
-                               ContentWidth());
+  std::string power =
+      Centered(CombatPowerText(ShownCombatPower(account_, character_, skills_,
+                                                SelectedActivity())),
+               ContentWidth());
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();

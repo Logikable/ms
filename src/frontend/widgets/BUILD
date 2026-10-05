@@ -366,6 +366,7 @@ cc_test(
     srcs = ["stat_rows_test.cc"],
     deps = [
         ":stat_rows",
+        "//src/character:character_stats",
         "//src/character:consumables",
         "//src/character:sacred_power",
         "//src/testing:prototypes",

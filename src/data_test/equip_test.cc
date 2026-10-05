@@ -417,6 +417,26 @@ TEST(EquipDataTest, EveryTokenBuysSomething) {
   EXPECT_GT(tokens, 0);
 }
 
+// GMS's Combat Power prices a weapon as the bow of its level, so every weapon
+// needs one. The starting Sword is level 1, below the first bow, and keeps its
+// own attack.
+TEST(EquipDataTest, EveryWeaponHasABowOfItsLevel) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  FillBowAttack(equips);
+  int weapons = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+    const EquipPrototype& weapon = entry.second;
+    if (weapon.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+        weapon.name() == "Sword") {
+      continue;
+    }
+    ++weapons;
+    EXPECT_GT(weapon.bow_attack(), 0)
+        << weapon.name() << " has no bow at level " << weapon.required_level();
+  }
+  EXPECT_GT(weapons, 100);
+}
+
 // Cygnus's token buys four shoulders, one per branch, and AbsoLab's and Will's
 // coins buy the tiers above the same way. A missing branch gets nothing from
 // the clear.

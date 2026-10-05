@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/character_stats.h"
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/sacred_power.h"
@@ -349,6 +350,21 @@ TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
   CharacterInstance bare = MakeWarrior();
   EquipBow(bare);
   EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Attack"), "80");
+}
+
+// The reader's GMS Combat Power option picks the formula, so a %attack passive
+// counts only while it is off.
+TEST_F(StatRowsTest, ShownCombatPowerFollowsTheReadersOption) {
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(AttackPercentSkill(0.25), 1));
+  EquipBow(c);
+  const std::map<std::string, Skill> skills = SkillMap(0.25);
+  EXPECT_EQ(ShownCombatPower(account_, c, skills),
+            CharacterCombatPower(c, skills));
+  account_.SetGmsCombatPower(true);
+  EXPECT_EQ(ShownCombatPower(account_, c, skills),
+            GmsCharacterCombatPower(c, skills));
+  EXPECT_EQ(GmsCharacterOffense(c, skills).attack, 80);
 }
 
 // The two allocations are separate sets of numbers, and every row reads the one

@@ -111,6 +111,10 @@ const ItemPrototype* FindItemByName(
 void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
                       std::map<std::string, ItemPrototype>& items);
 
+// Sets each weapon's bow_attack from the bow of the same required level in
+// `equips`, for the same reason.
+void FillBowAttack(std::map<std::string, EquipPrototype>& equips);
+
 // Abstract base for all inventory items across all tabs.
 class Item {
  public:

@@ -1386,6 +1386,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   FillTokenShelves(equips, items);
+  FillBowAttack(equips);
   FillShardLevels(bosses, items);
   // Before seeding: a max character's allocations are measured by playing the
   // fight, and the fight reads this setting.

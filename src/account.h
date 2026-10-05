@@ -136,6 +136,13 @@ class AccountInstance {
     account_.mutable_options()->set_plain_ability_locks(!on);
   }
 
+  bool gms_combat_power() const {
+    return account_.options().gms_combat_power();
+  }
+  void SetGmsCombatPower(bool on) {
+    account_.mutable_options()->set_gms_combat_power(on);
+  }
+
   // Whether the music is silenced. The volumes are left as they were.
   bool mute() const {
     return account_.options().mute();

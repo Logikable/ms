@@ -1402,5 +1402,25 @@ TEST(EffectAtTest, ABoolStandsWhereverItIsSet) {
   EXPECT_TRUE(EffectAt(base, SkillEffect(), 1).enemy_attack_reaches_boss());
 }
 
+// The terms of a Phantom's sheet worked by hand in a community script, with
+// skills already taken out: every crit at 35% plus the bonus, and damage and
+// boss damage added together.
+TEST(GmsCombatPowerTest, MatchesAHandWorkedSheet) {
+  OffenseStats offense;
+  offense.primary = 2998;
+  offense.secondary = 1135;
+  offense.attack = 422;
+  offense.crit_dmg = 0.255;
+  offense.damage_pct = 0.42;
+  offense.boss_pct = 0.25;
+  EXPECT_EQ(GmsCombatPower(offense), 148480);
+  // Neither mastery nor crit rate counts, and the weapon term is a ratio.
+  offense.mastery = 0.9;
+  offense.crit_rate = 1.0;
+  EXPECT_EQ(GmsCombatPower(offense), 148480);
+  offense.weapon_constant = 0.5;
+  EXPECT_EQ(GmsCombatPower(offense), 74240);
+}
+
 }  // namespace
 }  // namespace ms

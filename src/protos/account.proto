@@ -128,6 +128,11 @@ message Options {
   // than a padlock emoji, for a terminal that can't draw one. Off by default.
   bool plain_ability_locks = 10;
 
+  // Whether Combat Power is shown on GMS's terms, which compare characters
+  // across jobs, instead of ours, which tracks one character's growth. Off by
+  // default. See GmsCombatPower.
+  bool gms_combat_power = 11;
+
   // Field 5 was a shuffle switch on the Options screen, replaced by
   // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on
   // costs the player one keypress on the Jukebox screen, while reading it would

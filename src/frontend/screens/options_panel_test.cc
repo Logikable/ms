@@ -41,7 +41,18 @@ TEST_F(OptionsPanelTest, ListsTheSettingsAndTheCloseButton) {
   EXPECT_EQ(out.find("State"), std::string::npos);
 }
 
+TEST_F(OptionsPanelTest, GmsCombatPowerIsFirstShipsOffAndEnterThrowsIt) {
+  EXPECT_EQ(panel_.selected_option(), Option::kGmsCombatPower);
+  EXPECT_NE(Render().find("GMS Combat Power"), std::string::npos);
+  EXPECT_FALSE(account_.gms_combat_power());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.gms_combat_power());
+  panel_.Toggle();
+  EXPECT_FALSE(account_.gms_combat_power());
+}
+
 TEST_F(OptionsPanelTest, BlinkShipsOffAndEnterThrowsIt) {
+  SelectOption(Option::kPanelTitleBlink);
   EXPECT_FALSE(account_.panel_title_blink());
   EXPECT_NE(Render().find("[ ]"), std::string::npos);
   panel_.Toggle();
@@ -63,8 +74,7 @@ TEST_F(OptionsPanelTest, AutoswapShipsOffAndEnterThrowsIt) {
 }
 
 TEST_F(OptionsPanelTest, BuffIndicatorsShipOffAndEnterThrowsThem) {
-  panel_.MoveRow(2);
-  ASSERT_EQ(panel_.selected_option(), Option::kBuffIndicators);
+  SelectOption(Option::kBuffIndicators);
   EXPECT_NE(Render().find("Buff Indicators"), std::string::npos);
   EXPECT_FALSE(account_.buff_indicators());
   panel_.Toggle();
@@ -85,7 +95,7 @@ TEST_F(OptionsPanelTest, InnerAbilityEmojiShipsOnAndEnterThrowsIt) {
 
 TEST_F(OptionsPanelTest, CursorWrapsThroughCloseAndBack) {
   EXPECT_FALSE(panel_.on_close());
-  EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);
+  EXPECT_EQ(panel_.selected_option(), Option::kGmsCombatPower);
   for (int i = 0; i < kOptionCount; ++i) {
     panel_.MoveRow(1);
   }
@@ -111,17 +121,35 @@ TEST_F(OptionsPanelTest, ResetPutsTheCursorBackOnTheFirstSetting) {
   panel_.MoveRow(1);
   panel_.Reset();
   EXPECT_FALSE(panel_.on_close());
-  EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);
+  EXPECT_EQ(panel_.selected_option(), Option::kGmsCombatPower);
 }
 
-// The list is drawn at a fixed height, so a setting added later doesn't change
-// the size of the panel the player knows.
-TEST_F(OptionsPanelTest, LeavesRoomForSettingsStillToCome) {
+// The list is drawn at a fixed height, so a build without music keeps the size
+// of the panel the player knows.
+TEST_F(OptionsPanelTest, KeepsItsHeight) {
   ftxui::Element card = panel_.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
-  // Two borders, eight list rows, the rule above the bottom row, and Close.
-  EXPECT_EQ(screen.dimy(), 12);
+  // Two borders, ten list rows, the rule above the bottom row, and Close.
+  EXPECT_EQ(screen.dimy(), 14);
+}
+
+// A rule follows Autoswap Presets, and another follows the display settings
+// when the music settings come after them.
+TEST_F(OptionsPanelTest, RulesSplitTheGroups) {
+  const std::string out = Render();
+  auto line_after = [&out](const std::string& name) {
+    size_t start = out.find('\n', out.find(name)) + 1;
+    return out.substr(start, out.find('\n', start) - start);
+  };
+  EXPECT_NE(line_after("Autoswap Presets").find("─"), std::string::npos);
+  EXPECT_EQ(line_after("GMS Combat Power").find("─"), std::string::npos);
+  EXPECT_LT(out.find("GMS Combat Power"), out.find("Autoswap Presets"));
+  EXPECT_LT(out.find("Autoswap Presets"), out.find("Panel Title Blink"));
+  EXPECT_LT(out.find("Panel Title Blink"), out.find("Buff Indicators"));
+  EXPECT_LT(out.find("Buff Indicators"), out.find("Inner Ability Emoji"));
+  EXPECT_EQ(line_after("Inner Ability Emoji").find("─") != std::string::npos,
+            kAudioEnabled);
 }
 
 class OptionsAudioTest : public OptionsPanelTest {

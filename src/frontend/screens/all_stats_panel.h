@@ -37,13 +37,14 @@ class AllStatsPanel {
 
   // `account` is the player's own, for the level gate on the Farm/Boss row.
   // Null for someone else's sheet, such as a party member's, which is all we
-  // have of them, so the gate uses the level on the sheet.
+  // have of them, so the gate uses the level on the sheet. `reader` is the
+  // account looking, whose options decide how the sheet is drawn.
   AllStatsPanel(const CharacterInstance& character,
-                const AccountInstance* account,
+                const AccountInstance* account, const AccountInstance& reader,
                 const std::map<std::string, Skill>& skills);
   // The catalog is held by reference, so a temporary one would dangle.
   AllStatsPanel(const CharacterInstance& character,
-                const AccountInstance* account,
+                const AccountInstance* account, const AccountInstance& reader,
                 std::map<std::string, Skill>&& skills) = delete;
   ftxui::Element Render() const;
 
@@ -75,6 +76,7 @@ class AllStatsPanel {
 
   const CharacterInstance& character_;
   const AccountInstance* account_ = nullptr;
+  const AccountInstance& reader_;
   const std::map<std::string, Skill>& skills_;
   Activity preset_ = Activity::kFarming;
 };

@@ -1743,4 +1743,94 @@ int CharacterCombatPower(const CharacterInstance& character,
                      preset == Activity::kBossing);
 }
 
+namespace {
+
+// The weapon's attack GMS's Combat Power adds or removes to price it as the bow
+// of its level: the base, stars and flame all scale by the bow's base over the
+// weapon's. A magician's Magic ATT is priced the same way.
+int BowAdjustment(const CharacterInstance& character, StatPreset gear) {
+  const EquipInstance* weapon =
+      character.WornAt(gear, EQUIP_SLOT_PRIMARY_WEAPON);
+  if (weapon == nullptr || weapon->prototype().bow_attack() <= 0) {
+    return 0;
+  }
+  const bool magic = SwingsOnMagic(character.proto().job());
+  auto attack_of = [magic](const EquipStats& stats) {
+    return magic ? stats.magic_attack() : stats.attack();
+  };
+  const int base = attack_of(weapon->prototype().base_stats());
+  if (base <= 0) {
+    return 0;
+  }
+  const int scaled = base + attack_of(weapon->StarForceStatGains()) +
+                     attack_of(weapon->FlameStatGains());
+  // (bow / base - 1) * scaled, ordered so a whole result stays whole.
+  return static_cast<int>(
+      std::floor(static_cast<double>(weapon->prototype().bow_attack() - base) *
+                 scaled / base));
+}
+
+// The highest weapon constant among the weapons the character's own weapon
+// mastery names, or `current` for a job with none or one weapon.
+double BestWeaponConstant(const CharacterInstance& character,
+                          const std::map<std::string, Skill>& skills,
+                          double current) {
+  const Job job = character.proto().job();
+  double best = current;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.base().mastery() <= 0.0 ||
+        character.BookHeldFor(skill) == JOB_ADVANCEMENT_UNSPECIFIED) {
+      continue;
+    }
+    for (int weapon : skill.required_equip_type()) {
+      best =
+          std::max(best, WeaponConstant(job, static_cast<EquipType>(weapon)));
+    }
+  }
+  return best;
+}
+
+}  // namespace
+
+OffenseStats GmsCharacterOffense(const CharacterInstance& character,
+                                 const std::map<std::string, Skill>& skills,
+                                 Activity preset,
+                                 std::optional<StatPreset> gear) {
+  // GMS counts no skill but Blessing of the Fairy, the one whose level the
+  // account sets.
+  std::map<std::string, Skill> kept;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (entry.second.account_levels_per_level() > 0) {
+      kept.insert(entry);
+    }
+  }
+  const Character& p = character.proto();
+  DerivedStats derived = DerivedStatsFor(character, kept, /*buffs_up=*/{},
+                                         /*allies=*/{}, preset, gear);
+  const EquipStats sources[] = {character.equip_stats(derived.gear),
+                                derived.skill_stats};
+  EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));
+  const int bow = BowAdjustment(character, derived.gear);
+  total.set_attack(FoldPercent(
+      total.attack() + (SwingsOnMagic(p.job()) ? 0 : bow), derived.attack_pct));
+  total.set_magic_attack(
+      FoldPercent(total.magic_attack() + (SwingsOnMagic(p.job()) ? bow : 0),
+                  derived.magic_attack_pct));
+  const EquipType weapon = character.weapon_type(derived.gear);
+  OffenseStats offense = OffenseStatsFor(
+      p.job(), p.level(), p.allocated_stats(), total, weapon,
+      /*attack_skill=*/nullptr, /*attack_level=*/0, PassiveOffenseFor(derived));
+  const double current = WeaponConstant(p.job(), weapon);
+  offense.weapon_constant =
+      current / BestWeaponConstant(character, skills, current);
+  return offense;
+}
+
+int GmsCharacterCombatPower(const CharacterInstance& character,
+                            const std::map<std::string, Skill>& skills,
+                            Activity preset, std::optional<StatPreset> gear) {
+  return GmsCombatPower(GmsCharacterOffense(character, skills, preset, gear));
+}
+
 }  // namespace ms

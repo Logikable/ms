@@ -35,8 +35,12 @@ std::string ColumnText(const StatLine& line) {
 
 AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
                              const AccountInstance* account,
+                             const AccountInstance& reader,
                              const std::map<std::string, Skill>& skills)
-    : character_(character), account_(account), skills_(skills) {
+    : character_(character),
+      account_(account),
+      reader_(reader),
+      skills_(skills) {
 }
 
 bool AllStatsPanel::ShowsPresetBar() const {
@@ -109,8 +113,8 @@ ftxui::Element AllStatsPanel::RenderBody() const {
   std::vector<ftxui::Element> rows = {
       CenteredRow(character_.username()),
       CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
-      CenteredRow(
-          CombatPowerText(CharacterCombatPower(character_, skills_, preset_))),
+      CenteredRow(CombatPowerText(
+          ShownCombatPower(reader_, character_, skills_, preset_))),
       ThemedSeparator(),
   };
   // Between the heading and the stats, so it reads as a heading of its own:

@@ -30,6 +30,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -704,11 +705,11 @@ std::optional<int> TuiController::CombatPowerDelta(
   // treated like the first.
   const Activity activity =
       gear == StatPreset::kSecond ? Activity::kBossing : Activity::kFarming;
-  const int now =
-      CharacterCombatPower(state_.character, state_.skills, activity, gear);
-  const int worn =
-      CharacterCombatPower(state_.character.Wearing(*item, gear, slot),
-                           state_.skills, activity, gear);
+  const int now = ShownCombatPower(state_.account, state_.character,
+                                   state_.skills, activity, gear);
+  const int worn = ShownCombatPower(state_.account,
+                                    state_.character.Wearing(*item, gear, slot),
+                                    state_.skills, activity, gear);
   return worn - now;
 }
 

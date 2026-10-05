@@ -1191,7 +1191,8 @@ TEST(GameStateTest, MaxModeWearsTheFrierenPetsUnscrolled) {
   MobDrop* drop = bosses["wall"].mutable_difficulties(0)->add_drops();
   drop->set_item("premium_scroll_for_pet");
   drop->set_per_kill(1);
-  GameState dropped = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO, bosses);
+  GameState dropped =
+      MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO, bosses);
   EXPECT_EQ(Worn(dropped, EQUIP_SLOT_PET_3).equip_state().scroll_successes(),
             0);
 }

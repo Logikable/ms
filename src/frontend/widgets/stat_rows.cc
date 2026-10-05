@@ -200,4 +200,13 @@ std::string CombatPowerText(int power) {
   return (power > 999999 ? "CP " : "Combat Power ") + value;
 }
 
+int ShownCombatPower(const AccountInstance& reader,
+                     const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills,
+                     Activity preset, std::optional<StatPreset> gear) {
+  return reader.gms_combat_power()
+             ? GmsCharacterCombatPower(character, skills, preset, gear)
+             : CharacterCombatPower(character, skills, preset, gear);
+}
+
 }  // namespace ms

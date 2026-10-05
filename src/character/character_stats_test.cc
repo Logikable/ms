@@ -4444,5 +4444,99 @@ TEST(CharacterCombatPowerTest, ReadsTheGearPresetTheCallerNames) {
       << "the drop preset wears a hat no activity would have reached";
 }
 
+// GMS's Combat Power counts Blessing of the Fairy and no other skill.
+TEST(GmsCharacterOffenseTest, CountsOnlyBlessingOfTheFairy) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(400);
+  (*proto.mutable_skill_levels())["Physical Training"] = 5;
+  CharacterInstance c(rng, std::move(proto));
+  EquipAttackWeapon(c);
+
+  Skill fairy;
+  fairy.set_name("Blessing of the Fairy");
+  fairy.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(fairy, JOB_ADVANCEMENT_BEGINNER);
+  fairy.set_account_levels_per_level(10);
+  fairy.mutable_base()->set_attack(1);
+  fairy.mutable_per_level()->set_attack(1);
+  const std::map<std::string, Skill> skills = {
+      {"blessing_of_the_fairy", fairy},
+      {"physical_training", PhysicalTraining()}};
+
+  const OffenseStats ours = CharacterOffense(c, skills);
+  const OffenseStats gms = GmsCharacterOffense(c, skills);
+  EXPECT_EQ(ours.primary - gms.primary, 30) << "Physical Training's STR";
+  EXPECT_EQ(gms.attack, 100) << "the weapon's 80 and the blessing's 20";
+  EXPECT_EQ(gms.attack, ours.attack);
+}
+
+// Every weapon is priced as the bow of its level: base, stars and flame scale
+// by the bow's base over the weapon's, and a magician's Magic ATT does too.
+TEST(GmsCharacterOffenseTest, PricesTheWeaponAsItsBow) {
+  std::mt19937 rng(1);
+  auto wearing = [&rng](Job job, const EquipPrototype& weapon) {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(job);
+    proto.set_job_stage(1);
+    CharacterInstance c(rng, std::move(proto));
+    c.PickUp(std::make_unique<EquipInstance>(weapon));
+    c.Equip(c.inventory().size() - 1);
+    return c;
+  };
+  EquipPrototype spear;
+  spear.set_name("Spear");
+  spear.set_equip_type(EQUIP_TYPE_SPEAR);
+  spear.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  spear.mutable_base_stats()->set_attack(171);
+  spear.set_bow_attack(160);
+  EXPECT_EQ(GmsCharacterOffense(wearing(JOB_SWORDMAN, spear), {}).attack, 160);
+  EXPECT_EQ(CharacterOffense(wearing(JOB_SWORDMAN, spear), {}).attack, 171);
+
+  EquipPrototype staff;
+  staff.set_name("Staff");
+  staff.set_equip_type(EQUIP_TYPE_STAFF);
+  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  staff.mutable_base_stats()->set_magic_attack(151);
+  staff.set_bow_attack(192);
+  EXPECT_EQ(GmsCharacterOffense(wearing(JOB_MAGICIAN, staff), {}).attack, 192);
+
+  spear.clear_bow_attack();
+  EXPECT_EQ(GmsCharacterOffense(wearing(JOB_SWORDMAN, spear), {}).attack, 171)
+      << "a weapon with no bow keeps its own attack";
+}
+
+// A job whose weapon mastery names several weapons is scaled by the constant of
+// the one it wears over the best of them.
+TEST(GmsCharacterOffenseTest, ScalesByTheBestWeaponTheMasteryNames) {
+  std::mt19937 rng(1);
+  Skill mastery = WeaponMastery();
+  mastery.clear_placement();
+  PlaceIn(mastery, JOB_ADVANCEMENT_FIGHTER);
+  mastery.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  mastery.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_SWORD);
+  const std::map<std::string, Skill> skills = {{"weapon_mastery", mastery}};
+  auto wearing = [&](EquipType type) {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(JOB_FIGHTER);
+    proto.set_job_stage(2);
+    CharacterInstance c(rng, std::move(proto));
+    EquipPrototype weapon;
+    weapon.set_name("Sword");
+    weapon.set_equip_type(type);
+    weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    c.PickUp(std::make_unique<EquipInstance>(weapon));
+    c.Equip(c.inventory().size() - 1);
+    return GmsCharacterOffense(c, skills).weapon_constant;
+  };
+  EXPECT_DOUBLE_EQ(wearing(EQUIP_TYPE_ONE_HANDED_SWORD), 1.34 / 1.44);
+  EXPECT_DOUBLE_EQ(wearing(EQUIP_TYPE_TWO_HANDED_SWORD), 1.0);
+}
+
 }  // namespace
 }  // namespace ms

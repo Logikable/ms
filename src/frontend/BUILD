@@ -124,6 +124,7 @@ cc_library(
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:stat_rows",
         "//src/item",
         "//src/item:equip_instance",
         "//src/multiplayer:party_fight",

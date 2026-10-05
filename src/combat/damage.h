@@ -313,6 +313,14 @@ double DefenseShare(const Mob& mob, double ied);
 // crits happen more. `vs_boss` picks boss or normal % damage; never both.
 int CombatPower(const OffenseStats& offense, bool vs_boss);
 
+// GMS's own Combat Power, which compares characters across jobs: every crit
+// lands at base crit damage plus the bonus, damage and boss damage always add,
+// and mastery and shadows are left out. Build `offense` with
+// GmsCharacterOffense, which removes skills and prices the weapon as a bow;
+// `weapon_constant` there is GMS's ratio of the current weapon's constant to
+// the job's best.
+int GmsCombatPower(const OffenseStats& offense);
+
 // A character's defensive stats, the counterpart to OffenseStats. Level affects
 // how much DEF counts.
 struct DefenseStats {

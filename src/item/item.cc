@@ -393,6 +393,24 @@ void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
   }
 }
 
+void FillBowAttack(std::map<std::string, EquipPrototype>& equips) {
+  std::map<int, int> bows;
+  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_type() == EQUIP_TYPE_BOW) {
+      int& attack = bows[proto.required_level()];
+      attack = std::max(attack, proto.base_stats().attack());
+    }
+  }
+  for (std::pair<const std::string, EquipPrototype>& entry : equips) {
+    EquipPrototype& weapon = entry.second;
+    std::map<int, int>::const_iterator bow = bows.find(weapon.required_level());
+    if (weapon.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON && bow != bows.end()) {
+      weapon.set_bow_attack(bow->second);
+    }
+  }
+}
+
 const std::string& ShortName(const ItemPrototype& proto) {
   return proto.short_name().empty() ? proto.name() : proto.short_name();
 }

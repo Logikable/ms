@@ -17,7 +17,7 @@ PlayerInspectPanel::PlayerInspectPanel(GameState& state)
       character_(state.rng, Character()),
       // No account: this is someone else's sheet, so the Farm/Boss row is gated
       // on the level on the sheet.
-      stats_(character_, /*account=*/nullptr, state.skills) {
+      stats_(character_, /*account=*/nullptr, state.account, state.skills) {
   BuildPanels();
 }
 

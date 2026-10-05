@@ -211,7 +211,8 @@ TEST_F(ScreenFitTest, LinkSkills) {
 }
 
 TEST_F(ScreenFitTest, AllStats) {
-  AllStatsPanel panel(state_.character, &state_.account, state_.skills);
+  AllStatsPanel panel(state_.character, &state_.account, state_.account,
+                      state_.skills);
   ExpectFits(panel.Render(), "the all-stats sheet");
 }
 

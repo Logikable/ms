@@ -14,6 +14,8 @@ namespace {
 
 std::string OptionName(Option option) {
   switch (option) {
+    case Option::kGmsCombatPower:
+      return "GMS Combat Power";
     case Option::kPanelTitleBlink:
       return "Panel Title Blink";
     case Option::kAutoswapPresets:
@@ -34,6 +36,13 @@ std::string OptionName(Option option) {
 
 Option OptionAt(int row) {
   return static_cast<Option>(row);
+}
+
+// Whether a rule is drawn under `option`: after what changes the numbers, and
+// after how the screen looks when the music follows.
+bool RuleAfter(Option option) {
+  return option == Option::kAutoswapPresets ||
+         (option == Option::kInnerAbilityEmoji && kAudioEnabled);
 }
 
 // `text` right-aligned in `width` columns, with a gutter after it.
@@ -66,6 +75,8 @@ bool OptionsPanel::IsVolume(Option option) {
 
 bool OptionsPanel::IsOn(Option option) const {
   switch (option) {
+    case Option::kGmsCombatPower:
+      return account_.gms_combat_power();
     case Option::kPanelTitleBlink:
       return account_.panel_title_blink();
     case Option::kAutoswapPresets:
@@ -89,6 +100,7 @@ int OptionsPanel::VolumeOf(Option option) const {
       return account_.map_bgm_volume();
     case Option::kBossBgmVolume:
       return account_.boss_bgm_volume();
+    case Option::kGmsCombatPower:
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
@@ -104,6 +116,9 @@ void OptionsPanel::Toggle() {
     return;
   }
   switch (selected_option()) {
+    case Option::kGmsCombatPower:
+      account_.SetGmsCombatPower(!account_.gms_combat_power());
+      return;
     case Option::kPanelTitleBlink:
       account_.SetPanelTitleBlink(!account_.panel_title_blink());
       return;
@@ -137,6 +152,7 @@ void OptionsPanel::Adjust(int delta) {
     case Option::kBossBgmVolume:
       account_.SetBossBgmVolume(account_.boss_bgm_volume() + delta);
       return;
+    case Option::kGmsCombatPower:
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
     case Option::kBuffIndicators:
@@ -179,9 +195,11 @@ ftxui::Element OptionsPanel::Render() const {
   ftxui::Elements rows;
   for (int i = 0; i < kOptionCount; ++i) {
     rows.push_back(RenderRow(OptionAt(i), i));
+    if (RuleAfter(OptionAt(i))) {
+      rows.push_back(ThemedSeparator());
+    }
   }
-  // Space for the settings still to come.
-  for (int i = kOptionCount; i < kListRows; ++i) {
+  while (static_cast<int>(rows.size()) < kListRows) {
     rows.push_back(ftxui::text(""));
   }
   rows.push_back(ThemedSeparator());

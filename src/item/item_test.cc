@@ -219,5 +219,29 @@ TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
   EXPECT_EQ(items["shell"].currency_level(), 7);
 }
 
+// A weapon takes the bow of its own level, and a bow takes itself; gear that
+// isn't a weapon, and a weapon with no bow at its level, take nothing.
+TEST(FillBowAttackTest, AWeaponTakesTheBowOfItsLevel) {
+  auto item = [](EquipType type, EquipSlot slot, int level, int attack) {
+    EquipPrototype proto;
+    proto.set_equip_type(type);
+    proto.set_equip_slot(slot);
+    proto.set_required_level(level);
+    proto.mutable_base_stats()->set_attack(attack);
+    return proto;
+  };
+  std::map<std::string, EquipPrototype> equips = {
+      {"bow", item(EQUIP_TYPE_BOW, EQUIP_SLOT_PRIMARY_WEAPON, 160, 192)},
+      {"staff", item(EQUIP_TYPE_STAFF, EQUIP_SLOT_PRIMARY_WEAPON, 160, 0)},
+      {"spear", item(EQUIP_TYPE_SPEAR, EQUIP_SLOT_PRIMARY_WEAPON, 150, 171)},
+      {"hat", item(EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_HAT, 160, 0)},
+  };
+  FillBowAttack(equips);
+  EXPECT_EQ(equips["bow"].bow_attack(), 192);
+  EXPECT_EQ(equips["staff"].bow_attack(), 192);
+  EXPECT_EQ(equips["spear"].bow_attack(), 0);
+  EXPECT_EQ(equips["hat"].bow_attack(), 0);
+}
+
 }  // namespace
 }  // namespace ms

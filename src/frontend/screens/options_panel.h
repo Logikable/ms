@@ -6,8 +6,9 @@
  * bottom leaves, as does Escape. The cursor wraps, with the Close button as the
  * stop after the last setting.
  *
- * The list is drawn at a fixed height with room for future settings, so the
- * panel doesn't grow a row at a time as they are added.
+ * Rules split the list into what changes the numbers, how the screen looks, and
+ * the music. The list is drawn at a fixed height, so a build without music
+ * keeps the panel the size the player knows.
  *
  * The panel only displays. It moves its own cursor, and the settings belong to
  * the account, which saves them.
@@ -26,15 +27,16 @@ namespace ms {
 // The settings on the screen, top to bottom. The last three exist only in a
 // build with music (see kAudioEnabled).
 enum class Option {
-  kPanelTitleBlink,
+  kGmsCombatPower,
   kAutoswapPresets,
+  kPanelTitleBlink,
   kBuffIndicators,
   kInnerAbilityEmoji,
   kMute,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 7 : 4;
+inline constexpr int kOptionCount = kAudioEnabled ? 8 : 5;
 
 class OptionsPanel {
  public:
@@ -57,9 +59,9 @@ class OptionsPanel {
   }
 
  private:
-  // The rows the list is drawn to, so the panel keeps its size as settings are
-  // added. The blank rows below the last setting are room for them.
-  static constexpr int kListRows = 8;
+  // The rows the list is drawn to, rules included, so the panel keeps its size
+  // in a build without music.
+  static constexpr int kListRows = 10;
   // The name column, wide enough for the longest name plus a gutter.
   static constexpr int kNameWidth = 22;
   // The volume bar's width, and the number after it.

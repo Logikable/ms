@@ -486,6 +486,10 @@ message EquipPrototype {
   // The skill this item grants while worn; unset on almost everything. Each
   // level of a Special Skill Ring is its own item, so the level is the item's.
   EquipmentSkill equipment_skill = 19;
+  // On a weapon, the base attack of the bow at its required level: GMS's
+  // Combat Power prices every weapon as that bow. Data files never set this;
+  // FillBowAttack does, and 0 means no bow matched.
+  int32 bow_attack = 20;
 }
 
 // A skill a worn item grants. See Skill.granted_by_equip.
