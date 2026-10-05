@@ -66,12 +66,13 @@ struct OutfitBand {
 
 constexpr SetFamily kRA = SetFamily::kRootAbyss;
 constexpr SetFamily kAL = SetFamily::kAbsoLab;
+constexpr SetFamily kAU = SetFamily::kArcaneUmbra;
 
 // What the sweep of 2026-10-04 wore in each slot on arriving at each level: the
 // fifth of ten branches from the top, by set family so each job wears its own
 // piece. The job's own weapon, secondary and ammunition come first, from the
-// workbench's table. At 260 the top stays AbsoLab: the typical runs there
-// happened to hold Root Abyss, and no player sells an AbsoLab top back.
+// workbench's table. 260 is re-read off a later sweep the same day, once
+// Arcane Umbra's boxes dropped: it took every slot but the top and cape.
 constexpr OutfitBand kOutfits[] = {
     {100, {Item("frozen_hat"), Item("frozen_top"), Item("frozen_bottom")}},
     {140,
@@ -137,14 +138,14 @@ constexpr OutfitBand kOutfits[] = {
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
     {260,
-     {Set(kAL, EQUIP_SLOT_HAT),
+     {Set(kAU, EQUIP_SLOT_HAT),
       Set(kAL, EQUIP_SLOT_TOP),
-      Set(kAL, EQUIP_SLOT_BOTTOM),
+      Set(kAU, EQUIP_SLOT_BOTTOM),
       Set(kAL, EQUIP_SLOT_CAPE),
-      Set(kAL, EQUIP_SLOT_GLOVES),
-      Set(kAL, EQUIP_SLOT_SHOES),
-      Set(kAL, EQUIP_SLOT_SHOULDER),
-      Set(kAL, EQUIP_SLOT_PRIMARY_WEAPON),
+      Set(kAU, EQUIP_SLOT_GLOVES),
+      Set(kAU, EQUIP_SLOT_SHOES),
+      Set(kAU, EQUIP_SLOT_SHOULDER),
+      Set(kAU, EQUIP_SLOT_PRIMARY_WEAPON),
       Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
       Item("gold_maple_leaf_emblem"),
       Item("master_adventurer"),

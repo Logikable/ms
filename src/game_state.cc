@@ -167,10 +167,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
   }
 }
 
-constexpr char kPetScroll[] = "premium_scroll_for_pet";
-
-// Whether some fight or monster drops `item`. Max mode scrolls its pets only
-// once theirs drops, so it never wears stats no player can get.
+// Whether some fight or monster drops `item`, so the workbench never wears a
+// scroll no player can get.
 bool AnythingDrops(const GameState& state, const std::string& item) {
   for (const std::pair<const std::string, Mob>& entry : state.mobs) {
     for (const MobDrop& drop : entry.second.drops()) {
@@ -262,8 +260,8 @@ const Scroll* BestScrollOfType(const GameState& state,
 // character's main stat, or, where a slot takes no stat trace, the one raising
 // attack. Gloves and hearts are the second case; asking only for the stat left
 // them unscrolled and so without stars.
-const Scroll* BestScrollFor(const GameState& state,
-                            const EquipPrototype& proto) {
+const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
+                            bool dropped_scrolls) {
   StatField primary = PrimaryStatField(state.character.proto().job());
   ScrollType wanted = SCROLL_TYPE_UNSPECIFIED;
   switch (primary) {
@@ -289,6 +287,9 @@ const Scroll* BestScrollFor(const GameState& state,
   // A pet has one scroll, and it raises both attacks, so the stat doesn't
   // choose.
   if (target == SCROLL_TARGET_PET) {
+    if (!dropped_scrolls) {
+      return nullptr;
+    }
     for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
       if (entry.second.target() == SCROLL_TARGET_PET) {
         return &entry.second;
@@ -298,7 +299,9 @@ const Scroll* BestScrollFor(const GameState& state,
   }
   ScrollType attack =
       primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
-  const Scroll* dropped = DroppedScrollFor(state, proto, target, attack);
+  const Scroll* dropped = dropped_scrolls
+                              ? DroppedScrollFor(state, proto, target, attack)
+                              : nullptr;
   if (dropped != nullptr) {
     return dropped;
   }
@@ -316,7 +319,7 @@ const Scroll* BestScrollFor(const GameState& state,
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
   Equip built = FreshEquip(proto);
-  const Scroll* scroll = BestScrollFor(state, proto);
+  const Scroll* scroll = BestScrollFor(state, proto, equips.dropped_scrolls);
   if (equips.scrolled && scroll != nullptr && TakesUpgradeSlots(proto)) {
     int slots = built.remaining_upgrade_slots();
     std::vector<EquipStats> passes(slots, scroll->stats());
@@ -1253,6 +1256,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   equips.scrolled = true;
   equips.stars = gear.stars;
   equips.weapon_stars = gear.weapon_stars;
+  equips.dropped_scrolls = false;
 
   state.character.SetUsername(UsernameFor(advancement));
   state.character.AddMeso(kMaxLeftoverMeso);
@@ -1266,9 +1270,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   });
   WearStarterSymbol(state);
   WearMaxSymbols(state);
-  GearSetup pets = equips;
-  pets.scrolled = AnythingDrops(state, kPetScroll);
-  WearAll(state, MaxPets(), pets);
+  WearAll(state, MaxPets(), equips);
   // The climb's leftovers: pieces a level gate says to carry instead of wear,
   // and weapons replaced later.
   state.character.ClearEquipInventory();

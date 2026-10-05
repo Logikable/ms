@@ -82,7 +82,8 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
   EXPECT_TRUE(wears(JOB_BISHOP, 230, "absolab_spellsong_staff"));
   EXPECT_TRUE(wears(JOB_NIGHT_LORD, 230, "princess_nos_charm"));
   EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "falcon_wing_sentinel_shoulder"));
-  EXPECT_TRUE(wears(JOB_SHADOWER, 260, "absolab_bandit_shoulder"));
+  EXPECT_TRUE(wears(JOB_SHADOWER, 260, "arcane_umbra_thief_shoulder"));
+  EXPECT_TRUE(wears(JOB_HERO, 260, "absolab_knight_armor"));
   EXPECT_TRUE(wears(JOB_HERO, 260, "guardian_angel_ring"));
   EXPECT_FALSE(wears(JOB_HERO, 260, "lightning_god_ring"));
   for (Job job : {JOB_HERO, JOB_BISHOP, JOB_BOW_MASTER, JOB_NIGHT_LORD}) {

@@ -58,6 +58,10 @@ struct GearSetup {
   // Stars for the weapon alone, which max mode sets apart from the rest. Zero
   // uses `stars` like everything else.
   int weapon_stars = 0;
+  // Lets a scroll paid for with a boss drop fill the slots, and pets take
+  // theirs, once something drops it. Max mode turns it off: the sweep it copies
+  // arrives at every checkpoint before one has dropped.
+  bool dropped_scrolls = true;
 };
 
 // What the workbench does with its current job's book, as --skills says.

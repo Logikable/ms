@@ -996,10 +996,14 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   EquipPrototype helm = hat;
   helm.set_name("AbsoLab Knight Helm");
   helm.set_required_level(160);
+  EquipPrototype umbra = hat;
+  umbra.set_name("Arcane Umbra Knight Hat");
+  umbra.set_required_level(200);
   std::map<std::string, EquipPrototype> catalog = {
       {"frozen_two_handed_axe", axe},
       {"frozen_hat", hat},
       {"absolab_knight_helm", helm},
+      {"arcane_umbra_knight_hat", umbra},
       {"royal_black_metal_shoulder", shoulder},
       {"lionheart_battle_shoulder", cygnus}};
   for (const char* key : {"horseback_riding_doll_totem", "jade_kettle_totem",
@@ -1171,9 +1175,9 @@ TEST(GameStateTest, MaxModeWearsTheTotemsTheClimbBought) {
   }
 }
 
-// Max mode wears the user's three pets, scrolled only once something drops
-// their scroll: before that no player could have one.
-TEST(GameStateTest, MaxModeWearsTheFrierenPetsScrolledOnceTheScrollDrops) {
+// Max mode wears the user's three pets unscrolled, even once something drops
+// their scroll: the sweep reached every checkpoint before one dropped.
+TEST(GameStateTest, MaxModeWearsTheFrierenPetsUnscrolled) {
   GameState unscrolled = MakeMaxState(230);
   const std::vector<std::string> kPets = {"lil_frieren", "lil_fern",
                                           "lil_stark"};
@@ -1187,12 +1191,9 @@ TEST(GameStateTest, MaxModeWearsTheFrierenPetsScrolledOnceTheScrollDrops) {
   MobDrop* drop = bosses["wall"].mutable_difficulties(0)->add_drops();
   drop->set_item("premium_scroll_for_pet");
   drop->set_per_kill(1);
-  GameState scrolled = MakeMaxState(230, JOB_ADVANCEMENT_HERO, bosses);
-  const EquipInstance& pet = Worn(scrolled, EQUIP_SLOT_PET_3);
-  int slots = TotalUpgradeSlots(pet.prototype());
-  EXPECT_GE(slots, 8);
-  EXPECT_EQ(pet.equip_state().scroll_stats().attack(), 5 * slots);
-  EXPECT_EQ(pet.equip_state().scroll_stats().magic_attack(), 5 * slots);
+  GameState dropped = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO, bosses);
+  EXPECT_EQ(Worn(dropped, EQUIP_SLOT_PET_3).equip_state().scroll_successes(),
+            0);
 }
 
 // A max account holds the alts the sweep levelled for link skills: at the cap
