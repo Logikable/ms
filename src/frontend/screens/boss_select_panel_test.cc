@@ -757,14 +757,14 @@ TEST(BossSelectPanelTest, TheFightCardScrollsItsDetails) {
   // The bar is drawn only once something is below the window.
   EXPECT_NE(top.find("\u2503"), std::string::npos);
   EXPECT_NE(top.find("Level"), std::string::npos);
-  EXPECT_EQ(top.find("Status"), std::string::npos);
+  EXPECT_EQ(top.find("Daily"), std::string::npos);
   EXPECT_NE(top.find("100%"), std::string::npos);
 
   panel.SwitchPanel(1);
   panel.MoveCursor(9);
   EXPECT_EQ(panel.selected_boss(), "zakum");
   std::string scrolled = Render(panel);
-  EXPECT_NE(scrolled.find("Status"), std::string::npos);
+  EXPECT_NE(scrolled.find("Daily"), std::string::npos);
   EXPECT_NE(scrolled.find("100%"), std::string::npos);
   // Left and Right belong to the grid, and a card with the keys doesn't change
   // its column.

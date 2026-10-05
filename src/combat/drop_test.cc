@@ -26,10 +26,16 @@ std::unique_ptr<GameState> MakeState() {
   ItemPrototype token;
   token.set_name("Cygnus Shoulder Token");
   token.set_kind(ITEM_KIND_TOKEN);
+  ItemPrototype box;
+  box.set_name("Black Jade Boss Ring Box");
+  box.mutable_ring_box();
+  ItemPrototype scroll;
+  scroll.set_name("Premium Scroll for Accessory");
   return std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{{"ring", ring}},
-      std::map<std::string, Scroll>{},
-      std::map<std::string, ItemPrototype>{{"shard", shard}, {"token", token}},
+      std::map<std::string, Scroll>{{"scroll", Scroll()}},
+      std::map<std::string, ItemPrototype>{
+          {"shard", shard}, {"token", token}, {"box", box}, {"scroll", scroll}},
       std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
 }
 
@@ -53,12 +59,14 @@ TEST(DropNameTest, ReadsWhicheverCatalogHoldsIt) {
   EXPECT_EQ(DropName(*state, Item("nothing")), "");
 }
 
-// Gear, and tokens that buy gear, count as the prize. The shard is ordinary
+// Gear, tokens, boxes and scrolls count as the prize. The shard is ordinary
 // clear loot.
-TEST(DropIsPrizeTest, GearAndTokensAreThePrize) {
+TEST(DropIsPrizeTest, GearTokensBoxesAndScrollsAreThePrize) {
   std::unique_ptr<GameState> state = MakeState();
   EXPECT_TRUE(DropIsPrize(*state, Equip("ring")));
   EXPECT_TRUE(DropIsPrize(*state, Item("token")));
+  EXPECT_TRUE(DropIsPrize(*state, Item("box")));
+  EXPECT_TRUE(DropIsPrize(*state, Item("scroll")));
   EXPECT_FALSE(DropIsPrize(*state, Item("shard")));
   EXPECT_FALSE(DropIsPrize(*state, Item("nothing")));
 }

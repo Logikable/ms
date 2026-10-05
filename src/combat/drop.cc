@@ -27,7 +27,12 @@ bool DropIsPrize(const GameState& state, const MobDrop& drop) {
   }
   std::map<std::string, ItemPrototype>::const_iterator it =
       state.items.find(drop.item());
-  return it != state.items.end() && it->second.kind() == ITEM_KIND_TOKEN;
+  if (it == state.items.end()) {
+    return false;
+  }
+  return it->second.kind() == ITEM_KIND_TOKEN ||
+         it->second.opens_into_case() != ItemPrototype::OPENS_INTO_NOT_SET ||
+         state.scrolls.count(drop.item()) > 0;
 }
 
 }  // namespace ms

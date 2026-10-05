@@ -363,14 +363,30 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   std::vector<ftxui::Element>& rows = detail.info;
   rows.push_back(
       DetailRow("Level", std::to_string(BossLevel(state_, difficulty))));
-  // Under the fight's own level, because together they show where the player
-  // stands: what they face, and what it takes to enter. Everything below is
-  // about the fight.
+  // Under the fight's own level and over the status, because together they
+  // show where the player stands: what they face, what it takes to enter, and
+  // whether they can. Everything below is about the fight.
   if (difficulty.unlock_level() > 0) {
     // Red marks the reason: the one value the player falls short of.
     rows.push_back(RedUnless(
         DetailRow("Unlock Level", std::to_string(difficulty.unlock_level())),
         Unlocked(difficulty)));
+  }
+  if (!Unlocked(difficulty)) {
+    // Neither "Available" nor "Cleared" applies to a fight the character can't
+    // enter at all, and the level above says what they are short of.
+    rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
+  } else if (practice()) {
+    // Practice ignores the reset, so "Cleared" no longer stands between the
+    // player and the fight. Yellow rather than green, since it lets them in but
+    // pays nothing.
+    rows.push_back(DetailRow("Status", "Practice") | ftxui::color(kYellow));
+  } else if (!selected_available()) {
+    // Red marks the reason: the one value the player falls short of. Here they
+    // are waiting on a reset, so only the status is red.
+    rows.push_back(DetailRow("Status", "Cleared") | ftxui::color(kRed));
+  } else {
+    rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
   if (difficulty.arcane_force() > 0) {
     // Red like the unlock level, though falling short only costs damage.
@@ -392,22 +408,6 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   }
   rows.push_back(DetailRow("Time Limit", clock));
   rows.push_back(DetailRow("Reset", ResetName(difficulty.reset())));
-  if (!Unlocked(difficulty)) {
-    // Neither "Available" nor "Cleared" applies to a fight the character can't
-    // enter at all, and the level above says what they are short of.
-    rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
-  } else if (practice()) {
-    // Practice ignores the reset, so "Cleared" no longer stands between the
-    // player and the fight. Yellow rather than green, since it lets them in but
-    // pays nothing.
-    rows.push_back(DetailRow("Status", "Practice") | ftxui::color(kYellow));
-  } else if (!selected_available()) {
-    // Red marks the reason: the one value the player falls short of. Here they
-    // are waiting on a reset, so only the status is red.
-    rows.push_back(DetailRow("Status", "Cleared") | ftxui::color(kRed));
-  } else {
-    rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
-  }
   std::vector<ftxui::Element>& rewards = detail.rewards;
   rewards.push_back(ThemedSeparator());
   rewards.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));

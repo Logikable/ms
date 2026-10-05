@@ -130,7 +130,7 @@ std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
 struct BossRewardItem {
   std::string name;
   int64_t count = 0;
-  // From DropIsPrize: gear, or a token that buys gear. The reward card lists
+  // From DropIsPrize: gear, a token, a box or a scroll. The reward card lists
   // these separately from the regular clear rewards.
   bool prize = false;
   // The table's drop rate for it, before any drop rate bonus. The card sorts by

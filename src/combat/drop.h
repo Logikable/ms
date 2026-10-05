@@ -17,8 +17,8 @@ namespace ms {
 // The drop's display name, or empty if neither catalog knows it.
 std::string DropName(const GameState& state, const MobDrop& drop);
 
-// Whether a drop is a prize: gear, or a token a shop trades for gear.
-// Everything else, such as soul shards, is a regular clear reward.
+// Whether a drop is a prize: gear, a token a shop trades for gear, a box, or a
+// scroll. Everything else, such as soul shards, is a regular clear reward.
 //
 // Reward lists show prizes separately, so they don't get lost among the rest.
 bool DropIsPrize(const GameState& state, const MobDrop& drop);
