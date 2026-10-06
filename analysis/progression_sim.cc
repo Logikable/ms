@@ -3884,6 +3884,19 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
        state.character.equipped()) {
     PrintWornRow(*entry.second);
   }
+  // The list above is the farming preset; boss fights swap accessories.
+  bool headed = false;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped(kBossGear)) {
+    if (state.character.WornAt(kFarmGear, entry.first) == entry.second) {
+      continue;
+    }
+    if (!headed) {
+      std::printf("\n  Worn for bosses in place of the above\n");
+      headed = true;
+    }
+    PrintWornRow(*entry.second);
+  }
 
   std::printf("\n  Hyper Stats (%d points paid, by preset)\n",
               state.character.hyper_stat_points());

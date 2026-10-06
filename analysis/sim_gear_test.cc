@@ -277,6 +277,32 @@ TEST(OpenBoxesTest, EachBoxGivesWhatHelpsMost) {
   EXPECT_EQ(hero.CountItem("Ring Box"), 1);
 }
 
+// A token piece already worn keeps its slot: outfitting must not swap in an
+// older one from the bag, which the next outfit would swap back.
+TEST(OutfitTest, KeepsTheWornTokenPiece) {
+  std::map<std::string, EquipPrototype> equips;
+  for (int level : {160, 200}) {
+    EquipPrototype hat =
+        Accessory("Hat " + std::to_string(level), level, EQUIP_SLOT_HAT);
+    TokenPrice* price = hat.add_token_prices();
+    price->set_token_item("coin");
+    price->set_count(1);
+    equips["hat_" + std::to_string(level)] = hat;
+  }
+  std::unique_ptr<GameState> owner = HeroWith(equips, {}, {});
+  CharacterInstance& hero = owner->character;
+  hero.PickUp(std::make_unique<EquipInstance>(equips.at("hat_200")));
+  ASSERT_TRUE(hero.Equip(0));
+  hero.PickUp(std::make_unique<EquipInstance>(equips.at("hat_160")));
+
+  for (int pass = 0; pass < 2; ++pass) {
+    Outfit(*owner, /*budget=*/true, EQUIP_TYPE_ONE_HANDED_SWORD);
+    ASSERT_NE(hero.WornAt(kFarmGear, EQUIP_SLOT_HAT), nullptr);
+    EXPECT_EQ(hero.WornAt(kFarmGear, EQUIP_SLOT_HAT)->name(), "Hat 200")
+        << "pass " << pass;
+  }
+}
+
 // The Continuous Ring takes its own slot; the Ring of Restraint takes the ring
 // slot `power` likes best, once per set of rings.
 TEST(WearSkillRingsTest, RestraintTakesTheSlotPowerLikesBest) {

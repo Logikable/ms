@@ -527,10 +527,10 @@ void BuyAccessories(GameState& state, bool budget) {
         !state.character.MeetsJob(proto)) {
       continue;
     }
-    if (state.character.IsWearing(proto.name())) {
-      continue;  // bought on an earlier pass; a climb outfits at every level
-    }
-    if (budget && (!CanPayFor(state, proto) || !BuyOne(state, proto))) {
+    // A piece bought on an earlier pass stays a candidate: left out, the best
+    // of the rest would displace it, and the next pass would swap it back.
+    if (budget && !state.character.IsWearing(proto.name()) &&
+        (!CanPayFor(state, proto) || !BuyOne(state, proto))) {
       continue;
     }
     by_family[BaseSlot(proto.equip_slot())].push_back(&proto);
