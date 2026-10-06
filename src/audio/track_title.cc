@@ -39,6 +39,7 @@ constexpr Title kTitles[] = {
     {"CygnusGarden", "Cygnus Garden"},
     {"Demian Spine", "Demian Spine"},
     {"Demian True", "Demian True"},
+    {"DepthOfPain", "Depth of Pain"},
     {"Dispute", "Dispute"},
     {"DragonLoad", "Dragon Road"},
     {"DragonNest", "Dragon Nest"},

@@ -189,14 +189,14 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
-  // the Guardian Angel Slime, Lucid, Will, Gloom and Darknell, which are the
-  // same case and are fought for their drops.
+  // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell and Verus Hilla,
+  // which are the same case and are fought for their drops.
   EXPECT_EQ(unpaid,
-            std::vector<std::string>({"crimson_queen", "darknell", "darknell",
-                                      "gloom", "gloom", "guardian_angel_slime",
-                                      "guardian_angel_slime", "lotus", "lotus",
-                                      "lucid", "lucid", "pierre", "vellum",
-                                      "von_bon", "will", "will", "zakum"}));
+            std::vector<std::string>(
+                {"crimson_queen", "darknell", "darknell", "gloom", "gloom",
+                 "guardian_angel_slime", "guardian_angel_slime", "lotus",
+                 "lotus", "lucid", "lucid", "pierre", "vellum", "verus_hilla",
+                 "verus_hilla", "von_bon", "will", "will", "zakum"}));
 }
 
 // A shell (none today) can't be entered, so a timer, gate or
@@ -238,7 +238,8 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
       {"lucid", "Hard", {50800000000000LL, 54000000000000LL, 12800000000000LL}},
       {"will", "Hard", {42000000000000LL, 31500000000000LL, 52500000000000LL}},
       {"gloom", "Chaos", {127050000000000LL}},
-      {"darknell", "Hard", {157500000000000LL}}};
+      {"darknell", "Hard", {157500000000000LL}},
+      {"verus_hilla", "Hard", {178500000000000LL}}};
   for (const Want& want : kHarder) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
@@ -342,11 +343,11 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 32) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+  EXPECT_EQ(fights, 34) << "Arkarium, Cygnus, Princess No, Papulatus, the "
                            "four of Root Abyss, and both difficulties of "
                            "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
                            "Damien, the Guardian Angel Slime, Lucid, Will, "
-                           "Gloom and Darknell";
+                           "Gloom, Darknell and Verus Hilla";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -731,8 +732,8 @@ const std::map<std::string, TierDrop>& TierDrops() {
     }
     (*drops)["absolab_armor_box"] = {2, DropKind::kBox, 1};
     (*drops)["absolab_weapon_box"] = {2, DropKind::kBox, 3};
-    for (const char* key :
-         {"guardian_angel_ring", "twilight_mark", "estella_earrings"}) {
+    for (const char* key : {"guardian_angel_ring", "twilight_mark",
+                            "estella_earrings", "daybreak_pendant"}) {
       (*drops)[key] = {2, DropKind::kAccessory};
     }
     for (const char* key : {"phantasma_coin", "arachno_coin"}) {
@@ -741,11 +742,11 @@ const std::map<std::string, TierDrop>& TierDrops() {
     for (const char* key :
          {"magic_eyepatch", "berserked", "black_heart", "dreamy_belt",
           "wills_cursed_spellbook_selection_box", "endless_terror",
-          "commanding_force_earring"}) {
+          "commanding_force_earring", "source_of_suffering"}) {
       (*drops)[key] = {3, DropKind::kAccessory};
     }
     // Two coin fights (Hard Lucid, Hard Will) against six box fights, Normal
-    // Verus Hilla and Hard Black Mage among them at half (unbuilt).
+    // Verus Hilla and Hard Black Mage (unbuilt) among them at half.
     (*drops)["arcane_umbra_armor_box"] = {3, DropKind::kBox, 1, 2, 5};
     (*drops)["arcane_umbra_weapon_box"] = {3, DropKind::kBox, 3, 2, 5};
     // The user's rates (2026-10-04, memory boss_ring_boxes.md).
@@ -1022,6 +1023,45 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(normal.drops(1).item(), "guardian_angel_slimes_soul_shard");
 }
 
+// Verus Hilla is one body in four equal bars, red, pink, yellow, green as GMS
+// draws them, teleporting over a player every five seconds to GMS's Altar of
+// Desire theme.
+TEST_F(BossDataTest, VerusHillaIsOneBodyInFourBarsThatHuntsThePlayer) {
+  ASSERT_GT(bosses_.count("verus_hilla"), 0u);
+  const Boss& hilla = bosses_.at("verus_hilla");
+  ASSERT_EQ(hilla.difficulties_size(), 2);
+  for (const BossDifficulty& difficulty : hilla.difficulties()) {
+    SCOPED_TRACE(difficulty.name());
+    EXPECT_EQ(difficulty.unlock_level(), 250);
+    EXPECT_EQ(difficulty.time_limit_seconds(), 1800);
+    ASSERT_EQ(difficulty.phases_size(), 1);
+    const BossPhase& phase = difficulty.phases(0);
+    EXPECT_EQ(phase.bgm(), "DepthOfPain");
+    ASSERT_EQ(phase.spawns_size(), 1);
+    const Spawn& spawn = phase.spawns(0);
+    EXPECT_EQ(SpawnCount(spawn), 1);
+    EXPECT_EQ(std::vector<int>(spawn.hp_bars().begin(), spawn.hp_bars().end()),
+              std::vector<int>({HP_BAR_COLOR_RED, HP_BAR_COLOR_PINK,
+                                HP_BAR_COLOR_YELLOW, HP_BAR_COLOR_GREEN}));
+    EXPECT_EQ(spawn.walk().interval_ms(), 5000);
+    EXPECT_EQ(spawn.walk().range(), ArenaWalk::RANGE_ABOVE_PLAYER);
+    // The row over the player's floor, so the cell above every spot is hers
+    // to stand on.
+    for (const ArenaSpot& spot : phase.player_spots()) {
+      EXPECT_EQ(spot.y(), spawn.spots(0).y() + 1);
+    }
+    const Mob& mob = mobs_.at(spawn.mob());
+    EXPECT_EQ(mob.name(), "Verus Hilla");
+    EXPECT_EQ(mob.level(), 250);
+    EXPECT_EQ(mob.pdr(), 300);
+  }
+  EXPECT_EQ(hilla.difficulties(0).arcane_force(), 820);
+  EXPECT_EQ(hilla.difficulties(0).meso(), 83150000);
+  EXPECT_EQ(mobs_.at("verus_hilla").max_hp(), 89250000000000LL);
+  EXPECT_EQ(hilla.difficulties(1).arcane_force(), 900);
+  EXPECT_EQ(hilla.difficulties(1).meso(), 108850000);
+}
+
 // A special must have a move to make and a wait to draw it in, and a fall
 // only happens as one: an unscheduled fall would never be made.
 TEST_F(BossDataTest, EverySpecialHasAMoveAndAWait) {
@@ -1226,7 +1266,8 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"papulatus", {7, 5}},   {"lotus", {5, 8, 8}},
       {"damien", {5, 5}},      {"guardian_angel_slime", {5}},
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
-      {"gloom", {5}},          {"darknell", {5}}};
+      {"gloom", {5}},          {"darknell", {5}},
+      {"verus_hilla", {5}}};
   // A difficulty with a phase its Normal lacks.
   const std::map<std::string, std::vector<int>> kOwnShape = {
       {"lucid Hard", {5, 5, 5}}};

@@ -1,6 +1,5 @@
 name: EQUIP_SET_NAME_PITCHED_BOSS
-# GMS's ten slots. The badge, emblem and pendant drop from fights not built
-# yet.
+# GMS's ten slots. The badge and emblem drop from fights not built yet.
 complete_pieces: 10
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -36,6 +35,10 @@ members {
 members {
   slot: EQUIP_SLOT_EARRINGS
   items { name: "Commanding Force Earring" }
+}
+members {
+  slot: EQUIP_SLOT_PENDANT
+  items { name: "Source of Suffering" }
 }
 tiers {
   pieces: 2

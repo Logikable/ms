@@ -1,0 +1,16 @@
+name: "Daybreak Pendant"
+required_level: 140
+base_stats {
+  str: 8
+  dex: 8
+  int: 8
+  luk: 8
+  attack: 2
+  magic_attack: 2
+  def: 100
+  max_hp_pct: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_PENDANT
+upgrade_slots: 6
+sell_price: 0

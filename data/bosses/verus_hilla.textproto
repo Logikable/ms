@@ -1,0 +1,136 @@
+name: "Verus Hilla"
+difficulties {
+  name: "Normal"
+  phases {
+    bgm: "DepthOfPain"
+    spawns {
+      mob: "verus_hilla"
+      spots { x: 4 y: 4 }
+      # GMS's teleport to a random player, on a fixed beat.
+      walk { interval_ms: 5000 range: RANGE_ABOVE_PLAYER }
+      hp_bars: [
+        HP_BAR_COLOR_RED,
+        HP_BAR_COLOR_PINK,
+        HP_BAR_COLOR_YELLOW,
+        HP_BAR_COLOR_GREEN
+      ]
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 250
+  arcane_force: 820
+  # Five Intense Power Crystals at GMS's price (116,376,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 83150000
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "verus_hillas_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, and she is the
+  # pendant's only source.
+  drops {
+    equip: "daybreak_pendant"
+    per_kill: 0.2
+  }
+  # GMS never published the odds. The boxes pay one piece for every three the
+  # coins buy across the tier, shared with fights that drop no coin; Normal
+  # pays half of Hard.
+  drops {
+    item: "arcane_umbra_weapon_box"
+    per_kill: 0.0111
+  }
+  drops {
+    item: "arcane_umbra_armor_box"
+    per_kill: 0.0333
+  }
+  # The user's rate (2026-10-04); GMS publishes none.
+  drops {
+    item: "scroll_for_accessory"
+    per_kill: 0.5
+  }
+}
+difficulties {
+  name: "Hard"
+  phases {
+    bgm: "DepthOfPain"
+    spawns {
+      mob: "hard_verus_hilla"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 5000 range: RANGE_ABOVE_PLAYER }
+      hp_bars: [
+        HP_BAR_COLOR_RED,
+        HP_BAR_COLOR_PINK,
+        HP_BAR_COLOR_YELLOW,
+        HP_BAR_COLOR_GREEN
+      ]
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1800
+  unlock_level: 250
+  arcane_force: 900
+  # Five Intense Power Crystals at GMS's price (152,421,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 108850000
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "verus_hillas_soul_shard"
+    per_kill: 1.0
+  }
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, x2 for Hard.
+  drops {
+    equip: "daybreak_pendant"
+    per_kill: 0.4
+  }
+  # GMS never published the odds. The boxes pay one piece for every three the
+  # coins buy across the tier, shared with fights that drop no coin.
+  drops {
+    item: "arcane_umbra_weapon_box"
+    per_kill: 0.0222
+  }
+  drops {
+    item: "arcane_umbra_armor_box"
+    per_kill: 0.0667
+  }
+  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
+  drops {
+    equip: "source_of_suffering"
+    per_kill: 0.2
+  }
+  # The user's planned rate (2026-10-04): GMS publishes none.
+  drops {
+    item: "black_jade_boss_ring_box"
+    per_kill: 0.02
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}

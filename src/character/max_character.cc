@@ -225,6 +225,9 @@ constexpr Clear kClears[] = {
     {"will", "Hard", 261},
     {"gloom", "Chaos", 261},
     {"darknell", "Hard", 261},
+    // Provisional until a sweep has her.
+    {"verus_hilla", "Normal", 261},
+    {"verus_hilla", "Hard", 261},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

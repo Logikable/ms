@@ -486,6 +486,10 @@ constexpr int kLucidAndWillLevel = 230;
 // Earrings, worn from 160.
 constexpr int kGloomAndDarknellLevel = 240;
 
+// The level Verus Hilla opens at, the only source of the Daybreak Pendant (worn
+// from 140) and the Source of Suffering (worn from 160).
+constexpr int kVerusHillaLevel = 250;
+
 // The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
 // AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
 // workbench never wears the Mark.
@@ -785,6 +789,15 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
     if (ring != state.equips.end()) {
       MakeRoomFor(state, ring->second);
       WearAll(state, {"endless_terror"}, equips);
+    }
+  }
+  if (level >= kVerusHillaLevel) {
+    // The Source of Suffering outclasses the Daybreak Pendant.
+    std::map<std::string, EquipPrototype>::const_iterator pendant =
+        state.equips.find("source_of_suffering");
+    if (pendant != state.equips.end()) {
+      MakeRoomFor(state, pendant->second);
+      WearAll(state, {"source_of_suffering"}, equips);
     }
   }
 }
@@ -1518,6 +1531,10 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.name() == "Estella Earrings" || proto.name() == "Endless Terror" ||
       proto.name() == "Commanding Force Earring") {
     return kGloomAndDarknellLevel;
+  }
+  if (proto.name() == "Daybreak Pendant" ||
+      proto.name() == "Source of Suffering") {
+    return kVerusHillaLevel;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {
