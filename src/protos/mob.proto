@@ -49,6 +49,9 @@ message ArenaWalk {
     // One cell left or right along the row it spawned on. Damien and Lotus pace
     // the row above the player and never come down to the floor.
     RANGE_ROW_STEP = 3;
+    // The cell directly above a player, picked as a fall picks one, reached
+    // instantly. Verus Hilla teleports to whoever she hunts.
+    RANGE_ABOVE_PLAYER = 4;
   }
   Range range = 2;
   // An occasional rush across the arena, replacing one ordinary step. Unset
@@ -133,6 +136,20 @@ message Spawn {
   // Drawn twice as tall and half again as wide as a usual bar, covering two of
   // the arena's rows. Leave the cells around it free of spots.
   bool giant = 5;
+  // Its HP drawn as this many bars of equal HP, the first emptied first, each
+  // in its own colour. Empty means one bar in the usual red.
+  repeated HpBarColor hp_bars = 6;
+}
+
+// The colours of a boss split over several HP bars, after the hues of GMS's
+// gauge art (UI/UIWindow2.img/MobGage/Gage). The screen mutes them to its own
+// palette.
+enum HpBarColor {
+  HP_BAR_COLOR_UNSPECIFIED = 0;
+  HP_BAR_COLOR_RED = 1;
+  HP_BAR_COLOR_PINK = 2;
+  HP_BAR_COLOR_YELLOW = 3;
+  HP_BAR_COLOR_GREEN = 4;
 }
 
 // The definition of a monster type, loaded from data/mobs at startup and shared

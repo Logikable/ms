@@ -70,6 +70,11 @@ inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 // Why something is refused, and bad outcomes: an unmet requirement, an
 // unaffordable price, the Star Force destroy rate. See the note above.
 inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
+// A boss's later HP bars, after the hues of GMS's gauge (#FF66AA, #FFEE00,
+// #33FF00) at kRed's saturation and brightness.
+inline const ftxui::Color kHpPink = ftxui::Color::RGB(185, 70, 128);
+inline const ftxui::Color kHpYellow = ftxui::Color::RGB(185, 177, 70);
+inline const ftxui::Color kHpGreen = ftxui::Color::RGB(93, 185, 70);
 
 // A party member's damage numbers and charge bar, normal and critical. Half as
 // bright as the player's, so a fight with three people still reads as the

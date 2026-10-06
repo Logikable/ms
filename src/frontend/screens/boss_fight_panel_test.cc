@@ -412,6 +412,65 @@ TEST(BossFightPanelTest, AOnePhaseFightNamesNoPhase) {
   EXPECT_EQ(FightHeading(run), "Normal Zakum - 100%");
 }
 
+// Verus Hilla's four bars: the one being emptied, how full it is, and the next
+// showing through behind it. The last has only the ground behind it.
+TEST(BossFightPanelTest, SplitHpEmptiesOneBarAtATime) {
+  const std::vector<HpBarColor> bars = {HP_BAR_COLOR_RED, HP_BAR_COLOR_PINK,
+                                        HP_BAR_COLOR_YELLOW,
+                                        HP_BAR_COLOR_GREEN};
+  struct Want {
+    double fraction;
+    float frac;
+    ftxui::Color fill;
+    ftxui::Color empty;
+  };
+  for (const Want& want : std::vector<Want>{{1.0, 1.0f, kRed, kHpPink},
+                                            {0.75, 1.0f, kHpPink, kHpYellow},
+                                            {0.625, 0.5f, kHpPink, kHpYellow},
+                                            {0.1, 0.4f, kHpGreen, kBarEmpty},
+                                            {0.0, 0.0f, kHpGreen, kBarEmpty}}) {
+    SCOPED_TRACE(want.fraction);
+    HpShade shade = ShadeHp(want.fraction, bars);
+    EXPECT_NEAR(shade.frac, want.frac, 1e-6);
+    EXPECT_EQ(shade.fill, want.fill);
+    EXPECT_EQ(shade.empty, want.empty);
+  }
+  HpShade one = ShadeHp(0.3, {});
+  EXPECT_NEAR(one.frac, 0.3f, 1e-6);
+  EXPECT_EQ(one.fill, kRed);
+  EXPECT_EQ(one.empty, kBarEmpty);
+}
+
+// A one-monster phase split into bars splits the heading too, while its text
+// still reads the whole fight.
+TEST(BossFightPanelTest, TheHeadingDrawsTheBarBeingEmptied) {
+  std::unique_ptr<GameState> state = MakeState(1000, 1);
+  Boss boss = OneArmBoss();
+  Spawn* arm =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
+  for (HpBarColor bar : {HP_BAR_COLOR_RED, HP_BAR_COLOR_PINK,
+                         HP_BAR_COLOR_YELLOW, HP_BAR_COLOR_GREEN}) {
+    arm->add_hp_bars(bar);
+  }
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  for (int i = 0; i < 10000 && run.phase_hp_fraction() > 0.7; ++i) {
+    run.Advance(*state, 0.03);
+  }
+  // Inside the second bar, with the third showing through.
+  ASSERT_LT(run.phase_hp_fraction(), 0.75);
+  ASSERT_GT(run.phase_hp_fraction(), 0.5);
+  int percent = static_cast<int>(run.phase_hp_fraction() * 100.0);
+  EXPECT_EQ(FightHeading(run),
+            "Normal Zakum - " + std::to_string(percent) + "%");
+
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(30));
+  ftxui::Render(screen, BossFightPanel(run, false));
+  EXPECT_EQ(screen.PixelAt(0, 0).background_color, kHpPink);
+  EXPECT_EQ(screen.PixelAt(119, 0).background_color, kHpYellow);
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

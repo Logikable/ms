@@ -17,12 +17,16 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 
 // The colour a currency's mark is drawn in. The mark's shape says which tier
 // its token belongs to, and the colour says which piece it buys.
 ftxui::Color MarkColor(CurrencyColor color);
+
+// The fill of one of a boss's HP bars. Red is the usual boss bar's kRed.
+ftxui::Color HpBarFill(HpBarColor color);
 
 // The text colour for an Inner Ability line of `rank`. Only the text is
 // coloured; the lock beside it stays plain.
@@ -46,6 +50,11 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::vector<std::string>& labels,
                            int buff_count = 0);
+
+// The same bar with its empty part in `empty` instead of the usual dark
+// ground: the next of a boss's HP bars, showing through.
+ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
+                           const std::vector<std::string>& labels);
 
 // Takes `element` out of the layout: it takes no space and draws at its own
 // size from the parent box's top-left. Put it last in a dbox, or the dbox

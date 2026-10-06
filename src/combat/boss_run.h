@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <random>
 #include <string>
 #include <string_view>
@@ -168,6 +169,8 @@ struct BossSlot {
   ArenaWalk walk;
   // Drawn at twice the height and half again the width of a usual bar.
   bool giant = false;
+  // The bars its HP is drawn as, the first emptied first; empty for one.
+  std::vector<HpBarColor> hp_bars;
   // How many moves of its walk it has made; each new move follows from these.
   // Stored so each move costs one move's work instead of replaying thousands.
   int steps_taken = 0;
@@ -387,6 +390,10 @@ class BossRun {
   // Moves `slot` one step along its walk. Leaves it in place if the walk has
   // nowhere to go.
   void StepSlot(const BossPhase& phase, BossSlot& slot);
+  // The player spot `slot` goes after on this move, the same one on every
+  // client, or none if there is no one to hunt.
+  std::optional<ArenaSpot> HuntedSpot(const BossPhase& phase,
+                                      const BossSlot& slot) const;
   // Moves `slot` one cell along its dash. Returns false if it can't enter that
   // cell, which ends the dash.
   bool DashSlot(const BossPhase& phase, BossSlot& slot);
@@ -490,9 +497,9 @@ class BossRun {
   // Which of the phase's player spots the player is on. -1 if the phase has
   // none; the player then stands at the origin and can't move.
   int player_at_ = -1;
-  // The spots a fall can aim at: every present player's, as the server last
-  // reported them in a party, so each client aims at the same one.
-  std::vector<int> fall_targets_;
+  // The spots a fall or a teleport can aim at: every present player's, as the
+  // server last reported them in a party, so each client aims at the same one.
+  std::vector<int> hunt_targets_;
   std::vector<BossSlot> slots_;
   std::vector<DamageStack> damage_stacks_;
   std::vector<DamageWrite> damage_writes_;

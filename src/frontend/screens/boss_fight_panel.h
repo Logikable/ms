@@ -12,6 +12,7 @@
 #define MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_
 
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/boss_run.h"
@@ -43,6 +44,16 @@ inline constexpr int kMaxMobBarRows = 2;
 // than the thirteen that would fit.
 inline constexpr int kArenaColumns = 9;
 inline constexpr int kArenaRows = 6;
+
+// How to draw `fraction` of a monster's HP split over `bars`: the bar being
+// emptied, how full it is, and the next bar showing through behind it. The
+// first bar empties first. No bars draws the usual red over the dark ground.
+struct HpShade {
+  float frac = 0.0f;
+  ftxui::Color fill;
+  ftxui::Color empty;
+};
+HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars);
 
 // The heading: "Normal Zakum - P1 - 100%", or the fight's result once it is
 // over.

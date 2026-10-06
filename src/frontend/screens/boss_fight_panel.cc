@@ -73,8 +73,8 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside) {
   } else {
     lines = BarLines(slot.name, rows);
   }
-  ftxui::Element bar =
-      ProgressBar(static_cast<float>(slot.hp_fraction), kRed, lines);
+  HpShade shade = ShadeHp(slot.hp_fraction, slot.hp_bars);
+  ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines);
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
@@ -629,6 +629,20 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
 
 }  // namespace
 
+HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars) {
+  if (bars.empty()) {
+    return {static_cast<float>(fraction), kRed, kBarEmpty};
+  }
+  int count = static_cast<int>(bars.size());
+  double left = std::clamp(fraction, 0.0, 1.0) * count;
+  int bar = std::clamp(count - static_cast<int>(std::ceil(left)), 0, count - 1);
+  HpShade shade;
+  shade.frac = static_cast<float>(left - (count - 1 - bar));
+  shade.fill = HpBarFill(bars[bar]);
+  shade.empty = bar + 1 < count ? HpBarFill(bars[bar + 1]) : kBarEmpty;
+  return shade;
+}
+
 std::string FightHeading(const BossRun& run) {
   // Practice comes first in the heading rather than last: the end holds the
   // phase and the percent, which change, and what this run is worth shouldn't
@@ -656,9 +670,14 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   // The arena takes everything below the heading, clock included. A fight drawn
   // small in the middle of a wide screen doesn't look like standing in an
   // arena.
+  // A phase of one monster split into bars splits the heading the same way.
+  std::vector<HpBarColor> bars;
+  if (run.slots().size() == 1) {
+    bars = run.slots()[0].hp_bars;
+  }
+  HpShade shade = ShadeHp(run.phase_hp_fraction(), bars);
   return ftxui::vbox({
-      ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
-                  FightHeading(run)),
+      ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)}),
       Arena(run, buff_dots) | ftxui::flex,
   });
 }

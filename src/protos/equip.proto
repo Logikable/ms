@@ -385,7 +385,7 @@ message EquipStats {
   int32 item_drop_rate = 12;
   // Percent added to max HP and MP (e.g. 10 = a tenth more). It applies to the
   // whole pool, as a passive's does, and adds to what the character's skills
-  // grant; see DerivedStatsFor. The Dominator Pendant is the only item with it.
+  // grant; see DerivedStatsFor.
   int32 max_hp_pct = 13;
   int32 max_mp_pct = 14;
   // Percent added to the meso a kill drops (e.g. 20 = a fifth more). It is the

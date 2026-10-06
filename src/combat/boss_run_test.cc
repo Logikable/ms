@@ -382,6 +382,36 @@ TEST(BossRunTest, AFallDropsOntoThePlayerARowAtATime) {
   EXPECT_FALSE(run.slots()[0].falling);
 }
 
+// Verus Hilla's teleport: on each beat she appears on the cell over the
+// player, wherever they have moved, and stays there between beats.
+TEST(BossRunTest, ATeleportLandsOverThePlayerOnEachBeat) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(false, false, 0, 0);
+  ArenaWalk* walk = boss.mutable_difficulties(0)
+                        ->mutable_phases(0)
+                        ->mutable_spawns(0)
+                        ->mutable_walk();
+  walk->Clear();
+  walk->set_interval_ms(5000);
+  walk->set_range(ArenaWalk::RANGE_ABOVE_PLAYER);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  run.Advance(*state, 4.9);
+  ASSERT_EQ(run.slots().size(), 1u);
+  EXPECT_EQ(run.slots()[0].x, 4) << "she moved before the beat";
+  run.Advance(*state, 0.2);
+  EXPECT_EQ(run.slots()[0].x, 6);
+  EXPECT_EQ(run.slots()[0].y, 4);
+
+  run.MovePlayer(-1, 0);
+  ASSERT_EQ(run.player_spot().x(), 4);
+  run.Advance(*state, 4.0);
+  EXPECT_EQ(run.slots()[0].x, 6) << "she followed between beats";
+  run.Advance(*state, 1.0);
+  EXPECT_EQ(run.slots()[0].x, 4);
+  EXPECT_EQ(run.slots()[0].y, 4);
+}
+
 // Given both, the specials take turns at random and the waits vary.
 TEST(BossRunTest, SpecialsPickBetweenTheDashAndTheFall) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);

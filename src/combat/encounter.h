@@ -38,6 +38,8 @@ struct CombatType {
   ArenaWalk walk;
   // Whether the arena draws it as a giant bar.
   bool giant = false;
+  // The bars its HP is drawn as; empty for one.
+  std::vector<HpBarColor> hp_bars;
   // Expected damage of one hit to the player, after their DEF. Every mob of one
   // type hits the same.
   double damage_to_player = 0.0;

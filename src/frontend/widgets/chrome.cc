@@ -42,9 +42,11 @@ class ProgressBarNode : public ftxui::Node {
  public:
   ProgressBarNode(float frac, ftxui::Color fill,
                   std::vector<std::string> labels, ftxui::Color label_on_fill,
-                  ftxui::Color label_off_fill, int buff_count)
+                  ftxui::Color label_off_fill, int buff_count,
+                  ftxui::Color empty = kBarEmpty)
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
         fill_(fill),
+        empty_(empty),
         labels_(std::move(labels)),
         label_on_fill_(label_on_fill),
         label_off_fill_(label_off_fill),
@@ -81,7 +83,7 @@ class ProgressBarNode : public ftxui::Node {
       ftxui::Pixel& px = screen.PixelAt(x, y);
       const std::string& dot = dots[x - box_.x_min];
       px.character = dot.empty() ? " " : dot;
-      px.background_color = x < fill_end ? fill_ : kBarEmpty;
+      px.background_color = x < fill_end ? fill_ : empty_;
       px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
     }
 
@@ -100,6 +102,7 @@ class ProgressBarNode : public ftxui::Node {
 
   float frac_;
   ftxui::Color fill_;
+  ftxui::Color empty_;
   std::vector<std::string> labels_;
   ftxui::Color label_on_fill_;
   ftxui::Color label_off_fill_;
@@ -254,6 +257,21 @@ class ClearUnderNode : public ftxui::Node {
 
 }  // namespace
 
+ftxui::Color HpBarFill(HpBarColor color) {
+  static_assert(HpBarColor_ARRAYSIZE == 5,
+                "a new HP bar colour needs a colour to draw it in");
+  switch (color) {
+    case HP_BAR_COLOR_PINK:
+      return kHpPink;
+    case HP_BAR_COLOR_YELLOW:
+      return kHpYellow;
+    case HP_BAR_COLOR_GREEN:
+      return kHpGreen;
+    default:
+      return kRed;
+  }
+}
+
 ftxui::Color MarkColor(CurrencyColor color) {
   static_assert(CurrencyColor_ARRAYSIZE == 7,
                 "a new currency colour needs a colour to draw its mark in");
@@ -323,6 +341,12 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            int buff_count) {
   return std::make_shared<ProgressBarNode>(
       frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, buff_count);
+}
+
+ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
+                           const std::vector<std::string>& labels) {
+  return std::make_shared<ProgressBarNode>(
+      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, 0, empty);
 }
 
 ftxui::Element Floating(ftxui::Element element) {

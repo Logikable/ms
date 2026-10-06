@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -432,6 +433,7 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
     bar.giant = params.types[mob.type].giant;
+    bar.hp_bars = params.types[mob.type].hp_bars;
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
@@ -446,6 +448,15 @@ void BossRun::FillSlots(const CombatParams& params) {
 }
 
 void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
+  if (slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER) {
+    std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
+    if (hunted && MayEnter(phase, hunted->x(), hunted->y() - 1, arena_width(),
+                           arena_height())) {
+      slot.x = hunted->x();
+      slot.y = hunted->y() - 1;
+    }
+    return;
+  }
   std::vector<ArenaSpot> targets = WalkTargets(phase, slot.walk, slot.x, slot.y,
                                                arena_width(), arena_height());
   if (targets.empty()) {
@@ -540,19 +551,28 @@ bool BossRun::StartSpecial(const BossPhase& phase, BossSlot& slot) {
   return false;
 }
 
-bool BossRun::StartFall(const BossPhase& phase, BossSlot& slot) {
-  if (fall_targets_.empty()) {
-    return false;
+std::optional<ArenaSpot> BossRun::HuntedSpot(const BossPhase& phase,
+                                             const BossSlot& slot) const {
+  if (hunt_targets_.empty()) {
+    return std::nullopt;
   }
   std::vector<ArenaSpot> spots = AllPlayerSpots(phase);
   int target =
-      fall_targets_[Mixed(slot.id, slot.steps_taken) % fall_targets_.size()];
-  if (target < 0 || target >= static_cast<int>(spots.size()) ||
-      !MayEnter(phase, spots[target].x(), 0, arena_width(), arena_height())) {
+      hunt_targets_[Mixed(slot.id, slot.steps_taken) % hunt_targets_.size()];
+  if (target < 0 || target >= static_cast<int>(spots.size())) {
+    return std::nullopt;
+  }
+  return spots[target];
+}
+
+bool BossRun::StartFall(const BossPhase& phase, BossSlot& slot) {
+  std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
+  if (!hunted ||
+      !MayEnter(phase, hunted->x(), 0, arena_width(), arena_height())) {
     return false;
   }
   slot.ground_y = slot.y;
-  slot.x = spots[target].x();
+  slot.x = hunted->x();
   slot.y = 0;
   slot.falling = slot.y < slot.ground_y;
   return true;
@@ -699,7 +719,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
-  fall_targets_.assign(1, player_at_);
+  hunt_targets_.assign(1, player_at_);
   // After the timer update, since walking positions follow the timer.
   DriftSlots();
   player_at_ =
@@ -871,10 +891,10 @@ void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.share_count > 0) {
     share_count_ = shared.share_count;
   }
-  fall_targets_.clear();
+  hunt_targets_.clear();
   for (const SharedPlayer& player : shared.players) {
     if (player.present && player.spot >= 0) {
-      fall_targets_.push_back(player.spot);
+      hunt_targets_.push_back(player.spot);
     }
   }
   // This player first, so their stacks have owner 0.
