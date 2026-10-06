@@ -424,6 +424,9 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       best = std::max(best, static_cast<double>(offer.gain) / offer.cost);
     }
   }
+  // What a meso buys elsewhere is what a roll costs in power, so it sets where
+  // cubing stops. Set before the splits, whose price is a cube run.
+  income_.power_per_meso = best;
   const Basis farm = FarmBasis(state, basis, best);
   if (farm.scale > 0.0) {
     std::vector<EquipSlot> farm_only;
@@ -536,8 +539,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       state.character.proto().level() < UnlockLevel(Feature::kPotential)) {
     return offers;
   }
-  // What a meso buys elsewhere is what a roll costs in power, so it sets where
-  // cubing stops. Stored so the keep decision uses the same value.
+  // Stored so the keep decision uses the same value as the pricing.
   income_.power_per_meso = best;
   CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   // Every piece boss fights wear, then every farm piece they don't.
