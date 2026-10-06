@@ -57,7 +57,7 @@ struct CubeIncome {
   // power, so it sets where a run stops. Zero rolls until no roll could do
   // better.
   double power_per_meso = 0.0;
-  // Meso a second of play that the boss loot gains per 100% of the Drop
+  // Meso the boss loot gains over the rest of the run per 100% of the Drop
   // preset's Item Drop Rate, which every boss drop rolls at (DropRollRate).
   // Zero values a %drop line at mob income alone.
   double loot_per_drop = 0.0;

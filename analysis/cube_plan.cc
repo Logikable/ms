@@ -135,8 +135,7 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
 // Boss loot value of the Drop preset's rate moving by `drop_pct`, in the same
 // units as IncomeGain.
 double LootGain(double drop_pct, const CubeIncome& income) {
-  return drop_pct * income.loot_per_drop * income.seconds_left *
-         income.power_per_meso;
+  return drop_pct * income.loot_per_drop * income.power_per_meso;
 }
 
 }  // namespace

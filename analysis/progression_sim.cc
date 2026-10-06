@@ -1530,10 +1530,10 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
 // Gives the shopper what it needs to value %meso and %drop potential lines. The
 // Crowd holds its own copies, since the fight it came from doesn't survive
 // between looks.
-// What one more 100% of the Drop preset's rate adds to the boss loot a second
-// of play: each boss once a day, at the difficulty cleared that pays most. Gear
-// is judged by tier (see DropBasis::by_tier).
-double LootPerDrop(Session& run) {
+// What one more 100% of the Drop preset's rate adds to the boss loot over the
+// next `seconds`: each boss once a day, at the difficulty cleared that pays
+// most. Gear is judged by tier (see DropBasis::by_tier).
+double LootPerDrop(Session& run, double seconds) {
   bool cleared = false;
   for (const std::pair<const std::string, BossLog>& entry : run.climb.bosses) {
     cleared = cleared || entry.second.clears > 0;
@@ -1558,13 +1558,13 @@ double LootPerDrop(Session& run) {
         slot, ClearLootPerDropRate(
                   run.state, basis,
                   run.state.bosses.at(log.boss).difficulties(log.difficulty),
-                  drop_pct));
+                  drop_pct, seconds / kDaySeconds));
   }
   double total = 0.0;
   for (const std::pair<const std::string, double>& entry : best) {
     total += entry.second;
   }
-  return total / kDaySeconds;
+  return total;
 }
 
 void SetShopperIncome(Session& run, const CombatParams& params,
@@ -1579,7 +1579,7 @@ void SetShopperIncome(Session& run, const CombatParams& params,
   income.rate = [crowd, mult](double meso_bonus, double drop_pct) {
     return MesoPerSecond(crowd, meso_bonus, mult, drop_pct);
   };
-  income.loot_per_drop = LootPerDrop(run);
+  income.loot_per_drop = LootPerDrop(run, income.seconds_left);
   run.shopper.SetIncome(income);
 }
 

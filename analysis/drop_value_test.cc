@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <map>
 #include <memory>
 #include <string>
@@ -118,8 +119,9 @@ TEST_F(DropValueTest, ByTierADropMustBeatBothPresets) {
 }
 
 // A gear drop's chance scales with drop rate until it is certain, past which
-// more rate adds nothing; a stackable's whole rate scales.
-TEST_F(DropValueTest, AGearDropStopsCountingOnceCertain) {
+// more rate adds nothing. The piece is wanted once, so more rate is worth how
+// much sooner it arrives, which fades as the clears make it likely anyway.
+TEST_F(DropValueTest, AGearDropSaturates) {
   state_->equips["better_hat"] = Hat("Better Hat", 80);
   BossDifficulty difficulty;
   MobDrop* drop = difficulty.add_drops();
@@ -129,9 +131,12 @@ TEST_F(DropValueTest, AGearDropStopsCountingOnceCertain) {
   const double value =
       EquipDropValue(*state_, basis, state_->equips.at("better_hat"));
   ASSERT_GT(value, 0.0);
-  EXPECT_DOUBLE_EQ(ClearLootPerDropRate(*state_, basis, difficulty, 0.5),
-                   0.5 * value);
-  EXPECT_EQ(ClearLootPerDropRate(*state_, basis, difficulty, 1.0), 0.0);
+  EXPECT_DOUBLE_EQ(
+      ClearLootPerDropRate(*state_, basis, difficulty, 0.5, 1.0),
+      0.5 * value * (1.0 - std::exp(-0.75) * 1.75) / (0.75 * 0.75));
+  EXPECT_EQ(ClearLootPerDropRate(*state_, basis, difficulty, 1.0, 1.0), 0.0);
+  EXPECT_LT(ClearLootPerDropRate(*state_, basis, difficulty, 0.5, 20.0),
+            ClearLootPerDropRate(*state_, basis, difficulty, 0.5, 2.0));
 }
 
 }  // namespace

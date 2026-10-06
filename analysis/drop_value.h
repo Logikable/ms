@@ -43,6 +43,9 @@ struct DropBasis {
   // Computed once because it scans every equip the shop stocks, and rates are
   // read far more often than gear changes.
   std::map<std::string, double> tokens;
+  // How many of each token that best piece costs: the drops it takes before
+  // more of them buy nothing (see ClearLootPerDropRate).
+  std::map<std::string, int> token_counts;
   // Value of one of each box: the best piece it opens into for this character,
   // which is worth nothing once every piece is no better than the one worn.
   // Filled only for a basis judged by tier, the one boss loot is valued on.
@@ -68,11 +71,16 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
 double ItemDropValue(const DropBasis& basis, const std::string& key,
                      const ItemPrototype& proto);
 
-// What one more 100% of Item Drop Rate adds to a clear of `difficulty` for a
-// character already at `drop_pct`. A stackable's whole rate scales; a gear
-// drop's chance does, until it is certain (see BossDropRate).
+// What one more 100% of Item Drop Rate adds to `clears` clears of `difficulty`
+// for a character already at `drop_pct`. A stackable's whole rate scales; a
+// gear drop's chance does, until it is certain (see BossDropRate). Loot that is
+// wanted once saturates: a piece or box is needed once and a token as often as
+// its piece's price, so the value is how much sooner the need is met, which
+// fades as the clears' expected copies pass it. Loot that sells never
+// saturates.
 double ClearLootPerDropRate(const GameState& state, const DropBasis& basis,
-                            const BossDifficulty& difficulty, double drop_pct);
+                            const BossDifficulty& difficulty, double drop_pct,
+                            double clears);
 
 // Value of everything one kill of `mob` drops, before drop rate. The mob's meso
 // isn't included; that channel has its own cap and is counted separately (see
