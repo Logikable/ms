@@ -73,5 +73,20 @@ TEST(FightBossTest, AWalkOutReadsByHpAndAtItsPace) {
               (1.0 - outcome.left) * 1800.0 / outcome.seconds, 1e-9);
 }
 
+// A phase's own clock ends the fight before any walk-out is considered, and
+// the fight's clock isn't there to carry the pace to.
+TEST(FightBossTest, APhaseClockLossReadsWhatWasLeft) {
+  std::unique_ptr<GameState> state = WallState();
+  state->bosses["wall"]
+      .mutable_difficulties(0)
+      ->mutable_phases(1)
+      ->set_time_limit_seconds(30);
+  BossOutcome outcome = FightBoss(*state, "wall", 0);
+  EXPECT_FALSE(outcome.won);
+  EXPECT_LT(outcome.seconds, 60.0);
+  EXPECT_GT(outcome.left, 0.999);
+  EXPECT_EQ(outcome.left_at_clock, outcome.left);
+}
+
 }  // namespace
 }  // namespace ms

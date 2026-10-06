@@ -28,7 +28,8 @@ struct BossOutcome {
   double left = 0.0;
   // What would have been left at the time limit had the player stayed, at the
   // pace so far. This, not `left`, says how close a walk-out came: one at 2:00
-  // of a 30:00 fight reads near 1.0 left whatever the build.
+  // of a 30:00 fight reads near 1.0 left whatever the build. Equal to `left`
+  // for a fight that ran out of time, whichever clock ended it.
   double left_at_clock = 0.0;
 };
 

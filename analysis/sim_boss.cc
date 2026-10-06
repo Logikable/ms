@@ -84,9 +84,11 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
     phase_hp.push_back(PhaseHp(state.mobs, phase));
   }
   BossRun run(boss_key, found->second, difficulty_index);
+  bool walked_out = false;
   while (!run.done()) {
     run.Advance(state, kStepSeconds);
     if (WalkedOut(LeftStanding(run, phase_hp), run.FightSeconds(), clock)) {
+      walked_out = true;
       break;
     }
   }
@@ -95,8 +97,13 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   outcome.seconds = run.FightSeconds();
   if (!outcome.won) {
     outcome.left = LeftStanding(run, phase_hp);
-    double pace = (1.0 - outcome.left) / std::max(outcome.seconds, 1.0);
-    outcome.left_at_clock = std::max(0.0, 1.0 - pace * clock);
+    // A fight that ran out on its own has no clock left to carry the pace
+    // over: a phase's clock can end it long before the fight's.
+    outcome.left_at_clock = outcome.left;
+    if (walked_out) {
+      double pace = (1.0 - outcome.left) / std::max(outcome.seconds, 1.0);
+      outcome.left_at_clock = std::max(0.0, 1.0 - pace * clock);
+    }
   }
   return outcome;
 }
