@@ -42,7 +42,10 @@ _optimized = rule(
 )
 
 def sim_binary(name, **kwargs):
-    """A cc_binary that is always built optimized.
+    """A cc_binary that is always built optimized, on mimalloc.
+
+    glibc's malloc cost progression_sim's threads a tenth of the sweep's wall
+    time; mimalloc gives the same output faster.
 
     Args:
       name: the name the sim is run by.
@@ -51,5 +54,10 @@ def sim_binary(name, **kwargs):
 
     # Tagged manual so a wildcard build reaches the sim only through the wrapper
     # and never builds the same sources twice.
-    cc_binary(name = name + "_unoptimized", tags = ["manual"], **kwargs)
+    cc_binary(
+        name = name + "_unoptimized",
+        malloc = "@mimalloc",
+        tags = ["manual"],
+        **kwargs
+    )
     _optimized(name = name, binary = ":" + name + "_unoptimized")

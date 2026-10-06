@@ -19,6 +19,9 @@ bazel_dep(name = "rules_python", version = "1.7.0")
 bazel_dep(name = "googletest", version = "1.15.2")
 bazel_dep(name = "ftxui", version = "6.1.9")
 
+# The sims' allocator; see //analysis:sim.bzl.
+bazel_dep(name = "mimalloc", version = "3.5.3.bcr.1")
+
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # Audio playback for the music player. Not in the Bazel Central Registry.
