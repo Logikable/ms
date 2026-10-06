@@ -1019,8 +1019,7 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   // each displaces.
   const std::tuple<const char*, const char*, EquipSlot> accessories[] = {
       {"magic_eyepatch", "Magic Eyepatch", EQUIP_SLOT_EYE_ACCESSORY},
-      {"aquatic_letter_eye_accessory", "Aquatic Letter Eye Accessory",
-       EQUIP_SLOT_EYE_ACCESSORY},
+      {"black_bean_mark", "Black Bean Mark", EQUIP_SLOT_EYE_ACCESSORY},
       {"guardian_angel_ring", "Guardian Angel Ring", EQUIP_SLOT_RING},
       {"lightning_god_ring", "Lightning God Ring", EQUIP_SLOT_RING}};
   for (const auto& [key, name, slot] : accessories) {
@@ -1353,20 +1352,22 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
   };
   const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
   const StatPreset farm = AutoswapSlotFor(Activity::kFarming);
-  EXPECT_EQ(name_in(farm, EQUIP_SLOT_EYE_ACCESSORY),
-            "Aquatic Letter Eye Accessory");
+  EXPECT_EQ(name_in(farm, EQUIP_SLOT_EYE_ACCESSORY), "Black Bean Mark");
   EXPECT_EQ(name_in(boss, EQUIP_SLOT_EYE_ACCESSORY), "Magic Eyepatch");
-  EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY),
-            "Aquatic Letter Eye Accessory");
+  EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY), "Black Bean Mark");
   EXPECT_EQ(name_in(farm, EQUIP_SLOT_RING), "Lightning God Ring");
   EXPECT_EQ(name_in(boss, EQUIP_SLOT_RING), "Guardian Angel Ring");
 
   const EquipInstance& eye = *character.WornAt(farm, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_EQ(eye.potential().lines_size(), kPotentialLines);
-  EXPECT_EQ(eye.potential().lines(0).type(),
-            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
-  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(eye.potential().lines(0).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_STR_PCT);
   EXPECT_EQ(eye.equip_state().bonus_potential().lines_size(), 0);
+  const EquipInstance& ring = *character.WornAt(farm, EQUIP_SLOT_RING);
+  ASSERT_EQ(ring.potential().lines_size(), kPotentialLines);
+  EXPECT_EQ(ring.potential().lines(0).type(),
+            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
+  EXPECT_EQ(ring.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
   const EquipInstance& patch =
       *character.WornAt(boss, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_GT(patch.potential().lines_size(), 0);

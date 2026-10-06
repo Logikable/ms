@@ -346,8 +346,11 @@ TEST_F(WorkbenchGearTest, MaxModesOutfitIsInTheCatalogForEveryJob) {
     for (const MaxFarmPiece& piece : MaxFarmOutfit(level)) {
       auto found = equips_.find(piece.key);
       ASSERT_NE(found, equips_.end()) << piece.key;
-      EXPECT_EQ(found->second.equip_slot(), piece.slot) << piece.key;
-      EXPECT_TRUE(MaxWearsFarmLines(piece.key, level)) << piece.key;
+      const std::vector<EquipSlot> family = SlotFamily(piece.slot);
+      EXPECT_NE(
+          std::find(family.begin(), family.end(), found->second.equip_slot()),
+          family.end())
+          << piece.key;
     }
   }
 }

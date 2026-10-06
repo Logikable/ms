@@ -168,39 +168,28 @@ constexpr OutfitBand kOutfits[] = {
 };
 
 // What the farming preset wore in place of the bossing preset's piece, read off
-// the sweep of 2026-10-05: a slot where at least five of ten branches farmed in
-// a piece of their own. The bossing preset keeps the piece kOutfits names
-// there.
+// the sweep of 2026-10-06: a slot where at least five of ten branches farmed in
+// a piece of their own, and the lines the fifth of them held. Gear meso stops
+// at 100% (kEquipMesoSoftCap), so five pieces take it; the bossing preset
+// keeps the piece kOutfits names there, with no farm lines at all.
 struct FarmBand {
   int level;
-  MaxFarmPiece pieces[4];
+  MaxFarmPiece pieces[6];
+};
+
+constexpr MaxFarmPiece kFarmPieces[] = {
+    {EQUIP_SLOT_EYE_ACCESSORY, "black_bean_mark", true, false},
+    {EQUIP_SLOT_FACE_ACCESSORY, "condensed_power_crystal", false, true},
+    {EQUIP_SLOT_PENDANT, "horntail_necklace", true, false},
+    {EQUIP_SLOT_RING, "lightning_god_ring", true, true},
+    {EQUIP_SLOT_RING_2, "meister_ring", true, false},
+    {EQUIP_SLOT_RING_3, "silver_blossom_ring", true, false},
 };
 
 constexpr FarmBand kFarmOutfits[] = {
-    {230, {{EQUIP_SLOT_EYE_ACCESSORY, "aquatic_letter_eye_accessory"}}},
-    {260,
-     {{EQUIP_SLOT_EYE_ACCESSORY, "aquatic_letter_eye_accessory"},
-      {EQUIP_SLOT_FACE_ACCESSORY, "condensed_power_crystal"},
-      {EQUIP_SLOT_RING, "lightning_god_ring"}}},
-};
-
-// The pieces cubed for meso and drop rather than damage in the same sweep, on
-// whichever preset wears them: the farm pieces above, and the accessories both
-// presets share that half the branches cubed for farming anyway.
-struct FarmLinesBand {
-  int level;
-  const char* keys[8];
-};
-
-constexpr FarmLinesBand kFarmLines[] = {
     {230,
-     {"aquatic_letter_eye_accessory", "condensed_power_crystal",
-      "lightning_god_ring", "meister_ring", "silver_blossom_ring",
-      "horntail_necklace"}},
-    {260,
-     {"aquatic_letter_eye_accessory", "condensed_power_crystal",
-      "lightning_god_ring", "meister_ring", "silver_blossom_ring",
-      "horntail_necklace"}},
+     {kFarmPieces[0], kFarmPieces[1], kFarmPieces[2], kFarmPieces[3],
+      kFarmPieces[4], kFarmPieces[5]}},
 };
 
 // Each Arcane Symbol's level on arrival, read off the same sweep as kBands, in
@@ -715,31 +704,19 @@ std::vector<MaxFarmPiece> MaxFarmOutfit(int level) {
   return pieces;
 }
 
-bool MaxWearsFarmLines(const std::string& key, int level) {
-  const FarmLinesBand* found = nullptr;
-  for (const FarmLinesBand& band : kFarmLines) {
-    if (level >= band.level) {
-      found = &band;
-    }
-  }
-  if (found == nullptr) {
-    return false;
-  }
-  for (const char* candidate : found->keys) {
-    if (candidate != nullptr && key == candidate) {
-      return true;
-    }
-  }
-  return false;
-}
-
-Potential MaxFarmPotential(StatField primary) {
+Potential MaxFarmPotential(const MaxFarmPiece& piece, StatField primary) {
   // Meso and drop roll only at Legendary, so both lead at the rank.
   Potential potential;
   potential.set_rank(L);
-  AddLine(potential, POTENTIAL_LINE_TYPE_ITEM_DROP_RATE, L);
-  AddLine(potential, POTENTIAL_LINE_TYPE_MESO_RATE, L);
-  AddLine(potential, StatShareFor(primary), U);
+  if (piece.drop) {
+    AddLine(potential, POTENTIAL_LINE_TYPE_ITEM_DROP_RATE, L);
+  }
+  if (piece.meso) {
+    AddLine(potential, POTENTIAL_LINE_TYPE_MESO_RATE, L);
+  }
+  while (potential.lines_size() < kPotentialLines) {
+    AddLine(potential, StatShareFor(primary), U);
+  }
   return potential;
 }
 

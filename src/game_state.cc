@@ -1132,28 +1132,17 @@ std::vector<std::pair<EquipSlot, StatPreset>> OwnPieces(
   return pieces;
 }
 
-// The catalog key `item` was given under, for the tables that name pieces by
-// key.
-std::string KeyOf(const GameState& state, const EquipInstance& item) {
-  for (const std::pair<const std::string, EquipPrototype>& entry :
-       state.equips) {
-    if (entry.second.name() == item.prototype().name()) {
-      return entry.first;
-    }
-  }
-  return "";
-}
-
 // The same potential lines on every piece of one kind. Set directly instead of
 // cubed for: real potential is luck, and a fight measured against a slightly
 // different character every run tells us nothing. See MaxPotentialFor. A piece
-// cubed for farming wears MaxFarmPotential instead, and one only the farming
-// preset wears has no bonus potential, as the sweep's had none.
+// only the farming preset wears takes MaxFarmPotential and no bonus potential,
+// as the sweep's had none.
 void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   CharacterInstance& character = state.character;
   const StatField primary = PrimaryStatField(character.proto().job());
-  const int level = character.proto().level();
   const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  const std::vector<MaxFarmPiece> farm =
+      MaxFarmOutfit(character.proto().level());
   for (const auto& [slot, preset] : OwnPieces(character)) {
     const EquipInstance* worn = character.WornAt(preset, slot);
     // A piece that refuses cubes keeps the potential it dropped with.
@@ -1162,16 +1151,20 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
     }
     const bool farm_only =
         preset == StatPreset::kFirst && character.WornAt(boss, slot) != worn;
-    const bool farm_lines = gear.potential_level > 0 &&
-                            MaxWearsFarmLines(KeyOf(state, *worn), level);
+    const MaxFarmPiece* lines = nullptr;
+    for (const MaxFarmPiece& piece : farm) {
+      if (farm_only && gear.potential_level > 0 && piece.slot == slot) {
+        lines = &piece;
+      }
+    }
     for (PotentialTrack track :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
       if (farm_only && track == PotentialTrack::kBonus) {
         continue;
       }
       const Potential potential =
-          farm_lines && track == PotentialTrack::kMain
-              ? MaxFarmPotential(primary)
+          lines != nullptr && track == PotentialTrack::kMain
+              ? MaxFarmPotential(*lines, primary)
               : MaxPotentialFor(slot, gear, primary, track);
       if (potential.lines_size() > 0) {
         character.TakePotential(slot, track, potential, preset);
