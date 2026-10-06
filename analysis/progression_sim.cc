@@ -996,6 +996,8 @@ struct Climb {
   // at the end, as fractions: MesoBonus's result and the drop rate.
   double farm_meso = 0.0;
   double farm_drop = 0.0;
+  // The drop rate every boss drop rolls at, off the Drop preset.
+  double loot_drop = 0.0;
   // Final potential on each worn slot that takes one, one row per slot, already
   // in display order.
   std::vector<PotentialRow> potentials;
@@ -1263,10 +1265,10 @@ void NotePotentials(const GameState& state, int level, double seconds,
 
 // Fights one boss once and returns the playtime it took. A failed run pays
 // nothing but still costs the time the player spent.
-// The most of its clock a fight's fastest clear may have used for later
-// clears to be claimed without playing them; see FightOnce. A clear at no more
-// power than today's repeats with near certainty even near the clock.
-constexpr double kSettledShare = 0.8;
+// The most of its clock a fight's fastest clear, scaled to today's power, may
+// take for the clear to be claimed without playing it; see FightOnce. The
+// margin is what lets a small dip in power still claim it.
+constexpr double kSettledShare = 0.9;
 
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
                  int level, int power, double now, Climb& climb,
@@ -1286,16 +1288,17 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   // clear, since what a fight pays isn't what it cost.
   EnterFightWithBuffs(state, &climb.ledger.buffs);
   int64_t before_fight = state.character.meso();
-  // A fight already cleared in well under its clock, by a character no
-  // stronger than this one, is claimed rather than played: the daily farm of a
-  // boss long outgrown was most of the days at the cap. It takes the fastest
-  // clear's time scaled by how much stronger the character has grown since.
+  // A fight whose fastest clear, scaled by how the character's power has moved
+  // since, comes in well under its clock is claimed rather than played: the
+  // daily farm of a boss long outgrown was most of the days at the cap.
+  const double expected = log.best_power > 0 && power > 0
+                              ? log.best_seconds * log.best_power / power
+                              : 0.0;
   const bool settled =
-      log.clears > 0 && log.best_power > 0 && power >= log.best_power &&
-      log.best_seconds <= kSettledShare * difficulty.time_limit_seconds();
+      log.clears > 0 && expected > 0.0 &&
+      expected <= kSettledShare * difficulty.time_limit_seconds();
   BossOutcome outcome =
-      settled ? ClaimBoss(state, fight.first, fight.second,
-                          log.best_seconds * log.best_power / power)
+      settled ? ClaimBoss(state, fight.first, fight.second, expected)
               : FightBoss(state, fight.first, fight.second);
   climb.ledger.boss_clears +=
       std::max<int64_t>(0, state.character.meso() - before_fight);
@@ -1527,12 +1530,48 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
 // Gives the shopper what it needs to value %meso and %drop potential lines. The
 // Crowd holds its own copies, since the fight it came from doesn't survive
 // between looks.
+// What one more 100% of the Drop preset's rate adds to the boss loot a second
+// of play: each boss once a day, at the difficulty cleared that pays most. Gear
+// is judged by tier (see DropBasis::by_tier).
+double LootPerDrop(Session& run) {
+  bool cleared = false;
+  for (const std::pair<const std::string, BossLog>& entry : run.climb.bosses) {
+    cleared = cleared || entry.second.clears > 0;
+  }
+  if (!cleared) {
+    return 0.0;
+  }
+  const DropBasis basis =
+      DropBasisFor(run.state, run.shopper.power_per_meso(),
+                   run.shopper.yardstick(), /*by_tier=*/true);
+  const double drop_pct = DerivedStatsFor(run.state.character, run.state.skills,
+                                          {}, {}, Activity::kBossing, kDropGear)
+                              .item_drop_pct;
+  std::map<std::string, double> best;
+  for (const std::pair<const std::string, BossLog>& entry : run.climb.bosses) {
+    const BossLog& log = entry.second;
+    if (log.clears == 0) {
+      continue;
+    }
+    double& slot = best[log.boss];
+    slot = std::max(
+        slot, ClearLootPerDropRate(
+                  run.state, basis,
+                  run.state.bosses.at(log.boss).difficulties(log.difficulty),
+                  drop_pct));
+  }
+  double total = 0.0;
+  for (const std::pair<const std::string, double>& entry : best) {
+    total += entry.second;
+  }
+  return total / kDaySeconds;
+}
+
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
-  Crowd crowd = CrowdFor(run.state,
-                         DropBasisFor(run.state, run.shopper.power_per_meso(),
-                                      run.shopper.yardstick()),
-                         params, yield.kills_per_second);
+  const DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                       run.shopper.yardstick());
+  Crowd crowd = CrowdFor(run.state, basis, params, yield.kills_per_second);
   double mult =
       DerivedStatsFor(run.state.character, run.state.skills).meso_final_mult;
   CubeIncome income;
@@ -1540,6 +1579,7 @@ void SetShopperIncome(Session& run, const CombatParams& params,
   income.rate = [crowd, mult](double meso_bonus, double drop_pct) {
     return MesoPerSecond(crowd, meso_bonus, mult, drop_pct);
   };
+  income.loot_per_drop = LootPerDrop(run);
   run.shopper.SetIncome(income);
 }
 
@@ -2616,6 +2656,9 @@ Climb Play(const Catalogs& catalogs, Job branch,
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
   climb.farm_meso = MesoBonus(farming);
   climb.farm_drop = farming.item_drop_pct;
+  climb.loot_drop = DerivedStatsFor(state.character, state.skills, {}, {},
+                                    Activity::kBossing, kDropGear)
+                        .item_drop_pct;
   CheckpointPotentials end =
       PotentialsNow(state, state.character.proto().level(), run.seconds);
   end.set_end(true);
@@ -3360,10 +3403,11 @@ void PrintCubing(const std::vector<Job>& branches,
       "Black and White\nrolls taken, the rest the price of the chance. Farm is "
       "cubes on "
       "pieces worn only while farming;\nsplit is copies put on for farming "
-      "alone. meso%% and drop%% are what farming\nends the run with.\n\n");
-  std::printf("%-13s %9s %7s %7s %7s %7s %7s %7s %7s %7s %5s %6s %6s\n",
+      "alone. meso%% and drop%% are what farming\nends the run with, loot%% "
+      "the drop rate boss drops roll at.\n\n");
+  std::printf("%-13s %9s %7s %7s %7s %7s %7s %7s %7s %7s %5s %6s %6s %6s\n",
               "branch", "meso", "red", "black", "kept", "green", "white",
-              "kept", "farm", "kept", "split", "meso%", "drop%");
+              "kept", "farm", "kept", "split", "meso%", "drop%", "loot%");
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const GearSpend& gear = climbs[i].ledger.gear;
     char meso[16];
@@ -3375,13 +3419,14 @@ void PrintCubing(const std::vector<Job>& branches,
       return gear.kept_by_cube[static_cast<int>(cube)];
     };
     std::printf(
-        "%-13s %9s %7d %7d %7d %7d %7d %7d %7d %7d %5d %5.0f%% %5.0f%%\n",
+        "%-13s %9s %7d %7d %7d %7d %7d %7d %7d %7d %5d %5.0f%% %5.0f%% "
+        "%5.0f%%\n",
         BranchName(branches[i]).c_str(), meso, bought(CubeType::kRed),
         bought(CubeType::kBlack), kept(CubeType::kBlack),
         bought(CubeType::kGreen), bought(CubeType::kWhite),
         kept(CubeType::kWhite), gear.farm_cubes_bought, gear.farm_cubes_kept,
         gear.farm_splits, 100.0 * climbs[i].farm_meso,
-        100.0 * climbs[i].farm_drop);
+        100.0 * climbs[i].farm_drop, 100.0 * climbs[i].loot_drop);
   }
   int weakest = 0;
   for (int i = 1; i < static_cast<int>(climbs.size()); ++i) {

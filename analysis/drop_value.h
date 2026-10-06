@@ -17,6 +17,7 @@
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
@@ -42,10 +43,18 @@ struct DropBasis {
   // Computed once because it scans every equip the shop stocks, and rates are
   // read far more often than gear changes.
   std::map<std::string, double> tokens;
+  // Value of one of each box: the best piece it opens into for this character,
+  // which is worth nothing once every piece is no better than the one worn.
+  // Filled only for a basis judged by tier, the one boss loot is valued on.
+  std::map<std::string, double> boxes;
+  // Whether a gear drop is judged against the worn piece's own base stats
+  // rather than its upgraded state: a boss drop is upgraded to where the old
+  // piece stood, so a new tier at no stars is not worth zero.
+  bool by_tier = false;
 };
 
 DropBasis DropBasisFor(const GameState& state, double power_per_meso,
-                       HeldYardstick& held);
+                       HeldYardstick& held, bool by_tier = false);
 
 // Value of one copy of `proto`. A piece the character wouldn't wear (blocked by
 // job or level, or no better than what's in the slot) is worth nothing, since
@@ -58,6 +67,12 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
 // shelf sells divided by that piece's token price.
 double ItemDropValue(const DropBasis& basis, const std::string& key,
                      const ItemPrototype& proto);
+
+// What one more 100% of Item Drop Rate adds to a clear of `difficulty` for a
+// character already at `drop_pct`. A stackable's whole rate scales; a gear
+// drop's chance does, until it is certain (see BossDropRate).
+double ClearLootPerDropRate(const GameState& state, const DropBasis& basis,
+                            const BossDifficulty& difficulty, double drop_pct);
 
 // Value of everything one kill of `mob` drops, before drop rate. The mob's meso
 // isn't included; that channel has its own cap and is counted separately (see

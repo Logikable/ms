@@ -132,6 +132,13 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
   return extra * income.seconds_left * income.power_per_meso;
 }
 
+// Boss loot value of the Drop preset's rate moving by `drop_pct`, in the same
+// units as IncomeGain.
+double LootGain(double drop_pct, const CubeIncome& income) {
+  return drop_pct * income.loot_per_drop * income.seconds_left *
+         income.power_per_meso;
+}
+
 }  // namespace
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
@@ -162,6 +169,10 @@ struct CubePricing {
   PotentialGroup group{};
   bool bossed = false;
   bool farmed = false;
+  bool looted = false;
+  // The %drop the piece's current lines give, which a roll's is weighed
+  // against for the boss loot.
+  double held_drop = 0.0;
   PotentialTotals boss_others;
   PotentialTotals farm_others;
   PotentialTotals farm_now;
@@ -180,7 +191,11 @@ CubePricing PricingFor(const GameState& state, const CubeBasis& basis,
   pricing.group = PotentialGroupOf(slot);
   pricing.bossed = character.WornAt(kBossGear, slot) == &item;
   pricing.farmed = character.WornAt(kFarmGear, slot) == &item;
+  pricing.looted = character.WornAt(kDropGear, slot) == &item;
   const Potential& held = PotentialOf(item.equip_state(), track);
+  PotentialTotals alone;
+  AddPotential(held, pricing.level, alone);
+  pricing.held_drop = alone.item_drop_pct;
   pricing.boss_others = PotentialsBut(character, kBossGear, &item, track);
   PotentialTotals boss_now = pricing.boss_others;
   AddPotential(held, pricing.level, boss_now);
@@ -206,6 +221,11 @@ double GainOf(const GameState& state, const CubeBasis& basis,
     PotentialTotals totals = pricing.farm_others;
     AddPotential(rolled, pricing.level, totals);
     gain += IncomeGain(basis, pricing.farm_now, totals, income);
+  }
+  if (pricing.looted && income.loot_per_drop > 0.0) {
+    PotentialTotals alone;
+    AddPotential(rolled, pricing.level, alone);
+    gain += LootGain(alone.item_drop_pct - pricing.held_drop, income);
   }
   return gain;
 }
@@ -324,7 +344,7 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
       PotentialOf(item->equip_state(), shelf.track).rank();
   CubePricing pricing = PricingFor(state, basis, *item, slot, shelf.track);
   pricing.cube = cube;
-  if (!pricing.bossed && !pricing.farmed) {
+  if (!pricing.bossed && !pricing.farmed && !pricing.looted) {
     return program;
   }
   // A farm-only piece is kept however the boss gear changes.

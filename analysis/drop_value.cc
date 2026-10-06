@@ -1,6 +1,7 @@
 #include "analysis/drop_value.h"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <string>
 #include <utility>
@@ -13,6 +14,8 @@
 #include "src/combat/loot.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/shop.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
@@ -56,12 +59,45 @@ double AsMeso(const DropBasis& basis, double gain) {
   return gain / basis.power_per_meso;
 }
 
-// Stats of the item worn in `slot`, which a replacement has to beat. Empty for
-// an empty slot.
-EquipStats WornIn(const GameState& state, EquipSlot slot) {
-  WornGear::const_iterator it = state.character.equipped().find(slot);
-  return it == state.character.equipped().end() ? EquipStats()
-                                                : it->second->stats();
+// Stats of the item worn in `slot`, which a replacement has to beat: as worn,
+// or by tier the better of the farming and bossing presets' pieces, so a piece
+// one preset already wears is no upgrade for the other. Empty for an empty
+// slot.
+EquipStats WornIn(const GameState& state, const DropBasis& basis,
+                  EquipSlot slot) {
+  if (!basis.by_tier) {
+    WornGear::const_iterator it = state.character.equipped().find(slot);
+    return it == state.character.equipped().end() ? EquipStats()
+                                                  : it->second->stats();
+  }
+  EquipStats best;
+  double best_power = -1.0;
+  for (StatPreset preset : {kFarmGear, kBossGear}) {
+    const EquipInstance* worn = state.character.WornAt(preset, slot);
+    if (worn == nullptr) {
+      continue;
+    }
+    EquipStats stats = EquipInstance(worn->prototype()).stats();
+    double power = PowerWith(state, basis, Plus(basis.worn, stats));
+    if (power > best_power) {
+      best_power = power;
+      best = stats;
+    }
+  }
+  return best;
+}
+
+// Whether `proto` is a weapon of another type than the one worn. The closed
+// form prices stats alone and would rate a dagger over a Night Lord's claw,
+// though no skill of theirs fires from it.
+bool OtherWeaponType(const GameState& state, const EquipPrototype& proto) {
+  if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON) {
+    return false;
+  }
+  WornGear::const_iterator it =
+      state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
+  return it != state.character.equipped().end() &&
+         it->second->prototype().equip_type() != proto.equip_type();
 }
 
 // Value of one duplicate of a worn symbol. A duplicate is one EXP toward the
@@ -87,8 +123,9 @@ double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
 }  // namespace
 
 DropBasis DropBasisFor(const GameState& state, double power_per_meso,
-                       HeldYardstick& held) {
+                       HeldYardstick& held, bool by_tier) {
   DropBasis basis;
+  basis.by_tier = by_tier;
   basis.derived = DerivedStatsFor(state.character, state.skills);
   basis.worn = TotalEquipStats(state.character, basis.derived);
   basis.yard = held.For(state);
@@ -109,13 +146,27 @@ DropBasis DropBasisFor(const GameState& state, double power_per_meso,
       best = std::max(best, value / price.count());
     }
   }
+  // Only boss loot holds boxes, and each one's stock sorts the whole catalog.
+  for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
+    if (!by_tier || !(entry.second.has_box() || entry.second.has_pick_box())) {
+      continue;
+    }
+    for (const std::string& key : BoxStock(entry.second, state.equips)) {
+      const EquipPrototype& piece = state.equips.at(key);
+      if (state.character.MeetsJob(piece)) {
+        double& best = basis.boxes[entry.first];
+        best = std::max(best, EquipDropValue(state, basis, piece));
+      }
+    }
+  }
   return basis;
 }
 
 double EquipDropValue(const GameState& state, const DropBasis& basis,
                       const EquipPrototype& proto) {
   if (!state.character.MeetsJob(proto) || !state.character.MeetsLevel(proto) ||
-      !ReachedSymbolArea(state.character, proto)) {
+      !ReachedSymbolArea(state.character, proto) ||
+      OtherWeaponType(state, proto)) {
     return 0.0;
   }
   if (IsSymbol(proto)) {
@@ -131,8 +182,8 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
   // What wearing it would add over the item in the slot. A piece no better than
   // the worn one scores zero, which is right: wearing it is the only use of a
   // gear drop.
-  EquipStats added =
-      Minus(EquipInstance(proto).stats(), WornIn(state, proto.equip_slot()));
+  EquipStats added = Minus(EquipInstance(proto).stats(),
+                           WornIn(state, basis, proto.equip_slot()));
   double gain = PowerWith(state, basis, Plus(basis.worn, added)) - basis.power;
   return AsMeso(basis, gain);
 }
@@ -143,7 +194,39 @@ double ItemDropValue(const DropBasis& basis, const std::string& key,
     return proto.sell_price();
   }
   std::map<std::string, double>::const_iterator token = basis.tokens.find(key);
-  return token == basis.tokens.end() ? 0.0 : token->second;
+  if (token != basis.tokens.end()) {
+    return token->second;
+  }
+  std::map<std::string, double>::const_iterator box = basis.boxes.find(key);
+  return box == basis.boxes.end() ? 0.0 : box->second;
+}
+
+double ClearLootPerDropRate(const GameState& state, const DropBasis& basis,
+                            const BossDifficulty& difficulty, double drop_pct) {
+  double total = 0.0;
+  for (const MobDrop& drop : difficulty.drops()) {
+    double value = 0.0;
+    double scaled = drop.per_kill();
+    if (drop.has_item()) {
+      std::map<std::string, ItemPrototype>::const_iterator it =
+          state.items.find(drop.item());
+      if (it != state.items.end()) {
+        value = ItemDropValue(basis, drop.item(), it->second);
+      }
+    } else if (drop.has_equip()) {
+      std::map<std::string, EquipPrototype>::const_iterator it =
+          state.equips.find(drop.equip());
+      if (it != state.equips.end()) {
+        value = EquipDropValue(state, basis, it->second);
+      }
+      scaled = drop.per_kill() - std::floor(drop.per_kill());
+      if (scaled * (1.0 + drop_pct) >= 1.0) {
+        scaled = 0.0;
+      }
+    }
+    total += scaled * DropRolls(drop) * value;
+  }
+  return total;
 }
 
 double DropsPerKill(const GameState& state, const DropBasis& basis,

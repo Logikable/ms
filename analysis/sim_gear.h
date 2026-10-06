@@ -26,6 +26,8 @@ namespace ms {
 // differ, since only they roll %meso and %drop.
 inline constexpr StatPreset kBossGear = StatPreset::kSecond;
 inline constexpr StatPreset kFarmGear = StatPreset::kFirst;
+// The gear boss loot rolls at. With no pieces of its own it is the farm gear.
+inline constexpr StatPreset kDropGear = kDropPreset;
 
 // Whether `slot` holds a piece farming and boss fights wear separately.
 bool SplitsFarmGear(EquipSlot slot);
