@@ -342,6 +342,14 @@ TEST_F(WorkbenchGearTest, MaxModesOutfitIsInTheCatalogForEveryJob) {
       }
     }
   }
+  for (int level : {230, 260}) {
+    for (const MaxFarmPiece& piece : MaxFarmOutfit(level)) {
+      auto found = equips_.find(piece.key);
+      ASSERT_NE(found, equips_.end()) << piece.key;
+      EXPECT_EQ(found->second.equip_slot(), piece.slot) << piece.key;
+      EXPECT_TRUE(MaxWearsFarmLines(piece.key, level)) << piece.key;
+    }
+  }
 }
 
 }  // namespace

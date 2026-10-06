@@ -1015,6 +1015,22 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
     totem.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
     catalog[key] = totem;
   }
+  // One piece per slot the cap's farming preset swaps, and the bossing piece
+  // each displaces.
+  const std::tuple<const char*, const char*, EquipSlot> accessories[] = {
+      {"magic_eyepatch", "Magic Eyepatch", EQUIP_SLOT_EYE_ACCESSORY},
+      {"aquatic_letter_eye_accessory", "Aquatic Letter Eye Accessory",
+       EQUIP_SLOT_EYE_ACCESSORY},
+      {"guardian_angel_ring", "Guardian Angel Ring", EQUIP_SLOT_RING},
+      {"lightning_god_ring", "Lightning God Ring", EQUIP_SLOT_RING}};
+  for (const auto& [key, name, slot] : accessories) {
+    EquipPrototype accessory;
+    accessory.set_name(name);
+    accessory.set_equip_slot(slot);
+    accessory.set_required_level(100);
+    accessory.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    catalog[key] = accessory;
+  }
   for (const char* key : {"lil_frieren", "lil_fern", "lil_stark"}) {
     EquipPrototype pet;
     pet.set_name(key);
@@ -1324,6 +1340,39 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
   ASSERT_EQ(bonus.lines_size(), kPotentialLines);
   EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
+}
+
+// The farming preset wears its own pieces cubed for meso and drop, the Drop
+// preset inherits them, and bosses keep the pieces they replaced.
+TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  const CharacterInstance& character = state.character;
+  auto name_in = [&character](StatPreset preset, EquipSlot slot) {
+    const EquipInstance* worn = character.WornAt(preset, slot);
+    return worn == nullptr ? std::string() : worn->prototype().name();
+  };
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  const StatPreset farm = AutoswapSlotFor(Activity::kFarming);
+  EXPECT_EQ(name_in(farm, EQUIP_SLOT_EYE_ACCESSORY),
+            "Aquatic Letter Eye Accessory");
+  EXPECT_EQ(name_in(boss, EQUIP_SLOT_EYE_ACCESSORY), "Magic Eyepatch");
+  EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY),
+            "Aquatic Letter Eye Accessory");
+  EXPECT_EQ(name_in(farm, EQUIP_SLOT_RING), "Lightning God Ring");
+  EXPECT_EQ(name_in(boss, EQUIP_SLOT_RING), "Guardian Angel Ring");
+
+  const EquipInstance& eye = *character.WornAt(farm, EQUIP_SLOT_EYE_ACCESSORY);
+  ASSERT_EQ(eye.potential().lines_size(), kPotentialLines);
+  EXPECT_EQ(eye.potential().lines(0).type(),
+            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
+  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(eye.equip_state().bonus_potential().lines_size(), 0);
+  const EquipInstance& patch =
+      *character.WornAt(boss, EQUIP_SLOT_EYE_ACCESSORY);
+  ASSERT_GT(patch.potential().lines_size(), 0);
+  EXPECT_EQ(patch.potential().lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+  EXPECT_GT(patch.equip_state().bonus_potential().lines_size(), 0);
+  EXPECT_GT(patch.equip_state().flame_size(), 0);
 }
 
 // Every buff bought and switched on, with the climb's leftover meso, not the

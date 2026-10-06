@@ -48,9 +48,26 @@ struct MaxGear {
 // The gear a character at `level` has paid for.
 MaxGear MaxGearForLevel(int level);
 
-// The catalog keys a max character of `level` wears over their job's own
-// weapon, secondary and ammunition, in the order to put them on.
+// The catalog keys a max character of `level` wears for bosses over their
+// job's own weapon, secondary and ammunition, in the order to put them on.
 std::vector<std::string> MaxOutfit(Job job, int level);
+
+// A piece the farming preset wears in place of the bossing preset's: `key` in
+// `slot`. The Drop preset inherits it, as it does every farming piece.
+struct MaxFarmPiece {
+  EquipSlot slot = EQUIP_SLOT_UNSPECIFIED;
+  const char* key = nullptr;
+};
+
+// The farming preset's own pieces at `level`; MaxOutfit is what bosses wear.
+std::vector<MaxFarmPiece> MaxFarmOutfit(int level);
+
+// Whether a max character of `level` wears MaxFarmPotential on `key` instead
+// of its kind's damage lines, on either preset.
+bool MaxWearsFarmLines(const std::string& key, int level);
+
+// The main potential of a piece cubed for meso and drop.
+Potential MaxFarmPotential(StatField primary);
 
 // The level of the symbol in `slot` a max character of `level` wears, or 0 for
 // one they don't hold yet.

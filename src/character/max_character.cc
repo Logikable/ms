@@ -167,6 +167,42 @@ constexpr OutfitBand kOutfits[] = {
       Item("jade_kettle_totem")}},
 };
 
+// What the farming preset wore in place of the bossing preset's piece, read off
+// the sweep of 2026-10-05: a slot where at least five of ten branches farmed in
+// a piece of their own. The bossing preset keeps the piece kOutfits names
+// there.
+struct FarmBand {
+  int level;
+  MaxFarmPiece pieces[4];
+};
+
+constexpr FarmBand kFarmOutfits[] = {
+    {230, {{EQUIP_SLOT_EYE_ACCESSORY, "aquatic_letter_eye_accessory"}}},
+    {260,
+     {{EQUIP_SLOT_EYE_ACCESSORY, "aquatic_letter_eye_accessory"},
+      {EQUIP_SLOT_FACE_ACCESSORY, "condensed_power_crystal"},
+      {EQUIP_SLOT_RING, "lightning_god_ring"}}},
+};
+
+// The pieces cubed for meso and drop rather than damage in the same sweep, on
+// whichever preset wears them: the farm pieces above, and the accessories both
+// presets share that half the branches cubed for farming anyway.
+struct FarmLinesBand {
+  int level;
+  const char* keys[8];
+};
+
+constexpr FarmLinesBand kFarmLines[] = {
+    {230,
+     {"aquatic_letter_eye_accessory", "condensed_power_crystal",
+      "lightning_god_ring", "meister_ring", "silver_blossom_ring",
+      "horntail_necklace"}},
+    {260,
+     {"aquatic_letter_eye_accessory", "condensed_power_crystal",
+      "lightning_god_ring", "meister_ring", "silver_blossom_ring",
+      "horntail_necklace"}},
+};
+
 // Each Arcane Symbol's level on arrival, read off the same sweep as kBands, in
 // EQUIP_SLOT_SYMBOL_* order. At 200 it is the level reward alone; Morass waits
 // for the first daily claim after 230. No climb held a Sacred Symbol at 260:
@@ -662,6 +698,49 @@ std::vector<std::string> MaxOutfit(Job job, int level) {
     }
   }
   return keys;
+}
+
+std::vector<MaxFarmPiece> MaxFarmOutfit(int level) {
+  std::vector<MaxFarmPiece> pieces;
+  for (const FarmBand& band : kFarmOutfits) {
+    if (level >= band.level) {
+      pieces.clear();
+      for (const MaxFarmPiece& piece : band.pieces) {
+        if (piece.key != nullptr) {
+          pieces.push_back(piece);
+        }
+      }
+    }
+  }
+  return pieces;
+}
+
+bool MaxWearsFarmLines(const std::string& key, int level) {
+  const FarmLinesBand* found = nullptr;
+  for (const FarmLinesBand& band : kFarmLines) {
+    if (level >= band.level) {
+      found = &band;
+    }
+  }
+  if (found == nullptr) {
+    return false;
+  }
+  for (const char* candidate : found->keys) {
+    if (candidate != nullptr && key == candidate) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Potential MaxFarmPotential(StatField primary) {
+  // Meso and drop roll only at Legendary, so both lead at the rank.
+  Potential potential;
+  potential.set_rank(L);
+  AddLine(potential, POTENTIAL_LINE_TYPE_ITEM_DROP_RATE, L);
+  AddLine(potential, POTENTIAL_LINE_TYPE_MESO_RATE, L);
+  AddLine(potential, StatShareFor(primary), U);
+  return potential;
 }
 
 int MaxClearLevel(const std::string& boss, const std::string& difficulty) {

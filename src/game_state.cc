@@ -1115,48 +1115,107 @@ void WearMaxSymbols(GameState& state) {
   }
 }
 
-// The same potential lines on every piece of one kind. Set directly instead of
-// cubed for: real potential is luck, and a fight measured against a slightly
-// different character every run tells us nothing. See MaxPotentialFor.
-void DressMaxPotentials(GameState& state, const MaxGear& gear) {
-  const StatField primary = PrimaryStatField(state.character.proto().job());
-  std::vector<EquipSlot> slots;
+// The pieces each preset holds as its own, the first preset's being everything
+// it wears, with the preset to address them through.
+std::vector<std::pair<EquipSlot, StatPreset>> OwnPieces(
+    const CharacterInstance& character) {
+  std::vector<std::pair<EquipSlot, StatPreset>> pieces;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
-       state.character.equipped()) {
-    // A piece that refuses cubes keeps the potential it dropped with.
-    if (worn.second->CanCube()) {
-      slots.push_back(worn.first);
+       character.equipped()) {
+    pieces.push_back({worn.first, StatPreset::kFirst});
+  }
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  for (const std::pair<const EquipSlot, EquipInstance>& own :
+       character.own_gear(boss)) {
+    pieces.push_back({own.first, boss});
+  }
+  return pieces;
+}
+
+// The catalog key `item` was given under, for the tables that name pieces by
+// key.
+std::string KeyOf(const GameState& state, const EquipInstance& item) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    if (entry.second.name() == item.prototype().name()) {
+      return entry.first;
     }
   }
-  for (EquipSlot slot : slots) {
+  return "";
+}
+
+// The same potential lines on every piece of one kind. Set directly instead of
+// cubed for: real potential is luck, and a fight measured against a slightly
+// different character every run tells us nothing. See MaxPotentialFor. A piece
+// cubed for farming wears MaxFarmPotential instead, and one only the farming
+// preset wears has no bonus potential, as the sweep's had none.
+void DressMaxPotentials(GameState& state, const MaxGear& gear) {
+  CharacterInstance& character = state.character;
+  const StatField primary = PrimaryStatField(character.proto().job());
+  const int level = character.proto().level();
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  for (const auto& [slot, preset] : OwnPieces(character)) {
+    const EquipInstance* worn = character.WornAt(preset, slot);
+    // A piece that refuses cubes keeps the potential it dropped with.
+    if (worn == nullptr || !worn->CanCube()) {
+      continue;
+    }
+    const bool farm_only =
+        preset == StatPreset::kFirst && character.WornAt(boss, slot) != worn;
+    const bool farm_lines = gear.potential_level > 0 &&
+                            MaxWearsFarmLines(KeyOf(state, *worn), level);
     for (PotentialTrack track :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
-      const Potential potential = MaxPotentialFor(slot, gear, primary, track);
+      if (farm_only && track == PotentialTrack::kBonus) {
+        continue;
+      }
+      const Potential potential =
+          farm_lines && track == PotentialTrack::kMain
+              ? MaxFarmPotential(primary)
+              : MaxPotentialFor(slot, gear, primary, track);
       if (potential.lines_size() > 0) {
-        state.character.TakePotential(slot, track, potential);
+        character.TakePotential(slot, track, potential, preset);
       }
     }
   }
 }
 
-// The flame each worn piece wears at the character's level. Slots first, since
-// TakeFlame rebuilds equipped().
+// The flame each piece of either preset wears at the character's level.
+// Slots first, since TakeFlame rebuilds equipped().
 void DressMaxFlames(GameState& state) {
   const Job job = state.character.proto().job();
   const int level = state.character.proto().level();
-  std::vector<EquipSlot> slots;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
-       state.character.equipped()) {
-    if (worn.second->CanFlame()) {
-      slots.push_back(worn.first);
+  for (const auto& [slot, preset] : OwnPieces(state.character)) {
+    const EquipInstance* worn = state.character.WornAt(preset, slot);
+    if (worn == nullptr || !worn->CanFlame()) {
+      continue;
+    }
+    const FlameLines lines =
+        MaxFlameFor(worn->prototype(), level, PrimaryStatField(job),
+                    SecondaryStatField(job));
+    if (!lines.empty()) {
+      state.character.TakeFlame(slot, lines, preset);
     }
   }
-  for (EquipSlot slot : slots) {
-    const FlameLines lines =
-        MaxFlameFor(state.character.equipped().at(slot)->prototype(), level,
-                    PrimaryStatField(job), SecondaryStatField(job));
-    if (!lines.empty()) {
-      state.character.TakeFlame(slot, lines);
+}
+
+// The farming preset's own pieces: each takes its slot in the first preset,
+// and the bossing piece it displaces becomes the bossing preset's own.
+void WearMaxFarmPieces(GameState& state, int level, const GearSetup& equips) {
+  CharacterInstance& character = state.character;
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  for (const MaxFarmPiece& piece : MaxFarmOutfit(level)) {
+    if (state.equips.find(piece.key) == state.equips.end()) {
+      continue;
+    }
+    if (character.WornAt(StatPreset::kFirst, piece.slot) != nullptr &&
+        character.Unequip(piece.slot)) {
+      character.Equip(character.inventory().size() - 1, boss, piece.slot);
+    }
+    const int row = static_cast<int>(character.inventory().size());
+    GiveEquip(state, piece.key, equips);
+    if (static_cast<int>(character.inventory().size()) > row) {
+      character.Equip(row, StatPreset::kFirst, piece.slot);
     }
   }
 }
@@ -1276,6 +1335,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   ClimbToJob(state, advancement, level, kSpendEveryStage, equips);
   const int reached = state.character.proto().level();
   WearAll(state, MaxOutfit(state.character.proto().job(), reached), equips);
+  WearMaxFarmPieces(state, reached, equips);
   RecordClears(state, [reached](const std::string& boss,
                                 const BossDifficulty& difficulty) {
     const int cleared = MaxClearLevel(boss, difficulty.name());
