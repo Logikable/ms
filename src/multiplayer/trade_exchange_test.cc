@@ -167,13 +167,15 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   theirs.set_equip_name("Sword");
   theirs.set_stars(9);
   *received.add_equips() = theirs;
+  received.add_stacks()->set_name("Chaos Scroll");
+  received.mutable_stacks(0)->set_count(3);
 
   ApplyTrade(character, equips_, items_, {0}, given, received);
 
   EXPECT_EQ(character.meso(), 10000 - 2500 + 400);
   EXPECT_EQ(character.CountItem(kSpellTraceName), 50 - 30 + 7);
   EXPECT_EQ(character.v_points(), 900 - 600 + 45);
-  EXPECT_EQ(character.CountItem("Chaos Scroll"), 15);
+  EXPECT_EQ(character.CountItem("Chaos Scroll"), 20 - 5 + 3);
   // The starred item left and theirs arrived whole; the plain one stayed.
   ASSERT_EQ(character.inventory().size(), 2);
   EXPECT_EQ(character.inventory()[0].stars(), 0);

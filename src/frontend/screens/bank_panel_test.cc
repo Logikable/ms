@@ -219,6 +219,14 @@ TEST_F(BankPanelTest, MovingAStackTakesTheWholeRow) {
   EXPECT_EQ(panel_->cursor().kind, BankCursor::Kind::kRow)
       << "the next row slid up into this place";
   EXPECT_EQ(panel_->cursor().index, 0);
+
+  // And back out of the bank's own Etc tab.
+  panel_->NextZone();
+  panel_->MoveCursor(1);
+  ToList();
+  EXPECT_EQ(panel_->MoveSelected(), "");
+  EXPECT_EQ(static_cast<int>(c_.stackables().size()), rows);
+  EXPECT_TRUE(bank().stacks().empty());
 }
 
 // A symbol is bound to the character who levelled it, so it can never go into

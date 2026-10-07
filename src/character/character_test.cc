@@ -4376,6 +4376,15 @@ TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
   EXPECT_EQ(
       c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().lines_size(),
       kPotentialLines);
+
+  // A bagged piece takes the roll by its row; a row past the bag takes nothing.
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
+  const int bagged = c.inventory().size() - 1;
+  ASSERT_TRUE(c.TakeInventoryPotential(bagged, PotentialTrack::kMain, *rolled));
+  EXPECT_EQ(c.inventory().equip_instance(bagged)->potential().lines_size(),
+            kPotentialLines);
+  EXPECT_FALSE(
+      c.TakeInventoryPotential(bagged + 1, PotentialTrack::kMain, *rolled));
 }
 
 // A Green Cube costs its own price, rolls the bonus potential and leaves the
@@ -4461,6 +4470,14 @@ TEST_F(CharacterTest, AFlameIsBoughtThenTakenIntoTheWornStats) {
       c.BuyInventoryFlame(c.inventory().size() - 1, FlameType::kBlack, {})
           .has_value());
   EXPECT_EQ(c.meso(), black);
+
+  // Taken onto a bagged piece, by its row; a row past the bag takes nothing.
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
+  const int bagged = c.inventory().size() - 1;
+  ASSERT_TRUE(c.TakeInventoryFlame(bagged, lines));
+  EXPECT_EQ(c.inventory().equip_instance(bagged)->equip_state().flame_size(),
+            2);
+  EXPECT_FALSE(c.TakeInventoryFlame(bagged + 1, lines));
 }
 
 // Ten shards roll a soul onto the weapon, worn or bagged, and a worn one's

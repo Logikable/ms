@@ -4538,6 +4538,21 @@ TEST(CombatSimTest, AWideHitReachesPastTheSwingCarryingIt) {
   // Two dead: the one the orb hit, taking both parts, and the one only the
   // current reached.
   EXPECT_EQ(sim.view().kills_this_step[0], 2);
+
+  // Rolled, the current still reaches past the orb. Ten HP falls to any roll.
+  Mob slug = MakeMob("Slug", 10);
+  CombatParams rolled = MakeParams(1.0, 1e9, {MakeType(&slug, 0.0, 4)});
+  HitGroup current;
+  current.damage = {100.0};
+  current.rolls.lines = 4;
+  current.rolls.mastery = 0.4;
+  current.rolls.crit_rate = 0.5;
+  current.rolls.crit_dmg = 1.0;
+  orb.wide_hit_groups = {current};
+  rolled.attacks.push_back(orb);
+  CombatSim rolling;
+  rolling.Advance(rolled, 1.0);
+  EXPECT_EQ(rolling.view().kills_this_step[0], 2);
 }
 
 // Jupiter Thunder's shock: the enemy with it takes more from every other
