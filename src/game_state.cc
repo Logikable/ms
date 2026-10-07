@@ -1315,6 +1315,20 @@ LinkTally MaxTally(const std::vector<MaxMember>& account,
   return tally;
 }
 
+// The account's familiars at `level`, the three mains summoned in every
+// preset. Before Hyper Stats, whose best allocation reads their lines.
+void WearMaxFamiliars(GameState& state, int level) {
+  state.account.mutable_familiars() =
+      MaxFamiliars(PrimaryStatField(state.character.proto().job()), level);
+  state.character.set_familiars(state.account.familiars());
+  for (int slot = 0; slot < kNumStatPresets; ++slot) {
+    for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
+      state.character.SummonFamiliar(FamiliarRoster()[i].name,
+                                     StatPresetAt(slot));
+    }
+  }
+}
+
 // Builds a max character onto whatever `state.character` holds, so the caller
 // resets to a Beginner between characters. `tally` is what the rest of the
 // account gives them, set before Hyper Stats are measured because a link
@@ -1351,6 +1365,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
               state.items);
   MaxVMatrix(state);
+  WearMaxFamiliars(state, reached);
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);
   // Before Hyper Stats, whose best allocation depends on the crit damage and

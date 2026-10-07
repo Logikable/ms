@@ -634,6 +634,7 @@ cc_library(
     deps = [
         ":character",
         ":character_stats",
+        ":familiar",
         ":hyper_plan",
         ":hyper_stats",
         ":inner_ability",
@@ -660,6 +661,7 @@ cc_test(
     srcs = ["max_character_test.cc"],
     deps = [
         ":character",
+        ":familiar",
         ":hyper_stats",
         ":inner_ability",
         ":max_character",
@@ -667,6 +669,7 @@ cc_test(
         "//src/item:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],

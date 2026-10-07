@@ -83,6 +83,7 @@
 #include "analysis/checkpoint.h"
 #include "analysis/cube_plan.h"
 #include "analysis/drop_value.h"
+#include "analysis/familiar_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
 #include "analysis/meso_rate.h"
@@ -98,6 +99,7 @@
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
 #include "src/character/exp_table.h"
+#include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
@@ -124,6 +126,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -162,6 +165,9 @@ ABSL_FLAG(bool, cubes, true,
 ABSL_FLAG(bool, flames, true,
           "Whether the shopper uses Rebirth Flames. Off is the counterfactual, "
           "as --cubes is.");
+ABSL_FLAG(bool, familiars, true,
+          "Whether the player levels, summons and cubes familiars. Off is the "
+          "counterfactual, as --cubes is.");
 ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
@@ -438,6 +444,7 @@ struct Ledger {
   int64_t alt_meso = 0;     // what alts kept on the way up, handed over
   int boxes_opened = 0;     // AbsoLab, Arcane Umbra, pick and ring boxes
   int dropped_scrolls = 0;  // scrolls paid for with a boss drop
+  FamiliarSpend familiars;  // levels, and the Familiar Cubes' meso
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears + alt_meso;
@@ -643,6 +650,25 @@ struct MapChoice {
 
 // One line per slot with just the item's name. Both decisions below re-run on
 // this: a different item counts as a change, a star on the same item doesn't.
+// The familiars boss fights summon, as Climb::familiars has them.
+std::string FamiliarsSummoned(const CharacterInstance& character) {
+  const FamiliarBook& book = character.familiars();
+  std::string text =
+      "Bond " + std::to_string(FamiliarSkillLevel(TotalFamiliarLevels(book)));
+  for (const std::string& name : character.summoned_familiars(
+           character.SlotFor(PresetKind::kFamiliars, Activity::kBossing))) {
+    text += (text.find(';') == std::string::npos ? "; " : ", ") + name + " L" +
+            std::to_string(FamiliarLevel(book, name));
+    if (const Familiar* familiar = FindFamiliar(book, name)) {
+      for (const FamiliarLine& line : familiar->lines()) {
+        // The enum's name less its 19-letter FAMILIAR_LINE_TYPE_ prefix.
+        text += " " + FamiliarLineType_Name(line.type()).substr(19);
+      }
+    }
+  }
+  return text;
+}
+
 // The Special Skill Rings boss fights wear, as "Ring of Restraint Lv. 4,
 // Continuous Ring Lv. 3", or "none".
 std::string SkillRingsWorn(const CharacterInstance& character) {
@@ -783,6 +809,22 @@ void ReplanBook(GameState& state, GearShopper& shopper, ToggleChoice& toggles,
       replan, &matrix.memo);
 }
 
+// The familiar EXP and cubes. Before the shelf, priced at the rate its last
+// pass paid: a Familiar Cube buys far more damage per meso than the shelf's
+// marginal offer, and after it the purse is empty.
+void SpendOnFamiliars(GameState& state, GearShopper& shopper,
+                      const FamiliarPrices& prices, Ledger& ledger) {
+  if (!absl::GetFlag(FLAGS_familiars)) {
+    return;
+  }
+  FamiliarSpend spend = SpendFamiliars(
+      state, [&shopper](GameState& inner) { return shopper.Power(inner); },
+      prices);
+  ledger.familiars.levels += spend.levels;
+  ledger.familiars.cubes += spend.cubes;
+  ledger.familiars.meso += spend.meso;
+}
+
 // Everything the player does at a look, in the order that makes each step feed
 // the next: the advancement first, then the points it gives, then drops sold
 // for meso, then the weapon that meso buys, and only then where to farm.
@@ -790,7 +832,8 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
             PlanKey& planned, ToggleChoice& toggles, MatrixChoice& matrix,
-            MapChoice& mapped, Ledger& ledger, std::string* ring_memo) {
+            MapChoice& mapped, Ledger& ledger, std::string* ring_memo,
+            const FamiliarPrices& familiar_prices) {
   AdvanceIfReady(state, path, taken, scout);
   SpendPoints(state.character);
   ledger.etc_sales += SellDrops(state.character);
@@ -830,6 +873,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // next weapon replaces it, slots and stars included. Dropped scrolls first,
   // so a trace doesn't take a slot one of them would fill for free.
   ledger.dropped_scrolls += UseDroppedScrolls(state);
+  SpendOnFamiliars(state, shopper, familiar_prices, ledger);
   shopper.Spend(state);
   purse.Note(state.character);
   std::string worn = WornNames(state);
@@ -999,6 +1043,9 @@ struct Climb {
   std::string soul = "none";
   // The Special Skill Rings boss fights end on, as "Restraint 4, Continuous 3".
   std::string rings = "none";
+  // The familiars boss fights summon and Familiar Bond's level, as "Bond 5;
+  // Snail L4 IGNORE_DEFENSE_40 BOSS_DAMAGE_40, ...".
+  std::string familiars = "none";
   // Total meso paid over the whole run and meso held at the end: the two ends
   // of the ledger below.
   int64_t endgame_earned_total = 0;
@@ -1246,6 +1293,8 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
     (*now.mutable_link_lines())[line.first] = line.second;
   }
   now.set_noblesse_sp(character.noblesse_sp_earned());
+  *now.mutable_familiars() = state.account.familiars();
+  now.mutable_familiars()->clear_exp();
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
     const std::string& item = entry.second.paid_with();
     if (!item.empty()) {
@@ -1595,6 +1644,17 @@ void SetShopperIncome(Session& run, const CombatParams& params,
   };
   income.loot_per_drop = LootPerDrop(run, income.seconds_left);
   run.shopper.SetIncome(income);
+}
+
+// What the familiar plan prices with: the shelf's last rate, and the boss
+// loot +100% drop rate brings over the rest of the run.
+FamiliarPrices FamiliarPricesFor(Session& run) {
+  FamiliarPrices prices;
+  prices.power_per_meso = run.shopper.power_per_meso();
+  prices.drop_line_power =
+      LootPerDrop(run, std::max(0.0, run.horizon - run.seconds)) *
+      prices.power_per_meso;
+  return prices;
 }
 
 // Progress within a level: the loop's state that is in neither the Session nor
@@ -2106,6 +2166,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   saved.set_level(cursor.level);
   *saved.mutable_character() = run.state.character.ToProto();
   saved.set_current_map(run.state.current_map);
+  *saved.mutable_familiars() = run.state.account.familiars();
   saved.set_taken(run.taken);
   saved.set_earned(run.purse.earned);
   saved.set_spent(run.purse.spent);
@@ -2163,6 +2224,8 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.state.character.RestoreFrom(saved.character(), run.state.equips,
                                   run.state.items);
   run.state.current_map = saved.current_map();
+  run.state.account.mutable_familiars() = saved.familiars();
+  run.state.MirrorAccount();
   run.taken = saved.taken();
   run.purse.earned = saved.earned();
   run.purse.spent = saved.spent();
@@ -2261,7 +2324,8 @@ void Restock(Session& run) {
   ClaimDailySymbols(run);
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
-         run.matrix, run.mapped, run.climb.ledger, &run.ring_memo);
+         run.matrix, run.mapped, run.climb.ledger, &run.ring_memo,
+         FamiliarPricesFor(run));
   SpendNoblessePoints(run);
   SpendHyperPoints(run);
   SpendHonor(run);
@@ -2493,6 +2557,8 @@ void RestockAtCap(Session& run, const CombatParams& params,
       &run.ring_memo);
   // Before the shopper, so a trace doesn't take a slot one of them would fill.
   run.climb.ledger.dropped_scrolls += UseDroppedScrolls(run.state);
+  SpendOnFamiliars(run.state, run.shopper, FamiliarPricesFor(run),
+                   run.climb.ledger);
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
   SpendNoblessePoints(run);
@@ -2679,6 +2745,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   climb.booms = run.shopper.life().booms;
   climb.souls = run.shopper.life().souls;
   climb.rings = SkillRingsWorn(state.character);
+  climb.familiars = FamiliarsSummoned(state.character);
   if (const EquipInstance* weapon =
           state.character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)) {
     const Soul& soul = weapon->equip_state().soul();
@@ -3703,6 +3770,14 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
             << level << '\n';
       }
       out << at << "noblesse_sp\t-\t" << held.noblesse_sp() << '\n';
+      for (const Familiar& familiar : held.familiars().familiars()) {
+        std::vector<std::string> lines;
+        for (const FamiliarLine& line : familiar.lines()) {
+          lines.push_back(FamiliarLineType_Name(line.type()).substr(19));
+        }
+        out << at << "familiar\t" << familiar.name() << '\t' << familiar.level()
+            << ' ' << absl::StrJoin(lines, " ") << '\n';
+      }
       for (const auto& [item, count] : held.scroll_items_held()) {
         out << at << "scroll_item_held\t" << item << '\t' << count << '\n';
       }
@@ -3722,9 +3797,10 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {
-      "mobs",  "Etc sold", "gear sold", "bosses", "shelf", "scrolls",  "stars",
-      "cubes", "flames",   "symbols",   "copies", "buffs", "buffs own"};
+  const char* kHeads[] = {"mobs",      "Etc sold", "gear sold", "bosses",
+                          "shelf",     "scrolls",  "stars",     "cubes",
+                          "flames",    "symbols",  "copies",    "buffs",
+                          "buffs own", "familiars"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -3745,7 +3821,8 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.symbols,
                       ledger.gear.replacements,
                       ledger.buffs.drained,
-                      ledger.buffs.bought};
+                      ledger.buffs.bought,
+                      ledger.familiars.meso};
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int64_t value : rows) {
       char text[16];
@@ -4067,6 +4144,9 @@ void PrintTargets(const std::vector<Job>& branches,
           "  %-46s %d boxes opened, %d dropped scrolls used, rings: %s\n",
           "  from boss boxes", typical.ledger.boxes_opened,
           typical.ledger.dropped_scrolls, typical.rings.c_str());
+      std::printf("  %-46s %d levels, %d cubes: %s\n", "  familiars",
+                  typical.ledger.familiars.levels,
+                  typical.ledger.familiars.cubes, typical.familiars.c_str());
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

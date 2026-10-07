@@ -8,6 +8,7 @@
 
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/familiar.h"
 #include "src/character/hyper_plan.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
@@ -277,6 +278,43 @@ constexpr AltBand kAltBands[] = {
      {JOB_CROSSBOWMAN, JOB_HUNTER, JOB_FIRE_POISON_WIZARD,
       JOB_ICE_LIGHTNING_WIZARD, JOB_BANDIT, JOB_CLERIC, JOB_ASSASSIN}},
 };
+
+// The familiars the same sweep had on reaching each level, read at the fifth
+// of ten branches from the top by total familiar levels: the three summoned
+// mains' level and lines, and every familiar's levels added up. At 200 the
+// mains are Rare, levelled for Familiar Bond; an unspecified line is the
+// job's own %stat.
+struct FamiliarBand {
+  int level;
+  int main_level;
+  int total_levels;
+  FamiliarLineType lines[kFamiliarLines];
+};
+
+constexpr FamiliarBand kFamiliarBands[] = {
+    {200, 1, 8, {FAMILIAR_LINE_TYPE_UNSPECIFIED, FAMILIAR_LINE_TYPE_ATTACK}},
+    {230,
+     4,
+     28,
+     {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40}},
+    {260,
+     4,
+     40,
+     {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40}},
+};
+
+FamiliarLineType StatPctLine(StatField primary) {
+  switch (primary) {
+    case STAT_FIELD_DEX:
+      return FAMILIAR_LINE_TYPE_DEX_PCT;
+    case STAT_FIELD_INT:
+      return FAMILIAR_LINE_TYPE_INT_PCT;
+    case STAT_FIELD_LUK:
+      return FAMILIAR_LINE_TYPE_LUK_PCT;
+    default:
+      return FAMILIAR_LINE_TYPE_STR_PCT;
+  }
+}
 
 // The share of each node kind's levels the same sweep had bought. The sweep
 // spends on the nodes it measures best and maxes them; spreading the same
@@ -977,6 +1015,54 @@ AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level) {
     line.set_rank(ranks[i]);
   }
   return built;
+}
+
+FamiliarBook MaxFamiliars(StatField primary, int level) {
+  FamiliarBook book;
+  const FamiliarBand* band = nullptr;
+  for (const FamiliarBand& candidate : kFamiliarBands) {
+    if (candidate.level <= level) {
+      band = &candidate;
+    }
+  }
+  if (band == nullptr) {
+    return book;
+  }
+  const PotentialRank rank = FamiliarRank(band->main_level);
+  for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
+    Familiar& main = *book.add_familiars();
+    main.set_name(FamiliarRoster()[i].name);
+    main.set_level(band->main_level);
+    for (FamiliarLineType type : band->lines) {
+      if (type == FAMILIAR_LINE_TYPE_UNSPECIFIED) {
+        type = StatPctLine(primary);
+      }
+      FamiliarLine& line = *main.add_lines();
+      line.set_type(type);
+      line.set_rank(rank);
+    }
+  }
+  // The rest, one level at a time on whichever is lowest: the cheapest step.
+  std::vector<Familiar*> rest;
+  for (std::size_t i = kMaxSummonedFamiliars; i < FamiliarRoster().size();
+       ++i) {
+    Familiar& other = *book.add_familiars();
+    other.set_name(FamiliarRoster()[i].name);
+    rest.push_back(&other);
+  }
+  int left = band->total_levels - kMaxSummonedFamiliars * band->main_level;
+  for (int step = 0; left > 0; ++step, --left) {
+    Familiar& next = *rest[step % rest.size()];
+    next.set_level(std::min(kFamiliarMaxLevel, next.level() + 1));
+  }
+  // A familiar never levelled has no entry, as in a played book.
+  FamiliarBook levelled;
+  for (const Familiar& familiar : book.familiars()) {
+    if (familiar.level() > 0) {
+      *levelled.add_familiars() = familiar;
+    }
+  }
+  return levelled;
 }
 
 }  // namespace ms

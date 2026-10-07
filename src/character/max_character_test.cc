@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/stat_preset.h"
@@ -16,6 +17,7 @@
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -315,6 +317,34 @@ TEST(MaxCharacterTest, FlamesHoldDistinctLinesFromTheItemsPool) {
   EXPECT_TRUE(MaxFlameFor(Flammable(EQUIP_SLOT_RING, 200), 260, STAT_FIELD_STR,
                           STAT_FIELD_DEX)
                   .empty());
+}
+
+// Familiars open at 190, so the first band is 200's: Rare mains levelled for
+// Familiar Bond. By 230 the mains are Legendary on the sweep's lines.
+TEST(MaxFamiliarsTest, FollowTheSweepsBands) {
+  EXPECT_EQ(MaxFamiliars(STAT_FIELD_STR, 199).familiars_size(), 0);
+
+  const FamiliarBook at_200 = MaxFamiliars(STAT_FIELD_LUK, 200);
+  EXPECT_EQ(TotalFamiliarLevels(at_200), 8);
+  const Familiar* snail = FindFamiliar(at_200, "Snail");
+  ASSERT_NE(snail, nullptr);
+  EXPECT_EQ(snail->level(), 1);
+  EXPECT_EQ(snail->lines(0).type(), FAMILIAR_LINE_TYPE_LUK_PCT);
+
+  const FamiliarBook at_230 = MaxFamiliars(STAT_FIELD_STR, 230);
+  EXPECT_EQ(TotalFamiliarLevels(at_230), 28);
+  EXPECT_EQ(FamiliarSkillLevel(TotalFamiliarLevels(at_230)), 4);
+  for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
+    const Familiar* main = FindFamiliar(at_230, FamiliarRoster()[i].name);
+    ASSERT_NE(main, nullptr);
+    EXPECT_EQ(main->level(), kFamiliarMaxLevel);
+    for (const FamiliarLine& line : main->lines()) {
+      EXPECT_GT(FamiliarLineValue(line.type(), line.rank()), 0);
+    }
+  }
+  EXPECT_EQ(FamiliarSkillLevel(
+                TotalFamiliarLevels(MaxFamiliars(STAT_FIELD_STR, 260))),
+            5);
 }
 
 }  // namespace

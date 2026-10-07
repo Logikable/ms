@@ -27,6 +27,7 @@ proto_library(
     deps = [
         "//src/protos:character_proto",
         "//src/protos:equip_proto",
+        "//src/protos:familiar_proto",
     ],
 )
 
@@ -268,6 +269,33 @@ cc_test(
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "familiar_plan",
+    srcs = ["familiar_plan.cc"],
+    hdrs = ["familiar_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:familiar",
+        "//src/character:stat_preset",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "familiar_plan_test",
+    size = "small",
+    srcs = ["familiar_plan_test.cc"],
+    deps = [
+        ":familiar_plan",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/character:familiar",
+        "//src/protos:familiar_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -573,6 +601,7 @@ sim_binary(
         ":checkpoint",
         ":cube_plan",
         ":drop_value",
+        ":familiar_plan",
         ":gear_plan",
         ":hyper_plan",
         ":meso_rate",
@@ -594,6 +623,7 @@ sim_binary(
         "//src/character:consumables",
         "//src/character:dailies",
         "//src/character:exp_table",
+        "//src/character:familiar",
         "//src/character:honor",
         "//src/character:inner_ability",
         "//src/character:job_advancement",
@@ -615,6 +645,7 @@ sim_binary(
         "//src/item:shop",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",

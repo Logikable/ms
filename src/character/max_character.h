@@ -25,6 +25,7 @@
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
@@ -135,6 +136,11 @@ std::vector<MaxAlt> MaxAlts(Job played_line, int level);
 
 // The level a max character of `level` has bought `node` to.
 int MaxMatrixLevel(const Skill& node, int level);
+
+// The account's familiars at `level`: the roster's first three, summoned, with
+// the sweep's lines, and the rest levelled cheapest step first to its total.
+// Empty below the first band.
+FamiliarBook MaxFamiliars(StatField primary, int level);
 
 // The three Inner Ability lines `preset` has at `level`.
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level);

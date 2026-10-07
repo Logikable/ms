@@ -4,6 +4,7 @@ package ms;
 
 import "src/protos/character.proto";
 import "src/protos/equip.proto";
+import "src/protos/familiar.proto";
 
 // A climb saved partway up, so a run asking about higher levels doesn't have to
 // replay the lower ones. Not a save file: it holds the sim's own bookkeeping
@@ -129,6 +130,8 @@ message CheckpointPotentials {
   AbilityRank ability_bossing = 9;
   // Unspent boss drops that pay for a scroll, by item name.
   map<string, int32> scroll_items_held = 10;
+  // The account's familiars: levels and lines, the pool left out.
+  FamiliarBook familiars = 11;
 }
 
 // Everything the tables have collected so far. Mirrors Climb field for field: a
@@ -223,4 +226,6 @@ message SimCheckpoint {
   double next_alt_look = 37;
   // MatrixMemo's prices, by node name.
   map<string, double> matrix_relative = 38;
+  // The account's familiars, which live beside the character, not in it.
+  FamiliarBook familiars = 40;
 }
