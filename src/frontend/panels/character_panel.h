@@ -316,6 +316,10 @@ class CharacterPanel {
   void StepSkillPage(int delta);
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const CharacterPanelActions& actions);
+  // Enter on the skill rows: the link row follows to Link Skills, a name opens
+  // the skill, and [-] or [+] spends or refunds a level when it can.
+  void ActivateSkillRow(const std::vector<const Skill*>& skills,
+                        const CharacterPanelActions& actions);
   bool OnAdvanceTabEvent(const ftxui::Event& event,
                          const CharacterPanelActions& actions);
   bool OnHyperTabEvent(const ftxui::Event& event,
@@ -499,10 +503,11 @@ class CharacterPanel {
   };
   LevelColumn MeasureLevelColumn(const std::vector<const Skill*>& skills) const;
 
-  // One skill row: a kind tag, then "name    20 (+2)", then a [+]. The cursor's
-  // column inverts (never the tag), and the [+] dims when the skill is maxed or
-  // the stage has no SP. The name never dims. `row_width` is the content width,
-  // minus one while the scroll bar takes a column beside it.
+  // One skill row: a kind tag, then "name [-] 20 (+2)", then a [+]. The
+  // cursor's column inverts (never the tag), and the [+] dims when the skill is
+  // maxed or the stage has no SP. A locked skill dims the whole row.
+  // `row_width` is the content width, minus one while the scroll bar takes a
+  // column beside it.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
                                 const LevelColumn& column, bool rows_focused,
                                 int row_width) const;

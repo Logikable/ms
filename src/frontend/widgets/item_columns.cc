@@ -41,6 +41,82 @@ bool Eligible(ItemColumn column, const ItemListOptions& options) {
   }
 }
 
+// Shows columns after the name in the player's priority order until one doesn't
+// fit, and returns the room left.
+int PlaceColumns(int left, const ItemListOptions& options,
+                 ItemColumns& columns) {
+  for (ItemColumn column : kItemColumnPriority) {
+    if (column == ItemColumn::kName || !Eligible(column, options)) {
+      continue;
+    }
+    // Mark it shown before measuring, because Width returns zero for a hidden
+    // column.
+    columns.shown[static_cast<int>(column)] = true;
+    int cost = kItemCellGap + columns.Width(column);
+    // The bonus column renames the main one, which widens to its new header.
+    int main_grows = 0;
+    if (column == ItemColumn::kBonusPotential &&
+        columns.Shows(ItemColumn::kPotential)) {
+      main_grows =
+          std::max(0, kItemMainPotentialWidth - columns.potential_width);
+      cost += main_grows;
+    }
+    if (cost > left) {
+      // The first column that doesn't fit ends the list. A narrower one further
+      // down might fit, but taking it would put the columns in an order the
+      // player didn't ask for.
+      columns.shown[static_cast<int>(column)] = false;
+      break;
+    }
+    columns.potential_width += main_grows;
+    left -= cost;
+  }
+  return left;
+}
+
+// Leftover room widens the effect columns a whole effect at a time, in this
+// order, stopping at the first that doesn't fit; the rest goes to the name. A
+// long name can still scroll under the cursor, but a second effect has nowhere
+// else to show. Only a flame's first line matters much.
+int GrowEffectColumns(int left, const ItemListOptions& options,
+                      ItemColumns& columns) {
+  struct Growth {
+    ItemColumn column;
+    int effects;
+  };
+  static constexpr Growth kGrowthOrder[] = {
+      {ItemColumn::kPotential, 2},      {ItemColumn::kBonusPotential, 2},
+      {ItemColumn::kFlame, 2},          {ItemColumn::kPotential, 3},
+      {ItemColumn::kBonusPotential, 3}, {ItemColumn::kFlame, 3},
+      {ItemColumn::kFlame, 4},
+  };
+  for (const Growth& growth : kGrowthOrder) {
+    if (!columns.Shows(growth.column)) {
+      continue;
+    }
+    const bool flame = growth.column == ItemColumn::kFlame;
+    const bool main = growth.column == ItemColumn::kPotential;
+    int& width = flame  ? columns.flame_width
+                 : main ? columns.potential_width
+                        : columns.bonus_potential_width;
+    const EffectWidths& rows = flame  ? options.flame_effects
+                               : main ? options.potential_effects
+                                      : options.bonus_potential_effects;
+    // A measured column grows only as far as its rows use, and a step its
+    // rows don't use costs nothing.
+    int want = rows.measured
+                   ? rows.For(growth.effects)
+                   : EffectsWidth(growth.effects, flame ? kItemFlameWidth
+                                                        : kItemPotentialWidth);
+    if (want - width > left) {
+      break;
+    }
+    left -= std::max(0, want - width);
+    width = std::max(width, want);
+  }
+  return left;
+}
+
 }  // namespace
 
 int ItemColumns::Width(ItemColumn column) const {
@@ -138,71 +214,8 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
   // The name is placed before anything is measured, since a list needs names.
   // Every other column depends on the room left.
   columns.shown[static_cast<int>(ItemColumn::kName)] = true;
-  int left = width - columns.TotalWidth();
-  for (ItemColumn column : kItemColumnPriority) {
-    if (column == ItemColumn::kName || !Eligible(column, options)) {
-      continue;
-    }
-    // Mark it shown before measuring, because Width returns zero for a hidden
-    // column.
-    columns.shown[static_cast<int>(column)] = true;
-    int cost = kItemCellGap + columns.Width(column);
-    // The bonus column renames the main one, which widens to its new header.
-    int main_grows = 0;
-    if (column == ItemColumn::kBonusPotential &&
-        columns.Shows(ItemColumn::kPotential)) {
-      main_grows =
-          std::max(0, kItemMainPotentialWidth - columns.potential_width);
-      cost += main_grows;
-    }
-    if (cost > left) {
-      // The first column that doesn't fit ends the list. A narrower one further
-      // down might fit, but taking it would put the columns in an order the
-      // player didn't ask for.
-      columns.shown[static_cast<int>(column)] = false;
-      break;
-    }
-    columns.potential_width += main_grows;
-    left -= cost;
-  }
-  // Leftover room widens the effect columns a whole effect at a time, in this
-  // order, stopping at the first that doesn't fit; the rest goes to the name. A
-  // long name can still scroll under the cursor, but a second effect has
-  // nowhere else to show. Only a flame's first line matters much.
-  struct Growth {
-    ItemColumn column;
-    int effects;
-  };
-  static constexpr Growth kGrowthOrder[] = {
-      {ItemColumn::kPotential, 2},      {ItemColumn::kBonusPotential, 2},
-      {ItemColumn::kFlame, 2},          {ItemColumn::kPotential, 3},
-      {ItemColumn::kBonusPotential, 3}, {ItemColumn::kFlame, 3},
-      {ItemColumn::kFlame, 4},
-  };
-  for (const Growth& growth : kGrowthOrder) {
-    if (!columns.Shows(growth.column)) {
-      continue;
-    }
-    const bool flame = growth.column == ItemColumn::kFlame;
-    const bool main = growth.column == ItemColumn::kPotential;
-    int& width = flame  ? columns.flame_width
-                 : main ? columns.potential_width
-                        : columns.bonus_potential_width;
-    const EffectWidths& rows = flame  ? options.flame_effects
-                               : main ? options.potential_effects
-                                      : options.bonus_potential_effects;
-    // A measured column grows only as far as its rows use, and a step its
-    // rows don't use costs nothing.
-    int want = rows.measured
-                   ? rows.For(growth.effects)
-                   : EffectsWidth(growth.effects, flame ? kItemFlameWidth
-                                                        : kItemPotentialWidth);
-    if (want - width > left) {
-      break;
-    }
-    left -= std::max(0, want - width);
-    width = std::max(width, want);
-  }
+  int left = PlaceColumns(width - columns.TotalWidth(), options, columns);
+  left = GrowEffectColumns(left, options, columns);
   columns.name_width =
       std::clamp(kItemNameWidth + left, kItemNameWidth, kItemNameMax);
   return columns;

@@ -969,9 +969,6 @@ void SeedFlames(GameState& state) {
   }
 }
 
-// The workbench, where everything exists to reach a screen without playing up
-// to it. `chosen` is --job: unset uses kTestAdvancement and buys its whole
-// book, so the default workbench is complete instead of half-built.
 // Neither workbench mode saves, so this never reaches the player's bindings.
 void BindMuteToM(GameState& state) {
   Keybind* row = state.account.mutable_keybinds()->add_binds();
@@ -979,14 +976,7 @@ void BindMuteToM(GameState& state) {
   row->add_keys("M");
 }
 
-void SeedTest(GameState& state, const TestOptions& test) {
-  state.exp_multiplier = kTestExpMultiplier;
-  // Both settings on: the workbench has two allocations at once, which is what
-  // autoswap is for, and the music is what a tester hears for hours.
-  state.account.SetAutoswapPresets(true);
-  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
-  BindMuteToM(state);
-
+void FillPurse(GameState& state) {
   // Enough to buy anything in the shop several times over, so buying screens
   // can be tested without farming meso. A hundred billion because star force is
   // the real cost: one attempt near the top costs nine figures, so a billion
@@ -1026,6 +1016,20 @@ void SeedTest(GameState& state, const TestOptions& test) {
       state.character.AddItem(entry.second, kTestTokens);
     }
   }
+}
+
+// The workbench, where everything exists to reach a screen without playing up
+// to it. --job unset uses kTestAdvancement and buys its whole book, so the
+// default workbench is complete instead of half-built.
+void SeedTest(GameState& state, const TestOptions& test) {
+  state.exp_multiplier = kTestExpMultiplier;
+  // Both settings on: the workbench has two allocations at once, which is what
+  // autoswap is for, and the music is what a tester hears for hours.
+  state.account.SetAutoswapPresets(true);
+  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
+  BindMuteToM(state);
+
+  FillPurse(state);
 
   bool chose_job = test.job != JOB_ADVANCEMENT_UNSPECIFIED;
   if (!chose_job) {

@@ -742,6 +742,47 @@ PlanKey PlanKeyFor(const GameState& state) {
   return key;
 }
 
+// Takes the path's next advancement when the level allows, and wears the
+// starter gear it comes with.
+void AdvanceIfReady(GameState& state, const std::vector<Job>& path, int* taken,
+                    WeaponScout& scout) {
+  if (!state.character.CanAdvanceJob() ||
+      *taken >= static_cast<int>(path.size())) {
+    return;
+  }
+  Job job = path[(*taken)++];
+  PerformJobAdvancement(state, job);
+  scout.settled = EQUIP_TYPE_UNSPECIFIED;
+  for (const std::string& key : StarterEquipsFor(job)) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state.equips.find(key);
+    if (it != state.equips.end()) {
+      EquipByName(state.character, it->second.name());
+    }
+  }
+}
+
+// Spends the book, then the matrix, on the drop-valued rate.
+void ReplanBook(GameState& state, GearShopper& shopper, ToggleChoice& toggles,
+                MatrixChoice& matrix) {
+  DropBasis basis =
+      DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
+  SpendBookWithToggles(
+      state, [&basis](GameState& inner) { return BookRate(inner, basis); },
+      &toggles);
+  // Plan the matrix after the book, on the same rate. See MatrixChoice.
+  double defence = AimedDefence(state);
+  int power = PowerNow(state);
+  bool replan = !matrix.planned || defence != matrix.defence ||
+                power >= matrix.power * kReplanGrowth;
+  if (replan && state.character.v_matrix_unlocked()) {
+    matrix = {true, defence, power};
+  }
+  SpendVMatrix(
+      state, [&basis](GameState& inner) { return BookRate(inner, basis); },
+      replan, &matrix.memo);
+}
+
 // Everything the player does at a look, in the order that makes each step feed
 // the next: the advancement first, then the points it gives, then drops sold
 // for meso, then the weapon that meso buys, and only then where to farm.
@@ -750,19 +791,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
             PlanKey& planned, ToggleChoice& toggles, MatrixChoice& matrix,
             MapChoice& mapped, Ledger& ledger, std::string* ring_memo) {
-  if (state.character.CanAdvanceJob() &&
-      *taken < static_cast<int>(path.size())) {
-    Job job = path[(*taken)++];
-    PerformJobAdvancement(state, job);
-    scout.settled = EQUIP_TYPE_UNSPECIFIED;
-    for (const std::string& key : StarterEquipsFor(job)) {
-      std::map<std::string, EquipPrototype>::const_iterator it =
-          state.equips.find(key);
-      if (it != state.equips.end()) {
-        EquipByName(state.character, it->second.name());
-      }
-    }
-  }
+  AdvanceIfReady(state, path, taken, scout);
   SpendPoints(state.character);
   ledger.etc_sales += SellDrops(state.character);
   purse.Note(state.character);
@@ -790,22 +819,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // Plan the book after the weapon, since a point's value depends on the weapon
   // in hand. Only replan when the PlanKey changed.
   if (!(PlanKeyFor(state) == planned)) {
-    DropBasis basis =
-        DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
-    SpendBookWithToggles(
-        state, [&basis](GameState& inner) { return BookRate(inner, basis); },
-        &toggles);
-    // Plan the matrix after the book, on the same rate. See MatrixChoice.
-    double defence = AimedDefence(state);
-    int power = PowerNow(state);
-    bool replan = !matrix.planned || defence != matrix.defence ||
-                  power >= matrix.power * kReplanGrowth;
-    if (replan && state.character.v_matrix_unlocked()) {
-      matrix = {true, defence, power};
-    }
-    SpendVMatrix(
-        state, [&basis](GameState& inner) { return BookRate(inner, basis); },
-        replan, &matrix.memo);
+    ReplanBook(state, shopper, toggles, matrix);
   }
   LearnTheRest(state);
   // Record the key after the free skills, since the key reads their levels.

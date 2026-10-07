@@ -72,6 +72,67 @@ std::string TotalWithBreakdown(int base, int bonus) {
          ") " + total;
 }
 
+// The damage rows, from Final Damage down to Buff Duration.
+void AddDamageLines(const CharacterInstance& character,
+                    const DerivedStats& derived, const EquipStats& e,
+                    bool with_advanced, std::vector<StatLine>& lines) {
+  // Final Damage leads the damage rows because it multiplies everything the
+  // rows below it feed into, which is the order they are read in.
+  lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
+  lines.push_back({"Damage", Percent(derived.damage_pct)});
+  // Boss damage applies only in boss fights, and ignoring DEF only against
+  // the monster's defence. Both sit above the crit pair because they qualify
+  // the damage rows above them.
+  if (with_advanced) {
+    lines.push_back(
+        {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});
+    // The counterpart of boss damage. It sits beside boss damage because the
+    // pair shows which half of the game a build aims at.
+    lines.push_back({"Normal Damage", Percent(derived.normal_pct)});
+    // The base, gear and skills combine into this value, which is not their
+    // sum. Shortened because "Ignore Enemy Defense" overflows the label.
+    lines.push_back({"Ignore DEF",
+                     Percent(CombineIgnoredDefense(
+                         kBaseIgnoreDefense,
+                         CombineIgnoredDefense(e.ignore_enemy_defense() / 100.0,
+                                               derived.ied)))});
+  }
+  // The base pair every character has, plus what they bought. The stats a
+  // skill writes hold only its own share, so showing 0.00% for both would
+  // tell a character with a 5% chance of a 35% bonus that they never crit.
+  lines.push_back({"Critical Rate",
+                   CritRateText(character, kBaseCritRate + derived.crit_rate)});
+  lines.push_back(
+      {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
+  // Below the crit pair because it affects neither. It lengthens the buffs
+  // the character keeps up, which no other row here shows.
+  lines.push_back({"Buff Duration",
+                   Percent(kBaseBuffDuration + derived.buff_duration_pct)});
+}
+
+// Below a rule, since none of these are about attacking. The first three
+// affect income and levelling, and the rest are the Arcane River and Grandis
+// requirements. Meso Drop Rate is the size of a drop and Item Drop Rate the
+// chance of one, so they sit together.
+void AddIncomeLines(const CharacterInstance& character,
+                    const std::map<std::string, Skill>& skills,
+                    const DerivedStats& derived, std::vector<StatLine>& lines) {
+  lines.push_back(StatRule());
+  // How much more a kill pays than it would with no bonus, so a potion that
+  // multiplies meso and a passive that adds to it show on the same row. A 20%
+  // bonus under a 1.2x multiplier is the 44% the player earns.
+  lines.push_back(
+      {"Meso Drop Rate",
+       Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
+  lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
+  lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
+  lines.push_back(
+      {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
+  if (character.proto().level() >= kGrandisLevel) {
+    lines.push_back({"Sacred Power", std::to_string(character.sacred_power())});
+  }
+}
+
 // The combat stats, in two tiers the panel can hide. Both tiers sit in the
 // middle of the list rather than at the end, so leaving one out closes a gap
 // instead of cutting off the tail.
@@ -96,39 +157,7 @@ std::vector<StatLine> CombatStatLines(
        TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
   };
   if (with_percents) {
-    // Final Damage leads the damage rows because it multiplies everything the
-    // rows below it feed into, which is the order they are read in.
-    lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
-    lines.push_back({"Damage", Percent(derived.damage_pct)});
-    // Boss damage applies only in boss fights, and ignoring DEF only against
-    // the monster's defence. Both sit above the crit pair because they qualify
-    // the damage rows above them.
-    if (with_advanced) {
-      lines.push_back(
-          {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});
-      // The counterpart of boss damage. It sits beside boss damage because the
-      // pair shows which half of the game a build aims at.
-      lines.push_back({"Normal Damage", Percent(derived.normal_pct)});
-      // The base, gear and skills combine into this value, which is not their
-      // sum. Shortened because "Ignore Enemy Defense" overflows the label.
-      lines.push_back({"Ignore DEF", Percent(CombineIgnoredDefense(
-                                         kBaseIgnoreDefense,
-                                         CombineIgnoredDefense(
-                                             e.ignore_enemy_defense() / 100.0,
-                                             derived.ied)))});
-    }
-    // The base pair every character has, plus what they bought. The stats a
-    // skill writes hold only its own share, so showing 0.00% for both would
-    // tell a character with a 5% chance of a 35% bonus that they never crit.
-    lines.push_back(
-        {"Critical Rate",
-         CritRateText(character, kBaseCritRate + derived.crit_rate)});
-    lines.push_back(
-        {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
-    // Below the crit pair because it affects neither. It lengthens the buffs
-    // the character keeps up, which no other row here shows.
-    lines.push_back({"Buff Duration",
-                     Percent(kBaseBuffDuration + derived.buff_duration_pct)});
+    AddDamageLines(character, derived, e, with_advanced, lines);
   }
   lines.push_back(
       {"Attack Speed",
@@ -136,26 +165,8 @@ std::vector<StatLine> CombatStatLines(
            character.proto().job(),
            character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
            derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
-  // Below a rule, since none of these are about attacking. The first three
-  // affect income and levelling, and the rest are the Arcane River and Grandis
-  // requirements. Meso Drop Rate is the size of a drop and Item Drop Rate the
-  // chance of one, so they sit together.
   if (with_advanced) {
-    lines.push_back(StatRule());
-    // How much more a kill pays than it would with no bonus, so a potion that
-    // multiplies meso and a passive that adds to it show on the same row. A 20%
-    // bonus under a 1.2x multiplier is the 44% the player earns.
-    lines.push_back(
-        {"Meso Drop Rate",
-         Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
-    lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
-    lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
-    lines.push_back(
-        {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
-    if (character.proto().level() >= kGrandisLevel) {
-      lines.push_back(
-          {"Sacred Power", std::to_string(character.sacred_power())});
-    }
+    AddIncomeLines(character, skills, derived, lines);
   }
   return lines;
 }

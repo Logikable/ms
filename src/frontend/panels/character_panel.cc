@@ -32,6 +32,19 @@
 namespace ms {
 namespace {
 
+// A row's [-] or [+]: inverted under the cursor, otherwise dimmed when it would
+// do nothing.
+ftxui::Element SkillButton(const std::string& label, bool lit, bool dimmed) {
+  ftxui::Element button = ftxui::text(label);
+  if (lit) {
+    return button | ftxui::inverted;
+  }
+  if (dimmed) {
+    return button | ftxui::dim;
+  }
+  return button;
+}
+
 // The Stats tab uses this width however wide the panel is. Extra width goes to
 // the Skills tab, since a stat value pushed to the border would end up far from
 // its label.
@@ -1053,24 +1066,15 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // The [-] sits left of the level and the [+] right of it, as on a Hyper Stat
   // row.
   if (minus_drawn) {
-    ftxui::Element minus = ftxui::text("[-]");
-    if (selected && EffectiveSkillCol() == kColMinus) {
-      minus = minus | ftxui::inverted;
-    } else if (learned <= 0) {
-      minus = minus | ftxui::dim;
-    }
-    cells.push_back(std::move(minus));
+    cells.push_back(SkillButton(
+        "[-]", selected && EffectiveSkillCol() == kColMinus, learned <= 0));
   }
   cells.push_back(level_text);
   cells.push_back(ftxui::filler());
   if (ShowsSkillPlus()) {
-    ftxui::Element plus = ftxui::text(buttons ? "[+]" : "   ");
-    if (selected && EffectiveSkillCol() == kColPlus) {
-      plus = plus | ftxui::inverted;
-    } else if (maxed || !has_sp || locked) {
-      plus = plus | ftxui::dim;
-    }
-    cells.push_back(std::move(plus));
+    cells.push_back(SkillButton(buttons ? "[+]" : "   ",
+                                selected && EffectiveSkillCol() == kColPlus,
+                                maxed || !has_sp || locked));
   }
   cells.push_back(ftxui::text(" "));
   ftxui::Element row = ftxui::hbox(std::move(cells));
@@ -1830,6 +1834,42 @@ void CharacterPanel::StepSkillPage(int delta) {
   MarkActiveTabSeen();
 }
 
+void CharacterPanel::ActivateSkillRow(const std::vector<const Skill*>& skills,
+                                      const CharacterPanelActions& actions) {
+  if (ShowsLinkRow() && skill_sel_ == 0) {
+    FollowedToLinkSkills(LinkTrailStep::kLinkRow, account_);
+    if (actions.link_skills) {
+      actions.link_skills();
+    }
+    return;
+  }
+  // The page can have fewer skills than the row the cursor was last on, since
+  // switching pages doesn't reset it.
+  if (SkillIndexFor(skill_sel_) >= static_cast<int>(skills.size())) {
+    return;
+  }
+  const Skill& skill = *skills[SkillIndexFor(skill_sel_)];
+  if (EffectiveSkillCol() == kColName) {
+    // Never gated: a maxed skill with no SP still has a description and a
+    // level table worth reading.
+    if (actions.menu) {
+      actions.menu(skill);
+    }
+    return;
+  }
+  if (EffectiveSkillCol() == kColMinus) {
+    if (actions.unlearn && character_.skill_level(skill) > 0) {
+      actions.unlearn(skill);
+    }
+    return;
+  }
+  bool maxed = character_.skill_level(skill) >= SkillMaxLevel(skill);
+  if (actions.learn && !maxed && !SkillLocked(skill) &&
+      character_.LevelsAffordable(skill) > 0) {
+    actions.learn(skill);
+  }
+}
+
 bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
                                       const CharacterPanelActions& actions) {
   // Up and Down move through every zone here: the page bar, the skill rows and
@@ -1886,38 +1926,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     return true;
   }
   if (IsForward(event)) {
-    if (ShowsLinkRow() && skill_sel_ == 0) {
-      FollowedToLinkSkills(LinkTrailStep::kLinkRow, account_);
-      if (actions.link_skills) {
-        actions.link_skills();
-      }
-      return true;
-    }
-    // The page can have fewer skills than the row the cursor was last on, since
-    // switching pages doesn't reset it.
-    if (SkillIndexFor(skill_sel_) >= static_cast<int>(skills.size())) {
-      return true;
-    }
-    const Skill& skill = *skills[SkillIndexFor(skill_sel_)];
-    if (EffectiveSkillCol() == kColName) {
-      // Never gated: a maxed skill with no SP still has a description and a
-      // level table worth reading.
-      if (actions.menu) {
-        actions.menu(skill);
-      }
-      return true;
-    }
-    if (EffectiveSkillCol() == kColMinus) {
-      if (actions.unlearn && character_.skill_level(skill) > 0) {
-        actions.unlearn(skill);
-      }
-      return true;
-    }
-    bool maxed = character_.skill_level(skill) >= SkillMaxLevel(skill);
-    if (actions.learn && !maxed && !SkillLocked(skill) &&
-        character_.LevelsAffordable(skill) > 0) {
-      actions.learn(skill);
-    }
+    ActivateSkillRow(skills, actions);
     return true;
   }
   return false;
