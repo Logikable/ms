@@ -720,3 +720,54 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "reference_data",
+    srcs = ["reference_data.cc"],
+    hdrs = ["reference_data.h"],
+    deps = [
+        "//src/character:inner_ability",
+        "//src/frontend/widgets:game_names",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/item:potential",
+        "//src/item:slot_order",
+        "//src/item:star_force_cost",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "reference_data_test",
+    size = "small",
+    srcs = ["reference_data_test.cc"],
+    deps = [
+        ":reference_data",
+        "//src:embedded_data",
+        "//src:proto_loader",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+        "@protobuf//:json_util",
+        "@protobuf//:struct_cc_proto",
+    ],
+)
+
+sim_binary(
+    name = "reference_page",
+    srcs = ["reference_page.cc"],
+    data = ["reference_page.html"],
+    deps = [
+        ":reference_data",
+        "//src:embedded_data",
+        "//src:proto_loader",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+    ],
+)

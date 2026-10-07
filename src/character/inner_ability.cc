@@ -55,12 +55,6 @@ constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
 // The chance a reset raises the ability one rank.
 constexpr double kRankUpChance[4] = {0.05, 0.02, 0.01, 0.0};
 
-// How the 2nd and 3rd lines roll below the ability's rank. A Rare or Epic
-// ability rolls them at Rare; a Unique one rolls Epic or Rare, and a Legendary
-// one Unique or Epic, with these chances of the higher rank.
-constexpr double kEpicChanceUnderUnique = 0.30;
-constexpr double kUniqueChanceUnderLegendary = 0.15;
-
 int RankIndex(AbilityRank rank) {
   return rank - ABILITY_RANK_RARE;
 }

@@ -1,0 +1,555 @@
+<title>Cubes, Stars &amp; Abilities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a reference binder. Header, a primary tab strip per system, a pill row of sub-pages, one control bar, then dense tables. */
+:root {
+  --bg: #F2F3F8;
+  --surface: #FFFFFF;
+  --sunk: #E9EBF3;
+  --ink: #1A1C29;
+  --muted: #5B5F76;
+  --line: #D8DBE7;
+  --accent: #A85F00;
+  --accent-soft: #FBEBD2;
+  --rare: #1F72BA;
+  --epic: #7438C4;
+  --unique: #9A6C00;
+  --legendary: #27843A;
+  --bad: #B3261E;
+  --display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12131C; --surface: #1B1D29; --sunk: #232636; --ink: #E7E8F2; --muted: #9A9EB8;
+    --line: #2F3246; --accent: #F2B33D; --accent-soft: #3A2C12;
+    --rare: #5DB1F2; --epic: #B48AF5; --unique: #F0C340; --legendary: #6DD36A; --bad: #F2867E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12131C; --surface: #1B1D29; --sunk: #232636; --ink: #E7E8F2; --muted: #9A9EB8;
+  --line: #2F3246; --accent: #F2B33D; --accent-soft: #3A2C12;
+  --rare: #5DB1F2; --epic: #B48AF5; --unique: #F0C340; --legendary: #6DD36A; --bad: #F2867E;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; }
+header h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+header h1 .star { color: var(--accent); }
+header p { color: var(--muted); margin: 4px 0 0; max-width: 64ch; }
+
+.tabs { display: flex; gap: 4px; margin-top: 22px; border-bottom: 2px solid var(--line); overflow-x: auto; }
+.tabs button { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: .02em; background: none; border: 0; color: var(--muted); padding: 10px 16px; border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px; }
+.subtabs button { font-family: var(--body); font-size: 14px; background: var(--sunk); color: var(--ink); border: 1px solid transparent; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.subtabs button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+.ctl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ctl > span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+select, input[type="number"] { font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+input[type="number"] { width: 7em; font-family: var(--mono); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); border: 0; padding: 5px 11px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button[aria-pressed="true"].r0 { background: var(--rare); color: var(--surface); }
+.seg button[aria-pressed="true"].r1 { background: var(--epic); color: var(--surface); }
+.seg button[aria-pressed="true"].r2 { background: var(--unique); color: var(--surface); }
+.seg button[aria-pressed="true"].r3 { background: var(--legendary); color: var(--surface); }
+
+h2 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 26px 0 6px; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 16px; margin: 20px 0 6px; }
+.note { color: var(--muted); font-size: 14px; max-width: 72ch; margin: 6px 0; }
+.note b { color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 6px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; background: var(--sunk); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--sunk); }
+td.n, td .n { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+td.z { color: var(--muted); opacity: .55; }
+tr.sep td { border-top: 2px solid var(--line); }
+.chip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 1px 7px; border-radius: 4px; border: 1px solid currentColor; }
+.r0 { color: var(--rare); } .r1 { color: var(--epic); } .r2 { color: var(--unique); } .r3 { color: var(--legendary); }
+.bad { color: var(--bad); }
+.acc { color: var(--accent); }
+.bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; margin-left: 8px; opacity: .75; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 14px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--mono); font-size: 13px; }
+.stat-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; min-width: 120px; }
+.stat b { display: block; font-family: var(--mono); font-size: 20px; font-weight: 500; }
+.stat span { font-size: 12px; color: var(--muted); }
+@media (max-width: 560px) { header h1 { font-size: 24px; } th, td { padding: 5px 8px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cubes, Stars <span class="star">&amp;</span> Abilities</h1>
+    <p>Every rate and value the game uses for potential, star force and Inner Ability. Pick a tab, then narrow by slot, rank and level.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div class="subtabs" role="tablist" id="subtabs"></div>
+  <main id="view"></main>
+</div>
+
+<script>
+// Written by //analysis:reference_page from the game's own functions.
+const DATA = /*REFERENCE_DATA*/null;
+(() => {
+'use strict';
+const RANKS = DATA.ranks;
+const P = DATA.potential, SF = DATA.star_force, IA = DATA.inner_ability;
+const chip = r => `<span class="chip r${r}">${RANKS[r]}</span>`;
+const pct = (p, d = 2) => p <= 0 ? '—' : (p * 100 >= 99.995 ? '100%' : (p * 100).toFixed(d).replace(/\.?0+$/, '') + '%');
+const num = n => n.toLocaleString('en-US');
+const meso = n => n >= 1e9 ? (n / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B' : n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M' : num(n);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const listText = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+// A run list is [[ceiling, value], ...] with a null last ceiling.
+const runAt = (runs, x) => runs.find(([c]) => c === null || x <= c)[1];
+const runRanges = (runs, first) => {
+  let lo = first;
+  return runs.map(([c, v]) => { const r = { lo, hi: c, v }; lo = c === null ? null : c + 1; return r; });
+};
+const rangeText = (lo, hi) => hi === null ? `${lo}+` : lo === hi ? `${lo}` : `${lo}–${hi}`;
+
+/* ───────────── Potential ───────────── */
+const TRACKS = ['main', 'bonus'];
+const trackOf = c => P.cubes[c].track;
+const pool = (track, g, r) => P.pools[track][g][r];
+const lineAt = (id, r, lvl) => runAt(P.lines[id].values[r], lvl);  // [value, text] or null
+const hasPct = id => P.lines[id].values.some(runs => runs.some(([, v]) => v && v[1].includes('%')));
+// A flat line and its percent twin share a name; the percent one says so.
+const lineLabel = id => P.lines[id].name + (hasPct(id) && Object.keys(P.lines).some(o => +o !== +id && P.lines[o].name === P.lines[id].name && !hasPct(o)) ? ' %' : '');
+// Line ids of a track in catalog order (first appearance in its pools).
+const trackLines = (track, g = null) => {
+  const out = [];
+  P.pools[track].forEach((byRank, gi) => { if (g !== null && gi !== g) return; byRank.forEach(ids => ids.forEach(id => { if (!out.includes(id)) out.push(id); })); });
+  return out;
+};
+
+// Chance each (line, line rank) lands on lines 1, 2 and 3 of one cube use at potential rank r.
+function lineChances(c, g, r) {
+  const cube = P.cubes[c], lower = Math.max(0, r - 1), rows = new Map();
+  for (let i = 0; i < cube.prime.length; i++) {
+    for (const [rank, share] of [[r, cube.prime[i]], [lower, 1 - cube.prime[i]]]) {
+      if (share <= 0) continue;
+      const pl = pool(cube.track, g, rank);
+      for (const id of pl) {
+        const k = id + '|' + rank;
+        if (!rows.has(k)) rows.set(k, { id, lr: rank, p: [0, 0, 0] });
+        rows.get(k).p[i] += share / pl.length;
+      }
+    }
+  }
+  const order = trackLines(cube.track);
+  return [...rows.values()].sort((a, b) => b.lr - a.lr || order.indexOf(a.id) - order.indexOf(b.id));
+}
+
+/* ───────────── Star force ───────────── */
+const sfCat = i => SF.categories[i];
+const catName = c => c.slots.join(', ');
+const anyOf = a => a.some(v => v > 0);
+const scaled = (base, gained, p) => 1 + Math.floor((base + gained) * p / 100);
+// Gains per attempt, s = 0 is 0★→1★. Mirrors the model reference_data.cc checks against the game.
+function sfGains(c, b, baseAtt, baseDef) {
+  const rows = [], high = c.high[b], max = SF.bands[b].max_stars;
+  let att = 0, def = 0;
+  for (let s = 0; s < max; s++) {
+    const g = { stat: 0, hp: 0, mp: 0, att: 0, def: 0 };
+    if (s < 15) {
+      g.stat = c.low_stat[s]; g.hp = c.low_hp[s]; g.mp = c.low_mp[s];
+      if (baseAtt > 0) g.att = c.attack_percent > 0 ? scaled(baseAtt, att, c.attack_percent) : c.low_attack[s];
+      if (c.def_percent > 0 && baseDef > 0) g.def = scaled(baseDef, def, c.def_percent);
+    } else {
+      const [stat, a, d] = high[s - 15];
+      g.stat = stat;
+      if (c.attack_percent === 0 || baseAtt > 0) g.att = a;
+      if (d && baseDef > 0) g.def = scaled(baseDef, def, c.def_percent);
+    }
+    att += g.att; def += g.def;
+    rows.push(g);
+  }
+  return rows;
+}
+const bandLabel = b => `Lv ${rangeText(b.lo, b.hi)}`;
+const costLevels = Object.keys(SF.cost).map(Number).sort((a, b) => a - b);
+
+/* ───────────── Inner Ability ───────────── */
+const iaLabel = i => {
+  const line = IA.lines[i];
+  const twin = IA.lines.some((o, j) => j !== i && o.name === line.name);
+  return twin && line.texts.some(t => t.includes('%')) ? line.name + ' %' : line.name;
+};
+const iaVal = (i, r) => IA.lines[i].texts[r];
+// Exact chance each (type, rank) lands on lines 1-3 with nothing locked; no type repeats.
+function iaChances(R) {
+  const n = IA.lines.length, out = new Map();
+  const add = (t, r, i, p) => { const k = t + '|' + r; if (!out.has(k)) out.set(k, { t, r, p: [0, 0, 0] }); out.get(k).p[i] += p; };
+  const draw = (r, taken) => {
+    let tot = 0; for (let t = 0; t < n; t++) if (!taken.includes(t)) tot += IA.lines[t].weights[r];
+    const res = []; for (let t = 0; t < n; t++) if (!taken.includes(t) && IA.lines[t].weights[r] > 0) res.push([t, IA.lines[t].weights[r] / tot]);
+    return res;
+  };
+  for (const [a, pa] of draw(R, [])) {
+    add(a, R, 0, pa);
+    for (const [r2, q2] of IA.lower[R]) for (const [b, pb] of draw(r2, [a])) {
+      const p2 = pa * q2 * pb; add(b, r2, 1, p2);
+      for (const [r3, q3] of IA.lower[R]) for (const [c, pc] of draw(r3, [a, b])) add(c, r3, 2, p2 * q3 * pc);
+    }
+  }
+  return [...out.values()].sort((x, y) => y.r - x.r || x.t - y.t);
+}
+
+/* ───────────── State and controls ───────────── */
+const defaultBand = Math.max(0, SF.bands.findIndex(b => b.lo <= 200 && (b.hi === null || b.hi >= 200)));
+const S = {
+  tab: 'cubes', sub: { cubes: 'overview', stars: 'gains', ia: 'lines' },
+  cube: 0, group: 0, rank: 3, ilvl: P.item_levels.includes(200) ? 200 : P.item_levels[P.item_levels.length - 1], oddsLine: '',
+  sfCat: 0, sfBand: defaultBand, sfMode: 'inc', sfAtt: 276, sfDef: 600,
+  sfLvl: costLevels.includes(200) ? 200 : costLevels[costLevels.length - 1], iaRank: 3,
+};
+try { Object.assign(S, JSON.parse(localStorage.getItem('reference-page') || '{}')); } catch (e) {}
+// A saved choice the data no longer offers falls back to the default.
+if (!P.cubes[S.cube]) S.cube = 0;
+if (!P.groups[S.group]) S.group = 0;
+if (!P.item_levels.includes(S.ilvl)) S.ilvl = P.item_levels[P.item_levels.length - 1];
+if (!SF.categories[S.sfCat]) S.sfCat = 0;
+if (!SF.bands[S.sfBand]) S.sfBand = defaultBand;
+if (!costLevels.includes(S.sfLvl)) S.sfLvl = costLevels[costLevels.length - 1];
+const save = () => { try { localStorage.setItem('reference-page', JSON.stringify(S)); } catch (e) {} };
+
+const TABS = [
+  { key: 'cubes', name: 'Cubes', subs: [['overview', 'Cube rates'], ['lines', 'Lines by slot & rank'], ['values', 'Line values'], ['odds', 'Multi-line odds'], ['raw', 'Raw tables']] },
+  { key: 'stars', name: 'Star Force', subs: [['gains', 'Stat gains'], ['rates', 'Success & destruction'], ['cost', 'Meso cost'], ['limits', 'Max stars & recovery'], ['raw', 'Raw tables']] },
+  { key: 'ia', name: 'Inner Ability', subs: [['lines', 'Lines by rank'], ['values', 'All values & weights'], ['ranks', 'Rank-ups & honor']] },
+];
+const fromHash = () => {
+  const [t, s] = location.hash.replace('#', '').split('-');
+  const tab = TABS.find(x => x.key === t);
+  if (tab) { S.tab = t; if (s && tab.subs.some(([k]) => k === s)) S.sub[t] = s; }
+};
+fromHash();
+
+const segBtns = (name, opts, cur, cls = () => '') => `<div class="seg" role="group">${opts.map(([v, l]) =>
+  `<button data-set="${name}" data-val="${v}" aria-pressed="${String(v) === String(cur)}" class="${cls(v)}">${esc(l)}</button>`).join('')}</div>`;
+const ctl = (label, inner) => `<label class="ctl"><span>${label}</span>${inner}</label>`;
+const ctlDiv = (label, inner) => `<div class="ctl"><span>${label}</span>${inner}</div>`;
+const sel = (name, opts, cur) => `<select id="sel-${name}" data-set="${name}">${opts.map(([v, l]) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+const numIn = (name, cur) => `<input type="number" id="in-${name}" data-set="${name}" min="0" max="9999" value="${cur}">`;
+const tbl = (head, body) => `<div class="tbl"><table><thead><tr>${head.map(h => typeof h === 'string' ? `<th>${h}</th>` : `<th class="${h[1]}">${h[0]}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+const rankSeg = (name, cur) => segBtns(name, RANKS.map((r, i) => [i, r]), cur, v => 'r' + v);
+const cubeSeg = () => segBtns('cube', P.cubes.map((c, i) => [i, c.name]), S.cube);
+const groupSeg = () => segBtns('group', P.groups.map((g, i) => [i, g.name]), S.group);
+const groupNote = () => `<p class="note"><b>${esc(P.groups[S.group].name)}</b> covers ${esc(listText(P.groups[S.group].slots))}. ${esc(listText(P.no_potential))} take no potential.</p>`;
+const ilvlSel = () => sel('ilvl', P.item_levels.map(l => [l, 'Item Lv ' + l]), S.ilvl);
+const trackName = t => t === 'main' ? 'Main' : 'Bonus';
+const cubesOn = t => P.cubes.filter(c => c.track === t).map(c => c.name).join(' / ');
+
+/* ───────────── Cubes ───────────── */
+function viewCubeOverview() {
+  const C = P.cubes;
+  const totals = C.map(c => c.up.slice(0, 3).reduce((n, p) => n + 1 / p, 0));
+  const rankUpRows = [0, 1, 2].map(r => `<tr><td>${chip(r)} → ${chip(r + 1)}</td>${C.map(c => `<td class="n">${pct(c.up[r])}</td><td class="n z">${(1 / c.up[r]).toFixed(1)}</td>`).join('')}</tr>`).join('');
+  return `
+  <h2>The cubes</h2>
+  ${tbl(['Cube', ['Rerolls', 'l'], 'Cost per use', 'Unlocks at', ['Result', 'l']], C.map(c =>
+    `<tr><td><b>${esc(c.name)}</b></td><td class="l">${trackName(c.track)} potential</td><td class="n">${meso(c.cost)}</td><td class="n">Lv ${c.unlock}</td><td class="l">${c.choose ? 'Choose old or new lines' : 'New lines replace old'}</td></tr>`).join(''))}
+  <p class="note">Unlock levels are account-wide: one character reaching the level unlocks the cube for all of them. The price is flat, whatever the item's level. The first cube on an item with no potential always gives a Rare potential and skips the rank-up roll.</p>
+
+  <h2>Rank-up chance per use</h2>
+  ${tbl(['From', ...C.flatMap(c => [esc(c.name), 'avg uses'])], rankUpRows +
+    `<tr class="sep"><td><b>${RANKS[0]} → ${RANKS[3]}</b></td>${C.map((c, i) => `<td class="n">${meso(Math.round(totals[i] * c.cost))}</td><td class="n z">${totals[i].toFixed(1)}</td>`).join('')}</tr>`)}
+  <p class="note">A cube can raise the potential's rank but never lower it. The last row is the average meso and uses to climb from ${RANKS[0]} to ${RANKS[3]}.</p>
+
+  <h2>Line rank odds</h2>
+  ${tbl(['Line', ...C.map(c => esc(c.name))], C[0].prime.map((_, i) => `<tr><td>Line ${i + 1}</td>${C.map(c => `<td class="n">${pct(c.prime[i])} prime</td>`).join('')}</tr>`).join(''))}
+  <p class="note">Line 1 always has the potential's own rank. Lines 2 and 3 are <b>prime</b> (the potential's rank) at these odds and one rank lower otherwise; on a ${RANKS[0]} potential every line is ${RANKS[0]}. Within a rank every available line is equally likely, and duplicates are allowed.</p>`;
+}
+
+function viewCubeLines() {
+  const cube = P.cubes[S.cube], rows = lineChances(S.cube, S.group, S.rank);
+  const anyOf3 = row => 1 - row.p.reduce((a, p) => a * (1 - p), 1);
+  const max = Math.max(...rows.map(anyOf3));
+  const body = rows.map((row, i) => {
+    const v = lineAt(row.id, row.lr, S.ilvl), any = anyOf3(row);
+    const sep = i > 0 && rows[i - 1].lr !== row.lr ? ' class="sep"' : '';
+    return `<tr${sep}><td>${chip(row.lr)}</td><td class="l">${esc(lineLabel(row.id))}</td><td class="n">${v ? esc(v[1]) : '—'}</td>${row.p.map(p => `<td class="n${p ? '' : ' z'}">${pct(p)}</td>`).join('')}<td class="n">${pct(any)}<span class="bar" style="width:${Math.round(any / max * 48)}px"></span></td></tr>`;
+  }).join('');
+  return `
+  <div class="controls">
+    ${ctlDiv('Cube', cubeSeg())}
+    ${ctlDiv('Slot', groupSeg())}
+    ${ctlDiv('Potential rank', rankSeg('rank', S.rank))}
+    ${ctl('Item level', ilvlSel())}
+  </div>
+  ${groupNote()}
+  ${tbl(['Line rank', ['Line', 'l'], 'Value', 'Line 1', 'Line 2', 'Line 3', 'Anywhere'], body)}
+  <p class="note">Chance one ${esc(cube.name)} use on a ${RANKS[S.rank]} ${cube.track} potential puts each line in each position. "Anywhere" is the chance at least one of the three lines is that line at that rank.</p>`;
+}
+
+function viewCubeValues() {
+  const track = trackOf(S.cube);
+  const body = trackLines(track, S.group).map(id => `<tr><td class="l">${esc(lineLabel(id))}</td>${RANKS.map((_, r) => {
+    const v = pool(track, S.group, r).includes(id) ? lineAt(id, r, S.ilvl) : null;
+    return v ? `<td class="n r${r}">${esc(v[1])}</td>` : '<td class="n z">—</td>';
+  }).join('')}</tr>`).join('');
+  const firstOf = t => P.cubes.findIndex(c => c.track === t);
+  return `
+  <div class="controls">
+    ${ctlDiv('Potential', segBtns('cube', TRACKS.map(t => [firstOf(t), `${trackName(t)} (${cubesOn(t)})`]), firstOf(track)))}
+    ${ctlDiv('Slot', groupSeg())}
+    ${ctl('Item level', ilvlSel())}
+  </div>
+  ${groupNote()}
+  ${tbl([['Line', 'l'], ...RANKS], body)}
+  <p class="note">Each value is the line's full value at that rank; there is no range within a rank. See <b>Raw tables</b> for the item levels where values step up. A "per 9 levels" line grows with the wearer's level, not the item's.</p>`;
+}
+
+function viewCubeOdds() {
+  const cube = P.cubes[S.cube], all = lineChances(S.cube, S.group, S.rank);
+  // Lines sharing a label count together: every size of Boss Damage, say.
+  const fams = [];
+  for (const row of all) { const l = lineLabel(row.id); if (!fams.includes(l)) fams.push(l); }
+  const fam = fams.includes(S.oddsLine) ? S.oddsLine : fams[0];
+  const rows = all.filter(r => lineLabel(r.id) === fam);
+  const per = [0, 1, 2].map(i => rows.reduce((a, r) => a + r.p[i], 0));
+  let dist = [1, 0, 0, 0];
+  for (const p of per) dist = dist.map((v, k) => v * (1 - p) + (k ? dist[k - 1] * p : 0));
+  const atLeast = k => dist.slice(k).reduce((a, b) => a + b, 0);
+  const tiles = [1, 2, 3].map(k => {
+    const p = atLeast(k);
+    return `<div class="stat"><b>${pct(p, 3)}</b><span>${k === 3 ? 'all 3 lines' : '≥ ' + k + ' line' + (k > 1 ? 's' : '')} · ${p > 0 ? 'avg ' + num(Math.round(1 / p)) + ' uses, ' + meso(Math.round(cube.cost / p)) : 'cannot roll'}</span></div>`;
+  }).join('');
+  return `
+  <div class="controls">
+    ${ctlDiv('Cube', cubeSeg())}
+    ${ctlDiv('Slot', groupSeg())}
+    ${ctlDiv('Potential rank', rankSeg('rank', S.rank))}
+    ${ctl('Line', sel('oddsLine', fams.map(f => [f, f]), fam))}
+  </div>
+  <div class="stat-row">${tiles}</div>
+  ${tbl(['', 'Line 1', 'Line 2', 'Line 3'], `<tr><td>Chance this line is ${esc(fam)}</td>${per.map(p => `<td class="n">${pct(p)}</td>`).join('')}</tr>`)}
+  <p class="note">Per use of a ${esc(cube.name)} on an item that is already ${RANKS[S.rank]} and stays ${RANKS[S.rank]}. Every size of the line counts, prime or not.${cube.choose ? ' With a choosing cube you keep the old lines whenever the roll is worse, so these are the odds of seeing the result.' : ''}</p>`;
+}
+
+// One line's values as rows of item-level bands by rank, and the key two lines with the same table share.
+function valueTable(id, track) {
+  const ranks = RANKS.map((_, r) => P.groups.some((_, g) => pool(track, g, r).includes(id)));
+  const cuts = new Set();
+  P.lines[id].values.forEach((runs, r) => { if (ranks[r]) runs.forEach(([c]) => { if (c !== null) cuts.add(c); }); });
+  const ceilings = [...cuts].sort((a, b) => a - b).concat([null]);
+  let lo = 1;
+  const rows = ceilings.map(c => {
+    const at = c === null ? lo : c;
+    const cells = RANKS.map((_, r) => { const v = ranks[r] ? lineAt(id, r, at) : null; return v ? String(v[0]) : ''; });
+    const row = { lo, hi: c, cells }; lo = c === null ? null : c + 1; return row;
+  });
+  return { ranks, rows, key: JSON.stringify([ranks, rows.map(r => [r.hi, r.cells])]) };
+}
+function viewCubeRaw() {
+  const avail = track => tbl([['Line', 'l'], ...P.groups.map(g => esc(g.name))], trackLines(track).map(id => {
+    const fixed = P.lines[id].values.map(runs => runs.length === 1 && runs[0][1] ? runs[0][1][1] : null).filter(Boolean);
+    const extra = fixed.length === 1 && !P.lines[id].values.some(runs => runs.length > 1) ? ` (${esc(fixed[0])})` : '';
+    return `<tr><td class="l">${esc(lineLabel(id))}${extra}</td>${P.groups.map((_, g) => {
+      const rs = RANKS.map((_, r) => r).filter(r => pool(track, g, r).includes(id));
+      if (!rs.length) return '<td class="z">—</td>';
+      const lo = rs[0], hi = rs[rs.length - 1];
+      return `<td>${lo === hi ? `<span class="r${lo}">${RANKS[lo]}</span>` : `<span class="r${lo}">${RANKS[lo]}</span>–<span class="r${hi}">${RANKS[hi]}</span>`}</td>`;
+    }).join('')}</tr>`;
+  }).join(''));
+  const tables = track => {
+    const seen = new Map();
+    for (const id of trackLines(track)) {
+      const t = valueTable(id, track);
+      if (t.rows.length < 2) continue;  // the same at every level: shown in the table above
+      if (!seen.has(t.key)) seen.set(t.key, { t, ids: [] });
+      seen.get(t.key).ids.push(id);
+    }
+    return [...seen.values()].map(({ t, ids }) => {
+      const cols = RANKS.map((_, r) => r).filter(r => t.ranks[r]);
+      const unit = hasPct(ids[0]) ? '%' : '';
+      return `<div><h3>${esc(listText([...new Set(ids.map(lineLabel))]))}</h3>${tbl(['Item level', ...cols.map(r => RANKS[r])],
+        t.rows.map(row => `<tr><td class="n">${rangeText(row.lo, row.hi)}</td>${cols.map(r => row.cells[r] ? `<td class="n r${r}">${row.cells[r]}${unit}</td>` : '<td class="n z">—</td>').join('')}</tr>`).join(''))}</div>`;
+    }).join('');
+  };
+  return `
+  <h2>Which lines each slot can roll</h2>
+  <p class="note">The ranks each line rolls at, per slot group. A value in brackets is the same at every item level.</p>
+  ${TRACKS.map(t => `<h3>${trackName(t)} potential (${esc(cubesOn(t))})</h3>${avail(t)}`).join('')}
+  ${TRACKS.map(t => `<h2>${trackName(t)} potential values by item level</h2><div class="grid2">${tables(t)}</div>`).join('')}`;
+}
+
+/* ───────────── Star force ───────────── */
+function viewStarGains() {
+  const c = sfCat(S.sfCat), b = SF.bands[S.sfBand];
+  const askAtt = c.attack_percent > 0 || anyOf(c.low_attack), askDef = c.def_percent > 0;
+  const rows = sfGains(c, S.sfBand, askAtt ? S.sfAtt : 0, askDef ? S.sfDef : 0);
+  const cum = S.sfMode === 'cum', acc = { stat: 0, hp: 0, mp: 0, att: 0, def: 0 };
+  const cols = [['stat', 'Each stat'], ...(anyOf(c.low_hp) ? [['hp', 'Max HP']] : []), ...(anyOf(c.low_mp) ? [['mp', 'Max MP']] : []),
+    ['att', c.attack_percent > 0 ? 'ATT / MATT' : 'ATT & MATT'], ...(askDef ? [['def', 'DEF']] : [])];
+  const body = rows.map((g, s) => {
+    for (const k in acc) acc[k] += g[k];
+    const src = cum ? acc : g;
+    return `<tr${s === 15 ? ' class="sep"' : ''}><td class="n">${cum ? `0★ → ${s + 1}★` : `${s}★ → ${s + 1}★`}</td>${cols.map(([k]) => `<td class="n${src[k] ? '' : ' z'}">${src[k] ? '+' + num(src[k]) : '—'}</td>`).join('')}</tr>`;
+  }).join('');
+  const highStats = c.high[S.sfBand].filter(h => h[0] > 0).length;
+  const flatAtt = c.low_attack.map((a, s) => a ? s + 1 : 0).filter(Boolean);
+  const hasHigh = c.high[S.sfBand].length > 0, highDef = c.high[S.sfBand].some(h => h[2]);
+  return `
+  <div class="controls">
+    ${ctl('Slot', sel('sfCat', SF.categories.map((c, i) => [i, catName(c)]), S.sfCat))}
+    ${ctl('Item level', sel('sfBand', SF.bands.map((b, i) => [i, `${bandLabel(b)} (max ${b.max_stars}★)`]), S.sfBand))}
+    ${ctlDiv('Show', segBtns('sfMode', [['inc', 'Per star'], ['cum', 'Cumulative']], S.sfMode))}
+    ${askAtt ? ctl(c.attack_percent > 0 ? 'ATT before stars' : 'ATT before stars (0 if none)', numIn('sfAtt', S.sfAtt)) : ''}
+    ${askDef ? ctl('DEF before stars', numIn('sfDef', S.sfDef)) : ''}
+  </div>
+  ${tbl([cum ? 'Stars' : 'Attempt', ...cols.map(c => c[1])], body)}
+  <p class="note"><b>Up to 15★</b>, the stats the item's job uses (all four on an all-class item) grow by a flat amount.${c.attack_percent > 0 ? ` ATT grows by 1 + ${c.attack_percent}% of what the item already has, so it compounds: enter what the item shows from its own stats and scrolls. MATT follows the same rule from its own value.` : ''}${askDef ? ` DEF grows by 1 + ${c.def_percent}% of what the item already has.` : ''}${flatAtt.length ? ` If the item shows ATT or MATT, it gains +1 of each on reaching ${listText(flatAtt.map(s => s + '★'))}.` : ''}${anyOf(c.low_hp) ? '' : ' These slots get no Max HP from stars.'}</p>
+  ${hasHigh ? `<p class="note"><b>From 16★</b>, every stat the item shows grows by the level table${highStats < c.high[S.sfBand].length ? `, up to ${15 + highStats}★` : ''}. ${c.attack_percent > 0 ? 'ATT (or MATT) grows by a flat amount, if the item shows it.' : 'ATT and MATT grow whether the item had them or not.'}${highDef ? ' DEF keeps growing at this level.' : ''}</p>` : ''}`;
+}
+
+function viewStarRates() {
+  const body = SF.rates.map(([succ, des], s) => `<tr${s === 15 ? ' class="sep"' : ''}><td class="n">${s}★ → ${s + 1}★</td><td class="n">${(succ / 100).toFixed(2)}%</td><td class="n">${((10000 - succ - des) / 100).toFixed(2)}%</td><td class="n${des ? ' bad' : ' z'}">${des ? (des / 100).toFixed(2) + '%' : '—'}</td></tr>`).join('');
+  const firstBoom = SF.rates.findIndex(([, d]) => d > 0);
+  return `
+  ${tbl(['Attempt', 'Success', 'Fail (keep stars)', 'Destroyed'], body)}
+  <p class="note">Star catching is already part of every attempt. A failed attempt keeps the item's stars. Destruction is possible from ${firstBoom}★; a destroyed item becomes a trace you can restore (see <b>Max stars &amp; recovery</b>).</p>`;
+}
+
+function viewStarCost() {
+  const lvl = S.sfLvl, costs = SF.cost[lvl];
+  const body = costs.map((c, s) => `<tr${s === 15 ? ' class="sep"' : ''}><td class="n">${s}★ → ${s + 1}★</td><td class="n">${num(c)}</td><td class="n z">${meso(c)}</td><td class="n">${meso(Math.round(c * 10000 / SF.rates[s][0]))}</td></tr>`).join('');
+  return `
+  <div class="controls">${ctl('Item level', sel('sfLvl', costLevels.map(l => [l, `Item Lv ${l} (max ${SF.cost[l].length}★)`]), lvl))}</div>
+  ${tbl(['Attempt', 'Meso per attempt', '', 'Avg meso per success'], body)}
+  <p class="note">Paid on every attempt, whatever the result. "Avg meso per success" is the cost divided by the success rate and ignores destruction.</p>`;
+}
+
+function viewStarLimits() {
+  const recov = runRanges(SF.recovery, 0).filter(r => r.v > 0);
+  return `<div class="grid2">
+  <div><h3>Max stars by item level</h3>
+  ${tbl(['Item level', 'Max stars'], runRanges(SF.max_stars, 1).map(r => `<tr><td class="n">${rangeText(r.lo, r.hi)}</td><td class="n">${r.v}★</td></tr>`).join(''))}
+  <p class="note">An item must use up its scroll slots before it can be starred. ${esc(listText(SF.no_stars))} take no stars, nor do some special items in other slots.</p></div>
+  <div><h3>Trace recovery</h3>
+  ${tbl(['Stars when destroyed', 'Restored at'], recov.map(r => `<tr><td class="n">${r.hi === null ? r.lo + '★+' : r.lo === r.hi ? r.lo + '★' : r.lo + '–' + r.hi + '★'}</td><td class="n">${r.v}★</td></tr>`).join(''))}
+  <p class="note">Restoring a trace brings the item back at these stars instead of zero.</p></div>
+  </div>`;
+}
+
+function viewStarRaw() {
+  const lowTables = SF.categories.map(c => {
+    const cols = [['low_stat', 'Job stats'], ...(anyOf(c.low_hp) ? [['low_hp', 'Max HP']] : []), ...(anyOf(c.low_mp) ? [['low_mp', 'Max MP']] : []), ...(anyOf(c.low_attack) ? [['low_attack', 'ATT & MATT']] : [])];
+    const extra = [c.attack_percent ? `ATT/MATT +1 +${c.attack_percent}% of current` : '', c.def_percent ? `DEF +1 +${c.def_percent}% of current` : ''].filter(Boolean).join('; ');
+    return `<div><h3>${esc(catName(c))}</h3>${tbl(['Attempt', ...cols.map(x => x[1])], c.low_stat.map((_, s) => `<tr><td class="n">${s}★ → ${s + 1}★</td>${cols.map(([k]) => `<td class="n${c[k][s] ? '' : ' z'}">${c[k][s] ? '+' + c[k][s] : '—'}</td>`).join('')}</tr>`).join(''))}${extra ? `<p class="note">Per attempt: ${esc(extra)}.</p>` : ''}</div>`;
+  }).join('');
+  // Categories with the same 16★+ table share one.
+  const seen = new Map();
+  SF.categories.forEach(c => { const k = JSON.stringify(c.high); if (!seen.has(k)) seen.set(k, { high: c.high, names: [] }); seen.get(k).names.push(catName(c)); });
+  const bands = SF.bands.map((b, i) => [b, i]).filter(([b]) => b.max_stars > 15);
+  const highTables = [...seen.values()].map(({ high, names }) => {
+    const head = `<tr><th rowspan="2">Attempt</th>${bands.map(([b]) => `<th colspan="2" style="text-align:center">${bandLabel(b)}</th>`).join('')}</tr><tr>${bands.map(() => '<th>Stat</th><th>ATT</th>').join('')}</tr>`;
+    const body = Array.from({ length: 15 }, (_, j) => `<tr><td class="n">${j + 15}★ → ${j + 16}★</td>${bands.map(([, i]) => {
+      const e = high[i][j]; if (!e) return '<td class="n z">—</td><td class="n z">—</td>';
+      return `<td class="n${e[0] ? '' : ' z'}">${e[0] || '—'}</td><td class="n${e[1] ? '' : ' z'}">${e[1] || '—'}${e[2] ? '<sup>D</sup>' : ''}</td>`;
+    }).join('')}</tr>`).join('');
+    return `<h3>${esc(names.join(' · '))}</h3><div class="tbl"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  }).join('');
+  const cost = Array.from({ length: SF.rates.length }, (_, s) => `<tr${s === 15 ? ' class="sep"' : ''}><td class="n">${s}★ → ${s + 1}★</td>${costLevels.map(l => s < SF.cost[l].length ? `<td class="n">${meso(SF.cost[l][s])}</td>` : '<td class="n z">—</td>').join('')}</tr>`).join('');
+  return `
+  <h2>Up to 15★, by slot</h2>
+  <div class="grid2">${lowTables}</div>
+  <h2>From 16★, by item level</h2>
+  ${highTables}
+  <p class="note">"Stat" goes to every stat the item shows. <sup>D</sup> marks attempts that also grow DEF by the same share as below 15★.</p>
+  <h2>Meso per attempt by item level</h2>
+  ${tbl(['Attempt', ...costLevels.map(l => 'Lv ' + l)], cost)}`;
+}
+
+/* ───────────── Inner Ability ───────────── */
+function viewIaLines() {
+  const R = S.iaRank, rows = iaChances(R);
+  const body = rows.map((row, i) => {
+    const any = row.p[0] + row.p[1] + row.p[2];
+    return `<tr${i > 0 && rows[i - 1].r !== row.r ? ' class="sep"' : ''}><td>${chip(row.r)}</td><td class="l">${esc(iaLabel(row.t))}</td><td class="n">${esc(iaVal(row.t, row.r))}</td>${row.p.map(p => `<td class="n${p ? '' : ' z'}">${pct(p)}</td>`).join('')}<td class="n">${pct(any)}</td></tr>`;
+  }).join('');
+  return `
+  <div class="controls">${ctlDiv('Ability rank', rankSeg('iaRank', R))}</div>
+  ${tbl(['Line rank', ['Line', 'l'], 'Value', 'Line 1', 'Line 2', 'Line 3', 'Anywhere'], body)}
+  <p class="note">One reset with nothing locked, on an ability that stays ${RANKS[R]}. Line 1 has the ability's rank; lines 2 and 3 each roll ${IA.lower[R].map(([r, p]) => `${chip(r)} ${pct(p)}`).join(' · ')}. No two lines share a type, so a common line on line 1 slightly raises the odds of the rest below it. Each line has one value per rank, with no roll within it.</p>`;
+}
+
+function viewIaValues() {
+  const W = RANKS.map((_, r) => IA.lines.reduce((a, l) => a + l.weights[r], 0));
+  const body = IA.lines.map((l, i) => `<tr><td class="l">${esc(iaLabel(i))}</td>${RANKS.map((_, r) => l.weights[r] ? `<td class="n r${r}">${esc(l.texts[r])}</td><td class="n">${l.weights[r]}</td><td class="n z">${pct(l.weights[r] / W[r], 1)}</td>` : '<td class="n z">—</td><td class="n z">—</td><td class="n z">—</td>').join('')}</tr>`).join('');
+  return `
+  ${tbl([['Line', 'l'], ...RANKS.flatMap(r => [r, 'weight', 'share'])], body +
+    `<tr class="sep"><td class="l"><b>Total weight</b></td>${W.map(w => `<td></td><td class="n">${w}</td><td></td>`).join('')}</tr>`)}
+  <p class="note">A line's chance at a rank is its weight over the rank's total weight, leaving out any types already on the ability. A dash means the line never rolls at that rank.</p>`;
+}
+
+function viewIaRanks() {
+  let exp = 0, honor = 0;
+  const up = [0, 1, 2].map(r => { const n = 1 / IA.up[r]; exp += n; honor += n * IA.cost[r][0]; return `<tr><td>${chip(r)} → ${chip(r + 1)}</td><td class="n">${pct(IA.up[r])}</td><td class="n">${n.toFixed(0)}</td><td class="n">${num(Math.round(n * IA.cost[r][0]))}</td></tr>`; }).join('');
+  return `<div class="grid2">
+  <div><h3>Rank-up chance per reset</h3>
+  ${tbl(['From', 'Chance', 'Avg resets', 'Avg honor'], up + `<tr class="sep"><td><b>${RANKS[0]} → ${RANKS[3]}</b></td><td></td><td class="n">${exp.toFixed(0)}</td><td class="n">${num(Math.round(honor))}</td></tr>`)}
+  <p class="note">A reset can raise the ability one rank and never lowers it. Averages assume nothing is locked.</p></div>
+  <div><h3>Honor per reset</h3>
+  ${tbl(['Ability rank', ...IA.cost[0].map((_, k) => `${k} locked`)], IA.cost.map((c, r) => `<tr><td>${chip(r)}</td>${c.map(v => `<td class="n">${num(v)}</td>`).join('')}</tr>`).join(''))}
+  <p class="note">The price follows the ability's rank, not the locked lines' ranks, and locks are paid on every reset. At most ${IA.max_locked} lines can be locked. Inner Ability opens at character level ${IA.unlock}; every character starts with ${esc(IA.start)}.</p></div>
+  </div>`;
+}
+
+const VIEWS = {
+  cubes: { overview: viewCubeOverview, lines: viewCubeLines, values: viewCubeValues, odds: viewCubeOdds, raw: viewCubeRaw },
+  stars: { gains: viewStarGains, rates: viewStarRates, cost: viewStarCost, limits: viewStarLimits, raw: viewStarRaw },
+  ia: { lines: viewIaLines, values: viewIaValues, ranks: viewIaRanks },
+};
+
+const $tabs = document.getElementById('tabs'), $subs = document.getElementById('subtabs'), $view = document.getElementById('view');
+function render() {
+  const tab = TABS.find(t => t.key === S.tab);
+  $tabs.innerHTML = TABS.map(t => `<button role="tab" data-tab="${t.key}" aria-selected="${t.key === S.tab}">${t.name}</button>`).join('');
+  $subs.innerHTML = tab.subs.map(([k, n]) => `<button role="tab" data-sub="${k}" aria-selected="${k === S.sub[S.tab]}">${n}</button>`).join('');
+  $view.innerHTML = VIEWS[S.tab][S.sub[S.tab]]();
+  const hash = '#' + S.tab + '-' + S.sub[S.tab];
+  if (location.hash !== hash) history.replaceState(null, '', hash);
+  save();
+}
+const TEXT = new Set(['sfMode', 'oddsLine']);
+const setVal = (k, v) => { S[k] = TEXT.has(k) ? v : Math.max(0, Math.min(9999, parseInt(v, 10) || 0)); };
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; render(); }
+  else if (b.dataset.sub) { S.sub[S.tab] = b.dataset.sub; render(); }
+  else if (b.dataset.set) { setVal(b.dataset.set, b.dataset.val); render(); }
+});
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.set) return;
+  setVal(el.dataset.set, el.value); render();
+  const again = document.getElementById(el.id); if (again) again.focus();
+});
+window.addEventListener('hashchange', () => { fromHash(); render(); });
+render();
+})();
+</script>

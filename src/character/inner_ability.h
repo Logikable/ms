@@ -38,6 +38,12 @@ inline constexpr AbilityLineType kDefaultAbilityLineType =
     ABILITY_LINE_TYPE_ALL_STATS;
 inline constexpr AbilityRank kDefaultAbilityRank = ABILITY_RANK_RARE;
 
+// How the 2nd and 3rd lines roll below the ability's rank. A Rare or Epic
+// ability rolls them at Rare; a Unique one rolls Epic or Rare, and a Legendary
+// one Unique or Epic, with these chances of the higher rank.
+inline constexpr double kEpicChanceUnderUnique = 0.30;
+inline constexpr double kUniqueChanceUnderLegendary = 0.15;
+
 // Moves a save's farming and bossing setups into `presets` and pads the list to
 // kNumStatPresets. Works like MigrateHyperStats and is called the same way.
 void MigrateInnerAbility(InnerAbility& ability);
