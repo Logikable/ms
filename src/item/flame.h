@@ -56,6 +56,11 @@ inline constexpr Flame kFlames[] = {
 
 const Flame& FlameOf(FlameType type);
 
+// A flame-advantaged weapon's ATT or MATT line at `tier`, as a percent of the
+// weapon's own base value: the band times the tier, compounding 10% a tier from
+// tier 3. FlameLineValue rounds the share up.
+double FlameWeaponAttackPercent(int level, int tier);
+
 // Whether an item worn in `slot` takes flames at all. GMS refuses rings,
 // shoulders, emblems, badges, medals, secondaries, hearts, totems, symbols and
 // projectiles.

@@ -43,13 +43,11 @@ int MaxHpStep(int level) {
   return 600 + std::min((level - 200) / 10, 5) * 20;
 }
 
-// A flame-advantaged weapon's ATT or MATT, as a share of `base`: the band times
-// the tier, compounding 10% a tier from tier 3.
 int WeaponAttack(int base, int level, int tier) {
-  double percent = PairStatStep(level) * tier * std::pow(1.1, tier - 3);
   // Rounded up, as GMS does. The epsilon keeps an exact product such as 18% of
   // 100 from rounding up to 19 on a floating-point crumb.
-  return static_cast<int>(std::ceil(base * percent / 100.0 - 1e-9));
+  return static_cast<int>(
+      std::ceil(base * FlameWeaponAttackPercent(level, tier) / 100.0 - 1e-9));
 }
 
 struct PairFields {
@@ -112,6 +110,10 @@ bool SameLines(const FlameLines& a, const FlameLines& b) {
 }
 
 }  // namespace
+
+double FlameWeaponAttackPercent(int level, int tier) {
+  return PairStatStep(level) * tier * std::pow(1.1, tier - 3);
+}
 
 const Flame& FlameOf(FlameType type) {
   for (const Flame& flame : kFlames) {

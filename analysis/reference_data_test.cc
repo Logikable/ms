@@ -62,6 +62,21 @@ TEST(ReferenceDataTest, InnerAbilityLinesHaveFourRanks) {
   }
 }
 
+TEST(ReferenceDataTest, FlamesSplitTheWeaponFromEverythingElse) {
+  const Struct& flame = Field(Data(), "flame").struct_value();
+  EXPECT_EQ(Field(flame, "flames").list_value().values_size(), 2);
+  const auto& kinds = Field(flame, "kinds").list_value().values();
+  ASSERT_EQ(kinds.size(), 2);
+  EXPECT_TRUE(Field(kinds[0].struct_value(), "weapon").bool_value());
+  EXPECT_FALSE(Field(kinds[1].struct_value(), "weapon").bool_value());
+}
+
+TEST(ReferenceDataTest, ListsNoItemLevelBelow150) {
+  for (const Value& level : Field(Data(), "levels").list_value().values()) {
+    EXPECT_GE(level.number_value(), 150);
+  }
+}
+
 TEST(ReferenceDataTest, PageTakesTheDataAtThePlaceholder) {
   EXPECT_EQ(ReferencePage("const DATA = /*REFERENCE_DATA*/null;", "{\"a\":1}"),
             "const DATA = {\"a\":1};");

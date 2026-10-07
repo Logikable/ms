@@ -1,5 +1,5 @@
-/* reference_page: writes the player reference page for cubes, star force and
- * Inner Ability, with every table read from the game.
+/* reference_page: writes the player reference page for cubes, star force,
+ * flames and Inner Ability, with every table read from the game.
  *
  *   bazelisk run //analysis:reference_page -- --out=/tmp/reference_page.html
  *

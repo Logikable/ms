@@ -730,6 +730,7 @@ cc_library(
         "//src/frontend/widgets:game_names",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:flame",
         "//src/item:potential",
         "//src/item:slot_order",
         "//src/item:star_force_cost",

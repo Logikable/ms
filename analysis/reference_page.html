@@ -102,7 +102,7 @@ tr.sep td { border-top: 2px solid var(--line); }
 <div class="wrap">
   <header>
     <h1>Cubes, Stars <span class="star">&amp;</span> Abilities</h1>
-    <p>Every rate and value the game uses for potential, star force and Inner Ability. Pick a tab, then narrow by slot, rank and level.</p>
+    <p>Every rate and value the game uses for potential, star force, flames and Inner Ability. Pick a tab, then narrow by slot, rank and level.</p>
   </header>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
@@ -116,7 +116,8 @@ const DATA = /*REFERENCE_DATA*/null;
 (() => {
 'use strict';
 const RANKS = DATA.ranks;
-const P = DATA.potential, SF = DATA.star_force, IA = DATA.inner_ability;
+const P = DATA.potential, SF = DATA.star_force, IA = DATA.inner_ability, FL = DATA.flame;
+const LOWEST = DATA.levels[0];
 const chip = r => `<span class="chip r${r}">${RANKS[r]}</span>`;
 const pct = (p, d = 2) => p <= 0 ? '—' : (p * 100 >= 99.995 ? '100%' : (p * 100).toFixed(d).replace(/\.?0+$/, '') + '%');
 const num = n => n.toLocaleString('en-US');
@@ -222,10 +223,11 @@ function iaChances(R) {
 /* ───────────── State and controls ───────────── */
 const defaultBand = Math.max(0, SF.bands.findIndex(b => b.lo <= 200 && (b.hi === null || b.hi >= 200)));
 const S = {
-  tab: 'cubes', sub: { cubes: 'overview', stars: 'gains', ia: 'lines' },
+  tab: 'cubes', sub: { cubes: 'overview', stars: 'gains', flames: 'overview', ia: 'lines' },
   cube: 0, group: 0, rank: 3, ilvl: P.item_levels.includes(200) ? 200 : P.item_levels[P.item_levels.length - 1], oddsLine: '',
   sfCat: 0, sfBand: defaultBand, sfMode: 'inc', sfAtt: 276, sfDef: 600,
   sfLvl: costLevels.includes(200) ? 200 : costLevels[costLevels.length - 1], iaRank: 3,
+  flame: 0, flKind: 0, flLvl: DATA.levels.includes(200) ? 200 : DATA.levels[0], flAtt: 276,
 };
 try { Object.assign(S, JSON.parse(localStorage.getItem('reference-page') || '{}')); } catch (e) {}
 // A saved choice the data no longer offers falls back to the default.
@@ -235,11 +237,16 @@ if (!P.item_levels.includes(S.ilvl)) S.ilvl = P.item_levels[P.item_levels.length
 if (!SF.categories[S.sfCat]) S.sfCat = 0;
 if (!SF.bands[S.sfBand]) S.sfBand = defaultBand;
 if (!costLevels.includes(S.sfLvl)) S.sfLvl = costLevels[costLevels.length - 1];
+if (!FL.flames[S.flame]) S.flame = 0;
+if (!FL.kinds[S.flKind]) S.flKind = 0;
+if (!DATA.levels.includes(S.flLvl)) S.flLvl = DATA.levels[0];
+if (!S.sub.flames) S.sub.flames = 'overview';
 const save = () => { try { localStorage.setItem('reference-page', JSON.stringify(S)); } catch (e) {} };
 
 const TABS = [
   { key: 'cubes', name: 'Cubes', subs: [['overview', 'Cube rates'], ['lines', 'Lines by slot & rank'], ['values', 'Line values'], ['odds', 'Multi-line odds'], ['raw', 'Raw tables']] },
   { key: 'stars', name: 'Star Force', subs: [['gains', 'Stat gains'], ['rates', 'Success & destruction'], ['cost', 'Meso cost'], ['limits', 'Max stars & recovery'], ['raw', 'Raw tables']] },
+  { key: 'flames', name: 'Flames', subs: [['overview', 'Flames'], ['lines', 'Lines & odds'], ['raw', 'Raw tables']] },
   { key: 'ia', name: 'Inner Ability', subs: [['lines', 'Lines by rank'], ['values', 'All values & weights'], ['ranks', 'Rank-ups & honor']] },
 ];
 const fromHash = () => {
@@ -357,7 +364,7 @@ function valueTable(id, track) {
   const cuts = new Set();
   P.lines[id].values.forEach((runs, r) => { if (ranks[r]) runs.forEach(([c]) => { if (c !== null) cuts.add(c); }); });
   const ceilings = [...cuts].sort((a, b) => a - b).concat([null]);
-  let lo = 1;
+  let lo = LOWEST;
   const rows = ceilings.map(c => {
     const at = c === null ? lo : c;
     const cells = RANKS.map((_, r) => { const v = ranks[r] ? lineAt(id, r, at) : null; return v ? String(v[0]) : ''; });
@@ -448,7 +455,7 @@ function viewStarLimits() {
   const recov = runRanges(SF.recovery, 0).filter(r => r.v > 0);
   return `<div class="grid2">
   <div><h3>Max stars by item level</h3>
-  ${tbl(['Item level', 'Max stars'], runRanges(SF.max_stars, 1).map(r => `<tr><td class="n">${rangeText(r.lo, r.hi)}</td><td class="n">${r.v}★</td></tr>`).join(''))}
+  ${SF.max_stars.length > 1 ? tbl(['Item level', 'Max stars'], runRanges(SF.max_stars, LOWEST).map(r => `<tr><td class="n">${rangeText(r.lo, r.hi)}</td><td class="n">${r.v}★</td></tr>`).join('')) : `<p class="note">Every item from level ${LOWEST} takes up to <b>${SF.max_stars[0][1]}★</b>.</p>`}
   <p class="note">An item must use up its scroll slots before it can be starred. ${esc(listText(SF.no_stars))} take no stars, nor do some special items in other slots.</p></div>
   <div><h3>Trace recovery</h3>
   ${tbl(['Stars when destroyed', 'Restored at'], recov.map(r => `<tr><td class="n">${r.hi === null ? r.lo + '★+' : r.lo === r.hi ? r.lo + '★' : r.lo + '–' + r.hi + '★'}</td><td class="n">${r.v}★</td></tr>`).join(''))}
@@ -483,6 +490,69 @@ function viewStarRaw() {
   <p class="note">"Stat" goes to every stat the item shows. <sup>D</sup> marks attempts that also grow DEF by the same share as below 15★.</p>
   <h2>Meso per attempt by item level</h2>
   ${tbl(['Attempt', ...costLevels.map(l => 'Lv ' + l)], cost)}`;
+}
+
+
+/* ───────────── Flames ───────────── */
+const flStat = id => FL.stats[id];
+const flText = (id, v) => `+${num(v)}${flStat(id).percent ? '%' : ''}`;
+const flTierCols = f => FL.tiers.map((t, i) => [t, i]).filter(([t]) => f.tiers.includes(t));
+const flAttValue = (pctv, base) => Math.ceil(base * pctv / 100 - 1e-9);
+const flPctText = p => (Math.round(p * 100) / 100).toFixed(2).replace(/\.?0+$/, '') + '%';
+const tierRange = f => `Tier ${f.tiers[0]}–${f.tiers[f.tiers.length - 1]}`;
+
+function viewFlameOverview() {
+  return `
+  <h2>The flames</h2>
+  ${tbl(['Flame', 'Cost per use', ['Tiers', 'l'], 'Each tier', ['Result', 'l']], FL.flames.map(f =>
+    `<tr><td><b>${esc(f.name)}</b></td><td class="n">${meso(f.cost)}</td><td class="l">${tierRange(f)}</td><td class="n">${pct(1 / f.tiers.length)}</td><td class="l">${f.choose ? 'Choose old or new lines' : 'New lines replace old'}</td></tr>`).join(''))}
+  <p class="note">Both flames unlock at account level ${FL.unlock}. Every flame gives <b>${FL.lines} different lines</b>, each drawn evenly from the item's pool, and each line rolls its own tier, every tier of the flame equally likely. A roll identical to the current lines is drawn again.</p>
+  <h2>Which slots take flames</h2>
+  <div class="grid2">
+    ${FL.kinds.map(k => `<div><h3>${esc(k.name)}</h3><p class="note">${esc(listText(k.slots))}. ${FL.kinds.length > 1 ? `Pool of ${k.levels[DATA.levels[0]].pool.length} lines.` : ''}</p></div>`).join('')}
+  </div>
+  <p class="note">${esc(listText(FL.no_flame))} take no flames.</p>`;
+}
+
+function viewFlameLines() {
+  const f = FL.flames[S.flame], kind = FL.kinds[S.flKind], lv = kind.levels[S.flLvl];
+  const cols = flTierCols(f), onItem = FL.lines / lv.pool.length;
+  const body = lv.pool.map(id => {
+    const vals = lv.values[id];
+    const cells = cols.map(([t, i]) => {
+      if (vals) return `<td class="n">${flText(id, vals[i])}</td>`;
+      const p = lv.att_percent[i];
+      return `<td class="n">+${num(flAttValue(p, S.flAtt))} <span class="z">${flPctText(p)}</span></td>`;
+    }).join('');
+    return `<tr><td class="l">${esc(flStat(id).name)}</td><td class="n">${pct(onItem)}</td><td class="n">${pct(onItem / f.tiers.length)}</td>${cells}</tr>`;
+  }).join('');
+  return `
+  <div class="controls">
+    ${ctlDiv('Flame', segBtns('flame', FL.flames.map((x, i) => [i, x.name]), S.flame))}
+    ${ctlDiv('Slot', segBtns('flKind', FL.kinds.map((k, i) => [i, k.name]), S.flKind))}
+    ${ctl('Item level', sel('flLvl', DATA.levels.map(l => [l, 'Item Lv ' + l]), S.flLvl))}
+    ${kind.weapon ? ctl('Weapon ATT / MATT', numIn('flAtt', S.flAtt)) : ''}
+  </div>
+  ${tbl([['Line', 'l'], 'On the item', 'At top tier', ...cols.map(([t]) => 'Tier ' + t)], body)}
+  <p class="note">"On the item" is the chance a ${esc(f.name)} gives that line at all (${FL.lines} lines from a pool of ${lv.pool.length}); "At top tier" is the chance it also rolls Tier ${f.tiers[f.tiers.length - 1]}.${kind.weapon ? ' A weapon\'s ATT and MATT lines are a share of its own base ATT or MATT, rounded up: enter the base value to see the result.' : ''}</p>`;
+}
+
+function viewFlameRaw() {
+  return FL.kinds.map(kind => {
+    const seen = new Map();
+    for (const [id, runs] of Object.entries(kind.raw)) {
+      const k = JSON.stringify(runs);
+      if (!seen.has(k)) seen.set(k, { runs, ids: [] });
+      seen.get(k).ids.push(id);
+    }
+    const tables = [...seen.values()].map(({ runs, ids }) => {
+      const share = kind.weapon && ids.some(id => kind.levels[DATA.levels[0]].values[id] === null);
+      const title = listText(ids.map(id => flStat(id).name)) + (share ? ' (% of base)' : '');
+      const rows = runRanges(runs, LOWEST).map(r => `<tr><td class="n">${rangeText(r.lo, r.hi)}</td>${r.v.map(v => `<td class="n">${share ? flPctText(v) : flText(ids[0], v)}</td>`).join('')}</tr>`).join('');
+      return `<div><h3>${esc(title)}</h3>${tbl(['Item level', ...FL.tiers.map(t => 'T' + t)], rows)}</div>`;
+    }).join('');
+    return `<h2>${esc(kind.name)}</h2><div class="grid2">${tables}</div>`;
+  }).join('') + `<p class="note">${FL.flames.map(f => `${esc(f.name)}: ${tierRange(f)}`).join(' · ')}.</p>`;
 }
 
 /* ───────────── Inner Ability ───────────── */
@@ -523,6 +593,7 @@ function viewIaRanks() {
 const VIEWS = {
   cubes: { overview: viewCubeOverview, lines: viewCubeLines, values: viewCubeValues, odds: viewCubeOdds, raw: viewCubeRaw },
   stars: { gains: viewStarGains, rates: viewStarRates, cost: viewStarCost, limits: viewStarLimits, raw: viewStarRaw },
+  flames: { overview: viewFlameOverview, lines: viewFlameLines, raw: viewFlameRaw },
   ia: { lines: viewIaLines, values: viewIaValues, ranks: viewIaRanks },
 };
 

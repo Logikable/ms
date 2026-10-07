@@ -1,10 +1,11 @@
 /* The data behind the player reference page: every table a player looks up for
- * cubes, star force and Inner Ability, as JSON.
+ * cubes, star force, flames and Inner Ability, as JSON.
  *
  * Read from the game's own functions and catalog, so a page built from it
- * can't drift from the game. The page's star force calculator recomputes gains
- * for an ATT or DEF the player types in; ReferenceDataJson checks that model
- * against StarForceStatGains and fails if the game no longer matches it.
+ * can't drift from the game. The page's calculators recompute star force gains
+ * and a weapon's flame ATT for the ATT or DEF the player types in;
+ * ReferenceDataJson checks both models against the game and fails if they no
+ * longer match.
  */
 #ifndef MS_ANALYSIS_REFERENCE_DATA_H_
 #define MS_ANALYSIS_REFERENCE_DATA_H_
@@ -16,8 +17,8 @@
 
 namespace ms {
 
-// Every table, as one JSON object. `equips` decides which item levels and
-// slots the tables list.
+// Every table, as one JSON object. `equips` decides which slots take star
+// force.
 std::string ReferenceDataJson(
     const std::map<std::string, EquipPrototype>& equips);
 

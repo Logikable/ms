@@ -1,7 +1,9 @@
 #include "analysis/reference_data.h"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
@@ -16,6 +18,7 @@
 #include "src/character/inner_ability.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
 #include "src/item/slot_order.h"
@@ -29,6 +32,11 @@ namespace {
 // The highest level a table is traced to. Its last run covers every level above
 // it, which the JSON writes as a null ceiling.
 constexpr int kTopLevel = 300;
+
+// The item levels players gear at, and the lowest a table lists. The user's
+// call: below 150 nothing is worth looking up.
+constexpr int kLowestLevel = 150;
+constexpr int kReferenceLevels[] = {150, 160, 200, 250};
 
 // Star force below this star is the flat ladder; from it, the level table.
 constexpr int kFirstHighStar = 15;
@@ -165,7 +173,7 @@ int CubeUnlockLevel(CubeType cube) {
   return 0;
 }
 
-std::string PotentialJson(const std::map<std::string, EquipPrototype>& equips) {
+std::string PotentialJson() {
   const PotentialGroup groups[] = {
       PotentialGroup::kWeaponry, PotentialGroup::kHat, PotentialGroup::kGloves,
       PotentialGroup::kArmor, PotentialGroup::kAccessory};
@@ -241,7 +249,7 @@ std::string PotentialJson(const std::map<std::string, EquipPrototype>& equips) {
       PotentialLine line;
       line.set_type(type);
       line.set_rank(static_cast<PotentialRank>(rank));
-      by_rank.push_back(Runs(1, kTopLevel, [&](int level) {
+      by_rank.push_back(Runs(kLowestLevel, kTopLevel, [&](int level) {
         int value = PotentialLineValue(type, line.rank(), level);
         return value == 0 ? std::string("null")
                           : List({Num(value),
@@ -252,13 +260,8 @@ std::string PotentialJson(const std::map<std::string, EquipPrototype>& equips) {
                                       {"values", List(by_rank)}})});
   }
 
-  std::set<int> item_levels;
-  for (const auto& [key, proto] : equips) {
-    if (SlotTakesPotential(proto.equip_slot()) &&
-        Supports(proto, UPGRADE_CUBE)) {
-      item_levels.insert(proto.required_level());
-    }
-  }
+  const std::set<int> item_levels(std::begin(kReferenceLevels),
+                                  std::end(kReferenceLevels));
 
   return Object({
       {"cubes", List(cubes)},
@@ -453,12 +456,10 @@ std::string IntList(const int* values, int count) {
 
 std::string StarForceJson(const std::map<std::string, EquipPrototype>& equips) {
   std::set<EquipSlot> starred_slots;
-  std::set<int> cost_levels;
   for (const auto& [key, proto] : equips) {
     if (Supports(proto, UPGRADE_STAR_FORCE) &&
         proto.equip_slot() != EQUIP_SLOT_UNSPECIFIED) {
       starred_slots.insert(proto.equip_slot());
-      cost_levels.insert(proto.required_level());
     }
   }
 
@@ -488,7 +489,7 @@ std::string StarForceJson(const std::map<std::string, EquipPrototype>& equips) {
   std::vector<int> band_levels;
   std::vector<std::string> bands;
   std::string previous;
-  for (int level = 1; level <= kTopLevel; ++level) {
+  for (int level = kLowestLevel; level <= kTopLevel; ++level) {
     std::string key = Num(EquipTabItem::MaxStarsForLevel(level));
     for (const StarCategory& c : categories) {
       absl::StrAppend(&key, "#", HighKey(HighSteps(c.slots[0], level)));
@@ -541,7 +542,7 @@ std::string StarForceJson(const std::map<std::string, EquipPrototype>& equips) {
   }
 
   Fields costs;
-  for (int level : cost_levels) {
+  for (int level : kReferenceLevels) {
     std::vector<std::string> per_star;
     for (int s = 0; s < EquipTabItem::MaxStarsForLevel(level); ++s) {
       per_star.push_back(Num(StarForceCost(level, s)));
@@ -564,7 +565,7 @@ std::string StarForceJson(const std::map<std::string, EquipPrototype>& equips) {
 
   return Object({
       {"rates", List(rates)},
-      {"max_stars", Runs(1, kTopLevel,
+      {"max_stars", Runs(kLowestLevel, kTopLevel,
                          [](int level) {
                            return Num(EquipTabItem::MaxStarsForLevel(level));
                          })},
@@ -649,6 +650,176 @@ std::string InnerAbilityJson() {
   });
 }
 
+// --- Flames ---
+
+std::vector<int> FlameTiers() {
+  std::set<int> tiers;
+  for (const Flame& flame : kFlames) {
+    for (int t = flame.min_tier; t < flame.min_tier + kFlameTiers; ++t) {
+      tiers.insert(t);
+    }
+  }
+  return std::vector<int>(tiers.begin(), tiers.end());
+}
+
+EquipPrototype FlameProbe(bool weapon, int level, int base_attack) {
+  EquipPrototype proto;
+  proto.set_equip_slot(weapon ? EQUIP_SLOT_PRIMARY_WEAPON : EQUIP_SLOT_HAT);
+  proto.set_required_level(level);
+  proto.mutable_base_stats()->set_attack(base_attack);
+  proto.mutable_base_stats()->set_magic_attack(base_attack);
+  return proto;
+}
+
+bool ScalesWithBase(bool weapon, FlameStat stat) {
+  return weapon &&
+         (stat == FLAME_STAT_ATTACK || stat == FLAME_STAT_MAGIC_ATTACK);
+}
+
+// A line's value at each tier, or null where it scales with the weapon's own
+// ATT: the page computes those from att_percent.
+std::string FlameValues(bool weapon, FlameStat stat, int level) {
+  if (ScalesWithBase(weapon, stat)) {
+    return "null";
+  }
+  std::vector<std::string> values;
+  for (int tier : FlameTiers()) {
+    FlameLine line;
+    line.set_stat(stat);
+    line.set_tier(tier);
+    values.push_back(Num(FlameLineValue(line, FlameProbe(weapon, level, 0))));
+  }
+  return List(values);
+}
+
+std::string AttackPercents(int level) {
+  std::vector<std::string> percents;
+  for (int tier : FlameTiers()) {
+    percents.push_back(Num(FlameWeaponAttackPercent(level, tier)));
+  }
+  return List(percents);
+}
+
+// Fails if the page's rounding of att_percent no longer gives the game's ATT.
+void CheckFlameAttack(int level) {
+  for (int tier : FlameTiers()) {
+    const double percent =
+        std::stod(Num(FlameWeaponAttackPercent(level, tier)));
+    for (int base = 1; base <= 500; ++base) {
+      FlameLine line;
+      line.set_stat(FLAME_STAT_ATTACK);
+      line.set_tier(tier);
+      const int game = FlameLineValue(line, FlameProbe(true, level, base));
+      const int page =
+          static_cast<int>(std::ceil(base * percent / 100.0 - 1e-9));
+      CHECK_EQ(game, page) << "The reference page's flame ATT model no "
+                           << "longer matches the game: level " << level
+                           << ", tier " << tier << ", base " << base;
+    }
+  }
+}
+
+std::string FlameJson() {
+  std::vector<std::string> flames;
+  for (const Flame& flame : kFlames) {
+    std::vector<std::string> tiers;
+    for (int t = flame.min_tier; t < flame.min_tier + kFlameTiers; ++t) {
+      tiers.push_back(Num(t));
+    }
+    flames.push_back(Object({{"name", Quote(FlameName(flame.type))},
+                             {"cost", Num(flame.cost)},
+                             {"tiers", List(tiers)},
+                             {"choose", flame.choose ? "true" : "false"}}));
+  }
+
+  std::vector<EquipSlot> with, without;
+  std::set<std::string> with_names;
+  for (EquipSlot slot : SlotsInOrder()) {
+    if (SlotTakesFlame(slot)) {
+      with.push_back(slot);
+      with_names.insert(FormatSlot(slot));
+    }
+  }
+  for (EquipSlot slot : SlotsInOrder()) {
+    if (with_names.count(FormatSlot(slot)) == 0) {
+      without.push_back(slot);
+    }
+  }
+  std::vector<EquipSlot> armor;
+  for (EquipSlot slot : with) {
+    if (slot != EQUIP_SLOT_PRIMARY_WEAPON) {
+      armor.push_back(slot);
+    }
+  }
+
+  Fields stats;
+  for (int i = 1; i < FlameStat_ARRAYSIZE; ++i) {
+    if (!FlameStat_IsValid(i)) {
+      continue;
+    }
+    FlameLine line;
+    line.set_stat(static_cast<FlameStat>(i));
+    line.set_tier(FlameTiers().front());
+    const std::string text = FlameLineValueText(line, FlameProbe(true, 200, 1));
+    stats.push_back(
+        {Num(i), Object({{"name", Quote(FlameStatName(line.stat()))},
+                         {"percent", text.back() == '%' ? "true" : "false"}})});
+  }
+
+  std::vector<std::string> kinds;
+  for (bool weapon : {true, false}) {
+    Fields levels;
+    std::set<int> ids;
+    for (int level : kReferenceLevels) {
+      if (weapon) {
+        CheckFlameAttack(level);
+      }
+      Fields values;
+      std::vector<std::string> pool;
+      for (FlameStat stat : FlamePool(FlameProbe(weapon, level, 0))) {
+        pool.push_back(Num(stat));
+        ids.insert(stat);
+        values.push_back({Num(stat), FlameValues(weapon, stat, level)});
+      }
+      levels.push_back(
+          {Num(level),
+           Object({{"pool", List(pool)},
+                   {"values", Object(values)},
+                   {"att_percent", weapon ? AttackPercents(level) : "null"}})});
+    }
+    // Every line's values over the whole level range, for the raw tables.
+    Fields raw;
+    for (int id : ids) {
+      const auto stat = static_cast<FlameStat>(id);
+      raw.push_back({Num(id), Runs(kLowestLevel, kTopLevel, [&](int level) {
+                       return ScalesWithBase(weapon, stat)
+                                  ? AttackPercents(level)
+                                  : FlameValues(weapon, stat, level);
+                     })});
+    }
+    kinds.push_back(Object({
+        {"name", Quote(weapon ? "Weapon" : "Armor & accessories")},
+        {"weapon", weapon ? "true" : "false"},
+        {"slots",
+         SlotNames(weapon ? std::vector<EquipSlot>{EQUIP_SLOT_PRIMARY_WEAPON}
+                          : armor)},
+        {"levels", Object(levels)},
+        {"raw", Object(raw)},
+    }));
+  }
+
+  return Object({
+      {"flames", List(flames)},
+      {"unlock", Num(kFlameUnlockLevel)},
+      {"lines", Num(kFlameLines)},
+      {"tiers", MapList(FlameTiers(), Num)},
+      {"stats", Object(stats)},
+      {"kinds", List(kinds)},
+      {"slots", SlotNames(with)},
+      {"no_flame", SlotNames(without)},
+  });
+}
+
 }  // namespace
 
 std::string ReferenceDataJson(
@@ -659,9 +830,13 @@ std::string ReferenceDataJson(
   }
   return Object({
       {"ranks", List(ranks)},
-      {"potential", PotentialJson(equips)},
+      {"levels", MapList(std::vector<int>(std::begin(kReferenceLevels),
+                                          std::end(kReferenceLevels)),
+                         Num)},
+      {"potential", PotentialJson()},
       {"star_force", StarForceJson(equips)},
       {"inner_ability", InnerAbilityJson()},
+      {"flame", FlameJson()},
   });
 }
 
