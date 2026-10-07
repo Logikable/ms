@@ -11,8 +11,11 @@ difficulties {
         interval_ms: 10000
         range: RANGE_ROW_STEP
         dash { cells: 4 step_ms: 120 }
-        fall { step_ms: 60 }
-        specials { min_interval_ms: 30000 max_interval_ms: 60000 }
+        specials {
+          min_interval_ms: 30000
+          max_interval_ms: 60000
+          fall { step_ms: 60 }
+        }
       }
     }
     player_spots { x: 4 y: 5 }
@@ -54,8 +57,11 @@ difficulties {
         interval_ms: 10000
         range: RANGE_ROW_STEP
         dash { cells: 4 step_ms: 120 }
-        fall { step_ms: 60 }
-        specials { min_interval_ms: 30000 max_interval_ms: 60000 }
+        specials {
+          min_interval_ms: 30000
+          max_interval_ms: 60000
+          fall { step_ms: 60 }
+        }
       }
     }
     player_spots { x: 4 y: 5 }

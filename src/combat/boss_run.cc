@@ -528,7 +528,7 @@ bool BossRun::StartSpecial(const BossPhase& phase, BossSlot& slot) {
     ++slot.specials_done;
     slot.next_special_at += SpecialWait(slot, slot.specials_done);
     bool can_dash = slot.walk.has_dash();
-    bool can_fall = slot.walk.has_fall();
+    bool can_fall = slot.walk.specials().has_fall();
     fall = can_fall &&
            (!can_dash || Mixed(slot.id, -2 * slot.specials_done) % 2 == 0);
   } else {
@@ -596,9 +596,9 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   if (specials && slot.dash_left == 0 && !slot.falling &&
       slot.next_special_at <= slot.next_move_at && StartSpecial(phase, slot)) {
     // A fall's first move is its appearance on the top row.
-    slot.next_move_at +=
-        (slot.falling ? slot.walk.fall().step_ms() : slot.walk.interval_ms()) /
-        1000.0;
+    slot.next_move_at += (slot.falling ? slot.walk.specials().fall().step_ms()
+                                       : slot.walk.interval_ms()) /
+                         1000.0;
     return;
   }
   if (slot.falling) {
@@ -611,7 +611,7 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   } else {
     StepSlot(phase, slot);
   }
-  int wait = slot.falling         ? slot.walk.fall().step_ms()
+  int wait = slot.falling         ? slot.walk.specials().fall().step_ms()
              : slot.dash_left > 0 ? slot.walk.dash().step_ms()
                                   : slot.walk.interval_ms();
   slot.next_move_at += wait / 1000.0;

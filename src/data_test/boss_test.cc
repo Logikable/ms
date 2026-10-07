@@ -1073,19 +1073,18 @@ TEST_F(BossDataTest, EverySpecialHasAMoveAndAWait) {
           const ArenaWalk& walk = spawn.walk();
           std::string where = entry.first + " " + spawn.mob();
           if (!walk.has_specials()) {
-            EXPECT_FALSE(walk.has_fall()) << where << " never falls";
             continue;
           }
           ++specials;
-          EXPECT_TRUE(walk.has_dash() || walk.has_fall()) << where;
+          EXPECT_TRUE(walk.has_dash() || walk.specials().has_fall()) << where;
           EXPECT_GT(walk.specials().min_interval_ms(), 0) << where;
           EXPECT_GE(walk.specials().max_interval_ms(),
                     walk.specials().min_interval_ms())
               << where;
           EXPECT_EQ(walk.dash().interval_ms(), 0)
               << where << " dashes on two clocks";
-          if (walk.has_fall()) {
-            EXPECT_GT(walk.fall().step_ms(), 0) << where;
+          if (walk.specials().has_fall()) {
+            EXPECT_GT(walk.specials().fall().step_ms(), 0) << where;
           }
         }
       }

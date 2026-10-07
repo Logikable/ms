@@ -60,12 +60,9 @@ message ArenaWalk {
   // A jump off its row and back. Unset means it never jumps; only the Guardian
   // Angel Slime jumps.
   ArenaJump jump = 4;
-  // A drop from the top row onto a player. It happens only as one of
-  // `specials`.
-  ArenaFall fall = 5;
   // Takes turns between the dash and the fall at random, in place of the
   // dash's own interval. Darknell's.
-  ArenaSpecials specials = 6;
+  ArenaSpecials specials = 5;
 }
 
 // A fall: the monster vanishes from its row, appears on the top row over a
@@ -84,6 +81,9 @@ message ArenaFall {
 message ArenaSpecials {
   int32 min_interval_ms = 1;
   int32 max_interval_ms = 2;
+  // A drop from the top row onto a player. Unset means every special is the
+  // dash.
+  ArenaFall fall = 3;
 }
 
 // A jump off the row the monster walks and back down to the cell it left. It

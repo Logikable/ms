@@ -356,7 +356,7 @@ Boss SpecialsBoss(bool dash, bool fall, int min_ms, int max_ms) {
     walk->mutable_dash()->set_step_ms(120);
   }
   if (fall) {
-    walk->mutable_fall()->set_step_ms(60);
+    walk->mutable_specials()->mutable_fall()->set_step_ms(60);
   }
   walk->mutable_specials()->set_min_interval_ms(min_ms);
   walk->mutable_specials()->set_max_interval_ms(max_ms);
