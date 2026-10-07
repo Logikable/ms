@@ -151,8 +151,8 @@ TEST(LevelUpCardTest, IsTitledAndBorderedInGold) {
 TEST(LevelUpCardTest, TheRuleInsideItIsGoldToo) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
   // Found by its left tee rather than a run of line characters: the title row
-  // is padded with the same character now that the card is wider than its
-  // title, so a run no longer identifies the divider alone.
+  // is padded with the same character when the card is wider than its title,
+  // so a run doesn't identify the divider alone.
   int rule_row = RowIndexOf(screen, "├");
   ASSERT_GE(rule_row, 1) << "a rule between the level and what it paid";
   EXPECT_EQ(screen.PixelAt(screen.dimx() / 2, rule_row).foreground_color,

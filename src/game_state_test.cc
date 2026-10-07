@@ -322,7 +322,7 @@ TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
   }
 }
 
-// --- --hammered, --scrolled and --sf ---
+// --- --scrolled and --sf ---
 
 // The workbench's level 30 warrior weapon, with slots to scroll and room for
 // stars. Keyed as WorkbenchGearFor names it, or nothing is worn at all.

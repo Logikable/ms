@@ -111,7 +111,7 @@ class EquippedPanel {
   }
 
   // Lists someone else's gear instead of the player's, for the Inspect screen.
-  // Enter on the preset row no longer equips one, since a party member's
+  // Enter on the preset row doesn't equip one, since a party member's
   // presets aren't the reader's to switch, and the gold trail to their weapon
   // isn't drawn, since that trail is about the reader's own upgrades. Enter on
   // a row still calls on_enter, which on that screen opens the item's card

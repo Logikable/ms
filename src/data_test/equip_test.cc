@@ -705,9 +705,6 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   }
 }
 
-// Every pet is the same item under another name: free, worn by anyone, 8
-// slots that take hammers, and nothing else, so its stats come only from the
-// Premium Scroll for Pet.
 // The two Special Skill Rings, Lv. 1-6 each: GMS's item at every level, worn
 // where its kind goes, granting its skill at its own level with GMS's numbers.
 TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
@@ -798,6 +795,9 @@ TEST(EquipDataTest, TheRingBoxesRollGmsLevelsOfRingsThatExist) {
   EXPECT_EQ(items.at("life_boss_ring_box").ring_box().items_size(), 1);
 }
 
+// Every pet is the same item under another name: free, worn by anyone, 8 slots
+// plus the two built in, and nothing else, so its stats come only from the
+// Premium Scroll for Pet.
 TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {
   int pets = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :

@@ -301,7 +301,7 @@ message TradeStack {
 }
 
 // What one side of a trade offers: the currencies worth trading, and the
-// items. An equip is sent whole, with its scrolls, stars, hammers and
+// items. An equip is sent whole, with its scrolls, stars, flames and
 // potential, so the other end rebuilds that exact item and not a fresh copy of
 // its prototype.
 message TradeOffer {

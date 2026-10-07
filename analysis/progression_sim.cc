@@ -563,15 +563,15 @@ Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
   return probe;
 }
 
-// Moves the character to the map, among those they survive, that pays best for
-// what they're farming. Leaves them where they are if every map kills them,
-// which the give-up clock then catches.
 // How far a map's level may sit from the character's for PickMapFor to probe
 // it. Wide above, since a map over the character's level pays the farming gap
 // bonus: at +25 a Marksman missed the 260s maps and took 13 days longer.
 constexpr double kMapLevelsBelow = 30.0;
 constexpr double kMapLevelsAbove = 40.0;
 
+// Moves the character to the map, among those they survive, that pays best for
+// what they're farming. Leaves them where they are if every map kills them,
+// which the give-up clock then catches.
 void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
                 int beats, double step, double power_per_meso,
                 HeldYardstick& held, bool for_meso) {
@@ -702,17 +702,17 @@ struct PlanKey {
   }
 };
 
-// What the matrix was last planned from scratch against. A full replan costs
-// hundreds of measured fights, so like the worth tables it waits for a target
-// behind a different defence wall or a character who has outgrown the plan; in
-// between, new points go on top. The wall rather than the boss: a replan is
-// for levers the wall zeroed, and most bosses past 190 share one.
 // How much stronger the character must get before the matrix is replanned
 // against an unchanged wall. Further than the worth tables: a replan past 230
 // is near a thousand measured fights, and the top-ups between follow the
 // values as they move.
 constexpr double kReplanGrowth = 4.0;
 
+// What the matrix was last planned from scratch against. A full replan costs
+// hundreds of measured fights, so like the worth tables it waits for a target
+// behind a different defence wall or a character who has outgrown the plan; in
+// between, new points go on top. The wall rather than the boss: a replan is
+// for levers the wall zeroed, and most bosses past 190 share one.
 struct MatrixChoice {
   bool planned = false;
   double defence = 0.0;
@@ -1277,13 +1277,13 @@ void NotePotentials(const GameState& state, int level, double seconds,
   }
 }
 
-// Fights one boss once and returns the playtime it took. A failed run pays
-// nothing but still costs the time the player spent.
 // The most of its clock a fight's fastest clear, scaled to today's power, may
 // take for the clear to be claimed without playing it; see FightOnce. The
 // margin is what lets a small dip in power still claim it.
 constexpr double kSettledShare = 0.9;
 
+// Fights one boss once and returns the playtime it took. A failed run pays
+// nothing but still costs the time the player spent.
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
                  int level, int power, double now, Climb& climb,
                  BossOutcome* result) {
@@ -1541,9 +1541,6 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
   PlanBuffs(run.state, BuffPolicyFor(run), rates, &run.climb.ledger.buffs);
 }
 
-// Gives the shopper what it needs to value %meso and %drop potential lines. The
-// Crowd holds its own copies, since the fight it came from doesn't survive
-// between looks.
 // What one more 100% of the Drop preset's rate adds to the boss loot over the
 // next `seconds`: each boss once a day, at the difficulty cleared that pays
 // most. Gear is judged by tier (see DropBasis::by_tier).
@@ -1581,6 +1578,9 @@ double LootPerDrop(Session& run, double seconds) {
   return total;
 }
 
+// Gives the shopper what it needs to value %meso and %drop potential lines. The
+// Crowd holds its own copies, since the fight it came from doesn't survive
+// between looks.
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
   const DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
@@ -1793,7 +1793,7 @@ bool WorthATry(const Session& run, const FightState& fight, bool levelled,
   }
   // Time alone is a reason only after a near miss. Retrying a rout every half
   // hour is something no player does, and since a loss uses the whole time
-  // limit, it used to be most of this sim's running time.
+  // limit, it would be most of this sim's running time.
   return fight.near_miss && run.seconds >= fight.retry_at;
 }
 
@@ -2550,9 +2550,8 @@ void FarmAtCap(Session& run) {
                run.shopper.power_per_meso(), run.shopper.yardstick());
   run.climb.money_map = run.state.current_map;
   CombatParams params = ComputeCombatParams(run.state);
-  // Looks come on the climb's schedule for the cap's level: nothing levels
-  // anymore, and a player at the cap opens the game no more often than one
-  // grinding toward it.
+  // Looks come on the climb's schedule for the cap's level: a player at the cap
+  // opens the game no more often than one grinding toward it.
   std::vector<double> carry;
   while (run.seconds < horizon) {
     Yield yield = MeasureYield(run.state, params, run.beats, run.step);
@@ -2665,7 +2664,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   }
   // Read the shopper's lifetime totals where every run ends, not where the
   // endgame section does: it spends at every level of the climb, and a run that
-  // never reached the cap used to report none of it.
+  // never reaches the cap would report none of it.
   climb.ledger.gear = run.shopper.life();
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
   climb.farm_meso = MesoBonus(farming);

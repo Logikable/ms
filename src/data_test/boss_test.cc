@@ -378,9 +378,6 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
   EXPECT_GT(seen, 0) << "no boss drops in the catalog to check";
 }
 
-// Zakum is the first boss and the one the screen was built around, so his
-// numbers are fixed here: the shape of the fight is a design decision, not data
-// that should drift.
 // Max mode clears a fight at the level progression_sim's sweep first beat it,
 // so a new fight needs a level in max_character.cc's kClears, read off the
 // next sweep, and a clear can't come before the fight opens.
@@ -397,6 +394,9 @@ TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
   }
 }
 
+// Zakum is the first boss and the one the screen was built around, so his
+// numbers are fixed here: the shape of the fight is a design decision, not data
+// that should drift.
 TEST_F(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   ASSERT_GT(bosses_.count("zakum"), 0u);
   const Boss& zakum = bosses_.at("zakum");

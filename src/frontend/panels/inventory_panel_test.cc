@@ -1059,7 +1059,7 @@ TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
 }
 
 // The same cubing rule as the equipped panel: last of the upgrades, gold until
-// pressed, and absent from a trace, which is no longer an item.
+// pressed, and absent from a trace, which isn't an item.
 TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
   LevelTo(UnlockLevel(Feature::kPotential));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));

@@ -1029,9 +1029,8 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // the player what is blocking it.
   //
   // A name too long for the column scrolls while the row is selected and is cut
-  // otherwise. The column is a fixed width either way.
-  // A row with no buttons gives the [-] column to its name; the [+] column it
-  // keeps blank, so its level lines up with the rows that have one.
+  // otherwise. A row with no buttons gives the [-] column to its name; the [+]
+  // column it keeps blank, so its level lines up with the rows that have one.
   bool buttons = RowTakesPoints(skill);
   bool minus_drawn = ShowsSkillMinus() && buttons;
   int name_width =

@@ -3606,7 +3606,7 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
   EXPECT_FALSE(account_.Seen(kAbilityTabKey));
 }
 
-// The four AP rows are no longer stops, since they have no [+], and the row
+// Read-only, the four AP rows aren't stops, since they have no [+], and the row
 // below them is the one worth moving to.
 TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
   CharacterInstance c = MakeInspectedHero(rng_);
