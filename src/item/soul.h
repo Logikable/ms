@@ -25,7 +25,7 @@ namespace ms {
 inline constexpr int kShardsPerSoul = 10;
 
 // The level the Soul menu entry unlocks at, account-wide like flames.
-inline constexpr int kSoulUnlockLevel = 235;
+inline constexpr int kSoulUnlockLevel = 130;
 
 // The full soul gauge's ATT and MATT, the same at every tier we have (GMS's
 // Tier D gives 15, and no boss here is Tier D).

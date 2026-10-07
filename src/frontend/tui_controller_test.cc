@@ -3952,14 +3952,15 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
 // the box too.
 TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   LevelTo(UnlockLevel(Feature::kBoss));
-  // Analysis, Dailies, Multiplayer, Settings: the cursor starts on the first.
-  menu_panel_->MoveCursor(3);
+  // Analysis, Dailies, Multiplayer, Characters, Settings: the cursor starts on
+  // the first.
+  menu_panel_->MoveCursor(4);
   ASSERT_EQ(menu_panel_->selected(), MenuEntry::kSettings);
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_FALSE(menu_panel_->box_open());
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(menu_panel_->selected(), MenuEntry::kMultiplayer);
+  EXPECT_EQ(menu_panel_->selected(), MenuEntry::kCharacters);
 }
 
 // Inside the box, Left doesn't move the menu row below.

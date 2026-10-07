@@ -48,7 +48,7 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 900
-  unlock_level: 200
+  unlock_level: 190
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
   # clears him once a week and this game once a day.
   meso: 13600000

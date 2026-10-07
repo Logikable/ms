@@ -14,7 +14,7 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
-  unlock_level: 180
+  unlock_level: 170
   # Five Intense Power Crystals at his level's price.
   meso: 12602500
   # Five times Pink Bean's, the same gap GMS has between the two.

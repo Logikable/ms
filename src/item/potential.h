@@ -29,14 +29,14 @@ namespace ms {
 
 // The level cubing unlocks at. Account-wide, like every other upgrade: a player
 // who has taken one character there can cube on all of them.
-inline constexpr int kPotentialUnlockLevel = 180;
+inline constexpr int kPotentialUnlockLevel = 160;
 
 // The level bonus potential's cube unlocks at, account-wide like cubing.
-inline constexpr int kBonusPotentialUnlockLevel = 230;
+inline constexpr int kBonusPotentialUnlockLevel = 210;
 
-// The levels the choosing cubes unlock at, account-wide like cubing.
-inline constexpr int kBlackCubeUnlockLevel = 240;
-inline constexpr int kWhiteCubeUnlockLevel = 260;
+// The level both choosing cubes unlock at, account-wide like cubing.
+inline constexpr int kBlackCubeUnlockLevel = 230;
+inline constexpr int kWhiteCubeUnlockLevel = 230;
 
 // The cost of one use of each cube, whatever it rolls. Flat, as GMS prices
 // them: a cube on a level 200 weapon costs the same as on a level 100 ring, so

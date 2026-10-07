@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "src/character/character.h"
+#include "src/character/progression.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -59,7 +60,8 @@ TEST(WearBestFromBagTest, ASecondCopyOfAWornRingStaysInTheBag) {
 // one it replaced stays on for farming, where a meso line costs a boss
 // nothing. Before then there is one set, and the better piece replaces it.
 TEST(WearBestFromBagTest, ABetterAccessoryGoesOnForBossesOnly) {
-  for (int level : {170, 180}) {
+  const int presets = UnlockLevel(Feature::kEquipPresets);
+  for (int level : {presets - 1, presets}) {
     std::mt19937 rng(1);
     Character proto;
     proto.set_level(level);
@@ -79,7 +81,7 @@ TEST(WearBestFromBagTest, ABetterAccessoryGoesOnForBossesOnly) {
     ASSERT_NE(boss, nullptr);
     ASSERT_NE(farm, nullptr);
     EXPECT_EQ(boss->name(), "Crystal") << "at " << level;
-    EXPECT_EQ(farm->name(), level >= 180 ? "Old Mask" : "Crystal")
+    EXPECT_EQ(farm->name(), level >= presets ? "Old Mask" : "Crystal")
         << "at " << level;
   }
 }
@@ -131,7 +133,7 @@ TEST(SplitFarmPieceTest, TheWornPieceStaysWithBossFights) {
 TEST(SplitFarmPieceTest, NothingSplitsBeforePresets) {
   std::mt19937 rng(1);
   Character proto;
-  proto.set_level(170);
+  proto.set_level(UnlockLevel(Feature::kEquipPresets) - 1);
   proto.set_job(JOB_HERO);
   CharacterInstance character(rng, proto);
   character.PickUp(std::make_unique<EquipInstance>(Ring("Meister", 140)));

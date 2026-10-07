@@ -18,10 +18,10 @@ namespace {
 
 // The levels the gated entries appear at. Written out rather than read from the
 // progression table, so moving a gate is something the test notices.
-constexpr int kMultiplayerLevel = 10;
+constexpr int kMultiplayerLevel = 25;
 constexpr int kBossLevel = 110;
 constexpr int kSymbolsLevel = 200;
-constexpr int kCharactersLevel = 210;
+constexpr int kCharactersLevel = 30;
 
 GameState EmptyState() {
   return GameState({}, {}, {}, {}, {});
@@ -76,8 +76,8 @@ TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   EXPECT_LT(later.find("Dailies"), later.find("Settings"));
 }
 
-// The two entries not about this character's progress: the lobby, which opens
-// with skills, and character select, which opens last.
+// The two entries not about this character's progress: the lobby, and
+// character select just after it at the 2nd job.
 TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
@@ -104,12 +104,12 @@ TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(56),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  EXPECT_NE(
-      ScreenRow(screen, 1).find("│ Analysis  Dailies  Multiplayer  Settings │"),
-      std::string::npos);
+  EXPECT_NE(ScreenRow(screen, 1).find(
+                "│ Analysis  Dailies  Multiplayer  Characters  Settings │"),
+            std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -123,6 +123,8 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   EXPECT_EQ(panel.selected(), MenuEntry::kDailies);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kMultiplayer);
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected(), MenuEntry::kCharacters);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kSettings);
   // Off the end and back to the start.

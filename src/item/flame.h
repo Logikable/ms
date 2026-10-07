@@ -26,7 +26,7 @@ namespace ms {
 using FlameLines = google::protobuf::RepeatedPtrField<FlameLine>;
 
 // The level both flames unlock at, account-wide like cubing.
-inline constexpr int kFlameUnlockLevel = 240;
+inline constexpr int kFlameUnlockLevel = 180;
 
 // Lines on every flamed item.
 inline constexpr int kFlameLines = 4;

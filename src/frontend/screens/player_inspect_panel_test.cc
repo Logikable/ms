@@ -442,12 +442,12 @@ TEST_F(PlayerInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
   ftxui::Screen screen = ftxui::Screen::Create(
       ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(40));
   ftxui::Render(screen, panel.RenderAllStats());
-  EXPECT_NE(ScreenText(screen).find("(0+60) 60"), std::string::npos)
+  EXPECT_NE(ScreenText(screen).find("(0+90) 90"), std::string::npos)
       << "the screen opened on the other allocation";
   // Left and Right switch between them here too.
   EXPECT_TRUE(panel.OnAllStatsEvent(ftxui::Event::ArrowLeft));
   ftxui::Render(screen, panel.RenderAllStats());
-  EXPECT_NE(ScreenText(screen).find("(0+30) 30"), std::string::npos);
+  EXPECT_NE(ScreenText(screen).find("(0+60) 60"), std::string::npos);
 }
 
 // The member's screen uses the main view's layout, and is measured here at the

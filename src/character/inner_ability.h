@@ -25,7 +25,7 @@ namespace ms {
 
 // The level the Ability panel opens. Below it, the character's lines grant
 // nothing.
-inline constexpr int kInnerAbilityUnlockLevel = 160;
+inline constexpr int kInnerAbilityUnlockLevel = 50;
 
 // Lines every ability has. At most two can be locked, since locking all three
 // would leave nothing to reroll.

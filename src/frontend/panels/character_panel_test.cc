@@ -2736,13 +2736,14 @@ TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent();
-  EXPECT_NE(RenderComponentText(comp).find("STR: 30 (0+30)"),
+  // 30 of each is the default Inner Ability, whatever the allocation.
+  EXPECT_NE(RenderComponentText(comp).find("STR: 60 (0+60)"),
             std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the Farm/Boss row
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Boss
   EXPECT_EQ(panel.hyper_preset(), StatPreset::kSecond);
-  EXPECT_NE(RenderComponentText(comp).find("STR: 60 (0+60)"),
+  EXPECT_NE(RenderComponentText(comp).find("STR: 90 (0+90)"),
             std::string::npos);
 
   // The bars in this panel stop at the ends instead of wrapping.
@@ -3072,12 +3073,12 @@ TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
 
 // --- the Ability tab ---
 
-// A 4th job Hero at the Inner Ability level, with `honor` and one line of each
-// of three ranks that read differently: a Legendary one that can be locked, a
-// Unique one that can be locked, and an Epic one that never can.
+// A 4th job Hero past Hyper Stats, with `honor` and one line of each of three
+// ranks that read differently: a Legendary one that can be locked, a Unique one
+// that can be locked, and an Epic one that never can.
 CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
   Character proto;
-  proto.set_level(kInnerAbilityUnlockLevel);
+  proto.set_level(160);
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
   proto.set_honor(honor);
@@ -3133,8 +3134,12 @@ ftxui::Component OnAbilityRows(CharacterPanel& panel) {
 
 // The tab is gated on this character's own level, and its gold is account-wide:
 // the first character there is told, and the next is not.
-TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt160AndIsGoldOnceAnAccount) {
-  CharacterInstance early = MakeHyperHero(rng_);
+TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt50AndIsGoldOnceAnAccount) {
+  Character early_proto;
+  early_proto.set_level(kInnerAbilityUnlockLevel - 1);
+  early_proto.set_job(JOB_SWORDMAN);
+  early_proto.set_job_stage(2);
+  CharacterInstance early(rng_, std::move(early_proto));
   CharacterPanel before(early, account_, panel_focus_);
   EXPECT_EQ(RenderElement(before.Render()).find("Ability"), std::string::npos);
 
@@ -3455,10 +3460,10 @@ TEST_F(CharacterPanelTest, AnOwnedBuffIsTaggedInsteadOfPriced) {
 // Five chips don't fit the narrowest panel, so the bar scrolls, and the tab
 // under the cursor is always one of the chips drawn.
 TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
-  // A Crusader who hasn't taken the 4th job: five tabs at once, the most the
-  // bar ever has to hold.
+  // A Crusader past Hyper Stats who hasn't taken the 4th job: five tabs at
+  // once, the most the bar ever has to hold.
   Character proto;
-  proto.set_level(kInnerAbilityUnlockLevel);
+  proto.set_level(160);
   proto.set_job(JOB_CRUSADER);
   proto.set_job_stage(3);
   CharacterInstance c(rng_, std::move(proto));

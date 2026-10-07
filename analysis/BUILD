@@ -358,6 +358,7 @@ cc_test(
         ":sim_gear",
         "//src:game_state",
         "//src/character",
+        "//src/character:progression",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

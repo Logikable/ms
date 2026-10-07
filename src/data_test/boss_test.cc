@@ -489,7 +489,7 @@ TEST_F(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
-  EXPECT_EQ(normal.unlock_level(), 180);
+  EXPECT_EQ(normal.unlock_level(), 170);
   EXPECT_EQ(normal.meso(), 12602500);
   EXPECT_EQ(normal.exp(), 50000000);
   ASSERT_EQ(normal.phases_size(), 1);
@@ -595,7 +595,7 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
 }
 
-// The hard difficulties of built fights open at 200 on the same fifteen-minute
+// The hard difficulties of built fights open at 190 on the same fifteen-minute
 // timer. Each is its Normal fight at GMS's Chaos or Hard numbers and drops the
 // same gear: harder gets it faster, not different.
 TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
@@ -620,7 +620,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     EXPECT_FALSE(hard.coming_soon());
     EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
     EXPECT_EQ(hard.time_limit_seconds(), 900);
-    EXPECT_EQ(hard.unlock_level(), 200);
+    EXPECT_EQ(hard.unlock_level(), 190);
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
     // Phase for phase and cell for cell, the same fight as Normal.

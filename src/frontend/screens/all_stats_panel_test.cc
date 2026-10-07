@@ -195,12 +195,12 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
   AllStatsPanel panel(c, &account_, account_, no_skills_);
 
   EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+30) 30"),
+  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+60) 60"),
             std::string::npos);
 
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
   EXPECT_EQ(panel.preset(), Activity::kBossing);
-  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+60) 60"),
+  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+90) 90"),
             std::string::npos);
 
   // Stops at both ends, like every tab bar in the game.

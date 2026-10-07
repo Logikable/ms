@@ -28,8 +28,8 @@ inline constexpr int kLinkRungsPerLine = 3;
 // them. GMS's twelve; nobody can reach it yet.
 inline constexpr int kMaxEquippedLinkSkills = 12;
 // The account level at which the gold trail to the Link Skills screen appears:
-// the last threshold. The skills themselves work from level 1.
-inline constexpr int kLinkSkillsLevel = 210;
+// the first threshold. The skills themselves work from level 1.
+inline constexpr int kLinkSkillsLevel = kLinkRungLevels[0];
 
 // Levels one character at `level` adds to their line: 0 below the first
 // threshold.

@@ -43,21 +43,23 @@ constexpr Unlock kUnlocks[] = {
     // leaves the corner and the menu replaces it.
     {Feature::kMenu, 5},
     {Feature::kSkills, 10},
-    // The same level as skills: a character with a skill book is worth showing
-    // in the lobby, and has something to trade.
-    {Feature::kMultiplayer, 10},
     {Feature::kShop, 20},
+    {Feature::kMultiplayer, 25},
+    // The 2nd job's level; see Feature::kCharacters.
+    {Feature::kCharacters, 30},
+    // The same level as Characters; see Feature::kBank.
+    {Feature::kBank, 30},
     // Late enough that the player sees it after the early game, and late enough
     // that meso for spell traces is coming in.
     {Feature::kScrolling, 40},
     // Opening it earlier would only show the player fights they can't take.
     {Feature::kBoss, kBossLevel},
-    // Matched to the gear it's for: the Frozen weapons at 120 are the first
-    // that take 15 stars, and opening the screen earlier only offers expensive
-    // stars that are barely worth it.
-    {Feature::kStarForce, 120},
+    // Once scrolling has been learned. Gear below level 95 takes 5 stars, so
+    // the
+    // first stars are cheap lessons.
+    {Feature::kStarForce, 80},
     // Potential's own level; see kPotentialUnlockLevel. Well after star force:
-    // a cube is only worth using on gear the player won't replace soon.
+    // a cube costs 12M, which the income here buys about once an hour.
     {Feature::kPotential, kPotentialUnlockLevel},
     // See kBonusPotentialUnlockLevel.
     {Feature::kBonusPotential, kBonusPotentialUnlockLevel},
@@ -80,12 +82,7 @@ constexpr Unlock kUnlocks[] = {
     // Cubing's level: the presets arrive along with the reason to keep two sets
     // of gear. See Feature::kEquipPresets.
     {Feature::kEquipPresets, kPotentialUnlockLevel},
-    // Ten levels after Arcane River opens. A second character is what a player
-    // wants once the first has most of what the game offers.
-    {Feature::kCharacters, 210},
-    // The same level as Characters; see Feature::kBank.
-    {Feature::kBank, 210},
-    // The last link skill threshold. Only the trail waits for it: the row and
+    // The first link skill threshold. Only the trail waits for it: the row and
     // the skills are available from level 1.
     {Feature::kLinkSkills, kLinkSkillsLevel},
     {Feature::kGuildSkills, kGuildSkillsLevel},
@@ -115,9 +112,9 @@ constexpr StageUnlock kStageUnlocks[] = {
 // condition in the card and another in the menus, so a new upgrade is added to
 // both at once.
 constexpr Feature kUpgrades[] = {
-    Feature::kScrolling,      Feature::kStarForce, Feature::kPotential,
-    Feature::kBonusPotential, Feature::kBlackCube, Feature::kWhiteCube,
-    Feature::kSoul,           Feature::kFlame,
+    Feature::kScrolling, Feature::kStarForce, Feature::kSoul,
+    Feature::kPotential, Feature::kFlame,     Feature::kBonusPotential,
+    Feature::kBlackCube, Feature::kWhiteCube,
 };
 
 // The upgrades with a gold trail, and the name their record keys are built
@@ -128,7 +125,7 @@ struct Led {
   const char* slug;
   // Whether the trail starts at the equipped weapon's name. Scrolling unlocks
   // before the player may ever have opened the item menu, so it needs the
-  // marker; star force unlocks at 120, by which point the marker would only
+  // marker; star force unlocks at 80, by which point the marker would only
   // distract.
   bool from_weapon;
 };

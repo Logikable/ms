@@ -25,8 +25,19 @@
 namespace ms {
 namespace {
 
+// Gives `proto` a Meso line in every Inner Ability preset, so the ability
+// open from level 50 moves no stat a test reads. Left empty, it would get the
+// default All Stats lines.
+void NeutralAbility(Character& proto) {
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    PresetOf(*proto.mutable_inner_ability(), StatPresetAt(i))
+        .add_lines()
+        ->set_type(ABILITY_LINE_TYPE_MESO);
+  }
+}
+
 // A level-`level` character with `hp` HP from AP and enough 1st-job SP to max
-// anything the tests learn.
+// anything the tests learn, with a neutral Inner Ability.
 CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
                                 int mp = 0) {
   Character proto;
@@ -36,6 +47,7 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
   proto.mutable_allocated_stats()->set_hp(hp);
   proto.mutable_allocated_stats()->set_mp(mp);
   (*proto.mutable_sp_by_stage())[1] = 100;
+  NeutralAbility(proto);
   return CharacterInstance(rng, std::move(proto));
 }
 
@@ -1711,7 +1723,7 @@ TEST_F(DerivedStatsTest, GuildPassivesArriveWithTheAccount) {
   std::map<std::string, Skill> skills = {{"guild_expertise", expertise},
                                          {"special_power", power}};
 
-  CharacterInstance alt = MakeCharacter(rng_, 200, 0);
+  CharacterInstance alt = MakeCharacter(rng_, kGuildSkillsLevel - 10, 0);
   alt.set_account_max_level(kGuildSkillsLevel - 1);
   EXPECT_EQ(DerivedStatsFor(alt, skills).skill_stats.attack(), 0);
   EXPECT_EQ(OwnedArcaneForce(alt, skills), 0);
@@ -1808,6 +1820,7 @@ TEST_F(DerivedStatsTest, AnotherBranchsCopyOfASharedNameIsIgnored) {
   proto.set_job(JOB_SPEARMAN);
   proto.set_job_stage(2);
   (*proto.mutable_skill_levels())["Physical Training"] = 5;
+  NeutralAbility(proto);
   CharacterInstance c(rng_, std::move(proto));
 
   Skill mine = PhysicalTraining();
@@ -1830,6 +1843,7 @@ TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   proto.set_job(JOB_SPEARMAN);
   proto.set_job_stage(2);
   (*proto.mutable_skill_levels())["Physical Training"] = 5;
+  NeutralAbility(proto);
   CharacterInstance c(rng_, std::move(proto));
 
   Skill mine = PhysicalTraining();
@@ -2969,6 +2983,7 @@ CharacterInstance MapleWarriorCharacter(std::mt19937& rng) {
   proto.mutable_allocated_stats()->set_str(1000);
   proto.mutable_allocated_stats()->set_dex(100);
   (*proto.mutable_sp_by_stage())[1] = 100;
+  NeutralAbility(proto);
   return CharacterInstance(rng, std::move(proto));
 }
 
@@ -3154,12 +3169,15 @@ AbilityLine Line(AbilityLineType type, AbilityRank rank) {
 
 // Every character's starting lines give +10 all stats each, and nothing applies
 // below the unlock level.
-TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
-  CharacterInstance below = AbilityCharacter(rng_, ABILITY_RANK_RARE, {},
-                                             StatPreset::kFirst, /*level=*/159);
+TEST_F(DerivedStatsTest, TheDefaultLinesPayFromTheUnlockLevel) {
+  CharacterInstance below =
+      AbilityCharacter(rng_, ABILITY_RANK_RARE, {}, StatPreset::kFirst,
+                       kInnerAbilityUnlockLevel - 1);
   EXPECT_EQ(DerivedStatsFor(below, {}).skill_stats.str(), 0);
 
-  CharacterInstance c = AbilityCharacter(rng_, ABILITY_RANK_RARE, {});
+  CharacterInstance c =
+      AbilityCharacter(rng_, ABILITY_RANK_RARE, {}, StatPreset::kFirst,
+                       kInnerAbilityUnlockLevel);
   DerivedStats stats = DerivedStatsFor(c, {});
   EXPECT_EQ(stats.skill_stats.str(), 30) << "three Rare All Stats lines";
   EXPECT_EQ(stats.skill_stats.dex(), 30);

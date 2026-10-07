@@ -217,6 +217,10 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
     state->character.LevelUp();
   }
   EXPECT_TRUE(state->character.LearnSkill(flurry, 1));
+  // A Meso line, so the stats the numbers are sized by are the level's alone.
+  AbilityPreset neutral;
+  neutral.add_lines()->set_type(ABILITY_LINE_TYPE_MESO);
+  state->character.SetAbility(neutral);
   return state;
 }
 

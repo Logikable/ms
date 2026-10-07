@@ -133,21 +133,21 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
       << "an account that stopped at 140 never reached cubing";
 }
 
-// The three features not tied to this character's level. The lobby unlocks with
-// skills, well before bossing; the character select and the bank unlock last,
-// and a second character has both from level 1.
-TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
-  EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 10);
-  EXPECT_EQ(UnlockLevel(Feature::kCharacters), 210);
+// The lobby and the character select both open well before bossing; the
+// character select comes with the 2nd job, so a player can switch early. A
+// second character has both from level 1.
+TEST_F(ProgressionTest, TheLobbyAndTheCharacterSelectOpenEarly) {
+  EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 25);
+  EXPECT_EQ(UnlockLevel(Feature::kCharacters), 30);
   EXPECT_EQ(UnlockLevel(Feature::kBank), UnlockLevel(Feature::kCharacters))
       << "shared storage is worth nothing without somebody to share with";
   EXPECT_LT(UnlockLevel(Feature::kMultiplayer), UnlockLevel(Feature::kBoss));
 
-  EXPECT_FALSE(Unlocked(Feature::kCharacters, MakeCharacter(209), account_));
-  EXPECT_FALSE(Unlocked(Feature::kBank, MakeCharacter(209), account_));
-  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(210), account_));
-  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(210), account_));
-  account_.RecordProgress(210, 5);
+  EXPECT_FALSE(Unlocked(Feature::kCharacters, MakeCharacter(29), account_));
+  EXPECT_FALSE(Unlocked(Feature::kBank, MakeCharacter(29), account_));
+  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(30), account_));
+  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(30), account_));
+  account_.RecordProgress(30, 2);
   EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(1), account_));
   EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(1), account_));
 }
@@ -196,25 +196,31 @@ TEST_F(ProgressionTest, AWalkedTrailStaysWalkedForTheNextCharacter) {
 // In unlock order: following the menu clears every cube unlocked so far.
 // Each cube past Red has a shelf row that stays gold until one is used, for
 // every character on the account, and the Cube menu leads until it is opened.
+// The Black and White Cubes unlock together, so one visit to the menu serves
+// both.
 TEST_F(ProgressionTest, EachCubeRowLeadsUntilOneIsUsed) {
   const std::pair<CubeType, Feature> kCubesLed[] = {
       {CubeType::kGreen, Feature::kBonusPotential},
       {CubeType::kBlack, Feature::kBlackCube},
       {CubeType::kWhite, Feature::kWhiteCube},
   };
-  EXPECT_EQ(UnlockLevel(Feature::kBlackCube), 240);
-  EXPECT_EQ(UnlockLevel(Feature::kWhiteCube), 260);
+  EXPECT_EQ(UnlockLevel(Feature::kBlackCube), 230);
+  EXPECT_EQ(UnlockLevel(Feature::kWhiteCube), 230);
+  int menu_followed_at = 0;
   for (const auto& [cube, feature] : kCubesLed) {
     const int level = UnlockLevel(feature);
     CharacterInstance below = MakeCharacter(level - 1);
     EXPECT_FALSE(CubeUnlocked(cube, below, account_));
     EXPECT_FALSE(LeadToCube(cube, below, account_));
-    FollowedToCubeMenu(below, account_);
     CharacterInstance first = MakeCharacter(level);
     EXPECT_TRUE(CubeUnlocked(cube, first, account_));
     EXPECT_TRUE(LeadToCube(cube, first, account_));
-    EXPECT_TRUE(LeadToCubeMenu(first, account_)) << level;
-    FollowedToCubeMenu(first, account_);
+    if (menu_followed_at < level) {
+      FollowedToCubeMenu(below, account_);
+      EXPECT_TRUE(LeadToCubeMenu(first, account_)) << level;
+      FollowedToCubeMenu(first, account_);
+      menu_followed_at = level;
+    }
     EXPECT_FALSE(LeadToCubeMenu(first, account_)) << level;
     FollowedToCube(cube, account_);
     EXPECT_FALSE(LeadToCube(cube, first, account_));
@@ -290,32 +296,32 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
 }
 
 // Flames' trail is the menu entry alone, gold for the account until pressed.
-TEST_F(ProgressionTest, TheFlameEntryLeadsFrom240UntilPressed) {
-  EXPECT_EQ(UnlockLevel(Feature::kFlame), 240);
-  CharacterInstance below = MakeCharacter(239);
+TEST_F(ProgressionTest, TheFlameEntryLeadsFrom180UntilPressed) {
+  EXPECT_EQ(UnlockLevel(Feature::kFlame), 180);
+  CharacterInstance below = MakeCharacter(179);
   EXPECT_FALSE(Unlocked(Feature::kFlame, below, account_));
   EXPECT_FALSE(LeadToAction(Feature::kFlame, below, account_));
-  CharacterInstance first = MakeCharacter(240);
+  CharacterInstance first = MakeCharacter(180);
   EXPECT_TRUE(LeadToAction(Feature::kFlame, first, account_));
   FollowedToAction(Feature::kFlame, account_);
   EXPECT_FALSE(LeadToAction(Feature::kFlame, first, account_));
-  account_.RecordProgress(240, 4);
+  account_.RecordProgress(180, 4);
   EXPECT_FALSE(LeadToAction(Feature::kFlame, MakeCharacter(1), account_))
       << "one character following it clears it for all";
 }
 
-TEST_F(ProgressionTest, TheSoulEntryLeadsFrom235UntilPressed) {
-  EXPECT_EQ(UnlockLevel(Feature::kSoul), 235);
-  EXPECT_FALSE(LeadToAction(Feature::kSoul, MakeCharacter(234), account_));
-  CharacterInstance first = MakeCharacter(235);
+TEST_F(ProgressionTest, TheSoulEntryLeadsFrom130UntilPressed) {
+  EXPECT_EQ(UnlockLevel(Feature::kSoul), 130);
+  EXPECT_FALSE(LeadToAction(Feature::kSoul, MakeCharacter(129), account_));
+  CharacterInstance first = MakeCharacter(130);
   EXPECT_TRUE(LeadToAction(Feature::kSoul, first, account_));
   FollowedToAction(Feature::kSoul, account_);
   EXPECT_FALSE(LeadToAction(Feature::kSoul, first, account_));
 }
 
-// The trail appears the first time the account reaches the last threshold, for
+// The trail appears the first time the account reaches the first threshold, for
 // whichever character is being played.
-TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsTopRung) {
+TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsFirstRung) {
   EXPECT_EQ(UnlockLevel(Feature::kLinkSkills), kLinkSkillsLevel);
   account_.RecordProgress(kLinkSkillsLevel, 4);
 
@@ -325,9 +331,10 @@ TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsTopRung) {
                        account_));
 
   AccountInstance fresh;
-  EXPECT_FALSE(
-      Unlocked(Feature::kLinkSkills, MakeAdvanced(209, JOB_HERO, 4), fresh))
-      << "nobody on the account has paid the last rung";
+  EXPECT_FALSE(Unlocked(Feature::kLinkSkills,
+                        MakeAdvanced(kLinkSkillsLevel - 1, JOB_CRUSADER, 3),
+                        fresh))
+      << "nobody on the account has paid the first rung";
 }
 
 // --- the gold trail ---

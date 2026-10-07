@@ -63,18 +63,17 @@ enum class Feature {
   // goes away, so the corner is never empty and never has both.
   kMenu,
   kBoss,
-  // The Multiplayer entry on that menu. Unlocked once the player is clearly a
-  // real character instead of at bossing level: the lobby is where trading
-  // happens, which is useful long before a party is.
+  // The Multiplayer entry on that menu. Unlocked well before bossing level:
+  // the lobby is where trading happens, which is useful long before a party is.
   kMultiplayer,
   // The bag's Bank tab and its screen. Same level as Characters, for the same
   // reason: shared storage is useless until there's a second character to share
   // with.
   kBank,
-  // The Characters entry and the character select behind it. The last menu
-  // entry to unlock: a second character is worth making once the first has run
-  // out of levels to gain, and the account's unlocks have already opened the
-  // way for it.
+  // The Characters entry and the character select behind it. Early, at the
+  // 2nd job: a player who doesn't like their job can switch before they have
+  // sunk much into it. Burning comes with it, having nothing to catch up to
+  // before a second character exists.
   kCharacters,
   // The Character panel's Hyper tab and its preset row. Unlocked at Hyper
   // Stats' own level, and by this character's level: the points come from their
@@ -95,15 +94,14 @@ enum class Feature {
   // level, where points first have a use.
   kVPoints,
   // The gold trail to the Link Skills row, shown the first time the account
-  // reaches the last threshold; see kLinkSkillsLevel. The row itself is always
+  // reaches the first threshold; see kLinkSkillsLevel. The row itself is always
   // on the beginner's page.
   kLinkSkills,
   // The Noblesse skills on the beginner's page, at the first boss's level:
-  // their
-  // points come only from soloing bosses.
+  // their points come only from soloing bosses.
   kNoblesse,
-  // The guild passives on the beginner's page. Hidden below their level, like
-  // any other locked feature; see kGuildSkillsLevel.
+  // The guild passives on the beginner's page, at Noblesse's level: GMS's
+  // guild skills are the two together. See kGuildSkillsLevel.
   kGuildSkills,
   // The Farm/Boss/Drop row under the Gear tab. Unlocked at cubing's level: a
   // second set of gear is worth keeping once an item is worth more than its

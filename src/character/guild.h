@@ -18,7 +18,7 @@
 namespace ms {
 
 // The account level at which every character holds the guild passives.
-inline constexpr int kGuildSkillsLevel = 255;
+inline constexpr int kGuildSkillsLevel = 110;
 
 // The Noblesse SP `clears` have earned: one for every difficulty at or below
 // one beaten, in the order the boss's file lists them. A coming-soon

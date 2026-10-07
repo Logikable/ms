@@ -1270,7 +1270,7 @@ TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
   BossDifficulty& wall = *bosses["wall"].mutable_difficulties(0);
   wall.add_drops()->set_item("wall_shard");
   BossDifficulty& early = *bosses["early"].add_difficulties();
-  early.set_unlock_level(150);
+  early.set_unlock_level(kSoulUnlockLevel - 10);
   early.add_drops()->set_item("early_shard");
   std::map<std::string, ItemPrototype> items;
   for (const auto& [key, boss, tier] :

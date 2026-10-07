@@ -187,13 +187,14 @@ TEST_F(InnerAbilityTest, RanklessPresetKeepsItsLines) {
 }
 
 TEST_F(InnerAbilityTest, ResetNeedsTheLevelAndTheHonor) {
-  CharacterInstance below = MakeCharacter(rng_, /*level=*/159);
+  CharacterInstance below =
+      MakeCharacter(rng_, /*level=*/kInnerAbilityUnlockLevel - 1);
   below.AddHonor(1000);
   EXPECT_FALSE(below.inner_ability_unlocked());
   EXPECT_FALSE(below.ResetAbility());
   EXPECT_EQ(below.honor(), 1000);
 
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  CharacterInstance c = MakeCharacter(rng_, kInnerAbilityUnlockLevel);
   EXPECT_TRUE(c.inner_ability_unlocked());
   EXPECT_FALSE(c.ResetAbility()) << "an empty purse buys nothing";
   c.AddHonor(250);
