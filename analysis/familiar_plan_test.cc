@@ -6,6 +6,7 @@
 #include "src/character/character_stats.h"
 #include "src/character/familiar.h"
 #include "src/game_state.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/familiar.pb.h"
 
 namespace ms {
@@ -16,6 +17,13 @@ double BossPower(GameState& state) {
   DerivedStats derived = DerivedStatsFor(state.character, state.skills, {}, {},
                                          Activity::kBossing);
   return 1.0 + derived.boss_pct + derived.ied;
+}
+
+// Puts the character at `level`, where Familiars may or may not be open.
+void SetLevel(GameState& state, int level) {
+  Character proto = state.character.ToProto();
+  proto.set_level(level);
+  state.character.RestoreFrom(proto, state.equips, state.items);
 }
 
 TEST(FamiliarReserveTest, FreeRollsHoldOutForTheBest) {
@@ -31,24 +39,26 @@ TEST(FamiliarReserveTest, APriceLowersTheBar) {
 
 TEST(SpendFamiliarsTest, NothingBeforeFamiliarsOpen) {
   GameState state({}, {}, {}, {}, {});
-  state.account.AddFamiliarExp(1'000'000);
+  SetLevel(state, kFamiliarsLevel - 1);
+  FamiliarBook book;
+  book.set_exp(1'000'000);
+  state.character.set_familiars(book);
   EXPECT_EQ(SpendFamiliars(state, BossPower, {}).levels, 0);
-  EXPECT_EQ(state.account.familiars().exp(), 1'000'000);
+  EXPECT_EQ(state.character.familiars().exp(), 1'000'000);
 }
 
 // With no Familiar Bond in the catalog, every step goes to the three mains,
 // which end Legendary and summoned in every preset.
 TEST(SpendFamiliarsTest, TheMainsClimbToLegendary) {
   GameState state({}, {}, {}, {}, {});
-  state.account.RecordProgress(kFamiliarsLevel, 4);
-  state.MirrorAccount();
-  state.account.AddFamiliarExp(3 * (1'000 + 9'000 + 50'000 + 200'000));
+  SetLevel(state, kFamiliarsLevel);
+  state.character.AddFamiliarExp(3 * (1'000 + 9'000 + 50'000 + 200'000));
   FamiliarSpend spend = SpendFamiliars(state, BossPower, {});
   EXPECT_EQ(spend.levels, 12);
-  EXPECT_EQ(state.account.familiars().exp(), 0);
+  EXPECT_EQ(state.character.familiars().exp(), 0);
   for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
     EXPECT_EQ(
-        FamiliarLevel(state.account.familiars(), FamiliarRoster()[i].name),
+        FamiliarLevel(state.character.familiars(), FamiliarRoster()[i].name),
         kFamiliarMaxLevel);
   }
   EXPECT_EQ(state.character.summoned_familiars(StatPreset::kSecond).size(),
@@ -58,9 +68,8 @@ TEST(SpendFamiliarsTest, TheMainsClimbToLegendary) {
 // Cubes stop on lines worth the reservation value and are paid in meso.
 TEST(SpendFamiliarsTest, CubesFollowTheStoppingRule) {
   GameState state({}, {}, {}, {}, {});
-  state.account.RecordProgress(kFamiliarsLevel, 4);
-  state.MirrorAccount();
-  state.account.AddFamiliarExp(3 * (1'000 + 9'000 + 50'000 + 200'000));
+  SetLevel(state, kFamiliarsLevel);
+  state.character.AddFamiliarExp(3 * (1'000 + 9'000 + 50'000 + 200'000));
   state.character.AddMeso(100 * kFamiliarCubeMeso);
   FamiliarPrices prices;
   prices.power_per_meso = 0.02 / kFamiliarCubeMeso;

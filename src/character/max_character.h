@@ -137,7 +137,7 @@ std::vector<MaxAlt> MaxAlts(Job played_line, int level);
 // The level a max character of `level` has bought `node` to.
 int MaxMatrixLevel(const Skill& node, int level);
 
-// The account's familiars at `level`: the roster's first three, summoned, with
+// The familiars at `level`: the roster's first three, summoned, with
 // the sweep's lines, and the rest levelled cheapest step first to its total.
 // Empty below the first band.
 FamiliarBook MaxFamiliars(StatField primary, int level);

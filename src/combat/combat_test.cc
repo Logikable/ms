@@ -211,23 +211,20 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   EXPECT_EQ(state.character.v_points(), tally.v_points);
 }
 
-// Every kill adds one familiar EXP to the account's pool, but only once the
-// account has opened Familiars: nothing is banked before.
-TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPoolFromItsLevel) {
+// Every farm kill banks one familiar EXP on the character, once they are past
+// Familiars' level.
+TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPool) {
   Mob mob = SnailMob();
   mob.set_exp(0);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", mob}}, {{"field", SnailMap()}});
   state.current_map = "field";
+  Character proto = state.character.ToProto();
+  proto.set_level(kFamiliarsLevel);
+  state.character.RestoreFrom(proto, state.equips, state.items);
   EquipSword(state);
-  state.character.set_account_max_level(kFamiliarsLevel - 1);
   AwardCombatRewards(state, ComputeCombatParams(state), {500});
-  EXPECT_EQ(state.account.familiars().exp(), 0);
-
-  state.character.set_account_max_level(kFamiliarsLevel);
-  AwardCombatRewards(state, ComputeCombatParams(state), {500});
-  AwardCombatRewards(state, ComputeCombatParams(state), {250});
-  EXPECT_EQ(state.account.familiars().exp(), 750);
+  EXPECT_EQ(state.character.familiars().exp(), 500);
 }
 
 // A boss is paid from its fight's own reward table, so the boss mob itself

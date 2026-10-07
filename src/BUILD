@@ -371,7 +371,6 @@ cc_test(
         "//src/character",
         "//src/character:consumables",
         "//src/character:exp_table",
-        "//src/character:familiar",
         "//src/character:honor",
         "//src/character:hyper_stats",
         "//src/character:max_character",

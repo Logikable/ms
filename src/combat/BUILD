@@ -139,7 +139,6 @@ cc_library(
         "//src:game_state",
         "//src/character",
         "//src/character:consumables",
-        "//src/character:familiar",
         "//src/character:honor",
         "//src/character:v_matrix",
         "//src/item:equip_instance",

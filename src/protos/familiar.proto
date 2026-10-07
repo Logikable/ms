@@ -43,7 +43,7 @@ message FamiliarLine {
   PotentialRank rank = 2;
 }
 
-// One familiar the account has levelled. Its rank follows its level.
+// One familiar the character has levelled. Its rank follows its level.
 message Familiar {
   // The roster's name for it; see FamiliarRoster.
   string name = 1;
@@ -53,7 +53,7 @@ message Familiar {
   repeated FamiliarLine lines = 3;
 }
 
-// The account's familiars and the EXP that levels them, which every farm kill
+// A character's familiars and the EXP that levels them, which every farm kill
 // adds to once Familiars open.
 message FamiliarBook {
   int64 exp = 1;

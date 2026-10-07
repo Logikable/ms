@@ -1757,7 +1757,7 @@ bool CharacterInstance::SummonFamiliar(const std::string& name,
       PresetOf(*character_.mutable_summoned_familiars(), slot);
   if (preset.names_size() >= kMaxSummonedFamiliars ||
       absl::c_linear_search(preset.names(), name) ||
-      FamiliarLevel(familiars_, name) < 1) {
+      FamiliarLevel(familiars(), name) < 1) {
     return false;
   }
   preset.add_names(name);
@@ -1776,9 +1776,28 @@ bool CharacterInstance::DismissFamiliar(const std::string& name,
   return true;
 }
 
+void CharacterInstance::AddFamiliarExp(int64_t kills) {
+  if (character_.level() < kFamiliarsLevel || kills <= 0) {
+    return;
+  }
+  FamiliarBook& book = *character_.mutable_familiars();
+  book.set_exp(book.exp() + kills);
+}
+
+bool CharacterInstance::LevelUpFamiliar(const std::string& name) {
+  return ms::LevelUpFamiliar(*character_.mutable_familiars(), name, rng_);
+}
+
+bool CharacterInstance::CubeFamiliar(const std::string& name) {
+  if (FamiliarLevel(familiars(), name) < 1 || !SpendMeso(kFamiliarCubeMeso)) {
+    return false;
+  }
+  return ms::CubeFamiliar(*character_.mutable_familiars(), name, rng_);
+}
+
 FamiliarTotals CharacterInstance::familiar_totals(Activity activity) const {
   return SummonedFamiliarTotals(
-      familiars_,
+      familiars(),
       summoned_familiars(SlotFor(PresetKind::kFamiliars, activity)));
 }
 

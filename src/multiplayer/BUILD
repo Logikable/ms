@@ -132,6 +132,7 @@ cc_test(
         "//src/character:equip_presets",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "//src/testing:prototypes",
         "@googletest//:gtest_main",

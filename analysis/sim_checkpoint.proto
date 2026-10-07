@@ -130,7 +130,7 @@ message CheckpointPotentials {
   AbilityRank ability_bossing = 9;
   // Unspent boss drops that pay for a scroll, by item name.
   map<string, int32> scroll_items_held = 10;
-  // The account's familiars: levels and lines, the pool left out.
+  // The familiars: levels and lines, the pool left out.
   FamiliarBook familiars = 11;
 }
 
@@ -226,6 +226,6 @@ message SimCheckpoint {
   double next_alt_look = 37;
   // MatrixMemo's prices, by node name.
   map<string, double> matrix_relative = 38;
-  // The account's familiars, which live beside the character, not in it.
-  FamiliarBook familiars = 40;
+  // The familiars, which the character now carries.
+  reserved 40;
 }

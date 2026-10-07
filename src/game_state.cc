@@ -1315,12 +1315,11 @@ LinkTally MaxTally(const std::vector<MaxMember>& account,
   return tally;
 }
 
-// The account's familiars at `level`, the three mains summoned in every
-// preset. Before Hyper Stats, whose best allocation reads their lines.
+// The familiars at `level`, the three mains summoned in every preset. Before
+// Hyper Stats, whose best allocation reads their lines.
 void WearMaxFamiliars(GameState& state, int level) {
-  state.account.mutable_familiars() =
-      MaxFamiliars(PrimaryStatField(state.character.proto().job()), level);
-  state.character.set_familiars(state.account.familiars());
+  state.character.set_familiars(
+      MaxFamiliars(PrimaryStatField(state.character.proto().job()), level));
   for (int slot = 0; slot < kNumStatPresets; ++slot) {
     for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
       state.character.SummonFamiliar(FamiliarRoster()[i].name,
@@ -1500,25 +1499,6 @@ BossOptions GameState::FightOptions() const {
   return options;
 }
 
-bool LevelUpFamiliar(GameState& state, const std::string& name) {
-  if (!ms::LevelUpFamiliar(state.account.mutable_familiars(), name,
-                           state.rng)) {
-    return false;
-  }
-  state.MirrorAccount();
-  return true;
-}
-
-bool CubeFamiliar(GameState& state, const std::string& name) {
-  if (FamiliarLevel(state.account.familiars(), name) < 1 ||
-      !state.character.SpendMeso(kFamiliarCubeMeso)) {
-    return false;
-  }
-  ms::CubeFamiliar(state.account.mutable_familiars(), name, state.rng);
-  state.MirrorAccount();
-  return true;
-}
-
 void GameState::MirrorAccount() {
   MirrorAccountOnto(character, inactive_characters, /*theirs=*/-1);
 }
@@ -1529,7 +1509,6 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
   into.set_autoswap_presets(account.autoswap_presets());
   into.set_account_max_level(account.max_level());
   into.set_noblesse_sp_earned(NoblesseSpEarned(account.solo_clears(), bosses));
-  into.set_familiars(account.familiars());
   // Only the others: a character provides their own line's link skill
   // themselves, since their level can change mid-session while a slot's can't.
   LinkTally tally;

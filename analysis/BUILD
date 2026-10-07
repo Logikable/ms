@@ -295,6 +295,7 @@ cc_test(
         "//src:game_state",
         "//src/character:character_stats",
         "//src/character:familiar",
+        "//src/protos:character_proto_cc",
         "//src/protos:familiar_proto_cc",
         "@googletest//:gtest_main",
     ],

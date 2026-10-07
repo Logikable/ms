@@ -517,25 +517,6 @@ class CharacterInstance {
   int noblesse_sp_earned() const {
     return noblesse_sp_earned_;
   }
-  // The account's familiars, copied here for the same reason: the familiar
-  // skill and the summoned familiars' lines are read wherever stats are.
-  void set_familiars(const FamiliarBook& book) {
-    familiars_ = book;
-  }
-  const FamiliarBook& familiars() const {
-    return familiars_;
-  }
-  // The familiars `slot` summons, by name. See Character.summoned_familiars.
-  const google::protobuf::RepeatedPtrField<std::string>& summoned_familiars(
-      StatPreset slot = StatPreset::kFirst) const;
-  // Summons `name` into `slot`, or dismisses it. Summoning fails if the preset
-  // is full, already has it, or the account has never levelled it. Returns
-  // whether anything changed.
-  bool SummonFamiliar(const std::string& name, StatPreset slot);
-  bool DismissFamiliar(const std::string& name, StatPreset slot);
-  // What the familiars the preset for `activity` summons give, read from the
-  // account's copy.
-  FamiliarTotals familiar_totals(Activity activity) const;
   // What this character has left of it. Never below 0, though a save can spend
   // more than the account now has earned if a boss leaves the catalog.
   int noblesse_sp() const {
@@ -550,6 +531,32 @@ class CharacterInstance {
   const LinkTally& link_tally() const {
     return link_tally_;
   }
+  // This character's familiars and their EXP pool. See
+  // //src/character:familiar.
+  const FamiliarBook& familiars() const {
+    return character_.familiars();
+  }
+  // Replaces them whole: max mode's, a sim's probe, a test's.
+  void set_familiars(const FamiliarBook& book) {
+    *character_.mutable_familiars() = book;
+  }
+  // Banks one familiar EXP per kill, from kFamiliarsLevel on.
+  void AddFamiliarExp(int64_t kills);
+  // Raises `name` one level from the pool, rolling its lines at the new rank.
+  bool LevelUpFamiliar(const std::string& name);
+  // One Familiar Cube on `name`, paid in meso. Refuses, taking nothing, when
+  // the character can't pay or never levelled it.
+  bool CubeFamiliar(const std::string& name);
+  // The familiars `slot` summons, by name. See Character.summoned_familiars.
+  const google::protobuf::RepeatedPtrField<std::string>& summoned_familiars(
+      StatPreset slot = StatPreset::kFirst) const;
+  // Summons `name` into `slot`, or dismisses it. Summoning fails if the preset
+  // is full, already has it, or the character has never levelled it. Returns
+  // whether anything changed.
+  bool SummonFamiliar(const std::string& name, StatPreset slot);
+  bool DismissFamiliar(const std::string& name, StatPreset slot);
+  // What the familiars the preset for `activity` summons give.
+  FamiliarTotals familiar_totals(Activity activity) const;
   // The link skills `slot` has equipped. The character's own line's link skill
   // is free and not in the list. See Character.link_skills.
   const google::protobuf::RepeatedPtrField<std::string>& link_skills(
@@ -680,7 +687,7 @@ class CharacterInstance {
     }
     if (skill.familiar_levels()) {
       return std::min(skill.max_level(),
-                      FamiliarSkillLevel(TotalFamiliarLevels(familiars_)));
+                      FamiliarSkillLevel(TotalFamiliarLevels(familiars())));
     }
     if (skill.guild() == GUILD_SKILL_PASSIVE) {
       return account_max_level() >= kGuildSkillsLevel ? skill.max_level() : 0;
@@ -943,8 +950,6 @@ class CharacterInstance {
   int noblesse_sp_earned_ = 0;
   // Copy of what the account's other characters have reached; see link_tally().
   LinkTally link_tally_;
-  // Copy of the account's familiars; see familiars().
-  FamiliarBook familiars_;
 
   // The level of a skill nobody buys: the account's highest level divided by
   // the levels each skill level costs, capped. See

@@ -11,6 +11,7 @@
 
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
+#include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
@@ -24,6 +25,7 @@
 #include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
@@ -4793,6 +4795,76 @@ TEST_F(ReconcileSpTest, ABookTheCharacterCannotHoldIsNotSpending) {
 
   EXPECT_EQ(c.ReconcileSp(skills), 0);
   EXPECT_EQ(c.sp(1), 60);
+}
+
+class FamiliarTest : public CharacterTest {};
+
+// Each character's kills bank EXP for their own familiars, from their own
+// level 190: nothing before.
+TEST_F(FamiliarTest, KillsBankFromTheCharactersOwnLevel) {
+  CharacterInstance below = MakeCharacter(rng_, kFamiliarsLevel - 1);
+  below.AddFamiliarExp(500);
+  EXPECT_EQ(below.familiars().exp(), 0);
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  c.AddFamiliarExp(500);
+  c.AddFamiliarExp(250);
+  EXPECT_EQ(c.familiars().exp(), 750);
+}
+
+// Levelling spends the pool, and only a levelled familiar can be summoned,
+// three to a preset.
+TEST_F(FamiliarTest, LevelledFamiliarsCanBeSummoned) {
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  EXPECT_FALSE(c.LevelUpFamiliar("Snail"));
+  c.AddFamiliarExp(FamiliarLevelCost(1));
+  ASSERT_TRUE(c.LevelUpFamiliar("Snail"));
+  EXPECT_EQ(c.familiars().exp(), 0);
+  EXPECT_EQ(FamiliarLevel(c.familiars(), "Snail"), 1);
+  EXPECT_FALSE(c.SummonFamiliar("Slime", StatPreset::kFirst))
+      << "never levelled";
+  EXPECT_TRUE(c.SummonFamiliar("Snail", StatPreset::kFirst));
+  EXPECT_FALSE(c.SummonFamiliar("Snail", StatPreset::kFirst)) << "already out";
+
+  for (const char* name : {"Slime", "Yeti", "Rash"}) {
+    c.AddFamiliarExp(FamiliarLevelCost(1));
+    ASSERT_TRUE(c.LevelUpFamiliar(name));
+  }
+  EXPECT_TRUE(c.SummonFamiliar("Slime", StatPreset::kFirst));
+  EXPECT_TRUE(c.SummonFamiliar("Yeti", StatPreset::kFirst));
+  EXPECT_FALSE(c.SummonFamiliar("Rash", StatPreset::kFirst))
+      << "three is the most";
+  EXPECT_TRUE(c.SummonFamiliar("Rash", StatPreset::kSecond));
+  EXPECT_TRUE(c.DismissFamiliar("Yeti", StatPreset::kFirst));
+  EXPECT_TRUE(c.SummonFamiliar("Rash", StatPreset::kFirst));
+}
+
+// A Familiar Cube costs its meso, keeps the rank, and takes nothing from a
+// character who can't pay or a familiar never levelled.
+TEST_F(FamiliarTest, AFamiliarCubeIsPaidInMeso) {
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  c.AddMeso(kFamiliarCubeMeso);
+  EXPECT_FALSE(c.CubeFamiliar("Snail"));
+  EXPECT_EQ(c.meso(), kFamiliarCubeMeso);
+
+  c.AddFamiliarExp(FamiliarLevelCost(1));
+  ASSERT_TRUE(c.LevelUpFamiliar("Snail"));
+  ASSERT_TRUE(c.CubeFamiliar("Snail"));
+  EXPECT_EQ(c.meso(), 0);
+  EXPECT_EQ(FamiliarLevel(c.familiars(), "Snail"), 1);
+  EXPECT_FALSE(c.CubeFamiliar("Snail")) << "out of meso";
+}
+
+// Familiars belong to the character, so the character's save carries them.
+TEST_F(FamiliarTest, FamiliarsRideTheCharactersSave) {
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  c.AddFamiliarExp(FamiliarLevelCost(1) + 7);
+  ASSERT_TRUE(c.LevelUpFamiliar("Snail"));
+  ASSERT_TRUE(c.SummonFamiliar("Snail", StatPreset::kSecond));
+  CharacterInstance loaded = MakeCharacter(rng_);
+  loaded.RestoreFrom(c.ToProto(), {}, {});
+  EXPECT_EQ(loaded.familiars().exp(), 7);
+  EXPECT_EQ(FamiliarLevel(loaded.familiars(), "Snail"), 1);
+  EXPECT_EQ(loaded.summoned_familiars(StatPreset::kSecond).size(), 1);
 }
 
 }  // namespace

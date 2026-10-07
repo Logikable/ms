@@ -1,4 +1,4 @@
-/* How the sims spend the account's familiar EXP and Familiar Cubes, the way a
+/* How the sims spend a character's familiar EXP and Familiar Cubes, the way a
  * player who measures would.
  *
  * Every familiar is alike, so the plan summons the roster's first three in
@@ -46,7 +46,7 @@ struct FamiliarSpend {
 double FamiliarReserve(const std::vector<double>& values,
                        const std::vector<double>& odds, double price);
 
-// Levels, summons and cubes the account's familiars under the rule above.
+// Levels, summons and cubes the character's familiars under the rule above.
 // `power` is the character's damage as the shelf measures it.
 FamiliarSpend SpendFamiliars(GameState& state,
                              const std::function<double(GameState&)>& power,

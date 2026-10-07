@@ -10,7 +10,6 @@
 
 #include "src/character/character.h"
 #include "src/character/consumables.h"
-#include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/drop.h"
@@ -95,9 +94,7 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     // kill here pays neither.
     if (!mob.boss()) {
       exp_gained += kills[i] * mob.exp();
-      if (character.account_max_level() >= kFamiliarsLevel) {
-        state.account.AddFamiliarExp(kills[i]);
-      }
+      character.AddFamiliarExp(kills[i]);
       // Applying the meso bonus to the total is the same as applying it to each
       // drop.
       int64_t meso = static_cast<int64_t>(

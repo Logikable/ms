@@ -61,11 +61,15 @@ Familiar& EntryFor(FamiliarBook& book, const std::string& name) {
   return added;
 }
 
-// The character's damage with `book` in place of the account's.
+// The character's damage with `book` in place of their own, which is put
+// back after.
 double PowerWith(GameState& state, const FamiliarBook& book,
                  const std::function<double(GameState&)>& power) {
+  const FamiliarBook held = state.character.familiars();
   state.character.set_familiars(book);
-  return power(state);
+  const double measured = power(state);
+  state.character.set_familiars(held);
+  return measured;
 }
 
 bool HoldsDrop(const Familiar& familiar) {
@@ -268,7 +272,8 @@ std::vector<std::string> BondSteps(const FamiliarBook& book, int64_t* cost) {
 // Summons the mains in every preset. A main never levelled can't be summoned
 // for real, so a probe book lends each a level while they are put out.
 void SummonMains(GameState& state) {
-  FamiliarBook probe = state.account.familiars();
+  const FamiliarBook held = state.character.familiars();
+  FamiliarBook probe = held;
   for (const std::string& main : Mains()) {
     Familiar& familiar = EntryFor(probe, main);
     familiar.set_level(std::max(familiar.level(), 1));
@@ -279,6 +284,7 @@ void SummonMains(GameState& state) {
       state.character.SummonFamiliar(main, StatPresetAt(slot));
     }
   }
+  state.character.set_familiars(held);
 }
 
 // Spends the pool a step at a time on the better of a main's next level and
@@ -287,7 +293,7 @@ int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
              const FamiliarPrices& prices) {
   int levels = 0;
   for (;;) {
-    const FamiliarBook& book = state.account.familiars();
+    const FamiliarBook& book = state.character.familiars();
     std::string main;
     int main_level = kFamiliarMaxLevel;
     for (const std::string& name : Mains()) {
@@ -335,7 +341,7 @@ int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
       break;
     }
     if (main_rate >= bond_rate) {
-      if (book.exp() < main_cost || !LevelUpFamiliar(state, main)) {
+      if (book.exp() < main_cost || !state.character.LevelUpFamiliar(main)) {
         break;
       }
       ++levels;
@@ -345,11 +351,10 @@ int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
       break;
     }
     for (const std::string& name : steps) {
-      LevelUpFamiliar(state, name);
+      state.character.LevelUpFamiliar(name);
       ++levels;
     }
   }
-  state.MirrorAccount();
   return levels;
 }
 
@@ -358,30 +363,29 @@ int SpendCubes(GameState& state, const std::function<double(GameState&)>& power,
                const FamiliarPrices& prices) {
   int cubes = 0;
   for (const std::string& main : Mains()) {
-    if (FamiliarLevel(state.account.familiars(), main) != kFamiliarMaxLevel) {
+    if (FamiliarLevel(state.character.familiars(), main) != kFamiliarMaxLevel) {
       continue;
     }
     const double reserve = CubeReserve(
-        SampledRolls(state, state.account.familiars(), main, power, prices),
+        SampledRolls(state, state.character.familiars(), main, power, prices),
         prices);
     // The held lines are measured together rather than summed, so two boss
     // lines past the cap count once.
-    FamiliarBook bare = state.account.familiars();
+    FamiliarBook bare = state.character.familiars();
     EntryFor(bare, main).clear_lines();
     const double without = PowerWith(state, bare, power);
     for (int rolled = 0; rolled < kMaxCubesPerLook; ++rolled) {
-      const FamiliarBook& book = state.account.familiars();
+      const FamiliarBook& book = state.character.familiars();
       double held = PowerWith(state, book, power) - without;
       if (!OtherHoldsDrop(book, main) && HoldsDrop(*FindFamiliar(book, main))) {
         held += prices.drop_line_power;
       }
-      if (held >= reserve || !CubeFamiliar(state, main)) {
+      if (held >= reserve || !state.character.CubeFamiliar(main)) {
         break;
       }
       ++cubes;
     }
   }
-  state.MirrorAccount();
   return cubes;
 }
 
@@ -417,11 +421,10 @@ FamiliarSpend SpendFamiliars(GameState& state,
                              const std::function<double(GameState&)>& power,
                              const FamiliarPrices& prices) {
   FamiliarSpend spend;
-  if (state.character.account_max_level() < kFamiliarsLevel) {
+  if (state.character.proto().level() < kFamiliarsLevel) {
     return spend;
   }
   SummonMains(state);
-  state.MirrorAccount();
   spend.levels = SpendExp(state, power, prices);
   const int64_t before = state.character.meso();
   spend.cubes = SpendCubes(state, power, prices);

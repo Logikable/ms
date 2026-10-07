@@ -1,17 +1,17 @@
-/* Familiars: a fixed roster the account levels with the kills its characters
- * make, each with two rolled lines, three summoned at a time.
+/* Familiars: a fixed roster each character levels with their own kills, each
+ * familiar with two rolled lines, three summoned at a time.
  *
  * GMS's card drops, badges and duplicate fusion are gone. Every familiar is
- * the account's from the start; farm kills fill one EXP pool, which the
- * player spends on whichever familiar they like. A familiar's level is its
+ * the character's from the start; their farm kills fill one EXP pool, which
+ * the player spends on whichever familiar they like. A familiar's level is its
  * rank, and every level-up rolls its lines afresh at the new rank, so a reroll
  * below Legendary is thrown away by the next level. The Familiar Cube rerolls
  * both lines for meso without changing the rank.
  *
  * What GMS's badges granted is a beginner skill whose level follows the total
- * of the account's familiar levels; see FamiliarSkillLevel.
+ * of the character's familiar levels; see FamiliarSkillLevel.
  *
- * Pure rules, like inner_ability.h; the account and character hold the state.
+ * Pure rules, like inner_ability.h; the character holds the state.
  */
 #ifndef MS_SRC_CHARACTER_FAMILIAR_H_
 #define MS_SRC_CHARACTER_FAMILIAR_H_
@@ -30,7 +30,7 @@
 
 namespace ms {
 
-// The account level Familiars open at. Kills before it add nothing.
+// The character level Familiars open at. Kills before it add nothing.
 inline constexpr int kFamiliarsLevel = 190;
 
 inline constexpr int kMaxSummonedFamiliars = 3;
@@ -83,7 +83,7 @@ std::vector<FamiliarLineType> FamiliarPool(PotentialRank rank);
 std::vector<FamiliarLine> RollFamiliarLines(PotentialRank rank,
                                             std::mt19937& rng);
 
-// The account's entry for `name`, or nullptr if it was never levelled.
+// The entry for `name`, or nullptr if it was never levelled.
 const Familiar* FindFamiliar(const FamiliarBook& book, const std::string& name);
 int FamiliarLevel(const FamiliarBook& book, const std::string& name);
 

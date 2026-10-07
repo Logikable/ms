@@ -414,8 +414,9 @@ message Character {
   // took from it.
   int32 noblesse_sp_spent = 30;
 
-  // The account's familiars this character summons, as three presets. Per
-  // character for the same reason as link_skills.
+  // This character's familiars and the EXP their kills have banked for them,
+  // and the ones summoned, as three presets. See //src/character:familiar.
+  FamiliarBook familiars = 32;
   SummonedFamiliars summoned_familiars = 31;
 
   // Learned skill levels, keyed by the skill's display name (Skill.name).

@@ -1293,7 +1293,7 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
     (*now.mutable_link_lines())[line.first] = line.second;
   }
   now.set_noblesse_sp(character.noblesse_sp_earned());
-  *now.mutable_familiars() = state.account.familiars();
+  *now.mutable_familiars() = state.character.familiars();
   now.mutable_familiars()->clear_exp();
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
     const std::string& item = entry.second.paid_with();
@@ -2166,7 +2166,6 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   saved.set_level(cursor.level);
   *saved.mutable_character() = run.state.character.ToProto();
   saved.set_current_map(run.state.current_map);
-  *saved.mutable_familiars() = run.state.account.familiars();
   saved.set_taken(run.taken);
   saved.set_earned(run.purse.earned);
   saved.set_spent(run.purse.spent);
@@ -2224,8 +2223,6 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.state.character.RestoreFrom(saved.character(), run.state.equips,
                                   run.state.items);
   run.state.current_map = saved.current_map();
-  run.state.account.mutable_familiars() = saved.familiars();
-  run.state.MirrorAccount();
   run.taken = saved.taken();
   run.purse.earned = saved.earned();
   run.purse.spent = saved.spent();

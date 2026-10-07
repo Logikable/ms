@@ -15,6 +15,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/multiplayer.pb.h"
 #include "src/testing/prototypes.h"
 
@@ -181,6 +182,23 @@ TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
   EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
       before, PublicSheet(state_->character)))
       << "a kill's honor must not be an update";
+}
+
+// Familiar EXP rises with every kill too, so it stays off the sheet; the
+// familiars it levels are on it.
+TEST_F(SessionTest, FamiliarExpDoesNotMoveTheSheet) {
+  FamiliarBook book;
+  Familiar& snail = *book.add_familiars();
+  snail.set_name("Snail");
+  snail.set_level(1);
+  state_->character.set_familiars(book);
+  Character before = PublicSheet(state_->character);
+  EXPECT_EQ(before.familiars().familiars_size(), 1);
+  book.set_exp(500);
+  state_->character.set_familiars(book);
+  EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
+      before, PublicSheet(state_->character)))
+      << "a kill's familiar EXP must not be an update";
 }
 
 // EXP reaches the lobby, since the Inspect screen has a bar to fill, but no

@@ -13,7 +13,6 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
-#include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/max_character.h"
@@ -201,50 +200,6 @@ GameState MakePlayModeStateWithItems() {
 }
 
 // The constructor stores each of the five catalogs in the field named after it.
-// Levelling a familiar spends the account's pool and reaches the character at
-// once, so the stats that read it need no save in between.
-TEST(GameStateTest, LevellingAFamiliarReachesTheCharacter) {
-  GameState state({}, {}, {}, {}, {});
-  EXPECT_FALSE(LevelUpFamiliar(state, "Snail"));
-  state.account.AddFamiliarExp(FamiliarLevelCost(1));
-  ASSERT_TRUE(LevelUpFamiliar(state, "Snail"));
-  EXPECT_EQ(state.account.familiars().exp(), 0);
-  EXPECT_EQ(FamiliarLevel(state.character.familiars(), "Snail"), 1);
-  EXPECT_FALSE(state.character.SummonFamiliar("Slime", StatPreset::kFirst))
-      << "never levelled";
-  EXPECT_TRUE(state.character.SummonFamiliar("Snail", StatPreset::kFirst));
-  EXPECT_FALSE(state.character.SummonFamiliar("Snail", StatPreset::kFirst))
-      << "already out";
-
-  for (const char* name : {"Slime", "Yeti", "Rash"}) {
-    state.account.AddFamiliarExp(FamiliarLevelCost(1));
-    ASSERT_TRUE(LevelUpFamiliar(state, name));
-  }
-  EXPECT_TRUE(state.character.SummonFamiliar("Slime", StatPreset::kFirst));
-  EXPECT_TRUE(state.character.SummonFamiliar("Yeti", StatPreset::kFirst));
-  EXPECT_FALSE(state.character.SummonFamiliar("Rash", StatPreset::kFirst))
-      << "three is the most";
-  EXPECT_TRUE(state.character.SummonFamiliar("Rash", StatPreset::kSecond));
-  EXPECT_TRUE(state.character.DismissFamiliar("Yeti", StatPreset::kFirst));
-  EXPECT_TRUE(state.character.SummonFamiliar("Rash", StatPreset::kFirst));
-}
-
-// A Familiar Cube costs its meso, rerolls at the same rank, and takes nothing
-// from a character who can't pay or a familiar never levelled.
-TEST(GameStateTest, AFamiliarCubeIsPaidInMeso) {
-  GameState state({}, {}, {}, {}, {});
-  state.character.AddMeso(kFamiliarCubeMeso);
-  EXPECT_FALSE(CubeFamiliar(state, "Snail"));
-  EXPECT_EQ(state.character.proto().meso(), kFamiliarCubeMeso);
-
-  state.account.AddFamiliarExp(FamiliarLevelCost(1));
-  ASSERT_TRUE(LevelUpFamiliar(state, "Snail"));
-  ASSERT_TRUE(CubeFamiliar(state, "Snail"));
-  EXPECT_EQ(state.character.proto().meso(), 0);
-  EXPECT_EQ(FamiliarLevel(state.account.familiars(), "Snail"), 1);
-  EXPECT_FALSE(CubeFamiliar(state, "Snail")) << "out of meso";
-}
-
 TEST(GameStateTest, ConstructorStoresEveryCatalog) {
   EquipPrototype equip;
   equip.set_name("Sword");
