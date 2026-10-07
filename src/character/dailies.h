@@ -5,8 +5,8 @@
  * areas in order: anyone who reached Lachelein passed through Vanishing Journey
  * and Chu Chu Island, whether or not they kept a symbol from either.
  *
- * A day's symbols come packed into one item per area instead of forty separate
- * copies, which would take forty bag rows. Feeding the packed item to a worn
+ * A day's symbols come packed into one item per area instead of 75 separate
+ * copies, which would take 75 bag rows. Feeding the packed item to a worn
  * symbol is worth the same either way; see SymbolWorth.
  *
  * Uses the boss reset time, so everything in the game resets at the same hour.
@@ -24,8 +24,9 @@
 
 namespace ms {
 
-// Copies of each symbol one day's claim gives.
-inline constexpr int kSymbolsPerDay = 40;
+// Copies of each symbol one day's claim gives. GMS gives 40 a day plus a
+// weekly quest of 80 done three times a week, about 74 a day.
+inline constexpr int kSymbolsPerDay = 75;
 
 // The symbols `character` can claim, in area order: every one at or below the
 // furthest they own, worn or in the bag. Empty if they own none.
@@ -44,7 +45,7 @@ bool ClaimDailies(CharacterInstance& character,
                   int64_t now);
 
 // A `proto` symbol containing `copies` of itself, levelled up as far as they
-// go. Forty Arcane copies make a level 3 symbol holding 12.
+// go. 75 Arcane copies make a level 5 symbol holding none.
 Equip PackedSymbol(const EquipPrototype& proto, int copies);
 
 }  // namespace ms

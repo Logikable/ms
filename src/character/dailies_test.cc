@@ -95,12 +95,12 @@ TEST_F(DailiesTest, OneSymbolOpensEveryAreaBelowIt) {
 }
 
 // A day's worth comes packed into one item per area, and is worth the same as
-// forty separate copies.
-TEST_F(DailiesTest, AClaimPacksFortyCopiesIntoOneItem) {
+// 75 separate copies.
+TEST_F(DailiesTest, AClaimPacksADaysCopiesIntoOneItem) {
   EquipPrototype chu_chu = Proto(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
   Equip packed = PackedSymbol(chu_chu, kSymbolsPerDay);
-  EXPECT_EQ(SymbolLevel(packed), 3);
-  EXPECT_EQ(packed.symbol_exp(), 12);
+  EXPECT_EQ(SymbolLevel(packed), 5);
+  EXPECT_EQ(packed.symbol_exp(), 0);
   EXPECT_EQ(SymbolWorth(chu_chu, packed), kSymbolsPerDay);
 
   PutInBag(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
