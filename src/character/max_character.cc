@@ -205,7 +205,7 @@ struct SymbolBand {
 constexpr SymbolBand kSymbolBands[] = {
     {200, {1, 0, 0, 0, 0, 0}},
     {230, {12, 10, 8, 6, 0, 0}},
-    {260, {17, 16, 15, 15, 14, 13}},
+    {260, {20, 20, 19, 19, 18, 17}},
 };
 
 // The level each fight's first solo clear came at in the same sweep. Hard

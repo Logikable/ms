@@ -1393,7 +1393,7 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 // at each level, so Arcane Force is checked against a real character.
 TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   const std::pair<int, int> kLevelForce[] = {
-      {200, 30}, {230, 4 * 20 + 36 * 10}, {kGrandisLevel, 90 * 10 + 6 * 20}};
+      {200, 30}, {230, 4 * 20 + 36 * 10}, {kGrandisLevel, 113 * 10 + 6 * 20}};
   for (const std::pair<int, int>& entry : kLevelForce) {
     GameState state = MakeMaxState(entry.first);
     EXPECT_EQ(state.character.base_arcane_force(), entry.second) << entry.first;
