@@ -182,6 +182,9 @@ class GearShopper {
     // stat it gives. The duplicates it uses aren't bought: they drop, and
     // CollectSymbols has already applied them.
     bool symbol = false;
+    // When set, the symbol levels bought in this order instead, to reach a
+    // bracket of the target fight's Arcane Force; see ForceRunOffer.
+    std::vector<EquipSlot> symbol_run;
     // A cube on one of the slot's potentials, valued as the run its stopping
     // rule expects (see //analysis:cube_plan). Which cube is `cube_type`.
     bool cube = false;
@@ -244,6 +247,12 @@ class GearShopper {
   // needs, since meso alone can't level one.
   std::optional<Candidate> SymbolOffer(GameState& state, const Basis& basis,
                                        EquipSlot slot);
+  // The cheapest symbol levels that lift the target fight's Arcane Force
+  // factor a bracket or more, at whichever bracket pays most per meso. Force
+  // steps, so one level alone usually reads as nothing; this is the star run's
+  // answer to the same problem. Nothing when no fight asks for force, it is
+  // already met at 150%, or the duplicates can't reach the next bracket.
+  std::optional<Candidate> ForceRunOffer(GameState& state, const Basis& basis);
   // Cube offers for every slot that takes one, priced against `best`: the
   // combat power a meso buys elsewhere on the shelf. Income lines convert at
   // this rate.
@@ -289,6 +298,10 @@ class GearShopper {
                GearSpend& spend);
   bool BuySplit(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuySymbol(GameState& state, EquipSlot slot, GearSpend& spend);
+  // Levels each slot of `run` in turn until the purse refuses. True if any
+  // level was bought.
+  bool BuySymbolRun(GameState& state, const std::vector<EquipSlot>& run,
+                    GearSpend& spend);
   // Rolls souls onto the boss weapon while the shards' odds beat the soul it
   // holds (see //analysis:soul_plan), each line measured against the
   // yardstick.

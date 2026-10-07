@@ -10,10 +10,12 @@
 #include <vector>
 
 #include "analysis/cube_plan.h"
+#include "analysis/sim_boss.h"
 #include "analysis/sim_gear.h"
 #include "analysis/soul_plan.h"
 #include "analysis/star_force_curve.h"
 #include "analysis/yardstick.h"
+#include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
@@ -25,6 +27,7 @@
 #include "src/item/soul.h"
 #include "src/item/spell_trace_cost.h"
 #include "src/item/star_force_cost.h"
+#include "src/map_force.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -332,9 +335,8 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   if (offer.cost <= 0) {
     return std::nullopt;
   }
-  // The level's value is the primary stat it adds. Its force is left
-  // out, since that affects which maps the character can fight on rather than
-  // the character itself, like ignored defence (see CubeBasis.yard).
+  // The level's value is the primary stat it adds. Its force is priced by
+  // ForceRunOffer, against the target fight's brackets.
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
       Minus(SymbolStatsFor(item->prototype(), primary, level + 1),
@@ -396,6 +398,91 @@ void GearShopper::PieceOffers(GameState& state, const Basis& basis,
   }
 }
 
+std::optional<GearShopper::Candidate> GearShopper::ForceRunOffer(
+    GameState& state, const Basis& basis) {
+  std::pair<std::string, int> fight;
+  if (!AimedFight(state, &fight)) {
+    return std::nullopt;
+  }
+  std::map<std::string, Boss>::const_iterator boss =
+      state.bosses.find(fight.first);
+  if (boss == state.bosses.end()) {
+    return std::nullopt;
+  }
+  const MapForce force = BossForceFor(boss->second.difficulties(fight.second),
+                                      state.character, state.skills);
+  if (force.required <= 0) {
+    return std::nullopt;
+  }
+  struct Held {
+    EquipSlot slot;
+    EquipPrototype proto;
+    ms::Equip worn;
+  };
+  std::vector<Held> held;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       state.character.equipped(kBossGear)) {
+    if (IsArcaneSymbol(entry.second->prototype())) {
+      held.push_back({entry.first, entry.second->prototype(),
+                      entry.second->equip_state()});
+    }
+  }
+  // The yardstick is read at a factor of 1, so every other offer's gain is
+  // damage over the current factor; the run's is put in the same units.
+  const double now = force.factors.damage_dealt;
+  const double top =
+      ArcaneFactorsFor(force.required * 2, force.required).damage_dealt;
+  const StatField primary = PrimaryStatField(state.character.proto().job());
+  EquipStats worn = basis.worn;
+  int owned = force.owned;
+  double factor = now;
+  Candidate run;
+  run.symbol = true;
+  std::optional<Candidate> best;
+  while (factor < top) {
+    Held* cheapest = nullptr;
+    int64_t price = 0;
+    for (Held& symbol : held) {
+      if (!SymbolCanLevelUp(symbol.proto, symbol.worn)) {
+        continue;
+      }
+      const int64_t cost =
+          SymbolLevelUpCost(symbol.proto, SymbolLevel(symbol.worn));
+      if (cost > 0 && (cheapest == nullptr || cost < price)) {
+        cheapest = &symbol;
+        price = cost;
+      }
+    }
+    if (cheapest == nullptr) {
+      break;
+    }
+    const int level = SymbolLevel(cheapest->worn);
+    LevelUpSymbol(cheapest->proto, cheapest->worn);
+    worn = Plus(worn, Minus(SymbolStatsFor(cheapest->proto, primary, level + 1),
+                            SymbolStatsFor(cheapest->proto, primary, level)));
+    owned += SymbolForce(cheapest->proto, level + 1) -
+             SymbolForce(cheapest->proto, level);
+    if (run.symbol_run.empty()) {
+      run.slot = cheapest->slot;
+      run.outlay = price;
+    }
+    run.symbol_run.push_back(cheapest->slot);
+    run.cost += price;
+    const double reached = ArcaneFactorsFor(owned, force.required).damage_dealt;
+    if (reached <= factor) {
+      continue;
+    }
+    factor = reached;
+    run.gain =
+        PowerWith(state, basis.yard, basis.derived, worn) * factor / now -
+        basis.power;
+    if (!best.has_value() || run.gain / run.cost > best->gain / best->cost) {
+      best = run;
+    }
+  }
+  return best;
+}
+
 std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);
@@ -415,6 +502,10 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
       continue;  // a symbol takes neither scrolls nor stars
     }
     PieceOffers(state, basis, slot, offers);
+  }
+  std::optional<Candidate> force_run = ForceRunOffer(state, basis);
+  if (force_run.has_value()) {
+    offers.push_back(*force_run);
   }
   // Farm, split and cube offers come after the rest, which set what a meso is
   // worth. They pay in income, and only that rate lets it rank against damage.
@@ -793,6 +884,19 @@ bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
   return true;
 }
 
+bool GearShopper::BuySymbolRun(GameState& state,
+                               const std::vector<EquipSlot>& run,
+                               GearSpend& spend) {
+  int bought = 0;
+  for (EquipSlot slot : run) {
+    if (!BuySymbol(state, slot, spend)) {
+      break;
+    }
+    ++bought;
+  }
+  return bought > 0;
+}
+
 bool GearShopper::BuySplit(GameState& state, EquipSlot slot, GearSpend& spend) {
   const EquipInstance* worn = state.character.WornAt(kBossGear, slot);
   if (worn == nullptr) {
@@ -824,6 +928,9 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (candidate.flame) {
     return BuyFlame(state, candidate.slot, candidate.flame_type,
                     candidate.flame_program, spend);
+  }
+  if (!candidate.symbol_run.empty()) {
+    return BuySymbolRun(state, candidate.symbol_run, spend);
   }
   if (candidate.symbol) {
     return BuySymbol(state, candidate.slot, spend);
