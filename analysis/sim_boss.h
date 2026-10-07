@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <map>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,10 +51,6 @@ int64_t BossTotalHp(const std::map<std::string, Mob>& mobs,
 // lever is measured against.
 int BossPdr(const std::map<std::string, Mob>& mobs,
             const BossDifficulty& difficulty);
-
-// Catalog keys of what the difficulty drops. Leave these off a character used
-// to measure the fight, since it can't need gear that only the fight gives out.
-std::set<std::string> BossOwnDrops(const BossDifficulty& difficulty);
 
 // The phase with the most HP, which skill spending aims to beat. A fight is
 // decided by its heaviest phase, not by Zakum's arms.

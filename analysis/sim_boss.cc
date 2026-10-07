@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -200,16 +199,6 @@ double AimedDefence(const GameState& state) {
     return 0.0;
   }
   return BossPdr(state.mobs, boss->second.difficulties(fight.second)) / 100.0;
-}
-
-std::set<std::string> BossOwnDrops(const BossDifficulty& difficulty) {
-  std::set<std::string> keys;
-  for (const MobDrop& drop : difficulty.drops()) {
-    if (drop.has_equip()) {
-      keys.insert(drop.equip());
-    }
-  }
-  return keys;
 }
 
 int BossObjectivePhase(const std::map<std::string, Mob>& mobs,

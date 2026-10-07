@@ -1,11 +1,6 @@
 #include "analysis/sim_format.h"
 
 #include <cstdio>
-#include <string>
-#include <vector>
-
-#include "absl/log/log.h"
-#include "src/character/exp_table.h"
 
 namespace ms {
 
@@ -19,32 +14,6 @@ void FormatShort(double value, char* out, int size) {
     }
   }
   snprintf(out, size, "%.0f", value);
-}
-
-std::vector<int> ParseLevels(const std::string& spec,
-                             const std::string& flag_name) {
-  std::vector<int> levels;
-  std::string digits;
-  for (int i = 0; i <= static_cast<int>(spec.size()); ++i) {
-    if (i == static_cast<int>(spec.size()) || spec[i] == ',') {
-      if (!digits.empty()) {
-        levels.push_back(std::stoi(digits));
-        digits.clear();
-      }
-    } else if (spec[i] != ' ') {
-      digits.push_back(spec[i]);
-    }
-  }
-  if (levels.empty()) {
-    LOG(FATAL) << flag_name << " named no levels";
-  }
-  for (int i = 0; i < static_cast<int>(levels.size()); ++i) {
-    if (levels[i] < 2 || levels[i] > kMaxLevel) {
-      LOG(FATAL) << flag_name << " level " << levels[i] << " is outside 2.."
-                 << kMaxLevel;
-    }
-  }
-  return levels;
 }
 
 }  // namespace ms

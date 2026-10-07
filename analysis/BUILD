@@ -699,10 +699,6 @@ cc_library(
     name = "sim_format",
     srcs = ["sim_format.cc"],
     hdrs = ["sim_format.h"],
-    deps = [
-        "//src/character:exp_table",
-        "@abseil-cpp//absl/log",
-    ],
 )
 
 cc_library(
