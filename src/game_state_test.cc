@@ -788,7 +788,7 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
 // Both potentials should be visible at every rank, so the workbench assigns the
 // four ranks across its worn gear instead of letting each piece roll. A run
 // where nothing reached Legendary would leave the display half-tested.
-TEST(GameStateTest, TestModeCubesAndFlamesEveryPieceAndSpreadsTheRanks) {
+TEST(GameStateTest, TestModeSpreadsPotentialRanks) {
   // The armour the workbench wears which, with the sword, gives five slots with
   // potential: enough to assign every rank.
   struct Piece {

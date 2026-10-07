@@ -60,7 +60,7 @@ TEST(ArenaSpotsTest, TimedSpotsOpenFromEachIntervalForTheirSpan) {
   EXPECT_EQ(ClosedSpots(BossPhase(), 80.0), std::vector<int>());
 }
 
-TEST(ArenaSpotsTest, APlayerDropsToTheNearestFreeSpotTiesGoingInward) {
+TEST(ArenaSpotsTest, DropsToNearestFreeSpot) {
   BossPhase phase = XArena();
   // Open: nobody moves.
   EXPECT_EQ(DropFromClosedSpots(phase, 60.0, {kLowLeft, kTopLeft}),

@@ -1026,7 +1026,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
 // Verus Hilla is one body in four equal bars, red, pink, yellow, green as GMS
 // draws them, teleporting over a player every five seconds to GMS's Altar of
 // Desire theme.
-TEST_F(BossDataTest, VerusHillaIsOneBodyInFourBarsThatHuntsThePlayer) {
+TEST_F(BossDataTest, VerusHillaIsFourBarsThatHunt) {
   ASSERT_GT(bosses_.count("verus_hilla"), 0u);
   const Boss& hilla = bosses_.at("verus_hilla");
   ASSERT_EQ(hilla.difficulties_size(), 2);

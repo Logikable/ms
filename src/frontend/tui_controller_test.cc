@@ -3882,7 +3882,7 @@ TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
 // --- the boss screen ---
 
 // Boss sits above Symbols in the Dailies box, so Up reaches Symbols first.
-TEST_F(TuiControllerTest, TheDailiesBoxOpensTheBossScreenAndClearsItsGold) {
+TEST_F(TuiControllerTest, DailiesBoxOpensBossScreen) {
   LevelTo(UnlockLevel(Feature::kSymbols));
   controller_->OpenMenuEntry(MenuEntry::kDailies);
   ASSERT_EQ(controller_->screen(), kMenuBox);

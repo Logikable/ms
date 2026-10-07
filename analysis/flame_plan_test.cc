@@ -107,7 +107,7 @@ class FlamePlanTest : public ::testing::Test {
 
 // A run ranks per meso against the shelf, so it is priced in its own flames;
 // a dearer meso stops it sooner, and at a price no roll pays it isn't offered.
-TEST_F(FlamePlanTest, ARunIsPricedInItsOwnFlamesAndStopsWithTheMeso) {
+TEST_F(FlamePlanTest, RunStopsWithTheMeso) {
   for (FlameType flame : {FlameType::kBurning, FlameType::kBlack}) {
     const FlameProgram free = Program(flame, 0.0);
     ASSERT_TRUE(free.worth()) << FlameName(flame);

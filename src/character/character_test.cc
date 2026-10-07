@@ -1237,7 +1237,7 @@ TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
 
 // A Noblesse skill spends the account's pool, which this character keeps a
 // tally against, and only it can hand its points back.
-TEST_F(LearnSkillTest, ANoblesseSkillSpendsAndRefundsTheAccountsPool) {
+TEST_F(LearnSkillTest, NoblesseSkillUsesAccountPool) {
   CharacterInstance c = MakeCharacterWithSp(rng_, 1, 5);
   Skill slayers = MakeSkill("Boss Slayers", JOB_ADVANCEMENT_BEGINNER, 15);
   slayers.set_guild(GUILD_SKILL_NOBLESSE);
@@ -4380,7 +4380,7 @@ TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
 
 // A Green Cube costs its own price, rolls the bonus potential and leaves the
 // main one alone, and its lines count toward worn stats like the main ones.
-TEST_F(CharacterTest, AGreenCubeRollsTheBonusPotentialAtItsOwnPrice) {
+TEST_F(CharacterTest, GreenCubeRollsBonusPotential) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_HAT)));
   ASSERT_TRUE(c.Equip(0));

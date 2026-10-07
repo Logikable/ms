@@ -3134,7 +3134,7 @@ ftxui::Component OnAbilityRows(CharacterPanel& panel) {
 
 // The tab is gated on this character's own level, and its gold is account-wide:
 // the first character there is told, and the next is not.
-TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt50AndIsGoldOnceAnAccount) {
+TEST_F(CharacterPanelTest, AbilityTabArrivesAt50) {
   Character early_proto;
   early_proto.set_level(kInnerAbilityUnlockLevel - 1);
   early_proto.set_job(JOB_SWORDMAN);

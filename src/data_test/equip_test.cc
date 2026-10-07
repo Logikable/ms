@@ -707,7 +707,7 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
 
 // The two Special Skill Rings, Lv. 1-6 each: GMS's item at every level, worn
 // where its kind goes, granting its skill at its own level with GMS's numbers.
-TEST(EquipDataTest, TheSpecialSkillRingsGrantGmsNumbersAtEachLevel) {
+TEST(EquipDataTest, SpecialSkillRingsMatchGms) {
   std::map<std::string, Skill> skills = LoadTestData<Skill>("skills");
   const Skill& restraint = skills.at("ring_of_restraint");
   const Skill& continuous = skills.at("continuous_ring");
@@ -824,7 +824,7 @@ TEST(EquipDataTest, EveryPetIsAFreeEightSlotItem) {
 // The three Antique Totems, worn together off the shelf: one to each totem
 // slot, the wiki's stats and the set's +15 on top. GMS lends them for 30 days;
 // here they are bought once, so they refuse every upgrade instead.
-TEST(EquipDataTest, TheAntiqueTotemsWearTogetherForTheirWikiTotals) {
+TEST(EquipDataTest, AntiqueTotemsMatchWiki) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::mt19937 rng(0);
   Character proto;

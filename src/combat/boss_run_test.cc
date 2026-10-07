@@ -291,7 +291,7 @@ TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
 
 // A timed spot can be reached only while it is open, is drawn only then, and
 // drops whoever stands on it when it closes. A giant's flag reaches its bar.
-TEST(BossRunTest, TimedSpotsOpenOnTheFightClockAndDropThePlayer) {
+TEST(BossRunTest, TimedSpotsDropThePlayer) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
   BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
@@ -1056,7 +1056,7 @@ TEST(BossRunTest, VoidDropsPaysAllButEquips) {
 
 // The first clear records the boss, names the skills it opens and pays its
 // Noblesse SP; a second does neither, and a practice clear records nothing.
-TEST(BossRunTest, OnlyAFirstRealClearOpensSkillsAndPaysNoblesseSp) {
+TEST(BossRunTest, OnlyFirstRealClearPaysNoblesse) {
   std::unique_ptr<GameState> state = MakeState();
   Skill spider;
   spider.set_name("True Arachnid Reflection");
@@ -1359,7 +1359,7 @@ TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
 
 // In a party the fall aims where the server last put the players, not where
 // this client has already moved, so every client aims at the same column.
-TEST(BossRunTest, AFollowedFallAimsWhereTheServerSaysThePlayersAre) {
+TEST(BossRunTest, FollowedFallAimsAtServerSpots) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = SpecialsBoss(false, true, 1000, 1000);
   TestAuthority authority(1);

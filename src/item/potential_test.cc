@@ -210,7 +210,7 @@ TEST(PotentialPoolTest, BonusPoolSizes) {
   }
 }
 
-TEST(PotentialPoolTest, BonusWeaponryRollsTheMainLinesAndNoneOfItsOwn) {
+TEST(PotentialPoolTest, BonusWeaponryRollsMainLines) {
   const std::vector<PotentialLineType> weapon =
       PotentialPool(PotentialTrack::kBonus, PotentialGroup::kWeaponry,
                     POTENTIAL_RANK_LEGENDARY);

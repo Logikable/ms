@@ -1080,7 +1080,7 @@ TEST_F(InspectPanelTest, ScrollsTheItemCardBetweenItsHeadAndItsFoot) {
 
 // The flame screen's card fixes the stats under the name and scrolls the rest:
 // the upgrade history and the potentials, with the bar standing on their rules.
-TEST_F(InspectPanelTest, TheFlameCardKeepsItsStatsAndScrollsThePotentials) {
+TEST_F(InspectPanelTest, FlameCardScrollsPotentials) {
   sword_.mutable_base_stats()->set_attack(5);
   sword_.mutable_base_stats()->set_str(3);
   Equip state;

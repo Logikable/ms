@@ -41,7 +41,7 @@ TEST_F(OptionsPanelTest, ListsTheSettingsAndTheCloseButton) {
   EXPECT_EQ(out.find("State"), std::string::npos);
 }
 
-TEST_F(OptionsPanelTest, GmsCombatPowerIsFirstShipsOffAndEnterThrowsIt) {
+TEST_F(OptionsPanelTest, GmsCombatPowerShipsOff) {
   EXPECT_EQ(panel_.selected_option(), Option::kGmsCombatPower);
   EXPECT_NE(Render().find("GMS Combat Power"), std::string::npos);
   EXPECT_FALSE(account_.gms_combat_power());
@@ -83,7 +83,7 @@ TEST_F(OptionsPanelTest, BuffIndicatorsShipOffAndEnterThrowsThem) {
   EXPECT_FALSE(account_.buff_indicators());
 }
 
-TEST_F(OptionsPanelTest, InnerAbilityEmojiShipsOnAndEnterThrowsIt) {
+TEST_F(OptionsPanelTest, InnerAbilityEmojiShipsOn) {
   SelectOption(Option::kInnerAbilityEmoji);
   EXPECT_NE(Render().find("Inner Ability Emoji"), std::string::npos);
   EXPECT_TRUE(account_.inner_ability_emoji());
