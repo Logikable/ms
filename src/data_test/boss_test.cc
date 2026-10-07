@@ -489,7 +489,7 @@ TEST_F(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
-  EXPECT_EQ(normal.unlock_level(), 170);
+  EXPECT_EQ(normal.unlock_level(), 180);
   EXPECT_EQ(normal.meso(), 12602500);
   EXPECT_EQ(normal.exp(), 50000000);
   ASSERT_EQ(normal.phases_size(), 1);
