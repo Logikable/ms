@@ -12,6 +12,7 @@
 #include "absl/types/span.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/consumables.h"
+#include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
@@ -154,6 +155,9 @@ struct PassiveTotals : DerivedStats {
   // Share of AP-bought stats given back as flat stats. It is summed, then
   // applied to the allocation once every passive is read; see DerivedStatsFor.
   double ap_stat_pct = 0.0;
+  // Skills' %STR/DEX/INT/LUK, which AddPotentials scales the way a potential's
+  // %stat line does. See SkillEffect.stat_pct.
+  double stat_pct = 0.0;
   // Share added to the one above before it is applied, so it multiplies Maple
   // Warrior's own grant. Sources add up.
   double ap_stat_bonus_pct = 0.0;
@@ -212,6 +216,7 @@ void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
   totals.combo_orb_gain_pct += granted.combo_orb_gain_pct();
   totals.final_dmg_combo_orbs += granted.final_dmg_combo_orbs();
   totals.ap_stat_pct += granted.ap_stat_pct();
+  totals.stat_pct += granted.stat_pct();
   totals.ap_stat_bonus_pct += granted.ap_stat_bonus_pct();
   totals.freeze.matt_per_stack +=
       WholeValue(granted.magic_attack_per_freeze_stack());
@@ -531,8 +536,7 @@ class ExclusiveBest {
 
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 const ExclusiveBest& exclusive, PassiveTotals& totals) {
-  SkillEffect granted =
-      exclusive.Thin(skill, EffectAt(skill.base(), skill.per_level(), level));
+  SkillEffect granted = exclusive.Thin(skill, SkillEffectAt(skill, level));
   if (DealsDamage(skill.kind())) {
     AddEffect(WithoutSwingLevers(granted), totals);
     // The part of an attack skill that stays with the character rather than the
@@ -1126,9 +1130,44 @@ void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
             paid.luk();
 }
 
+// Adds `from` to `into`, the way two worn items' potentials add.
+void AddPotentialTotals(const PotentialTotals& from, PotentialTotals& into) {
+  const EquipStats flats[] = {into.flat, from.flat};
+  into.flat = SumEquipStats(absl::MakeConstSpan(flats));
+  const EquipStats steps[] = {into.per_9_levels, from.per_9_levels};
+  into.per_9_levels = SumEquipStats(absl::MakeConstSpan(steps));
+  into.str_pct += from.str_pct;
+  into.dex_pct += from.dex_pct;
+  into.int_pct += from.int_pct;
+  into.luk_pct += from.luk_pct;
+  into.max_hp_pct += from.max_hp_pct;
+  into.attack_pct += from.attack_pct;
+  into.magic_attack_pct += from.magic_attack_pct;
+  into.damage_pct += from.damage_pct;
+  into.boss_pct += from.boss_pct;
+  into.ied = CombineIgnoredDefense(into.ied, from.ied);
+  into.crit_dmg += from.crit_dmg;
+  into.crit_rate += from.crit_rate;
+  into.meso_pct += from.meso_pct;
+  into.item_drop_pct += from.item_drop_pct;
+  into.cooldown_seconds += from.cooldown_seconds;
+}
+
+// Summoned familiars' lines join the worn potentials': GMS's familiar lines
+// read like potential lines, so a %stat line scales the same pile. Their flat
+// attack and boss drop line have no potential twin and are taken here and in
+// AddDropAndMesoRates.
 void AddPotentials(const CharacterInstance& character, Activity activity,
                    StatPreset worn, PassiveTotals& totals) {
-  const PotentialTotals& potential = character.potential_totals(worn);
+  PotentialTotals potential = character.potential_totals(worn);
+  const FamiliarTotals familiars = character.familiar_totals(activity);
+  AddPotentialTotals(familiars.lines, potential);
+  totals.attack += familiars.attack;
+  totals.magic_attack += familiars.attack;
+  potential.str_pct += totals.stat_pct;
+  potential.dex_pct += totals.stat_pct;
+  potential.int_pct += totals.stat_pct;
+  potential.luk_pct += totals.stat_pct;
   // Nothing has been added yet, so the pile is only the passives' flat grant.
   EquipStats passives;
   passives.set_str(totals.str);
@@ -1463,6 +1502,11 @@ void AddDropAndMesoRates(const CharacterInstance& character,
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
+  // A familiar's boss drop line, which only one summoned familiar can give.
+  if (preset == Activity::kBossing &&
+      character.familiar_totals(preset).boss_drop) {
+    stats.item_drop_pct += kFamiliarBossDropPct;
+  }
   stats.item_drop_pct = std::min(stats.item_drop_pct, kItemDropCap);
 }
 
@@ -1697,8 +1741,7 @@ int OwnedArcaneForce(const CharacterInstance& character,
     if (level <= 0 || !character.HoldsSkillFrom(skill, activity)) {
       continue;
     }
-    force += WholeValue(
-        EffectAt(skill.base(), skill.per_level(), level).arcane_force());
+    force += WholeValue(SkillEffectAt(skill, level).arcane_force());
   }
   return force;
 }

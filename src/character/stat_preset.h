@@ -41,7 +41,13 @@ inline StatPreset StatPresetAt(int index) {
 
 // Which kind of preset is meant. Each kind has its own presets and its own
 // active choice, so a character can use Hyper 1, Ability 3 and Gear 2 at once.
-enum class PresetKind { kHyperStats, kInnerAbility, kEquip, kLinkSkills };
+enum class PresetKind {
+  kHyperStats,
+  kInnerAbility,
+  kEquip,
+  kLinkSkills,
+  kFamiliars
+};
 
 // The gear preset used for the boss drop roll, regardless of the switch or what
 // is worn. There's no chance to change into drop gear before the drops fall, so

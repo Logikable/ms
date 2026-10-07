@@ -240,6 +240,15 @@ void AwardExp(GameState& state, int64_t amount);
 // one idle period can cover several levels.
 void GrantLevelRewards(GameState& state, int from_level, int to_level);
 
+// Raises the account's familiar `name` one level from the EXP pool, rolling
+// its lines at the new rank, and hands the result to the character. Returns
+// whether it levelled.
+bool LevelUpFamiliar(GameState& state, const std::string& name);
+
+// One Familiar Cube on `name`, paid from the character's meso. Refuses, and
+// takes nothing, if they can't pay or the familiar was never levelled.
+bool CubeFamiliar(GameState& state, const std::string& name);
+
 // The earliest level at which a piece of gear can be owned, which isn't always
 // the level it can be worn at: token-bought gear waits for the fight that pays
 // for it. Root Abyss gear is worn at 150 and paid for by bosses opening at 200;

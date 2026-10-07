@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "src/character/consumables.h"
+#include "src/character/familiar.h"
 #include "src/character/guild.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
@@ -18,6 +19,7 @@
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/testing/data_files.h"
 #include "src/testing/prototypes.h"
@@ -1735,6 +1737,121 @@ TEST_F(DerivedStatsTest, GuildPassivesArriveWithTheAccount) {
 
   CharacterInstance main = MakeCharacter(rng_, kGuildSkillsLevel, 0);
   EXPECT_EQ(OwnedArcaneForce(main, skills), 30) << "their own level counts";
+}
+
+// A level-200 character with 1000 STR from AP, so a 1% share is 10 points.
+CharacterInstance StrongCharacter(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(1000);
+  NeutralAbility(proto);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A familiar of `level` with `types` for lines, each at its rank.
+Familiar FamiliarWith(const std::string& name, int level,
+                      const std::vector<FamiliarLineType>& types) {
+  Familiar familiar;
+  familiar.set_name(name);
+  familiar.set_level(level);
+  for (FamiliarLineType type : types) {
+    FamiliarLine* line = familiar.add_lines();
+    line->set_type(type);
+    line->set_rank(FamiliarRank(level));
+  }
+  return familiar;
+}
+
+// A summoned familiar's %STR scales the same pile a potential's does, and it
+// gives nothing until summoned.
+TEST_F(DerivedStatsTest, ASummonedFamiliarsLinesCount) {
+  CharacterInstance c = StrongCharacter(rng_);
+  FamiliarBook book;
+  *book.add_familiars() = FamiliarWith(
+      "Snail", 4,
+      {FAMILIAR_LINE_TYPE_STR_PCT, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40});
+  c.set_familiars(book);
+  const DerivedStats before = DerivedStatsFor(c, {});
+  ASSERT_TRUE(c.SummonFamiliar("Snail", StatPreset::kFirst));
+  const DerivedStats after = DerivedStatsFor(c, {});
+  EXPECT_EQ(after.skill_stats.str() - before.skill_stats.str(), 60);
+  EXPECT_NEAR(after.ied, CombineIgnoredDefense(before.ied, 0.40), 1e-9);
+}
+
+// Each activity reads its own preset's familiars, and the boss drop line pays
+// only at a boss.
+TEST_F(DerivedStatsTest, FamiliarsFollowTheActivitysPreset) {
+  CharacterInstance c = MakeCharacter(rng_, 200, 0);
+  c.set_autoswap_presets(true);
+  FamiliarBook book;
+  *book.add_familiars() = FamiliarWith(
+      "Snail", 4,
+      {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_BOSS_DROP_RATE});
+  c.set_familiars(book);
+  const DerivedStats farm_before =
+      DerivedStatsFor(c, {}, {}, {}, Activity::kFarming);
+  const DerivedStats boss_before =
+      DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
+  ASSERT_TRUE(c.SummonFamiliar("Snail", AutoswapSlotFor(Activity::kBossing)));
+  const DerivedStats farm = DerivedStatsFor(c, {}, {}, {}, Activity::kFarming);
+  const DerivedStats boss = DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
+  EXPECT_DOUBLE_EQ(farm.boss_pct, farm_before.boss_pct);
+  EXPECT_DOUBLE_EQ(boss.boss_pct, boss_before.boss_pct + 0.40);
+  EXPECT_DOUBLE_EQ(boss.item_drop_pct,
+                   boss_before.item_drop_pct + kFamiliarBossDropPct);
+
+  ASSERT_TRUE(c.SummonFamiliar("Snail", AutoswapSlotFor(Activity::kFarming)));
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).item_drop_pct,
+      farm_before.item_drop_pct)
+      << "the drop line is for boss drops alone";
+}
+
+// Familiar Bond adds one stat per level, its level set by the account's
+// familiar levels added up.
+TEST_F(DerivedStatsTest, FamiliarBondClimbsWithTheFamiliars) {
+  std::map<std::string, Skill> skills = {
+      {"familiar_bond",
+       TestData<Skill>("skills/beginner").at("familiar_bond")}};
+  const Skill& bond = skills.at("familiar_bond");
+  CharacterInstance c = StrongCharacter(rng_);
+  EXPECT_EQ(c.skill_level(bond), 0);
+  const DerivedStats none = DerivedStatsFor(c, skills);
+
+  FamiliarBook book;
+  *book.add_familiars() = FamiliarWith("Snail", 2, {});
+  c.set_familiars(book);
+  EXPECT_EQ(c.skill_level(bond), 1);
+  const DerivedStats one = DerivedStatsFor(c, skills);
+  EXPECT_EQ(one.skill_stats.str() - none.skill_stats.str(), 4);
+
+  *book.add_familiars() = FamiliarWith("Slime", 1, {});
+  c.set_familiars(book);
+  EXPECT_EQ(c.skill_level(bond), 2);
+  const DerivedStats two = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(two.attack_pct - one.attack_pct, 0.03, 1e-9);
+
+  *book.add_familiars() = FamiliarWith("Yeti", 4, {});
+  *book.add_familiars() = FamiliarWith("Rash", 1, {});
+  c.set_familiars(book);
+  EXPECT_EQ(c.skill_level(bond), 3);
+  const DerivedStats three = DerivedStatsFor(c, skills);
+  EXPECT_EQ(three.skill_stats.str() - two.skill_stats.str(), 10)
+      << "1% of the 1004 STR pile";
+
+  book.clear_familiars();
+  for (const FamiliarSpecies& species : FamiliarRoster()) {
+    *book.add_familiars() = FamiliarWith(species.name, kFamiliarMaxLevel, {});
+  }
+  c.set_familiars(book);
+  EXPECT_EQ(c.skill_level(bond), 6);
+  const DerivedStats six = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(six.ied, CombineIgnoredDefense(none.ied, 0.15), 1e-9);
+  EXPECT_NEAR(six.crit_rate - none.crit_rate, 0.03, 1e-9);
+  EXPECT_NEAR(six.damage_pct - none.damage_pct, 0.03, 1e-9);
+  EXPECT_FALSE(c.LearnSkill(bond, 1)) << "nothing buys it";
 }
 
 // Two rules for a skill not marked for the 4th job's rule: the bonus never

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/equip.proto";
+import "src/protos/familiar.proto";
 import "src/protos/item.proto";
 
 // The character's job, named after the first advancement (Swordman, Archer,
@@ -412,6 +413,10 @@ message Character {
   // account's (see Account.solo_clears), so this character keeps only what it
   // took from it.
   int32 noblesse_sp_spent = 30;
+
+  // The account's familiars this character summons, as three presets. Per
+  // character for the same reason as link_skills.
+  SummonedFamiliars summoned_familiars = 31;
 
   // Learned skill levels, keyed by the skill's display name (Skill.name).
   // Missing or zero means not learned. Raised by spending that stage's SP.

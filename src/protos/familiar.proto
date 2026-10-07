@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/equip.proto";
+
+// What one familiar line grants. As with PotentialLineType, an effect GMS
+// offers at several sizes in one rank is one type per size, so a line's value
+// depends only on its type and rank; see FamiliarLineValue.
+enum FamiliarLineType {
+  FAMILIAR_LINE_TYPE_UNSPECIFIED = 0;
+  FAMILIAR_LINE_TYPE_STR = 1;
+  FAMILIAR_LINE_TYPE_DEX = 2;
+  FAMILIAR_LINE_TYPE_INT = 3;
+  FAMILIAR_LINE_TYPE_LUK = 4;
+  FAMILIAR_LINE_TYPE_MAX_HP = 5;
+  // Raises both attacks, so one line serves every job.
+  FAMILIAR_LINE_TYPE_ATTACK = 6;
+  FAMILIAR_LINE_TYPE_STR_PCT = 7;
+  FAMILIAR_LINE_TYPE_DEX_PCT = 8;
+  FAMILIAR_LINE_TYPE_INT_PCT = 9;
+  FAMILIAR_LINE_TYPE_LUK_PCT = 10;
+  FAMILIAR_LINE_TYPE_MAX_HP_PCT = 11;
+  FAMILIAR_LINE_TYPE_ALL_STATS_PCT = 12;
+  FAMILIAR_LINE_TYPE_ATTACK_PCT = 13;
+  FAMILIAR_LINE_TYPE_CRIT_RATE = 14;
+  FAMILIAR_LINE_TYPE_DAMAGE_PCT = 15;
+  FAMILIAR_LINE_TYPE_CRIT_DAMAGE = 16;
+  FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30 = 17;
+  FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_35 = 18;
+  FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40 = 19;
+  FAMILIAR_LINE_TYPE_BOSS_DAMAGE_20 = 20;
+  FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30 = 21;
+  FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40 = 22;
+  // Drop rate for boss drops only. One counts however many are summoned.
+  FAMILIAR_LINE_TYPE_BOSS_DROP_RATE = 23;
+}
+
+// One rolled line: its type and the rank it rolled at, which is the familiar's
+// rank or one below.
+message FamiliarLine {
+  FamiliarLineType type = 1;
+  PotentialRank rank = 2;
+}
+
+// One familiar the account has levelled. Its rank follows its level.
+message Familiar {
+  // The roster's name for it; see FamiliarRoster.
+  string name = 1;
+  // 0 to kFamiliarMaxLevel. A familiar never levelled has no entry.
+  int32 level = 2;
+  // Rolled afresh at every level-up and by every Familiar Cube.
+  repeated FamiliarLine lines = 3;
+}
+
+// The account's familiars and the EXP that levels them, which every farm kill
+// adds to once Familiars open.
+message FamiliarBook {
+  int64 exp = 1;
+  repeated Familiar familiars = 2;
+}
+
+// One preset's summoned familiars, by name, at most kMaxSummonedFamiliars.
+message FamiliarPreset {
+  repeated string names = 1;
+}
+
+// The familiars a character summons, as three presets, selected the same way
+// as link skills.
+message SummonedFamiliars {
+  // Always kNumStatPresets long once the character has summoned any.
+  repeated FamiliarPreset presets = 1;
+  // The preset in use, read only while Autoswap Presets is off.
+  int32 active = 2;
+}

@@ -16,6 +16,7 @@
 #include "src/item/bank.h"
 #include "src/protos/account.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
 
@@ -95,6 +96,18 @@ class AccountInstance {
   }
   // Records one. Returns false, and records nothing, for one already there.
   bool RecordSoloClear(const std::string& boss, const std::string& difficulty);
+
+  // The account's familiars and their EXP pool. See //src/character:familiar.
+  const FamiliarBook& familiars() const {
+    return account_.familiars();
+  }
+  FamiliarBook& mutable_familiars() {
+    return *account_.mutable_familiars();
+  }
+  // Adds one familiar EXP per kill.
+  void AddFamiliarExp(int64_t kills) {
+    account_.mutable_familiars()->set_exp(account_.familiars().exp() + kills);
+  }
 
   // Saves what the server issued, so the next connection is recognised as the
   // same player.

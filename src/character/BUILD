@@ -30,6 +30,7 @@ cc_library(
         ":consumables",
         ":equip_presets",
         ":exp_table",
+        ":familiar",
         ":guild",
         ":hyper_stats",
         ":inner_ability",
@@ -166,6 +167,34 @@ cc_test(
     srcs = ["sacred_power_test.cc"],
     deps = [
         ":sacred_power",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "familiar",
+    srcs = ["familiar.cc"],
+    hdrs = ["familiar.h"],
+    deps = [
+        ":stat_preset",
+        "//src/combat:damage",
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
+        "@abseil-cpp//absl/types:span",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "familiar_test",
+    size = "small",
+    srcs = ["familiar_test.cc"],
+    deps = [
+        ":familiar",
+        ":stat_preset",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -385,6 +414,7 @@ cc_library(
     deps = [
         ":character",
         ":consumables",
+        ":familiar",
         ":hyper_stats",
         ":inner_ability",
         ":skill_placement",
@@ -493,15 +523,18 @@ cc_test(
         ":character",
         ":character_stats",
         ":consumables",
+        ":familiar",
         ":guild",
         ":hyper_stats",
         ":inner_ability",
         ":symbol",
         ":v_matrix",
+        "//src/combat:damage",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:data_files",
         "//src/testing:prototypes",

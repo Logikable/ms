@@ -21,6 +21,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
+#include "src/character/familiar.h"
 #include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
@@ -516,6 +517,25 @@ class CharacterInstance {
   int noblesse_sp_earned() const {
     return noblesse_sp_earned_;
   }
+  // The account's familiars, copied here for the same reason: the familiar
+  // skill and the summoned familiars' lines are read wherever stats are.
+  void set_familiars(const FamiliarBook& book) {
+    familiars_ = book;
+  }
+  const FamiliarBook& familiars() const {
+    return familiars_;
+  }
+  // The familiars `slot` summons, by name. See Character.summoned_familiars.
+  const google::protobuf::RepeatedPtrField<std::string>& summoned_familiars(
+      StatPreset slot = StatPreset::kFirst) const;
+  // Summons `name` into `slot`, or dismisses it. Summoning fails if the preset
+  // is full, already has it, or the account has never levelled it. Returns
+  // whether anything changed.
+  bool SummonFamiliar(const std::string& name, StatPreset slot);
+  bool DismissFamiliar(const std::string& name, StatPreset slot);
+  // What the familiars the preset for `activity` summons give, read from the
+  // account's copy.
+  FamiliarTotals familiar_totals(Activity activity) const;
   // What this character has left of it. Never below 0, though a save can spend
   // more than the account now has earned if a boss leaves the catalog.
   int noblesse_sp() const {
@@ -657,6 +677,10 @@ class CharacterInstance {
                   Activity activity = Activity::kFarming) const {
     if (skill.account_levels_per_level() > 0) {
       return DerivedSkillLevel(skill);
+    }
+    if (skill.familiar_levels()) {
+      return std::min(skill.max_level(),
+                      FamiliarSkillLevel(TotalFamiliarLevels(familiars_)));
     }
     if (skill.guild() == GUILD_SKILL_PASSIVE) {
       return account_max_level() >= kGuildSkillsLevel ? skill.max_level() : 0;
@@ -919,6 +943,8 @@ class CharacterInstance {
   int noblesse_sp_earned_ = 0;
   // Copy of what the account's other characters have reached; see link_tally().
   LinkTally link_tally_;
+  // Copy of the account's familiars; see familiars().
+  FamiliarBook familiars_;
 
   // The level of a skill nobody buys: the account's highest level divided by
   // the levels each skill level costs, capped. See

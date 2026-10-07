@@ -121,6 +121,10 @@ bool DealsDamage(SkillKind kind);
 SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
                      int level);
 
+// A skill's own levers at `level`: its ladder, plus every Skill.step it has
+// reached.
+SkillEffect SkillEffectAt(const Skill& skill, int level);
+
 // A buff's levers at `level`: its ladder, plus every Buff.step it has reached.
 SkillEffect BuffEffectAt(const Buff& buff, int level);
 // Seconds a buff lasts at `level` the same way, before any boost or Buff

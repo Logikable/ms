@@ -1119,7 +1119,7 @@ std::vector<const Skill*> TakersIn(const CharacterInstance& character,
     // A derived skill never takes points, since nothing buys its levels. See
     // Skill.account_levels_per_level.
     if (!ListedIn(skill, book) || skill.hyper() != hyper ||
-        skill.account_levels_per_level() > 0 ||
+        skill.account_levels_per_level() > 0 || skill.familiar_levels() ||
         character.skill_level(skill) >= SkillMaxLevel(skill) ||
         character.proto().level() < skill.required_level() ||
         !character.MeetsSkillRequirement(skill)) {
@@ -1301,6 +1301,8 @@ StatPreset CharacterInstance::SlotInUse(PresetKind kind) const {
       return StatPresetAt(character_.equip_presets().active());
     case PresetKind::kLinkSkills:
       return StatPresetAt(character_.link_skills().active());
+    case PresetKind::kFamiliars:
+      return StatPresetAt(character_.summoned_familiars().active());
   }
   return StatPreset::kFirst;
 }
@@ -1318,6 +1320,9 @@ void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
       return;
     case PresetKind::kLinkSkills:
       character_.mutable_link_skills()->set_active(IndexOf(slot));
+      return;
+    case PresetKind::kFamiliars:
+      character_.mutable_summoned_familiars()->set_active(IndexOf(slot));
       return;
   }
 }
@@ -1341,6 +1346,10 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
     LinkSkills& link = *character_.mutable_link_skills();
     PresetOf(link, StatPresetAt(kNumStatPresets - 1));  // creates every preset
     link.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
+  } else if (kind == PresetKind::kFamiliars) {
+    SummonedFamiliars& summoned = *character_.mutable_summoned_familiars();
+    PresetOf(summoned, StatPresetAt(kNumStatPresets - 1));
+    summoned.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
   } else {
     InnerAbility& ability = *character_.mutable_inner_ability();
     MigrateInnerAbility(ability);
@@ -1608,7 +1617,8 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return LearnVNode(skill, amount);
   }
-  if (!HasBookFor(skill)) {
+  // The familiar skill's level is the account's familiars'; nothing buys it.
+  if (skill.familiar_levels() || !HasBookFor(skill)) {
     return false;
   }
   if (!MeetsSkillRequirement(skill)) {
@@ -1734,6 +1744,42 @@ bool CharacterInstance::UnequipLinkSkill(const std::string& name,
   }
   preset.mutable_skills()->erase(it);
   return true;
+}
+
+const google::protobuf::RepeatedPtrField<std::string>&
+CharacterInstance::summoned_familiars(StatPreset slot) const {
+  return PresetOf(character_.summoned_familiars(), slot).names();
+}
+
+bool CharacterInstance::SummonFamiliar(const std::string& name,
+                                       StatPreset slot) {
+  FamiliarPreset& preset =
+      PresetOf(*character_.mutable_summoned_familiars(), slot);
+  if (preset.names_size() >= kMaxSummonedFamiliars ||
+      absl::c_linear_search(preset.names(), name) ||
+      FamiliarLevel(familiars_, name) < 1) {
+    return false;
+  }
+  preset.add_names(name);
+  return true;
+}
+
+bool CharacterInstance::DismissFamiliar(const std::string& name,
+                                        StatPreset slot) {
+  FamiliarPreset& preset =
+      PresetOf(*character_.mutable_summoned_familiars(), slot);
+  auto it = absl::c_find(preset.names(), name);
+  if (it == preset.names().end()) {
+    return false;
+  }
+  preset.mutable_names()->erase(it);
+  return true;
+}
+
+FamiliarTotals CharacterInstance::familiar_totals(Activity activity) const {
+  return SummonedFamiliarTotals(
+      familiars_,
+      summoned_familiars(SlotFor(PresetKind::kFamiliars, activity)));
 }
 
 int CharacterInstance::ReconcileLinkSkills(

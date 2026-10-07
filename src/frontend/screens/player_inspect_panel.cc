@@ -62,6 +62,7 @@ void PlayerInspectPanel::SetPlayer(const PlayerInfo& player) {
     tally.Record(static_cast<Job>(line.first), line.second);
   }
   character_.set_link_tally(std::move(tally));
+  character_.set_familiars(player.familiars());
   character_.UseEquipSets(state_.equip_sets);
   if (!same_member) {
     Reset();

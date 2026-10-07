@@ -1,0 +1,34 @@
+# GMS's familiar badges, folded into one skill: each level adds one of the
+# capped badge stats, at the user's totals of familiar levels.
+name: "Familiar Bond"
+description:
+  "Permanently increases your stats, based on the total level of your "
+  "familiars."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 2 }
+familiar_levels: true
+max_level: 6
+step {
+  from_level: 1
+  base { str: 4 dex: 4 int: 4 luk: 4 }
+}
+step {
+  from_level: 2
+  base { attack_pct: 0.03 }
+}
+step {
+  from_level: 3
+  base { stat_pct: 0.01 }
+}
+step {
+  from_level: 4
+  base { damage_pct: 0.03 }
+}
+step {
+  from_level: 5
+  base { crit_rate: 0.03 }
+}
+step {
+  from_level: 6
+  base { ied_pct: 0.15 }
+}

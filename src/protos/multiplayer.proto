@@ -4,6 +4,7 @@ package ms;
 
 import "src/protos/character.proto";
 import "src/protos/equip.proto";
+import "src/protos/familiar.proto";
 
 // Messages between the client and the server. None of this is saved to disk, so
 // field numbers can move, but both ends must agree on them. That is what
@@ -76,6 +77,10 @@ message PlayerInfo {
   // their link skills can't be worked out from the sheet alone. See
   // //src/character:link.
   map<int32, int32> link_lines = 9;
+
+  // Their account's familiars, beside the sheet for the same reason: the sheet
+  // names which are summoned, and this says what those have rolled.
+  FamiliarBook familiars = 10;
 }
 
 // One player's place in a party.

@@ -2,7 +2,7 @@
 name: "Special Power"
 description: "Increases the Arcane Power of guild members."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 6 }
 guild: GUILD_SKILL_PASSIVE
 max_level: 1
 base { arcane_force: 30 }

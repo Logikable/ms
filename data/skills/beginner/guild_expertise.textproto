@@ -6,7 +6,7 @@ description:
   "Increases guild members' Attack Power, Magic ATT, stats and damage against "
   "normal enemies, and decreases damage taken."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 5 }
 guild: GUILD_SKILL_PASSIVE
 max_level: 1
 base {

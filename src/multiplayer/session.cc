@@ -53,6 +53,10 @@ PlayerInfo PlayerFor(const GameState& state) {
        state.character.link_tally().best_by_line()) {
     (*player.mutable_link_lines())[line.first] = line.second;
   }
+  // Their familiars, for the summoned ones' lines. Not the EXP pool, which
+  // rises with every kill and would send a sheet per kill, as Honor would.
+  *player.mutable_familiars() = state.account.familiars();
+  player.mutable_familiars()->clear_exp();
   // Their boss screen settings. The server requires the whole party to share
   // one set before it starts a fight.
   *player.mutable_boss_options() = state.FightOptions();

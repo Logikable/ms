@@ -25,10 +25,22 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "familiar_proto",
+    srcs = ["familiar.proto"],
+    deps = [":equip_proto"],
+)
+
+cc_proto_library(
+    name = "familiar_proto_cc",
+    deps = [":familiar_proto"],
+)
+
+proto_library(
     name = "character_proto",
     srcs = ["character.proto"],
     deps = [
         ":equip_proto",
+        ":familiar_proto",
         ":item_proto",
     ],
 )
@@ -53,6 +65,7 @@ proto_library(
     srcs = ["account.proto"],
     deps = [
         ":equip_proto",
+        ":familiar_proto",
         ":item_proto",
         ":keybinds_proto",
     ],
@@ -155,6 +168,7 @@ proto_library(
     deps = [
         ":character_proto",
         ":equip_proto",
+        ":familiar_proto",
     ],
 )
 

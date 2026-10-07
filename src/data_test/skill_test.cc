@@ -372,10 +372,12 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     // A Hyper Skill is bought from its own pool, a V node with V Points, and a
     // link skill costs nothing. A Vengeance form uses the ladder of the skill
-    // it replaces. An item grants its equipment skill.
+    // it replaces. An item grants its equipment skill, and the familiars the
+    // familiar skill.
     if (entry.second.hyper() || entry.second.granted_by_equip() ||
         entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
         entry.second.account_levels_per_level() > 0 ||
+        entry.second.familiar_levels() ||
         entry.second.link_line() != JOB_UNSPECIFIED ||
         entry.second.guild() != GUILD_SKILL_UNSPECIFIED ||
         !entry.second.replaces_skill_name().empty()) {

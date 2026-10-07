@@ -4,7 +4,7 @@
 name: "Continuous Ring"
 description:
   "Using skills increases your Attack Power, Magic ATT, and Boss Damage."
-placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 4 }
 kind: SKILL_KIND_PASSIVE
 granted_by_equip: true
 max_level: 6

@@ -8,6 +8,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
@@ -208,6 +209,25 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
       AwardCombatRewards(state, ComputeCombatParams(state), {100000});
   EXPECT_NEAR(tally.v_points, 100000 * kVPointDropChance, 40);
   EXPECT_EQ(state.character.v_points(), tally.v_points);
+}
+
+// Every kill adds one familiar EXP to the account's pool, but only once the
+// account has opened Familiars: nothing is banked before.
+TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPoolFromItsLevel) {
+  Mob mob = SnailMob();
+  mob.set_exp(0);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", mob}}, {{"field", SnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  state.character.set_account_max_level(kFamiliarsLevel - 1);
+  AwardCombatRewards(state, ComputeCombatParams(state), {500});
+  EXPECT_EQ(state.account.familiars().exp(), 0);
+
+  state.character.set_account_max_level(kFamiliarsLevel);
+  AwardCombatRewards(state, ComputeCombatParams(state), {500});
+  AwardCombatRewards(state, ComputeCombatParams(state), {250});
+  EXPECT_EQ(state.account.familiars().exp(), 750);
 }
 
 // A boss is paid from its fight's own reward table, so the boss mob itself

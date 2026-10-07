@@ -263,6 +263,10 @@ message SkillEffect {
   // Warrior multiplies nothing and gets nothing, which covers GMS's "can only
   // be used when you have Maple Warrior".
   double ap_stat_bonus_pct = 54;
+  // STR, DEX, INT and LUK by this share, the way a potential's %stat line
+  // scales them (see AddPotentials), unlike ap_stat_pct, which reads AP alone.
+  // It exists for the familiar skill's +1% all stats.
+  double stat_pct = 126;
   // Lines added to every multi-line swing the character makes, summed across
   // sources. GMS's exceptions follow from how swings work here: a summon fires
   // on its own timer, and a Final Attack has no line count to add to. A swing
@@ -959,6 +963,12 @@ message Buff {
   repeated BuffStep step = 32;
 }
 
+// One of Skill.step.
+message SkillStep {
+  int32 from_level = 1;
+  SkillEffect base = 2;
+}
+
 // One of Buff.step.
 message BuffStep {
   int32 from_level = 1;
@@ -1624,6 +1634,13 @@ message Skill {
   // decides which item counts. It costs no SP and gets no granted levels, and
   // the beginner's page lists it only while it is worn.
   bool granted_by_equip = 72;
+  // A skill nobody buys whose level follows the account's familiars: see
+  // FamiliarSkillLevel. max_level states its top.
+  bool familiar_levels = 107;
+  // What a passive adds from a level up, on top of its ladder, the way
+  // Buff.step does for a buff. The familiar skill adds a different stat at each
+  // level, which no base + per_level ladder can say.
+  repeated SkillStep step = 108;
   // What must be learned first, if anything. Named `required_skill` because
   // C++20 reserves `requires`.
   SkillRequirement required_skill = 8;

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/equip.proto";
+import "src/protos/familiar.proto";
 import "src/protos/item.proto";
 import "src/protos/keybinds.proto";
 
@@ -45,6 +46,11 @@ message Account {
   // aside. They pay the Noblesse SP every character spends; see
   // //src/character:guild.
   repeated SoloClear solo_clears = 9;
+
+  // Familiars are the account's, like the Bank: any character's kills level
+  // them, and each character picks which to summon. See
+  // //src/character:familiar.
+  FamiliarBook familiars = 10;
 }
 
 // One boss difficulty, named as BossClear names it.

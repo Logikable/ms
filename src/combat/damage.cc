@@ -292,6 +292,16 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
   return at;
 }
 
+SkillEffect SkillEffectAt(const Skill& skill, int level) {
+  SkillEffect at = EffectAt(skill.base(), skill.per_level(), level);
+  for (const SkillStep& step : skill.step()) {
+    if (level >= step.from_level()) {
+      at = EffectAt(at, step.base(), 2);
+    }
+  }
+  return at;
+}
+
 SkillEffect BuffEffectAt(const Buff& buff, int level) {
   SkillEffect at = EffectAt(buff.base(), buff.per_level(), level);
   for (const BuffStep& step : buff.step()) {
