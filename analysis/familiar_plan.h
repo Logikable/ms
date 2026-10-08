@@ -5,8 +5,9 @@
  * every preset and calls them the mains. EXP goes, a step at a time, to
  * whichever buys more damage per EXP: the next level of a main, valued as the
  * mean of the lines its new rank rolls, or the next level of Familiar Bond,
- * reached by levelling the others cheapest step first. When the better of the
- * two can't be afforded the pool waits for it.
+ * reached by levelling the others cheapest step first. Both are priced as the
+ * first step of the best run they start. When the better of the two can't be
+ * afforded the pool waits for it.
  *
  * Cubes go only on Legendary mains, since a level-up rerolls anything below.
  * They follow the cube rule (see //analysis:cube_plan): roll while the held

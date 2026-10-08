@@ -300,8 +300,10 @@ cc_test(
         "//src:game_state",
         "//src/character:character_stats",
         "//src/character:familiar",
+        "//src/character:skill_placement",
         "//src/protos:character_proto_cc",
         "//src/protos:familiar_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

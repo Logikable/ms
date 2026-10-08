@@ -5,9 +5,11 @@
 #include "gtest/gtest.h"
 #include "src/character/character_stats.h"
 #include "src/character/familiar.h"
+#include "src/character/skill_placement.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/familiar.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -63,6 +65,37 @@ TEST(SpendFamiliarsTest, TheMainsClimbToLegendary) {
   }
   EXPECT_EQ(state.character.summoned_familiars(StatPreset::kSecond).size(),
             kMaxSummonedFamiliars);
+}
+
+// A Familiar Bond whose fourth and fifth levels add nothing the damage reads
+// and whose sixth adds ignored defence.
+Skill LateBond() {
+  Skill bond;
+  bond.set_name("Familiar Bond");
+  bond.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(bond, JOB_ADVANCEMENT_BEGINNER);
+  bond.set_familiar_levels(true);
+  bond.set_max_level(6);
+  SkillStep* worthless = bond.add_step();
+  worthless->set_from_level(4);
+  worthless->mutable_base()->set_crit_rate(0.03);
+  SkillStep* ied = bond.add_step();
+  ied->set_from_level(6);
+  ied->mutable_base()->set_ied_pct(0.15);
+  return bond;
+}
+
+// Levels that are worth nothing alone are still bought on the way to one
+// that is.
+TEST(SpendFamiliarsTest, BondClimbsPastAWorthlessLevel) {
+  GameState state({}, {}, {}, {}, {}, {{"familiar_bond", LateBond()}});
+  SetLevel(state, kFamiliarsLevel);
+  const int64_t legendary = 1'000 + 9'000 + 50'000 + 200'000;
+  state.character.AddFamiliarExp(static_cast<int64_t>(FamiliarRoster().size()) *
+                                 legendary);
+  SpendFamiliars(state, BossPower, {});
+  EXPECT_EQ(
+      FamiliarSkillLevel(TotalFamiliarLevels(state.character.familiars())), 6);
 }
 
 // Cubes stop on lines worth the reservation value and are paid in meso.

@@ -307,14 +307,25 @@ int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
     const std::vector<std::string> steps = BondSteps(book, &bond_cost);
     double bond_rate = 0.0;
     if (!steps.empty()) {
+      // Priced as the first level of the best run it starts, as a main's
+      // step is: a level worth nothing alone (crit rate past the cap) still
+      // leads to the next.
+      const double now = PowerWith(state, book, power);
       FamiliarBook lifted = book;
-      for (const std::string& name : steps) {
-        Familiar& familiar = EntryFor(lifted, name);
-        familiar.set_level(familiar.level() + 1);
+      std::vector<std::string> next = steps;
+      int64_t next_cost = bond_cost;
+      int64_t run_cost = 0;
+      while (!next.empty()) {
+        for (const std::string& name : next) {
+          Familiar& familiar = EntryFor(lifted, name);
+          familiar.set_level(familiar.level() + 1);
+        }
+        run_cost += next_cost;
+        bond_rate =
+            std::max(bond_rate, (PowerWith(state, lifted, power) - now) /
+                                    static_cast<double>(run_cost));
+        next = BondSteps(lifted, &next_cost);
       }
-      bond_rate =
-          (PowerWith(state, lifted, power) - PowerWith(state, book, power)) /
-          static_cast<double>(bond_cost);
     }
     if (main_rate <= 0.0 && bond_rate <= 0.0) {
       break;
