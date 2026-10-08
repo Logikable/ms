@@ -137,9 +137,13 @@ class GearShopper {
 
   // Time left in the run and the current income, which decide what a %meso or
   // %drop potential line is worth (see CubeIncome). Without it, cubes are
-  // valued on combat power alone.
+  // valued on combat power alone. The shelf's own power_per_meso is kept: the
+  // familiar plan reads it between this and the next pass, and a zero there
+  // makes every Familiar Cube free.
   void SetIncome(const CubeIncome& income) {
+    const double rate = income_.power_per_meso;
     income_ = income;
+    income_.power_per_meso = rate;
   }
 
   // Spends what the character can spare on what they wear, buying the best

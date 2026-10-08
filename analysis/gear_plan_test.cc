@@ -80,6 +80,45 @@ class GearPlanTest : public ::testing::Test {
     character.AddItem(Shard(), 30 * kShardsPerSoul);
   }
 
+  // A level 200 character with a level 1 symbol worn, against a daily boss
+  // asking 100 Arcane Force. Returns the symbol.
+  EquipPrototype GrowAgainstTheWall() {
+    EquipPrototype weapon = Sword();
+    weapon.set_required_level(200);
+    Grow(200, weapon);
+    Mob wall = SnailMob();
+    wall.set_name("Wall");
+    wall.set_level(200);
+    wall.set_max_hp(1'000'000'000'000);
+    wall.set_boss(true);
+    state_->mobs["wall"] = wall;
+    Boss boss;
+    boss.set_name("Wall");
+    BossDifficulty* normal = boss.add_difficulties();
+    normal->set_name("Normal");
+    normal->set_reset(RESET_PERIOD_DAILY);
+    normal->set_unlock_level(200);
+    normal->set_time_limit_seconds(1800);
+    normal->set_arcane_force(100);
+    BossPhase* phase = normal->add_phases();
+    Spawn* spawn = phase->add_spawns();
+    spawn->set_mob("wall");
+    spawn->add_spots()->set_x(2);
+    ArenaSpot* stand = phase->add_player_spots();
+    stand->set_x(2);
+    stand->set_y(1);
+    state_->bosses["wall"] = boss;
+
+    const EquipPrototype symbol = VanishingJourneySymbol();
+    Equip banked;
+    banked.set_symbol_exp(1000);
+    CharacterInstance& character = state_->character;
+    character.PickUp(std::make_unique<EquipInstance>(symbol, banked));
+    EXPECT_TRUE(character.Equip(character.inventory().size() - 1));
+    EXPECT_EQ(character.base_arcane_force(), 30);
+    return symbol;
+  }
+
   const Soul& WornSoul() const {
     return state_->character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)
         ->equip_state()
@@ -138,39 +177,8 @@ TEST_F(GearPlanTest, NoSoulIsRolledBeforeTheEntryUnlocks) {
 // damage, and two levels reach 50%, 70%. The weapon's stars pay more than a
 // symbol level's stat alone, so only the bracket can put the purse there first.
 TEST_F(GearPlanTest, SymbolLevelsAreBoughtToTheFightsForceBracket) {
-  EquipPrototype weapon = Sword();
-  weapon.set_required_level(200);
-  Grow(200, weapon);
-  Mob wall = SnailMob();
-  wall.set_name("Wall");
-  wall.set_level(200);
-  wall.set_max_hp(1'000'000'000'000);
-  wall.set_boss(true);
-  state_->mobs["wall"] = wall;
-  Boss boss;
-  boss.set_name("Wall");
-  BossDifficulty* normal = boss.add_difficulties();
-  normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
-  normal->set_unlock_level(200);
-  normal->set_time_limit_seconds(1800);
-  normal->set_arcane_force(100);
-  BossPhase* phase = normal->add_phases();
-  Spawn* spawn = phase->add_spawns();
-  spawn->set_mob("wall");
-  spawn->add_spots()->set_x(2);
-  ArenaSpot* stand = phase->add_player_spots();
-  stand->set_x(2);
-  stand->set_y(1);
-  state_->bosses["wall"] = boss;
-
-  const EquipPrototype symbol = VanishingJourneySymbol();
-  Equip banked;
-  banked.set_symbol_exp(1000);
+  const EquipPrototype symbol = GrowAgainstTheWall();
   CharacterInstance& character = state_->character;
-  character.PickUp(std::make_unique<EquipInstance>(symbol, banked));
-  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
-  ASSERT_EQ(character.base_arcane_force(), 30);
   const int64_t run =
       SymbolLevelUpCost(symbol, 1) + SymbolLevelUpCost(symbol, 2);
   character.AddMeso(run - character.meso());
@@ -179,6 +187,19 @@ TEST_F(GearPlanTest, SymbolLevelsAreBoughtToTheFightsForceBracket) {
   shopper.Spend(*state_);
   EXPECT_EQ(character.base_arcane_force(), 50);
   EXPECT_EQ(shopper.life().symbols, run);
+}
+
+// The shelf's rate is what a Familiar Cube is priced at, read after the
+// income is set and before the next pass.
+TEST_F(GearPlanTest, SettingTheIncomeKeepsTheShelfsRate) {
+  GrowAgainstTheWall();
+  state_->character.AddMeso(1'000'000'000);
+  GearShopper shopper{GearPlan()};
+  shopper.Spend(*state_);
+  const double rate = shopper.power_per_meso();
+  ASSERT_GT(rate, 0.0);
+  shopper.SetIncome(CubeIncome());
+  EXPECT_EQ(shopper.power_per_meso(), rate);
 }
 
 }  // namespace
