@@ -8,15 +8,20 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/familiar.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/familiar_list.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text_field.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/item.h"
@@ -26,7 +31,7 @@
 namespace ms {
 namespace {
 
-const char* const kTabLabels[] = {"Gear", "Symbols"};
+const char* const kTabLabels[] = {"Gear", "Symbols", "Familiar"};
 const char* const kSymbolKindLabels[] = {"Arcane", "Sacred"};
 
 }  // namespace
@@ -38,16 +43,22 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Cube", "Flame",
              "Soul", "Close"}),
-      symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
+      symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}),
+      familiar_menu_(
+          {"Inspect", "Switch", "Rename", "Level Up", "Cube", "Close"}) {
   // Opens on the preset the character is wearing, so the tab the player sees is
   // their current gear and an item's comparison card compares against it. The
   // autoswap doesn't pick one preset, and its first tab is Farm.
   if (!character_.autoswap_presets()) {
     gear_preset_ = character_.SlotInUse(PresetKind::kEquip);
+    familiar_preset_ = character_.SlotInUse(PresetKind::kFamiliars);
   }
 }
 
 ItemMenu& EquippedPanel::menu() {
+  if (active_tab_ == kFamiliarTab) {
+    return familiar_menu_;
+  }
   return active_tab_ == kSymbolTab ? symbol_menu_ : menu_;
 }
 
@@ -57,6 +68,9 @@ std::vector<int> EquippedPanel::VisibleTabs() const {
   // and a tab that can only be empty isn't worth showing.
   if (Unlocked(Feature::kSymbols, character_, account_)) {
     tabs.push_back(kSymbolTab);
+  }
+  if (Unlocked(Feature::kFamiliars, character_, account_)) {
+    tabs.push_back(kFamiliarTab);
   }
   return tabs;
 }
@@ -79,6 +93,9 @@ std::vector<EquippedRow> EquippedPanel::Rows(
   if (active_tab_ == kSymbolTab) {
     return SymbolRows(character_, symbol_kind_, selected_, slide);
   }
+  if (active_tab_ == kFamiliarTab) {
+    return {};  // drawn by RenderFamiliarRow, and counted by ListCount
+  }
   return EquippedRows(character_, selected_, slide, Columns(), gear_preset_);
 }
 
@@ -91,6 +108,9 @@ ItemColumns EquippedPanel::Columns() const {
 }
 
 int EquippedPanel::ListCount() const {
+  if (active_tab_ == kFamiliarTab && !on_expand_) {
+    return character_.summoned_familiars(familiar_preset_).size();
+  }
   return static_cast<int>(
       Rows(std::chrono::steady_clock::duration::zero()).size());
 }
@@ -101,6 +121,10 @@ bool EquippedPanel::ShowsSubBar() const {
   }
   if (active_tab_ == kSymbolTab) {
     return Unlocked(Feature::kSacredSymbols, character_, account_);
+  }
+  // The presets, and the balances beside them, arrive with the tab.
+  if (active_tab_ == kFamiliarTab) {
+    return true;
   }
   return Unlocked(Feature::kEquipPresets, character_, account_);
 }
@@ -136,8 +160,10 @@ void EquippedPanel::MoveCursor(int delta) {
 }
 
 void EquippedPanel::StepPreset(int direction) {
-  gear_preset_ = StatPresetAt(
-      std::clamp(IndexOf(gear_preset_) + direction, 0, kNumStatPresets - 1));
+  StatPreset& preset =
+      active_tab_ == kFamiliarTab ? familiar_preset_ : gear_preset_;
+  preset = StatPresetAt(
+      std::clamp(IndexOf(preset) + direction, 0, kNumStatPresets - 1));
 }
 
 void EquippedPanel::StepSymbolKind(int direction) {
@@ -152,6 +178,12 @@ void EquippedPanel::StepSymbolKind(int direction) {
 }
 
 int EquippedPanel::menu_column() const {
+  // A familiar's menu covers its mob and lines, past the border, the caret and
+  // the name.
+  if (active_tab_ == kFamiliarTab) {
+    return 1 + kItemListCursor +
+           FitFamiliarColumns(width_ - 2, /*in_use=*/false).name + kItemCellGap;
+  }
   // The border, then the row up to the end of the slot cell: the caret, the
   // name and the slot, each with its leading gap.
   ItemColumns columns = Columns();
@@ -242,7 +274,29 @@ void EquippedPanel::HighlightTrail() {
   }
 }
 
+void EquippedPanel::OpenFamiliarMenu() {
+  familiar_menu_.Reset();
+  const FamiliarBook& book = character_.familiars();
+  const std::string species = selected_familiar();
+  const int level = FamiliarLevel(book, species);
+  // Hidden at the top, where there is no next level; grey while the pool is
+  // short, so the entry says what is missing.
+  if (level >= kFamiliarMaxLevel) {
+    familiar_menu_.Hide(kFamiliarMenuLevelUp);
+  } else if (!CanLevelFamiliar(book, species)) {
+    familiar_menu_.Disable(kFamiliarMenuLevelUp);
+  }
+  // A familiar at level 0 has no lines to reroll.
+  if (level < 1) {
+    familiar_menu_.Hide(kFamiliarMenuCube);
+  }
+}
+
 void EquippedPanel::OpenMenu() {
+  if (active_tab_ == kFamiliarTab) {
+    OpenFamiliarMenu();
+    return;
+  }
   if (active_tab_ == kSymbolTab) {
     symbol_menu_.Reset();
     EquipSlot slot = selected_slot();
@@ -283,8 +337,25 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   if (!IsForward(event)) {
     return kItemMenu;
   }
-  // Unequip and Inspect are the first two entries of both menus, so neither
-  // needs to check which menu is open.
+  if (active_tab_ == kFamiliarTab) {
+    switch (open.selected()) {
+      case kFamiliarMenuInspect:
+        return kFamiliarInspect;
+      case kFamiliarMenuSwitch:
+        return kFamiliarSwitch;
+      case kFamiliarMenuRename:
+        rename_field_.BeginEdit();
+        return kMain;
+      case kFamiliarMenuLevelUp:
+        return kFamiliarLevel;
+      case kFamiliarMenuCube:
+        return kFamiliarCube;
+      default:
+        return kMain;
+    }
+  }
+  // Unequip and Inspect are the first two entries of the gear and symbol
+  // menus, so neither needs to check which of the two is open.
   if (open.selected() == kGearMenuUnequip) {
     character_.Unequip(selected_slot(), gear_preset_);
     return kMain;
@@ -323,6 +394,62 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   return kMain;
 }
 
+std::string EquippedPanel::selected_familiar() const {
+  if (active_tab_ != kFamiliarTab || on_expand_) {
+    return "";
+  }
+  const auto& names = character_.summoned_familiars(familiar_preset_);
+  if (selected_ < 0 || selected_ >= names.size()) {
+    return "";
+  }
+  return names[selected_];
+}
+
+ftxui::Element EquippedPanel::RenderFamiliarRow(int index,
+                                                bool on_cursor) const {
+  const FamiliarColumns columns =
+      FitFamiliarColumns(width_ - 2, /*in_use=*/false);
+  const std::string& species =
+      character_.summoned_familiars(familiar_preset_)[index];
+  const FamiliarCells cells =
+      FamiliarRowCells(character_.familiars(), species, columns, false);
+  ftxui::Element name = nullptr;
+  if (index == selected_ && rename_field_.editing()) {
+    // As the character's name field draws itself: inverted, with a caret
+    // after the typed text, so an empty field still looks like a field.
+    name = ftxui::text(PadRight(rename_field_.text() + "_", columns.name)) |
+           ftxui::inverted;
+  }
+  return FamiliarRowElement(on_cursor ? "> " : "  ", cells, std::move(name));
+}
+
+ftxui::Element EquippedPanel::RenderFamiliarBalances() const {
+  const FamiliarBook& book = character_.familiars();
+  // Read-only on another player's sheet, which carries their familiars but not
+  // their pool.
+  std::string text = "Total Lv " + std::to_string(TotalFamiliarLevels(book));
+  if (!read_only_) {
+    text += "   " + FormatWithCommas(book.exp()) + " EXP";
+  }
+  return ftxui::text(text) | ftxui::color(kTheme);
+}
+
+bool EquippedPanel::OnRenameEvent(const ftxui::Event& event) {
+  const std::string species = selected_familiar();
+  const TextEntry entry = rename_field_.OnEvent(event);
+  if (entry == TextEntry::kCommitted && !species.empty()) {
+    character_.RenameFamiliar(species, rename_field_.text());
+    rename_field_.EndEdit();
+  }
+  // Up and Down discard the typed name and then move, as on the character's
+  // name field.
+  if (entry == TextEntry::kCancelled &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+  }
+  return true;
+}
+
 EquipSlot EquippedPanel::selected_slot() const {
   std::vector<EquippedRow> rows =
       Rows(std::chrono::steady_clock::duration::zero());
@@ -340,6 +467,14 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   // Enter acts on the one they are on.
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kEquipPanel;
+  if (active_tab_ == kFamiliarTab && !on_expand_ && idx >= 0 &&
+      idx < ListCount()) {
+    ftxui::Element row = RenderFamiliarRow(idx, on_cursor);
+    if (idx == selected_) {
+      row = std::move(row) | ftxui::reflect(cursor_box_);
+    }
+    return HighlightRow(std::move(row), on_cursor);
+  }
   std::string cursor = on_cursor ? "> " : "  ";
   if (idx < 0 || idx >= static_cast<int>(row_texts_.size())) {
     return HighlightRow(ftxui::text(cursor + state.label), on_cursor);
@@ -367,6 +502,9 @@ std::string EquippedPanel::Header() const {
   if (active_tab_ == kSymbolTab) {
     return SymbolHeader(symbol_kind_);
   }
+  if (active_tab_ == kFamiliarTab) {
+    return FamiliarHeader(FitFamiliarColumns(width_ - 2, /*in_use=*/false));
+  }
   return ItemListHeader(Columns());
 }
 
@@ -384,6 +522,15 @@ void EquippedPanel::RebuildRows() {
   // about the character and only the worn weapon's row uses it. Never shown on
   // someone else's gear: the trail is about the reader's own upgrades.
   bool lead = !read_only_ && LeadToWeapon(character_, account_);
+  if (active_tab_ == kFamiliarTab && !on_expand_) {
+    for (const std::string& species :
+         character_.summoned_familiars(familiar_preset_)) {
+      entries_.push_back(FamiliarDisplayName(character_.familiars(), species));
+      inactive_.push_back(false);
+      row_texts_.push_back({});
+      led_.push_back(false);
+    }
+  }
   for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
     inactive_.push_back(row.inactive || row.inherited);
     row_texts_.push_back(row.text);
@@ -433,13 +580,31 @@ ftxui::Element EquippedPanel::RenderSubBar(bool row_selected) const {
     return TabBar(specs, static_cast<int>(symbol_kind_), row_selected,
                   /*width=*/0);
   }
+  const PresetKind kind =
+      active_tab_ == kFamiliarTab ? PresetKind::kFamiliars : PresetKind::kEquip;
   for (int i = 0; i < kNumStatPresets; ++i) {
     const StatPreset slot = StatPresetAt(i);
-    specs.push_back({PresetSlotLabel(
-        slot, character_.autoswap_presets(),
-        character_.SlotInUse(PresetKind::kEquip) == slot, PresetKind::kEquip)});
+    specs.push_back(
+        {PresetSlotLabel(slot, character_.autoswap_presets(),
+                         character_.SlotInUse(kind) == slot, kind)});
   }
-  return TabBar(specs, IndexOf(gear_preset_), row_selected, /*width=*/0);
+  if (active_tab_ != kFamiliarTab) {
+    return TabBar(specs, IndexOf(gear_preset_), row_selected, /*width=*/0);
+  }
+  // The balances sit in the middle of the row, as the bag's currencies sit in
+  // its tab row, moved right only to keep a gutter from the last chip.
+  ftxui::Element chips =
+      TabBar(specs, IndexOf(familiar_preset_), row_selected, /*width=*/0);
+  ftxui::Element balances = RenderFamiliarBalances();
+  const int chips_width = ftxui::Dimension::Fit(chips).dimx;
+  const int balances_width = ftxui::Dimension::Fit(balances).dimx;
+  const int inner = width_ - 2;
+  const int room = std::max(0, inner - chips_width - balances_width);
+  const int lead = std::min(
+      room,
+      std::max(kBalanceGutter, (inner - balances_width) / 2 - chips_width));
+  return ftxui::hbox({std::move(chips), ftxui::text(std::string(lead, ' ')),
+                      std::move(balances), ftxui::filler()});
 }
 
 ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
@@ -541,12 +706,20 @@ bool EquippedPanel::OnSubBarEvent(const ftxui::Event& event) {
     character_.SetSlotInUse(PresetKind::kEquip, gear_preset_);
     return true;
   }
+  if (IsForward(event) && active_tab_ == kFamiliarTab &&
+      !character_.autoswap_presets() && !read_only_) {
+    character_.SetSlotInUse(PresetKind::kFamiliars, familiar_preset_);
+    return true;
+  }
   // Consume everything else, for the same reason as on the bar.
   return true;
 }
 
 bool EquippedPanel::OnListEvent(const ftxui::Event& event,
                                 const std::function<void()>& on_enter) {
+  if (rename_field_.editing()) {
+    return OnRenameEvent(event);
+  }
   // Handle the two ends of the list here and leave the rest to the ftxui::Menu,
   // which scrolls the view to follow its own cursor and would stop if its keys
   // were taken.

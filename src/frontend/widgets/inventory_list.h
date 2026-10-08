@@ -92,6 +92,10 @@ ftxui::Element CurrencyHeader();
 ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
                                  const CurrencyAmount* shard);
 
+// The minimum gap between the balances and the last tab chip. Without it a
+// count reads as part of the tab beside it.
+inline constexpr int kBalanceGutter = 8;
+
 // Which balance a bar's cursor is on. Only the bank screen lets the cursor land
 // on them. Elsewhere they are read-only.
 enum BalanceCell : int {

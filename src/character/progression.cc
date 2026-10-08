@@ -10,6 +10,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/familiar.h"
 #include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/link.h"
@@ -77,6 +78,7 @@ constexpr Unlock kUnlocks[] = {
     // something in it when it appears.
     {Feature::kSymbols, 200},
     {Feature::kVPoints, 200},
+    {Feature::kFamiliars, kFamiliarsLevel},
     // Grandis's level. No symbol comes free here: the first is a drop.
     {Feature::kSacredSymbols, kGrandisLevel},
     // Cubing's level: the presets arrive along with the reason to keep two sets
@@ -220,10 +222,10 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
   if (level < UnlockLevel(feature)) {
     return false;
   }
-  if (feature == Feature::kHyperStats) {
+  if (feature == Feature::kHyperStats || feature == Feature::kFamiliars) {
     // Checked against this character's level: the points come from their own
     // levels, so an account-wide unlock would show a new character fourteen
-    // rows with nothing to spend.
+    // rows with nothing to spend. Familiar EXP likewise.
     return character.proto().level() >= UnlockLevel(feature);
   }
   return true;
@@ -275,6 +277,8 @@ std::string FeatureName(Feature feature) {
       return "Arcane Symbols";
     case Feature::kSacredSymbols:
       return "Sacred Symbols";
+    case Feature::kFamiliars:
+      return "Familiars";
     case Feature::kVPoints:
       return "V Points";
     case Feature::kEquipPresets:

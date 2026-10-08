@@ -29,10 +29,6 @@ constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
 constexpr int kVPointCell = 13;
 
-// The minimum gap between the balances and the last tab chip. Without it a
-// count reads as part of the tab beside it.
-constexpr int kBalanceGutter = 8;
-
 // The row's cells side by side, with any lead and tail cells the caller passed.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
                    ftxui::Element tail, int body_width) {

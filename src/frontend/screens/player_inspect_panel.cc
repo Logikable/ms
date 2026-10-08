@@ -96,6 +96,10 @@ EquipSlot PlayerInspectPanel::selected_slot() const {
   return equip_panel_->selected_slot();
 }
 
+std::string PlayerInspectPanel::selected_familiar() const {
+  return equip_panel_->selected_familiar();
+}
+
 bool PlayerInspectPanel::OnEvent(const ftxui::Event& event) {
   if (IsSwitchPanel(event)) {
     // Nothing to move to while one panel fills the screen, as on the main view.

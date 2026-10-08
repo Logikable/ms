@@ -14,6 +14,7 @@
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
+#include "src/character/familiar.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
@@ -452,7 +453,7 @@ void TuiController::OpenMapSelect() {
 }
 
 bool TuiController::capturing_key() const {
-  if (char_panel_.editing_username()) {
+  if (char_panel_.editing_username() || equip_panel_.renaming()) {
     return true;
   }
   return screen_ == kKeybinds && keybinds_panel_.capturing();
@@ -763,7 +764,7 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   // An open name field takes every key it can: Escape closes the field rather
   // than the game, and Tab must not move focus off a panel mid-edit. This only
   // declines the keys so the panel receives them.
-  if (char_panel_.editing_username()) {
+  if (char_panel_.editing_username() || equip_panel_.renaming()) {
     return false;
   }
   if (IsBack(event)) {
@@ -905,6 +906,14 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnAbilityRerollEvent(event);
     case kSymbolCombine:
       return OnSymbolCombineEvent(event);
+    case kFamiliarInspect:
+      return OnFamiliarInspectEvent(event);
+    case kFamiliarSwitch:
+      return OnFamiliarSwitchEvent(event);
+    case kFamiliarLevel:
+      return OnFamiliarLevelEvent(event);
+    case kFamiliarCube:
+      return OnFamiliarCubeEvent(event);
     case kMultiSell:
       return OnMultiSellEvent(event);
     case kMapSelect:
@@ -1108,9 +1117,11 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
     symbol_slot_ = equip_panel_.selected_slot();
     const EquipInstance& symbol = *state_.character.equipped().at(symbol_slot_);
     int level = SymbolLevel(symbol.equip_state());
-    symbol_level_panel_.Reset(symbol.prototype().name(), level,
-                              SymbolLevelUpCost(symbol.prototype(), level),
-                              state_.character.meso());
+    level_up_panel_.Reset(
+        symbol.prototype().name(), level,
+        FormatMeso(SymbolLevelUpCost(symbol.prototype(), level)),
+        state_.character.meso() >=
+            SymbolLevelUpCost(symbol.prototype(), level));
   }
   if (next == kSymbolCombine) {
     // Uses the spare's own slot: it can only be fed to the symbol of its area,
@@ -1124,6 +1135,36 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
         worn.prototype().name(), level, worn.equip_state().symbol_exp(),
         SymbolExpToNextLevel(worn.prototype(), level),
         state_.character.SpareSymbolWorths(symbol_slot_));
+  }
+  return next;
+}
+
+Screen TuiController::SeedFamiliarScreen(Screen next) {
+  if (next != kFamiliarInspect && next != kFamiliarSwitch &&
+      next != kFamiliarLevel && next != kFamiliarCube) {
+    return next;
+  }
+  familiar_species_ = equip_panel_.selected_familiar();
+  familiar_preset_ = equip_panel_.familiar_preset();
+  familiar_row_ = equip_panel_.familiar_row();
+  if (familiar_species_.empty()) {
+    return kMain;  // the row disappeared from under the menu
+  }
+  right_card_focused_ = false;
+  familiar_card_.Reset();
+  if (next == kFamiliarSwitch) {
+    familiar_switch_panel_.Reset(familiar_species_);
+  }
+  if (next == kFamiliarLevel) {
+    const FamiliarBook& book = state_.character.familiars();
+    const int level = FamiliarLevel(book, familiar_species_);
+    level_up_panel_.Reset(
+        FamiliarDisplayName(book, familiar_species_), level,
+        FormatWithCommas(FamiliarLevelCost(level + 1)) + " EXP",
+        CanLevelFamiliar(book, familiar_species_));
+  }
+  if (next == kFamiliarCube) {
+    familiar_cube_panel_.Reset();
   }
   return next;
 }
@@ -1147,6 +1188,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   next = SeedUpgradeScreen(next);
   next = SeedSaleScreen(next);
   next = SeedSymbolScreen(next);
+  next = SeedFamiliarScreen(next);
   screen_ = next;
   return true;
 }
@@ -3094,6 +3136,12 @@ void TuiController::OpenPlayerAllStats() {
 }
 
 void TuiController::OpenPlayerItemInspect() {
+  // A familiar gets its own card on the same screen.
+  if (!player_inspect_panel_.selected_familiar().empty()) {
+    familiar_card_.Reset();
+    screen_ = kPlayerItemInspect;
+    return;
+  }
   // The card reads the item from the panel's cursor, so no pointer is held
   // across a tick that may rebuild the member.
   if (player_inspect_panel_.selected_item() != nullptr) {
@@ -3139,6 +3187,14 @@ bool TuiController::OnPlayerAllStatsEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnPlayerItemInspectEvent(ftxui::Event event) {
+  if (!player_inspect_panel_.selected_familiar().empty()) {
+    if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+      familiar_card_.ScrollBy(event == ftxui::Event::ArrowUp ? -1 : 1);
+    } else if (IsBack(event) || IsForward(event)) {
+      screen_ = kPlayerInspect;
+    }
+    return true;
+  }
   return OnCardEvent(event, player_item_panel_, kPlayerInspect);
 }
 
@@ -3917,8 +3973,90 @@ bool TuiController::OnSellEquipEvent(ftxui::Event event) {
   return true;
 }
 
+// Read-only, like an item's card: the arrows scroll it, and Enter or Escape
+// closes it.
+bool TuiController::OnFamiliarInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    familiar_card_.ScrollBy(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsBack(event) || IsForward(event)) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnFamiliarSwitchEvent(ftxui::Event event) {
+  FamiliarSwitchPanel& panel = familiar_switch_panel_;
+  const bool busy = panel.IsConfirming();
+  // Tab passes the arrows to the card beside the list, as on the cubing
+  // screen.
+  if (!busy && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy && right_card_focused_ &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    familiar_card_.ScrollBy(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  switch (panel.OnEvent(event)) {
+    case FamiliarSwitchPanel::Action::kEquip:
+      state_.character.SwitchFamiliar(familiar_preset_, familiar_row_,
+                                      panel.selected());
+      screen_ = kMain;
+      break;
+    case FamiliarSwitchPanel::Action::kClose:
+      screen_ = kMain;
+      break;
+    case FamiliarSwitchPanel::Action::kNone:
+      break;
+  }
+  return true;
+}
+
+bool TuiController::OnFamiliarLevelEvent(ftxui::Event event) {
+  ConfirmChoice choice = level_up_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.LevelUpFamiliar(familiar_species_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnFamiliarCubeEvent(ftxui::Event event) {
+  // The purse before any key, so Confirm greys without waiting for a render.
+  familiar_cube_panel_.SetFamiliar(
+      FindFamiliar(state_.character.familiars(), familiar_species_),
+      state_.character.meso());
+  const bool busy = familiar_cube_panel_.IsConfirming();
+  if (IsBack(event) && !busy) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!busy && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    if (right_card_focused_) {
+      familiar_card_.ScrollBy(event == ftxui::Event::ArrowUp ? -1 : 1);
+    }
+    return true;
+  }
+  if (familiar_cube_panel_.OnEvent(event) == RerollAction::kReroll) {
+    // The window stays up over the lines it just rerolled.
+    state_.character.CubeFamiliar(familiar_species_);
+  }
+  return true;
+}
+
 bool TuiController::OnSymbolLevelEvent(ftxui::Event event) {
-  ConfirmChoice choice = symbol_level_panel_.OnEvent(event);
+  ConfirmChoice choice = level_up_panel_.OnEvent(event);
   if (choice == ConfirmChoice::kPending) {
     return true;
   }

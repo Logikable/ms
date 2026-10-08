@@ -82,6 +82,9 @@ PotentialRank FamiliarRank(int level);
 // for the rest. 0 where the rank doesn't offer it.
 int FamiliarLineValue(FamiliarLineType type, PotentialRank rank);
 
+// Whether `type` grants flat points rather than percents.
+bool FamiliarLineIsFlat(FamiliarLineType type);
+
 // The lines a roll at `rank` picks from, all equally likely.
 std::vector<FamiliarLineType> FamiliarPool(PotentialRank rank);
 

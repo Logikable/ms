@@ -1,7 +1,10 @@
-/* EquippedPanel shows what the character is wearing, in two tabs: Gear, and the
- * symbols carried into Arcane River and Grandis, one kind at a time. Each gear
- * row shows the item's columns (see ItemColumns). A symbol shows its level, its
- * progress to the next one, and the force it grants.
+/* EquippedPanel shows what the character is wearing, in three tabs: Gear, the
+ * symbols carried into Arcane River and Grandis, one kind at a time, and the
+ * familiars summoned. Each gear row shows the item's columns (see
+ * ItemColumns). A symbol shows its level, its progress to the next one, and
+ * the force it grants. A familiar shows the Familiar list's columns (see
+ * familiar_list.h), and its tab has presets of its own, as Gear does, with
+ * the total of familiar levels and the unspent EXP beside them.
  *
  * Focus moves top to bottom through zones, as in the bag. The top zone is the
  * tab bar, where Left and Right switch tabs. Once cubing unlocks the presets,
@@ -38,6 +41,7 @@
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text_field.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -45,7 +49,7 @@ namespace ms {
 class EquippedPanel {
  public:
   // The tabs, in bar order.
-  enum Tab { kGearTab, kSymbolTab };
+  enum Tab { kGearTab, kSymbolTab, kFamiliarTab };
 
   EquippedPanel(CharacterInstance& character, AccountInstance& account,
                 int& panel_focus);
@@ -69,6 +73,23 @@ class EquippedPanel {
   // on Farm with the autoswap on, until the player moves along the preset row.
   StatPreset gear_preset() const {
     return gear_preset_;
+  }
+  // The familiar preset the Familiar tab shows, chosen the way gear_preset()
+  // is.
+  StatPreset familiar_preset() const {
+    return familiar_preset_;
+  }
+  // The roster name of the highlighted familiar, or empty off the Familiar
+  // tab's list.
+  std::string selected_familiar() const;
+  // The highlighted familiar's row in its preset, which Switch replaces.
+  int familiar_row() const {
+    return selected_;
+  }
+  // Whether the highlighted familiar's name is being typed. The controller
+  // gives the panel every key while it is, as for the character's name.
+  bool renaming() const {
+    return rename_field_.editing();
   }
   // Which content tab is open. The controller checks it so Enter on a symbol
   // opens the symbol's screens rather than an equip's. Moving onto Expand
@@ -129,6 +150,15 @@ class EquippedPanel {
   // rows, so one pair of keys moves through the whole panel.
   enum Zone { kZoneTabs, kZoneSubBar, kZoneList };
 
+  // The familiar menu's entries for the familiar under the cursor.
+  void OpenFamiliarMenu();
+  // One familiar row, with the rename field in its name cell while it is
+  // being typed.
+  ftxui::Element RenderFamiliarRow(int index, bool on_cursor) const;
+  // The total of familiar levels and the unspent EXP, beside the presets.
+  ftxui::Element RenderFamiliarBalances() const;
+  // Keys while the name is typed. Always consumes them.
+  bool OnRenameEvent(const ftxui::Event& event);
   // The three passes OpenMenu makes over the gear menu: hide what the account
   // hasn't unlocked, then what this item can't take, then place the gold trail
   // on the entries that remain.
@@ -197,6 +227,7 @@ class EquippedPanel {
   bool on_expand_ = false;
   Zone zone_ = kZoneList;
   StatPreset gear_preset_ = StatPreset::kFirst;
+  StatPreset familiar_preset_ = StatPreset::kFirst;
   // Which symbol list the Symbols tab shows.
   SymbolKind symbol_kind_ = SymbolKind::kArcane;
   int selected_ = 0;
@@ -222,6 +253,9 @@ class EquippedPanel {
   ftxui::Box cursor_box_;
   ItemMenu menu_;
   ItemMenu symbol_menu_;
+  ItemMenu familiar_menu_;
+  // The familiar name the Rename entry opens, as long as a character's.
+  TextField rename_field_{kMaxUsernameLength};
 };
 
 }  // namespace ms

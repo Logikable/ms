@@ -1,4 +1,4 @@
-#include "src/frontend/screens/symbol_level_panel.h"
+#include "src/frontend/screens/level_up_panel.h"
 
 #include <gtest/gtest.h>
 
@@ -9,6 +9,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/format.h"
 
 namespace ms {
 namespace {
@@ -16,9 +17,9 @@ namespace {
 // confirm_prompt_test covers the [Confirm]/[Cancel] mechanics. These tests
 // cover what this dialog says and what it does with an answer it can't carry
 // out.
-class SymbolLevelPanelTest : public testing::Test {
+class LevelUpPanelTest : public testing::Test {
  protected:
-  static std::string Render(const SymbolLevelPanel& panel) {
+  static std::string Render(const LevelUpPanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(48),
                                                  ftxui::Dimension::Fixed(12));
     ftxui::Render(screen, panel.Render());
@@ -26,9 +27,10 @@ class SymbolLevelPanelTest : public testing::Test {
   }
 };
 
-TEST_F(SymbolLevelPanelTest, ShowsTheRungAndItsPrice) {
-  SymbolLevelPanel panel;
-  panel.Reset("Arcane Symbol: Vanishing Journey", 8, 1'810'000, 5'000'000);
+TEST_F(LevelUpPanelTest, ShowsTheRungAndItsPrice) {
+  LevelUpPanel panel;
+  panel.Reset("Arcane Symbol: Vanishing Journey", 8, FormatMeso(1'810'000),
+              5'000'000 >= 1'810'000);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Vanishing Journey"), std::string::npos);
   EXPECT_NE(rendered.find("8"), std::string::npos);
@@ -39,9 +41,10 @@ TEST_F(SymbolLevelPanelTest, ShowsTheRungAndItsPrice) {
 
 // A purse that can't cover the level gets the question shown and refused,
 // instead of a dialog that closes as if something happened.
-TEST_F(SymbolLevelPanelTest, AnUnaffordableRungCannotBeConfirmed) {
-  SymbolLevelPanel panel;
-  panel.Reset("Arcane Symbol: Chu Chu Island", 3, 1'810'000, 100);
+TEST_F(LevelUpPanelTest, AnUnaffordableRungCannotBeConfirmed) {
+  LevelUpPanel panel;
+  panel.Reset("Arcane Symbol: Chu Chu Island", 3, FormatMeso(1'810'000),
+              100 >= 1'810'000);
   EXPECT_FALSE(panel.affordable());
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   // It is still open, showing the same question.
@@ -50,15 +53,17 @@ TEST_F(SymbolLevelPanelTest, AnUnaffordableRungCannotBeConfirmed) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
-TEST_F(SymbolLevelPanelTest, AnAffordableRungConfirms) {
-  SymbolLevelPanel panel;
-  panel.Reset("Arcane Symbol: Morass", 1, 970'000, 970'000);
+TEST_F(LevelUpPanelTest, AnAffordableRungConfirms) {
+  LevelUpPanel panel;
+  panel.Reset("Arcane Symbol: Morass", 1, FormatMeso(970'000),
+              970'000 >= 970'000);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
-TEST_F(SymbolLevelPanelTest, ThePriceKeepsOffTheRightBorder) {
-  SymbolLevelPanel panel;
-  panel.Reset("Arcane Symbol: Vanishing Journey", 8, 1'810'000, 5'000'000);
+TEST_F(LevelUpPanelTest, ThePriceKeepsOffTheRightBorder) {
+  LevelUpPanel panel;
+  panel.Reset("Arcane Symbol: Vanishing Journey", 8, FormatMeso(1'810'000),
+              5'000'000 >= 1'810'000);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
 }
 }  // namespace

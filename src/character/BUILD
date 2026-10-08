@@ -438,6 +438,7 @@ cc_library(
         ":character",
         ":consumables",
         ":exp_table",
+        ":familiar",
         ":guild",
         ":hyper_stats",
         ":link",

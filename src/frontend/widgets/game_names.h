@@ -18,6 +18,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -116,6 +117,12 @@ std::string SoulTierName(SoulTier tier);
 // What `line` is worth on an item of `item_level`: "+12", "+9%", or "-2s" for a
 // cooldown reduction.
 std::string PotentialLineValueText(const PotentialLine& line, int item_level);
+
+// A familiar line's name on a card ("Boss Damage"), its short name for a
+// column ("Boss"), and what it is worth at its rank ("+40%", "+6").
+std::string FamiliarLineName(FamiliarLineType type);
+std::string FamiliarLineShortName(FamiliarLineType type);
+std::string FamiliarLineValueText(const FamiliarLine& line);
 
 // A potential line's short name for a column: "Crit DMG", "IED", "CD". Cards
 // with room use PotentialLineName.

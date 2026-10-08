@@ -130,6 +130,99 @@ cc_test(
 )
 
 cc_library(
+    name = "familiar_cube_panel",
+    srcs = ["familiar_cube_panel.cc"],
+    hdrs = ["familiar_cube_panel.h"],
+    deps = [
+        "//src/character:familiar",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:reroll_prompt",
+        "//src/frontend/widgets:text_columns",
+        "//src/protos:familiar_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "familiar_cube_panel_test",
+    size = "small",
+    srcs = ["familiar_cube_panel_test.cc"],
+    deps = [
+        ":familiar_cube_panel",
+        "//src/character:familiar",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/widgets:reroll_prompt",
+        "@ftxui//:component",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "familiar_switch_panel",
+    srcs = ["familiar_switch_panel.cc"],
+    hdrs = ["familiar_switch_panel.h"],
+    deps = [
+        "//src/character:familiar",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:familiar_list",
+        "//src/frontend/widgets:keys",
+        "//src/protos:familiar_proto_cc",
+        "@abseil-cpp//absl/algorithm:container",
+        "@abseil-cpp//absl/types:span",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "familiar_switch_panel_test",
+    size = "small",
+    srcs = ["familiar_switch_panel_test.cc"],
+    deps = [
+        ":familiar_switch_panel",
+        "//src/character:familiar",
+        "//src/frontend/testing:panel_test_base",
+        "@ftxui//:component",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "familiar_card",
+    srcs = ["familiar_card.cc"],
+    hdrs = ["familiar_card.h"],
+    deps = [
+        ":inspect_panel",
+        "//src/character:familiar",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:scroll_card",
+        "//src/protos:familiar_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "familiar_card_test",
+    size = "small",
+    srcs = ["familiar_card_test.cc"],
+    deps = [
+        ":familiar_card",
+        "//src/character:familiar",
+        "//src/frontend/testing:panel_test_base",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inspect_panel",
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],
@@ -719,26 +812,26 @@ cc_test(
 )
 
 cc_library(
-    name = "symbol_level_panel",
-    srcs = ["symbol_level_panel.cc"],
-    hdrs = ["symbol_level_panel.h"],
+    name = "level_up_panel",
+    srcs = ["level_up_panel.cc"],
+    hdrs = ["level_up_panel.h"],
     deps = [
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:confirm_prompt",
-        "//src/frontend/widgets:format",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
 )
 
 cc_test(
-    name = "symbol_level_panel_test",
+    name = "level_up_panel_test",
     size = "small",
-    srcs = ["symbol_level_panel_test.cc"],
+    srcs = ["level_up_panel_test.cc"],
     deps = [
-        ":symbol_level_panel",
+        ":level_up_panel",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:format",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -1058,6 +1151,7 @@ cc_library(
         "//src/frontend/widgets:exp_bar",
         "//src/frontend/widgets:keys",
         "//src/item:equip_instance",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:component",

@@ -33,11 +33,15 @@
 #include "src/frontend/screens/character_select_panel.h"
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/dailies_panel.h"
+#include "src/frontend/screens/familiar_card.h"
+#include "src/frontend/screens/familiar_cube_panel.h"
+#include "src/frontend/screens/familiar_switch_panel.h"
 #include "src/frontend/screens/flame_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/jukebox_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
+#include "src/frontend/screens/level_up_panel.h"
 #include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
@@ -54,7 +58,6 @@
 #include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/symbol_combine_panel.h"
-#include "src/frontend/screens/symbol_level_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/types.h"
@@ -455,10 +458,30 @@ class TuiController {
   const DailiesPanel& dailies_panel() const {
     return dailies_panel_;
   }
-  // The Level Up and Combine dialogs for an Arcane Symbol. The controller owns
-  // them because neither holds game state, only what Reset set.
-  const SymbolLevelPanel& symbol_level_panel() const {
-    return symbol_level_panel_;
+  // The Level Up and Combine dialogs for an Arcane Symbol, and Level Up for a
+  // familiar. The controller owns them because neither holds game state, only
+  // what Reset set.
+  const LevelUpPanel& level_up_panel() const {
+    return level_up_panel_;
+  }
+  // The Familiar tab's screens, owned here for the same reason. Not const:
+  // the renderer hands them the book and the terminal's rows every frame.
+  FamiliarCard& familiar_card() {
+    return familiar_card_;
+  }
+  FamiliarSwitchPanel& familiar_switch_panel() {
+    return familiar_switch_panel_;
+  }
+  FamiliarCubePanel& familiar_cube_panel() {
+    return familiar_cube_panel_;
+  }
+  // The familiar those screens are about, by roster name, and the preset whose
+  // row Switch replaces.
+  const std::string& familiar_species() const {
+    return familiar_species_;
+  }
+  StatPreset familiar_preset() const {
+    return familiar_preset_;
   }
   const SymbolCombinePanel& symbol_combine_panel() const {
     return symbol_combine_panel_;
@@ -670,6 +693,7 @@ class TuiController {
   Screen SeedUpgradeScreen(Screen next);
   Screen SeedSaleScreen(Screen next);
   Screen SeedSymbolScreen(Screen next);
+  Screen SeedFamiliarScreen(Screen next);
   // The keys every screen made of inspect cards handles, with `back` as the
   // screen to return to. One handler, because to the player they are one
   // screen, opened from the bag, the shop, or another player's sheet.
@@ -723,6 +747,10 @@ class TuiController {
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnSymbolLevelEvent(ftxui::Event event);
+  bool OnFamiliarInspectEvent(ftxui::Event event);
+  bool OnFamiliarSwitchEvent(ftxui::Event event);
+  bool OnFamiliarLevelEvent(ftxui::Event event);
+  bool OnFamiliarCubeEvent(ftxui::Event event);
   bool OnHyperResetEvent(ftxui::Event event);
   bool OnVMatrixResetEvent(ftxui::Event event);
   bool OnAbilityRerollEvent(ftxui::Event event);
@@ -1050,7 +1078,7 @@ class TuiController {
   // character select is the only screen other than the main view it can be
   // opened from.
   Screen quit_return_ = kMain;
-  SymbolLevelPanel symbol_level_panel_;
+  LevelUpPanel level_up_panel_;
   ConfirmPrompt hyper_reset_prompt_;
   ConfirmPrompt v_matrix_reset_prompt_;
   // The Hyper Stat the open confirmation is about. Stored rather than read back
@@ -1069,6 +1097,14 @@ class TuiController {
   // The worn symbol the two symbol dialogs are about. Stored so the answer
   // applies to it, wherever the cursor went meanwhile.
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;
+  // See familiar_species(). Stored when the screen opens, so the answer
+  // applies to the familiar the question named.
+  std::string familiar_species_;
+  StatPreset familiar_preset_ = StatPreset::kFirst;
+  int familiar_row_ = 0;
+  FamiliarCard familiar_card_;
+  FamiliarSwitchPanel familiar_switch_panel_;
+  FamiliarCubePanel familiar_cube_panel_;
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
   // The boss confirmation and the fight it asks about. The title is stored so

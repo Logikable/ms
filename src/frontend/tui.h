@@ -175,6 +175,7 @@ class Tui {
   // The cubing screen: the cube shelf beside the item's card, with the
   // confirmation centred over both when one is open.
   ftxui::Element RenderCubing();
+  ftxui::Element RenderFamiliarScreen();
   ftxui::Element RenderFlaming();
   ftxui::Element RenderSouling();
   ftxui::Element RenderInspect();

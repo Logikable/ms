@@ -13,6 +13,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/familiar.h"
 #include "src/character/progression.h"
 #include "src/character/sacred_power.h"
 #include "src/frontend/panel_widths.h"
@@ -1272,7 +1273,7 @@ TEST_F(SymbolTabTest, TheExpandTabIsThereWithGearAlone) {
   EXPECT_EQ(rendered.find("Expand"), std::string::npos);
 }
 
-// The far right of the bar, past the Symbols tab. It is a door rather than a
+// The far right of the bar, past the last tab. It is a door rather than a
 // page: selecting it shows a line saying so instead of a list, and the bar
 // wraps through it.
 TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
@@ -1291,7 +1292,8 @@ TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   component->OnEvent(ftxui::Event::ArrowUp);     // the list to the presets
   component->OnEvent(ftxui::Event::ArrowUp);     // the presets to the bar
   component->OnEvent(ftxui::Event::ArrowRight);  // Gear to Symbols
-  component->OnEvent(ftxui::Event::ArrowRight);  // Symbols to Expand
+  component->OnEvent(ftxui::Event::ArrowRight);  // Symbols to Familiar
+  component->OnEvent(ftxui::Event::ArrowRight);  // Familiar to Expand
   EXPECT_NE(
       RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
       std::string::npos);
@@ -1527,5 +1529,91 @@ TEST_F(EquippedPanelTest, NoRowWeldsItselfToTheRightBorder) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   EXPECT_TRUE(RowsTouchingTheRightBorder(comp->Render()).empty());
 }
+
+class FamiliarTabTest : public EquippedPanelTest {
+ protected:
+  CharacterInstance AtLevel(int level) {
+    Character proto;
+    proto.set_level(level);
+    proto.set_job(JOB_HERO);
+    proto.set_job_stage(4);
+    return CharacterInstance(rng_, std::move(proto));
+  }
+  // Up to the bar and right past Symbols, onto the Familiar tab, then down
+  // onto its first row.
+  static void OpenFamiliarTab(const ftxui::Component& component) {
+    component->OnEvent(ftxui::Event::ArrowUp);
+    component->OnEvent(ftxui::Event::ArrowUp);
+    component->OnEvent(ftxui::Event::ArrowRight);
+    component->OnEvent(ftxui::Event::ArrowRight);
+    component->OnEvent(ftxui::Event::ArrowDown);
+    component->OnEvent(ftxui::Event::ArrowDown);
+  }
+};
+
+// The tab waits for this character's own level 190: the account's progress
+// can't open it, since a character's familiar EXP is their own kills.
+TEST_F(FamiliarTabTest, TheTabArrivesAtTheCharactersOwnLevel) {
+  account_.RecordProgress(kFamiliarsLevel, 4);
+  CharacterInstance below = AtLevel(kFamiliarsLevel - 1);
+  EquippedPanel early(below, account_, panel_focus_);
+  EXPECT_EQ(RenderComponentText(early.MakeComponent([]() {})).find("Familiar"),
+            std::string::npos);
+  CharacterInstance c = AtLevel(kFamiliarsLevel);
+  EquippedPanel panel(c, account_, panel_focus_);
+  EXPECT_NE(RenderComponentText(panel.MakeComponent([]() {})).find("Familiar"),
+            std::string::npos);
+}
+
+// The tab lists the preset's starters, with the total of familiar levels and
+// the pool beside the presets.
+TEST_F(FamiliarTabTest, TheTabListsThePresetAndItsBalances) {
+  CharacterInstance c = AtLevel(200);
+  c.AddFamiliarExp(1'234'567);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kRightColumnMin);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponentText(component);
+  OpenFamiliarTab(component);
+  ASSERT_EQ(panel.active_tab(), EquippedPanel::kFamiliarTab);
+  const std::string rendered = RenderComponentText(component);
+  EXPECT_NE(rendered.find("Total Lv 0   1,234,567 EXP"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("Blue Snail"), std::string::npos);
+  EXPECT_NE(rendered.find("Potential"), std::string::npos);
+  EXPECT_EQ(panel.selected_familiar(), "Snail");
+  EXPECT_TRUE(RowsTouchingTheRightBorder(component->Render()).empty());
+}
+
+// Enter on a preset chip uses it, as on Gear, with the autoswap off.
+TEST_F(FamiliarTabTest, EnterOnAPresetUsesIt) {
+  CharacterInstance c = AtLevel(200);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponentText(component);
+  OpenFamiliarTab(component);
+  component->OnEvent(ftxui::Event::ArrowUp);  // the row to the presets
+  component->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.familiar_preset(), StatPreset::kSecond);
+  component->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kFamiliars), StatPreset::kSecond);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst);
+}
+
+// Another player's sheet carries their familiars but not their pool.
+TEST_F(FamiliarTabTest, AReadOnlyTabHidesThePool) {
+  CharacterInstance c = AtLevel(200);
+  c.AddFamiliarExp(500);
+  EquippedPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponentText(component);
+  OpenFamiliarTab(component);
+  const std::string rendered = RenderComponentText(component);
+  EXPECT_NE(rendered.find("Total Lv 0"), std::string::npos);
+  EXPECT_EQ(rendered.find("EXP"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

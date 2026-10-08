@@ -433,14 +433,16 @@ TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
   EXPECT_EQ(UnlockLevel(Feature::kUnequip), UnlockLevel(Feature::kBag));
 }
 
-// Hyper Stat points come from this character's own levels, so the account's
-// progress doesn't unlock the tab for a new character.
+// Hyper Stat points and familiar EXP come from this character's own levels,
+// so the account's progress doesn't unlock either tab for a new character.
 TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
-  const int level = UnlockLevel(Feature::kHyperStats);
   account_.RecordProgress(kTrialLevelCap, /*job_stage=*/4);
-  EXPECT_FALSE(
-      Unlocked(Feature::kHyperStats, MakeCharacter(level - 1), account_));
-  EXPECT_TRUE(Unlocked(Feature::kHyperStats, MakeCharacter(level), account_));
+  for (Feature feature : {Feature::kHyperStats, Feature::kFamiliars}) {
+    SCOPED_TRACE(FeatureName(feature));
+    const int level = UnlockLevel(feature);
+    EXPECT_FALSE(Unlocked(feature, MakeCharacter(level - 1), account_));
+    EXPECT_TRUE(Unlocked(feature, MakeCharacter(level), account_));
+  }
 }
 
 // No feature depends on which job the character took.

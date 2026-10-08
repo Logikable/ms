@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -33,6 +34,7 @@
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/familiar.pb.h"
 #include "src/protos/multiplayer.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -101,6 +103,12 @@ class PlayerInspectPanel {
   // The slot it is in, which the reader's own gear is compared against.
   // Unspecified when the cursor is on a bar.
   EquipSlot selected_slot() const;
+  // The member's familiar under the cursor on their Familiar tab, or empty,
+  // and the book it is read from.
+  std::string selected_familiar() const;
+  const FamiliarBook& familiars() const {
+    return character_.familiars();
+  }
   // Which of the member's two allocations is shown.
   Activity preset() const;
 

@@ -20,6 +20,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/job_name.h"
 #include "src/character/progression.h"
@@ -628,6 +629,14 @@ ftxui::Element Tui::RenderPlayerInspect() {
   // The item gets its own screen, as the player's own items do. The sheet it
   // came from is already a screen, and a card on top of it meant reading two
   // screens at once.
+  if (controller_.screen() == kPlayerItemInspect &&
+      !player_inspect_panel_.selected_familiar().empty()) {
+    FamiliarCard& card = controller_.familiar_card();
+    card.SetFamiliar(&player_inspect_panel_.familiars(),
+                     player_inspect_panel_.selected_familiar());
+    card.SetMaxRows(ftxui::Terminal::Size().dimy);
+    return Centred(card.Render());
+  }
   if (controller_.screen() == kPlayerItemInspect) {
     player_item_panel_.SetItem(player_inspect_panel_.selected_item());
     player_item_panel_.SetComparison(controller_.comparison_slots());
@@ -941,6 +950,55 @@ ftxui::Element Tui::RenderSouling() {
   return Overlay(std::move(columns), soul_panel_.RenderConfirm());
 }
 
+// The familiar's card alone, or beside the roster or the card shelf, laid out
+// as an item's card is beside the cube shelf.
+ftxui::Element Tui::RenderFamiliarScreen() {
+  const int rows = ftxui::Terminal::Size().dimy;
+  FamiliarCard& card = controller_.familiar_card();
+  card.SetMaxRows(rows);
+  const FamiliarBook& book = state_.character.familiars();
+  const bool right = controller_.right_card_focused();
+  if (controller_.screen() == kFamiliarInspect) {
+    card.SetFamiliar(&book, controller_.familiar_species());
+    return Centred(card.Render());
+  }
+  if (controller_.screen() == kFamiliarSwitch) {
+    FamiliarSwitchPanel& panel = controller_.familiar_switch_panel();
+    const auto& in_use =
+        state_.character.summoned_familiars(controller_.familiar_preset());
+    panel.SetFamiliars(&book,
+                       std::vector<std::string>(in_use.begin(), in_use.end()));
+    panel.SetMaxRows(rows);
+    // On [Close] the card stays on the familiar being replaced.
+    const std::string shown = panel.selected().empty()
+                                  ? controller_.familiar_species()
+                                  : panel.selected();
+    card.SetFamiliar(&book, shown);
+    ftxui::Element columns = SideBySide({
+        panel.Render(!right),
+        ftxui::text(" "),
+        card.Render(right),
+    });
+    if (!panel.IsConfirming()) {
+      return columns;
+    }
+    return Overlay(std::move(columns), panel.RenderConfirm());
+  }
+  FamiliarCubePanel& cube = controller_.familiar_cube_panel();
+  cube.SetFamiliar(FindFamiliar(book, controller_.familiar_species()),
+                   state_.character.meso());
+  card.SetFamiliar(&book, controller_.familiar_species());
+  ftxui::Element columns = SideBySide({
+      cube.Render(!right),
+      ftxui::text(" "),
+      card.Render(right),
+  });
+  if (!cube.IsConfirming()) {
+    return columns;
+  }
+  return Overlay(std::move(columns), cube.RenderConfirm());
+}
+
 ftxui::Element Tui::RenderInspect() {
   // One screen for two kinds of item: the panel shows whichever the cursor was
   // on and frames both the same way. SetItem has two overloads, so this can't
@@ -1011,9 +1069,15 @@ ftxui::Element Tui::RenderScreen() {
     case kSellEquip:
       return OverMain(sell_equip_panel_.Render());
     case kSymbolLevel:
-      return OverMain(controller_.symbol_level_panel().Render());
+      return OverMain(controller_.level_up_panel().Render());
     case kSymbolCombine:
       return OverMain(controller_.symbol_combine_panel().Render());
+    case kFamiliarInspect:
+    case kFamiliarSwitch:
+    case kFamiliarCube:
+      return RenderFamiliarScreen();
+    case kFamiliarLevel:
+      return OverMain(controller_.level_up_panel().Render());
     case kBoxOpen:
       return Centred(controller_.box_panel().Render());
     case kBoxConfirm:

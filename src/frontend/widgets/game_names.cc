@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
@@ -1086,6 +1087,88 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
   const int value = PotentialLineValue(line.type(), line.rank(), item_level);
   return (TakesAway(line.type()) ? "-" : "+") +
          PotentialValueText(line.type(), value);
+}
+
+std::string FamiliarLineName(FamiliarLineType type) {
+  static_assert(FamiliarLineType_ARRAYSIZE == 24,
+                "a new familiar line needs a name");
+  switch (type) {
+    case FAMILIAR_LINE_TYPE_STR:
+    case FAMILIAR_LINE_TYPE_STR_PCT:
+      return "STR";
+    case FAMILIAR_LINE_TYPE_DEX:
+    case FAMILIAR_LINE_TYPE_DEX_PCT:
+      return "DEX";
+    case FAMILIAR_LINE_TYPE_INT:
+    case FAMILIAR_LINE_TYPE_INT_PCT:
+      return "INT";
+    case FAMILIAR_LINE_TYPE_LUK:
+    case FAMILIAR_LINE_TYPE_LUK_PCT:
+      return "LUK";
+    case FAMILIAR_LINE_TYPE_MAX_HP:
+    case FAMILIAR_LINE_TYPE_MAX_HP_PCT:
+      return "Max HP";
+    // One line raises both attacks, so it names both.
+    case FAMILIAR_LINE_TYPE_ATTACK:
+    case FAMILIAR_LINE_TYPE_ATTACK_PCT:
+      return "ATT/MATT";
+    case FAMILIAR_LINE_TYPE_ALL_STATS_PCT:
+      return "All Stats";
+    case FAMILIAR_LINE_TYPE_CRIT_RATE:
+      return "Critical Rate";
+    case FAMILIAR_LINE_TYPE_DAMAGE_PCT:
+      return "Damage";
+    case FAMILIAR_LINE_TYPE_CRIT_DAMAGE:
+      return "Critical Damage";
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30:
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_35:
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40:
+      return "Ignore DEF";
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_20:
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30:
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40:
+      return "Boss Damage";
+    case FAMILIAR_LINE_TYPE_BOSS_DROP_RATE:
+      return "Boss Drop Rate";
+    case FAMILIAR_LINE_TYPE_UNSPECIFIED:
+      break;
+  }
+  return "";
+}
+
+std::string FamiliarLineShortName(FamiliarLineType type) {
+  switch (type) {
+    case FAMILIAR_LINE_TYPE_MAX_HP:
+    case FAMILIAR_LINE_TYPE_MAX_HP_PCT:
+      return "HP";
+    case FAMILIAR_LINE_TYPE_ATTACK:
+    case FAMILIAR_LINE_TYPE_ATTACK_PCT:
+      return "ATT";
+    case FAMILIAR_LINE_TYPE_ALL_STATS_PCT:
+      return "All Stat";
+    case FAMILIAR_LINE_TYPE_CRIT_RATE:
+      return "Crit";
+    case FAMILIAR_LINE_TYPE_CRIT_DAMAGE:
+      return "Crit DMG";
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30:
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_35:
+    case FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40:
+      return "IED";
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_20:
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30:
+    case FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40:
+      return "Boss";
+    case FAMILIAR_LINE_TYPE_BOSS_DROP_RATE:
+      return "Boss Drop";
+    default:
+      return FamiliarLineName(type);
+  }
+}
+
+std::string FamiliarLineValueText(const FamiliarLine& line) {
+  const std::string value =
+      std::to_string(FamiliarLineValue(line.type(), line.rank()));
+  return "+" + value + (FamiliarLineIsFlat(line.type()) ? "" : "%");
 }
 
 std::string PotentialLineShortName(PotentialLineType type) {

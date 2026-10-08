@@ -14,6 +14,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
+#include "src/character/familiar.h"
 #include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
@@ -5102,6 +5103,126 @@ TEST_F(TuiControllerTest, BankMesoCrossesThroughTheAmountDialog) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->account.bank().meso(), 0);
   EXPECT_EQ(state_->character.meso(), meso);
+}
+
+// --- Familiars ---
+
+class FamiliarControllerTest : public TuiControllerTest {
+ protected:
+  // Onto the first row of the Familiar tab, on the Farm preset.
+  void OpenFamiliarTab() {
+    LevelTo(200);
+    RenderEquipPanel();
+    equip_component_->OnEvent(ftxui::Event::ArrowUp);
+    equip_component_->OnEvent(ftxui::Event::ArrowUp);
+    equip_component_->OnEvent(ftxui::Event::ArrowRight);
+    equip_component_->OnEvent(ftxui::Event::ArrowRight);
+    ASSERT_EQ(equip_panel_->active_tab(), EquippedPanel::kFamiliarTab);
+    equip_component_->OnEvent(ftxui::Event::ArrowDown);
+    equip_component_->OnEvent(ftxui::Event::ArrowDown);
+    RenderEquipPanel();
+    ASSERT_EQ(equip_panel_->selected_familiar(), "Snail");
+  }
+  // Whether the open menu's cursor can land on `entry`: a hidden or grey
+  // entry is skipped.
+  bool MenuReaches(int entry) {
+    for (int i = 0; i < 10; ++i) {
+      if (equip_panel_->menu().selected() == entry) {
+        return true;
+      }
+      controller_->OnEvent(ftxui::Event::ArrowDown);
+    }
+    return false;
+  }
+  void OpenFamiliarEntry(int entry) {
+    controller_->OpenEquipMenu();
+    WalkGearMenuTo(entry);
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+};
+
+// Inspect opens the familiar's card, and any key that closes a card closes
+// it.
+TEST_F(FamiliarControllerTest, InspectOpensTheCard) {
+  OpenFamiliarTab();
+  OpenFamiliarEntry(kFamiliarMenuInspect);
+  ASSERT_EQ(controller_->screen(), kFamiliarInspect);
+  EXPECT_EQ(controller_->familiar_species(), "Snail");
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Level Up spends the pool after its question, and is grey while the pool is
+// short.
+TEST_F(FamiliarControllerTest, LevelUpSpendsThePool) {
+  OpenFamiliarTab();
+  controller_->OpenEquipMenu();
+  EXPECT_FALSE(MenuReaches(kFamiliarMenuLevelUp));
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  state_->character.AddFamiliarExp(FamiliarLevelCost(1));
+  OpenFamiliarEntry(kFamiliarMenuLevelUp);
+  ASSERT_EQ(controller_->screen(), kFamiliarLevel);
+  controller_->OnEvent(ftxui::Event::Return);  // Confirm
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(FamiliarLevel(state_->character.familiars(), "Snail"), 1);
+  EXPECT_EQ(state_->character.familiars().exp(), 0);
+}
+
+// Switch replaces the row with the familiar confirmed, in the preset shown.
+TEST_F(FamiliarControllerTest, SwitchReplacesTheRow) {
+  OpenFamiliarTab();
+  OpenFamiliarEntry(kFamiliarMenuSwitch);
+  ASSERT_EQ(controller_->screen(), kFamiliarSwitch);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Slime
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Confirm
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.summoned_familiars(StatPreset::kFirst)[0],
+            "Slime");
+  EXPECT_EQ(state_->character.summoned_familiars(StatPreset::kSecond)[0],
+            "Snail");
+}
+
+// Rename types into the row and keeps what was typed; the panel takes every
+// key meanwhile, so Tab doesn't leave it.
+TEST_F(FamiliarControllerTest, RenameTypesIntoTheRow) {
+  OpenFamiliarTab();
+  OpenFamiliarEntry(kFamiliarMenuRename);
+  EXPECT_EQ(controller_->screen(), kMain);
+  ASSERT_TRUE(equip_panel_->renaming());
+  EXPECT_TRUE(controller_->capturing_key());
+  for (char c : std::string("Gary")) {
+    controller_->OnEvent(ftxui::Event::Character(c));
+    equip_component_->OnEvent(ftxui::Event::Character(c));
+  }
+  controller_->OnEvent(ftxui::Event::Tab);
+  equip_component_->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(equip_panel_->renaming());
+  EXPECT_EQ(FamiliarDisplayName(state_->character.familiars(), "Snail"),
+            "Gary");
+}
+
+// The Red Familiar Card rerolls for meso and keeps its window open; a
+// familiar at level 0 has no Cube entry.
+TEST_F(FamiliarControllerTest, CubeRerollsForMeso) {
+  OpenFamiliarTab();
+  controller_->OpenEquipMenu();
+  EXPECT_FALSE(MenuReaches(kFamiliarMenuCube));
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  state_->character.AddFamiliarExp(FamiliarLevelCost(1));
+  ASSERT_TRUE(state_->character.LevelUpFamiliar("Snail"));
+  state_->character.AddMeso(kFamiliarCubeMeso);
+  const int64_t meso = state_->character.meso();
+  OpenFamiliarEntry(kFamiliarMenuCube);
+  ASSERT_EQ(controller_->screen(), kFamiliarCube);
+  controller_->OnEvent(ftxui::Event::Return);  // the question
+  controller_->OnEvent(ftxui::Event::Return);  // Confirm
+  EXPECT_EQ(state_->character.meso(), meso - kFamiliarCubeMeso);
+  EXPECT_EQ(controller_->screen(), kFamiliarCube);
 }
 
 // --- Arcane Symbols ---

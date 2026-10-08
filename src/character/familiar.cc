@@ -263,6 +263,10 @@ int FamiliarLineValue(FamiliarLineType type, PotentialRank rank) {
   return 0;
 }
 
+bool FamiliarLineIsFlat(FamiliarLineType type) {
+  return type >= FAMILIAR_LINE_TYPE_STR && type <= FAMILIAR_LINE_TYPE_ATTACK;
+}
+
 std::vector<FamiliarLineType> FamiliarPool(PotentialRank rank) {
   std::vector<FamiliarLineType> pool;
   for (const LineValue& entry : TableFor(rank)) {

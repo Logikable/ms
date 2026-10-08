@@ -88,6 +88,13 @@ enum Screen : int {
   kSymbolLevel,
   // Combine on a spare symbol in the bag: how many to feed into the worn one.
   kSymbolCombine,
+  // The Familiar tab's menu entries: the familiar's card; the whole roster
+  // with the card beside it, to switch the row for another; Level Up's
+  // confirmation; and the Red Familiar Card's shelf with the card beside it.
+  kFamiliarInspect,
+  kFamiliarSwitch,
+  kFamiliarLevel,
+  kFamiliarCube,
   kMapSelect,
   // Enter on a map: go there, see what spawns there, or close.
   kMapMenu,
@@ -250,6 +257,15 @@ enum SymbolMenuItem : int {
   kSymbolMenuInspect = 1,
   kSymbolMenuLevelUp = 2,
   kSymbolMenuClose = 3,
+};
+// Entries of the familiar context menu, from Enter in the Familiar tab.
+enum FamiliarMenuItem : int {
+  kFamiliarMenuInspect = 0,
+  kFamiliarMenuSwitch = 1,
+  kFamiliarMenuRename = 2,
+  kFamiliarMenuLevelUp = 3,
+  kFamiliarMenuCube = 4,
+  kFamiliarMenuClose = 5,
 };
 // Entries of the map context menu, from Enter in the map list. Move is first,
 // since it is what the list is for; Inspect is secondary.

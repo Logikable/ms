@@ -99,6 +99,7 @@ cc_library(
     deps = [
         ":colors",
         ":format",
+        "//src/character:familiar",
         "//src/character:hyper_stats",
         "//src/character:inner_ability",
         "//src/character:skill_placement",
@@ -110,6 +111,7 @@ cc_library(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
+        "//src/protos:familiar_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:screen",
     ],
@@ -301,6 +303,35 @@ cc_test(
         "//src/frontend/testing:panel_test_base",
         "//src/item:equip_instance",
         "@ftxui//:dom",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "familiar_list",
+    srcs = ["familiar_list.cc"],
+    hdrs = ["familiar_list.h"],
+    deps = [
+        ":format",
+        ":game_names",
+        ":item_row",
+        ":text_columns",
+        "//src/character",
+        "//src/character:familiar",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "familiar_list_test",
+    size = "small",
+    srcs = ["familiar_list_test.cc"],
+    deps = [
+        ":familiar_list",
+        ":text_columns",
+        "//src/character:familiar",
         "@googletest//:gtest_main",
     ],
 )
