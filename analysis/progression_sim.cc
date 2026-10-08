@@ -1454,7 +1454,9 @@ double NextLook(double now, int level, int* left, std::mt19937& rng) {
 // The player's state for one fight: whether today's clear is done, and what
 // they're waiting on before the next attempt.
 struct FightState {
-  bool attempted = false;
+  // Whether the last attempt lost. A fight never tried, or won last time, is
+  // always worth a try once its lockout clears.
+  bool lost = false;
   bool cleared_today = false;
   // Whether the last loss was close. Only a near miss is retried on time alone;
   // see WorthATry.
@@ -1852,15 +1854,15 @@ constexpr double kNearMiss = 0.25;
 constexpr double kRetrySeconds = 30.0 * 60.0;
 constexpr double kRetryPowerGain = 1.05;
 
-// Whether this fight is worth attempting now. It is on the day it unlocks.
-// After a loss, only once something has changed: a level, kRetryPowerGain more
-// damage, or, after a near miss, kRetrySeconds to rule out bad luck.
+// Whether this fight is worth attempting now: always, unless the last attempt
+// lost. After a loss, only once something has changed: a level, kRetryPowerGain
+// more damage, or, after a near miss, kRetrySeconds to rule out bad luck.
 bool WorthATry(const Session& run, const FightState& fight, bool levelled,
                int power) {
   if (fight.cleared_today) {
     return false;
   }
-  if (!fight.attempted) {
+  if (!fight.lost) {
     return true;
   }
   if (levelled || power >= fight.power_at_last_try * kRetryPowerGain) {
@@ -1931,11 +1933,11 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
       if (!WorthATry(run, fight, levelled, power)) {
         continue;
       }
-      fight.attempted = true;
       fight.power_at_last_try = power;
       BossOutcome outcome;
       spent += FightOnce(run.state, {boss.first, index}, level, power,
                          run.seconds + spent, run.climb, &outcome);
+      fight.lost = !outcome.won;
       if (outcome.won) {
         CloseForToday(run, boss);
         break;
@@ -2194,7 +2196,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   for (const std::pair<const std::string, FightState>& entry : run.fights) {
     CheckpointFight* fight = saved.add_fights();
     fight->set_fight(entry.first);
-    fight->set_attempted(entry.second.attempted);
+    fight->set_lost(entry.second.lost);
     fight->set_cleared_today(entry.second.cleared_today);
     fight->set_near_miss(entry.second.near_miss);
     fight->set_recalled_today(entry.second.recalled_today);
@@ -2250,7 +2252,7 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.looks_left = saved.looks_left();
   for (const CheckpointFight& saved_fight : saved.fights()) {
     FightState& fight = run.fights[saved_fight.fight()];
-    fight.attempted = saved_fight.attempted();
+    fight.lost = saved_fight.lost();
     fight.cleared_today = saved_fight.cleared_today();
     fight.near_miss = saved_fight.near_miss();
     fight.recalled_today = saved_fight.recalled_today();

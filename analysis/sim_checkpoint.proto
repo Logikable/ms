@@ -15,7 +15,7 @@ import "src/protos/familiar.proto";
 message CheckpointFight {
   // Boss and difficulty together; see FightKey.
   string fight = 1;
-  bool attempted = 2;
+  bool lost = 2;
   bool cleared_today = 3;
   bool near_miss = 4;
   double retry_at = 5;
