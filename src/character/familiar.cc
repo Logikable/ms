@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <random>
 #include <string>
 #include <vector>
@@ -385,6 +386,13 @@ int FamiliarSkillLevel(int total_levels) {
     }
   }
   return level;
+}
+
+int FamiliarLevelsForSkill(int level) {
+  if (level < 1 || level > static_cast<int>(std::size(kSkillThresholds))) {
+    return 0;
+  }
+  return kSkillThresholds[level - 1];
 }
 
 FamiliarTotals SummonedFamiliarTotals(

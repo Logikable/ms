@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/character_stats.h"
+#include "src/character/familiar.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
@@ -68,6 +69,7 @@ struct PercentLever {
 const PercentLever kPercentLevers[] = {
     {"Max HP", &SkillEffect::max_hp_pct, kPlus, ""},
     {"Max MP", &SkillEffect::max_mp_pct, kPlus, ""},
+    {"All Stats", &SkillEffect::stat_pct, kPlus, ""},
     {"ATT", &SkillEffect::attack_pct, kPlus, ""},
     {"Damage", &SkillEffect::damage_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct, kPlus, ""},
@@ -197,7 +199,7 @@ const FlatLever kFlatLevers[] = {
 // The value of a field at learned level L, in the same form the stats use.
 double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
                  int level) {
-  return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
+  return (SkillEffectAt(skill, level).*fn)();
 }
 
 // The same for a field counted in whole numbers: the ladder is computed as a
@@ -1876,13 +1878,14 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
 // chance pays also goes here, since none of it ends.
 std::vector<Row> PermanentRows(const Skill& skill, int level) {
   std::vector<Row> rows;
+  // Read through SkillEffectAt, which adds a Skill.step ladder's steps.
+  const SkillEffect at = SkillEffectAt(skill, level);
   if (skill.kind() == SKILL_KIND_ATTACK) {
-    rows = LeverRows(WithoutSwingLevers(skill.base()),
-                     WithoutSwingLevers(skill.per_level()), level, "");
+    rows = LeverRows(WithoutSwingLevers(at), SkillEffect(), 1, "");
     Append(LeverRows(skill.passive(), skill.passive_per_level(), level, ""),
            rows);
   } else {
-    rows = LeverRows(skill.base(), skill.per_level(), level, "");
+    rows = LeverRows(at, SkillEffect(), 1, "");
   }
   Append(ProcRows(skill, level), rows);
   return rows;
@@ -1927,8 +1930,8 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   // "Ignore DEF" would be one row meaning three things.
   std::vector<Row> swing =
       skill.kind() == SKILL_KIND_ATTACK
-          ? LeverRows(SwingLeversOf(skill.base()),
-                      SwingLeversOf(skill.per_level()), level, "")
+          ? LeverRows(SwingLeversOf(SkillEffectAt(skill, level)), SkillEffect(),
+                      1, "")
           : std::vector<Row>();
   Append(FinalAttackCutRow(skill, level), swing);
   std::vector<Row> permanent = PermanentRows(skill, level);
@@ -1973,14 +1976,15 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   return Speaking(std::move(rows));
 }
 
-// One "Level N" heading and the effects below it. `cost` is that level's price
-// in V Points, or 0 for a level with no price shown: one already paid for, and
+// One "Level N" heading and the effects below it. `price` is what that level
+// takes, or empty for a level with no price shown: one already paid for, and
 // every SP level, where a level costs one point.
-std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
+std::vector<Row> LevelBlock(const Skill& skill, int level,
+                            const std::string& price = "") {
   std::vector<Row> rows;
   std::string heading = " Level " + std::to_string(level);
-  if (cost > 0) {
-    heading += " - " + std::to_string(cost) + " VP";
+  if (!price.empty()) {
+    heading += " - " + price;
   }
   rows.push_back(WholeRow(ftxui::text(heading)));
   std::vector<Row> effects = EffectRows(skill, level);
@@ -2052,11 +2056,17 @@ SkillRows CardRowsFor(const Skill& skill, int level, int bonus,
     }
     // A node's next level shows its price, since its levels don't cost one
     // point each. Priced from the learned level, since the ladder charges for
-    // the level being bought, whatever the heading shows.
-    int cost = levels == SkillInspectPanel::kLearned
-                   ? VNodeStepCost(skill.v_node(), level + 1)
-                   : 0;
-    Append(LevelBlock(skill, second, cost), card.body);
+    // the level being bought, whatever the heading shows. Familiar Bond's
+    // levels cost no points at all: they need a total of familiar levels.
+    std::string price;
+    if (levels == SkillInspectPanel::kLearned && skill.familiar_levels()) {
+      price = std::to_string(FamiliarLevelsForSkill(level + 1)) +
+              " total familiar levels";
+    } else if (levels == SkillInspectPanel::kLearned &&
+               VNodeStepCost(skill.v_node(), level + 1) > 0) {
+      price = std::to_string(VNodeStepCost(skill.v_node(), level + 1)) + " VP";
+    }
+    Append(LevelBlock(skill, second, price), card.body);
   }
   return card;
 }

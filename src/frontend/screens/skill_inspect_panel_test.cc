@@ -13,6 +13,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/data_files.h"
 #include "src/testing/prototypes.h"
 
 namespace ms {
@@ -139,6 +140,21 @@ TEST_F(SkillInspectPanelTest, ShowsALeverTheSkillTakesAway) {
   skill.mutable_base()->set_def_pct(-0.07);
   skill.mutable_per_level()->set_def_pct(-0.02);
   EXPECT_NE(RowIn(RenderAt(skill, 3), "Defense", "-11%"), std::string::npos);
+}
+
+// Familiar Bond's stats are steps, each level adding one, and its next level
+// asks for a total of familiar levels rather than a point.
+TEST_F(SkillInspectPanelTest, FamiliarBondReadsItsSteps) {
+  const Skill& bond = TestData<Skill>("skills/beginner").at("familiar_bond");
+  std::string rendered = RenderAt(bond, 3);
+  EXPECT_NE(RowIn(rendered, "STR", "+4"), std::string::npos) << rendered;
+  EXPECT_NE(RowIn(rendered, "ATT", "+3%"), std::string::npos) << rendered;
+  EXPECT_NE(RowIn(rendered, "All Stats", "+1%"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Level 4 - 20 total familiar levels"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(RenderAt(bond, 4), "Damage", "+3%"), std::string::npos);
+  EXPECT_EQ(RenderAt(bond, 1).find("All Stats"), std::string::npos);
 }
 
 TEST_F(SkillInspectPanelTest, ShowsWhatTheNextPointBuys) {

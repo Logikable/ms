@@ -305,6 +305,7 @@ cc_library(
     hdrs = ["skill_inspect_panel.h"],
     deps = [
         "//src/character:character_stats",
+        "//src/character:familiar",
         "//src/character:v_matrix",
         "//src/combat:damage",
         "//src/frontend/widgets:chrome",
@@ -352,11 +353,13 @@ cc_test(
     name = "skill_inspect_panel_test",
     size = "small",
     srcs = ["skill_inspect_panel_test.cc"],
+    data = ["//data/skills:all"],
     deps = [
         ":skill_inspect_panel",
         "//src/character:v_matrix",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/widgets:colors",
+        "//src/testing:data_files",
         "//src/testing:prototypes",
         "@ftxui//:dom",
         "@ftxui//:screen",

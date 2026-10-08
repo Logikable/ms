@@ -116,6 +116,8 @@ int TotalFamiliarLevels(const FamiliarBook& book);
 // The beginner skill's level for `total_levels`. Six levels, at a total of 1,
 // 3, 8, 20, 40 and 80: the last needs every familiar Legendary.
 int FamiliarSkillLevel(int total_levels);
+// The total that skill level `level` needs, or 0 outside 1 to its six.
+int FamiliarLevelsForSkill(int level);
 
 // What the summoned familiars give together. Shaped like worn potential, since
 // their lines behave the same way: a %stat line scales the same pile a
