@@ -3,10 +3,10 @@
  *
  * It uses the real engine but skips ahead rather than ticking. Nothing that
  * decides earnings changes between two steps of the same level on the same map,
- * so the map is played for a few respawn intervals to measure its rate, and the
- * stretch until the next level or look is passed to AwardCombatRewards at once.
- * Every kill is still rolled for drops. What's lost is HP drift within a
- * stretch.
+ * so the map is played until it settles and then for a cooldown cycle to
+ * measure its rate, and the stretch until the next level or look is passed to
+ * AwardCombatRewards at once. Every kill is still rolled for drops. What's lost
+ * is HP drift within a stretch.
  *
  * The sweep plays what the player does between fights:
  *
@@ -140,9 +140,13 @@ ABSL_FLAG(double, step, 0.5,
           "swing (0.66s) or a mob hit (1.5s), which is all the resolution the "
           "climb needs: against 0.1s the playtimes move by under 2% and the "
           "sweep takes a third as long.");
-ABSL_FLAG(int, probe_beats, 4,
-          "Respawn beats each candidate map is played out for when the "
-          "character picks where to farm.");
+ABSL_FLAG(int, settle_beats, 4,
+          "Respawns a map is played for before its rate is measured, so the "
+          "full map's opening burst isn't counted.");
+ABSL_FLAG(double, measure_seconds, 120.0,
+          "Game seconds a map's rate is measured over once it has settled: one "
+          "cycle of the usual 120s cooldown, about 16 respawns (32 under the "
+          "Wild Totem).");
 ABSL_FLAG(double, give_up_hours, 2000.0,
           "Playtime after which a branch is written off as stuck.");
 ABSL_FLAG(bool, detail, false,
@@ -240,6 +244,13 @@ ABSL_FLAG(std::string, branch, "",
 
 namespace ms {
 namespace {
+
+// How a map's rate is measured; see MeasureYield. `seconds` is in game seconds,
+// stretched by GameSpeedFactor on the way in.
+struct ProbeWindow {
+  int settle_beats = 4;
+  double seconds = 120.0;
+};
 
 // Levels the table reports running totals at: every tenth up to 140, where the
 // SP schedule ends, then every twentieth, and the cap last.
@@ -527,6 +538,55 @@ int64_t SellDrops(CharacterInstance& character) {
   return earned;
 }
 
+// What the current encounter pays per second, and what it kills.
+struct Yield {
+  std::vector<double> kills_per_second;  // parallel to CombatParams::types
+  double exp_per_second = 0.0;
+  bool died = false;
+};
+
+// Plays the encounter without banking anything and reports the rate it settles
+// at: the opening respawns go unmeasured, since a full map pays a burst no
+// steady farm sees. The rate holds until the level or map changes, so the
+// climb measures once and awards a whole stretch, giving up HP drift within it.
+Yield MeasureYield(GameState& state, const CombatParams& params,
+                   const ProbeWindow& window, double step) {
+  Yield yield;
+  yield.kills_per_second.assign(params.types.size(), 0.0);
+  if (!params.active || params.types.empty()) {
+    yield.died = true;
+    return yield;
+  }
+  const double settle = window.settle_beats * params.respawn_seconds;
+  const double measure = std::max(
+      step, window.seconds * GameSpeedFactor(state.character.proto().level()));
+  std::vector<int64_t> total(params.types.size(), 0);
+  double exp = 0.0;
+  double measured = 0.0;
+  CombatSim sim;
+  for (double elapsed = 0.0; measured < measure; elapsed += step) {
+    sim.Advance(params, step);
+    if (sim.view().died_this_step) {
+      yield.died = true;
+      return yield;
+    }
+    if (elapsed < settle) {
+      continue;
+    }
+    measured += step;
+    const std::vector<int64_t>& kills = sim.view().kills_this_step;
+    for (std::size_t i = 0; i < params.types.size(); ++i) {
+      total[i] += kills[i];
+      exp += kills[i] * params.types[i].mob->exp();
+    }
+  }
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    yield.kills_per_second[i] = total[i] / measured;
+  }
+  yield.exp_per_second = exp * (1.0 + params.exp_pct) / measured;
+  return yield;
+}
+
 // Result of probing one map.
 struct Probe {
   double exp_per_second = 0.0;
@@ -534,46 +594,28 @@ struct Probe {
   bool died = false;
 };
 
-// Plays `map` for a few respawn intervals with the character as they are, and
-// reports what it pays. The fight runs straight from CombatParams rather than
-// AdvanceCombat, so the probe costs no EXP, meso or HP.
+// What `map` pays with the character as they are. The fight runs straight from
+// CombatParams rather than AdvanceCombat, so the probe costs no EXP, meso or
+// HP.
 Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
-               int beats, double step) {
+               const ProbeWindow& window, double step) {
   std::string held = state.current_map;
   state.current_map = map;
   CombatParams params = ComputeCombatParams(state);
   state.current_map = held;
 
   Probe probe;
-  if (!params.active || params.types.empty()) {
-    probe.died = true;  // nothing to fight, as bad as unusable
+  Yield yield = MeasureYield(state, params, window, step);
+  if (yield.died) {
+    probe.died = true;  // nothing to fight is as bad as unusable
     return probe;
   }
-  double horizon = beats * params.respawn_seconds;
-  double exp = 0.0;
-  std::vector<double> killed(params.types.size(), 0.0);
-  CombatSim sim;
-  for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
-    sim.Advance(params, step);
-    const std::vector<int64_t>& kills = sim.view().kills_this_step;
-    for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
-      exp += kills[i] * params.types[i].mob->exp();
-      killed[i] += kills[i];
-    }
-    if (sim.view().died_this_step) {
-      probe.died = true;
-      return probe;
-    }
-  }
-  for (double& kills : killed) {
-    kills /= horizon;
-  }
-  probe.exp_per_second = exp / horizon;
+  probe.exp_per_second = yield.exp_per_second;
   // The character's own levers are included because drop rate doesn't affect
   // every map equally: it raises Etc drops without limit but the meso drop only
   // to certain.
-  probe.meso_per_second =
-      MesoPerSecondFor(state, CrowdFor(state, basis, params, killed));
+  probe.meso_per_second = MesoPerSecondFor(
+      state, CrowdFor(state, basis, params, yield.kills_per_second));
   return probe;
 }
 
@@ -587,7 +629,7 @@ constexpr double kMapLevelsAbove = 40.0;
 // what they're farming. Leaves them where they are if every map kills them,
 // which the give-up clock then catches.
 void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
-                int beats, double step, double power_per_meso,
+                const ProbeWindow& window, double step, double power_per_meso,
                 HeldYardstick& held, bool for_meso) {
   // One basis for every map: a drop's value depends on the character, not the
   // map that dropped it.
@@ -605,7 +647,7 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
         continue;
       }
     }
-    Probe probe = ProbeMap(state, basis, map, beats, step);
+    Probe probe = ProbeMap(state, basis, map, window, step);
     double rate = for_meso ? probe.meso_per_second : probe.exp_per_second;
     if (probe.died || rate <= best_rate) {
       continue;
@@ -620,17 +662,17 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
 
 // While climbing: the most EXP per second.
 void PickMap(GameState& state, const std::vector<std::string>& candidates,
-             int beats, double step, double power_per_meso,
+             const ProbeWindow& window, double step, double power_per_meso,
              HeldYardstick& held) {
-  PickMapFor(state, candidates, beats, step, power_per_meso, held,
+  PickMapFor(state, candidates, window, step, power_per_meso, held,
              /*for_meso=*/false);
 }
 
 // At the cap, where there's no EXP left to earn: the most meso per second.
 void PickMoneyMap(GameState& state, const std::vector<std::string>& candidates,
-                  int beats, double step, double power_per_meso,
+                  const ProbeWindow& window, double step, double power_per_meso,
                   HeldYardstick& held) {
-  PickMapFor(state, candidates, beats, step, power_per_meso, held,
+  PickMapFor(state, candidates, window, step, power_per_meso, held,
              /*for_meso=*/true);
 }
 
@@ -836,8 +878,8 @@ void SpendOnFamiliars(GameState& state, GearShopper& shopper,
 // the next: the advancement first, then the points it gives, then drops sold
 // for meso, then the weapon that meso buys, and only then where to farm.
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
-            const std::vector<std::string>& maps, int beats, double step,
-            Purse& purse, GearShopper& shopper, WeaponScout& scout,
+            const std::vector<std::string>& maps, const ProbeWindow& window,
+            double step, Purse& purse, GearShopper& shopper, WeaponScout& scout,
             PlanKey& planned, ToggleChoice& toggles, MatrixChoice& matrix,
             MapChoice& mapped, Ledger& ledger, std::string* ring_memo,
             const FamiliarPrices& familiar_prices) {
@@ -889,7 +931,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   if (mapped.level != state.character.proto().level() || mapped.worn != worn) {
     mapped.level = state.character.proto().level();
     mapped.worn = std::move(worn);
-    PickMap(state, maps, beats, step, shopper.power_per_meso(),
+    PickMap(state, maps, window, step, shopper.power_per_meso(),
             shopper.yardstick());
   }
 }
@@ -1115,48 +1157,6 @@ void NoteTokenChances(const CombatParams& params,
       }
     }
   }
-}
-
-// What the current encounter pays per second, and what it kills.
-struct Yield {
-  std::vector<double> kills_per_second;  // parallel to CombatParams::types
-  double exp_per_second = 0.0;
-  bool died = false;
-};
-
-// Plays the encounter for a few respawn intervals without banking anything, and
-// reports the rate it settled at. The rate holds until the level or map
-// changes, so the climb measures once and awards a whole stretch. It gives up
-// HP drift within a stretch for about sixty times the speed.
-Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
-                   double step) {
-  Yield yield;
-  yield.kills_per_second.assign(params.types.size(), 0.0);
-  if (!params.active || params.types.empty()) {
-    yield.died = true;
-    return yield;
-  }
-  double horizon = std::max(step, beats * params.respawn_seconds);
-  std::vector<int64_t> total(params.types.size(), 0);
-  double exp = 0.0;
-  CombatSim sim;
-  for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
-    sim.Advance(params, step);
-    const std::vector<int64_t>& kills = sim.view().kills_this_step;
-    for (std::size_t i = 0; i < params.types.size(); ++i) {
-      total[i] += kills[i];
-      exp += kills[i] * params.types[i].mob->exp();
-    }
-    if (sim.view().died_this_step) {
-      yield.died = true;
-      return yield;
-    }
-  }
-  for (std::size_t i = 0; i < params.types.size(); ++i) {
-    yield.kills_per_second[i] = total[i] / horizon;
-  }
-  yield.exp_per_second = exp * (1.0 + params.exp_pct) / horizon;
-  return yield;
 }
 
 // Kills over a stretch of `seconds`. `carry` holds the fractional kills left
@@ -1489,7 +1489,7 @@ struct Session {
   MapChoice mapped;
   Climb& climb;
   double step = 0.5;
-  int beats = 4;
+  ProbeWindow window;
   // Playtime so far, when the next reset is due, and when the run ends.
   // Permanent purchases are weighed against the end, so it's rewritten when the
   // endgame section takes over.
@@ -1596,7 +1596,7 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
     other.respawn_seconds =
         (planted ? kRespawnIntervalSeconds : kWildTotemRespawnSeconds) *
         GameSpeedFactor(run.state.character.proto().level());
-    counter = MeasureYield(run.state, other, run.beats, run.step);
+    counter = MeasureYield(run.state, other, run.window, run.step);
     if (!counter.died) {
       rates.kills_without_totem = absl::MakeConstSpan(
           planted ? counter.kills_per_second : yield.kills_per_second);
@@ -2336,7 +2336,7 @@ void ClaimDailySymbols(Session& run) {
 // now afford, then spend waiting points.
 void Restock(Session& run) {
   ClaimDailySymbols(run);
-  Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+  Retool(run.state, run.path, &run.taken, run.maps, run.window, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
          run.matrix, run.mapped, run.climb.ledger, &run.ring_memo,
          FamiliarPricesFor(run));
@@ -2349,7 +2349,7 @@ void Restock(Session& run) {
 // fight.
 double FarmRate(Session& run, const DropBasis& basis) {
   CombatParams params = ComputeCombatParams(run.state);
-  Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+  Yield yield = MeasureYield(run.state, params, run.window, run.step);
   if (yield.died) {
     return 0.0;
   }
@@ -2510,12 +2510,12 @@ void ClimbToCap(Session& run) {
   CombatParams params = ComputeCombatParams(run.state);
   while (cursor.level < run.stop_level && run.seconds < give_up) {
     NoteCheckpoint(run, cursor);
-    Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+    Yield yield = MeasureYield(run.state, params, run.window, run.step);
     if (yield.died || yield.exp_per_second <= 0.0) {
       // No map they can survive, or nothing to earn on it. Pick a map again,
       // and if there's still none, let the give-up clock end the run rather
       // than spinning.
-      PickMap(run.state, run.maps, run.beats, run.step,
+      PickMap(run.state, run.maps, run.window, run.step,
               run.shopper.power_per_meso(), run.shopper.yardstick());
       CombatParams again = ComputeCombatParams(run.state);
       if (again.encounter == params.encounter) {
@@ -2556,7 +2556,7 @@ void ClimbToCap(Session& run) {
     // After retooling, so fights use the gear this look bought rather than what
     // the last look left.
     if (looked && TakeOnBosses(run, reached, levelled)) {
-      PickMap(run.state, run.maps, run.beats, run.step,
+      PickMap(run.state, run.maps, run.window, run.step,
               run.shopper.power_per_meso(), run.shopper.yardstick());
     }
     if (looked) {
@@ -2606,7 +2606,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   int power = PowerNow(run.state);
   if (power >= run.mapped.power * kRemeasureGrowth) {
     run.mapped.power = power;
-    PickMoneyMap(run.state, run.maps, run.beats, run.step,
+    PickMoneyMap(run.state, run.maps, run.window, run.step,
                  run.shopper.power_per_meso(), run.shopper.yardstick());
   }
   run.climb.money_map = run.state.current_map;
@@ -2647,7 +2647,7 @@ void FarmAtCap(Session& run) {
   int64_t earned_at_cap = run.purse.earned;
   int64_t spent_at_cap = run.purse.spent;
 
-  PickMoneyMap(run.state, run.maps, run.beats, run.step,
+  PickMoneyMap(run.state, run.maps, run.window, run.step,
                run.shopper.power_per_meso(), run.shopper.yardstick());
   run.climb.money_map = run.state.current_map;
   CombatParams params = ComputeCombatParams(run.state);
@@ -2655,9 +2655,9 @@ void FarmAtCap(Session& run) {
   // opens the game no more often than one grinding toward it.
   std::vector<double> carry;
   while (run.seconds < horizon) {
-    Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+    Yield yield = MeasureYield(run.state, params, run.window, run.step);
     if (yield.died) {
-      PickMoneyMap(run.state, run.maps, run.beats, run.step,
+      PickMoneyMap(run.state, run.maps, run.window, run.step,
                    run.shopper.power_per_meso(), run.shopper.yardstick());
       CombatParams again = ComputeCombatParams(run.state);
       if (again.encounter == params.encounter) {
@@ -2695,7 +2695,8 @@ void FarmAtCap(Session& run) {
 // happens after the cap are left out.
 std::string ClimbSettings() {
   return absl::StrCat(
-      absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_probe_beats), ";",
+      absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_settle_beats), ";",
+      absl::GetFlag(FLAGS_measure_seconds), ";",
       absl::GetFlag(FLAGS_give_up_hours), ";", absl::GetFlag(FLAGS_total_days),
       ";", absl::GetFlag(FLAGS_star_ceiling), ";",
       absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_cubes), ";",
@@ -2900,7 +2901,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
                  ToggleChoice(), MapChoice(),
                  climb};
   run.step = absl::GetFlag(FLAGS_step);
-  run.beats = absl::GetFlag(FLAGS_probe_beats);
+  run.window = {absl::GetFlag(FLAGS_settle_beats),
+                absl::GetFlag(FLAGS_measure_seconds)};
   run.rng.seed(seed);
   run.saves = &saves;
   run.key = ClimbKey(branch, seed);
@@ -2984,7 +2986,8 @@ AltLadder ClimbAlt(const Catalogs& catalogs, Job branch,
                  ToggleChoice(), MapChoice(),
                  climb};
   run.step = absl::GetFlag(FLAGS_step);
-  run.beats = absl::GetFlag(FLAGS_probe_beats);
+  run.window = {absl::GetFlag(FLAGS_settle_beats),
+                absl::GetFlag(FLAGS_measure_seconds)};
   run.rng.seed(seed);
   run.seed = seed;
   run.stop_level = kLinkRungLevels[kLinkRungsPerLine - 1];
