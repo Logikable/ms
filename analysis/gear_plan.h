@@ -62,6 +62,10 @@ struct GearSpend {
   int64_t copies = 0;        // copies bought to give farming its own piece
   int slots_filled = 0;
   int stars_gained = 0;
+  // Every star force roll, and the ones that failed or destroyed the piece.
+  int star_attempts = 0;
+  int star_fails = 0;
+  int star_destroys = 0;
   int symbol_levels = 0;
   // Cubes bought, and those whose roll was kept. Tracked separately because a
   // choosing cube buys a chance, not an outcome: the gap is meso that bought
@@ -102,6 +106,9 @@ struct GearSpend {
     copies += other.copies;
     slots_filled += other.slots_filled;
     stars_gained += other.stars_gained;
+    star_attempts += other.star_attempts;
+    star_fails += other.star_fails;
+    star_destroys += other.star_destroys;
     symbol_levels += other.symbol_levels;
     cubes_bought += other.cubes_bought;
     cubes_kept += other.cubes_kept;

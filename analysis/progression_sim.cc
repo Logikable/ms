@@ -88,6 +88,7 @@
 #include "analysis/hyper_plan.h"
 #include "analysis/meso_rate.h"
 #include "analysis/parallel.h"
+#include "analysis/run_stats.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
@@ -101,6 +102,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/familiar.h"
 #include "src/character/honor.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
 #include "src/character/job_branch.h"
@@ -225,6 +227,10 @@ ABSL_FLAG(std::vector<std::string>, potential_levels,
 ABSL_FLAG(std::string, potential_dump, "",
           "A file to write every recorded potential to, line by line, for "
           "reading outside the report.");
+ABSL_FLAG(std::string, stats_out, "",
+          "Write every run's stats to this file, one per line, for "
+          "//analysis:stats_report. Can't be combined with --checkpoint_at: a "
+          "resumed climb has lost its tallies.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Any branch at all, including the ones that stop at "
@@ -445,6 +451,7 @@ struct Ledger {
   int boxes_opened = 0;     // AbsoLab, Arcane Umbra, pick and ring boxes
   int dropped_scrolls = 0;  // scrolls paid for with a boss drop
   FamiliarSpend familiars;  // levels, and the Familiar Cubes' meso
+  int64_t v_points_spent = 0;
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears + alt_meso;
@@ -862,7 +869,9 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // Plan the book after the weapon, since a point's value depends on the weapon
   // in hand. Only replan when the PlanKey changed.
   if (!(PlanKeyFor(state) == planned)) {
+    int64_t points = state.character.v_points();
     ReplanBook(state, shopper, toggles, matrix);
+    ledger.v_points_spent += points - state.character.v_points();
   }
   LearnTheRest(state);
   // Record the key after the free skills, since the key reads their levels.
@@ -1080,6 +1089,12 @@ struct Climb {
   AltLadder rungs;
   // The alt rungs the main took, in order.
   std::vector<AltBought> alts;
+  // For --stats_out: meso earned by the end of each day, farming seconds by
+  // map key, and when each permanent buff was bought.
+  std::vector<int64_t> earned_by_day;
+  std::map<std::string, double> map_seconds;
+  std::map<std::string, double> buff_bought_at;
+  RunStats stats;
 };
 
 // Counts this step's kills against the tokens they could have dropped.
@@ -2407,11 +2422,30 @@ void ConsiderAlts(Session& run) {
       {best->line, best->level, run.seconds, best->seconds});
 }
 
+// Charges `farmed` seconds to the current map and closes any day the clock
+// just passed.
+void NoteFarmed(Session& run, double farmed) {
+  run.climb.map_seconds[run.state.current_map] += farmed;
+  std::vector<int64_t>& days = run.climb.earned_by_day;
+  while (run.seconds >= static_cast<double>(days.size() + 1) * kDaySeconds) {
+    days.push_back(run.purse.earned);
+  }
+}
+
+void NoteBuffsBought(Session& run) {
+  for (const ConsumableInfo& info : AllConsumables()) {
+    if (run.state.character.ConsumableOwned(info.type)) {
+      run.climb.buff_bought_at.emplace(info.name, run.seconds);
+    }
+  }
+}
+
 // The player opens the game. The potion plan and the shopper's income come
 // before gear: a buff that pays for itself multiplies every later meso. Alts
 // come last, priced against the shelf the shopper just walked.
 void TakeLook(Session& run, const CombatParams& params, const Yield& yield) {
   PlanBuffsFor(run, params, yield);
+  NoteBuffsBought(run);
   SetShopperIncome(run, params, yield);
   run.purse.Note(run.state.character);
   Restock(run);
@@ -2443,6 +2477,7 @@ void EarnOver(Session& run, const CombatParams& params, const Yield& yield,
   DrinkBuffs(run.state, farmed, &run.climb.ledger.buffs);
   run.purse.Note(run.state.character);
   run.seconds += horizon;
+  NoteFarmed(run, farmed);
 }
 
 // Closes the stint for the level just finished and starts the next one.
@@ -2543,6 +2578,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   CollectSymbols(run.state.character);
   // Before the shelf, for the same reason the climb does it before Retool.
   PlanBuffsFor(run, params, yield);
+  NoteBuffsBought(run);
   SetShopperIncome(run, params, yield);
   run.purse.Note(run.state.character);
   int64_t before_shelf = run.state.character.meso();
@@ -2638,6 +2674,7 @@ void FarmAtCap(Session& run) {
     DrinkBuffs(run.state, farmed, &run.climb.ledger.buffs);
     run.purse.Note(run.state.character);
     run.seconds += jump;
+    NoteFarmed(run, farmed);
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
     if (run.seconds >= run.next_look) {
       run.next_look = NextLook(run.seconds, level, &run.looks_left, run.rng);
@@ -2680,6 +2717,160 @@ std::string ClimbKey(Job branch, unsigned int seed) {
 
 // Plays the character forward to the level cap, or until the give-up clock runs
 // out.
+// Slots where `preset` wears its own piece rather than the boss preset's.
+int OwnPieces(const CharacterInstance& character, StatPreset preset) {
+  int own = 0;
+  for (int slot = EquipSlot_MIN; slot <= EquipSlot_MAX; ++slot) {
+    if (!EquipSlot_IsValid(slot)) {
+      continue;
+    }
+    const EquipInstance* worn =
+        character.WornAt(preset, static_cast<EquipSlot>(slot));
+    if (worn != nullptr &&
+        worn != character.WornAt(kBossGear, static_cast<EquipSlot>(slot))) {
+      ++own;
+    }
+  }
+  return own;
+}
+
+// Every stat --stats_out writes for one run. Times are in days of playtime.
+RunStats StatsOf(const Catalogs& catalogs, const Session& run,
+                 const Climb& climb) {
+  RunStats stats;
+  const CharacterInstance& character = run.state.character;
+  for (int i = 0; i < kNumMilestones; ++i) {
+    if (climb.milestones[i].seconds >= 0.0) {
+      stats.Add(absl::StrCat("level_day/", kMilestones[i]),
+                climb.milestones[i].seconds / kDaySeconds);
+    }
+  }
+  stats.Add("level", character.proto().level());
+
+  stats.Add("meso/earned", static_cast<double>(climb.endgame_earned_total));
+  stats.Add("meso/held", static_cast<double>(climb.meso_held));
+  for (int day : {1, 3, 7, 14, 30, 60, 90, 120}) {
+    if (day <= static_cast<int>(climb.earned_by_day.size())) {
+      stats.Add(absl::StrCat("meso/earned_by_day_", day),
+                static_cast<double>(climb.earned_by_day[day - 1]));
+    }
+  }
+  const Ledger& ledger = climb.ledger;
+  const GearSpend& gear = ledger.gear;
+  stats.Add("meso/etc_sales", static_cast<double>(ledger.etc_sales));
+  stats.Add("meso/boss_clears", static_cast<double>(ledger.boss_clears));
+  stats.Add("meso/alts_kept", static_cast<double>(ledger.alt_meso));
+  stats.Add("spent/shop_gear", static_cast<double>(ledger.gear_bought));
+  stats.Add("spent/scrolls", static_cast<double>(gear.scrolls));
+  stats.Add("spent/stars", static_cast<double>(gear.stars));
+  stats.Add("spent/cubes", static_cast<double>(gear.cubes));
+  stats.Add("spent/flames", static_cast<double>(gear.flames));
+  stats.Add("spent/symbols", static_cast<double>(gear.symbols));
+  stats.Add("spent/replacements", static_cast<double>(gear.replacements));
+  stats.Add("spent/farm_copies", static_cast<double>(gear.copies));
+  stats.Add("spent/buff_rent", static_cast<double>(ledger.buffs.drained));
+  stats.Add("spent/buff_unlocks", static_cast<double>(ledger.buffs.bought));
+  stats.Add("spent/familiars", static_cast<double>(ledger.familiars.meso));
+
+  const char* const cube_names[] = {"red", "black", "green", "white"};
+  for (std::size_t i = 0; i < std::size(kCubes); ++i) {
+    const char* name = cube_names[static_cast<int>(kCubes[i].type)];
+    stats.Add(absl::StrCat("cubes_bought/", name), gear.bought_by_cube[i]);
+    stats.Add(absl::StrCat("cubes_kept/", name), gear.kept_by_cube[i]);
+  }
+  stats.Add("cubes_bought/farm_pieces", gear.farm_cubes_bought);
+  for (std::size_t i = 0; i < std::size(kFlames); ++i) {
+    std::string name = absl::AsciiStrToLower(FlameName(kFlames[i].type));
+    stats.Add(absl::StrCat("flames_bought/", name), gear.bought_by_flame[i]);
+    stats.Add(absl::StrCat("flames_kept/", name), gear.kept_by_flame[i]);
+  }
+  stats.Add("stars/attempts", gear.star_attempts);
+  stats.Add("stars/passes",
+            gear.star_attempts - gear.star_fails - gear.star_destroys);
+  stats.Add("stars/fails", gear.star_fails);
+  stats.Add("stars/booms", gear.star_destroys);
+  stats.Add("stars/gained", gear.stars_gained);
+  stats.Add("stars/worn_mean",
+            climb.endgame_pieces == 0
+                ? 0.0
+                : static_cast<double>(climb.endgame_stars_worn) /
+                      climb.endgame_pieces);
+  stats.Add("scrolls/slots_filled", gear.slots_filled);
+  stats.Add("scrolls/dropped_used", ledger.dropped_scrolls);
+  stats.Add("boxes_opened", ledger.boxes_opened);
+  stats.Add("symbol_levels", gear.symbol_levels);
+  stats.Add("souls", gear.souls);
+  stats.Add("familiars/levels", ledger.familiars.levels);
+  stats.Add("familiars/cubes", ledger.familiars.cubes);
+
+  stats.Add("honor/spent", static_cast<double>(climb.ability_honor_spent));
+  stats.Add("honor/held", static_cast<double>(character.honor()));
+  stats.Add("v_points/spent", static_cast<double>(ledger.v_points_spent));
+  stats.Add("v_points/held", static_cast<double>(character.v_points()));
+
+  double alt_seconds = 0.0;
+  std::map<Job, int> alt_levels;
+  for (const AltBought& alt : climb.alts) {
+    alt_seconds += alt.seconds;
+    alt_levels[alt.line] = std::max(alt_levels[alt.line], alt.level);
+  }
+  int levels = 0;
+  int rungs = 0;
+  for (const auto& [line, level] : alt_levels) {
+    levels += level;
+    rungs += LinkRungsFor(level);
+  }
+  stats.Add("alts/created", static_cast<double>(alt_levels.size()));
+  stats.Add("alts/levels", levels);
+  stats.Add("alts/link_rungs", rungs);
+  stats.Add("alts/farming_days", alt_seconds / kDaySeconds);
+
+  stats.Add("gear/farm_own_pieces", OwnPieces(character, kFarmGear));
+  stats.Add("gear/drop_own_pieces", OwnPieces(character, kDropGear));
+  stats.Add("gear/farm_splits", gear.farm_splits);
+  stats.Add("gear/farm_meso", climb.farm_meso);
+  stats.Add("gear/farm_drop", climb.farm_drop);
+  stats.Add("gear/boss_drop", climb.loot_drop);
+
+  for (int field = HyperStatField_MIN; field <= HyperStatField_MAX; ++field) {
+    if (!HyperStatField_IsValid(field) ||
+        field == HYPER_STAT_FIELD_UNSPECIFIED) {
+      continue;
+    }
+    std::string name = absl::AsciiStrToLower(
+        HyperStatField_Name(field).substr(sizeof("HYPER_STAT_FIELD_") - 1));
+    for (const auto& [label, preset] :
+         {std::pair<const char*, StatPreset>{"farm", kFarmGear},
+          {"boss", kBossGear}}) {
+      stats.Add(
+          absl::StrCat("hyper_", label, "/", name),
+          HyperStatLevel(PresetOf(character.proto().hyper_stats(), preset),
+                         static_cast<HyperStatField>(field)));
+    }
+  }
+
+  for (const auto& [name, at] : climb.buff_bought_at) {
+    stats.Add(absl::StrCat("buff_bought_day/", name), at / kDaySeconds);
+  }
+  for (const auto& [key, seconds] : climb.map_seconds) {
+    auto map = catalogs.maps.find(key);
+    stats.Add(
+        absl::StrCat("map_days/",
+                     map == catalogs.maps.end() ? key : map->second.name()),
+        seconds / kDaySeconds);
+  }
+  stats.Add("maps_farmed", static_cast<double>(climb.map_seconds.size()));
+  for (const auto& [key, log] : climb.bosses) {
+    stats.Add(absl::StrCat("boss_attempts/", log.label), log.attempts);
+    stats.Add(absl::StrCat("boss_clears/", log.label), log.clears);
+    if (log.first_clear_seconds >= 0.0) {
+      stats.Add(absl::StrCat("boss_first_clear_day/", log.label),
+                log.first_clear_seconds / kDaySeconds);
+    }
+  }
+  return stats;
+}
+
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps, unsigned int seed,
            const Checkpointing& saves,
@@ -2758,6 +2949,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
   climb.final_character = state.character.ToProto();
   climb.endgame_earned_total = run.purse.earned;
   climb.meso_held = state.character.meso();
+  if (!absl::GetFlag(FLAGS_stats_out).empty()) {
+    climb.stats = StatsOf(catalogs, run, climb);
+    climb.stats.branch = BranchName(branch);
+    climb.stats.seed = seed;
+  }
   return climb;
 }
 
@@ -4249,6 +4445,11 @@ void Run() {
   // Each run climbs its own character, so they all run at once. Rows are
   // printed afterwards in the table's order, not the order threads finished.
   int count = static_cast<int>(branches.size());
+  const std::string stats_out = absl::GetFlag(FLAGS_stats_out);
+  if (!stats_out.empty() && absl::GetFlag(FLAGS_checkpoint_at) > 0) {
+    LOG(ERROR) << "--stats_out can't be combined with --checkpoint_at";
+    return;
+  }
   Checkpointing saves = PrepareCheckpoints();
   // The alt climbs run beside the mains, which wait on them only on reaching
   // the Link Skills level. Their own threads rather than slots in the mains'
@@ -4270,6 +4471,16 @@ void Run() {
   });
   if (alts) {
     alt_climbs.join();
+  }
+
+  if (!stats_out.empty()) {
+    std::string rows;
+    for (const std::vector<Climb>& branch : runs) {
+      for (const Climb& climb : branch) {
+        AppendStatsRows(climb.stats, &rows);
+      }
+    }
+    std::ofstream(stats_out) << rows;
   }
 
   std::vector<Climb> typical;

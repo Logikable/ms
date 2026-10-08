@@ -614,6 +614,7 @@ sim_binary(
         ":hyper_plan",
         ":meso_rate",
         ":parallel",
+        ":run_stats",
         ":sim_boss",
         ":sim_checkpoint_proto_cc",
         ":sim_format",
@@ -633,6 +634,7 @@ sim_binary(
         "//src/character:exp_table",
         "//src/character:familiar",
         "//src/character:honor",
+        "//src/character:hyper_stats",
         "//src/character:inner_ability",
         "//src/character:job_advancement",
         "//src/character:job_branch",
@@ -809,5 +811,35 @@ sim_binary(
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_library(
+    name = "run_stats",
+    srcs = ["run_stats.cc"],
+    hdrs = ["run_stats.h"],
+    deps = ["@abseil-cpp//absl/strings"],
+)
+
+cc_test(
+    name = "run_stats_test",
+    size = "small",
+    srcs = ["run_stats_test.cc"],
+    deps = [
+        ":run_stats",
+        "@googletest//:gtest_main",
+    ],
+)
+
+sim_binary(
+    name = "stats_report",
+    srcs = ["stats_report.cc"],
+    deps = [
+        ":run_stats",
+        ":sim_format",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
     ],
 )

@@ -856,9 +856,13 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
     if (attempt <= 0 || attempt > state.character.meso()) {
       break;
     }
-    if (state.character.StarForceEquipped(slot, owner) == kStarForceNoMeso) {
+    StarForceOutcome outcome = state.character.StarForceEquipped(slot, owner);
+    if (outcome == kStarForceNoMeso) {
       break;
     }
+    ++spend.star_attempts;
+    spend.star_fails += outcome == kStarForceFail ? 1 : 0;
+    spend.star_destroys += outcome == kStarForceDestroy ? 1 : 0;
     spend.stars += attempt;
   }
   item = Owned(state.character, owner, slot);
