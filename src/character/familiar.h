@@ -34,6 +34,9 @@ namespace ms {
 inline constexpr int kFamiliarsLevel = 190;
 
 inline constexpr int kMaxSummonedFamiliars = 3;
+// The most EXP the pool holds; kills past it are lost. The user's number:
+// seven digits fit beside the total on the tab's preset row.
+inline constexpr int64_t kFamiliarExpCap = 9'999'999;
 // Level 1 is Rare and each level a rank higher, so 4 is Legendary.
 inline constexpr int kFamiliarMaxLevel = 4;
 inline constexpr int kFamiliarLines = 2;
@@ -63,6 +66,9 @@ struct FamiliarSpecies {
 // Orange Mushroom) are not on any map here; they exist only as familiars.
 absl::Span<const FamiliarSpecies> FamiliarRoster();
 bool IsFamiliar(const std::string& name);
+// The roster's first kMaxSummonedFamiliars, which every preset summons until
+// the player switches one.
+const FamiliarPreset& StarterFamiliars();
 
 // The EXP that raises a familiar from `level - 1` to `level`. Each step is
 // paid on its own, so Legendary costs the four together. 0 outside 1 to
@@ -83,9 +89,15 @@ std::vector<FamiliarLineType> FamiliarPool(PotentialRank rank);
 std::vector<FamiliarLine> RollFamiliarLines(PotentialRank rank,
                                             std::mt19937& rng);
 
-// The entry for `name`, or nullptr if it was never levelled.
+// The entry for `name`, or nullptr if it was never levelled or renamed.
 const Familiar* FindFamiliar(const FamiliarBook& book, const std::string& name);
 int FamiliarLevel(const FamiliarBook& book, const std::string& name);
+// What the player calls `name`: its nickname, or the roster's name.
+std::string FamiliarDisplayName(const FamiliarBook& book,
+                                const std::string& name);
+// Names `name`, which must be on the roster. Returns whether it was.
+bool RenameFamiliar(FamiliarBook& book, const std::string& name,
+                    const std::string& nickname);
 
 // Whether the pool holds enough to raise `name` one level, and it isn't at
 // the top.
@@ -119,7 +131,7 @@ FamiliarTotals SummonedFamiliarTotals(
     const FamiliarBook& book,
     const google::protobuf::RepeatedPtrField<std::string>& summoned);
 
-// The familiars `slot` summons. An unopened preset is empty.
+// The familiars `slot` summons. An unopened preset summons the starters.
 const FamiliarPreset& PresetOf(const SummonedFamiliars& summoned,
                                StatPreset slot);
 // The same, first padding the list to kNumStatPresets.

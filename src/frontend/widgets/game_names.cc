@@ -1221,8 +1221,8 @@ std::vector<std::string> FlameCellEffects(const FlameLines& flame,
 
 std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {
   // With the autoswap on, the two presets it uses are named for their use. The
-  // third is storage it never touches, except for gear, where the boss drop
-  // roll reads it regardless.
+  // third is storage it never touches, except for gear and familiars, where
+  // the boss drop roll reads it regardless.
   if (autoswap) {
     switch (slot) {
       case StatPreset::kFirst:
@@ -1230,7 +1230,7 @@ std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {
       case StatPreset::kSecond:
         return "Boss";
       case StatPreset::kThird:
-        if (kind == PresetKind::kEquip) {
+        if (kind == PresetKind::kEquip || kind == PresetKind::kFamiliars) {
           return "Drop";
         }
         break;

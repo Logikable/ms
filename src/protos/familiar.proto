@@ -43,32 +43,37 @@ message FamiliarLine {
   PotentialRank rank = 2;
 }
 
-// One familiar the character has levelled. Its rank follows its level.
+// One familiar the character has levelled or renamed. Its rank follows its
+// level.
 message Familiar {
-  // The roster's name for it; see FamiliarRoster.
+  // The roster's name for it, which presets refer to; see FamiliarRoster.
   string name = 1;
-  // 0 to kFamiliarMaxLevel. A familiar never levelled has no entry.
+  // 0 to kFamiliarMaxLevel. A familiar never levelled or renamed has no entry.
   int32 level = 2;
   // Rolled afresh at every level-up and by every Familiar Cube.
   repeated FamiliarLine lines = 3;
+  // The player's name for it. Empty shows the roster's.
+  string nickname = 4;
 }
 
 // A character's familiars and the EXP that levels them, which every farm kill
-// adds to once Familiars open.
+// adds to once Familiars open, up to kFamiliarExpCap.
 message FamiliarBook {
   int64 exp = 1;
   repeated Familiar familiars = 2;
 }
 
-// One preset's summoned familiars, by name, at most kMaxSummonedFamiliars.
+// One preset's summoned familiars, by roster name, at most
+// kMaxSummonedFamiliars. A preset never written summons the starters; see
+// StarterFamiliars.
 message FamiliarPreset {
   repeated string names = 1;
 }
 
 // The familiars a character summons, as three presets, selected the same way
-// as link skills.
+// as link skills. The boss drop roll reads the third, as it does for gear.
 message SummonedFamiliars {
-  // Always kNumStatPresets long once the character has summoned any.
+  // Always kNumStatPresets long once the character has switched any.
   repeated FamiliarPreset presets = 1;
   // The preset in use, read only while Autoswap Presets is off.
   int32 active = 2;

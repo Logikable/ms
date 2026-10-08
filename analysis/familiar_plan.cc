@@ -34,11 +34,8 @@ constexpr int kRollSamples = 64;
 constexpr int kMaxCubesPerLook = 2000;
 
 std::vector<std::string> Mains() {
-  std::vector<std::string> mains;
-  for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
-    mains.push_back(FamiliarRoster()[i].name);
-  }
-  return mains;
+  const auto& names = StarterFamiliars().names();
+  return std::vector<std::string>(names.begin(), names.end());
 }
 
 bool IsMain(const std::string& name) {
@@ -269,24 +266,6 @@ std::vector<std::string> BondSteps(const FamiliarBook& book, int64_t* cost) {
   return steps;
 }
 
-// Summons the mains in every preset. A main never levelled can't be summoned
-// for real, so a probe book lends each a level while they are put out.
-void SummonMains(GameState& state) {
-  const FamiliarBook held = state.character.familiars();
-  FamiliarBook probe = held;
-  for (const std::string& main : Mains()) {
-    Familiar& familiar = EntryFor(probe, main);
-    familiar.set_level(std::max(familiar.level(), 1));
-  }
-  state.character.set_familiars(probe);
-  for (int slot = 0; slot < kNumStatPresets; ++slot) {
-    for (const std::string& main : Mains()) {
-      state.character.SummonFamiliar(main, StatPresetAt(slot));
-    }
-  }
-  state.character.set_familiars(held);
-}
-
 // Spends the pool a step at a time on the better of a main's next level and
 // Familiar Bond's, per EXP.
 int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
@@ -424,7 +403,6 @@ FamiliarSpend SpendFamiliars(GameState& state,
   if (state.character.proto().level() < kFamiliarsLevel) {
     return spend;
   }
-  SummonMains(state);
   spend.levels = SpendExp(state, power, prices);
   const int64_t before = state.character.meso();
   spend.cubes = SpendCubes(state, power, prices);

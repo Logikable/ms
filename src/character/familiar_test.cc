@@ -224,15 +224,18 @@ TEST(FamiliarTotalsTest, TheBossDropLineIsAFlag) {
   EXPECT_FALSE(SummonedFamiliarTotals(book, Names({})).boss_drop);
 }
 
-TEST(FamiliarPresetTest, AnUnopenedPresetIsEmpty) {
+// An unopened preset summons the starters, read or written.
+TEST(FamiliarPresetTest, AnUnopenedPresetSummonsTheStarters) {
   SummonedFamiliars summoned;
-  EXPECT_EQ(PresetOf(summoned, StatPreset::kThird).names_size(), 0);
-  *PresetOf(summoned, StatPreset::kSecond).add_names() = "Snail";
-  EXPECT_EQ(summoned.presets_size(), kNumStatPresets);
   EXPECT_EQ(PresetOf(static_cast<const SummonedFamiliars&>(summoned),
-                     StatPreset::kSecond)
+                     StatPreset::kThird)
                 .names(0),
             "Snail");
+  PresetOf(summoned, StatPreset::kSecond).set_names(0, "Yeti");
+  EXPECT_EQ(summoned.presets_size(), kNumStatPresets);
+  EXPECT_EQ(PresetOf(summoned, StatPreset::kSecond).names(0), "Yeti");
+  EXPECT_EQ(PresetOf(summoned, StatPreset::kThird).names_size(),
+            kMaxSummonedFamiliars);
 }
 
 }  // namespace

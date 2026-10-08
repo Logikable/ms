@@ -1765,7 +1765,7 @@ Familiar FamiliarWith(const std::string& name, int level,
 }
 
 // A summoned familiar's %STR scales the same pile a potential's does, and it
-// gives nothing until summoned.
+// gives nothing once switched out.
 TEST_F(DerivedStatsTest, ASummonedFamiliarsLinesCount) {
   CharacterInstance c = StrongCharacter(rng_);
   FamiliarBook book;
@@ -1773,36 +1773,42 @@ TEST_F(DerivedStatsTest, ASummonedFamiliarsLinesCount) {
       "Snail", 4,
       {FAMILIAR_LINE_TYPE_STR_PCT, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40});
   c.set_familiars(book);
-  const DerivedStats before = DerivedStatsFor(c, {});
-  ASSERT_TRUE(c.SummonFamiliar("Snail", StatPreset::kFirst));
-  const DerivedStats after = DerivedStatsFor(c, {});
-  EXPECT_EQ(after.skill_stats.str() - before.skill_stats.str(), 60);
-  EXPECT_NEAR(after.ied, CombineIgnoredDefense(before.ied, 0.40), 1e-9);
+  const DerivedStats summoned = DerivedStatsFor(c, {});
+  ASSERT_TRUE(c.SwitchFamiliar(StatPreset::kFirst, 0, "Slime"));
+  const DerivedStats out = DerivedStatsFor(c, {});
+  EXPECT_EQ(summoned.skill_stats.str() - out.skill_stats.str(), 60);
+  EXPECT_NEAR(summoned.ied, CombineIgnoredDefense(out.ied, 0.40), 1e-9);
 }
 
 // Each activity reads its own preset's familiars, and the boss drop line pays
-// only at a boss.
+// only at a boss, read from the Drop preset as the roll's gear is.
 TEST_F(DerivedStatsTest, FamiliarsFollowTheActivitysPreset) {
   CharacterInstance c = MakeCharacter(rng_, 200, 0);
   c.set_autoswap_presets(true);
   FamiliarBook book;
   *book.add_familiars() = FamiliarWith(
-      "Snail", 4,
+      "Slime", 4,
       {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_BOSS_DROP_RATE});
   c.set_familiars(book);
   const DerivedStats farm_before =
       DerivedStatsFor(c, {}, {}, {}, Activity::kFarming);
   const DerivedStats boss_before =
       DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
-  ASSERT_TRUE(c.SummonFamiliar("Snail", AutoswapSlotFor(Activity::kBossing)));
+  ASSERT_TRUE(
+      c.SwitchFamiliar(AutoswapSlotFor(Activity::kBossing), 0, "Slime"));
   const DerivedStats farm = DerivedStatsFor(c, {}, {}, {}, Activity::kFarming);
   const DerivedStats boss = DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
   EXPECT_DOUBLE_EQ(farm.boss_pct, farm_before.boss_pct);
   EXPECT_DOUBLE_EQ(boss.boss_pct, boss_before.boss_pct + 0.40);
-  EXPECT_DOUBLE_EQ(boss.item_drop_pct,
-                   boss_before.item_drop_pct + kFamiliarBossDropPct);
+  EXPECT_DOUBLE_EQ(boss.item_drop_pct, boss_before.item_drop_pct)
+      << "the Boss preset's drop line isn't the roll's";
 
-  ASSERT_TRUE(c.SummonFamiliar("Snail", AutoswapSlotFor(Activity::kFarming)));
+  ASSERT_TRUE(c.SwitchFamiliar(kDropPreset, 0, "Slime"));
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).item_drop_pct,
+      boss_before.item_drop_pct + kFamiliarBossDropPct);
+  ASSERT_TRUE(
+      c.SwitchFamiliar(AutoswapSlotFor(Activity::kFarming), 0, "Slime"));
   EXPECT_DOUBLE_EQ(
       DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).item_drop_pct,
       farm_before.item_drop_pct)

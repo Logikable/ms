@@ -219,6 +219,17 @@ absl::Span<const FamiliarSpecies> FamiliarRoster() {
   return kRoster;
 }
 
+const FamiliarPreset& StarterFamiliars() {
+  static const FamiliarPreset* const starters = [] {
+    auto* preset = new FamiliarPreset;
+    for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
+      preset->add_names(kRoster[i].name);
+    }
+    return preset;
+  }();
+  return *starters;
+}
+
 bool IsFamiliar(const std::string& name) {
   for (const FamiliarSpecies& species : kRoster) {
     if (name == species.name) {
@@ -290,6 +301,29 @@ int FamiliarLevel(const FamiliarBook& book, const std::string& name) {
     return 0;
   }
   return familiar->level();
+}
+
+std::string FamiliarDisplayName(const FamiliarBook& book,
+                                const std::string& name) {
+  const Familiar* familiar = FindFamiliar(book, name);
+  if (familiar == nullptr || familiar->nickname().empty()) {
+    return name;
+  }
+  return familiar->nickname();
+}
+
+bool RenameFamiliar(FamiliarBook& book, const std::string& name,
+                    const std::string& nickname) {
+  if (!IsFamiliar(name)) {
+    return false;
+  }
+  Familiar* familiar = FindMutable(book, name);
+  if (familiar == nullptr) {
+    familiar = book.add_familiars();
+    familiar->set_name(name);
+  }
+  familiar->set_nickname(nickname);
+  return true;
 }
 
 bool CanLevelFamiliar(const FamiliarBook& book, const std::string& name) {
@@ -379,14 +413,14 @@ FamiliarTotals SummonedFamiliarTotals(
 const FamiliarPreset& PresetOf(const SummonedFamiliars& summoned,
                                StatPreset slot) {
   if (IndexOf(slot) >= summoned.presets_size()) {
-    return FamiliarPreset::default_instance();
+    return StarterFamiliars();
   }
   return summoned.presets(IndexOf(slot));
 }
 
 FamiliarPreset& PresetOf(SummonedFamiliars& summoned, StatPreset slot) {
   while (summoned.presets_size() < kNumStatPresets) {
-    summoned.add_presets();
+    *summoned.add_presets() = StarterFamiliars();
   }
   return *summoned.mutable_presets(IndexOf(slot));
 }

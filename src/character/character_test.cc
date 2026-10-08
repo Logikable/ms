@@ -4811,31 +4811,55 @@ TEST_F(FamiliarTest, KillsBankFromTheCharactersOwnLevel) {
   EXPECT_EQ(c.familiars().exp(), 750);
 }
 
-// Levelling spends the pool, and only a levelled familiar can be summoned,
-// three to a preset.
-TEST_F(FamiliarTest, LevelledFamiliarsCanBeSummoned) {
+// The pool stops at its cap; kills past it are lost.
+TEST_F(FamiliarTest, ThePoolStopsAtItsCap) {
   CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
-  EXPECT_FALSE(c.LevelUpFamiliar("Snail"));
+  c.AddFamiliarExp(kFamiliarExpCap - 5);
+  c.AddFamiliarExp(10);
+  EXPECT_EQ(c.familiars().exp(), kFamiliarExpCap);
+}
+
+// Every preset summons the roster's first three until the player switches
+// one, level 0 or not, and Switch onto a familiar already out trades places.
+TEST_F(FamiliarTest, PresetsStartOnTheStartersAndSwitch) {
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  for (int slot = 0; slot < kNumStatPresets; ++slot) {
+    const auto& names = c.summoned_familiars(StatPresetAt(slot));
+    ASSERT_EQ(names.size(), kMaxSummonedFamiliars);
+    EXPECT_EQ(names[0], "Snail");
+    EXPECT_EQ(names[1], "Blue Snail");
+    EXPECT_EQ(names[2], "Red Snail");
+  }
+  EXPECT_TRUE(c.SwitchFamiliar(StatPreset::kSecond, 0, "Yeti"));
+  EXPECT_EQ(c.summoned_familiars(StatPreset::kSecond)[0], "Yeti");
+  EXPECT_EQ(c.summoned_familiars(StatPreset::kFirst)[0], "Snail")
+      << "presets switch apart";
+
+  EXPECT_TRUE(c.SwitchFamiliar(StatPreset::kSecond, 2, "Yeti"));
+  EXPECT_EQ(c.summoned_familiars(StatPreset::kSecond)[0], "Red Snail");
+  EXPECT_EQ(c.summoned_familiars(StatPreset::kSecond)[2], "Yeti");
+
+  EXPECT_FALSE(c.SwitchFamiliar(StatPreset::kSecond, 2, "Yeti"))
+      << "already there";
+  EXPECT_FALSE(c.SwitchFamiliar(StatPreset::kSecond, 3, "Rash"));
+  EXPECT_FALSE(c.SwitchFamiliar(StatPreset::kSecond, 0, "Zakum"));
+}
+
+// A familiar shows its roster name until renamed, and a rename keeps its
+// level, its lines and its place in every preset.
+TEST_F(FamiliarTest, RenamingKeepsTheFamiliar) {
+  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+  EXPECT_EQ(FamiliarDisplayName(c.familiars(), "Snail"), "Snail");
+  ASSERT_TRUE(c.RenameFamiliar("Snail", "Gary"));
+  EXPECT_EQ(FamiliarDisplayName(c.familiars(), "Snail"), "Gary");
+  EXPECT_EQ(FamiliarLevel(c.familiars(), "Snail"), 0);
+  EXPECT_EQ(c.summoned_familiars()[0], "Snail");
+
   c.AddFamiliarExp(FamiliarLevelCost(1));
   ASSERT_TRUE(c.LevelUpFamiliar("Snail"));
-  EXPECT_EQ(c.familiars().exp(), 0);
-  EXPECT_EQ(FamiliarLevel(c.familiars(), "Snail"), 1);
-  EXPECT_FALSE(c.SummonFamiliar("Slime", StatPreset::kFirst))
-      << "never levelled";
-  EXPECT_TRUE(c.SummonFamiliar("Snail", StatPreset::kFirst));
-  EXPECT_FALSE(c.SummonFamiliar("Snail", StatPreset::kFirst)) << "already out";
-
-  for (const char* name : {"Slime", "Yeti", "Rash"}) {
-    c.AddFamiliarExp(FamiliarLevelCost(1));
-    ASSERT_TRUE(c.LevelUpFamiliar(name));
-  }
-  EXPECT_TRUE(c.SummonFamiliar("Slime", StatPreset::kFirst));
-  EXPECT_TRUE(c.SummonFamiliar("Yeti", StatPreset::kFirst));
-  EXPECT_FALSE(c.SummonFamiliar("Rash", StatPreset::kFirst))
-      << "three is the most";
-  EXPECT_TRUE(c.SummonFamiliar("Rash", StatPreset::kSecond));
-  EXPECT_TRUE(c.DismissFamiliar("Yeti", StatPreset::kFirst));
-  EXPECT_TRUE(c.SummonFamiliar("Rash", StatPreset::kFirst));
+  EXPECT_EQ(FamiliarDisplayName(c.familiars(), "Snail"), "Gary");
+  EXPECT_EQ(c.familiars().familiars_size(), 1);
+  EXPECT_FALSE(c.RenameFamiliar("Zakum", "Gary"));
 }
 
 // A Familiar Cube costs its meso, keeps the rank, and takes nothing from a
@@ -4859,12 +4883,14 @@ TEST_F(FamiliarTest, FamiliarsRideTheCharactersSave) {
   CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
   c.AddFamiliarExp(FamiliarLevelCost(1) + 7);
   ASSERT_TRUE(c.LevelUpFamiliar("Snail"));
-  ASSERT_TRUE(c.SummonFamiliar("Snail", StatPreset::kSecond));
+  ASSERT_TRUE(c.RenameFamiliar("Snail", "Gary"));
+  ASSERT_TRUE(c.SwitchFamiliar(StatPreset::kSecond, 1, "Yeti"));
   CharacterInstance loaded = MakeCharacter(rng_);
   loaded.RestoreFrom(c.ToProto(), {}, {});
   EXPECT_EQ(loaded.familiars().exp(), 7);
   EXPECT_EQ(FamiliarLevel(loaded.familiars(), "Snail"), 1);
-  EXPECT_EQ(loaded.summoned_familiars(StatPreset::kSecond).size(), 1);
+  EXPECT_EQ(FamiliarDisplayName(loaded.familiars(), "Snail"), "Gary");
+  EXPECT_EQ(loaded.summoned_familiars(StatPreset::kSecond)[1], "Yeti");
 }
 
 }  // namespace

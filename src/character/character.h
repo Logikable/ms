@@ -540,23 +540,28 @@ class CharacterInstance {
   void set_familiars(const FamiliarBook& book) {
     *character_.mutable_familiars() = book;
   }
-  // Banks one familiar EXP per kill, from kFamiliarsLevel on.
+  // Banks one familiar EXP per kill, from kFamiliarsLevel on, up to
+  // kFamiliarExpCap.
   void AddFamiliarExp(int64_t kills);
   // Raises `name` one level from the pool, rolling its lines at the new rank.
   bool LevelUpFamiliar(const std::string& name);
   // One Familiar Cube on `name`, paid in meso. Refuses, taking nothing, when
   // the character can't pay or never levelled it.
   bool CubeFamiliar(const std::string& name);
-  // The familiars `slot` summons, by name. See Character.summoned_familiars.
+  // The familiars `slot` summons, by roster name. See
+  // Character.summoned_familiars.
   const google::protobuf::RepeatedPtrField<std::string>& summoned_familiars(
       StatPreset slot = StatPreset::kFirst) const;
-  // Summons `name` into `slot`, or dismisses it. Summoning fails if the preset
-  // is full, already has it, or the character has never levelled it. Returns
-  // whether anything changed.
-  bool SummonFamiliar(const std::string& name, StatPreset slot);
-  bool DismissFamiliar(const std::string& name, StatPreset slot);
+  // Puts `name` in row `row` of `slot`. If `slot` already summons it in
+  // another row, the two trade places. Returns whether anything changed.
+  bool SwitchFamiliar(StatPreset slot, int row, const std::string& name);
+  // Gives `name` the player's own name for it.
+  bool RenameFamiliar(const std::string& name, const std::string& nickname);
   // What the familiars the preset for `activity` summons give.
   FamiliarTotals familiar_totals(Activity activity) const;
+  // Whether the boss drop roll's familiars, kDropPreset's like its gear, have
+  // the boss drop line.
+  bool familiars_boost_boss_drops() const;
   // The link skills `slot` has equipped. The character's own line's link skill
   // is free and not in the list. See Character.link_skills.
   const google::protobuf::RepeatedPtrField<std::string>& link_skills(

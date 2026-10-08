@@ -1503,8 +1503,8 @@ void AddDropAndMesoRates(const CharacterInstance& character,
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
   // A familiar's boss drop line, which only one summoned familiar can give.
-  if (preset == Activity::kBossing &&
-      character.familiar_totals(preset).boss_drop) {
+  // Read from the Drop preset, as the roll's gear is (see DropRollRate).
+  if (preset == Activity::kBossing && character.familiars_boost_boss_drops()) {
     stats.item_drop_pct += kFamiliarBossDropPct;
   }
   stats.item_drop_pct = std::min(stats.item_drop_pct, kItemDropCap);

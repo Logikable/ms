@@ -1751,29 +1751,26 @@ CharacterInstance::summoned_familiars(StatPreset slot) const {
   return PresetOf(character_.summoned_familiars(), slot).names();
 }
 
-bool CharacterInstance::SummonFamiliar(const std::string& name,
-                                       StatPreset slot) {
+bool CharacterInstance::SwitchFamiliar(StatPreset slot, int row,
+                                       const std::string& name) {
   FamiliarPreset& preset =
       PresetOf(*character_.mutable_summoned_familiars(), slot);
-  if (preset.names_size() >= kMaxSummonedFamiliars ||
-      absl::c_linear_search(preset.names(), name) ||
-      FamiliarLevel(familiars(), name) < 1) {
+  if (row < 0 || row >= preset.names_size() || !IsFamiliar(name) ||
+      preset.names(row) == name) {
     return false;
   }
-  preset.add_names(name);
+  for (std::string& other : *preset.mutable_names()) {
+    if (other == name) {
+      other = preset.names(row);
+    }
+  }
+  preset.set_names(row, name);
   return true;
 }
 
-bool CharacterInstance::DismissFamiliar(const std::string& name,
-                                        StatPreset slot) {
-  FamiliarPreset& preset =
-      PresetOf(*character_.mutable_summoned_familiars(), slot);
-  auto it = absl::c_find(preset.names(), name);
-  if (it == preset.names().end()) {
-    return false;
-  }
-  preset.mutable_names()->erase(it);
-  return true;
+bool CharacterInstance::RenameFamiliar(const std::string& name,
+                                       const std::string& nickname) {
+  return ms::RenameFamiliar(*character_.mutable_familiars(), name, nickname);
 }
 
 void CharacterInstance::AddFamiliarExp(int64_t kills) {
@@ -1781,7 +1778,7 @@ void CharacterInstance::AddFamiliarExp(int64_t kills) {
     return;
   }
   FamiliarBook& book = *character_.mutable_familiars();
-  book.set_exp(book.exp() + kills);
+  book.set_exp(std::min(book.exp() + kills, kFamiliarExpCap));
 }
 
 bool CharacterInstance::LevelUpFamiliar(const std::string& name) {
@@ -1799,6 +1796,11 @@ FamiliarTotals CharacterInstance::familiar_totals(Activity activity) const {
   return SummonedFamiliarTotals(
       familiars(),
       summoned_familiars(SlotFor(PresetKind::kFamiliars, activity)));
+}
+
+bool CharacterInstance::familiars_boost_boss_drops() const {
+  return SummonedFamiliarTotals(familiars(), summoned_familiars(kDropPreset))
+      .boss_drop;
 }
 
 int CharacterInstance::ReconcileLinkSkills(

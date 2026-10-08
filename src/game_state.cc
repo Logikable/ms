@@ -1315,17 +1315,11 @@ LinkTally MaxTally(const std::vector<MaxMember>& account,
   return tally;
 }
 
-// The familiars at `level`, the three mains summoned in every preset. Before
-// Hyper Stats, whose best allocation reads their lines.
+// The familiars at `level`, the three mains, which every preset summons as
+// the starters. Before Hyper Stats, whose best allocation reads their lines.
 void WearMaxFamiliars(GameState& state, int level) {
   state.character.set_familiars(
       MaxFamiliars(PrimaryStatField(state.character.proto().job()), level));
-  for (int slot = 0; slot < kNumStatPresets; ++slot) {
-    for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
-      state.character.SummonFamiliar(FamiliarRoster()[i].name,
-                                     StatPresetAt(slot));
-    }
-  }
 }
 
 // Builds a max character onto whatever `state.character` holds, so the caller
