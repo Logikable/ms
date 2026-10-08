@@ -31,7 +31,7 @@ TEST_F(FamiliarCubePanelTest, TheCardRerollsTheLinesShown) {
   panel.SetFamiliar(&familiar_, kFamiliarCubeMeso);
   const std::string shelf = RenderElement(panel.Render(true));
   EXPECT_NE(shelf.find("Red Familiar Card"), std::string::npos) << shelf;
-  EXPECT_NE(shelf.find("3,000,000"), std::string::npos);
+  EXPECT_NE(shelf.find("50,000,000"), std::string::npos);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kNone);
   ASSERT_TRUE(panel.IsConfirming());
   const std::string question = RenderElement(panel.RenderConfirm());

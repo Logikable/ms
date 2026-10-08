@@ -46,9 +46,9 @@ inline constexpr int kFamiliarLines = 2;
 // otherwise. A Rare familiar has no rank below, so both its lines are Rare.
 inline constexpr double kFamiliarPrimeChance = 0.10;
 
-// The meso one Familiar Cube costs, at any rank. A placeholder the user means
-// to tune.
-inline constexpr int64_t kFamiliarCubeMeso = 3'000'000;
+// The meso one Familiar Cube costs, at any rank. 50M from the 2026-10-08
+// sweep: past it the hard fights barely move, and the best pair stays a chase.
+inline constexpr int64_t kFamiliarCubeMeso = 50'000'000;
 
 // The boss drop rate line's +100%, read only for boss drops.
 inline constexpr double kFamiliarBossDropPct = 1.00;
