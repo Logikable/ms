@@ -2852,7 +2852,12 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
   for (const auto& [name, at] : climb.buff_bought_at) {
     stats.Add(absl::StrCat("buff_bought_day/", name), at / kDaySeconds);
   }
+  // Maps passed through in a few hours are the climb's stepping stones, noise
+  // beside the ones it settles on.
   for (const auto& [key, seconds] : climb.map_seconds) {
+    if (seconds < kDaySeconds / 2.0) {
+      continue;
+    }
     auto map = catalogs.maps.find(key);
     stats.Add(
         absl::StrCat("map_days/",

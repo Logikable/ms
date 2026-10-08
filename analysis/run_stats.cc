@@ -125,7 +125,7 @@ std::vector<Outlier> FindOutliers(const std::vector<StatSummary>& stats,
                                   double min_z, double min_ratio) {
   std::vector<Outlier> out;
   for (const StatSummary& summary : stats) {
-    if (summary.branch_mean.size() < 3) {
+    if (summary.branch_mean.size() < 3 || summary.median == 0.0) {
       continue;
     }
     std::vector<double> deviations;
@@ -133,32 +133,21 @@ std::vector<Outlier> FindOutliers(const std::vector<StatSummary>& stats,
       deviations.push_back(std::fabs(entry.second - summary.median));
     }
     double scale = 1.4826 * Median(deviations);
+    // A gap a reseed could open is no finding, however tight the branches.
+    double floor = std::max(min_ratio, 2.0 * summary.seed_spread);
     for (const auto& [branch, mean] : summary.branch_mean) {
       double gap = std::fabs(mean - summary.median);
-      if (gap == 0.0) {
-        continue;
-      }
       double z =
           scale > 0.0 ? gap / scale : std::numeric_limits<double>::infinity();
-      // Against the median, or the gap itself when the median is 0: a stat
-      // every other branch leaves at 0 is as far off as it gets.
-      double ratio =
-          summary.median != 0.0 ? gap / std::fabs(summary.median) : 1.0;
-      if (z >= min_z && ratio >= min_ratio) {
-        out.push_back({summary.stat, branch, mean, summary.median, z});
+      double ratio = gap / std::fabs(summary.median);
+      if (gap > 0.0 && z >= min_z && ratio >= floor) {
+        out.push_back({summary.stat, branch, mean, summary.median, z, ratio});
       }
     }
   }
-  std::stable_sort(out.begin(), out.end(),
-                   [](const Outlier& a, const Outlier& b) {
-                     if (a.z != b.z) {
-                       return a.z > b.z;
-                     }
-                     return std::fabs(a.mean - a.median) /
-                                std::max(std::fabs(a.median), 1e-9) >
-                            std::fabs(b.mean - b.median) /
-                                std::max(std::fabs(b.median), 1e-9);
-                   });
+  std::stable_sort(
+      out.begin(), out.end(),
+      [](const Outlier& a, const Outlier& b) { return a.ratio > b.ratio; });
   return out;
 }
 

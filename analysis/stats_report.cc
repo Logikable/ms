@@ -18,6 +18,8 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "analysis/run_stats.h"
 #include "analysis/sim_format.h"
 
@@ -62,15 +64,39 @@ void PrintOutliers(const std::vector<StatSummary>& stats, int top) {
                                             absl::GetFlag(FLAGS_min_ratio));
   std::printf(
       "\nBranches far from the rest (%zu found): the branch's mean over its "
-      "seeds against\nthe median branch.\n\n",
+      "seeds against\nthe median branch, past twice the stat's seed "
+      "spread.\n\n",
       found.size());
-  std::printf("  %-44s %-16s %9s %9s %6s\n", "stat", "branch", "mean", "median",
-              "z");
+  std::printf("  %-44s %-16s %9s %9s %7s\n", "stat", "branch", "mean", "median",
+              "off by");
   for (int i = 0; i < std::min<int>(top, found.size()); ++i) {
     const Outlier& o = found[i];
-    std::printf("  %-44s %-16s %9s %9s %6s\n", o.stat.c_str(), o.branch.c_str(),
-                Short(o.mean).c_str(), Short(o.median).c_str(),
-                std::isinf(o.z) ? "inf" : Short(o.z).c_str());
+    std::printf("  %-44s %-16s %9s %9s %6.0f%%\n", o.stat.c_str(),
+                o.branch.c_str(), Short(o.mean).c_str(),
+                Short(o.median).c_str(), 100.0 * o.ratio);
+  }
+}
+
+// Stats most branches never touch, with the branches that do.
+void PrintFew(const std::vector<StatSummary>& stats, int top) {
+  std::printf("\nStats most branches leave at 0, and who doesn't.\n\n");
+  int shown = 0;
+  for (const StatSummary& summary : stats) {
+    if (summary.median != 0.0 || shown >= top) {
+      continue;
+    }
+    std::vector<std::string> some;
+    for (const auto& [branch, mean] : summary.branch_mean) {
+      if (mean != 0.0) {
+        some.push_back(absl::StrCat(branch, " ", Short(mean)));
+      }
+    }
+    if (some.empty()) {
+      continue;
+    }
+    std::printf("  %-44s %s\n", summary.stat.c_str(),
+                absl::StrJoin(some, ", ").c_str());
+    ++shown;
   }
 }
 
@@ -122,6 +148,7 @@ void Run() {
   std::printf("%zu runs, %zu stats.\n", runs.size(), stats.size());
   int top = absl::GetFlag(FLAGS_top);
   PrintOutliers(stats, top);
+  PrintFew(stats, top);
   std::vector<const StatSummary*> live;
   for (const StatSummary& summary : stats) {
     if (summary.median != 0.0 || summary.branch_spread != 0.0) {

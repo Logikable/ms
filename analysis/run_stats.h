@@ -60,11 +60,14 @@ struct Outlier {
   // Distance from the median in robust standard deviations (1.4826 MADs),
   // infinite when every other branch agrees exactly.
   double z = 0.0;
+  // The gap as a share of the median.
+  double ratio = 0.0;
 };
 
-// The branches whose mean sits at least `min_z` robust deviations and
-// `min_ratio` of the median away from it, most extreme first. Needs three
-// branches; with fewer there is no "rest".
+// The branches whose mean sits at least `min_z` robust deviations from the
+// median and `min_ratio` of it away, and twice the stat's seed spread: a gap a
+// reseed could open says nothing. Largest ratio first. Needs three branches,
+// and skips a stat whose median is 0, which no ratio can be read against.
 std::vector<Outlier> FindOutliers(const std::vector<StatSummary>& stats,
                                   double min_z, double min_ratio);
 

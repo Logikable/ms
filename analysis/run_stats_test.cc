@@ -71,6 +71,22 @@ TEST(RunStatsTest, ASmallGapIsNoOutlierHoweverTightTheRest) {
   EXPECT_EQ(FindOutliers(Summarize(runs), 3.0, 0.05).size(), 1u);
 }
 
+TEST(RunStatsTest, AGapWithinSeedNoiseIsNoOutlier) {
+  // B's seeds swing 50 to 150 around 100, so A's 130 against the median of 100
+  // is within what a reseed does.
+  std::vector<RunStats> runs = {OneStat("A", 1, 130), OneStat("A", 2, 130),
+                                OneStat("B", 1, 50),  OneStat("B", 2, 150),
+                                OneStat("C", 1, 100), OneStat("C", 2, 100),
+                                OneStat("D", 1, 100), OneStat("D", 2, 100)};
+  EXPECT_TRUE(FindOutliers(Summarize(runs), 0.0, 0.25).empty());
+}
+
+TEST(RunStatsTest, AZeroMedianHasNoRatio) {
+  std::vector<RunStats> runs = {OneStat("A", 1, 0), OneStat("B", 1, 0),
+                                OneStat("C", 1, 5)};
+  EXPECT_TRUE(FindOutliers(Summarize(runs), 0.0, 0.0).empty());
+}
+
 TEST(RunStatsTest, TwoBranchesHaveNoRest) {
   std::vector<RunStats> runs = {OneStat("A", 1, 1), OneStat("B", 1, 1000)};
   EXPECT_TRUE(FindOutliers(Summarize(runs), 0.0, 0.0).empty());
