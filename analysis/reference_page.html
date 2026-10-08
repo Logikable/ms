@@ -78,6 +78,7 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { padding: 6px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
 th:first-child, td:first-child { text-align: left; }
 td.l, th.l { text-align: left; }
+td.w { white-space: normal; min-width: 14em; }
 thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; background: var(--sunk); position: sticky; top: 0; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--sunk); }
@@ -102,7 +103,7 @@ tr.sep td { border-top: 2px solid var(--line); }
 <div class="wrap">
   <header>
     <h1>Cubes, Stars <span class="star">&amp;</span> Abilities</h1>
-    <p>Every rate and value the game uses for potential, star force, flames and Inner Ability. Pick a tab, then narrow by slot, rank and level.</p>
+    <p>Every rate and value the game uses for potential, star force, flames and Inner Ability, and which stats are final. Pick a tab, then narrow by slot, rank and level.</p>
   </header>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
@@ -223,7 +224,7 @@ function iaChances(R) {
 /* ───────────── State and controls ───────────── */
 const defaultBand = Math.max(0, SF.bands.findIndex(b => b.lo <= 200 && (b.hi === null || b.hi >= 200)));
 const S = {
-  tab: 'cubes', sub: { cubes: 'overview', stars: 'gains', flames: 'overview', ia: 'lines' },
+  tab: 'cubes', sub: { cubes: 'overview', stars: 'gains', flames: 'overview', ia: 'lines', stats: 'final' },
   cube: 0, group: 0, rank: 3, ilvl: P.item_levels.includes(200) ? 200 : P.item_levels[P.item_levels.length - 1], oddsLine: '',
   sfCat: 0, sfBand: defaultBand, sfMode: 'inc', sfAtt: 276, sfDef: 600,
   sfLvl: costLevels.includes(200) ? 200 : costLevels[costLevels.length - 1], iaRank: 3,
@@ -241,6 +242,7 @@ if (!FL.flames[S.flame]) S.flame = 0;
 if (!FL.kinds[S.flKind]) S.flKind = 0;
 if (!DATA.levels.includes(S.flLvl)) S.flLvl = DATA.levels[0];
 if (!S.sub.flames) S.sub.flames = 'overview';
+if (!S.sub.stats) S.sub.stats = 'final';
 const save = () => { try { localStorage.setItem('reference-page', JSON.stringify(S)); } catch (e) {} };
 
 const TABS = [
@@ -248,6 +250,7 @@ const TABS = [
   { key: 'stars', name: 'Star Force', subs: [['gains', 'Stat gains'], ['rates', 'Success & destruction'], ['cost', 'Meso cost'], ['limits', 'Max stars & recovery'], ['raw', 'Raw tables']] },
   { key: 'flames', name: 'Flames', subs: [['overview', 'Flames'], ['lines', 'Lines & odds'], ['raw', 'Raw tables']] },
   { key: 'ia', name: 'Inner Ability', subs: [['lines', 'Lines by rank'], ['values', 'All values & weights'], ['ranks', 'Rank-ups & honor']] },
+  { key: 'stats', name: 'Stats', subs: [['final', 'Final stats'], ['other', 'ATT, HP and damage']] },
 ];
 const fromHash = () => {
   const [t, s] = location.hash.replace('#', '').split('-');
@@ -590,11 +593,54 @@ function viewIaRanks() {
   </div>`;
 }
 
+/* ───────────── Stats ───────────── */
+const yes = '<td class="n acc">✓</td>', no = '<td class="n z">—</td>';
+const srcRows = rows => rows.map(([name, ...cells]) => `<tr><td class="l w">${name}</td>${cells.map(c => c ? yes : no).join('')}</tr>`).join('');
+const textRows = rows => rows.map(([a, b]) => `<tr><td class="l">${a}</td><td class="l w">${b}</td></tr>`).join('');
+
+function viewStatsFinal() {
+  return `
+  <h2>What a %STR, %DEX, %INT or %LUK multiplies</h2>
+  ${tbl([['Source', 'l'], '%stat lines', 'Maple Warrior'], srcRows([
+    ['AP you spent (pure stat)', 1, 1],
+    ['Equipment\'s flat stats: base, scrolls, Star Force, flames, Soul', 1, 0],
+    ['Flat stats from skills, link skills and set bonuses', 1, 0],
+    ['Flat and per-level stat lines on potentials and familiars', 1, 0],
+    ['Maple Warrior\'s own grant', 0, 0],
+    ['<b>Hyper Stats</b>', 0, 0],
+    ['<b>Arcane and Sacred Symbols</b>', 0, 0],
+    ['<b>Inner Ability</b> stat lines', 0, 0],
+  ]))}
+  <p class="note">The last three are <b>final stats</b>: they join your total after every percentage, so a point of final stat is worth exactly one point however much %stat you have.</p>
+  <p class="note"><b>%stat lines</b> are every %STR, %DEX, %INT, %LUK and %All Stats, from main and bonus potential, flames, Soul, familiars and skills. They add together, then multiply every row ticked above, rounded down.</p>
+  <p class="note"><b>Maple Warrior</b> gives a share of the AP you spent and nothing else. It and the %stat lines each read the pile without the other's gain, so the two add rather than compound.</p>`;
+}
+
+function viewStatsOther() {
+  return `
+  <h2>There is no final ATT or final HP</h2>
+  ${tbl([['Stat', 'l'], ['The percentage multiplies', 'l']], textRows([
+    ['ATT and Magic ATT', 'Every flat source: weapon and gear (with Star Force, flames and Soul), skills, Hyper Stat ATT, Inner Ability ATT and familiars\' flat ATT. Every %ATT adds together first.'],
+    ['Max HP and MP', 'AP, gear, skills (with per-level HP), and the flat HP lines on Inner Ability and potentials. Every %HP adds together first, the Hyper Stat\'s and Inner Ability\'s included.'],
+    ['DEF', 'DEF from your stats, gear and skills. %DEF sources multiply each other: +30% and −25% leave 97.5%.'],
+  ]))}
+  <h2>How damage levers combine</h2>
+  ${tbl([['Lever', 'l'], ['Sources', 'l']], textRows([
+    ['Damage, Boss Damage, Normal Damage', 'Add together'],
+    ['<b>Final Damage</b>', 'Multiply each other, then the whole hit: +20% and +10% give ×1.32, not ×1.30'],
+    ['Ignore Defense', 'Each ignores its share of what the others left: 40% and 30% give 58%'],
+    ['Critical Rate, Critical Damage', 'Add together'],
+  ]))}
+  <h2>Meso</h2>
+  <p class="note">The Wealth Acquisition Potion's ×1.2 is a final multiplier: it applies after every %meso has been added and capped.</p>`;
+}
+
 const VIEWS = {
   cubes: { overview: viewCubeOverview, lines: viewCubeLines, values: viewCubeValues, odds: viewCubeOdds, raw: viewCubeRaw },
   stars: { gains: viewStarGains, rates: viewStarRates, cost: viewStarCost, limits: viewStarLimits, raw: viewStarRaw },
   flames: { overview: viewFlameOverview, lines: viewFlameLines, raw: viewFlameRaw },
   ia: { lines: viewIaLines, values: viewIaValues, ranks: viewIaRanks },
+  stats: { final: viewStatsFinal, other: viewStatsOther },
 };
 
 const $tabs = document.getElementById('tabs'), $subs = document.getElementById('subtabs'), $view = document.getElementById('view');
