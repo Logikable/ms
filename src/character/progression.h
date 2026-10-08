@@ -86,8 +86,8 @@ enum class Feature {
   // it there are no symbols, and a tab that can only be empty is worse than no
   // tab.
   kSymbols,
-  // The Equipped panel's Familiar tab, at the character's own kFamiliarsLevel,
-  // like Hyper Stats: their EXP comes only from this character's kills.
+  // The Equipped panel's Familiar tab, at kFamiliarsLevel. An alt has it from
+  // level 1, with the EXP its own kills have banked since then.
   kFamiliars,
   // The Arcane/Sacred row under the Symbols tab. Unlocked at Grandis's level,
   // the same reasoning one level down: before it, the Sacred list could only be

@@ -222,10 +222,10 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
   if (level < UnlockLevel(feature)) {
     return false;
   }
-  if (feature == Feature::kHyperStats || feature == Feature::kFamiliars) {
+  if (feature == Feature::kHyperStats) {
     // Checked against this character's level: the points come from their own
     // levels, so an account-wide unlock would show a new character fourteen
-    // rows with nothing to spend. Familiar EXP likewise.
+    // rows with nothing to spend.
     return character.proto().level() >= UnlockLevel(feature);
   }
   return true;

@@ -211,8 +211,7 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   EXPECT_EQ(state.character.v_points(), tally.v_points);
 }
 
-// Every farm kill banks one familiar EXP on the character, once they are past
-// Familiars' level.
+// Every farm kill banks one familiar EXP on the character, at any level.
 TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPool) {
   Mob mob = SnailMob();
   mob.set_exp(0);
@@ -220,7 +219,7 @@ TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPool) {
                   {{"snail", mob}}, {{"field", SnailMap()}});
   state.current_map = "field";
   Character proto = state.character.ToProto();
-  proto.set_level(kFamiliarsLevel);
+  proto.set_level(1);
   state.character.RestoreFrom(proto, state.equips, state.items);
   EquipSword(state);
   AwardCombatRewards(state, ComputeCombatParams(state), {500});

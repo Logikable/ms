@@ -1774,7 +1774,7 @@ bool CharacterInstance::RenameFamiliar(const std::string& name,
 }
 
 void CharacterInstance::AddFamiliarExp(int64_t kills) {
-  if (character_.level() < kFamiliarsLevel || kills <= 0) {
+  if (kills <= 0) {
     return;
   }
   FamiliarBook& book = *character_.mutable_familiars();

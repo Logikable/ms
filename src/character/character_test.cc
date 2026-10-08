@@ -4799,13 +4799,10 @@ TEST_F(ReconcileSpTest, ABookTheCharacterCannotHoldIsNotSpending) {
 
 class FamiliarTest : public CharacterTest {};
 
-// Each character's kills bank EXP for their own familiars, from their own
-// level 190: nothing before.
-TEST_F(FamiliarTest, KillsBankFromTheCharactersOwnLevel) {
-  CharacterInstance below = MakeCharacter(rng_, kFamiliarsLevel - 1);
-  below.AddFamiliarExp(500);
-  EXPECT_EQ(below.familiars().exp(), 0);
-  CharacterInstance c = MakeCharacter(rng_, kFamiliarsLevel);
+// Each character's kills bank EXP for their own familiars from level 1, long
+// before the tab opens.
+TEST_F(FamiliarTest, KillsBankFromLevelOne) {
+  CharacterInstance c = MakeCharacter(rng_, 1);
   c.AddFamiliarExp(500);
   c.AddFamiliarExp(250);
   EXPECT_EQ(c.familiars().exp(), 750);

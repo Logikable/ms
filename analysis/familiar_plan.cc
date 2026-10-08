@@ -400,6 +400,8 @@ FamiliarSpend SpendFamiliars(GameState& state,
                              const std::function<double(GameState&)>& power,
                              const FamiliarPrices& prices) {
   FamiliarSpend spend;
+  // The sims play the account's first character, whose tab opens here; the
+  // pool has been filling since level 1.
   if (state.character.proto().level() < kFamiliarsLevel) {
     return spend;
   }

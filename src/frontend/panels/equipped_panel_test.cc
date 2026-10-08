@@ -1551,10 +1551,8 @@ class FamiliarTabTest : public EquippedPanelTest {
   }
 };
 
-// The tab waits for this character's own level 190: the account's progress
-// can't open it, since a character's familiar EXP is their own kills.
-TEST_F(FamiliarTabTest, TheTabArrivesAtTheCharactersOwnLevel) {
-  account_.RecordProgress(kFamiliarsLevel, 4);
+// The tab arrives at 190, and on an alt after that from level 1.
+TEST_F(FamiliarTabTest, TheTabArrivesAt190AndOnAnAltAtOne) {
   CharacterInstance below = AtLevel(kFamiliarsLevel - 1);
   EquippedPanel early(below, account_, panel_focus_);
   EXPECT_EQ(RenderComponentText(early.MakeComponent([]() {})).find("Familiar"),
@@ -1563,6 +1561,12 @@ TEST_F(FamiliarTabTest, TheTabArrivesAtTheCharactersOwnLevel) {
   EquippedPanel panel(c, account_, panel_focus_);
   EXPECT_NE(RenderComponentText(panel.MakeComponent([]() {})).find("Familiar"),
             std::string::npos);
+  account_.RecordProgress(kFamiliarsLevel, 4);
+  CharacterInstance alt = AtLevel(1);
+  EquippedPanel alt_panel(alt, account_, panel_focus_);
+  EXPECT_NE(
+      RenderComponentText(alt_panel.MakeComponent([]() {})).find("Familiar"),
+      std::string::npos);
 }
 
 // The tab lists the preset's starters, with the total of familiar levels and

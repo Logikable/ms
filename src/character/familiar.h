@@ -2,11 +2,11 @@
  * familiar with two rolled lines, three summoned at a time.
  *
  * GMS's card drops, badges and duplicate fusion are gone. Every familiar is
- * the character's from the start; their farm kills fill one EXP pool, which
- * the player spends on whichever familiar they like. A familiar's level is its
- * rank, and every level-up rolls its lines afresh at the new rank, so a reroll
- * below Legendary is thrown away by the next level. The Familiar Cube rerolls
- * both lines for meso without changing the rank.
+ * the character's from the start; their farm kills from level 1 fill one EXP
+ * pool, which the player spends on whichever familiar they like. A familiar's
+ * level is its rank, and every level-up rolls its lines afresh at the new
+ * rank, so a reroll below Legendary is thrown away by the next level. The
+ * Familiar Cube rerolls both lines for meso without changing the rank.
  *
  * What GMS's badges granted is a beginner skill whose level follows the total
  * of the character's familiar levels; see FamiliarSkillLevel.
@@ -30,7 +30,9 @@
 
 namespace ms {
 
-// The character level Familiars open at. Kills before it add nothing.
+// The level Familiars open at, on every character once any has reached it.
+// Kills bank EXP from level 1 regardless, so the pool is waiting when they
+// open.
 inline constexpr int kFamiliarsLevel = 190;
 
 inline constexpr int kMaxSummonedFamiliars = 3;

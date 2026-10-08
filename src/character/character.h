@@ -540,8 +540,7 @@ class CharacterInstance {
   void set_familiars(const FamiliarBook& book) {
     *character_.mutable_familiars() = book;
   }
-  // Banks one familiar EXP per kill, from kFamiliarsLevel on, up to
-  // kFamiliarExpCap.
+  // Banks one familiar EXP per kill, at any level, up to kFamiliarExpCap.
   void AddFamiliarExp(int64_t kills);
   // Raises `name` one level from the pool, rolling its lines at the new rank.
   bool LevelUpFamiliar(const std::string& name);
