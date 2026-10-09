@@ -281,26 +281,38 @@ constexpr AltBand kAltBands[] = {
 
 // The familiars the same sweep had on reaching each level, read at the fifth
 // of ten branches from the top by total familiar levels: the three summoned
-// mains' level and lines, and every familiar's levels added up. At 200 the
-// mains are Rare, levelled for Familiar Bond; an unspecified line is the
-// job's own %stat.
+// mains' level and lines, and every familiar's levels added up. The second
+// line is a rank below, as nine rolls in ten deal it. At 200 the mains are
+// Unique, levelled for Familiar Bond and never cubed; an unspecified line is
+// the job's own %stat.
+struct FamiliarBandLine {
+  FamiliarLineType type;
+  PotentialRank rank;
+};
+
 struct FamiliarBand {
   int level;
   int main_level;
   int total_levels;
-  FamiliarLineType lines[kFamiliarLines];
+  FamiliarBandLine lines[kFamiliarLines];
 };
 
 constexpr FamiliarBand kFamiliarBands[] = {
-    {200, 1, 8, {FAMILIAR_LINE_TYPE_UNSPECIFIED, FAMILIAR_LINE_TYPE_ATTACK}},
+    {200,
+     3,
+     26,
+     {{FAMILIAR_LINE_TYPE_UNSPECIFIED, POTENTIAL_RANK_UNIQUE},
+      {FAMILIAR_LINE_TYPE_ATTACK, POTENTIAL_RANK_EPIC}}},
     {230,
      4,
-     28,
-     {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40}},
+     40,
+     {{FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40, POTENTIAL_RANK_LEGENDARY},
+      {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE}}},
     {260,
      4,
-     40,
-     {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40}},
+     43,
+     {{FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY},
+      {FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE}}},
 };
 
 FamiliarLineType StatPctLine(StatField primary) {
@@ -1028,18 +1040,16 @@ FamiliarBook MaxFamiliars(StatField primary, int level) {
   if (band == nullptr) {
     return book;
   }
-  const PotentialRank rank = FamiliarRank(band->main_level);
   for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
     Familiar& main = *book.add_familiars();
     main.set_name(FamiliarRoster()[i].name);
     main.set_level(band->main_level);
-    for (FamiliarLineType type : band->lines) {
-      if (type == FAMILIAR_LINE_TYPE_UNSPECIFIED) {
-        type = StatPctLine(primary);
-      }
+    for (const FamiliarBandLine& held : band->lines) {
       FamiliarLine& line = *main.add_lines();
-      line.set_type(type);
-      line.set_rank(rank);
+      line.set_type(held.type == FAMILIAR_LINE_TYPE_UNSPECIFIED
+                        ? StatPctLine(primary)
+                        : held.type);
+      line.set_rank(held.rank);
     }
   }
   // The rest, one level at a time on whichever is lowest: the cheapest step.

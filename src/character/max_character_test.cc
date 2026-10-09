@@ -319,25 +319,31 @@ TEST(MaxCharacterTest, FlamesHoldDistinctLinesFromTheItemsPool) {
                   .empty());
 }
 
-// Familiars open at 190, so the first band is 200's: Rare mains levelled for
-// Familiar Bond. By 230 the mains are Legendary on the sweep's lines.
+// Familiars open at 190, so the first band is 200's: Unique mains levelled for
+// Familiar Bond. By 230 the mains are Legendary on the sweep's lines, the
+// second a rank below.
 TEST(MaxFamiliarsTest, FollowTheSweepsBands) {
   EXPECT_EQ(MaxFamiliars(STAT_FIELD_STR, 199).familiars_size(), 0);
 
   const FamiliarBook at_200 = MaxFamiliars(STAT_FIELD_LUK, 200);
-  EXPECT_EQ(TotalFamiliarLevels(at_200), 8);
+  EXPECT_EQ(TotalFamiliarLevels(at_200), 26);
   const Familiar* snail = FindFamiliar(at_200, "Snail");
   ASSERT_NE(snail, nullptr);
-  EXPECT_EQ(snail->level(), 1);
+  EXPECT_EQ(snail->level(), 3);
   EXPECT_EQ(snail->lines(0).type(), FAMILIAR_LINE_TYPE_LUK_PCT);
+  for (const FamiliarLine& line : snail->lines()) {
+    EXPECT_GT(FamiliarLineValue(line.type(), line.rank()), 0);
+  }
 
   const FamiliarBook at_230 = MaxFamiliars(STAT_FIELD_STR, 230);
-  EXPECT_EQ(TotalFamiliarLevels(at_230), 28);
-  EXPECT_EQ(FamiliarSkillLevel(TotalFamiliarLevels(at_230)), 4);
+  EXPECT_EQ(TotalFamiliarLevels(at_230), 40);
+  EXPECT_EQ(FamiliarSkillLevel(TotalFamiliarLevels(at_230)), 5);
   for (int i = 0; i < kMaxSummonedFamiliars; ++i) {
     const Familiar* main = FindFamiliar(at_230, FamiliarRoster()[i].name);
     ASSERT_NE(main, nullptr);
     EXPECT_EQ(main->level(), kFamiliarMaxLevel);
+    ASSERT_EQ(main->lines_size(), kFamiliarLines);
+    EXPECT_EQ(main->lines(1).rank(), POTENTIAL_RANK_UNIQUE);
     for (const FamiliarLine& line : main->lines()) {
       EXPECT_GT(FamiliarLineValue(line.type(), line.rank()), 0);
     }
