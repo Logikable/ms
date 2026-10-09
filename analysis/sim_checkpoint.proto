@@ -5,6 +5,7 @@ package ms;
 import "src/protos/character.proto";
 import "src/protos/equip.proto";
 import "src/protos/familiar.proto";
+import "src/protos/legion.proto";
 
 // A climb saved partway up, so a run asking about higher levels doesn't have to
 // replay the lower ones. Not a save file: it holds the sim's own bookkeeping
@@ -160,6 +161,19 @@ message CheckpointAlt {
   double seconds = 4;
 }
 
+// The Legion's plan: its tables, what they were measured at, and the
+// allocation, which lives on the account rather than the saved character.
+message CheckpointLegion {
+  bool measured = 1;
+  int32 power = 2;
+  CheckpointAim aim = 3;
+  int32 points = 4;
+  int32 rank = 5;
+  repeated double farming = 6 [packed = true];
+  repeated double bossing = 7 [packed = true];
+  Legion allocation = 8;
+}
+
 // A fight a plan was measured against: boss key and difficulty index.
 message CheckpointAim {
   string boss = 1;
@@ -228,4 +242,5 @@ message SimCheckpoint {
   map<string, double> matrix_relative = 38;
   // The familiars, which the character now carries.
   reserved 40;
+  CheckpointLegion legion = 41;
 }

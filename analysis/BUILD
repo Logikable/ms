@@ -28,6 +28,7 @@ proto_library(
         "//src/protos:character_proto",
         "//src/protos:equip_proto",
         "//src/protos:familiar_proto",
+        "//src/protos:legion_proto",
     ],
 )
 
@@ -69,6 +70,35 @@ cc_library(
         "//src/character:hyper_plan",
         "//src/character:stat_preset",
         "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "legion_plan",
+    srcs = ["legion_plan.cc"],
+    hdrs = ["legion_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:legion",
+        "//src/character:stat_preset",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "legion_plan_test",
+    size = "small",
+    srcs = ["legion_plan_test.cc"],
+    deps = [
+        ":legion_plan",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/character:legion",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -612,6 +642,7 @@ sim_binary(
         ":familiar_plan",
         ":gear_plan",
         ":hyper_plan",
+        ":legion_plan",
         ":meso_rate",
         ":parallel",
         ":run_stats",
@@ -638,6 +669,7 @@ sim_binary(
         "//src/character:inner_ability",
         "//src/character:job_advancement",
         "//src/character:job_branch",
+        "//src/character:legion",
         "//src/character:link",
         "//src/character:noblesse_plan",
         "//src/character:progression",
@@ -657,6 +689,7 @@ sim_binary(
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
         "//src/protos:item_proto_cc",
+        "//src/protos:legion_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",

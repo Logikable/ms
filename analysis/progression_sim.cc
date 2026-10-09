@@ -86,6 +86,7 @@
 #include "analysis/familiar_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
+#include "analysis/legion_plan.h"
 #include "analysis/meso_rate.h"
 #include "analysis/parallel.h"
 #include "analysis/run_stats.h"
@@ -106,6 +107,7 @@
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
 #include "src/character/job_branch.h"
+#include "src/character/legion.h"
 #include "src/character/link.h"
 #include "src/character/noblesse_plan.h"
 #include "src/character/progression.h"
@@ -1518,6 +1520,15 @@ struct Session {
   // depends on the fight, and triples between Cygnus and Lotus, so a new target
   // is as good a reason to re-measure as a stronger character.
   std::pair<std::string, int> hyper_aim;
+  // The Legion's tables, re-measured as the Hyper Stats' are and also when
+  // its points or rank move.
+  LegionWorth legion_farming;
+  LegionWorth legion_bossing;
+  bool legion_measured = false;
+  int legion_power = 0;
+  std::pair<std::string, int> legion_aim;
+  int legion_points = 0;
+  int legion_rank = 0;
   std::pair<std::string, int> ability_aim;
   bool ability_measured = false;
   // The CombatPower the worth table was measured at, so it can be re-measured
@@ -1783,6 +1794,42 @@ void SpendHyperPoints(Session& run) {
   // level at a time, and a new point can make it worth moving an old one.
   SpendHyperStats(run.state, StatPreset::kFirst, run.hyper_farming);
   SpendHyperStats(run.state, StatPreset::kSecond, run.hyper_bossing);
+}
+
+// Spends the Legion's points on both presets, before the Hyper Stats whose
+// best allocation reads its crit and Ignore Defense. Redone every look from
+// the tables, like the Hyper Stats.
+void SpendLegionPlan(Session& run) {
+  if (!run.state.character.legion_unlocked()) {
+    return;
+  }
+  const LegionSummary summary = run.state.character.legion_summary();
+  int power = PowerNow(run.state);
+  std::pair<std::string, int> aim;
+  AimedFight(run.state, &aim);
+  if (!run.legion_measured || aim != run.legion_aim ||
+      power >= run.legion_power * kRemeasureGrowth ||
+      summary.points != run.legion_points || summary.rank != run.legion_rank) {
+    DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                   run.shopper.yardstick());
+    run.legion_farming = MeasureLegionWorth(
+        run.state, StatPreset::kFirst, [&basis](GameState& state) {
+          return CrowdRateOver(state, basis, kBookSeconds);
+        });
+    run.legion_bossing = MeasureLegionWorth(
+        run.state, StatPreset::kSecond, [&basis](GameState& state) {
+          return BossRateOver(state, basis, kBookSeconds);
+        });
+    run.legion_measured = true;
+    run.legion_power = power;
+    run.legion_aim = aim;
+    run.legion_points = summary.points;
+    run.legion_rank = summary.rank;
+  }
+  SpendLegionByWorth(run.state.character, StatPreset::kFirst,
+                     run.legion_farming);
+  SpendLegionByWorth(run.state.character, StatPreset::kSecond,
+                     run.legion_bossing);
 }
 
 // Spends Noblesse SP a new solo clear paid, a level at a time where it raises
@@ -2161,10 +2208,16 @@ void LoadRng(const std::string& saved, std::mt19937* rng) {
 }
 
 // Gives the character the link tally `alts` make, and fills the presets with
-// what it opens.
+// what it opens, and puts the alts in the Legion. An alt is named by its line,
+// which is all its job effect reads.
 void WearAlts(GameState& state, const AltLevels& alts) {
   state.character.set_link_tally(AltTally(alts));
   state.character.ReconcileLinkSkills(state.skills);
+  std::vector<LegionMember> legion;
+  for (const auto& [line, level] : alts) {
+    legion.push_back({line, level});
+  }
+  state.character.set_legion_roster(std::move(legion));
 }
 
 // Pays what the alts are owed out of a stretch of `seconds`, and returns what
@@ -2211,6 +2264,19 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   SaveAim(run.hyper_aim, saved.mutable_hyper_aim());
   SaveHyperWorth(run.hyper_farming, saved.mutable_hyper_farming());
   SaveHyperWorth(run.hyper_bossing, saved.mutable_hyper_bossing());
+  CheckpointLegion& legion = *saved.mutable_legion();
+  legion.set_measured(run.legion_measured);
+  legion.set_power(run.legion_power);
+  SaveAim(run.legion_aim, legion.mutable_aim());
+  legion.set_points(run.legion_points);
+  legion.set_rank(run.legion_rank);
+  for (double rate : run.legion_farming.per_point) {
+    legion.add_farming(rate);
+  }
+  for (double rate : run.legion_bossing.per_point) {
+    legion.add_bossing(rate);
+  }
+  *legion.mutable_allocation() = run.state.character.legion();
   saved.set_matrix_planned(run.matrix.planned);
   saved.set_matrix_power(run.matrix.power);
   saved.set_matrix_defence(run.matrix.defence);
@@ -2267,6 +2333,19 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.hyper_aim = LoadAim(saved.hyper_aim());
   LoadHyperWorth(saved.hyper_farming(), &run.hyper_farming);
   LoadHyperWorth(saved.hyper_bossing(), &run.hyper_bossing);
+  const CheckpointLegion& legion = saved.legion();
+  run.legion_measured = legion.measured();
+  run.legion_power = legion.power();
+  run.legion_aim = LoadAim(legion.aim());
+  run.legion_points = legion.points();
+  run.legion_rank = legion.rank();
+  for (int i = 0; i < LegionStat_ARRAYSIZE; ++i) {
+    run.legion_farming.per_point[i] =
+        i < legion.farming_size() ? legion.farming(i) : 0.0;
+    run.legion_bossing.per_point[i] =
+        i < legion.bossing_size() ? legion.bossing(i) : 0.0;
+  }
+  run.state.character.set_legion(legion.allocation());
   run.matrix = {saved.matrix_planned(), saved.matrix_defence(),
                 saved.matrix_power()};
   run.matrix.memo.relative.insert(saved.matrix_relative().begin(),
@@ -2341,6 +2420,7 @@ void Restock(Session& run) {
          run.matrix, run.mapped, run.climb.ledger, &run.ring_memo,
          FamiliarPricesFor(run));
   SpendNoblessePoints(run);
+  SpendLegionPlan(run);
   SpendHyperPoints(run);
   SpendHonor(run);
 }
@@ -2597,6 +2677,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
   SpendNoblessePoints(run);
+  SpendLegionPlan(run);
   SpendHyperPoints(run);
   SpendHonor(run);
   ConsiderAlts(run);
