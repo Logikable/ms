@@ -1156,14 +1156,17 @@ void AddPotentialTotals(const PotentialTotals& from, PotentialTotals& into) {
 // Summoned familiars' lines join the worn potentials': GMS's familiar lines
 // read like potential lines, so a %stat line scales the same pile. Their flat
 // attack and boss drop line have no potential twin and are taken here and in
-// AddDropAndMesoRates.
+// AddDropAndMesoRates. GMS's Combat Power leaves them out.
 void AddPotentials(const CharacterInstance& character, Activity activity,
-                   StatPreset worn, PassiveTotals& totals) {
+                   StatPreset worn, bool with_familiars,
+                   PassiveTotals& totals) {
   PotentialTotals potential = character.potential_totals(worn);
-  const FamiliarTotals familiars = character.familiar_totals(activity);
-  AddPotentialTotals(familiars.lines, potential);
-  totals.attack += familiars.attack;
-  totals.magic_attack += familiars.attack;
+  if (with_familiars) {
+    const FamiliarTotals familiars = character.familiar_totals(activity);
+    AddPotentialTotals(familiars.lines, potential);
+    totals.attack += familiars.attack;
+    totals.magic_attack += familiars.attack;
+  }
   potential.str_pct += totals.stat_pct;
   potential.dex_pct += totals.stat_pct;
   potential.int_pct += totals.stat_pct;
@@ -1551,13 +1554,14 @@ namespace {
 
 // Everything DerivedStatsFor does once the passives are summed.
 DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
-                         StatPreset worn, PassiveTotals passives) {
+                         StatPreset worn, PassiveTotals passives,
+                         bool with_familiars = true) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats(worn);
   // Before the fold: a potential's %stat and Maple Warrior both read a base the
   // other hasn't changed, and their shares add rather than compound.
-  AddPotentials(character, preset, worn, passives);
+  AddPotentials(character, preset, worn, with_familiars, passives);
   FoldApStats(allocated, passives);
   // After the fold, never before: a Hyper Stat is a final stat, and Maple
   // Warrior takes its share of the allocation alone. The activity picks the
@@ -1841,7 +1845,7 @@ OffenseStats GmsCharacterOffense(const CharacterInstance& character,
                                  Activity preset,
                                  std::optional<StatPreset> gear) {
   // GMS counts no skill but Blessing of the Fairy, the one whose level the
-  // account sets.
+  // account sets, and no familiar.
   std::map<std::string, Skill> kept;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     if (entry.second.account_levels_per_level() > 0) {
@@ -1849,8 +1853,14 @@ OffenseStats GmsCharacterOffense(const CharacterInstance& character,
     }
   }
   const Character& p = character.proto();
-  DerivedStats derived = DerivedStatsFor(character, kept, /*buffs_up=*/{},
-                                         /*allies=*/{}, preset, gear);
+  const StatPreset worn = WornFor(character, preset, gear);
+  DerivedStats derived = FoldDerived(
+      character, preset, worn,
+      LearnedWithBuffs(
+          character,
+          LearnedBeforeBuffs(character, kept, /*allies=*/{}, preset, worn),
+          /*buffs_up=*/{}),
+      /*with_familiars=*/false);
   const EquipStats sources[] = {character.equip_stats(derived.gear),
                                 derived.skill_stats};
   EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));

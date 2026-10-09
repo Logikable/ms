@@ -4615,6 +4615,28 @@ TEST(GmsCharacterOffenseTest, CountsOnlyBlessingOfTheFairy) {
   EXPECT_EQ(gms.attack, ours.attack);
 }
 
+// GMS's Combat Power counts no familiar, summoned or not.
+TEST(GmsCharacterOffenseTest, CountsNoFamiliar) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(400);
+  CharacterInstance c(rng, std::move(proto));
+  EquipAttackWeapon(c);
+  const OffenseStats without = GmsCharacterOffense(c, {});
+
+  FamiliarBook book;
+  *book.add_familiars() = FamiliarWith(
+      "Snail", 4, {FAMILIAR_LINE_TYPE_STR_PCT, FAMILIAR_LINE_TYPE_ATTACK_PCT});
+  c.set_familiars(book);
+  ASSERT_GT(CharacterOffense(c, {}).primary, without.primary);
+  const OffenseStats with = GmsCharacterOffense(c, {});
+  EXPECT_EQ(with.primary, without.primary);
+  EXPECT_EQ(with.attack, without.attack);
+}
+
 // Every weapon is priced as the bow of its level: base, stars and flame scale
 // by the bow's base over the weapon's, and a magician's Magic ATT does too.
 TEST(GmsCharacterOffenseTest, PricesTheWeaponAsItsBow) {
