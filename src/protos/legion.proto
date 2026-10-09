@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ms;
+
+// A stat Legion points are spent on, in the order KMS's Overdrive screen lists
+// them: the eight base stats, then the eight the Legion's rank opens.
+enum LegionStat {
+  LEGION_STAT_UNSPECIFIED = 0;
+  LEGION_STAT_STR = 1;
+  LEGION_STAT_DEX = 2;
+  LEGION_STAT_INT = 3;
+  LEGION_STAT_LUK = 4;
+  LEGION_STAT_MAX_HP = 5;
+  LEGION_STAT_MAX_MP = 6;
+  LEGION_STAT_ATTACK = 7;
+  LEGION_STAT_MAGIC_ATTACK = 8;
+  LEGION_STAT_STATUS_RESISTANCE = 9;
+  LEGION_STAT_EXP = 10;
+  LEGION_STAT_CRIT_RATE = 11;
+  LEGION_STAT_BOSS_DAMAGE = 12;
+  LEGION_STAT_NORMAL_DAMAGE = 13;
+  LEGION_STAT_BUFF_DURATION = 14;
+  LEGION_STAT_IED = 15;
+  LEGION_STAT_CRIT_DAMAGE = 16;
+}
+
+// One allocation of Legion points.
+message LegionPreset {
+  // Points in each stat, keyed by LegionStat. What was spent stays as spent
+  // when the Legion's points or caps fall; see //src/character:legion for what
+  // is read back.
+  map<int32, int32> points = 1;
+}
+
+// The account's Legion allocations. Everything else about the Legion (level,
+// rank, points, job effects) is read off the characters each time.
+message Legion {
+  // Three, as the other presets: Farm and Boss while autoswap is on, and a
+  // third the player swaps in.
+  repeated LegionPreset presets = 1;
+  // The preset used while autoswap is off, a StatPreset index.
+  int32 slot_in_use = 2;
+}

@@ -35,6 +35,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":legion",
         ":link",
         ":skill_placement",
         ":symbol",
@@ -385,6 +386,28 @@ cc_test(
 )
 
 cc_library(
+    name = "legion",
+    srcs = ["legion.cc"],
+    hdrs = ["legion.h"],
+    deps = [
+        ":job_branch",
+        ":stat_preset",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "legion_test",
+    size = "small",
+    srcs = ["legion_test.cc"],
+    deps = [
+        ":legion",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "boss_reset",
     srcs = ["boss_reset.cc"],
     hdrs = ["boss_reset.h"],
@@ -417,6 +440,7 @@ cc_library(
         ":familiar",
         ":hyper_stats",
         ":inner_ability",
+        ":legion",
         ":skill_placement",
         ":symbol",
         "//src/combat:constants",
@@ -425,6 +449,7 @@ cc_library(
         "//src/item:flame",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:legion_proto_cc",
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/types:span",
     ],
@@ -530,6 +555,7 @@ cc_test(
         ":guild",
         ":hyper_stats",
         ":inner_ability",
+        ":legion",
         ":symbol",
         ":v_matrix",
         "//src/combat:damage",
@@ -538,6 +564,7 @@ cc_test(
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
         "//src/protos:familiar_proto_cc",
+        "//src/protos:legion_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:data_files",
         "//src/testing:prototypes",

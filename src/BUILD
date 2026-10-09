@@ -158,6 +158,7 @@ cc_library(
         "//src/protos:familiar_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:keybinds_proto_cc",
+        "//src/protos:legion_proto_cc",
     ],
 )
 
@@ -262,6 +263,7 @@ cc_library(
         "//src/character:honor",
         "//src/character:job_branch",
         "//src/character:job_name",
+        "//src/character:legion",
         "//src/character:link",
         "//src/character:max_character",
         "//src/character:sacred_power",
@@ -373,6 +375,7 @@ cc_test(
         "//src/character:exp_table",
         "//src/character:honor",
         "//src/character:hyper_stats",
+        "//src/character:legion",
         "//src/character:max_character",
         "//src/character:progression",
         "//src/character:sacred_power",
@@ -388,6 +391,7 @@ cc_test(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
+        "//src/protos:legion_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:save_proto_cc",

@@ -5,6 +5,7 @@ package ms;
 import "src/protos/equip.proto";
 import "src/protos/item.proto";
 import "src/protos/keybinds.proto";
+import "src/protos/legion.proto";
 
 // Settings and progress the player owns, shared by every character. A second
 // character starts at level 1 but finds the game already open.
@@ -48,6 +49,10 @@ message Account {
 
   // Familiars, briefly the account's before they became each character's.
   reserved 10;
+
+  // How the Legion's points are spent. Copied onto the character being played;
+  // see GameState::MirrorAccount.
+  Legion legion = 11;
 }
 
 // One boss difficulty, named as BossClear names it.

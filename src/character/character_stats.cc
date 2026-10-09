@@ -15,6 +15,7 @@
 #include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/legion.h"
 #include "src/character/skill_placement.h"
 #include "src/character/symbol.h"
 #include "src/combat/constants.h"
@@ -22,6 +23,7 @@
 #include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -1072,6 +1074,86 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset slot,
   }
 }
 
+// What the Legion's points buy in the preset `activity` uses. The four stats
+// are not final stats, so this runs before the %stat lines read the pile.
+void AddLegionPoints(const CharacterInstance& character,
+                     const LegionSummary& summary, Activity activity,
+                     PassiveTotals& totals) {
+  static_assert(LegionStat_ARRAYSIZE == 17,
+                "a new Legion stat needs somewhere to land");
+  const LegionPreset& preset =
+      PresetOf(character.legion(), character.LegionSlotFor(activity));
+  for (const auto& [stat, points] :
+       EffectiveLegionPoints(preset, summary.rank, summary.points)) {
+    const double value = points * LegionPerPoint(stat);
+    const int whole = static_cast<int>(value);
+    switch (stat) {
+      case LEGION_STAT_STR:
+        totals.str += whole;
+        break;
+      case LEGION_STAT_DEX:
+        totals.dex += whole;
+        break;
+      case LEGION_STAT_INT:
+        totals.int_ += whole;
+        break;
+      case LEGION_STAT_LUK:
+        totals.luk += whole;
+        break;
+      case LEGION_STAT_MAX_HP:
+        totals.hp_grant += whole;
+        break;
+      case LEGION_STAT_MAX_MP:
+        totals.mp_grant += whole;
+        break;
+      case LEGION_STAT_ATTACK:
+        totals.attack += whole;
+        break;
+      case LEGION_STAT_MAGIC_ATTACK:
+        totals.magic_attack += whole;
+        break;
+      case LEGION_STAT_STATUS_RESISTANCE:
+        totals.status_resistance += value;
+        break;
+      case LEGION_STAT_EXP:
+        totals.exp_pct += value;
+        break;
+      case LEGION_STAT_CRIT_RATE:
+        totals.crit_rate += value;
+        break;
+      case LEGION_STAT_BOSS_DAMAGE:
+        totals.boss_pct += value;
+        break;
+      case LEGION_STAT_NORMAL_DAMAGE:
+        totals.normal_pct += value;
+        break;
+      case LEGION_STAT_BUFF_DURATION:
+        totals.buff_duration_pct += value;
+        break;
+      case LEGION_STAT_IED:
+        totals.ied = CombineIgnoredDefense(totals.ied, value);
+        break;
+      case LEGION_STAT_CRIT_DAMAGE:
+        totals.crit_dmg += value;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+// What every ranked character's job gives. Its four stats are final stats, so
+// this runs after the fold, beside the Hyper Stats.
+void AddLegionJobEffects(const LegionSummary& summary, PassiveTotals& totals) {
+  const LegionJobEffects& effects = summary.job_effects;
+  totals.str += effects.str;
+  totals.dex += effects.dex;
+  totals.int_ += effects.int_;
+  totals.luk += effects.luk;
+  totals.max_hp_pct += effects.max_hp_pct;
+  totals.crit_rate += effects.crit_rate;
+}
+
 // The flat stats `potential` gives a character at `level` whose four stats
 // total `pile`: its own flat lines, plus the share its %stat lines take of the
 // pile once those flat lines are added. It is shared with PotentialStatGrant so
@@ -1559,6 +1641,11 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats(worn);
+  std::optional<LegionSummary> legion;
+  if (character.legion_unlocked()) {
+    legion = character.legion_summary();
+    AddLegionPoints(character, *legion, preset, passives);
+  }
   // Before the fold: a potential's %stat and Maple Warrior both read a base the
   // other hasn't changed, and their shares add rather than compound.
   AddPotentials(character, preset, worn, with_familiars, passives);
@@ -1571,6 +1658,9 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
   AddInnerAbility(character,
                   character.SlotFor(PresetKind::kInnerAbility, preset),
                   passives);
+  if (legion) {
+    AddLegionJobEffects(*legion, passives);
+  }
   // Last of all, because it uses crit rate once nothing more will add to it. It
   // reads the rate uncapped and with the base rate included, as the stats page
   // shows it.

@@ -13,6 +13,7 @@
 #include "src/character/familiar.h"
 #include "src/character/guild.h"
 #include "src/character/inner_ability.h"
+#include "src/character/legion.h"
 #include "src/character/skill_placement.h"
 #include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
@@ -20,6 +21,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/familiar.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/testing/data_files.h"
 #include "src/testing/prototypes.h"
@@ -4699,6 +4701,123 @@ TEST(GmsCharacterOffenseTest, ScalesByTheBestWeaponTheMasteryNames) {
   };
   EXPECT_DOUBLE_EQ(wearing(EQUIP_TYPE_ONE_HANDED_SWORD), 1.34 / 1.44);
   EXPECT_DOUBLE_EQ(wearing(EQUIP_TYPE_TWO_HANDED_SWORD), 1.0);
+}
+
+// --- Legion ---
+
+// Puts `heroes` level-250 Heroes on the account beside `c` and opens the
+// Legion, so `c` has 5 points per Hero to spend.
+void JoinLegion(CharacterInstance& c, int heroes) {
+  c.set_account_max_level(kLegionLevel);
+  c.set_legion_roster(
+      std::vector<LegionMember>(heroes, LegionMember{JOB_HERO, 250}));
+}
+
+// Spends `points` on `stat` in `slot` and hands the allocation to `c`.
+void SpendLegion(CharacterInstance& c, StatPreset slot, LegionStat stat,
+                 int points) {
+  Legion legion = c.legion();
+  ASSERT_EQ(SpendLegionPoints(legion, slot, stat, points, c.legion_summary()),
+            points);
+  c.set_legion(legion);
+}
+
+// The two halves of GMS's rule: points buy stats a %stat line multiplies, and
+// a job effect is a final stat.
+TEST(LegionStatsTest, PointsAreLiftedByPercentStatAndJobEffectsAreNot) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  JoinLegion(c, 3);
+  SpendLegion(c, StatPreset::kFirst, LEGION_STAT_STR, 15);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  // 75 from points; 12% of 1075; three SSS Heroes' 300 untouched.
+  EXPECT_EQ(stats.skill_stats.str(), 75 + 129 + 300);
+}
+
+TEST(LegionStatsTest, NothingBelowTheUnlockLevel) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  JoinLegion(c, 3);
+  SpendLegion(c, StatPreset::kFirst, LEGION_STAT_STR, 15);
+  c.set_account_max_level(kLegionLevel - 1);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.str(), 0);
+}
+
+// Each stat lands where its lever is read, at GMS's per-square value.
+TEST(LegionStatsTest, EveryStatLandsOnItsLever) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 200, 0);
+  JoinLegion(c, 50);
+  const DerivedStats before = DerivedStatsFor(c, {});
+  for (int i = LegionStat_MIN + 1; i <= LegionStat_MAX; ++i) {
+    SpendLegion(c, StatPreset::kFirst, static_cast<LegionStat>(i), 10);
+  }
+  const DerivedStats after = DerivedStatsFor(c, {});
+  EXPECT_EQ(after.skill_stats.str() - before.skill_stats.str(), 50);
+  EXPECT_EQ(after.skill_stats.dex() - before.skill_stats.dex(), 50);
+  EXPECT_EQ(after.skill_stats.int_() - before.skill_stats.int_(), 50);
+  EXPECT_EQ(after.skill_stats.luk() - before.skill_stats.luk(), 50);
+  EXPECT_EQ(after.max_hp - before.max_hp, 2500);
+  EXPECT_EQ(after.max_mp - before.max_mp, 2500);
+  EXPECT_EQ(after.skill_stats.attack() - before.skill_stats.attack(), 10);
+  EXPECT_EQ(
+      after.skill_stats.magic_attack() - before.skill_stats.magic_attack(), 10);
+  EXPECT_DOUBLE_EQ(after.status_resistance - before.status_resistance, 10.0);
+  EXPECT_NEAR(after.exp_pct - before.exp_pct, 0.025, 1e-9);
+  EXPECT_NEAR(after.crit_rate - before.crit_rate, 0.10, 1e-9);
+  EXPECT_NEAR(after.boss_pct - before.boss_pct, 0.10, 1e-9);
+  EXPECT_NEAR(after.normal_pct - before.normal_pct, 0.10, 1e-9);
+  EXPECT_NEAR(after.buff_duration_pct - before.buff_duration_pct, 0.10, 1e-9);
+  EXPECT_NEAR(after.ied, CombineIgnoredDefense(before.ied, 0.10), 1e-9);
+  EXPECT_NEAR(after.crit_dmg - before.crit_dmg, 0.05, 1e-9);
+}
+
+// Boss and Farm swap with the activity; with the autoswap off, the selected
+// preset answers for both.
+TEST(LegionStatsTest, ThePresetFollowsTheAutoswap) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 200, 0);
+  JoinLegion(c, 50);
+  SpendLegion(c, AutoswapSlotFor(Activity::kBossing), LEGION_STAT_BOSS_DAMAGE,
+              40);
+  SpendLegion(c, StatPreset::kThird, LEGION_STAT_NORMAL_DAMAGE, 40);
+  const double farm_boss =
+      DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).boss_pct;
+
+  c.set_autoswap_presets(true);
+  EXPECT_NEAR(
+      DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct - farm_boss,
+      0.40, 1e-9);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).boss_pct,
+                   farm_boss);
+
+  c.set_autoswap_presets(false);
+  Legion legion = c.legion();
+  legion.set_slot_in_use(IndexOf(StatPreset::kThird));
+  c.set_legion(legion);
+  const DerivedStats third = DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
+  EXPECT_DOUBLE_EQ(third.boss_pct, farm_boss);
+  EXPECT_NEAR(third.normal_pct -
+                  DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).normal_pct,
+              0.0, 1e-9);
+  EXPECT_GT(third.normal_pct, 0.39);
+}
+
+// The character in play counts at their own level, which moves mid-session.
+TEST(LegionStatsTest, ThePlayedCharacterCountsAtTheirOwnLevel) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(250);
+  proto.set_job(JOB_BOW_MASTER);
+  CharacterInstance c(rng, std::move(proto));
+  JoinLegion(c, 1);
+  const LegionSummary summary = c.legion_summary();
+  EXPECT_EQ(summary.legion_level, 500);
+  EXPECT_EQ(summary.points, 10);
+  EXPECT_EQ(summary.job_effects.dex, 100);
+  EXPECT_EQ(summary.job_effects.str, 100);
 }
 
 }  // namespace

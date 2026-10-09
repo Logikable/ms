@@ -25,6 +25,7 @@
 #include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/legion.h"
 #include "src/character/link.h"
 #include "src/character/skill_placement.h"
 #include "src/item/currency.h"
@@ -531,6 +532,28 @@ class CharacterInstance {
   const LinkTally& link_tally() const {
     return link_tally_;
   }
+  // The account's Legion allocations and its other characters, copied here for
+  // the same reason. Like the link tally, the roster leaves this character out
+  // and legion_summary() adds them at their current level.
+  void set_legion(Legion legion) {
+    legion_ = std::move(legion);
+  }
+  const Legion& legion() const {
+    return legion_;
+  }
+  void set_legion_roster(std::vector<LegionMember> others) {
+    legion_roster_ = std::move(others);
+  }
+  bool legion_unlocked() const {
+    return account_max_level() >= kLegionLevel;
+  }
+  LegionSummary legion_summary() const;
+  // The Legion preset in use while doing `activity`: the autoswap slot, or the
+  // account's selected one while autoswap is off.
+  StatPreset LegionSlotFor(Activity activity) const {
+    return autoswap_presets_ ? AutoswapSlotFor(activity)
+                             : StatPresetAt(legion_.slot_in_use());
+  }
   // This character's familiars and their EXP pool. See
   // //src/character:familiar.
   const FamiliarBook& familiars() const {
@@ -954,6 +977,9 @@ class CharacterInstance {
   int noblesse_sp_earned_ = 0;
   // Copy of what the account's other characters have reached; see link_tally().
   LinkTally link_tally_;
+  // Copies of the account's Legion; see legion().
+  Legion legion_;
+  std::vector<LegionMember> legion_roster_;
 
   // The level of a skill nobody buys: the account's highest level divided by
   // the levels each skill level costs, capped. See

@@ -15,6 +15,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/legion.h"
 #include "src/character/max_character.h"
 #include "src/character/progression.h"
 #include "src/character/sacred_power.h"
@@ -31,6 +32,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/save.pb.h"
@@ -1241,6 +1243,23 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 4);
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 2);
   EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 2);
+}
+
+// The Legion reads the alts from the mirror and the Hero at their own level,
+// and the account's allocation travels with it.
+TEST(GameStateTest, TheLegionSeesTheWholeAccount) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  EXPECT_EQ(state.character.legion_summary().legion_level,
+            kTrialLevelCap + 5 * 120);
+
+  LegionSummary summary = state.character.legion_summary();
+  ASSERT_EQ(SpendLegionPoints(*state.account.mutable_legion(),
+                              StatPreset::kThird, LEGION_STAT_LUK, 2, summary),
+            2);
+  state.MirrorAccount();
+  EXPECT_EQ(
+      LegionPointsSpent(PresetOf(state.character.legion(), StatPreset::kThird)),
+      2);
 }
 
 // A sim's bare roster gives the same link skills as the playable one, without

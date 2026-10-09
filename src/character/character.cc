@@ -1363,6 +1363,12 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
   }
 }
 
+LegionSummary CharacterInstance::legion_summary() const {
+  std::vector<LegionMember> members = legion_roster_;
+  members.push_back({character_.job(), character_.level()});
+  return SummarizeLegion(std::move(members));
+}
+
 StatPreset CharacterInstance::SlotFor(PresetKind kind,
                                       Activity activity) const {
   return autoswap_presets_ ? AutoswapSlotFor(activity) : SlotInUse(kind);

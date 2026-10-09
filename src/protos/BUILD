@@ -61,6 +61,16 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "legion_proto",
+    srcs = ["legion.proto"],
+)
+
+cc_proto_library(
+    name = "legion_proto_cc",
+    deps = [":legion_proto"],
+)
+
+proto_library(
     name = "account_proto",
     srcs = ["account.proto"],
     deps = [
@@ -68,6 +78,7 @@ proto_library(
         ":familiar_proto",
         ":item_proto",
         ":keybinds_proto",
+        ":legion_proto",
     ],
 )
 

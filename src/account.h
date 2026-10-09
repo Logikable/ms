@@ -96,6 +96,15 @@ class AccountInstance {
   // Records one. Returns false, and records nothing, for one already there.
   bool RecordSoloClear(const std::string& boss, const std::string& difficulty);
 
+  // How the Legion's points are spent. Copied onto the character being played,
+  // so a change must be followed by GameState::MirrorAccount.
+  const Legion& legion() const {
+    return account_.legion();
+  }
+  Legion* mutable_legion() {
+    return account_.mutable_legion();
+  }
+
   // Saves what the server issued, so the next connection is recognised as the
   // same player.
   void SetMultiplayerAccount(const std::string& account_id,

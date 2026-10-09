@@ -22,6 +22,7 @@
 #include "src/character/honor.h"
 #include "src/character/job_branch.h"
 #include "src/character/job_name.h"
+#include "src/character/legion.h"
 #include "src/character/link.h"
 #include "src/character/max_character.h"
 #include "src/character/sacred_power.h"
@@ -1510,14 +1511,18 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
   // Only the others: a character provides their own line's link skill
   // themselves, since their level can change mid-session while a slot's can't.
   LinkTally tally;
+  std::vector<LegionMember> legion;
   for (int slot = 0; slot < static_cast<int>(roster.size()); ++slot) {
     if (slot == theirs) {
       continue;
     }
-    tally.Record(roster[slot].character().job(),
-                 roster[slot].character().level());
+    const Character& other = roster[slot].character();
+    tally.Record(other.job(), other.level());
+    legion.push_back({other.job(), other.level()});
   }
   into.set_link_tally(std::move(tally));
+  into.set_legion(account.legion());
+  into.set_legion_roster(std::move(legion));
 }
 
 namespace {
