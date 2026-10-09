@@ -871,6 +871,10 @@ TEST(GameStateTest, PlayIsTheDefaultMode) {
 
 // The workbench levels with an EXP bonus instead of farming the early levels at
 // normal speed. Play mode earns normally.
+TEST(GameStateTest, TestModeStartsWithFamiliarExp) {
+  EXPECT_EQ(MakeTestModeState().character.familiars().exp(), 1'000'000);
+}
+
 TEST(GameStateTest, TestModeFarmsOnAnExpBonus) {
   EXPECT_EQ(MakeTestModeState().exp_multiplier, 5);
 }
