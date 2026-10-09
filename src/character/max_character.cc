@@ -13,6 +13,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
+#include "src/character/legion_plan.h"
 #include "src/character/noblesse_plan.h"
 #include "src/character/set_pieces.h"
 #include "src/character/stat_preset.h"
@@ -901,6 +902,20 @@ void SpendMaxNoblesse(CharacterInstance& character,
   SpendNoblesseSp(character, skills, [&skills, target](CharacterInstance& c) {
     return MaxHyperRate(c, skills, Activity::kBossing, target);
   });
+}
+
+void SpendMaxLegion(CharacterInstance& character,
+                    const std::map<std::string, Skill>& skills,
+                    const std::map<std::string, Boss>& bosses,
+                    const std::map<std::string, Mob>& mobs) {
+  const int level = character.proto().level();
+  for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
+    const Mob* target = NominalTarget(bosses, mobs, level, activity);
+    SpendLegion(character, AutoswapSlotFor(activity),
+                [&skills, activity, target](CharacterInstance& c) {
+                  return MaxHyperRate(c, skills, activity, target);
+                });
+  }
 }
 
 void SpendMaxHyperStats(CharacterInstance& character,

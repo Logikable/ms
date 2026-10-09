@@ -100,6 +100,15 @@ void SpendMaxNoblesse(CharacterInstance& character,
                       const std::map<std::string, Boss>& bosses,
                       const std::map<std::string, Mob>& mobs);
 
+// Spends the Legion's points on the Farm and Boss presets of the character's
+// copy, rated as Hyper Stats are below. Before them, since the Legion's crit
+// and Ignore Defense change their best allocation. The third preset is left
+// empty, as a player's spare.
+void SpendMaxLegion(CharacterInstance& character,
+                    const std::map<std::string, Skill>& skills,
+                    const std::map<std::string, Boss>& bosses,
+                    const std::map<std::string, Mob>& mobs);
+
 // Spends the whole Hyper Stat pool on both presets, best value per point first,
 // discarding any previous allocation. A stat's value is measured on this
 // character instead of listed here (see hyper_plan.h), so the job's own stats

@@ -1253,6 +1253,12 @@ TEST(GameStateTest, TheLegionSeesTheWholeAccount) {
             kTrialLevelCap + 5 * 120);
 
   LegionSummary summary = state.character.legion_summary();
+  // Max mode spends Farm and Boss and leaves the spare.
+  for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
+    EXPECT_EQ(LegionPointsSpent(
+                  PresetOf(state.account.legion(), AutoswapSlotFor(activity))),
+              summary.points);
+  }
   ASSERT_EQ(SpendLegionPoints(*state.account.mutable_legion(),
                               StatPreset::kThird, LEGION_STAT_LUK, 2, summary),
             2);

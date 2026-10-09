@@ -1320,6 +1320,18 @@ LinkTally MaxTally(const std::vector<MaxMember>& account,
   return tally;
 }
 
+// The Legion's view of the rest of the account, as MaxTally gives the links.
+std::vector<LegionMember> MaxLegionRoster(const std::vector<MaxMember>& account,
+                                          const MaxMember& member) {
+  std::vector<LegionMember> others;
+  for (const MaxMember& other : account) {
+    if (other.advancement != member.advancement) {
+      others.push_back({JobForAdvancement(other.advancement), other.level});
+    }
+  }
+  return others;
+}
+
 // The familiars at `level`, the three mains, which every preset summons as
 // the starters. Before Hyper Stats, whose best allocation reads their lines.
 void WearMaxFamiliars(GameState& state, int level) {
@@ -1332,7 +1344,8 @@ void WearMaxFamiliars(GameState& state, int level) {
 // account gives them, set before Hyper Stats are measured because a link
 // skill's crit rate changes the best allocation.
 void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
-                     const LinkTally& tally) {
+                     const LinkTally& tally,
+                     std::vector<LegionMember> legion_roster) {
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
   equips.scrolled = true;
@@ -1366,6 +1379,8 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   WearMaxFamiliars(state, reached);
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);
+  state.character.set_legion_roster(std::move(legion_roster));
+  SpendMaxLegion(state.character, state.skills, state.bosses, state.mobs);
   // Before Hyper Stats, whose best allocation depends on the crit damage and
   // Ignore Defense these give.
   SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
@@ -1398,7 +1413,8 @@ void SeedMaxRoster(GameState& state, const std::vector<MaxMember>& account,
       continue;
     }
     ResetToBeginner(state);
-    MaxOneCharacter(state, alt.advancement, alt.level, MaxTally(account, alt));
+    MaxOneCharacter(state, alt.advancement, alt.level, MaxTally(account, alt),
+                    MaxLegionRoster(account, alt));
     CharacterSave& slot = state.inactive_characters.emplace_back();
     *slot.mutable_character() = state.character.ToProto();
     slot.set_current_map(kHomeMap);
@@ -1437,7 +1453,10 @@ void SeedMax(GameState& state, const TestOptions& options) {
   }
   SeedMaxRoster(state, account, options.playable_roster);
   ResetToBeginner(state);
-  MaxOneCharacter(state, advancement, level, MaxTally(account, account[0]));
+  MaxOneCharacter(state, advancement, level, MaxTally(account, account[0]),
+                  MaxLegionRoster(account, account[0]));
+  // The main's Legion is the account's.
+  *state.account.mutable_legion() = state.character.legion();
   // Recompute the tally from the roster: from now on the account provides it,
   // and removing a slot changes it.
   state.MirrorAccount();

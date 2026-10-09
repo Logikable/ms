@@ -408,6 +408,33 @@ cc_test(
 )
 
 cc_library(
+    name = "legion_plan",
+    srcs = ["legion_plan.cc"],
+    hdrs = ["legion_plan.h"],
+    deps = [
+        ":character",
+        ":legion",
+        ":stat_preset",
+        "//src/protos:legion_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "legion_plan_test",
+    size = "small",
+    srcs = ["legion_plan_test.cc"],
+    deps = [
+        ":character",
+        ":character_stats",
+        ":legion",
+        ":legion_plan",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "boss_reset",
     srcs = ["boss_reset.cc"],
     hdrs = ["boss_reset.h"],
@@ -669,6 +696,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":legion_plan",
         ":noblesse_plan",
         ":set_pieces",
         ":stat_preset",
