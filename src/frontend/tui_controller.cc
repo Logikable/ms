@@ -100,6 +100,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       bank_panel_(screens.bank_panel),
       link_skill_panel_(screens.link_skill_panel),
       character_select_panel_(state),
+      legion_panel_(state),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
   // The Inspect screen's panels call these on Enter. They are connected here
@@ -434,6 +435,10 @@ bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
   if (preset_move_row_ < kNumStatPresets) {
     state_.character.SwapPresets(preset_kind_, preset_slot_,
                                  StatPresetAt(preset_move_row_));
+    // The character holds a copy of the account's Legion.
+    if (preset_kind_ == PresetKind::kLegion) {
+      *state_.account.mutable_legion() = state_.character.legion();
+    }
   }
   screen_ = preset_return_;
   return true;
@@ -460,15 +465,6 @@ bool TuiController::capturing_key() const {
 }
 
 void TuiController::OpenMenuEntry(MenuEntry entry) {
-  if (entry == MenuEntry::kCharacters) {
-    // The fight stops as soon as this opens (see OnCharacterSelect) and resumes
-    // on Escape or Play. No box stays open under it, or leaving it would land
-    // back in that box.
-    menu_panel_.CloseBox();
-    character_select_panel_.Reset();
-    screen_ = kCharacterSelect;
-    return;
-  }
   // The box opens with the cursor still on the entry below it, which the
   // player presses Up to leave.
   menu_panel_.OpenBox(entry);
@@ -994,6 +990,11 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnMenuBoxEvent(event);
     case kAnalysis:
       return OnAnalysisEvent(event);
+    case kLegion:
+      return legion_panel_.preset_menu_open() ? OnLegionMenuEvent(event)
+                                              : OnLegionEvent(event);
+    case kLegionReset:
+      return OnLegionResetEvent(event);
     case kCharacterSelect:
       return OnCharacterSelectEvent(event);
     case kCharacterMenu:
@@ -1423,6 +1424,80 @@ bool TuiController::TakeCharacterSwitch() {
   bool switched = character_switched_;
   character_switched_ = false;
   return switched;
+}
+
+bool TuiController::OnLegionEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    legion_panel_.MoveRow(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    legion_panel_.MoveColumn(event == ftxui::Event::ArrowLeft ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event)) {
+    if (legion_panel_.Activate()) {
+      // Starts on Cancel, like the Hyper question.
+      legion_reset_prompt_.Open(/*cancel_selected=*/true);
+      screen_ = kLegionReset;
+    }
+    return true;
+  }
+  if (IsBack(event)) {
+    // Back to the box it was opened from, like Keybinds.
+    screen_ = kMenuBox;
+  }
+  // Everything else is swallowed: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnLegionMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    legion_panel_.MoveMenuCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsBack(event)) {
+    legion_panel_.CloseMenu();
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  const int chosen = legion_panel_.preset_menu_selected();
+  const StatPreset slot = legion_panel_.preset();
+  legion_panel_.CloseMenu();
+  if (chosen == kPresetMenuUse) {
+    state_.account.mutable_legion()->set_slot_in_use(IndexOf(slot));
+    state_.character.set_legion(state_.account.legion());
+  } else if (chosen == kPresetMenuMove) {
+    // The Hyper tab's own popup, which returns to this screen.
+    preset_kind_ = PresetKind::kLegion;
+    preset_slot_ = slot;
+    preset_return_ = kLegion;
+    preset_move_row_ = IndexOf(slot);
+    screen_ = kPresetMove;
+  }
+  return true;
+}
+
+bool TuiController::OnLegionResetEvent(ftxui::Event event) {
+  ConfirmChoice choice = legion_reset_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    legion_panel_.ResetPreset();
+  }
+  screen_ = kLegion;
+  return true;
+}
+
+std::string TuiController::legion_reset_question() const {
+  return "Reset " +
+         PresetSlotName(legion_panel_.preset(),
+                        state_.character.autoswap_presets(),
+                        PresetKind::kLegion) +
+         " Legion?";
 }
 
 bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
@@ -3598,9 +3673,21 @@ bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
 
 void TuiController::OpenBoxEntry() {
   switch (menu_panel_.box_entry()) {
-    // It opens a screen directly from the menu, so there is nothing to open
-    // here.
     case MenuEntry::kCharacters:
+      switch (menu_panel_.selected_characters_entry()) {
+        case CharactersEntry::kSwitch:
+          // The fight stops as soon as this opens (see OnCharacterSelect) and
+          // resumes on Escape or Play. No box stays open under it, or leaving
+          // it would land back in that box.
+          menu_panel_.CloseBox();
+          character_select_panel_.Reset();
+          screen_ = kCharacterSelect;
+          return;
+        case CharactersEntry::kLegion:
+          legion_panel_.Reset();
+          screen_ = kLegion;
+          return;
+      }
       return;
     case MenuEntry::kDailies:
       OpenDailiesEntry(menu_panel_.selected_dailies_entry());

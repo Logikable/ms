@@ -22,6 +22,7 @@ constexpr int kMultiplayerLevel = 25;
 constexpr int kBossLevel = 110;
 constexpr int kSymbolsLevel = 200;
 constexpr int kCharactersLevel = 30;
+constexpr int kLegionLevel = 150;
 
 GameState EmptyState() {
   return GameState({}, {}, {}, {}, {});
@@ -94,6 +95,27 @@ TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
   std::string all = Render(panel);
   EXPECT_LT(all.find("Multiplayer"), all.find("Characters"));
   EXPECT_LT(all.find("Characters"), all.find("Settings"));
+}
+
+// Characters opens a box: Switch from the start, and Legion under it once the
+// account reaches the Legion.
+TEST(MenuPanelTest, CharactersHoldsSwitchThenLegion) {
+  GameState state = EmptyState();
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  LevelTo(state, kLegionLevel - 1);
+  OpenBoxOn(panel, MenuEntry::kCharacters);
+  std::string box = RenderBox(panel);
+  EXPECT_NE(box.find("Switch"), std::string::npos) << box;
+  EXPECT_EQ(box.find("Legion"), std::string::npos) << box;
+
+  LevelTo(state, kLegionLevel);
+  box = RenderBox(panel);
+  EXPECT_LT(box.find("Switch"), box.find("Legion")) << box;
+  EXPECT_EQ(panel.CharactersEntries(),
+            (std::vector<CharactersEntry>{CharactersEntry::kSwitch,
+                                          CharactersEntry::kLegion}));
 }
 
 // The row holds only the entries: no brackets, two columns between them, and a

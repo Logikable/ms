@@ -179,7 +179,11 @@ enum Screen : int {
   // Battle Analysis, from that box: the measured stretch's numbers, over the
   // main screen where it is being measured.
   kAnalysis,
-  // Enter on the menu panel's Characters entry: the account's characters, and
+  // Legion under the menu's Characters entry: the Grid and Members tabs, and
+  // the Grid's Reset question over it.
+  kLegion,
+  kLegionReset,
+  // Switch under the menu's Characters entry: the account's characters, and
   // the card of the one under the cursor. Farming stops while it is open, and
   // the only way back into the game is to play one of them.
   kCharacterSelect,

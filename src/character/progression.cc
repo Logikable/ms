@@ -13,6 +13,7 @@
 #include "src/character/familiar.h"
 #include "src/character/guild.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/legion.h"
 #include "src/character/link.h"
 #include "src/character/sacred_power.h"
 #include "src/item/flame.h"
@@ -71,6 +72,8 @@ constexpr Unlock kUnlocks[] = {
     // Hyper Stats' own level, where the points start; see
     // kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
+    // The account level that opens the Legion; see kLegionLevel.
+    {Feature::kLegion, kLegionLevel},
     // The Wealth Acquisition Potion's level; see kConsumableUnlockLevel. The
     // second buff waits until 190 and isn't listed at all before then.
     {Feature::kConsumables, kConsumableUnlockLevel},
@@ -269,6 +272,8 @@ std::string FeatureName(Feature feature) {
       return "Bank";
     case Feature::kCharacters:
       return "Characters";
+    case Feature::kLegion:
+      return "the Legion";
     case Feature::kHyperStats:
       return "Hyper Stats";
     case Feature::kConsumables:

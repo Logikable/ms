@@ -493,6 +493,7 @@ cc_library(
         ":familiar",
         ":guild",
         ":hyper_stats",
+        ":legion",
         ":link",
         ":sacred_power",
         "//src:account",

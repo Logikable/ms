@@ -513,6 +513,8 @@ TEST_F(PartyControllerTest, SwitchingCharacterLeavesTheParty) {
   MakeParty(*leader, *guest);
 
   guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Switch
+  guest->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(guest->controller->screen(), kCharacterSelect);
   guest->controller->OnEvent(ftxui::Event::Return);  // Wand's menu
   guest->controller->OnEvent(ftxui::Event::Return);  // Play: a resume
@@ -522,6 +524,8 @@ TEST_F(PartyControllerTest, SwitchingCharacterLeavesTheParty) {
   EXPECT_TRUE(guest->party_panel.in_party());
 
   guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Switch
+  guest->controller->OnEvent(ftxui::Event::Return);
   guest->controller->OnEvent(ftxui::Event::ArrowDown);  // onto Other
   guest->controller->OnEvent(ftxui::Event::Return);
   guest->controller->OnEvent(ftxui::Event::Return);  // Play

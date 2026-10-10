@@ -1106,6 +1106,14 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return Centred(keybinds_panel_.Render());
+    // The preset menu is anchored to its row, so the panel draws it.
+    case kLegion:
+      return Centred(controller_.legion_panel().Render());
+    case kLegionReset:
+      return Overlay(
+          Centred(controller_.legion_panel().Render()),
+          DialogWindow("", {CenteredRow(controller_.legion_reset_question())},
+                       controller_.legion_reset_prompt().Render()));
     // kCharacterMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel draws it.
     case kCharacterSelect:
@@ -1224,6 +1232,11 @@ ftxui::Element Tui::RenderScreen() {
     case kVMatrixReset:
       return OverMain(VMatrixResetDialog());
     case kPresetMove:
+      // Over the screen it returns to, so the presets it swaps stay in view.
+      if (controller_.preset_return() == kLegion) {
+        return Overlay(Centred(controller_.legion_panel().Render()),
+                       PresetMoveDialog());
+      }
       return OverMain(PresetMoveDialog());
     case kAbilityReroll:
       return OverMain(AbilityRerollDialog());

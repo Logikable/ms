@@ -75,6 +75,9 @@ enum class Feature {
   // sunk much into it. Burning comes with it, having nothing to catch up to
   // before a second character exists.
   kCharacters,
+  // The Legion row under Characters, at the account level that opens the
+  // Legion; see kLegionLevel.
+  kLegion,
   // The Character panel's Hyper tab and its preset row. Unlocked at Hyper
   // Stats' own level, and by this character's level: the points come from their
   // own levels.

@@ -46,7 +46,10 @@ enum class PresetKind {
   kInnerAbility,
   kEquip,
   kLinkSkills,
-  kFamiliars
+  kFamiliars,
+  // The account's, read through the character's copy; see
+  // CharacterInstance::legion().
+  kLegion,
 };
 
 // The gear preset used for the boss drop roll, regardless of the switch or what

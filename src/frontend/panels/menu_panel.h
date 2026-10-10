@@ -9,9 +9,9 @@
  * the right. Settings holds the corner from the start so the panel is never
  * empty, and Analysis is always at the left end.
  *
- * An entry either opens a screen (as Characters does) or opens a box above the
- * corner listing where it leads. There is one box whichever entry opened it, so
- * all entries behave alike and the panel has one cursor.
+ * Every entry opens a box above the corner listing where it leads. There is
+ * one box whichever entry opened it, so all entries behave alike and the panel
+ * has one cursor.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_MENU_PANEL_H_
@@ -49,6 +49,13 @@ enum class SettingsEntry {
 enum class DailiesEntry {
   kBoss,
   kSymbols,
+};
+
+// The Characters box, top to bottom. Legion appears at its own account level,
+// so the box can hold Switch alone.
+enum class CharactersEntry {
+  kSwitch,
+  kLegion,
 };
 
 // The Multiplayer box, top to bottom.
@@ -113,6 +120,9 @@ class MenuPanel {
   // The Dailies rows this character has, top to bottom.
   std::vector<DailiesEntry> DailiesEntries() const;
   DailiesEntry selected_dailies_entry() const;
+  // The Characters rows this account has, top to bottom.
+  std::vector<CharactersEntry> CharactersEntries() const;
+  CharactersEntry selected_characters_entry() const;
   MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;
   ftxui::Element RenderBox() const;
@@ -130,8 +140,7 @@ class MenuPanel {
   // about.
   std::vector<MenuEntry> Entries() const;
 
-  // What `entry`'s box lists, top to bottom. Empty for an entry that opens a
-  // screen instead.
+  // What `entry`'s box lists, top to bottom.
   std::vector<std::string> BoxEntries(MenuEntry entry) const;
 
   // One row of the open box, caret included. The render draws this and BoxWidth

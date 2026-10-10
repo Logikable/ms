@@ -41,6 +41,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/jukebox_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
+#include "src/frontend/screens/legion_panel.h"
 #include "src/frontend/screens/level_up_panel.h"
 #include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -428,6 +429,19 @@ class TuiController {
   const CharacterSelectPanel& character_select_panel() const {
     return character_select_panel_;
   }
+  // The Legion screen and its Reset question, owned here like the character
+  // select.
+  const LegionPanel& legion_panel() const {
+    return legion_panel_;
+  }
+  const ConfirmPrompt& legion_reset_prompt() const {
+    return legion_reset_prompt_;
+  }
+  std::string legion_reset_question() const;
+  // The screen the Move popup returns to.
+  Screen preset_return() const {
+    return preset_return_;
+  }
   const ConfirmPrompt& character_delete_prompt() const {
     return character_delete_prompt_;
   }
@@ -715,6 +729,9 @@ class TuiController {
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
   bool OnCharacterSelectEvent(ftxui::Event event);
+  bool OnLegionEvent(ftxui::Event event);
+  bool OnLegionMenuEvent(ftxui::Event event);
+  bool OnLegionResetEvent(ftxui::Event event);
   bool OnCharacterMenuEvent(ftxui::Event event);
   bool OnCharacterDeleteEvent(ftxui::Event event);
   bool OnCharacterOfflineEvent(ftxui::Event event);
@@ -1064,6 +1081,8 @@ class TuiController {
   ConfirmPrompt buff_buy_prompt_;
   DailiesPanel dailies_panel_;
   CharacterSelectPanel character_select_panel_;
+  LegionPanel legion_panel_;
+  ConfirmPrompt legion_reset_prompt_;
   ConfirmPrompt character_delete_prompt_;
   // The slot the open Delete confirmation is about, stored when it opens, since
   // the cursor may have moved by the time it is answered.

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <ctime>
 #include <map>
 #include <memory>
@@ -91,6 +92,19 @@ class TuiControllerTest : public testing::Test {
   // The catalogs these tests use: small enough to define here instead of
   // loading from data/. Each entry exists because some test below needs it
   // before a panel is built.
+  // Characters on the menu, then `entry` in its box. Up from the menu row
+  // lands on the box's bottom entry.
+  void OpenCharactersEntry(CharactersEntry entry) {
+    controller_->OpenMenuEntry(MenuEntry::kCharacters);
+    std::vector<CharactersEntry> entries = menu_panel_->CharactersEntries();
+    int at = static_cast<int>(std::find(entries.begin(), entries.end(), entry) -
+                              entries.begin());
+    for (int i = static_cast<int>(entries.size()); i > at; --i) {
+      controller_->OnEvent(ftxui::Event::ArrowUp);
+    }
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+
   void MakeState() {
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -3692,10 +3706,83 @@ TEST_F(TuiControllerTest, TabDoesNotLeaveTheExpandedPanel) {
   EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
+// --- the Legion ---
+
+// Legion sits under Switch once the account reaches it, and Escape goes back
+// to the box it came from.
+TEST_F(TuiControllerTest, LegionOpensFromCharactersAndReturnsToTheBox) {
+  LevelTo(kLegionLevel);
+  OpenCharactersEntry(CharactersEntry::kLegion);
+  ASSERT_EQ(controller_->screen(), kLegion);
+  EXPECT_FALSE(controller_->OnCharacterSelect()) << "the fight runs on";
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+}
+
+// Use and Move on the preset row act on the account's Legion, and the
+// character's copy follows.
+TEST_F(TuiControllerTest, TheLegionPresetMenuUsesAndMovesTheAccountsPresets) {
+  LevelTo(kLegionLevel);
+  state_->account.SetAutoswapPresets(false);
+  (*PresetOf(*state_->account.mutable_legion(), StatPreset::kFirst)
+        .mutable_points())[LEGION_STAT_STR] = 1;
+  state_->MirrorAccount();
+  OpenCharactersEntry(CharactersEntry::kLegion);
+  controller_->OnEvent(ftxui::Event::ArrowDown);   // -> the preset row
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // -> 2
+  controller_->OnEvent(ftxui::Event::Return);      // Use
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->account.legion().slot_in_use(), 1);
+  EXPECT_EQ(state_->character.legion().slot_in_use(), 1);
+
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // -> 1
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Move
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kPresetMove);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // onto 2
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kLegion);
+  EXPECT_EQ(PresetOf(state_->account.legion(), StatPreset::kSecond)
+                .points()
+                .at(LEGION_STAT_STR),
+            1);
+  EXPECT_EQ(state_->account.legion().slot_in_use(), 0)
+      << "the in-use mark moves with its preset";
+  EXPECT_EQ(state_->character.legion().SerializeAsString(),
+            state_->account.legion().SerializeAsString());
+}
+
+// [Reset] asks first, starting on Cancel, and comes back to the screen.
+TEST_F(TuiControllerTest, LegionResetAsksFirst) {
+  LevelTo(kLegionLevel);
+  state_->account.SetAutoswapPresets(true);
+  (*PresetOf(*state_->account.mutable_legion(), StatPreset::kFirst)
+        .mutable_points())[LEGION_STAT_STR] = 1;
+  state_->MirrorAccount();
+  OpenCharactersEntry(CharactersEntry::kLegion);
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // wraps to [Reset]
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kLegionReset);
+  EXPECT_EQ(controller_->legion_reset_question(), "Reset Farm Legion?");
+  controller_->OnEvent(ftxui::Event::Return);  // Cancel
+  EXPECT_EQ(controller_->screen(), kLegion);
+  EXPECT_EQ(
+      LegionPointsSpent(PresetOf(state_->account.legion(), StatPreset::kFirst)),
+      1);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(
+      LegionPointsSpent(PresetOf(state_->account.legion(), StatPreset::kFirst)),
+      0);
+}
+
 // --- the character select ---
 
 TEST_F(TuiControllerTest, CharactersOpensTheSelectAndStopsTheFarm) {
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   EXPECT_EQ(controller_->screen(), kCharacterSelect);
   EXPECT_TRUE(controller_->OnCharacterSelect())
       << "the fight does not run behind it";
@@ -3704,7 +3791,7 @@ TEST_F(TuiControllerTest, CharactersOpensTheSelectAndStopsTheFarm) {
 TEST_F(TuiControllerTest, EscapeResumesTheCharacterInPlay) {
   state_->character.SetUsername("First");
   AddCharacter("Second");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // the cursor on "Second"
   controller_->OnEvent(ftxui::Event::Escape);
 
@@ -3717,7 +3804,7 @@ TEST_F(TuiControllerTest, EscapeResumesTheCharacterInPlay) {
 
 // Cancelling the Quit button's confirmation returns to the list, not the game.
 TEST_F(TuiControllerTest, QuitButtonCancelComesBackToTheList) {
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::ArrowDown);   // onto the buttons: Create
   controller_->OnEvent(ftxui::Event::ArrowRight);  // -> Quit
   controller_->OnEvent(ftxui::Event::Return);
@@ -3730,7 +3817,7 @@ TEST_F(TuiControllerTest, QuitButtonCancelComesBackToTheList) {
 
 TEST_F(TuiControllerTest, CreateMakesACharacterAndPlaysThem) {
   state_->character.SetUsername("First");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   // Down from the only character onto the buttons, where Create is first.
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
@@ -3747,7 +3834,7 @@ TEST_F(TuiControllerTest, CreateMakesACharacterAndPlaysThem) {
 TEST_F(TuiControllerTest, PlayPutsTheChosenCharacterIn) {
   state_->character.SetUsername("First");
   AddCharacter("Second");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // onto the other character
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kCharacterMenu);
@@ -3762,7 +3849,7 @@ TEST_F(TuiControllerTest, PlayPutsTheChosenCharacterIn) {
 // what the player uses after deleting everyone else.
 TEST_F(TuiControllerTest, PlayOnTheCharacterInPlayResumesThem) {
   state_->character.SetUsername("Only");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kCharacterMenu);
   controller_->OnEvent(ftxui::Event::Return);  // Play
@@ -3778,7 +3865,7 @@ TEST_F(TuiControllerTest, PlayOnTheCharacterInPlayResumesThem) {
 TEST_F(TuiControllerTest, SetOfflineAsksThenMovesTheCheck) {
   state_->character.SetUsername("First");
   AddCharacter("Second");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline
@@ -3808,7 +3895,7 @@ TEST_F(TuiControllerTest, SetOfflineAsksThenMovesTheCheck) {
 TEST_F(TuiControllerTest, DeleteAsksFirstAndCanBeBackedOutOf) {
   state_->character.SetUsername("First");
   AddCharacter("Second");
-  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  OpenCharactersEntry(CharactersEntry::kSwitch);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline

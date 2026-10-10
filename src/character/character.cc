@@ -1303,6 +1303,8 @@ StatPreset CharacterInstance::SlotInUse(PresetKind kind) const {
       return StatPresetAt(character_.link_skills().active());
     case PresetKind::kFamiliars:
       return StatPresetAt(character_.summoned_familiars().active());
+    case PresetKind::kLegion:
+      return StatPresetAt(legion_.slot_in_use());
   }
   return StatPreset::kFirst;
 }
@@ -1324,6 +1326,9 @@ void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
     case PresetKind::kFamiliars:
       character_.mutable_summoned_familiars()->set_active(IndexOf(slot));
       return;
+    case PresetKind::kLegion:
+      legion_.set_slot_in_use(IndexOf(slot));
+      return;
   }
 }
 
@@ -1336,6 +1341,11 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
     // Gear presets are not swapped. The first holds every slot and the others
     // only hold what differs from it, so swapping two would leave the character
     // wearing only one preset's overrides. Nothing offers this.
+    return;
+  }
+  if (kind == PresetKind::kLegion) {
+    // Moves the in-use mark itself.
+    SwapLegionPresets(legion_, a, b);
     return;
   }
   if (kind == PresetKind::kHyperStats) {

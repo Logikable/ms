@@ -548,12 +548,6 @@ class CharacterInstance {
     return account_max_level() >= kLegionLevel;
   }
   LegionSummary legion_summary() const;
-  // The Legion preset in use while doing `activity`: the autoswap slot, or the
-  // account's selected one while autoswap is off.
-  StatPreset LegionSlotFor(Activity activity) const {
-    return autoswap_presets_ ? AutoswapSlotFor(activity)
-                             : StatPresetAt(legion_.slot_in_use());
-  }
   // This character's familiars and their EXP pool. See
   // //src/character:familiar.
   const FamiliarBook& familiars() const {

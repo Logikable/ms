@@ -11,6 +11,7 @@
 #include "src/character/familiar.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/legion.h"
 #include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -20,6 +21,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -1388,6 +1390,108 @@ std::string HyperStatBonusText(HyperStatField field, int level) {
     text.resize(text.size() - 2);
   }
   return "+" + text + (percent ? "%" : "");
+}
+
+namespace {
+
+// A fraction as a percentage to two places, trailing zeros trimmed: "+0.75%",
+// "+20%".
+std::string PercentText(double fraction) {
+  char buffer[32];
+  std::snprintf(buffer, sizeof(buffer), "%.2f", fraction * 100.0);
+  std::string text(buffer);
+  while (text.back() == '0') {
+    text.pop_back();
+  }
+  if (text.back() == '.') {
+    text.pop_back();
+  }
+  return "+" + text + "%";
+}
+
+}  // namespace
+
+std::string LegionStatName(LegionStat stat) {
+  static_assert(LegionStat_ARRAYSIZE == 17, "a new Legion stat needs a name");
+  switch (stat) {
+    case LEGION_STAT_STR:
+      return "STR";
+    case LEGION_STAT_DEX:
+      return "DEX";
+    case LEGION_STAT_INT:
+      return "INT";
+    case LEGION_STAT_LUK:
+      return "LUK";
+    case LEGION_STAT_MAX_HP:
+      return "Max HP";
+    case LEGION_STAT_MAX_MP:
+      return "Max MP";
+    case LEGION_STAT_ATTACK:
+      return "Attack";
+    case LEGION_STAT_MAGIC_ATTACK:
+      return "Magic Attack";
+    case LEGION_STAT_STATUS_RESISTANCE:
+      return "Status Resistance";
+    case LEGION_STAT_EXP:
+      return "Experience";
+    case LEGION_STAT_CRIT_RATE:
+      return "Critical Rate";
+    case LEGION_STAT_BOSS_DAMAGE:
+      return "Boss Damage";
+    case LEGION_STAT_NORMAL_DAMAGE:
+      return "Normal Damage";
+    case LEGION_STAT_BUFF_DURATION:
+      return "Buff Duration";
+    case LEGION_STAT_IED:
+      return "Ignore Defense";
+    case LEGION_STAT_CRIT_DAMAGE:
+      return "Critical Damage";
+    case LEGION_STAT_UNSPECIFIED:
+    case LegionStat_INT_MIN_SENTINEL_DO_NOT_USE_:
+    case LegionStat_INT_MAX_SENTINEL_DO_NOT_USE_:
+      break;
+  }
+  return "";
+}
+
+std::string LegionStatBonusText(LegionStat stat, int points) {
+  const double value = points * LegionPerPoint(stat);
+  switch (stat) {
+    case LEGION_STAT_STR:
+    case LEGION_STAT_DEX:
+    case LEGION_STAT_INT:
+    case LEGION_STAT_LUK:
+    case LEGION_STAT_MAX_HP:
+    case LEGION_STAT_MAX_MP:
+    case LEGION_STAT_ATTACK:
+    case LEGION_STAT_MAGIC_ATTACK:
+    case LEGION_STAT_STATUS_RESISTANCE:
+      return "+" + FormatWithCommas(static_cast<int64_t>(std::lround(value)));
+    default:
+      return PercentText(value);
+  }
+}
+
+std::string LegionJobEffectText(const LegionJobEffects& effects) {
+  if (effects.str > 0) {
+    return "STR +" + std::to_string(effects.str);
+  }
+  if (effects.dex > 0) {
+    return "DEX +" + std::to_string(effects.dex);
+  }
+  if (effects.int_ > 0) {
+    return "INT +" + std::to_string(effects.int_);
+  }
+  if (effects.luk > 0) {
+    return "LUK +" + std::to_string(effects.luk);
+  }
+  if (effects.max_hp_pct > 0) {
+    return "Max HP " + PercentText(effects.max_hp_pct);
+  }
+  if (effects.crit_rate > 0) {
+    return "Critical Rate " + PercentText(effects.crit_rate);
+  }
+  return "";
 }
 
 }  // namespace ms

@@ -40,6 +40,16 @@ std::string DailiesEntryName(DailiesEntry entry) {
   return "";
 }
 
+std::string CharactersEntryName(CharactersEntry entry) {
+  switch (entry) {
+    case CharactersEntry::kSwitch:
+      return "Switch";
+    case CharactersEntry::kLegion:
+      return "Legion";
+  }
+  return "";
+}
+
 std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
     case MenuEntry::kAnalysis:
@@ -96,9 +106,13 @@ void MenuPanel::MoveCursor(int delta) {
 
 std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
-    // It opens a screen instead of a box.
-    case MenuEntry::kCharacters:
-      return {};
+    case MenuEntry::kCharacters: {
+      std::vector<std::string> labels;
+      for (CharactersEntry entry : CharactersEntries()) {
+        labels.push_back(CharactersEntryName(entry));
+      }
+      return labels;
+    }
     case MenuEntry::kMultiplayer:
       return {"Players", "Party"};
     case MenuEntry::kAnalysis:
@@ -196,6 +210,20 @@ const char* MenuPanel::seen_key(DailiesEntry entry) {
 
 bool MenuPanel::IsNew(DailiesEntry entry) const {
   return !state_.account.Seen(seen_key(entry));
+}
+
+std::vector<CharactersEntry> MenuPanel::CharactersEntries() const {
+  std::vector<CharactersEntry> entries = {CharactersEntry::kSwitch};
+  if (Unlocked(Feature::kLegion, state_.character, state_.account)) {
+    entries.push_back(CharactersEntry::kLegion);
+  }
+  return entries;
+}
+
+CharactersEntry MenuPanel::selected_characters_entry() const {
+  std::vector<CharactersEntry> entries = CharactersEntries();
+  return entries[std::clamp(box_cursor_, 0,
+                            static_cast<int>(entries.size()) - 1)];
 }
 
 MultiplayerEntry MenuPanel::selected_multiplayer_entry() const {

@@ -12,6 +12,7 @@
 
 #include "ftxui/screen/color.hpp"
 #include "src/character/hyper_stats.h"
+#include "src/character/legion.h"
 #include "src/character/stat_preset.h"
 #include "src/item/flame.h"
 #include "src/item/potential.h"
@@ -19,6 +20,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/familiar.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -246,6 +248,16 @@ std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use,
 // "+3%" for a percentage, with trailing zeros trimmed. Level 0 reads "+0", so
 // an empty row still shows which kind of stat it is.
 std::string HyperStatBonusText(HyperStatField field, int level);
+
+// What a Legion stat is called on screen, or "" for one with no name.
+std::string LegionStatName(LegionStat stat);
+
+// What `points` in `stat` give, in the same style: "+75", "+3,750", "+0.75%".
+std::string LegionStatBonusText(LegionStat stat, int points);
+
+// One character's job effect as the Members list shows it: "STR +10", "Max HP
+// +2%". "" for a character whose job gives nothing.
+std::string LegionJobEffectText(const LegionJobEffects& effects);
 
 }  // namespace ms
 

@@ -1182,6 +1182,47 @@ cc_test(
 )
 
 cc_library(
+    name = "legion_panel",
+    srcs = ["legion_panel.cc"],
+    hdrs = ["legion_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:legion",
+        "//src/character:stat_preset",
+        "//src/frontend:types",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:keys",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "legion_panel_test",
+    size = "small",
+    srcs = ["legion_panel_test.cc"],
+    deps = [
+        ":legion_panel",
+        "//src:game_state",
+        "//src/character:legion",
+        "//src/character:stat_preset",
+        "//src/frontend/testing:screen_text",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "link_skill_panel",
     srcs = ["link_skill_panel.cc"],
     hdrs = ["link_skill_panel.h"],

@@ -1081,8 +1081,8 @@ void AddLegionPoints(const CharacterInstance& character,
                      PassiveTotals& totals) {
   static_assert(LegionStat_ARRAYSIZE == 17,
                 "a new Legion stat needs somewhere to land");
-  const LegionPreset& preset =
-      PresetOf(character.legion(), character.LegionSlotFor(activity));
+  const LegionPreset& preset = PresetOf(
+      character.legion(), character.SlotFor(PresetKind::kLegion, activity));
   for (const auto& [stat, points] :
        EffectiveLegionPoints(preset, summary.rank, summary.points)) {
     const double value = points * LegionPerPoint(stat);
