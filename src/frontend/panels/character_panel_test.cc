@@ -2912,9 +2912,10 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   // Level 140 grants three points, and this character has spent one on STR.
   EXPECT_NE(rendered.find("2 Points"), std::string::npos);
   EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
-  // At the narrowest there is room for the max but not the amount.
+  // At the narrowest there is room for neither the amount nor, without it, the
+  // max.
   EXPECT_EQ(rendered.find("+30"), std::string::npos);
-  EXPECT_NE(rendered.find("1/10"), std::string::npos);
+  EXPECT_EQ(rendered.find("1/10"), std::string::npos);
 }
 
 // What each level gives sits between the name and the [-], a column from the
@@ -3066,9 +3067,7 @@ TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   EXPECT_EQ(opened, HYPER_STAT_FIELD_ARCANE_FORCE);
 }
 
-// The level sits between its two buttons, one column from each. At the
-// narrowest panel there is room for the max but not the amount, so the level
-// reads out of the cap this character has, 10 before the 5th job.
+// The level sits between its two buttons, one column from each.
 TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3076,11 +3075,10 @@ TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   ftxui::Screen screen = RenderToScreen(OnHyperRows(panel), 32);
   std::pair<int, int> str = FindCell(screen, "STR");
   ASSERT_GE(str.second, 0);
-  // "[-]  1/10 [+]", read back from the row's last column.
+  // "[-]  1 [+]", read back from the row's last column.
   int end = RowEnd(screen, str.second);
-  const char* want[] = {"]", "+", "[", " ", "0", "1", "/",
-                        "1", " ", " ", "]", "-", "["};
-  for (int i = 0; i < 13; ++i) {
+  const char* want[] = {"]", "+", "[", " ", "1", " ", " ", "]", "-", "["};
+  for (int i = 0; i < 10; ++i) {
     EXPECT_EQ(screen.PixelAt(end - i, str.second).character, want[i])
         << "column " << i << " back from the end";
   }

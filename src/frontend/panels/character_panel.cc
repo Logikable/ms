@@ -107,9 +107,10 @@ constexpr int kHyperFixedWidth =
 // single gaps.
 constexpr int kHyperReadOnlyWidth = 1 + 1 + kHyperLevelWidth + 1 + 1;
 
-// The optional columns, shown only on a panel wide enough for them, the amount
-// first: "+1.5%" and "+125" are the widest amounts, kept a column from the
-// longest name and two from the [-]; the max adds "/15" to the level.
+// The optional columns, shown only on a panel wide enough for them, and the
+// max only with the amount: "+1.5%" and "+125" are the widest amounts, kept a
+// column from the longest name and two from the [-]; the max adds "/15" to the
+// level.
 constexpr int kHyperNameGap = 1;
 constexpr int kHyperAmountWidth = 5;
 constexpr int kHyperAmountGap = 2;
@@ -1370,11 +1371,11 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
   // Empty while all fourteen fit, and then the rows keep their full width.
   std::vector<ftxui::Element> cells =
       ScrollBarCells(kNumHyperStats, first, visible);
-  // The amount, then the max, each only if the panel has room for it.
+  // The amount if the panel has room for it, and the max only beside it.
   const int scroll = cells.empty() ? 0 : 1;
   const int room = ContentWidth() - scroll;
   const bool amount = HyperRowWidth(true, false) <= room;
-  const bool max = HyperRowWidth(amount, true) <= room;
+  const bool max = amount && HyperRowWidth(true, true) <= room;
   const int block =
       std::min(ContentWidth(),
                std::max(kStatsWidth, HyperRowWidth(amount, max) + scroll));
