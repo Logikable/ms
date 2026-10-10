@@ -2891,8 +2891,33 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   // Level 140 grants three points, and this character has spent one on STR.
   EXPECT_NE(rendered.find("2 Points"), std::string::npos);
   EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
-  // A stat's value is on the card Enter opens, not in a column here.
+  // At the narrowest there is no room for the amount column.
   EXPECT_EQ(rendered.find("+30"), std::string::npos);
+}
+
+// A panel wide enough for it shows what each level gives between the name and
+// the [-], with a gap on either side.
+TEST_F(CharacterPanelTest, AWidePanelShowsTheHyperAmounts) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMin + 6);
+  panel_focus_ = kCharPanel;
+  ftxui::Screen screen = RenderToScreen(OnHyperRows(panel), 32);
+  const std::string str = ScreenRow(screen, RowIndexOf(screen, "STR"));
+  // One level of STR is 30, and the empty rows read +0.
+  ASSERT_NE(str.find("+30"), std::string::npos) << str;
+  EXPECT_LT(str.find("STR") + 3 + 3, str.find("+30"));
+  EXPECT_LE(str.find("+30") + 3 + 3, str.find("[-]"));
+  const std::string dex = ScreenRow(screen, RowIndexOf(screen, "DEX"));
+  EXPECT_NE(dex.find("+0"), std::string::npos) << dex;
+  // The buttons line up down the column whatever the amount.
+  EXPECT_EQ(str.find("[-]") - str.find("STR"),
+            dex.find("[-]") - dex.find("DEX"));
+
+  panel.SetWidth(kLeftColumnMin + 2);
+  std::string narrow = ScreenText(RenderToScreen(OnHyperRows(panel), 32));
+  EXPECT_EQ(narrow.find("+30"), std::string::npos)
+      << "a column without its gaps isn't drawn";
 }
 
 // The [+] is how a stat is bought, and it is closed on a stat the level hasn't

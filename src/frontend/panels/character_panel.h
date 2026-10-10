@@ -227,6 +227,8 @@ class CharacterPanel {
   // its label behind, so a wide panel has blank space on each side of the
   // block.
   ftxui::Element StatsAligned(ftxui::Element row) const;
+  // The same for a block `width` wide.
+  ftxui::Element StatsAligned(ftxui::Element row, int width) const;
 
   // The panel's tabs, in bar order. These aren't indices into the bar, because
   // Hyper and Advance appear only when they have something to offer (see
@@ -414,8 +416,12 @@ class CharacterPanel {
 
   // One Hyper Stat row: name, level and [+], with the cursor's column inverted
   // as on a skill row. The stat's value is on the card Enter opens.
+  // `amount` adds what the level gives between the name and the [-].
   ftxui::Element RenderHyperRow(HyperStatField field, int index,
-                                bool rows_focused, int row_width) const;
+                                bool rows_focused, int row_width,
+                                bool amount) const;
+  // The Hyper rows' width with the amount column, without the scroll bar.
+  int HyperAmountRowWidth() const;
   // Whether a point can go into `field`: not maxed, not blocked by the
   // character's level, and the next level affordable.
   bool CanRaiseHyperStat(HyperStatField field) const;

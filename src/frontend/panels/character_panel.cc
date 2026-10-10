@@ -107,6 +107,11 @@ constexpr int kHyperFixedWidth =
 // single gaps.
 constexpr int kHyperReadOnlyWidth = 1 + 1 + kHyperLevelWidth + 1 + 1;
 
+// The amount column, shown only on a panel wide enough for it: "+1.5%" and
+// "+125" are the widest, and it keeps this gap from the name and the [-].
+constexpr int kHyperAmountWidth = 5;
+constexpr int kHyperAmountGap = 3;
+
 // The tag at the start of a buff row, shaped like the skill tags, saying what
 // the buff costs. Green for an owned buff, like the passive tag, and the coin's
 // yellow for a rented one that is still being charged.
@@ -676,6 +681,11 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
 }
 
 ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row) const {
+  return StatsAligned(std::move(row), kStatsWidth);
+}
+
+ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row,
+                                            int width) const {
   // Centred: the block doesn't stretch with the terminal, since a value pushed
   // to the border would leave its label behind. An odd column goes to the label
   // side, which lines up the right-hand column with the Skills tab's [+] when
@@ -683,10 +693,10 @@ ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row) const {
   //
   // The padding is text rather than filler(), because a row that right-aligns
   // something ends in its own filler, and two fillers would split the slack.
-  int slack = std::max(0, ContentWidth() - kStatsWidth);
+  int slack = std::max(0, ContentWidth() - width);
   return ftxui::hbox({
       ftxui::text(std::string((slack + 1) / 2, ' ')),
-      std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStatsWidth),
+      std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width),
       ftxui::text(std::string(slack / 2, ' ')),
   });
 }
@@ -1233,9 +1243,19 @@ int CharacterPanel::FirstHyperRow(int visible) const {
   return ScrollWindowStart(kNumHyperStats, hyper_sel_, visible);
 }
 
+int CharacterPanel::HyperAmountRowWidth() const {
+  int widest = 0;
+  for (int i = 0; i < kNumHyperStats; ++i) {
+    widest = std::max(
+        widest, static_cast<int>(HyperStatName(kHyperStatOrder[i]).size()));
+  }
+  return (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth) + widest +
+         2 * kHyperAmountGap + kHyperAmountWidth;
+}
+
 ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
-                                              bool rows_focused,
-                                              int row_width) const {
+                                              bool rows_focused, int row_width,
+                                              bool amount) const {
   bool selected = rows_focused && hyper_sel_ == index;
   // A stat the character's level hasn't unlocked isn't one they have yet, so
   // the whole row dims, as a locked skill's does. Running out of points dims
@@ -1248,7 +1268,8 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   // highlight off the blank space after a short name.
   std::string text = HyperStatName(field);
   int name_width = std::max(
-      1, row_width - (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth));
+      1, row_width - (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth) -
+             (amount ? kHyperAmountWidth + kHyperAmountGap : 0));
   int lit = std::min(static_cast<int>(text.size()), name_width);
   ftxui::Element name = ftxui::text(text.substr(0, lit));
   if (selected && hyper_col_ == kHyperColName) {
@@ -1271,6 +1292,15 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
       std::move(name),
       ftxui::text(std::string(name_width - lit, ' ')),
   };
+  if (amount) {
+    ftxui::Element bonus = ftxui::text(
+        PadLeft(HyperStatBonusText(field, level), kHyperAmountWidth) +
+        std::string(kHyperAmountGap, ' '));
+    if (locked) {
+      bonus = std::move(bonus) | ftxui::dim;
+    }
+    cells.push_back(std::move(bonus));
+  }
   if (!read_only_) {
     ftxui::Element minus = ftxui::text("[-]");
     if (selected && hyper_col_ == kHyperColMinus) {
@@ -1310,17 +1340,22 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
   // Empty while all fourteen fit, and then the rows keep their full width.
   std::vector<ftxui::Element> cells =
       ScrollBarCells(kNumHyperStats, first, visible);
-  int row_width = cells.empty() ? kStatsWidth : kStatsWidth - 1;
+  // The amount column only on a panel wide enough for it and its gaps; at the
+  // narrowest there is no room.
+  const int scroll = cells.empty() ? 0 : 1;
+  const bool amount = ContentWidth() >= HyperAmountRowWidth() + scroll;
+  const int block = amount ? HyperAmountRowWidth() + scroll : kStatsWidth;
+  int row_width = block - scroll;
   for (int i = 0; i < visible; ++i) {
     ftxui::Element row = RenderHyperRow(kHyperStatOrder[first + i], first + i,
-                                        rows_focused, row_width);
+                                        rows_focused, row_width, amount);
     if (!cells.empty()) {
       row = ftxui::hbox({
           std::move(row),
           std::move(cells[i]) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
       });
     }
-    rows.push_back(StatsAligned(std::move(row)));
+    rows.push_back(StatsAligned(std::move(row), block));
   }
   // The way back to nothing spent, which is free, so it sits under its own rule
   // rather than among the rows it undoes. Both always draw whatever the budget,
