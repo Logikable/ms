@@ -815,10 +815,9 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
-  // The skill's current level with no maximum beside it: the [+] dimming is
-  // what shows a skill is maxed.
-  EXPECT_NE(rendered.find("Slash Blast           0"), std::string::npos);
-  EXPECT_EQ(rendered.find("0/20"), std::string::npos);
+  // The level out of the skill's max, since every name on the page still fits
+  // beside it.
+  EXPECT_NE(rendered.find("Slash Blast        0/20"), std::string::npos);
 }
 
 // The Skills tab opens on the 1st job book. A character reads their books in
@@ -1481,7 +1480,8 @@ TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
   ASSERT_GE(orders, 0);
   EXPECT_EQ(FindInRow(screen, blast, "(+"), -1);
   EXPECT_EQ(FindInRow(screen, orders, "(+"), -1);
-  EXPECT_GE(FindInRow(screen, orders, " 10 "), 0) << "its own level, unlifted";
+  EXPECT_GE(FindInRow(screen, orders, " 10/10 "), 0)
+      << "its own level, unlifted";
 }
 
 // The column is as wide as the widest level on the page, not the widest the
@@ -1518,13 +1518,34 @@ TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
   comp->OnEvent(ftxui::Event::ArrowRight);
 
   ftxui::Screen screen = RenderToScreen(comp);
-  int blast = FindCell(screen, "3 (+2)").second;
+  int blast = FindCell(screen, "3/20 (+2)").second;
   int orders = FindCell(screen, "Combat Orders").second;
   ASSERT_GE(blast, 0);
   ASSERT_GE(orders, 0);
-  // "3 (+2)" and "10" end in the same column and differ only at the start.
-  EXPECT_EQ(FindInRow(screen, blast, "3 (+2) "),
-            FindInRow(screen, orders, "10 ") - 4);
+  // "3/20 (+2)" and "10/10" end in the same column and differ only at the
+  // start.
+  EXPECT_EQ(FindInRow(screen, blast, "3/20 (+2) "),
+            FindInRow(screen, orders, "10/10 ") - 4);
+}
+
+// The max shows only while every name on the page still fits beside it: the
+// widest level here, "12/20 (+2)", would cut Combat Orders, so the whole page
+// goes without.
+TEST_F(CharacterPanelTest, TheSkillMaxGivesWayToTheNames) {
+  CharacterInstance roomy = MakeLender(rng_, /*slash_blast=*/1);
+  CharacterPanel with_max(roomy, account_, panel_focus_, LendingCatalog());
+  ftxui::Component comp = with_max.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(OnScreen(comp, "3/20 (+2)"));
+  EXPECT_TRUE(OnScreen(comp, "10/10"));
+
+  CharacterInstance tight = MakeLender(rng_, /*slash_blast=*/10);
+  CharacterPanel without(tight, account_, panel_focus_, LendingCatalog());
+  comp = without.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(OnScreen(comp, "12 (+2)"));
+  EXPECT_FALSE(OnScreen(comp, "/10")) << "not on any row of the page";
+  EXPECT_TRUE(OnScreen(comp, "Combat Orders"));
 }
 
 // The column space for the brackets is only used for a character whose book
@@ -1544,7 +1565,7 @@ TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
   ftxui::Screen narrow_screen = RenderToScreen(narrow_comp);
   int lent = FindCell(wide_screen, "12 (+2)").first;
   int plain_level = FindInRow(
-      narrow_screen, FindCell(narrow_screen, "Slash Blast").second, " 0 ");
+      narrow_screen, FindCell(narrow_screen, "Slash Blast").second, " 0/20 ");
   ASSERT_GE(lent, 0);
   ASSERT_GE(plain_level, 0);
   EXPECT_LT(lent, plain_level) << "the lender's names give up the room";
@@ -1756,7 +1777,7 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   // Enter on the name opens the skill, so the highlight ends with it: eleven
   // columns for the name, then the padding and the level, which Enter doesn't
   // act on.
-  EXPECT_EQ(InversionMask(comp, "Slash Blast           0"),
+  EXPECT_EQ(InversionMask(comp, "Slash Blast        0/20"),
             "11111111111"
             "000000000000");
 
@@ -1824,7 +1845,7 @@ TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (has SP, so entered)
   comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
-  EXPECT_NE(RenderComponent(comp).find("Slash Blast          20"),
+  EXPECT_NE(RenderComponent(comp).find("Slash Blast       20/20"),
             std::string::npos);
   comp->OnEvent(ftxui::Event::Return);  // maxed: nothing to learn
   EXPECT_FALSE(fired);
@@ -2891,33 +2912,36 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   // Level 140 grants three points, and this character has spent one on STR.
   EXPECT_NE(rendered.find("2 Points"), std::string::npos);
   EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
-  // At the narrowest there is no room for the amount column.
+  // At the narrowest there is room for the max but not the amount.
   EXPECT_EQ(rendered.find("+30"), std::string::npos);
+  EXPECT_NE(rendered.find("1/10"), std::string::npos);
 }
 
-// A panel wide enough for it shows what each level gives between the name and
-// the [-], with a gap on either side.
-TEST_F(CharacterPanelTest, AWidePanelShowsTheHyperAmounts) {
+// What each level gives sits between the name and the [-], a column from the
+// longest name and two from the [-], once the panel has room for it; the max
+// comes after it, so a panel with room for one shows the amount.
+TEST_F(CharacterPanelTest, AWiderPanelShowsTheHyperAmountsThenTheMax) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  panel.SetWidth(kLeftColumnMin + 6);
   panel_focus_ = kCharPanel;
+  panel.SetWidth(kLeftColumnMin + 2);
   ftxui::Screen screen = RenderToScreen(OnHyperRows(panel), 32);
-  const std::string str = ScreenRow(screen, RowIndexOf(screen, "STR"));
+  std::string str = ScreenRow(screen, RowIndexOf(screen, "STR"));
   // One level of STR is 30, and the empty rows read +0.
-  ASSERT_NE(str.find("+30"), std::string::npos) << str;
-  EXPECT_LT(str.find("STR") + 3 + 3, str.find("+30"));
-  EXPECT_LE(str.find("+30") + 3 + 3, str.find("[-]"));
+  EXPECT_NE(str.find("+30  [-]"), std::string::npos) << str;
+  EXPECT_EQ(str.find("1/10"), std::string::npos) << str;
+  const std::string crit =
+      ScreenRow(screen, RowIndexOf(screen, "Critical Damage"));
+  EXPECT_NE(crit.find("Critical Damage   +0%  [-]"), std::string::npos) << crit;
+
+  panel.SetWidth(kLeftColumnMin + 5);
+  screen = RenderToScreen(OnHyperRows(panel), 32);
+  str = ScreenRow(screen, RowIndexOf(screen, "STR"));
+  EXPECT_NE(str.find("+30  [-]  1/10 [+]"), std::string::npos) << str;
   const std::string dex = ScreenRow(screen, RowIndexOf(screen, "DEX"));
-  EXPECT_NE(dex.find("+0"), std::string::npos) << dex;
   // The buttons line up down the column whatever the amount.
   EXPECT_EQ(str.find("[-]") - str.find("STR"),
             dex.find("[-]") - dex.find("DEX"));
-
-  panel.SetWidth(kLeftColumnMin + 2);
-  std::string narrow = ScreenText(RenderToScreen(OnHyperRows(panel), 32));
-  EXPECT_EQ(narrow.find("+30"), std::string::npos)
-      << "a column without its gaps isn't drawn";
 }
 
 // The [+] is how a stat is bought, and it is closed on a stat the level hasn't
@@ -3042,7 +3066,9 @@ TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
   EXPECT_EQ(opened, HYPER_STAT_FIELD_ARCANE_FORCE);
 }
 
-// The level sits between its two buttons, one column from each.
+// The level sits between its two buttons, one column from each. At the
+// narrowest panel there is room for the max but not the amount, so the level
+// reads out of the cap this character has, 10 before the 5th job.
 TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -3050,10 +3076,11 @@ TEST_F(CharacterPanelTest, TheHyperRowsPutTheLevelBetweenTheButtons) {
   ftxui::Screen screen = RenderToScreen(OnHyperRows(panel), 32);
   std::pair<int, int> str = FindCell(screen, "STR");
   ASSERT_GE(str.second, 0);
-  // "[-]  1 [+]", read back from the row's last column.
+  // "[-]  1/10 [+]", read back from the row's last column.
   int end = RowEnd(screen, str.second);
-  const char* want[] = {"]", "+", "[", " ", "1", " ", " ", "]", "-", "["};
-  for (int i = 0; i < 10; ++i) {
+  const char* want[] = {"]", "+", "[", " ", "0", "1", "/",
+                        "1", " ", " ", "]", "-", "["};
+  for (int i = 0; i < 13; ++i) {
     EXPECT_EQ(screen.PixelAt(end - i, str.second).character, want[i])
         << "column " << i << " back from the end";
   }

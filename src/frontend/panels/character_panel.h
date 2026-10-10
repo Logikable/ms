@@ -415,13 +415,15 @@ class CharacterPanel {
   bool CanRerollAbility() const;
 
   // One Hyper Stat row: name, level and [+], with the cursor's column inverted
-  // as on a skill row. The stat's value is on the card Enter opens.
-  // `amount` adds what the level gives between the name and the [-].
+  // as on a skill row.
+  // `amount` adds what the level gives between the name and the [-]; `max`
+  // writes the level as "3/15".
   ftxui::Element RenderHyperRow(HyperStatField field, int index,
-                                bool rows_focused, int row_width,
-                                bool amount) const;
-  // The Hyper rows' width with the amount column, without the scroll bar.
-  int HyperAmountRowWidth() const;
+                                bool rows_focused, int row_width, bool amount,
+                                bool max) const;
+  // The Hyper rows' narrowest width with those columns, without the scroll
+  // bar.
+  int HyperRowWidth(bool amount, bool max) const;
   // Whether a point can go into `field`: not maxed, not blocked by the
   // character's level, and the next level affordable.
   bool CanRaiseHyperStat(HyperStatField field) const;
@@ -506,8 +508,12 @@ class CharacterPanel {
     // actually on the page, so an unopened book gets a thin column of 0s and
     // the room goes to the skill names.
     int width = 3;
+    // Whether each level shows its max, "12/20", which it does only when no
+    // name on the page loses a column to it.
+    bool max = false;
   };
-  LevelColumn MeasureLevelColumn(const std::vector<const Skill*>& skills) const;
+  LevelColumn MeasureLevelColumn(const std::vector<const Skill*>& skills,
+                                 int row_width) const;
 
   // One skill row: a kind tag, then "name [-] 20 (+2)", then a [+]. The
   // cursor's column inverts (never the tag), and the [+] dims when the skill is

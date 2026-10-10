@@ -107,10 +107,13 @@ constexpr int kHyperFixedWidth =
 // single gaps.
 constexpr int kHyperReadOnlyWidth = 1 + 1 + kHyperLevelWidth + 1 + 1;
 
-// The amount column, shown only on a panel wide enough for it: "+1.5%" and
-// "+125" are the widest, and it keeps this gap from the name and the [-].
+// The optional columns, shown only on a panel wide enough for them, the amount
+// first: "+1.5%" and "+125" are the widest amounts, kept a column from the
+// longest name and two from the [-]; the max adds "/15" to the level.
+constexpr int kHyperNameGap = 1;
 constexpr int kHyperAmountWidth = 5;
-constexpr int kHyperAmountGap = 3;
+constexpr int kHyperAmountGap = 2;
+constexpr int kHyperMaxWidth = 3;
 
 // The tag at the start of a buff row, shaped like the skill tags, saying what
 // the buff costs. Green for an owned buff, like the passive tag, and the coin's
@@ -183,13 +186,17 @@ constexpr int kSkillPlusWidth = 3;
 constexpr int kSkillClockPageStride = 4096;
 
 // What a skill row shows for its level: the skill's level and how much of it
-// comes from the book's bonus. A skill nobody has opened shows a bare 0, since
-// no bonus goes to a skill that hasn't been bought.
+// comes from the book's bonus, with `max` the skill's own max after a slash. A
+// skill nobody has opened shows a bare 0, since no bonus goes to a skill that
+// hasn't been bought.
 std::string SkillLevelText(const CharacterInstance& character,
-                           const Skill& skill, int bonus) {
+                           const Skill& skill, int bonus, bool max) {
   int learned = character.ListedSkillLevel(skill);
   int level = LevelWithBonus(skill, learned, bonus);
   std::string text = std::to_string(level);
+  if (max) {
+    text += "/" + std::to_string(SkillMaxLevel(skill));
+  }
   if (level > learned) {
     text += " (+" + std::to_string(level - learned) + ")";
   }
@@ -828,16 +835,32 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
 }
 
 CharacterPanel::LevelColumn CharacterPanel::MeasureLevelColumn(
-    const std::vector<const Skill*>& skills) const {
+    const std::vector<const Skill*>& skills, int row_width) const {
   LevelColumn column;
   column.bonus = BonusSkillLevels(character_, skills_);
-  int widest = 1;  // "0", the narrowest a level ever is
+  auto width_with = [&](bool max) {
+    int widest = 1;  // "0", the narrowest a level ever is
+    for (const Skill* skill : skills) {
+      widest = std::max(
+          widest,
+          static_cast<int>(
+              SkillLevelText(character_, *skill, column.bonus, max).size()));
+    }
+    return 1 + widest + 1;
+  };
+  column.width = width_with(false);
+  // The max only where it costs no name a column: the whole page or none of
+  // it, so the levels stay one column.
+  const int with_max = width_with(true);
   for (const Skill* skill : skills) {
-    widest = std::max(
-        widest, static_cast<int>(
-                    SkillLevelText(character_, *skill, column.bonus).size()));
+    const bool minus = ShowsSkillMinus() && RowTakesPoints(*skill);
+    if (static_cast<int>(skill->name().size()) >
+        SkillNameWidth(with_max, row_width, ShowsSkillPlus(), minus)) {
+      return column;
+    }
   }
-  column.width = 1 + widest + 1;
+  column.width = with_max;
+  column.max = true;
   return column;
 }
 
@@ -1063,10 +1086,10 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // Right-aligned, so the gap a short level leaves falls between the name and
   // the level rather than after it, and it supplies the trailing gutter the row
   // has no filler left for.
-  ftxui::Element level_text =
-      ftxui::text(PadLeft(SkillLevelText(character_, skill, column.bonus),
-                          column.width - 1) +
-                  " ");
+  ftxui::Element level_text = ftxui::text(
+      PadLeft(SkillLevelText(character_, skill, column.bonus, column.max),
+              column.width - 1) +
+      " ");
   if (locked) {
     level_text = level_text | ftxui::dim;
   }
@@ -1181,7 +1204,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   // scrolling doesn't shift the names sideways.
   std::vector<ftxui::Element> cells = ScrollBarCells(total, first, visible);
   int row_width = cells.empty() ? ContentWidth() : ContentWidth() - 1;
-  LevelColumn column = MeasureLevelColumn(skills);
+  LevelColumn column = MeasureLevelColumn(skills, row_width);
   for (int i = 0; i < visible; ++i) {
     int line = lines[first + i];
     ftxui::Element row;
@@ -1243,19 +1266,20 @@ int CharacterPanel::FirstHyperRow(int visible) const {
   return ScrollWindowStart(kNumHyperStats, hyper_sel_, visible);
 }
 
-int CharacterPanel::HyperAmountRowWidth() const {
+int CharacterPanel::HyperRowWidth(bool amount, bool max) const {
   int widest = 0;
   for (int i = 0; i < kNumHyperStats; ++i) {
     widest = std::max(
         widest, static_cast<int>(HyperStatName(kHyperStatOrder[i]).size()));
   }
   return (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth) + widest +
-         2 * kHyperAmountGap + kHyperAmountWidth;
+         kHyperNameGap + (amount ? kHyperAmountWidth + kHyperAmountGap : 0) +
+         (max ? kHyperMaxWidth : 0);
 }
 
 ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
                                               bool rows_focused, int row_width,
-                                              bool amount) const {
+                                              bool amount, bool max) const {
   bool selected = rows_focused && hyper_sel_ == index;
   // A stat the character's level hasn't unlocked isn't one they have yet, so
   // the whole row dims, as a locked skill's does. Running out of points dims
@@ -1269,7 +1293,8 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   std::string text = HyperStatName(field);
   int name_width = std::max(
       1, row_width - (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth) -
-             (amount ? kHyperAmountWidth + kHyperAmountGap : 0));
+             (amount ? kHyperAmountWidth + kHyperAmountGap : 0) -
+             (max ? kHyperMaxWidth : 0));
   int lit = std::min(static_cast<int>(text.size()), name_width);
   ftxui::Element name = ftxui::text(text.substr(0, lit));
   if (selected && hyper_col_ == kHyperColName) {
@@ -1279,8 +1304,13 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   }
   // Right-aligned between single gutters, so both buttons sit one column from
   // the level however wide the panel is.
-  ftxui::Element level_text =
-      ftxui::text(" " + PadLeft(std::to_string(level), kHyperLevelWidth) + " ");
+  std::string level_cell = std::to_string(level);
+  if (max) {
+    level_cell += "/" + std::to_string(character_.max_hyper_stat_level());
+  }
+  ftxui::Element level_text = ftxui::text(
+      " " + PadLeft(level_cell, kHyperLevelWidth + (max ? kHyperMaxWidth : 0)) +
+      " ");
   if (locked) {
     level_text = std::move(level_text) | ftxui::dim;
   }
@@ -1340,15 +1370,18 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
   // Empty while all fourteen fit, and then the rows keep their full width.
   std::vector<ftxui::Element> cells =
       ScrollBarCells(kNumHyperStats, first, visible);
-  // The amount column only on a panel wide enough for it and its gaps; at the
-  // narrowest there is no room.
+  // The amount, then the max, each only if the panel has room for it.
   const int scroll = cells.empty() ? 0 : 1;
-  const bool amount = ContentWidth() >= HyperAmountRowWidth() + scroll;
-  const int block = amount ? HyperAmountRowWidth() + scroll : kStatsWidth;
+  const int room = ContentWidth() - scroll;
+  const bool amount = HyperRowWidth(true, false) <= room;
+  const bool max = HyperRowWidth(amount, true) <= room;
+  const int block =
+      std::min(ContentWidth(),
+               std::max(kStatsWidth, HyperRowWidth(amount, max) + scroll));
   int row_width = block - scroll;
   for (int i = 0; i < visible; ++i) {
     ftxui::Element row = RenderHyperRow(kHyperStatOrder[first + i], first + i,
-                                        rows_focused, row_width, amount);
+                                        rows_focused, row_width, amount, max);
     if (!cells.empty()) {
       row = ftxui::hbox({
           std::move(row),
