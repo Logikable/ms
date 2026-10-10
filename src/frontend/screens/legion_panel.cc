@@ -56,8 +56,9 @@ constexpr int kNameWidth = LegionPanel::kContentWidth - 2 * kGutter -
 // The Members columns.
 constexpr int kCellGap = 2;
 constexpr int kMemberNameWidth = kMaxUsernameLength;
-constexpr int kLevelWidth = 5;  // "Level"
-constexpr int kRankWidth = 4;   // "Rank"
+constexpr int kLevelWidth = 5;         // "Level"
+constexpr int kRankWidth = 4;          // "Rank"
+constexpr int kPointsColumnWidth = 6;  // "Points"
 
 // Where the preset menu opens: past the chips, as on the Hyper tab.
 constexpr int kMenuColumn = 22;
@@ -279,10 +280,8 @@ ftxui::Element LegionPanel::RenderStat(
   const int points = found == effective.end() ? 0 : found->second;
   const bool selected = zone_ == LegionZone::kStat && stat_ == stat;
 
-  std::string points_text = std::to_string(points);
-  if (IsExpandedLegionStat(stat)) {
-    points_text += "/" + std::to_string(cap);
-  }
+  const std::string points_text =
+      std::to_string(points) + "/" + std::to_string(cap);
   ftxui::Element minus = ftxui::text("[-]");
   if (selected && !on_plus_) {
     minus = std::move(minus) | ftxui::inverted;
@@ -312,6 +311,7 @@ ftxui::Element LegionPanel::RenderStat(
 
 ftxui::Element LegionPanel::RenderGrid() const {
   const std::map<LegionStat, int> effective = Effective();
+  // Straight under the tab row, with no rule: the presets are its subtabs.
   std::vector<ftxui::Element> rows = {RenderPresetBar(), ThemedSeparator()};
   for (LegionStat stat : kBaseStats) {
     rows.push_back(RenderStat(stat, effective));
@@ -333,10 +333,12 @@ ftxui::Element LegionPanel::RenderGrid() const {
 
 ftxui::Element LegionPanel::RenderMembers() const {
   std::vector<ftxui::Element> rows = {
+      ThemedSeparator(),
       ftxui::text(std::string(kGutter, ' ') +
                   PadRight("Name", kMemberNameWidth + kCellGap) +
                   PadRight("Level", kLevelWidth + kCellGap) +
-                  PadRight("Rank", kRankWidth + kCellGap) + "Effect"),
+                  PadRight("Rank", kRankWidth + kCellGap) +
+                  PadRight("Points", kPointsColumnWidth + kCellGap) + "Effect"),
       ThemedSeparator(),
   };
   const std::vector<LegionMemberRow> members = Members();
@@ -349,11 +351,14 @@ ftxui::Element LegionPanel::RenderMembers() const {
     if (first + i < total) {
       const LegionMemberRow& member = members[first + i];
       const CharacterRank rank = CharacterRankFor(member.level);
-      // Only who they are dims: their job effect counts either way.
+      // Only who they are and their points dim: their job effect counts
+      // either way.
+      const int points = member.gives_points ? LegionPointsFor(rank) : 0;
       ftxui::Element who = ftxui::text(
           PadRight(member.name, kMemberNameWidth + kCellGap) +
           PadRight(std::to_string(member.level), kLevelWidth + kCellGap) +
-          PadRight(CharacterRankName(rank), kRankWidth + kCellGap));
+          PadRight(CharacterRankName(rank), kRankWidth + kCellGap) +
+          PadRight(std::to_string(points), kPointsColumnWidth + kCellGap));
       if (!member.gives_points) {
         who = std::move(who) | ftxui::dim;
       }
@@ -386,11 +391,10 @@ ftxui::Element LegionPanel::Render() const {
   ftxui::Element body =
       tab_ == LegionTab::kGrid ? RenderGrid() : RenderMembers();
   ftxui::Element window =
-      ThemedWindow(
-          " Legion ",
-          ftxui::vbox({RenderTabs(), ThemedSeparator(), std::move(body)}) |
-              ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth) |
-              ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kContentRows)) |
+      ThemedWindow(" Legion ",
+                   ftxui::vbox({RenderTabs(), std::move(body)}) |
+                       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth) |
+                       ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kContentRows)) |
       ftxui::reflect(panel_box_);
   if (!preset_menu_open_) {
     return window;

@@ -1,13 +1,14 @@
 /* LegionPanel is the Legion screen, opened from Characters on the menu: the
  * account's Legion points and who gives what.
  *
- * One window with two tabs. Grid has a preset row (the same Use and Move menu
- * as the Hyper tab) and the sixteen stats, the base eight above a rule and the
- * eight the Legion's rank opens below it, each with its amount, [-], points and
- * [+]. An expanded stat greys out while its cap is 0, and the cursor skips it.
- * [Reset] sits under its own rule. Members lists every ranked character from
- * the highest level down, with their job effect; nothing there is selectable,
- * and Up and Down scroll it.
+ * One window with two tabs. Grid has a preset row straight under them (the
+ * same Use and Move menu as the Hyper tab) and the sixteen stats, the base
+ * eight above a rule and the eight the Legion's rank opens below it, each with
+ * its amount, [-], points out of its cap and [+]. An expanded stat greys out
+ * while its cap is 0, and the cursor skips it. [Reset] sits under its own rule.
+ * Members lists every ranked character from the highest level down, with the
+ * points they give and their job effect; nothing there is selectable, and Up
+ * and Down scroll it.
  *
  * The Legion is the account's. The panel writes the account's copy and mirrors
  * it onto the played character, whose stats read it.
@@ -58,7 +59,7 @@ class LegionPanel {
  public:
   // Fixed, so the window is one size on both tabs. 23 rows fit the smallest
   // supported terminal with the border.
-  static constexpr int kContentWidth = 56;
+  static constexpr int kContentWidth = 64;
   static constexpr int kContentRows = 23;
   // The Members list's rows: the content less the tab row, the header and
   // their two rules.

@@ -80,10 +80,12 @@ TEST_F(LegionPanelTest, TheGridListsSixteenStatsInTwoHalves) {
   const int crit = RowIndexOf(screen, "Critical Damage");
   EXPECT_EQ(RowIndexOf(screen, "[Reset]"), crit + 2) << "a rule above Reset";
   EXPECT_EQ(RowIndexOf(screen, "STR"), RowIndexOf(screen, "80 Points") + 2);
+  EXPECT_EQ(RowIndexOf(screen, "80 Points"), RowIndexOf(screen, "Grid") + 1)
+      << "the presets sit straight under the tabs";
 }
 
-// An expanded stat shows its cap beside its points; a base stat's never moves,
-// so it shows the points alone.
+// Every stat shows its points out of its cap: 15 for the base eight, and the
+// rank's for the rest.
 TEST_F(LegionPanelTest, ExpandedStatsShowTheirCap) {
   AddHeroes(16);
   LegionPanel panel(state_);
@@ -92,7 +94,7 @@ TEST_F(LegionPanelTest, ExpandedStatsShowTheirCap) {
   const std::string boss = ScreenRow(screen, RowIndexOf(screen, "Boss Damage"));
   EXPECT_NE(boss.find("0/21"), std::string::npos) << boss;
   const std::string str = ScreenRow(screen, RowIndexOf(screen, "STR"));
-  EXPECT_EQ(str.find("/"), std::string::npos) << str;
+  EXPECT_NE(str.find("0/15"), std::string::npos) << str;
   EXPECT_NE(str.find("+0"), std::string::npos) << str;
 }
 
@@ -166,7 +168,7 @@ TEST_F(LegionPanelTest, AnEditDropsWhatNoLongerCounts) {
   LegionPanel panel(state_);
   panel.Reset();
   ftxui::Screen screen = Draw(panel);
-  EXPECT_NE(ScreenRow(screen, RowIndexOf(screen, "INT")).find(" 10 "),
+  EXPECT_NE(ScreenRow(screen, RowIndexOf(screen, "INT")).find(" 10/15 "),
             std::string::npos);
   EXPECT_NE(ScreenText(screen).find("0 Points"), std::string::npos);
 
@@ -238,7 +240,15 @@ TEST_F(LegionPanelTest, MembersListTheRankedFromTheTop) {
   const std::string head = ScreenRow(screen, header);
   EXPECT_LT(head.find("Name"), head.find("Level"));
   EXPECT_LT(head.find("Level"), head.find("Rank"));
-  EXPECT_LT(head.find("Rank"), head.find("Effect"));
+  EXPECT_LT(head.find("Rank"), head.find("Points"));
+  EXPECT_LT(head.find("Points"), head.find("Effect"));
+  // A B gives one point, and one past the member count gives none.
+  const int points = FindOnScreen(screen, "Points").x;
+  EXPECT_EQ(screen.PixelAt(points, RowIndexOf(screen, "Bandit8")).character,
+            "1");
+  EXPECT_EQ(screen.PixelAt(points, RowIndexOf(screen, "Bandit9")).character,
+            "0");
+  EXPECT_TRUE(screen.PixelAt(points, RowIndexOf(screen, "Bandit9")).dim);
   EXPECT_EQ(RowIndexOf(screen, "Low"), -1);
   EXPECT_NE(ScreenRow(screen, RowIndexOf(screen, "Bandit0")).find("LUK +10"),
             std::string::npos);
