@@ -220,6 +220,22 @@ std::vector<CharactersEntry> MenuPanel::CharactersEntries() const {
   return entries;
 }
 
+const char* MenuPanel::seen_key(CharactersEntry entry) {
+  switch (entry) {
+    case CharactersEntry::kSwitch:
+      return "";
+    case CharactersEntry::kLegion:
+      return "legion";
+  }
+  return "";
+}
+
+bool MenuPanel::IsNew(CharactersEntry entry) const {
+  // Seen("") is false, so a row with no key would stay gold forever.
+  const char* key = seen_key(entry);
+  return *key != '\0' && !state_.account.Seen(key);
+}
+
 CharactersEntry MenuPanel::selected_characters_entry() const {
   std::vector<CharactersEntry> entries = CharactersEntries();
   return entries[std::clamp(box_cursor_, 0,
@@ -282,7 +298,9 @@ ftxui::Element MenuPanel::RenderBox() const {
   ftxui::Elements rows;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
     ftxui::Element row = ftxui::text(BoxRow(entries[i], i == box_cursor_));
-    if (box_entry_ == MenuEntry::kDailies && IsNew(DailiesEntries()[i])) {
+    if ((box_entry_ == MenuEntry::kDailies && IsNew(DailiesEntries()[i])) ||
+        (box_entry_ == MenuEntry::kCharacters &&
+         IsNew(CharactersEntries()[i]))) {
       row = std::move(row) | ftxui::color(kYellow);
     }
     rows.push_back(std::move(row));
@@ -318,6 +336,13 @@ ftxui::Element MenuPanel::Render() const {
       // Gold until the player has visited every row once, like a new tab.
       if (std::any_of(dailies.begin(), dailies.end(),
                       [this](DailiesEntry d) { return IsNew(d); })) {
+        button = std::move(button) | ftxui::color(kYellow);
+      }
+    }
+    if (entries[i] == MenuEntry::kCharacters) {
+      std::vector<CharactersEntry> characters = CharactersEntries();
+      if (std::any_of(characters.begin(), characters.end(),
+                      [this](CharactersEntry c) { return IsNew(c); })) {
         button = std::move(button) | ftxui::color(kYellow);
       }
     }

@@ -20,6 +20,7 @@
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/item/equip_instance.h"
@@ -1567,6 +1568,22 @@ TEST_F(FamiliarTabTest, TheTabArrivesAt190AndOnAnAltAtOne) {
   EXPECT_NE(
       RenderComponentText(alt_panel.MakeComponent([]() {})).find("Familiar"),
       std::string::npos);
+}
+
+// The tab is gold until opened, for the account, so a player who passed 190
+// before familiars existed is still pointed at it.
+TEST_F(FamiliarTabTest, TheTabIsGoldUntilOpened) {
+  CharacterInstance c = AtLevel(kFamiliarsLevel);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_EQ(LabelColor(comp->Render(), "Familiar"), kYellow);
+  EXPECT_NE(LabelColor(comp->Render(), "Symbols"), kYellow);
+  OpenFamiliarTab(comp);
+  EXPECT_TRUE(account_.Seen(kFamiliarTabKey));
+  CharacterInstance alt = AtLevel(kFamiliarsLevel);
+  EquippedPanel later(alt, account_, panel_focus_);
+  EXPECT_NE(LabelColor(later.MakeComponent([]() {})->Render(), "Familiar"),
+            kYellow);
 }
 
 // The tab lists the preset's starters, with the total of familiar levels and

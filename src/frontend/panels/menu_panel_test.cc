@@ -211,6 +211,41 @@ TEST(MenuPanelTest, DailiesIsGoldUntilEveryRowHasBeenOpened) {
   EXPECT_NE(row_color(1), gold);
 }
 
+// Legion is gold, and Characters with it, until the player opens it once, so a
+// player who passed its level before it existed still finds it.
+TEST(MenuPanelTest, CharactersIsGoldUntilLegionHasBeenOpened) {
+  GameState state = EmptyState();
+  LevelTo(state, kLegionLevel);
+  BattleAnalysis analysis;
+  int focus = kCharPanel;  // unfocused, so nothing is inverted
+  MenuPanel panel(state, analysis, focus);
+  auto color_of = [&](const std::string& label, int width) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                                 ftxui::Dimension::Fixed(5));
+    ftxui::Render(screen, ftxui::hbox({ftxui::filler(), panel.RenderBox()}));
+    ScreenPos at = FindOnScreen(screen, label);
+    EXPECT_GE(at.x, 0) << label;
+    return screen.PixelAt(at.x, at.y).foreground_color;
+  };
+  auto characters_color = [&] {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                                 ftxui::Dimension::Fixed(3));
+    ftxui::Render(screen, panel.Render());
+    ScreenPos at = FindOnScreen(screen, "Characters");
+    EXPECT_GE(at.x, 0);
+    return screen.PixelAt(at.x, at.y).foreground_color;
+  };
+  ftxui::Color gold = characters_color();
+  OpenBoxOn(panel, MenuEntry::kCharacters);
+  EXPECT_EQ(color_of("Legion", 60), gold);
+  EXPECT_NE(color_of("Switch", 60), gold) << "Switch is never news";
+
+  state.account.MarkSeen(MenuPanel::seen_key(CharactersEntry::kLegion));
+  EXPECT_NE(color_of("Legion", 60), gold);
+  panel.CloseBox();
+  EXPECT_NE(characters_color(), gold);
+}
+
 // The box is titled with the entry that opened it and lists where it leads.
 TEST(MenuPanelTest, TheBoxIsTitledByTheEntryThatRaisedIt) {
   GameState state = EmptyState();

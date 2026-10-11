@@ -150,6 +150,10 @@ inline constexpr char kAbilityTabKey[] = "ability";
 // that; renaming the tab must not forget who has seen it.
 inline constexpr char kBuffsTabKey[] = "pots";
 
+// The Equipped panel's Familiar tab, per account like Ability: a player who
+// skipped the level that opens it is still pointed at it.
+inline constexpr char kFamiliarTabKey[] = "familiar";
+
 // The Advance tab's key for `stage`. One per stage, because the tab reappears
 // at every advancement level, and seeing the first isn't seeing the second.
 std::string AdvanceTabKey(int stage);

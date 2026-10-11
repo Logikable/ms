@@ -3684,6 +3684,8 @@ void TuiController::OpenBoxEntry() {
           screen_ = kCharacterSelect;
           return;
         case CharactersEntry::kLegion:
+          state_.account.MarkSeen(
+              MenuPanel::seen_key(CharactersEntry::kLegion));
           legion_panel_.Reset();
           screen_ = kLegion;
           return;

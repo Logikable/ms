@@ -3712,8 +3712,11 @@ TEST_F(TuiControllerTest, TabDoesNotLeaveTheExpandedPanel) {
 // to the box it came from.
 TEST_F(TuiControllerTest, LegionOpensFromCharactersAndReturnsToTheBox) {
   LevelTo(kLegionLevel);
+  const char* key = MenuPanel::seen_key(CharactersEntry::kLegion);
+  ASSERT_FALSE(state_->account.Seen(key));
   OpenCharactersEntry(CharactersEntry::kLegion);
   ASSERT_EQ(controller_->screen(), kLegion);
+  EXPECT_TRUE(state_->account.Seen(key)) << "opening it is what gold asked";
   EXPECT_FALSE(controller_->OnCharacterSelect()) << "the fight runs on";
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMenuBox);

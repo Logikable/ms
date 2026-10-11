@@ -130,10 +130,13 @@ class MenuPanel {
   // The save key that turns off a Dailies row's gold once the player has
   // opened it. Dailies itself is gold while any of its rows is.
   static const char* seen_key(DailiesEntry entry);
+  // The same for a Characters row; empty for Switch, which is never news.
+  static const char* seen_key(CharactersEntry entry);
 
  private:
   // Whether the Dailies row is still gold.
   bool IsNew(DailiesEntry entry) const;
+  bool IsNew(CharactersEntry entry) const;
 
   // The entries this character has, left to right. Computed each time instead
   // of stored, because a new one can appear on a level-up the panel isn't told

@@ -82,6 +82,9 @@ void EquippedPanel::StepTab(int direction) {
   if (next.tab != active_tab_) {
     active_tab_ = next.tab;
     selected_ = 0;
+    if (active_tab_ == kFamiliarTab && !read_only_) {
+      account_.MarkSeen(kFamiliarTabKey);
+    }
   }
 }
 
@@ -554,7 +557,8 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
     if (tab == active_tab_) {
       active = static_cast<int>(specs.size());
     }
-    specs.push_back({kTabLabels[tab]});
+    specs.push_back({kTabLabels[tab], tab == kFamiliarTab && !read_only_ &&
+                                          !account_.Seen(kFamiliarTabKey)});
   }
   // Its label is the state Enter would leave the panel in. It is drawn as its
   // own layer rather than as another chip, so it stays at the far right however

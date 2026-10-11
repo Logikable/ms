@@ -102,6 +102,7 @@ cc_test(
         "//src/frontend:panel_widths",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:keys",
         "//src/protos:character_proto_cc",
