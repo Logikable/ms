@@ -917,6 +917,7 @@ ftxui::Element Tui::RenderCubing() {
 ftxui::Element Tui::RenderFlaming() {
   const EquipInstance* item = controller_.flame_item();
   flame_panel_.SetItem(item, state_.character.meso());
+  flame_panel_.SetCombatPowerDelta(controller_.flame_delta());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();

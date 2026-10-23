@@ -697,17 +697,42 @@ std::optional<int> TuiController::CombatPowerDelta(
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return std::nullopt;
   }
+  return PowerAt(state_.character.Wearing(*item, gear, slot), gear) -
+         PowerAt(state_.character, gear);
+}
+
+int TuiController::PowerAt(const CharacterInstance& character,
+                           StatPreset gear) const {
   // The activity the preset stands for, so the Boss tab values a piece by what
   // it is worth against a boss. The third preset belongs to no activity and is
   // treated like the first.
   const Activity activity =
       gear == StatPreset::kSecond ? Activity::kBossing : Activity::kFarming;
-  const int now = ShownCombatPower(state_.account, state_.character,
-                                   state_.skills, activity, gear);
-  const int worn = ShownCombatPower(state_.account,
-                                    state_.character.Wearing(*item, gear, slot),
-                                    state_.skills, activity, gear);
-  return worn - now;
+  return ShownCombatPower(state_.account, character, state_.skills, activity,
+                          gear);
+}
+
+std::optional<int> TuiController::flame_delta() const {
+  const EquipInstance* item = flame_item();
+  const std::optional<FlameLines>& after = flame_panel_.after();
+  if (item == nullptr || !after.has_value()) {
+    return std::nullopt;
+  }
+  const StatPreset gear =
+      subject_.equipped() ? subject_.preset() : ComparisonPreset();
+  const EquipSlot slot = subject_.equipped() ? subject_.slot()
+                                             : state_.character.SlotToFill(
+                                                   item->prototype(), gear);
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return std::nullopt;
+  }
+  Equip rolled_state = item->equip_state();
+  *rolled_state.mutable_flame() = *after;
+  const EquipInstance rolled(item->prototype(), rolled_state);
+  // Both sides wear the item, so a bag item prices After against Before, not
+  // against whatever the slot holds now.
+  return PowerAt(state_.character.Wearing(rolled, gear, slot), gear) -
+         PowerAt(state_.character.Wearing(*item, gear, slot), gear);
 }
 
 std::optional<int> TuiController::inspect_delta() const {

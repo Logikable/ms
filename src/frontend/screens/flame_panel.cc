@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -105,6 +106,15 @@ void AppendLineRows(std::vector<ftxui::Element>& rows, const FlameLines& lines,
   }
 }
 
+// "CP Δ" at the left edge and the change at the right, the row under After.
+// A dash until there is a roll to price, so the window keeps its height.
+ftxui::Element DeltaRow(std::optional<int> delta) {
+  ftxui::Element value = delta.has_value() ? CombatPowerDeltaValue(*delta)
+                                           : ftxui::text("\u2014") | ftxui::dim;
+  return ftxui::hbox({ftxui::text(" CP \u0394"), ftxui::filler(),
+                      std::move(value), ftxui::text(" ")});
+}
+
 }  // namespace
 
 void FlamePanel::SetItem(const EquipInstance* item, int64_t meso) {
@@ -187,6 +197,7 @@ ftxui::Element FlamePanel::RenderChoice() const {
   body.push_back(CenteredRow(prompt_.KeepButtons(after_.has_value())));
   body.push_back(TitledSeparator(" After ", kTheme));
   AppendLineRows(body, after_.has_value() ? *after_ : empty, proto, widths);
+  body.push_back(DeltaRow(after_.has_value() ? delta_ : std::nullopt));
   body.push_back(ThemedSeparator());
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + FlameName(selected_flame()) + " ", std::move(body),

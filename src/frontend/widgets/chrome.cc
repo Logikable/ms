@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -663,6 +664,15 @@ ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor,
 
 ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
   return ok ? cell : std::move(cell) | ftxui::color(kRed);
+}
+
+ftxui::Element CombatPowerDeltaValue(int delta) {
+  if (delta == 0) {
+    return ftxui::text("0");
+  }
+  return ftxui::text((delta > 0 ? "+" : "-") +
+                     FormatWithCommas(std::abs(delta))) |
+         ftxui::color(delta > 0 ? kGreen : kRed);
 }
 
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {

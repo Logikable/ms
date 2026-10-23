@@ -2378,6 +2378,31 @@ TEST_F(TuiControllerTest, ASoulCostsTenShardsAndStaysOpen) {
   EXPECT_EQ(controller_->screen(), kSouling);
 }
 
+// After's combat power is priced against the item's own lines, in its slot.
+TEST_F(TuiControllerTest, FlameDeltaPricesAfterAgainstTheItemsLines) {
+  LevelTo(UnlockLevel(Feature::kFlame));
+  // ATT for the flame's line to share, and for combat power to be non-zero.
+  sword_.mutable_base_stats()->set_attack(100);
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kGearMenuFlame);
+  controller_->OnEvent(ftxui::Event::Return);  // the screen
+  EXPECT_FALSE(controller_->flame_delta().has_value()) << "no roll yet";
+
+  FlameLines attack;
+  FlameLine* line = attack.Add();
+  line->set_stat(FLAME_STAT_ATTACK);
+  line->set_tier(7);
+  flame_panel_.SetAfter(attack);
+  ASSERT_TRUE(controller_->flame_delta().has_value());
+  EXPECT_GT(*controller_->flame_delta(), 0);
+
+  flame_panel_.SetAfter(FlameLines());
+  EXPECT_EQ(controller_->flame_delta(), 0) << "an empty roll changes nothing";
+}
+
 // Black rolls into After and charges, and the item changes only on Keep ↓.
 TEST_F(TuiControllerTest, BlackFlamesChangeNothingUntilKept) {
   LevelTo(UnlockLevel(Feature::kFlame));

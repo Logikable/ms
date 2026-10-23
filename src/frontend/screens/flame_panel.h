@@ -27,6 +27,11 @@ class FlamePanel {
   // The item and the purse that pays, read together like the cube shelf's.
   // Called every frame, so a reroll's new lines and smaller purse arrive here.
   void SetItem(const EquipInstance* item, int64_t meso);
+  // What keeping After would do to the player's combat power, shown under it.
+  // Empty before a roll, or for an item this character can't wear.
+  void SetCombatPowerDelta(std::optional<int> delta) {
+    delta_ = delta;
+  }
   // Cursor on the first flame, question closed. Call when the screen opens.
   void Reset();
   // The shelf. `focused` highlights the title; it is off while the item card
@@ -60,6 +65,7 @@ class FlamePanel {
   int64_t meso_ = 0;
   int selected_ = 0;
   std::optional<FlameLines> after_;
+  std::optional<int> delta_;
   RerollPrompt prompt_;
 };
 

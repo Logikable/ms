@@ -28,6 +28,11 @@ class FlamePanelTest : public PanelTest {
     return EquipInstance(sword_, state);
   }
 
+  static int MinWidth(ftxui::Element element) {
+    element->ComputeRequirement();
+    return element->requirement().min_x;
+  }
+
   FlameLines OneLine(FlameStat stat, int tier) {
     FlameLines lines;
     FlameLine* line = lines.Add();
@@ -115,6 +120,32 @@ TEST_F(FlamePanelTest, BlackOffersAfterAndKeepsEitherSide) {
   ASSERT_EQ(kept.size(), 1);
   EXPECT_EQ(kept[0].stat(), FLAME_STAT_BOSS_DAMAGE);
   EXPECT_FALSE(panel.after().has_value());
+}
+
+// The row under After prices keeping it: a dash until there is a roll, then
+// the change in green or red.
+TEST_F(FlamePanelTest, BlackShowsTheCombatPowerChangeUnderAfter) {
+  EquipInstance item = Flamed();
+  FlamePanel panel;
+  panel.Reset();
+  panel.MoveCursor(1);
+  panel.SetItem(&item, 2 * kBlackCost);
+  panel.SetCombatPowerDelta(1234);
+  panel.OnEvent(ftxui::Event::Return);
+  std::string rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_LT(rendered.find("After"), rendered.find("CP \u0394"));
+  EXPECT_EQ(rendered.find("+1,234"), std::string::npos)
+      << "nothing to price before the first roll";
+  const int empty_width = MinWidth(panel.RenderConfirm());
+
+  panel.SetAfter(OneLine(FLAME_STAT_BOSS_DAMAGE, 7));
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "+1,234"), kGreen);
+  panel.SetCombatPowerDelta(-5);
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "-5"), kRed);
+
+  panel.SetCombatPowerDelta(-999'999'999);
+  EXPECT_EQ(MinWidth(panel.RenderConfirm()), empty_width)
+      << "a nine-digit change fits without widening the window";
 }
 
 TEST_F(FlamePanelTest, AShortPurseGreysConfirmAndRedsThePrice) {

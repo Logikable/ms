@@ -660,6 +660,10 @@ class TuiController {
       std::optional<EquipSlot> fallback = std::nullopt) const;
   // The same for whichever item each screen shows.
   std::optional<int> inspect_delta() const;
+  // How keeping the flaming screen's After would change the player's combat
+  // power against the item's lines now, in the slot it is worn in (or would
+  // be). Empty with no After, or for an item this character can't wear.
+  std::optional<int> flame_delta() const;
   std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
@@ -688,6 +692,8 @@ class TuiController {
   bool PanelVisible(int panel) const;
 
  private:
+  // `character`'s shown combat power at gear preset `gear`.
+  int PowerAt(const CharacterInstance& character, StatPreset gear) const;
   // Moves focus off a panel that isn't shown. The game starts focused on the
   // equipped panel, which a level 1 character doesn't have yet.
   void EnsureFocusIsVisible();

@@ -292,6 +292,10 @@ ftxui::Element PanelSeparator(bool highlighted);
 // the whole row: `RedUnless(text(price), Affordable())`.
 ftxui::Element RedUnless(ftxui::Element cell, bool ok);
 
+// A change in combat power, signed and comma-grouped: green for a gain, red for
+// a loss, the plain colour for none.
+ftxui::Element CombatPowerDeltaValue(int delta);
+
 // The meso held above the price, right-aligned in one column. Every screen that
 // charges uses this so the pair looks the same everywhere, and `affordable`
 // turns an unaffordable price red. The column is always wide enough for a

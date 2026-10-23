@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <map>
 #include <set>
 #include <string>
@@ -740,26 +739,14 @@ std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   return rows;
 }
 
-// The colour of the number: green for a gain, red for a loss, and the plain
-// colour for an item that changes nothing.
 std::vector<CardRow> InspectPanel::DeltaRows(const EquipTabItem& item) const {
   if (&item != item_ || !delta_.has_value()) {
     return {};
   }
-  const int delta = *delta_;
-  std::string figure =
-      delta == 0 ? "0"
-                 : (delta > 0 ? "+" : "-") + FormatWithCommas(std::abs(delta));
-  ftxui::Element value = ftxui::text(figure + " ");
-  if (delta > 0) {
-    value = std::move(value) | ftxui::color(kGreen);
-  } else if (delta < 0) {
-    value = std::move(value) | ftxui::color(kRed);
-  }
   return {
       TextRow(
           ftxui::hbox({ftxui::filler(), ftxui::text("Combat Power \u0394 ")})),
-      TextRow(std::move(value)),
+      TextRow(ftxui::hbox({CombatPowerDeltaValue(*delta_), ftxui::text(" ")})),
   };
 }
 
