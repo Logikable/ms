@@ -98,10 +98,14 @@ TEST(FlameTest, WeaponAttackIsAShareOfItsOwnRoundedUp) {
   EXPECT_EQ(FlameLineValue(Line(FLAME_STAT_ATTACK, 4), Weapon(200, 155)), 41);
   // 61.49% at T7.
   EXPECT_EQ(FlameLineValue(Line(FLAME_STAT_ATTACK, 7), Weapon(200, 100)), 62);
-  // MATT reads the weapon's own MATT.
+  // MATT reads the weapon's own MATT, or its ATT when it has none.
+  EXPECT_EQ(FlameLineValue(Line(FLAME_STAT_MAGIC_ATTACK, 3), Weapon(200, 100)),
+            18);
   EXPECT_EQ(
       FlameLineValue(Line(FLAME_STAT_MAGIC_ATTACK, 3), Weapon(200, 100, 200)),
       36);
+  EXPECT_EQ(FlameLineValue(Line(FLAME_STAT_ATTACK, 3), Weapon(200, 100, 200)),
+            18);
 }
 
 TEST(FlameTest, StatsSumPairsIntoBothAndKeepPercentsApart) {

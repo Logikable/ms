@@ -50,6 +50,13 @@ int WeaponAttack(int base, int level, int tier) {
       std::ceil(base * FlameWeaponAttackPercent(level, tier) / 100.0 - 1e-9));
 }
 
+// A weapon with no MATT takes its MATT line from its ATT, as GMS does
+// (StrategyWiki, Bonus Stats). Base stats only, never stars or scrolls.
+int WeaponBaseMagicAttack(const EquipPrototype& proto) {
+  const int matt = proto.base_stats().magic_attack();
+  return matt > 0 ? matt : proto.base_stats().attack();
+}
+
 struct PairFields {
   int (EquipStats::*get)() const;
   void (EquipStats::*set)(int32_t);
@@ -198,7 +205,7 @@ int FlameLineValue(const FlameLine& line, const EquipPrototype& proto) {
                  : tier;
     case FLAME_STAT_MAGIC_ATTACK:
       return IsWeapon(proto)
-                 ? WeaponAttack(proto.base_stats().magic_attack(), level, tier)
+                 ? WeaponAttack(WeaponBaseMagicAttack(proto), level, tier)
                  : tier;
     case FLAME_STAT_ALL_STAT:
     case FLAME_STAT_DAMAGE:
