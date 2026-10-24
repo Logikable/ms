@@ -45,6 +45,9 @@ enum TopStop : int {
 // Where a menu opens inside its half: past the name at the start of a row, so
 // it covers the item's value rather than which item it is.
 constexpr int kMenuColumn = 40;
+// A tab menu is about the whole tab, so it hangs under the tab bar at the
+// half's left edge, as the Inventory's does.
+constexpr int kTabMenuColumn = 3;
 
 }  // namespace
 
@@ -462,7 +465,7 @@ int BankPanel::MenuRow() const {
 }
 
 int BankPanel::MenuColumn() const {
-  return kMenuColumn;
+  return tab_menu_open_ ? kTabMenuColumn : kMenuColumn;
 }
 
 ftxui::Element BankPanel::Render() const {

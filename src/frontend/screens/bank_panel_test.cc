@@ -363,6 +363,32 @@ TEST_F(BankPanelTest, TheMenusOpenOnWhatTheCursorIsOn) {
   EXPECT_NE(Text().find("Move"), std::string::npos);
 }
 
+// The tab menu hangs at the half's left edge, under the tab it sorts; the item
+// menu stays over the item's stats.
+TEST_F(BankPanelTest, TheTabMenuHangsUnderTheTabBar) {
+  auto sort_column = [this]() {
+    ftxui::Element element = panel_->Render();
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                                 ftxui::Dimension::Fixed(30));
+    ftxui::Render(screen, element);
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x + 3 < screen.dimx(); ++x) {
+        if (screen.PixelAt(x, y).character == "S" &&
+            screen.PixelAt(x + 1, y).character == "o" &&
+            screen.PixelAt(x + 2, y).character == "r" &&
+            screen.PixelAt(x + 3, y).character == "t") {
+          return x;
+        }
+      }
+    }
+    return -1;
+  };
+  panel_->OpenTabMenu();
+  const int column = sort_column();
+  ASSERT_GE(column, 0);
+  EXPECT_LT(column, 10);
+}
+
 TEST_F(BankPanelTest, InspectReachesTheItemInEitherHalf) {
   ToList();
   ASSERT_NE(panel_->selected_equip(), nullptr);
