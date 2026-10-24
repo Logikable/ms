@@ -10,6 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/widgets/colors.h"
 
 namespace ms {
 namespace {
@@ -97,15 +98,28 @@ TEST(BossClearPanelTest, ASkillTheClearOpenedIsRuledOffLast) {
   EXPECT_NE(ScreenRows(screen)[gear + 1].find("\u2500"), std::string::npos);
 }
 
-// Noblesse SP joins that section, after the skills.
-TEST(BossClearPanelTest, NoblesseSpFollowsTheSkills) {
+// A first solo clear, the one that pays Noblesse SP, is announced above every
+// reward under a rule of its own; the SP itself isn't named.
+TEST(BossClearPanelTest, AFirstClearHeadsTheRewards) {
   BossReward reward = FullReward();
-  reward.skills.push_back("True Arachnid Reflection");
   reward.noblesse_sp = 2;
   ftxui::Screen screen = RenderCard(reward);
-  int skill = RowOf(screen, "New Skill: True Arachnid Reflection");
-  ASSERT_GT(skill, 0);
-  EXPECT_EQ(RowOf(screen, "+2 Noblesse SP"), skill + 1);
+  const int title = RowOf(screen, "Normal Zakum");
+  const int first = RowOf(screen, "First Clear!");
+  ASSERT_EQ(first, title + 2);
+  EXPECT_NE(ScreenRows(screen)[first + 1].find("\u2500"), std::string::npos);
+  EXPECT_EQ(RowOf(screen, "meso"), first + 2);
+  EXPECT_EQ(ColorOf(screen, "First Clear!"), kYellow);
+  EXPECT_FALSE(AnyRowHas(screen, "Noblesse SP"));
+  EXPECT_FALSE(AnyRowHas(RenderCard(FullReward()), "First Clear!"));
+}
+
+// A first clear that paid nothing else isn't followed by a second rule.
+TEST(BossClearPanelTest, AFirstClearAloneHasOneRuleUnderIt) {
+  BossReward reward;
+  reward.noblesse_sp = 1;
+  ftxui::Screen screen = RenderCard(reward);
+  EXPECT_EQ(RowOf(screen, "Continue"), RowOf(screen, "First Clear!") + 2);
 }
 
 // With only gear, there is nothing to separate from, so no rule is drawn above

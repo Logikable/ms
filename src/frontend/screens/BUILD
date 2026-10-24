@@ -1038,6 +1038,7 @@ cc_test(
         "//src/combat:boss_run",
         "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
