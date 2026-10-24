@@ -32,6 +32,8 @@
 
 ABSL_FLAG(std::string, save, "", "The save to read. Use a copy.");
 ABSL_FLAG(int, trials, 3, "Attempts at each fight, each on its own seed.");
+ABSL_FLAG(bool, bpot, false,
+          "List what each armour bonus potential line is worth instead.");
 ABSL_FLAG(bool, gear, false, "Also list what the boss preset wears.");
 ABSL_FLAG(std::string, sweep_to, "",
           "If set, first records a solo clear of every fight the character "
@@ -164,10 +166,62 @@ void PrintBossGear(const GameState& state) {
   std::printf("\n");
 }
 
+// Boss damage from each bonus line alone on an armour piece, against the same
+// piece with no bonus lines, at Legendary and Unique. Every other piece keeps
+// what it has, so a line is valued against the rest of the kit.
+bool PrintBonusLines(const Catalogs& catalogs, const std::string& path) {
+  const EquipSlot slots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_GLOVES, EQUIP_SLOT_TOP};
+  for (EquipSlot slot : slots) {
+    const PotentialGroup group = PotentialGroupOf(slot);
+    auto power_with = [&](const Potential& potential, double& power) {
+      GameState state = NewState(catalogs, 1);
+      if (!Load(catalogs, path, state) ||
+          !state.character.TakePotential(slot, PotentialTrack::kBonus,
+                                         potential, StatPreset::kSecond)) {
+        return false;
+      }
+      GearShopper shopper{GearPlan()};
+      power = shopper.Power(state);
+      return true;
+    };
+    Potential empty;
+    empty.set_rank(POTENTIAL_RANK_LEGENDARY);
+    double base = 0.0;
+    if (!power_with(empty, base)) {
+      return false;
+    }
+    std::printf("%s (and every piece in its pool), one line:\n",
+                FormatSlot(slot).c_str());
+    for (PotentialLineType type : PotentialPool(PotentialTrack::kBonus, group,
+                                                POTENTIAL_RANK_LEGENDARY)) {
+      std::printf("  %-28s", PotentialLineName(type).c_str());
+      for (PotentialRank rank :
+           {POTENTIAL_RANK_LEGENDARY, POTENTIAL_RANK_UNIQUE}) {
+        Potential one = empty;
+        PotentialLine* line = one.add_lines();
+        line->set_type(type);
+        line->set_rank(rank);
+        double power = 0.0;
+        if (!power_with(one, power)) {
+          return false;
+        }
+        std::printf(
+            "  %s %3d: %+6.2f%%", rank == POTENTIAL_RANK_LEGENDARY ? "L" : "U",
+            PotentialLineValue(type, rank, 160), 100.0 * (power / base - 1.0));
+      }
+      std::printf("\n");
+    }
+  }
+  return true;
+}
+
 int Run() {
   std::string path = absl::GetFlag(FLAGS_save);
   const int trials = absl::GetFlag(FLAGS_trials);
   const Catalogs catalogs = LoadCatalogs();
+  if (absl::GetFlag(FLAGS_bpot)) {
+    return PrintBonusLines(catalogs, path) ? 0 : 1;
+  }
   const std::string swept = absl::GetFlag(FLAGS_sweep_to);
   if (!swept.empty()) {
     if (!Sweep(catalogs, path, swept)) {
