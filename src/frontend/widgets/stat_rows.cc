@@ -139,13 +139,14 @@ void AddIncomeLines(const CharacterInstance& character,
 std::vector<StatLine> CombatStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, bool with_percents,
-    bool with_advanced, Activity preset) {
+    bool with_advanced, Activity preset, std::optional<StatPreset> gear) {
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
-                                         /*allies=*/{}, preset);
+                                         /*allies=*/{}, preset, gear);
   const EquipStats e = TotalEquipStats(character, derived);
-  // The gear the row shows, which is the preset for the activity.
-  const EquipStats& worn =
-      character.equip_stats(character.SlotFor(PresetKind::kEquip, preset));
+  // The gear the row shows: the preset for the activity, unless overridden.
+  const StatPreset slot =
+      gear.value_or(character.SlotFor(PresetKind::kEquip, preset));
+  const EquipStats& worn = character.equip_stats(slot);
   // What the character wears and was granted, then what percentages added on
   // top. It is read from the unscaled sum instead of kept as a stat, because
   // only this row needs the split.
@@ -161,10 +162,9 @@ std::vector<StatLine> CombatStatLines(
   }
   lines.push_back(
       {"Attack Speed",
-       AttackSpeedText(
-           character.proto().job(),
-           character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
-           derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
+       AttackSpeedText(character.proto().job(), character.equipped(slot),
+                       derived.attack_speed_bonus,
+                       derived.uncapped_attack_speed_bonus)});
   if (with_advanced) {
     AddIncomeLines(character, skills, derived, lines);
   }
@@ -175,9 +175,10 @@ std::vector<StatLine> CombatStatLines(
 
 std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
                                      const std::map<std::string, Skill>& skills,
-                                     Activity preset) {
+                                     Activity preset,
+                                     std::optional<StatPreset> gear) {
   return CombatStatLines(character, skills, /*with_percents=*/true,
-                         /*with_advanced=*/true, preset);
+                         /*with_advanced=*/true, preset, gear);
 }
 
 std::vector<StatLine> PanelExtraStatLines(
@@ -186,16 +187,18 @@ std::vector<StatLine> PanelExtraStatLines(
   if (!Unlocked(Feature::kCombatStats, character, account)) {
     return {};
   }
-  return CombatStatLines(
-      character, skills, Unlocked(Feature::kDamageStats, character, account),
-      Unlocked(Feature::kAdvancedStats, character, account), preset);
+  return CombatStatLines(character, skills,
+                         Unlocked(Feature::kDamageStats, character, account),
+                         Unlocked(Feature::kAdvancedStats, character, account),
+                         preset, std::nullopt);
 }
 
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
-                                    Activity preset) {
+                                    Activity preset,
+                                    std::optional<StatPreset> gear) {
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
-                                         /*allies=*/{}, preset);
+                                         /*allies=*/{}, preset, gear);
   const EquipStats e = TotalEquipStats(character, derived);
   const AllocatedStats& a = character.proto().allocated_stats();
   return {

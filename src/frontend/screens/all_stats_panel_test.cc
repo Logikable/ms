@@ -253,6 +253,86 @@ TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
+// The row holding `label` in either column, or "" if none has it.
+std::string AnyRowWith(const std::vector<std::string>& rows,
+                       const std::string& label) {
+  for (const std::string& row : rows) {
+    if (row.find(label) != std::string::npos) {
+      return row;
+    }
+  }
+  return "";
+}
+
+// Boss drops roll at the Drop preset's gear, so the Drop tab reads the boss
+// stats in it: here a hat only the Drop preset wears.
+TEST_F(AllStatsPanelTest, TheDropTabWearsTheDropPreset) {
+  UnlockEverything();
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  c.set_autoswap_presets(true);
+  EquipPrototype hat;
+  hat.set_name("Drop Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_item_drop_rate(150);
+  c.PickUp(std::make_unique<EquipInstance>(hat));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1, kDropPreset));
+  AllStatsPanel panel(c, &account_, account_, no_skills_);
+  panel.SetPreset(Activity::kBossing);
+
+  const std::string tabs = RowWith(panel.Render(), "Farm");
+  EXPECT_NE(tabs.find("Boss"), std::string::npos);
+  EXPECT_NE(tabs.find("Drop"), std::string::npos);
+  const std::string boss = AnyRowWith(Rows(panel.Render()), "Item Drop Rate");
+  EXPECT_EQ(boss.find("150"), std::string::npos) << boss;
+
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(panel.showing_drop());
+  EXPECT_EQ(panel.preset(), Activity::kBossing);
+  const std::string drop = AnyRowWith(Rows(panel.Render()), "Item Drop Rate");
+  EXPECT_NE(drop.find("150"), std::string::npos) << drop;
+
+  // The last tab: Right stays, Left goes back to Boss.
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(panel.showing_drop());
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
+  EXPECT_FALSE(panel.showing_drop());
+  EXPECT_EQ(panel.preset(), Activity::kBossing);
+}
+
+// With the autoswap off, Farm and Boss are one setup, so the row is that setup
+// beside Drop.
+TEST_F(AllStatsPanelTest, WithNoAutoswapTheDropTabSitsBesideTheWornSet) {
+  UnlockEverything();
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  AllStatsPanel panel(c, &account_, account_, no_skills_);
+
+  const std::string tabs = RowWith(panel.Render(), "Worn");
+  EXPECT_NE(tabs.find("Drop"), std::string::npos);
+  EXPECT_EQ(tabs.find("Boss"), std::string::npos);
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(panel.showing_drop());
+}
+
+// A party member's sheet carries no Drop preset to read.
+TEST_F(AllStatsPanelTest, SomebodyElsesSheetHasNoDropTab) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance them(rng_, std::move(proto));
+  them.set_autoswap_presets(true);
+  AllStatsPanel panel(them, /*account=*/nullptr, account_, no_skills_);
+  EXPECT_EQ(RowWith(panel.Render(), "Farm").find("Drop"), std::string::npos);
+}
+
 // A card that measures its own width has to include its right margin.
 TEST_F(AllStatsPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   CharacterInstance c = MakeWarrior();

@@ -1,5 +1,7 @@
 #include "src/frontend/screens/all_stats_panel.h"
 
+#include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,7 +45,7 @@ AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
       skills_(skills) {
 }
 
-bool AllStatsPanel::ShowsPresetBar() const {
+bool AllStatsPanel::ShowsFarmBoss() const {
   // Nothing to pick between while the character uses one allocation for
   // everything, so the screen shows the one in use. This is the character's own
   // setting, not the reader's, since a party member's sheet includes it.
@@ -59,17 +61,61 @@ bool AllStatsPanel::ShowsPresetBar() const {
   return Unlocked(Feature::kHyperStats, character_, *account_);
 }
 
+bool AllStatsPanel::ShowsDrop() const {
+  return account_ != nullptr &&
+         Unlocked(Feature::kEquipPresets, character_, *account_);
+}
+
+std::vector<AllStatsPanel::View> AllStatsPanel::Views() const {
+  std::vector<View> views;
+  if (ShowsFarmBoss()) {
+    views.push_back({"Farm", Activity::kFarming, std::nullopt});
+    views.push_back({"Boss", Activity::kBossing, std::nullopt});
+  } else {
+    // One allocation for everything: what the character wears.
+    views.push_back({"Worn", preset_, std::nullopt});
+  }
+  // Bossing with the Drop preset's gear, as the boss drop roll reads it.
+  if (ShowsDrop()) {
+    views.push_back({"Drop", Activity::kBossing, kDropPreset});
+  }
+  return views;
+}
+
+AllStatsPanel::View AllStatsPanel::Current() const {
+  std::vector<View> views = Views();
+  return views[std::clamp(tab_, 0, static_cast<int>(views.size()) - 1)];
+}
+
+bool AllStatsPanel::ShowsPresetBar() const {
+  return Views().size() > 1;
+}
+
+void AllStatsPanel::SetPreset(Activity preset) {
+  preset_ = preset;
+  tab_ = ShowsFarmBoss() && preset == Activity::kBossing ? 1 : 0;
+}
+
+Activity AllStatsPanel::preset() const {
+  return Current().activity;
+}
+
+bool AllStatsPanel::showing_drop() const {
+  return Current().gear.has_value();
+}
+
 bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
-  if (!ShowsPresetBar()) {
+  const int last = static_cast<int>(Views().size()) - 1;
+  if (last <= 0) {
     return false;
   }
   // Stops at the ends, like every tab bar in the game.
   if (event == ftxui::Event::ArrowLeft) {
-    preset_ = Activity::kFarming;
+    tab_ = std::max(0, std::min(tab_, last) - 1);
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    preset_ = Activity::kBossing;
+    tab_ = std::min(last, tab_ + 1);
     return true;
   }
   return false;
@@ -110,28 +156,34 @@ ftxui::Element AllStatsPanel::RenderBody() const {
   // The same heading as the Character panel, name row included, so this screen
   // reads as the same character rather than a table of numbers.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
+  const View view = Current();
   std::vector<ftxui::Element> rows = {
       CenteredRow(character_.username()),
       CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
-      CenteredRow(CombatPowerText(
-          ShownCombatPower(reader_, character_, skills_, preset_))),
+      CenteredRow(CombatPowerText(ShownCombatPower(reader_, character_, skills_,
+                                                   view.activity, view.gear))),
       ThemedSeparator(),
   };
   // Between the heading and the stats, so it reads as a heading of its own:
   // whose numbers these are. The row has the screen's only cursor, so it is
   // drawn focused.
   if (ShowsPresetBar()) {
-    std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};
-    int active = preset_ == Activity::kBossing ? 1 : 0;
+    std::vector<TabSpec> specs;
+    for (const View& tab : Views()) {
+      specs.push_back({tab.label});
+    }
+    const int active = std::clamp(tab_, 0, static_cast<int>(specs.size()) - 1);
     rows.push_back(ftxui::hbox({
         TabBar(specs, active, /*row_focused=*/true, kContentWidth),
         ftxui::filler(),
     }));
     rows.push_back(ThemedSeparator());
   }
-  rows.push_back(Pairs(MainStatLines(character_, skills_, preset_)));
+  rows.push_back(
+      Pairs(MainStatLines(character_, skills_, view.activity, view.gear)));
   rows.push_back(ThemedSeparator());
-  rows.push_back(Pairs(ExtraStatLines(character_, skills_, preset_)));
+  rows.push_back(
+      Pairs(ExtraStatLines(character_, skills_, view.activity, view.gear)));
   return ftxui::vbox(std::move(rows));
 }
 

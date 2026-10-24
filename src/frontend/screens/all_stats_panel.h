@@ -7,12 +7,15 @@
  *
  * Once Hyper Stats unlock, a Farm/Boss row under the heading shows which Hyper
  * Stat allocation the numbers use, and Left and Right switch between them. It
- * opens on whichever one the Character panel was showing.
+ * opens on whichever one the Character panel was showing. Once gear presets
+ * unlock, the player's own sheet adds Drop: their boss stats in the Drop
+ * preset's gear, which is what boss drops roll at.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_ALL_STATS_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_ALL_STATS_PANEL_H_
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -21,6 +24,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/protos/skill.pb.h"
 
@@ -50,24 +54,39 @@ class AllStatsPanel {
 
   // Which allocation the screen shows. Set from the Character panel when the
   // screen opens, so the two never show different numbers for one stat.
-  void SetPreset(Activity preset) {
-    preset_ = preset;
-  }
-  Activity preset() const {
-    return preset_;
-  }
+  void SetPreset(Activity preset);
+  Activity preset() const;
+  // Whether the Drop tab is the one showing.
+  bool showing_drop() const;
 
-  // Left and Right on the Farm/Boss row, the only keys this screen handles.
+  // Left and Right on the preset row, the only keys this screen handles.
   // Returns whether the event was consumed; false leaves closing the screen to
   // the caller.
   bool OnEvent(const ftxui::Event& event);
 
-  // Whether the Farm/Boss row is drawn, which depends on the Hyper Stats level.
-  // Public because it adds a row and a rule, which a screen sizing itself
-  // around this one has to count.
+  // Whether the preset row is drawn. Public because it adds a row and a rule,
+  // which a screen sizing itself around this one has to count.
   bool ShowsPresetBar() const;
 
  private:
+  // One tab on the preset row: the allocation it reads, and the gear preset
+  // it overrides, if any.
+  struct View {
+    std::string label;
+    Activity activity = Activity::kFarming;
+    std::optional<StatPreset> gear;
+  };
+  // Farm and Boss once there are two allocations to pick between, which
+  // depends on the Hyper Stats level and the autoswap.
+  bool ShowsFarmBoss() const;
+  // The Drop tab, on the player's own sheet once gear presets unlock. A party
+  // member's sheet has no Drop preset to read.
+  bool ShowsDrop() const;
+  // The row's tabs, left to right. One entry, unlabelled, when there is no
+  // row.
+  std::vector<View> Views() const;
+  View Current() const;
+
   // The heading and the stat columns, with no window around them.
   ftxui::Element RenderBody() const;
   // `lines` laid out two per row, in order. An odd row's second half is left
@@ -78,7 +97,10 @@ class AllStatsPanel {
   const AccountInstance* account_ = nullptr;
   const AccountInstance& reader_;
   const std::map<std::string, Skill>& skills_;
+  // What the Character panel was showing, which the first tab reads when there
+  // is no Farm/Boss pair.
   Activity preset_ = Activity::kFarming;
+  int tab_ = 0;
 };
 
 }  // namespace ms

@@ -39,10 +39,12 @@ inline StatLine StatRule() {
 // The combat stats, most important first, as the All Stats screen lists them.
 // Put a new stat where it belongs in that order rather than at the end, since
 // both callers drop the tail. `preset` picks which Hyper Stat allocation is
-// read.
-std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
-                                     const std::map<std::string, Skill>& skills,
-                                     Activity preset = Activity::kFarming);
+// read, and `gear` overrides which preset the worn items come from.
+std::vector<StatLine> ExtraStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills,
+    Activity preset = Activity::kFarming,
+    std::optional<StatPreset> gear = std::nullopt);
 
 // The same list as the Character panel shows it, which is shorter early on:
 // empty until the first advancement and without the percent rows until the
@@ -56,9 +58,11 @@ std::vector<StatLine> PanelExtraStatLines(
 // The four AP stats, ordered to fill the All Stats screen's left column and
 // then its right, so the rows read STR/INT and DEX/LUK. A stat that gear or a
 // skill has added to reads "(base+bonus) total". HP and MP are drawn as gauges.
-std::vector<StatLine> MainStatLines(const CharacterInstance& character,
-                                    const std::map<std::string, Skill>& skills,
-                                    Activity preset = Activity::kFarming);
+std::vector<StatLine> MainStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills,
+    Activity preset = Activity::kFarming,
+    std::optional<StatPreset> gear = std::nullopt);
 
 // "Combat Power" and the number, shortened to "CP" once the number passes six
 // digits so the number isn't cut.
