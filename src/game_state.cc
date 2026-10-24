@@ -1571,11 +1571,11 @@ void RegisterEndgameChampions(CharacterInstance& character,
 }
 
 void EndgameOneCharacter(GameState& state, JobAdvancement advancement,
-                         const std::vector<MaxMember>& account) {
+                         const std::vector<MaxMember>& account, int stars) {
   GearSetup equips;
   equips.scrolled = true;
-  equips.stars = 25;
-  equips.weapon_stars = 25;
+  equips.stars = stars;
+  equips.weapon_stars = stars;
   equips.dropped_scrolls = true;
   equips.exceptional = true;
 
@@ -1624,7 +1624,9 @@ void SeedEndgame(GameState& state, const TestOptions& options) {
   const std::vector<MaxMember> account = EndgameAccount(advancement);
   SeedMaxRoster(state, account, /*playable=*/false);
   ResetToBeginner(state);
-  EndgameOneCharacter(state, advancement, account);
+  // 25 unless asked: GMS's usual ceiling, short of the 30 the gear allows.
+  const int stars = options.equips.stars > 0 ? options.equips.stars : 25;
+  EndgameOneCharacter(state, advancement, account, stars);
   *state.account.mutable_legion() = state.character.legion();
   state.MirrorAccount();
   state.current_map = kHomeMap;

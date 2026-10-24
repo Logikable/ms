@@ -38,6 +38,7 @@
 
 ABSL_FLAG(std::string, job, "", "One branch (\"bow_master\"); empty for all.");
 ABSL_FLAG(int, trials, 3, "Fights per branch, each on its own seed.");
+ABSL_FLAG(int, stars, 25, "Stars on every piece but the Destiny weapon.");
 ABSL_FLAG(bool, gear, false, "Also list each branch's gear and allocations.");
 ABSL_FLAG(double, seconds, 600.0,
           "How long the dummy is struck for the damage a second.");
@@ -95,6 +96,7 @@ GameState NewEndgameState(const Catalogs& catalogs, Job branch,
   options.job = AdvancementForJobStage(branch, StageOf(branch));
   options.autoswap_presets = true;
   options.playable_roster = false;
+  options.equips.stars = absl::GetFlag(FLAGS_stars);
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
                    GameMode::kEndgame, options, seed, catalogs.sets,
