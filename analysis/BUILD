@@ -891,6 +891,7 @@ sim_binary(
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
         "//src/item:equip_instance",
+        "//src/item:flame",
         "//src/protos:account_proto_cc",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",

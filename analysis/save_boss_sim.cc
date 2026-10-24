@@ -24,6 +24,7 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/flame.h"
 #include "src/protos/account.pb.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -32,6 +33,8 @@
 
 ABSL_FLAG(std::string, save, "", "The save to read. Use a copy.");
 ABSL_FLAG(int, trials, 3, "Attempts at each fight, each on its own seed.");
+ABSL_FLAG(bool, flames, false,
+          "List each boss-preset piece's flame score in DEX instead.");
 ABSL_FLAG(bool, bpot, false,
           "List what each armour bonus potential line is worth instead.");
 ABSL_FLAG(bool, gear, false, "Also list what the boss preset wears.");
@@ -215,10 +218,70 @@ bool PrintBonusLines(const Catalogs& catalogs, const std::string& path) {
   return true;
 }
 
+// Each boss-preset piece's flame as the flat DEX worth the same boss damage
+// on this kit: the gain over no flame, over a 100 DEX line's gain on the same
+// piece.
+bool PrintFlameScores(const Catalogs& catalogs, const std::string& path) {
+  GameState held = NewState(catalogs, 1);
+  if (!Load(catalogs, path, held)) {
+    return false;
+  }
+  auto power_with = [&](EquipSlot slot, const FlameLines& lines,
+                        double& power) {
+    GameState state = NewState(catalogs, 1);
+    if (!Load(catalogs, path, state) ||
+        !state.character.TakeFlame(slot, lines, StatPreset::kSecond)) {
+      return false;
+    }
+    GearShopper shopper{GearPlan()};
+    power = shopper.Power(state);
+    return true;
+  };
+  std::printf("%-12s %-28s %6s  %s\n", "Slot", "Item", "Score", "Lines");
+  for (int i = EquipSlot_MIN; i <= EquipSlot_MAX; ++i) {
+    if (!EquipSlot_IsValid(i)) {
+      continue;
+    }
+    const EquipSlot slot = static_cast<EquipSlot>(i);
+    const EquipInstance* item =
+        held.character.WornAt(StatPreset::kSecond, slot);
+    if (item == nullptr || item->equip_state().flame().empty()) {
+      continue;
+    }
+    const FlameLines none;
+    FlameLines dex;
+    FlameLine* line = dex.Add();
+    line->set_stat(FLAME_STAT_DEX);
+    line->set_tier(7);
+    const int dex_value = FlameLineValue(*line, item->prototype());
+    double bare = 0.0;
+    double with_dex = 0.0;
+    double held_power = 0.0;
+    if (!power_with(slot, none, bare) || !power_with(slot, dex, with_dex) ||
+        !power_with(slot, item->equip_state().flame(), held_power)) {
+      return false;
+    }
+    const double per_dex = (with_dex - bare) / dex_value;
+    std::string lines;
+    for (const FlameLine& held_line : item->equip_state().flame()) {
+      lines += FlameStatName(held_line.stat()) + " " +
+               FlameLineValueText(held_line, item->prototype()) + " T" +
+               std::to_string(held_line.tier()) + ", ";
+    }
+    std::printf("%-12s %-28s %6.0f  %s\n", FormatSlot(slot).c_str(),
+                item->name().c_str(), (held_power - bare) / per_dex,
+                lines.substr(0, lines.size() - 2).c_str());
+  }
+  return true;
+}
+
 int Run() {
   std::string path = absl::GetFlag(FLAGS_save);
   const int trials = absl::GetFlag(FLAGS_trials);
   const Catalogs catalogs = LoadCatalogs();
+  if (absl::GetFlag(FLAGS_flames)) {
+    return PrintFlameScores(catalogs, path) ? 0 : 1;
+  }
   if (absl::GetFlag(FLAGS_bpot)) {
     return PrintBonusLines(catalogs, path) ? 0 : 1;
   }
