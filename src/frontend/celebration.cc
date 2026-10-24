@@ -106,8 +106,10 @@ void Celebration::Visit(Panel focused) {
   }
 }
 
-void Celebration::Dismiss() {
+bool Celebration::Dismiss() {
+  const bool visible = card_visible();
   card_seconds_ = 0.0;
+  return visible;
 }
 
 bool Celebration::Lights(Panel panel) const {

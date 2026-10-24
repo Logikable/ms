@@ -72,8 +72,9 @@ TEST_F(CelebrationTest, AdvancingWithNothingUpIsHarmless) {
 
 TEST_F(CelebrationTest, DismissTakesTheCardDownEarly) {
   BeginAway(12, 13);
-  celebration_.Dismiss();
+  EXPECT_TRUE(celebration_.Dismiss()) << "a card was up, so the key is eaten";
   EXPECT_FALSE(celebration_.card_visible());
+  EXPECT_FALSE(celebration_.Dismiss()) << "nothing up, so the key goes through";
 }
 
 // A second level-up while the first card is up restarts the clock instead of

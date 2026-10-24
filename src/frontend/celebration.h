@@ -1,7 +1,8 @@
 /* The few seconds after something important happens: a card across the middle
  * of the screen, and the related panels lit gold behind it. Death uses the same
- * mechanism (one card at a time, four seconds, any key dismisses it), so it
- * lives here too and two cards can never be on screen at once.
+ * mechanism (one card at a time, four seconds, and any key dismisses it and
+ * does nothing else), so it lives here too and two cards can never be on
+ * screen at once.
  *
  * It is separate from Tui so its decisions can be tested: how long it lasts,
  * which panels it lights, and what the card says. Nothing here blocks, because
@@ -64,8 +65,9 @@ class Celebration {
   void Visit(Panel focused);
 
   // Takes the card down for a player who has already read it. The gold stays,
-  // since dismissing the card isn't the same as visiting the panel.
-  void Dismiss();
+  // since dismissing the card isn't the same as visiting the panel. Returns
+  // whether a card was up, for the caller to eat the key that closed it.
+  bool Dismiss();
 
   // Whether the card is on screen. The gold can outlast it, so this doesn't say
   // whether the celebration is still doing anything.

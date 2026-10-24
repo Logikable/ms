@@ -1536,16 +1536,16 @@ void Tui::NoticeProgress() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  // A player who has looked at the card is done with it. The key still does its
-  // normal job, since dismissing the card is a side effect rather than
-  // consuming the key. Custom is the ticker's redraw event, not the player.
-  if (celebration_.card_visible() && event != ftxui::Event::Custom) {
-    celebration_.Dismiss();
-  }
   // The notification needs a key press as well as its four seconds, and the
   // ticker's redraw isn't a key press.
   if (event != ftxui::Event::Custom) {
     controller_.TouchNotification();
+  }
+  // The key that closes a card does nothing else: a card can come up mid-
+  // keystroke, and the key meant for the screen under it would land unseen.
+  // Custom is the ticker's redraw event, not the player.
+  if (event != ftxui::Event::Custom && celebration_.Dismiss()) {
+    return true;
   }
   // The All Stats screen's Farm/Boss row belongs to the panel, which lives here
   // rather than on the controller. Keys it doesn't handle, such as the ones
