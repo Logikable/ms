@@ -4709,6 +4709,9 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EXPECT_EQ(controller_->boss_timeout_lines()[0], "Out of time!");
   EXPECT_EQ(controller_->boss_timeout_lines()[1],
             TimeoutHpLine(*controller_->boss_run()));
+  for (const std::string& line : controller_->boss_timeout_lines()) {
+    EXPECT_LE(line.size(), 34u) << line;
+  }
   EXPECT_FALSE(controller_->boss_result_on_analysis());
   // Nothing was cleared, so the daily is still available.
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
@@ -4717,6 +4720,24 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());
+}
+
+// A boss name too long for the card splits the HP line in two rather than
+// widening it.
+TEST_F(TuiControllerTest, ALongBossNameWrapsTheTimeoutLine) {
+  state_->mobs["zakum_arm"].set_max_hp(2000000000);
+  state_->bosses["zakum"].set_name("Chaos Guardian Angel Zakum");
+  EnterFight();
+  controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
+  controller_->AdvanceBossRun(kBossEndHoldSeconds);
+  ASSERT_EQ(controller_->screen(), kBossTimeout);
+
+  const std::vector<std::string>& lines = controller_->boss_timeout_lines();
+  ASSERT_EQ(lines.size(), 3u);
+  EXPECT_EQ(lines[1] + " " + lines[2], TimeoutHpLine(*controller_->boss_run()));
+  for (const std::string& line : lines) {
+    EXPECT_LE(line.size(), 34u) << line;
+  }
 }
 
 // A lost fight has a breakdown too, and Escape from it returns to the timeout

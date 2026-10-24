@@ -3598,7 +3598,9 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     return;
   }
   if (boss_run_->state() == BossRunState::kTimedOut) {
-    boss_timeout_lines_ = {"Out of time!", TimeoutHpLine(*boss_run_)};
+    // Wrapped like any notice, so a long boss name doesn't widen the card.
+    boss_timeout_lines_ = WrapBalanced(TimeoutHpLine(*boss_run_), kNoticeWidth);
+    boss_timeout_lines_.insert(boss_timeout_lines_.begin(), "Out of time!");
     boss_result_prompt_.Open();
     boss_result_on_analysis_ = false;
     screen_ = kBossTimeout;
