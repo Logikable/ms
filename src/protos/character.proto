@@ -204,6 +204,34 @@ message HyperStats {
   int32 active = 4;
 }
 
+// A stat a HEXA Stat node can raise, in the order GMS's screen lists them.
+// Attack is ATT or Magic ATT, whichever the job fights with.
+enum HexaStat {
+  HEXA_STAT_UNSPECIFIED = 0;
+  HEXA_STAT_CRIT_DAMAGE = 1;
+  HEXA_STAT_BOSS_DAMAGE = 2;
+  HEXA_STAT_IGNORE_DEFENSE = 3;
+  HEXA_STAT_DAMAGE = 4;
+  HEXA_STAT_ATTACK = 5;
+  HEXA_STAT_MAIN_STAT = 6;
+}
+
+// One HEXA Stat node: a primary stat and two additional ones, three different
+// stats, each with its own level.
+message HexaStatNode {
+  HexaStat primary = 1;
+  HexaStat first = 2;
+  HexaStat second = 3;
+  int32 primary_level = 4;
+  int32 first_level = 5;
+  int32 second_level = 6;
+}
+
+// The character's HEXA Stat nodes, at most kHexaStatNodes, in unlock order.
+message HexaStats {
+  repeated HexaStatNode nodes = 1;
+}
+
 // A buff the player keeps active, paid per second, per fight, or once
 // permanently. Numbered in unlock order.
 enum ConsumableType {
@@ -491,6 +519,9 @@ message Character {
   // difficulty. Unlike boss_clears this never expires: it is what
   // Skill.unlock_boss reads. A Practice run doesn't count.
   repeated string bosses_defeated = 29;
+
+  // The HEXA Stat nodes; see //src/character:hexa_stat.
+  HexaStats hexa_stats = 33;
 
   // Tabs opened and gold trails walked. Since format version 2 the account
   // keeps these, so something shown once is shown to all of the player's
