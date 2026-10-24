@@ -100,7 +100,8 @@ TEST(SpendFamiliarsTest, BondClimbsPastAWorthlessLevel) {
 
 // Cubes stop on lines worth the reservation value and are paid in meso.
 TEST(SpendFamiliarsTest, CubesFollowTheStoppingRule) {
-  GameState state({}, {}, {}, {}, {});
+  // Seeded: the cubes roll, and an unseeded stream fails now and then.
+  GameState state({}, {}, {}, {}, {}, {}, GameMode::kPlay, {}, /*seed=*/1);
   SetLevel(state, kFamiliarsLevel);
   state.character.AddFamiliarExp(3 * (1'000 + 9'000 + 50'000 + 200'000));
   state.character.AddMeso(100 * kFamiliarCubeMeso);
