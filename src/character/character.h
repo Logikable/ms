@@ -558,7 +558,8 @@ class CharacterInstance {
     *character_.mutable_familiars() = book;
   }
   // Banks one familiar EXP per kill, at any level, up to kFamiliarExpCap.
-  void AddFamiliarExp(int64_t kills);
+  // Returns how much was banked: less than `kills` at the cap.
+  int64_t AddFamiliarExp(int64_t kills);
   // Raises `name` one level from the pool, rolling its lines at the new rank.
   bool LevelUpFamiliar(const std::string& name);
   // One Familiar Cube on `name`, paid in meso. Refuses, taking nothing, when

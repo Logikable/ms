@@ -49,7 +49,7 @@ std::string FormatAbsence(double seconds) {
 }
 
 ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
-                           bool show_honor) {
+                           bool show_honor, bool show_familiars) {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow("Away for " + FormatAbsence(report.absence)));
   rows.push_back(AccentSeparator(kTheme));
@@ -58,45 +58,75 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
     // player who logged off somewhere quiet.
     rows.push_back(CenteredRow("You were not fighting anywhere."));
   } else {
-    rows.push_back(CenteredRow(FormatWithCommas(report.kills) + " kills on " +
-                               report.map_name));
+    // The fight, the character's growth, the currencies, the loot, then why
+    // farming stopped: each group under its own divider, and an empty one
+    // draws none.
+    std::vector<std::vector<ftxui::Element>> groups(5);
+    std::vector<ftxui::Element>& fight = groups[0];
+    std::vector<ftxui::Element>& growth = groups[1];
+    std::vector<ftxui::Element>& purse = groups[2];
+    std::vector<ftxui::Element>& loot = groups[3];
+    std::vector<ftxui::Element>& end = groups[4];
+    fight.push_back(CenteredRow(FormatWithCommas(report.kills) + " kills on " +
+                                report.map_name));
     // Levels first: gaining one is the news, and everything below is what the
     // climb was made of.
     if (report.end_level > report.start_level) {
-      rows.push_back(CenteredRow("Level " + std::to_string(report.start_level) +
-                                 " -> " + std::to_string(report.end_level)));
+      growth.push_back(CenteredRow("Level " +
+                                   std::to_string(report.start_level) + " -> " +
+                                   std::to_string(report.end_level)));
     }
     if (report.rewards.exp > 0) {
-      rows.push_back(
+      growth.push_back(
           CenteredRow(FormatWithCommas(report.rewards.exp) + " EXP"));
     }
-    if (report.rewards.meso > 0) {
-      rows.push_back(CenteredRow(FormatMeso(report.rewards.meso)));
+    if (report.rewards.familiar_exp > 0 && show_familiars) {
+      growth.push_back(CenteredRow(
+          FormatWithCommas(report.rewards.familiar_exp) + " Familiar EXP"));
+    }
+    // Meso is shown before potions are paid for, with what they took beside
+    // it, so the drop rate's work isn't hidden in a net figure.
+    if (report.rewards.meso > 0 || report.rewards.consumable_cost > 0) {
+      std::string meso = FormatMeso(report.rewards.meso);
+      if (report.rewards.consumable_cost > 0) {
+        meso += " (-" + FormatWithCommas(report.rewards.consumable_cost) +
+                " potions)";
+      }
+      purse.push_back(CenteredRow(meso));
     }
     if (report.rewards.honor > 0 && show_honor) {
-      rows.push_back(
+      purse.push_back(
           CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
     }
     // No explanation for this one: only 5th jobs get V Points, so anyone who
     // has some already knows what they are.
     if (report.rewards.v_points > 0) {
-      rows.push_back(
+      purse.push_back(
           CenteredRow(FormatWithCommas(report.rewards.v_points) + " V Points"));
     }
-    if (!report.rewards.items.empty()) {
-      rows.push_back(AccentSeparator(kTheme));
-    }
     for (const RewardItem& item : report.rewards.items) {
-      rows.push_back(ItemRow(item));
+      loot.push_back(ItemRow(item));
     }
     if (report.died) {
       // The only line that is a reason rather than a reward: farming stopped
       // here, and the player is now somewhere else.
-      rows.push_back(AccentSeparator(kTheme));
-      rows.push_back(CenteredRow(
-          ftxui::text("Defeated after " + FormatAbsence(report.seconds) +
-                      " and sent back to Maple Island.") |
-          ftxui::color(kRed)));
+      end.push_back(CenteredRow(ftxui::text("Defeated after " +
+                                            FormatAbsence(report.seconds) +
+                                            " and sent back to Maple Island.") |
+                                ftxui::color(kRed)));
+    }
+    bool first = true;
+    for (std::vector<ftxui::Element>& group : groups) {
+      if (group.empty()) {
+        continue;
+      }
+      if (!first) {
+        rows.push_back(AccentSeparator(kTheme));
+      }
+      first = false;
+      for (ftxui::Element& row : group) {
+        rows.push_back(std::move(row));
+      }
     }
   }
   rows.push_back(AccentSeparator(kTheme));

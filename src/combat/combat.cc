@@ -94,7 +94,7 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     // kill here pays neither.
     if (!mob.boss()) {
       exp_gained += kills[i] * mob.exp();
-      character.AddFamiliarExp(kills[i]);
+      tally.familiar_exp += character.AddFamiliarExp(kills[i]);
       // Applying the meso bonus to the total is the same as applying it to each
       // drop.
       int64_t meso = static_cast<int64_t>(

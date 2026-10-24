@@ -48,9 +48,10 @@ class OfflineCardTest : public PanelTest {
     return report;
   }
 
-  std::string Render(const OfflineReport& report, bool show_honor = true) {
-    return RenderElement(
-        OfflineCard(report, ftxui::text("[Continue]"), show_honor));
+  std::string Render(const OfflineReport& report, bool show_honor = true,
+                     bool show_familiars = true) {
+    return RenderElement(OfflineCard(report, ftxui::text("[Continue]"),
+                                     show_honor, show_familiars));
   }
 };
 
@@ -146,6 +147,52 @@ TEST_F(OfflineCardTest, SaysWhenNothingWasFarmed) {
 
   EXPECT_NE(out.find("not fighting anywhere"), std::string::npos);
   EXPECT_EQ(out.find("kills on"), std::string::npos);
+}
+
+// The fight, the growth and the currencies each sit under their own divider.
+TEST_F(OfflineCardTest, GroupsTheFightTheGrowthAndTheCurrencies) {
+  OfflineReport report = Report();
+  report.rewards.familiar_exp = 1234;
+
+  std::string out = Render(report);
+
+  std::size_t kills = out.find("1,234 kills");
+  std::size_t level = out.find("Level 20 -> 22");
+  std::size_t exp = out.find("45,678 EXP");
+  std::size_t familiar = out.find("1,234 Familiar EXP");
+  std::size_t meso = out.find("91,011");
+  ASSERT_NE(familiar, std::string::npos);
+  EXPECT_LT(kills, level);
+  EXPECT_LT(exp, familiar);
+  EXPECT_LT(familiar, meso);
+  EXPECT_NE(out.substr(kills, level - kills).find("\u2500"), std::string::npos);
+  EXPECT_EQ(out.substr(level, familiar - level).find("\u2500"),
+            std::string::npos);
+  EXPECT_NE(out.substr(familiar, meso - familiar).find("\u2500"),
+            std::string::npos);
+}
+
+// Familiar EXP banks at any level, but waits to be shown with the Familiar tab.
+TEST_F(OfflineCardTest, TheFamiliarExpWaitsForFamiliars) {
+  OfflineReport report = Report();
+  report.rewards.familiar_exp = 1234;
+
+  std::string out =
+      Render(report, /*show_honor=*/true, /*show_familiars=*/false);
+
+  EXPECT_EQ(out.find("Familiar"), std::string::npos);
+  EXPECT_NE(out.find("45,678 EXP"), std::string::npos);
+}
+
+// Meso is what dropped, with the potions it paid for beside it.
+TEST_F(OfflineCardTest, ShowsThePotionCostBesideTheMeso) {
+  OfflineReport report = Report();
+  report.rewards.consumable_cost = 2500;
+
+  std::string out = Render(report);
+
+  EXPECT_NE(out.find("91,011 (-2,500 potions)"), std::string::npos);
+  EXPECT_EQ(Render(Report()).find("potions"), std::string::npos);
 }
 
 TEST_F(OfflineCardTest, ReadsAnAbsenceInItsTwoLargestUnits) {

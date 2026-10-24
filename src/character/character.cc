@@ -1789,12 +1789,14 @@ bool CharacterInstance::RenameFamiliar(const std::string& name,
   return ms::RenameFamiliar(*character_.mutable_familiars(), name, nickname);
 }
 
-void CharacterInstance::AddFamiliarExp(int64_t kills) {
+int64_t CharacterInstance::AddFamiliarExp(int64_t kills) {
   if (kills <= 0) {
-    return;
+    return 0;
   }
   FamiliarBook& book = *character_.mutable_familiars();
-  book.set_exp(std::min(book.exp() + kills, kFamiliarExpCap));
+  const int64_t before = book.exp();
+  book.set_exp(std::min(before + kills, kFamiliarExpCap));
+  return book.exp() - before;
 }
 
 bool CharacterInstance::LevelUpFamiliar(const std::string& name) {

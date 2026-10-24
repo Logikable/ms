@@ -222,8 +222,25 @@ TEST(AwardCombatRewardsTest, KillsFillTheFamiliarPool) {
   proto.set_level(1);
   state.character.RestoreFrom(proto, state.equips, state.items);
   EquipSword(state);
-  AwardCombatRewards(state, ComputeCombatParams(state), {500});
+  RewardTally tally =
+      AwardCombatRewards(state, ComputeCombatParams(state), {500});
   EXPECT_EQ(state.character.familiars().exp(), 500);
+  EXPECT_EQ(tally.familiar_exp, 500);
+}
+
+// The tally is what was banked, so kills past the cap don't count.
+TEST(AwardCombatRewardsTest, TheTallyStopsAtTheFamiliarCap) {
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  state.character.AddFamiliarExp(kFamiliarExpCap - 100);
+
+  RewardTally tally =
+      AwardCombatRewards(state, ComputeCombatParams(state), {500});
+
+  EXPECT_EQ(tally.familiar_exp, 100);
+  EXPECT_EQ(state.character.familiars().exp(), kFamiliarExpCap);
 }
 
 // A boss is paid from its fight's own reward table, so the boss mob itself

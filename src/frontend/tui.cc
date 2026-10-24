@@ -1061,10 +1061,11 @@ ftxui::Element Tui::RenderScreen() {
       }
       return OverMain(QuitDialog());
     case kOffline:
-      return OverMain(OfflineCard(controller_.offline_report(),
-                                  controller_.offline_prompt().Render(),
-                                  HonorVisible(state_.character.proto().level(),
-                                               state_.account.max_level())));
+      return OverMain(OfflineCard(
+          controller_.offline_report(), controller_.offline_prompt().Render(),
+          HonorVisible(state_.character.proto().level(),
+                       state_.account.max_level()),
+          Unlocked(Feature::kFamiliars, state_.character, state_.account)));
     case kSell:
       return OverMain(sell_panel_.Render());
     case kSellEquip:
