@@ -17,6 +17,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/legion.h"
+#include "src/character/legion_artifact.h"
 #include "src/character/skill_placement.h"
 #include "src/character/symbol.h"
 #include "src/combat/constants.h"
@@ -1170,6 +1171,35 @@ void AddLegionPoints(const CharacterInstance& character,
   }
 }
 
+// The Artifact's crystals and the Champion insignias. Their stats are not
+// final, like the points': a %stat line lifts them.
+void AddLegionExtras(const CharacterInstance& character,
+                     PassiveTotals& totals) {
+  const LegionExtraTotals sources[] = {
+      ArtifactTotalsFor(character.legion().artifact()),
+      ChampionTotalsFor(character.legion().champions(),
+                        character.proto().job())};
+  for (const LegionExtraTotals& extra : sources) {
+    totals.str += extra.all_stats;
+    totals.dex += extra.all_stats;
+    totals.int_ += extra.all_stats;
+    totals.luk += extra.all_stats;
+    totals.hp_grant += extra.max_hp;
+    totals.mp_grant += extra.max_mp;
+    totals.attack += extra.attack;
+    totals.magic_attack += extra.attack;
+    totals.damage_pct += extra.damage_pct;
+    totals.boss_pct += extra.boss_pct;
+    totals.ied = CombineIgnoredDefense(totals.ied, extra.ied);
+    totals.buff_duration_pct += extra.buff_duration_pct;
+    totals.meso_pct += extra.meso_pct;
+    totals.item_drop_pct += extra.item_drop_pct;
+    totals.crit_rate += extra.crit_rate;
+    totals.crit_dmg += extra.crit_dmg;
+    totals.exp_pct += extra.exp_pct;
+  }
+}
+
 // What every ranked character's job gives. Its four stats are final stats, so
 // this runs after the fold, beside the Hyper Stats.
 void AddLegionJobEffects(const LegionSummary& summary, PassiveTotals& totals) {
@@ -1680,6 +1710,7 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
   if (character.legion_unlocked()) {
     legion = character.legion_summary();
     AddLegionPoints(character, *legion, preset, passives);
+    AddLegionExtras(character, passives);
   }
   // Before the fold: a potential's %stat and Maple Warrior both read a base the
   // other hasn't changed, and their shares add rather than compound.

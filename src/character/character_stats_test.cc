@@ -4782,6 +4782,30 @@ TEST(LegionStatsTest, PointsAreLiftedByPercentStatAndJobEffectsAreNot) {
   EXPECT_EQ(stats.skill_stats.str(), 75 + 129 + 300);
 }
 
+// The Artifact's all stats and a Champion's insignia are points, not final
+// stats: a %stat line lifts both.
+TEST(LegionStatsTest, ArtifactsAndInsigniasAreLiftedByPercentStat) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  JoinLegion(c, 0);
+  Legion legion = c.legion();
+  ArtifactCrystal& crystal = *legion.mutable_artifact()->add_crystals();
+  crystal.set_level(5);
+  crystal.add_stats(ARTIFACT_STAT_ALL_STATS);
+  crystal.add_stats(ARTIFACT_STAT_BOSS_DAMAGE);
+  crystal.add_stats(ARTIFACT_STAT_EXP);
+  LegionChampion& champion = *legion.add_champions();
+  champion.set_job(c.proto().job());
+  champion.set_rank(CHAMPION_RANK_B);
+  c.set_legion(legion);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  const DerivedStats stats = DerivedStatsFor(c, {});
+  // 75 from the crystal and 20 from the insignia, then 12% of 1095.
+  EXPECT_EQ(stats.skill_stats.str(), 75 + 20 + 131);
+  EXPECT_NEAR(stats.boss_pct, 0.075, 1e-12);
+}
+
 TEST(LegionStatsTest, NothingBelowTheUnlockLevel) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);

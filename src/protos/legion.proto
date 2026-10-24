@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ms;
 
+import "src/protos/character.proto";
+
 // A stat Legion points are spent on, in the order KMS's Overdrive screen lists
 // them: the eight base stats, then the eight the Legion's rank opens.
 enum LegionStat {
@@ -40,4 +42,58 @@ message Legion {
   repeated LegionPreset presets = 1;
   // The preset used while autoswap is off, a StatPreset index.
   int32 slot_in_use = 2;
+  // The Legion Artifact's crystals and the Legion Champions; see
+  // //src/character:legion_artifact.
+  LegionArtifact artifact = 3;
+  repeated LegionChampion champions = 4;
+}
+
+// A stat a Legion Artifact crystal can raise, in the client's order.
+enum ArtifactStat {
+  ARTIFACT_STAT_UNSPECIFIED = 0;
+  ARTIFACT_STAT_ALL_STATS = 1;
+  ARTIFACT_STAT_MAX_HP_MP = 2;
+  ARTIFACT_STAT_ATTACK = 3;
+  ARTIFACT_STAT_DAMAGE = 4;
+  ARTIFACT_STAT_BOSS_DAMAGE = 5;
+  ARTIFACT_STAT_IGNORE_DEFENSE = 6;
+  ARTIFACT_STAT_BUFF_DURATION = 7;
+  ARTIFACT_STAT_COOLDOWN_SKIP = 8;
+  ARTIFACT_STAT_MESO = 9;
+  ARTIFACT_STAT_ITEM_DROP = 10;
+  ARTIFACT_STAT_CRIT_RATE = 11;
+  ARTIFACT_STAT_CRIT_DAMAGE = 12;
+  ARTIFACT_STAT_EXP = 13;
+  ARTIFACT_STAT_STATUS_RESISTANCE = 14;
+  ARTIFACT_STAT_SUMMON_DURATION = 15;
+  ARTIFACT_STAT_FINAL_ATTACK_DAMAGE = 16;
+}
+
+// One crystal: its level, 1 to 5, and three different stats it raises by
+// that many levels each.
+message ArtifactCrystal {
+  int32 level = 1;
+  repeated ArtifactStat stats = 2;
+}
+
+// Up to nine crystals, account-wide.
+message LegionArtifact {
+  repeated ArtifactCrystal crystals = 1;
+}
+
+enum ChampionRank {
+  CHAMPION_RANK_UNSPECIFIED = 0;
+  CHAMPION_RANK_C = 1;
+  CHAMPION_RANK_B = 2;
+  CHAMPION_RANK_A = 3;
+  CHAMPION_RANK_S = 4;
+  CHAMPION_RANK_SS = 5;
+  CHAMPION_RANK_SSS = 6;
+}
+
+// A character registered as a Legion Champion, by job: GMS allows one per
+// job.
+message LegionChampion {
+  Job job = 1;
+  ChampionRank rank = 2;
 }

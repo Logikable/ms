@@ -304,6 +304,30 @@ cc_test(
 )
 
 cc_library(
+    name = "legion_artifact",
+    srcs = ["legion_artifact.cc"],
+    hdrs = ["legion_artifact.h"],
+    deps = [
+        "//src/combat:damage",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "legion_artifact_test",
+    size = "small",
+    srcs = ["legion_artifact_test.cc"],
+    deps = [
+        ":legion_artifact",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hyper_stats",
     srcs = ["hyper_stats.cc"],
     hdrs = ["hyper_stats.h"],
@@ -490,6 +514,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":legion",
+        ":legion_artifact",
         ":skill_placement",
         ":symbol",
         "//src/combat:constants",

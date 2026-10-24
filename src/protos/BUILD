@@ -63,6 +63,7 @@ cc_proto_library(
 proto_library(
     name = "legion_proto",
     srcs = ["legion.proto"],
+    deps = [":character_proto"],
 )
 
 cc_proto_library(
