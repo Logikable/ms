@@ -1986,7 +1986,8 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       // buff is cast instead of attacking, not alongside it. The charge bar
       // draws the cast over the resulting debt.
       if (buff.cast_seconds > 0.0) {
-        owed_casts_.push_back({buff.name, attack_phase_, buff.cast_seconds});
+        owed_casts_.push_back(
+            {buff.name, buff.cast_seconds, buff.cast_seconds});
       }
       attack_phase_ -= buff.cast_seconds;
       player_hp_ =
@@ -2426,6 +2427,16 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     return;
   }
   attack_phase_ += dt;
+  // The timer climbing pays the newest cast first, the order they play.
+  for (double paid = dt; paid > 0.0 && !owed_casts_.empty();) {
+    OwedCast& cast = owed_casts_.back();
+    const double taken = std::min(paid, cast.left);
+    cast.left -= taken;
+    paid -= taken;
+    if (cast.left <= 0.0) {
+      owed_casts_.pop_back();
+    }
+  }
   // A step longer than the attack gets every attack it covered. Without this, a
   // 120ms skill with 150ms frames loses one attack in five and the charge bar
   // stays full, since the phase never drops below one attack.
@@ -2641,21 +2652,14 @@ void CombatSim::PublishTarget(const CombatParams& params) {
 }
 
 bool CombatSim::PublishCast() {
-  // Newest first: a cast ends when the attack timer climbs back to where it was
-  // when raised, and the most recent reaches its mark first.
-  while (!owed_casts_.empty() && owed_casts_.back().done_at <= attack_phase_) {
-    owed_casts_.pop_back();
-  }
   if (owed_casts_.empty()) {
     return false;
   }
   const OwedCast& cast = owed_casts_.back();
   view_.attack_name = cast.name;
   view_.attack_fraction =
-      cast.seconds > 0.0
-          ? std::clamp(1.0 - (cast.done_at - attack_phase_) / cast.seconds, 0.0,
-                       1.0)
-          : 1.0;
+      cast.seconds > 0.0 ? std::clamp(1.0 - cast.left / cast.seconds, 0.0, 1.0)
+                         : 1.0;
   return true;
 }
 

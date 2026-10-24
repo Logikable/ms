@@ -579,9 +579,11 @@ class CombatSim {
   // in debt, and the character casts instead of attacking.
   struct OwedCast {
     std::string name;
-    // The attack timer value at which it finishes: the timer climbing back to
-    // this ends the cast.
-    double done_at = 0.0;
+    // Attack-timer seconds still to play. Counted down rather than stored as
+    // the timer value it ends at: a landing rewinds the timer, so a cast raised
+    // late in a long swing would wait for a swing as long, and a 0.12s hold
+    // never gets there.
+    double left = 0.0;
     double seconds = 0.0;
   };
   // Newest last, which is the order they play. Cleared with the attack timer,

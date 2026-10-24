@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -3579,6 +3580,43 @@ TEST(CombatSimTest, ACastTakesTheBarOverAPartChargedSwing) {
   sim.Advance(params, 0.25);
   EXPECT_EQ(sim.view().attack_name, "Hurricane");
   EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.0625);
+}
+
+// A cast lasts its own animation whatever lands meanwhile. It used to end when
+// the attack timer climbed back to where the cast found it. Raised with the
+// timer near the top of a short swing, at a steady frame rate the timer then
+// never got back up there, and the bar named the buff for the rest of the
+// fight while the attack kept landing.
+TEST(CombatSimTest, ACastNeverHoldsTheBarPastItsAnimation) {
+  Mob boss = MakeMob("Will", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(0.12, 1e9, {MakeType(&boss, 10.0, 1)});
+  params.attacks[0].name = "Hurricane";
+  GiveBuff(params, /*duration=*/1.0, /*cooldown=*/1.0, /*factor=*/1.0);
+  params.buffs[0].name = "Concentration";
+  params.buffs[0].cast_seconds = 0.3;
+
+  // The first cast, then one short frame that leaves the timer 0.115s into
+  // each 0.12s swing until the buff comes back up.
+  for (double dt : {0.12, 0.12, 0.12, 0.055}) {
+    sim.Advance(params, dt);
+  }
+  int steps = 0;
+  while (sim.view().attack_name != "Concentration" && steps < 20) {
+    sim.Advance(params, 0.12);
+    ++steps;
+  }
+  ASSERT_EQ(sim.view().attack_name, "Concentration") << "the buff came back";
+
+  // Its 0.3s animation is three frames, counting this one.
+  sim.Advance(params, 0.12);
+  EXPECT_EQ(sim.view().attack_name, "Concentration");
+  sim.Advance(params, 0.12);
+  EXPECT_EQ(sim.view().attack_name, "Hurricane");
+  const double before = sim.view().target_hp_fraction;
+  sim.Advance(params, 0.12);
+  EXPECT_EQ(sim.view().attack_name, "Hurricane");
+  EXPECT_LT(sim.view().target_hp_fraction, before) << "and it is attacking";
 }
 
 // Smokescreen's shape: a buff that reduces the mob's hits instead of helping
