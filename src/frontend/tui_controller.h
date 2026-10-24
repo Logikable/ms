@@ -558,12 +558,17 @@ class TuiController {
   const BossReward& boss_clear_reward() const {
     return boss_clear_reward_;
   }
-  const ContinuePrompt& boss_clear_prompt() const {
-    return boss_clear_prompt_;
+  const ContinuePrompt& boss_result_prompt() const {
+    return boss_result_prompt_;
   }
-  // Whether the card's cursor is on [Analysis] rather than [Continue].
-  bool boss_clear_on_analysis() const {
-    return boss_clear_on_analysis_;
+  // The timeout card's lines: "Out of time!" and how much HP was left.
+  const std::vector<std::string>& boss_timeout_lines() const {
+    return boss_timeout_lines_;
+  }
+  // Whether the clear or timeout card's cursor is on [Analysis] rather than
+  // [Continue].
+  bool boss_result_on_analysis() const {
+    return boss_result_on_analysis_;
   }
   const BossAnalysisPanel& boss_analysis_panel() const {
     return boss_analysis_panel_;
@@ -906,7 +911,7 @@ class TuiController {
   bool OnNoticeToMainEvent(ftxui::Event event);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
-  bool OnBossClearEvent(ftxui::Event event);
+  bool OnBossResultEvent(ftxui::Event event);
   bool OnBossAnalysisEvent(ftxui::Event event);
   bool OnOfflineEvent(ftxui::Event event);
   // Releases the finished run and returns to the fight list. Every panel a
@@ -1197,8 +1202,12 @@ class TuiController {
   std::string boss_clear_title_;
   BossReward boss_clear_reward_;
   double boss_clear_seconds_ = 0.0;
-  ContinuePrompt boss_clear_prompt_;
-  bool boss_clear_on_analysis_ = false;
+  // The clear and timeout cards share their buttons, and [Analysis] returns to
+  // whichever opened it.
+  std::vector<std::string> boss_timeout_lines_;
+  ContinuePrompt boss_result_prompt_;
+  bool boss_result_on_analysis_ = false;
+  Screen boss_analysis_from_ = kBossClear;
   BossAnalysisPanel boss_analysis_panel_;
   // The fight in progress and its catalog entry, so a clear is recorded under
   // the names the reset clock reads.

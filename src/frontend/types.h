@@ -153,7 +153,10 @@ enum Screen : int {
   // The card shown after clearing a fight: what it paid, [Continue] to leave,
   // and [Analysis] for the next screen.
   kBossClear,
-  // [Analysis] on that card: the fight's damage by player and by skill.
+  // The card shown when the clock runs out: how much HP was left, with the
+  // clear card's two buttons.
+  kBossTimeout,
+  // [Analysis] on either card: the fight's damage by player and by skill.
   kBossAnalysis,
   // Bank on the bag's tab bar: the character's bag above the account's bank,
   // plus the three questions moving something between them can ask.

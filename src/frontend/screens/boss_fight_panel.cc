@@ -666,6 +666,20 @@ std::string FightHeading(const BossRun& run) {
   }
 }
 
+std::string TimeoutHpLine(const BossRun& run) {
+  // Tenths, rounded down like Percent and for the same reason: a boss with
+  // anything left never reads 0.0%.
+  const double fraction = run.phase_hp_fraction();
+  int tenths = std::clamp(static_cast<int>(fraction * 1000.0), 0, 1000);
+  if (tenths == 0 && fraction > 0.0) {
+    tenths = 1;
+  }
+  std::string phase =
+      run.phase_count() > 1 ? " P" + std::to_string(run.phase()) : "";
+  return run.title() + phase + " had " + std::to_string(tenths / 10) + "." +
+         std::to_string(tenths % 10) + "% HP left";
+}
+
 ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   // The arena takes everything below the heading, clock included. A fight drawn
   // small in the middle of a wide screen doesn't look like standing in an

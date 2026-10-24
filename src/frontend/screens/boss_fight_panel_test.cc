@@ -377,6 +377,22 @@ std::string Render(const BossRun& run) {
   return screen.ToString();
 }
 
+// The timeout card names the phase the clock ran out in, but only for a fight
+// that has more than one.
+TEST(BossFightPanelTest, TheTimeoutLineNamesThePhaseOnlyWhenThereAreSeveral) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(TimeoutHpLine(run), "Normal Zakum P1 had 100.0% HP left");
+
+  Boss one = Zakum();
+  one.mutable_difficulties(0)->mutable_phases()->RemoveLast();
+  BossRun single("zakum", one, 0);
+  single.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(TimeoutHpLine(single), "Normal Zakum had 100.0% HP left");
+}
+
 TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

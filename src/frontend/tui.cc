@@ -709,11 +709,22 @@ ftxui::Element Tui::BossFightOverlay() {
                             controller_.boss_clear_seconds(),
                             controller_.boss_clear_reward(),
                             ButtonRow("Continue", "Analysis",
-                                      !controller_.boss_clear_on_analysis(),
-                                      controller_.boss_clear_on_analysis(),
+                                      !controller_.boss_result_on_analysis(),
+                                      controller_.boss_result_on_analysis(),
                                       /*go_enabled=*/true),
                             HonorVisible(state_.character.proto().level(),
                                          state_.account.max_level()));
+    case kBossTimeout: {
+      ftxui::Elements rows;
+      for (const std::string& line : controller_.boss_timeout_lines()) {
+        rows.push_back(CenteredRow(line));
+      }
+      return DialogWindow("", std::move(rows),
+                          ButtonRow("Continue", "Analysis",
+                                    !controller_.boss_result_on_analysis(),
+                                    controller_.boss_result_on_analysis(),
+                                    /*go_enabled=*/true));
+    }
     default:
       return nullptr;
   }
@@ -1190,18 +1201,14 @@ ftxui::Element Tui::RenderScreen() {
     case kBossFight:
     case kBossAbort:
     case kBossClear:
+    case kBossTimeout:
       return RenderBossFight();
     case kBossAnalysis:
       return Centred(controller_.boss_analysis_panel().Render());
     case kBossConfirm:
       return Overlay(Centred(boss_select_panel_.Render()), BossConfirmDialog());
-    // Over the arena for a fight that ran out of time, and over the list for a
-    // notice shown instead of a fight (no weapon, or a daily already done).
-    // Whether a run is still held tells which.
+    // A notice shown instead of a fight: no weapon, or a daily already done.
     case kBossNotice:
-      if (controller_.boss_run() != nullptr) {
-        return RenderBossFight();
-      }
       return Overlay(Centred(boss_select_panel_.Render()), NoticeDialog());
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel draws it.

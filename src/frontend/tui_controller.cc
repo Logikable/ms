@@ -22,6 +22,7 @@
 #include "src/combat/encounter.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -984,7 +985,8 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
     case kBossAbort:
       return OnBossAbortEvent(event);
     case kBossClear:
-      return OnBossClearEvent(event);
+    case kBossTimeout:
+      return OnBossResultEvent(event);
     case kBossAnalysis:
       return OnBossAnalysisEvent(event);
     case kBank:
@@ -3443,9 +3445,6 @@ void TuiController::ChargeBossEntry() {
 
 bool TuiController::OnBossNoticeEvent(ftxui::Event event) {
   if (notice_prompt_.OnEvent(event)) {
-    // The run is null for a notice shown instead of a fight (no weapon, or a
-    // daily already done), and holds a finished run for a fight that ran out of
-    // time.
     LeaveBossRun();
   }
   return true;
@@ -3593,13 +3592,16 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     boss_clear_title_ = boss_run_->title();
     boss_clear_reward_ = boss_run_->reward();
     boss_clear_seconds_ = boss_run_->clear_seconds();
-    boss_clear_prompt_.Open();
-    boss_clear_on_analysis_ = false;
+    boss_result_prompt_.Open();
+    boss_result_on_analysis_ = false;
     screen_ = kBossClear;
     return;
   }
   if (boss_run_->state() == BossRunState::kTimedOut) {
-    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false, "Continue");
+    boss_timeout_lines_ = {"Out of time!", TimeoutHpLine(*boss_run_)};
+    boss_result_prompt_.Open();
+    boss_result_on_analysis_ = false;
+    screen_ = kBossTimeout;
     return;
   }
   // Nothing to show when leaving after an abort: the player asked to leave, and
@@ -3624,22 +3626,23 @@ bool TuiController::OnOfflineEvent(ftxui::Event event) {
   return true;
 }
 
-// Escape works from either button: backing out of the card is the same as
-// Continue.
-bool TuiController::OnBossClearEvent(ftxui::Event event) {
+// The clear and timeout cards. Escape works from either button: backing out of
+// the card is the same as Continue.
+bool TuiController::OnBossResultEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
-    boss_clear_on_analysis_ = event == ftxui::Event::ArrowRight;
+    boss_result_on_analysis_ = event == ftxui::Event::ArrowRight;
     return true;
   }
-  if (boss_clear_on_analysis_ && IsForward(event)) {
+  if (boss_result_on_analysis_ && IsForward(event)) {
     std::vector<PlayerBreakdown> players = boss_run_->breakdowns();
     players[0].name = state_.character.username();
     boss_analysis_panel_.Open(std::move(players),
                               boss_run_->breakdown().seconds());
+    boss_analysis_from_ = screen_;
     screen_ = kBossAnalysis;
     return true;
   }
-  if (boss_clear_prompt_.OnEvent(event)) {
+  if (boss_result_prompt_.OnEvent(event)) {
     LeaveBossRun();
   }
   return true;
@@ -3648,7 +3651,7 @@ bool TuiController::OnBossClearEvent(ftxui::Event event) {
 // Back to the card it came from, with the cursor still on [Analysis].
 bool TuiController::OnBossAnalysisEvent(ftxui::Event event) {
   if (IsBack(event)) {
-    screen_ = kBossClear;
+    screen_ = boss_analysis_from_;
     return true;
   }
   boss_analysis_panel_.OnEvent(event);

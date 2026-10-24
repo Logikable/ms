@@ -27,6 +27,7 @@
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/bank_panel.h"
+#include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -4687,7 +4688,7 @@ TEST_F(TuiControllerTest, ConfirmingTheLeavePromptEndsTheFight) {
 }
 
 // Running out of time is the ending the player may not have seen, so it says so
-// rather than just returning to the list.
+// rather than just returning to the list, and says how close the fight came.
 TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   // A mob the character can't kill within the time limit. The fixture's arms
   // die in one hit, and a won fight is a different ending.
@@ -4697,16 +4698,18 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   ASSERT_NE(controller_->boss_run(), nullptr) << "the closing beat is running";
   EXPECT_TRUE(controller_->boss_fight_running());
   controller_->AdvanceBossRun(kBossEndHoldSeconds);
-  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_EQ(controller_->screen(), kBossTimeout);
   EXPECT_FALSE(controller_->boss_fight_running()) << "the map farms again";
-  // Kept until the notice is dismissed, so the arena stays behind it, and the
+  // Kept until the card is dismissed, so the arena stays behind it, and the
   // clock is stopped: a lost fight can't be lost again.
   EXPECT_NE(controller_->boss_run(), nullptr);
   controller_->AdvanceBossRun(10.0);
-  EXPECT_EQ(controller_->screen(), kBossNotice);
-  ASSERT_EQ(controller_->notice_lines().size(), 1u);
-  EXPECT_EQ(controller_->notice_lines()[0], "Out of time!");
-  EXPECT_FALSE(controller_->notice_is_refusal());
+  EXPECT_EQ(controller_->screen(), kBossTimeout);
+  ASSERT_EQ(controller_->boss_timeout_lines().size(), 2u);
+  EXPECT_EQ(controller_->boss_timeout_lines()[0], "Out of time!");
+  EXPECT_EQ(controller_->boss_timeout_lines()[1],
+            TimeoutHpLine(*controller_->boss_run()));
+  EXPECT_FALSE(controller_->boss_result_on_analysis());
   // Nothing was cleared, so the daily is still available.
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
 
@@ -4714,6 +4717,31 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());
+}
+
+// A lost fight has a breakdown too, and Escape from it returns to the timeout
+// card rather than the clear card.
+TEST_F(TuiControllerTest, TheTimeoutCardOpensTheAnalysisAndComesBack) {
+  state_->mobs["zakum_arm"].set_max_hp(2000000000);
+  EnterFight();
+  controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
+  controller_->AdvanceBossRun(kBossEndHoldSeconds);
+  ASSERT_EQ(controller_->screen(), kBossTimeout);
+
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossAnalysis);
+  const BossAnalysisPanel& panel = controller_->boss_analysis_panel();
+  ASSERT_EQ(panel.players().size(), 1u);
+  EXPECT_EQ(panel.players()[0].name, state_->character.username());
+  EXPECT_FALSE(panel.table().empty());
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossTimeout);
+  EXPECT_TRUE(controller_->boss_result_on_analysis());
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
 }
 
 // The map farms again behind the clear card, while the run stays for its arena.
@@ -4747,7 +4775,7 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   EXPECT_EQ(controller_->boss_clear_reward().meso, 3062500);
   ASSERT_EQ(controller_->boss_clear_reward().items.size(), 1u);
   EXPECT_EQ(controller_->boss_clear_reward().items[0].name, shard_.name());
-  EXPECT_TRUE(controller_->boss_clear_prompt().open());
+  EXPECT_TRUE(controller_->boss_result_prompt().open());
 
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
@@ -4761,10 +4789,10 @@ TEST_F(TuiControllerTest, TheClearCardOpensTheAnalysisAndComesBack) {
   EnterFight();
   RunFightToEnd();
   ASSERT_EQ(controller_->screen(), kBossClear);
-  EXPECT_FALSE(controller_->boss_clear_on_analysis());
+  EXPECT_FALSE(controller_->boss_result_on_analysis());
 
   controller_->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(controller_->boss_clear_on_analysis());
+  EXPECT_TRUE(controller_->boss_result_on_analysis());
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossAnalysis);
   const BossAnalysisPanel& panel = controller_->boss_analysis_panel();
@@ -4777,7 +4805,7 @@ TEST_F(TuiControllerTest, TheClearCardOpensTheAnalysisAndComesBack) {
   EXPECT_EQ(panel.skill_cursor(), panel.table().size() > 1 ? 1 : 0);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kBossClear);
-  EXPECT_TRUE(controller_->boss_clear_on_analysis());
+  EXPECT_TRUE(controller_->boss_result_on_analysis());
   EXPECT_NE(controller_->boss_run(), nullptr);
 
   controller_->OnEvent(ftxui::Event::Escape);

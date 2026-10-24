@@ -59,6 +59,10 @@ HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars);
 // over.
 std::string FightHeading(const BossRun& run);
 
+// The timeout card's second line: "Lotus P3 had 12.4% HP left", the phase
+// named only for a fight with more than one.
+std::string TimeoutHpLine(const BossRun& run);
+
 // The whole screen for `run`. `buff_dots` is the Buff Indicators option.
 ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots);
 
