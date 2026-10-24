@@ -876,3 +876,26 @@ sim_binary(
         "@abseil-cpp//absl/strings",
     ],
 )
+
+sim_binary(
+    name = "save_boss_sim",
+    srcs = ["save_boss_sim.cc"],
+    deps = [
+        ":gear_plan",
+        ":sim_boss",
+        ":sim_world",
+        "//src:game_state",
+        "//src:save",
+        "//src/character:guild",
+        "//src/character:noblesse_plan",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/item:equip_instance",
+        "//src/protos:account_proto_cc",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
