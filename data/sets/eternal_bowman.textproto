@@ -1,0 +1,105 @@
+name: EQUIP_SET_NAME_ETERNAL_BOWMAN
+complete_pieces: 8
+members {
+  slot: EQUIP_SLOT_HAT
+  items { name: "Eternal Archer Hat" }
+}
+members {
+  slot: EQUIP_SLOT_TOP
+  items { name: "Eternal Archer Hood" }
+}
+members {
+  slot: EQUIP_SLOT_BOTTOM
+  items { name: "Eternal Archer Pants" }
+}
+members {
+  slot: EQUIP_SLOT_SHOES
+  items { name: "Eternal Archer Shoes" }
+}
+members {
+  slot: EQUIP_SLOT_GLOVES
+  items { name: "Eternal Archer Gloves" }
+}
+members {
+  slot: EQUIP_SLOT_CAPE
+  items { name: "Eternal Archer Cape" }
+}
+members {
+  slot: EQUIP_SLOT_SHOULDER
+  items { name: "Eternal Archer Shoulder" }
+}
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "Destiny Bowman Weapon"
+}
+tiers {
+  pieces: 2
+  effect {
+    max_hp: 2500
+    max_mp: 2500
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 50
+    dex: 50
+    int: 50
+    luk: 50
+    attack: 40
+    magic_attack: 40
+    def: 600
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    max_hp_pct: 0.15
+    max_mp_pct: 0.15
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    attack: 40
+    magic_attack: 40
+    ied_pct: 0.20
+  }
+}
+tiers {
+  pieces: 6
+  effect {
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.15
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    max_hp: 2500
+    max_mp: 2500
+    str: 50
+    dex: 50
+    int: 50
+    luk: 50
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.15
+  }
+}
+tiers {
+  pieces: 8
+  effect {
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.15
+  }
+}

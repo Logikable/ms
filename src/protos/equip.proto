@@ -490,6 +490,10 @@ message EquipPrototype {
   // Combat Power prices every weapon as that bow. Data files never set this;
   // FillBowAttack does, and 0 means no bow matched.
   int32 bow_attack = 20;
+  // Nothing in the game hands it out yet: GMS drops it from a fight that isn't
+  // built. Only the endgame character wears it, so the workbench and the
+  // ladder checks pass it over.
+  bool unsourced = 21;
 }
 
 // A skill a worn item grants. See Skill.granted_by_equip.

@@ -1,0 +1,19 @@
+name: "Immortal Legacy"
+required_level: 250
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 10
+  attack: 10
+  magic_attack: 10
+  max_hp: 500
+  max_mp: 500
+  boss_damage: 10
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_MEDAL
+# A trophy can't be scrolled or starred in GMS.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+unsourced: true

@@ -1,0 +1,16 @@
+name: "Mitra's Rage: Warrior"
+required_level: 200
+base_stats {
+  str: 40
+  dex: 40
+  attack: 5
+  magic_attack: 5
+  max_hp: 700
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_EMBLEM
+# A trophy can't be scrolled or starred in GMS.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+set_family: "Mitra's Rage"
+unsourced: true

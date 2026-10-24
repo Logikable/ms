@@ -1,0 +1,13 @@
+name: "Eternal Mage Pants"
+required_level: 250
+base_stats {
+  int: 50
+  luk: 50
+  magic_attack: 6
+  def: 325
+  ignore_enemy_defense: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_BOTTOM
+upgrade_slots: 7
+unsourced: true

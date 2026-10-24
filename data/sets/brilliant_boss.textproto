@@ -1,0 +1,74 @@
+name: EQUIP_SET_NAME_BRILLIANT_BOSS
+complete_pieces: 5
+members {
+  slot: EQUIP_SLOT_FACE_ACCESSORY
+  items { name: "Original Sin of Pride" }
+}
+members {
+  slot: EQUIP_SLOT_PENDANT
+  items { name: "Oath of Death" }
+}
+members {
+  slot: EQUIP_SLOT_RING
+  items { name: "Whisper of the Source" }
+}
+members {
+  slot: EQUIP_SLOT_RING_2
+  items { name: "Blissful Nightmare" }
+}
+members {
+  slot: EQUIP_SLOT_MEDAL
+  items { name: "Immortal Legacy" }
+}
+tiers {
+  pieces: 2
+  effect {
+    str: 20
+    dex: 20
+    int: 20
+    luk: 20
+    max_hp: 500
+    attack: 20
+    magic_attack: 20
+    boss_pct: 0.15
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 20
+    dex: 20
+    int: 20
+    luk: 20
+    max_hp: 500
+    attack: 20
+    magic_attack: 20
+    ied_pct: 0.15
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    str: 20
+    dex: 20
+    int: 20
+    luk: 20
+    max_hp: 500
+    attack: 20
+    magic_attack: 20
+    crit_dmg: 0.05
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 20
+    dex: 20
+    int: 20
+    luk: 20
+    max_hp: 500
+    attack: 20
+    magic_attack: 20
+    boss_pct: 0.15
+  }
+}

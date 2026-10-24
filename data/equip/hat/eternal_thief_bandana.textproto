@@ -1,0 +1,13 @@
+name: "Eternal Thief Bandana"
+required_level: 250
+base_stats {
+  dex: 80
+  luk: 80
+  attack: 10
+  def: 750
+  ignore_enemy_defense: 15
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+unsourced: true

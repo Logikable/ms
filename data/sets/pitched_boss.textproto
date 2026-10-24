@@ -1,5 +1,5 @@
 name: EQUIP_SET_NAME_PITCHED_BOSS
-# GMS's ten slots. The badge and emblem drop from fights not built yet.
+# GMS's ten slots. The badge, emblem and Total Control have no source yet.
 complete_pieces: 10
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -11,7 +11,7 @@ members {
 }
 members {
   slot: EQUIP_SLOT_HEART
-  items { name: "Black Heart" }
+  items { name: ["Black Heart", "Total Control"] }
 }
 members {
   slot: EQUIP_SLOT_BELT
@@ -39,6 +39,14 @@ members {
 members {
   slot: EQUIP_SLOT_PENDANT
   items { name: "Source of Suffering" }
+}
+members {
+  slot: EQUIP_SLOT_BADGE
+  items { name: "Genesis Badge" }
+}
+members {
+  slot: EQUIP_SLOT_EMBLEM
+  family: "Mitra's Rage"
 }
 tiers {
   pieces: 2

@@ -1,0 +1,29 @@
+name: "Destiny Staff"
+required_level: 250
+base_stats {
+  int: 190
+  luk: 190
+  attack: 275
+  magic_attack: 445
+  boss_damage: 30
+  ignore_enemy_defense: 20
+}
+attack_speed: ATTACK_SPEED_SLOW_1
+equip_type: EQUIP_TYPE_STAFF
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+# GMS's Destiny Weapon comes scrolled with 15% traces and at 22
+# stars, and neither can be changed.
+upgrade_slots: 8
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+dropped_as {
+  stars: 22
+  scroll_successes: 8
+  scroll_stats {
+    magic_attack: 72
+    int: 32
+  }
+}
+set_family: "Destiny Magician Weapon"
+unsourced: true

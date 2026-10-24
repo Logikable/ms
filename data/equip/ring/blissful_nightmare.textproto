@@ -1,0 +1,16 @@
+name: "Blissful Nightmare"
+required_level: 250
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 10
+  attack: 5
+  magic_attack: 5
+  max_hp: 500
+  max_mp: 500
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 5
+unsourced: true

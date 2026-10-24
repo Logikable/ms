@@ -1,0 +1,16 @@
+name: "Total Control"
+required_level: 200
+base_stats {
+  str: 25
+  dex: 25
+  int: 25
+  luk: 25
+  attack: 15
+  magic_attack: 15
+  max_hp: 1250
+  ignore_enemy_defense: 30
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_HEART
+upgrade_slots: 11
+unsourced: true

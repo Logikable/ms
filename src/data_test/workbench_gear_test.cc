@@ -126,7 +126,7 @@ std::vector<int> TiersOnLadder(
     const EquipPrototype& proto = entry.second;
     // A Special Skill Ring has no source yet, so the workbench carries every
     // level in the bag rather than wearing one.
-    if (proto.has_equipment_skill()) {
+    if (proto.has_equipment_skill() || proto.unsourced()) {
       continue;
     }
     if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&

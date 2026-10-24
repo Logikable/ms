@@ -1,0 +1,15 @@
+name: "Mitra's Rage: Magician"
+required_level: 200
+base_stats {
+  int: 40
+  luk: 40
+  attack: 5
+  magic_attack: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_EMBLEM
+# A trophy can't be scrolled or starred in GMS.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+set_family: "Mitra's Rage"
+unsourced: true

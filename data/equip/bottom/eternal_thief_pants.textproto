@@ -1,0 +1,13 @@
+name: "Eternal Thief Pants"
+required_level: 250
+base_stats {
+  dex: 50
+  luk: 50
+  attack: 6
+  def: 325
+  ignore_enemy_defense: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_BOTTOM
+upgrade_slots: 7
+unsourced: true

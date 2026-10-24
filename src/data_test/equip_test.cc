@@ -15,6 +15,7 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
@@ -107,7 +108,9 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON) {
+    // A Destiny Weapon arrives finished, which is why it refuses both.
+    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+        proto.dropped_as().stars() > 0) {
       continue;
     }
     EXPECT_TRUE(Supports(proto, UPGRADE_SCROLL))
@@ -150,7 +153,8 @@ TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
     std::mt19937 rng(0);
     Character proto;
     proto.set_job(job);
-    proto.set_level(200);
+    // Past every weapon's level, so only the job can refuse one.
+    proto.set_level(kMaxLevel);
     CharacterInstance character(rng, std::move(proto));
 
     int holdable = 0;
@@ -1021,6 +1025,96 @@ TEST(EquipDataTest, TheBlackHeartDropsFinishedAndStaysThatWay) {
   EXPECT_FALSE(Supports(heart.prototype(), UPGRADE_SCROLL));
 }
 
+const EquipSet* SetNamed(const std::map<std::string, EquipSet>& sets,
+                         EquipSetName name) {
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == name) {
+      return &entry.second;
+    }
+  }
+  return nullptr;
+}
+
+// The client's SetItemInfo: 40 ATT a tier, 100 all stats, 75% boss over six
+// tiers and 20% ignored defense at five. Every branch's copy pays the same.
+TEST(EquipDataTest, EveryEternalSetAddsUpToTheClientsTotals) {
+  const std::map<std::string, EquipSet> sets = LoadSets();
+  for (EquipSetName name :
+       {EQUIP_SET_NAME_ETERNAL_WARRIOR, EQUIP_SET_NAME_ETERNAL_BOWMAN,
+        EQUIP_SET_NAME_ETERNAL_MAGICIAN, EQUIP_SET_NAME_ETERNAL_THIEF}) {
+    const EquipSet* set = SetNamed(sets, name);
+    ASSERT_NE(set, nullptr) << EquipSetName_Name(name);
+    EXPECT_EQ(set->complete_pieces(), 8);
+    EXPECT_EQ(set->members_size(), 8);
+    int attack = 0;
+    int stat = 0;
+    double boss = 0.0;
+    double ied = 0.0;
+    for (const EquipSetTier& tier : set->tiers()) {
+      attack += tier.effect().attack();
+      EXPECT_EQ(tier.effect().magic_attack(), tier.effect().attack());
+      stat += tier.effect().str();
+      boss += tier.effect().boss_pct();
+      ied += tier.effect().ied_pct();
+    }
+    EXPECT_EQ(attack, 280) << EquipSetName_Name(name);
+    EXPECT_EQ(stat, 100) << EquipSetName_Name(name);
+    EXPECT_NEAR(boss, 0.75, 1e-9) << EquipSetName_Name(name);
+    EXPECT_NEAR(ied, 0.20, 1e-9) << EquipSetName_Name(name);
+  }
+}
+
+// Five pieces, each tier 20 all stats, 20 ATT and 500 HP, with 30% boss,
+// 15% ignored defense and 5% crit damage among them.
+TEST(EquipDataTest, TheBrilliantBossSetAddsUpToTheClientsTotals) {
+  const std::map<std::string, EquipSet> sets = LoadSets();
+  const EquipSet* set = SetNamed(sets, EQUIP_SET_NAME_BRILLIANT_BOSS);
+  ASSERT_NE(set, nullptr);
+  EXPECT_EQ(set->complete_pieces(), 5);
+  int stat = 0;
+  int attack = 0;
+  int pool = 0;
+  double boss = 0.0;
+  double ied = 0.0;
+  double crit_dmg = 0.0;
+  for (const EquipSetTier& tier : set->tiers()) {
+    stat += tier.effect().luk();
+    attack += tier.effect().magic_attack();
+    pool += tier.effect().max_hp();
+    boss += tier.effect().boss_pct();
+    ied += tier.effect().ied_pct();
+    crit_dmg += tier.effect().crit_dmg();
+  }
+  EXPECT_EQ(stat, 80);
+  EXPECT_EQ(attack, 80);
+  EXPECT_EQ(pool, 2000);
+  EXPECT_NEAR(boss, 0.30, 1e-9);
+  EXPECT_NEAR(ied, 0.15, 1e-9);
+  EXPECT_NEAR(crit_dmg, 0.05, 1e-9);
+}
+
+// A Destiny Weapon drops at 22 stars with every slot spent on a 15% trace,
+// and nothing changes either.
+TEST(EquipDataTest, EveryDestinyWeaponDropsFinished) {
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.name().rfind("Destiny ", 0) != 0) {
+      continue;
+    }
+    ++seen;
+    EquipInstance weapon(proto);
+    EXPECT_EQ(weapon.equip_state().stars(), 22) << entry.first;
+    EXPECT_EQ(weapon.equip_state().remaining_upgrade_slots(), 0) << entry.first;
+    EXPECT_EQ(weapon.equip_state().scroll_successes(), 8) << entry.first;
+    EXPECT_FALSE(weapon.CanStarForce()) << entry.first;
+    EXPECT_TRUE(weapon.CanCube()) << entry.first;
+    EXPECT_TRUE(weapon.CanFlame()) << entry.first;
+  }
+  EXPECT_EQ(seen, 8);
+}
+
 // A dropped_as can't spend more scrolls than the item has slots.
 TEST(EquipDataTest, EveryDroppedStateFitsItsSlots) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -1202,8 +1296,8 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
 }
 
 // Every class fights bosses, so an accessory made for one branch is a set piece
-// a whole class can never wear. The Cygnus shoulders are one per branch by
-// design.
+// a whole class can never wear. The Cygnus and Eternal shoulders are one per
+// branch by design.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -1216,7 +1310,7 @@ TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
     }
     ++seen;
     ASSERT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
-    if (proto.token_prices().empty()) {
+    if (proto.token_prices().empty() && !proto.unsourced()) {
       EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
           << entry.first << " is not worn by every job";
     }

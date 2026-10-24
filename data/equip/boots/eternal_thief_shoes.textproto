@@ -1,0 +1,12 @@
+name: "Eternal Thief Shoes"
+required_level: 250
+base_stats {
+  dex: 55
+  luk: 55
+  attack: 12
+  def: 325
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_SHOES
+upgrade_slots: 7
+unsourced: true

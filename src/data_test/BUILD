@@ -173,6 +173,7 @@ cc_test(
     ],
     deps = [
         "//src/character",
+        "//src/character:exp_table",
         "//src/character:v_matrix",
         "//src/combat:damage",
         "//src/frontend/widgets:game_names",

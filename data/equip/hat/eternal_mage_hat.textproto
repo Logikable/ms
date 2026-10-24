@@ -1,0 +1,13 @@
+name: "Eternal Mage Hat"
+required_level: 250
+base_stats {
+  int: 80
+  luk: 80
+  magic_attack: 10
+  def: 750
+  ignore_enemy_defense: 15
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+unsourced: true

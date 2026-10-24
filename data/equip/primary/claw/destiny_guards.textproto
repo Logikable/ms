@@ -1,0 +1,28 @@
+name: "Destiny Guards"
+required_level: 250
+base_stats {
+  dex: 190
+  luk: 190
+  attack: 189
+  boss_damage: 30
+  ignore_enemy_defense: 20
+}
+attack_speed: ATTACK_SPEED_FAST_2
+equip_type: EQUIP_TYPE_CLAW
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+# GMS's Destiny Weapon comes scrolled with 15% traces and at 22
+# stars, and neither can be changed.
+upgrade_slots: 8
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+dropped_as {
+  stars: 22
+  scroll_successes: 8
+  scroll_stats {
+    attack: 72
+    luk: 32
+  }
+}
+set_family: "Destiny Thief Weapon"
+unsourced: true
