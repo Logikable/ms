@@ -33,6 +33,8 @@ inline constexpr double kSacredMaxBossDamagePct = 0.20;
 bool IsSymbol(const EquipPrototype& proto);
 bool IsArcaneSymbol(const EquipPrototype& proto);
 bool IsSacredSymbol(const EquipPrototype& proto);
+// A Grand Sacred Symbol is also a Sacred one: it climbs and counts the same.
+bool IsGrandSacredSymbol(const EquipPrototype& proto);
 
 // The max level for `proto`'s kind; 0 for an item that isn't a symbol.
 int SymbolMaxLevel(const EquipPrototype& proto);
@@ -75,10 +77,20 @@ void LevelUpSymbol(const EquipPrototype& proto, Equip& item);
 
 // The stats a worn symbol gives, all in the wearer's primary stat: 10 per point
 // of Arcane Force (GMS's 100 per 10), or 500 for a Sacred Symbol plus 200 a
-// level past the first. A symbol gives nothing else, so its prototype has no
-// base stats.
+// level past the first, and none for a Grand one. A symbol gives nothing else,
+// so its prototype has no base stats.
 EquipStats SymbolStatsFor(const EquipPrototype& proto, StatField primary,
                           int level);
+
+// What a Grand Sacred Symbol at `level` pays in place of a stat, as fractions:
+// 10% EXP, 5% meso and 5% drop rate at level 1, and 4%, 1% and 1% a level
+// after (the wiki's Grand Sacred Symbol table).
+struct SymbolRates {
+  double exp = 0.0;
+  double meso = 0.0;
+  double drop = 0.0;
+};
+SymbolRates GrandSymbolRates(int level);
 
 }  // namespace ms
 

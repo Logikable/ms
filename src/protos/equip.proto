@@ -175,6 +175,10 @@ enum EquipSlot {
   // slot, which only a passive ring (the Continuous Ring) fits. GMS opens it
   // only while a Lv. 4+ special ring is worn; here it is always open.
   EQUIP_SLOT_CONT_RING = 44;
+
+  // Western Grandis's Grand Sacred Symbols, one slot each like the rest.
+  EQUIP_SLOT_SYMBOL_TALLAHART = 45;
+  EQUIP_SLOT_SYMBOL_GEARDOCK = 46;
 }
 
 // The rank of a potential and of each of its lines. It has the same four ranks
@@ -425,6 +429,10 @@ message SacredSymbolInfo {
   // Carcion. Only a max character reads it; this game's Grandis maps all open
   // at 260.
   int32 area_level = 4;
+  // A Grand Sacred Symbol: the same climb and Sacred Power, but no primary
+  // stat. Each level pays EXP, meso and drop rate instead; see
+  // GrandSymbolRates.
+  bool grand = 5;
 }
 
 // One way to buy an item with tokens.

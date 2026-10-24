@@ -1595,15 +1595,22 @@ void AddDropAndMesoRates(const CharacterInstance& character,
   stats.item_drop_pct = std::min(stats.item_drop_pct, kItemDropCap);
 }
 
-// A maxed Sacred Symbol's EXP. Its boss damage waits for the boss; see
-// SymbolBossDamagePct.
-void AddSymbolExp(const CharacterInstance& character, StatPreset gear,
-                  DerivedStats& stats) {
+// A maxed Sacred Symbol's EXP, and a Grand one's EXP, meso and drop rate at
+// every level. Before AddDropAndMesoRates, whose cap the drop rate shares.
+// The boss damage waits for the boss; see SymbolBossDamagePct.
+void AddSymbolRates(const CharacterInstance& character, StatPreset gear,
+                    DerivedStats& stats) {
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped(gear)) {
     const EquipInstance& item = *kv.second;
-    if (IsSacredSymbol(item.prototype()) &&
-        SymbolMaxed(item.prototype(), item.equip_state())) {
+    if (IsGrandSacredSymbol(item.prototype())) {
+      const SymbolRates rates =
+          GrandSymbolRates(SymbolLevel(item.equip_state()));
+      stats.exp_pct += rates.exp;
+      stats.meso_pct += rates.meso;
+      stats.item_drop_pct += rates.drop;
+    } else if (IsSacredSymbol(item.prototype()) &&
+               SymbolMaxed(item.prototype(), item.equip_state())) {
       stats.exp_pct += kSacredMaxExpPct;
     }
   }
@@ -1691,8 +1698,8 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
         1.0, stats.revive_cooldown_seconds - passives.revive_cooldown_cut);
   }
   AddRegenPulses(allocated, equipped, passives, stats);
+  AddSymbolRates(character, worn, stats);
   AddDropAndMesoRates(character, equipped, preset, stats);
-  AddSymbolExp(character, worn, stats);
   AddMesoStrike(passives, stats);
   return stats;
 }

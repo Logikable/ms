@@ -165,5 +165,35 @@ TEST_F(SacredSymbolTest, TheCapIsEleven) {
   EXPECT_EQ(SymbolWorth(proto, item), 4566);
 }
 
+// The wiki's Tallahart and Geardock tables: Sacred's duplicates at a dearer
+// meso base, Sacred Power the same, and no stat.
+TEST_F(SacredSymbolTest, AGrandSymbolClimbsTheSameLadderForNoStat) {
+  EquipPrototype tallahart = Sacred(39.8);
+  tallahart.mutable_sacred_symbol()->set_grand(true);
+  EXPECT_TRUE(IsSacredSymbol(tallahart));
+  EXPECT_TRUE(IsGrandSacredSymbol(tallahart));
+  EXPECT_FALSE(IsGrandSacredSymbol(Sacred(13.2)));
+  EXPECT_EQ(Ladder(tallahart), 4565);
+  EXPECT_EQ(SymbolLevelUpCost(tallahart, 1), 113600000);
+  EXPECT_EQ(SymbolLevelUpCost(tallahart, 10), 3718000000);
+  EquipPrototype geardock = Sacred(48.8);
+  EXPECT_EQ(SymbolLevelUpCost(geardock, 1), 139700000);
+  EXPECT_EQ(SymbolLevelUpCost(geardock, 10), 4708000000);
+  EXPECT_EQ(SymbolForce(tallahart, kMaxSacredSymbolLevel), 110);
+  EXPECT_EQ(SymbolStatsFor(tallahart, STAT_FIELD_DEX, 5).dex(), 0);
+}
+
+// 10% EXP, 5% meso and 5% drop at level 1; 50%, 15% and 15% at 11.
+TEST_F(SacredSymbolTest, AGrandSymbolPaysRatesEveryLevel) {
+  const SymbolRates first = GrandSymbolRates(1);
+  EXPECT_DOUBLE_EQ(first.exp, 0.10);
+  EXPECT_DOUBLE_EQ(first.meso, 0.05);
+  EXPECT_DOUBLE_EQ(first.drop, 0.05);
+  const SymbolRates top = GrandSymbolRates(kMaxSacredSymbolLevel);
+  EXPECT_NEAR(top.exp, 0.50, 1e-12);
+  EXPECT_NEAR(top.meso, 0.15, 1e-12);
+  EXPECT_NEAR(top.drop, 0.15, 1e-12);
+}
+
 }  // namespace
 }  // namespace ms

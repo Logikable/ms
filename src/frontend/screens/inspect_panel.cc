@@ -470,7 +470,8 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
                                    " / " + std::to_string(needed))),
       RuleRow(ThemedSeparator()),
   };
-  if (character_ != nullptr) {
+  // A Grand symbol grants no stat, so it has no row for one.
+  if (character_ != nullptr && !IsGrandSacredSymbol(proto)) {
     StatField primary = PrimaryStatField(character_->proto().job());
     const DisplayStat* stat = DisplayStatFor(primary);
     if (stat != nullptr) {
@@ -486,6 +487,16 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
   }
   rows.push_back(
       TextRow(StatLine("Sacred Power", SymbolForce(proto, level), 0)));
+  if (IsGrandSacredSymbol(proto)) {
+    const SymbolRates rates = GrandSymbolRates(level);
+    for (const auto& [label, rate] :
+         {std::pair<const char*, double>{"EXP Obtained", rates.exp},
+          {"Mesos Obtained", rates.meso},
+          {"Item Drop Rate", rates.drop}}) {
+      rows.push_back(TextRow(StatLine(
+          label, static_cast<int>(std::lround(rate * 100)), 0, 0, 0, "%")));
+    }
+  }
   Append(rows,
          MaxLevelBonusRows(proto, SymbolMaxed(proto, item.equip_state())));
   return rows;
@@ -502,18 +513,23 @@ std::vector<CardRow> InspectPanel::MaxLevelBonusRows(
   std::vector<CardRow> rows = {
       RuleRow(ThemedSeparator()),
       TextRow(SymbolRow("Max Level Bonus", "") | earned),
-      TextRow(SymbolRow(" EXP Obtained", "+" +
-                                             std::to_string(static_cast<int>(
-                                                 kSacredMaxExpPct * 100)) +
-                                             "%") |
-              earned),
-      TextRow(SymbolRow(" Damage vs " + proto.sacred_symbol().boss_name(),
-                        "+" +
-                            std::to_string(static_cast<int>(
-                                kSacredMaxBossDamagePct * 100)) +
-                            "%") |
-              earned),
   };
+  // A Grand symbol's EXP comes a level at a time instead, on the rows above.
+  if (!IsGrandSacredSymbol(proto)) {
+    rows.push_back(TextRow(
+        SymbolRow(" EXP Obtained",
+                  "+" +
+                      std::to_string(static_cast<int>(kSacredMaxExpPct * 100)) +
+                      "%") |
+        earned));
+  }
+  rows.push_back(TextRow(
+      SymbolRow(
+          " Damage vs " + proto.sacred_symbol().boss_name(),
+          "+" +
+              std::to_string(static_cast<int>(kSacredMaxBossDamagePct * 100)) +
+              "%") |
+      earned));
   return rows;
 }
 

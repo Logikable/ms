@@ -279,6 +279,27 @@ TEST_F(DerivedStatsTest, AMaxedSacredSymbolPaysItsBonuses) {
   EXPECT_DOUBLE_EQ(SymbolBossDamagePct(c, "lotus", StatPreset::kFirst), 0.0);
 }
 
+// A Grand Sacred Symbol pays its rates at every level and Sacred Power like
+// any Sacred one, but no stat and no maxed symbol's flat EXP.
+TEST_F(DerivedStatsTest, AGrandSymbolPaysRatesAndPowerButNoStat) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  const DerivedStats before = DerivedStatsFor(c, {});
+  EquipPrototype tallahart;
+  tallahart.set_name("Tallahart");
+  tallahart.set_equip_slot(EQUIP_SLOT_SYMBOL_TALLAHART);
+  tallahart.mutable_sacred_symbol()->set_grand(true);
+  Equip maxed;
+  maxed.set_symbol_level(kMaxSacredSymbolLevel);
+  c.PickUp(std::make_unique<EquipInstance>(tallahart, maxed));
+  ASSERT_TRUE(c.Equip(0));
+  const DerivedStats after = DerivedStatsFor(c, {});
+  EXPECT_NEAR(after.exp_pct - before.exp_pct, 0.50, 1e-9);
+  EXPECT_NEAR(after.meso_pct - before.meso_pct, 0.15, 1e-9);
+  EXPECT_NEAR(after.item_drop_pct - before.item_drop_pct, 0.15, 1e-9);
+  EXPECT_EQ(c.sacred_power(), 110);
+  EXPECT_EQ(c.equip_stats().str(), 0);
+}
+
 // With autoswap on, the activity picks the gear as well as the allocations. A
 // boss fight uses the boss preset's weapon, and farming never sees it.
 TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {

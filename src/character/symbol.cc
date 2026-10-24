@@ -54,6 +54,10 @@ bool IsSacredSymbol(const EquipPrototype& proto) {
   return proto.has_sacred_symbol();
 }
 
+bool IsGrandSacredSymbol(const EquipPrototype& proto) {
+  return proto.has_sacred_symbol() && proto.sacred_symbol().grand();
+}
+
 int SymbolMaxLevel(const EquipPrototype& proto) {
   switch (proto.symbol_case()) {
     case EquipPrototype::kArcaneSymbol:
@@ -132,6 +136,9 @@ void LevelUpSymbol(const EquipPrototype& proto, Equip& item) {
 EquipStats SymbolStatsFor(const EquipPrototype& proto, StatField primary,
                           int level) {
   EquipStats stats;
+  if (IsGrandSacredSymbol(proto)) {
+    return stats;
+  }
   if (IsSacredSymbol(proto)) {
     SetStat(stats, primary,
             kSacredBaseStat + kSacredStatPerLevel * (level - 1));
@@ -139,6 +146,15 @@ EquipStats SymbolStatsFor(const EquipPrototype& proto, StatField primary,
     SetStat(stats, primary, 10 * SymbolForce(proto, level));
   }
   return stats;
+}
+
+SymbolRates GrandSymbolRates(int level) {
+  const int past = std::max(0, level - 1);
+  SymbolRates rates;
+  rates.exp = 0.10 + 0.04 * past;
+  rates.meso = 0.05 + 0.01 * past;
+  rates.drop = 0.05 + 0.01 * past;
+  return rates;
 }
 
 }  // namespace ms

@@ -1,0 +1,10 @@
+name: "Grand Sacred Symbol: Tallahart"
+# GMS hands it out in Tallahart, at 290.
+required_level: 290
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SYMBOL_TALLAHART
+# Symbols level by absorbing duplicates instead.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+sacred_symbol { meso_cost_base: 39.8 boss: "baldrix" boss_name: "Baldrix" area_level: 290 grand: true }
+unsourced: true

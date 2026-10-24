@@ -379,6 +379,8 @@ std::string FormatSlot(EquipSlot slot) {
     case EQUIP_SLOT_SYMBOL_SHANGRI_LA:
     case EQUIP_SLOT_SYMBOL_ARTERIA:
     case EQUIP_SLOT_SYMBOL_CARCION:
+    case EQUIP_SLOT_SYMBOL_TALLAHART:
+    case EQUIP_SLOT_SYMBOL_GEARDOCK:
       return "Symbol";
     case EQUIP_SLOT_TOTEM:
     case EQUIP_SLOT_TOTEM_2:

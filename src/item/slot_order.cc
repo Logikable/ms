@@ -47,6 +47,8 @@ constexpr EquipSlot kSlotOrder[] = {
     EQUIP_SLOT_SYMBOL_SHANGRI_LA,
     EQUIP_SLOT_SYMBOL_ARTERIA,
     EQUIP_SLOT_SYMBOL_CARCION,
+    EQUIP_SLOT_SYMBOL_TALLAHART,
+    EQUIP_SLOT_SYMBOL_GEARDOCK,
 };
 
 constexpr int kSlotOrderSize =
