@@ -1115,6 +1115,27 @@ TEST(EquipDataTest, EveryDestinyWeaponDropsFinished) {
   EXPECT_EQ(seen, 8);
 }
 
+// GMS's Exceptional Hammers: one each on the Pitched accessories, three on
+// the Brilliant face and medal, and nothing else takes one.
+TEST(EquipDataTest, OnlyTheBossAccessoriesTakeExceptionalEnhancements) {
+  const std::map<std::string, int> expected = {{"berserked", 1},
+                                               {"magic_eyepatch", 1},
+                                               {"commanding_force_earring", 1},
+                                               {"dreamy_belt", 1},
+                                               {"original_sin_of_pride", 3},
+                                               {"immortal_legacy", 3}};
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    std::map<std::string, int>::const_iterator it = expected.find(entry.first);
+    EXPECT_EQ(entry.second.exceptional_slots(),
+              it == expected.end() ? 0 : it->second)
+        << entry.first;
+    if (it != expected.end()) {
+      EXPECT_GT(entry.second.exceptional_stats().attack(), 0) << entry.first;
+    }
+  }
+}
+
 // A dropped_as can't spend more scrolls than the item has slots.
 TEST(EquipDataTest, EveryDroppedStateFitsItsSlots) {
   for (const std::pair<const std::string, EquipPrototype>& entry :

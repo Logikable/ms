@@ -494,6 +494,11 @@ message EquipPrototype {
   // built. Only the endgame character wears it, so the workbench and the
   // ladder checks pass it over.
   bool unsourced = 21;
+  // How many Exceptional Enhancements the item takes, and what each adds. GMS
+  // offers them on the Pitched and Brilliant boss accessories alone: one each,
+  // three on a Brilliant face or medal.
+  int32 exceptional_slots = 22;
+  EquipStats exceptional_stats = 23;
 }
 
 // A skill a worn item grants. See Skill.granted_by_equip.
@@ -531,4 +536,6 @@ message Equip {
   repeated FlameLine flame = 12;
   // Unset until 10 of a boss's soul shards are applied; weapons only.
   Soul soul = 13;
+  // Exceptional Enhancements applied, up to the prototype's exceptional_slots.
+  int32 exceptional_enhancements = 14;
 }

@@ -13,3 +13,14 @@ equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_FACE_ACCESSORY
 upgrade_slots: 7
 sell_price: 0
+exceptional_slots: 1
+exceptional_stats {
+  str: 15
+  dex: 15
+  int: 15
+  luk: 15
+  attack: 10
+  magic_attack: 10
+  max_hp: 750
+  max_mp: 750
+}

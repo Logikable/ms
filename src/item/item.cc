@@ -521,10 +521,19 @@ EquipStats EquipTabItem::FlameStatGains() const {
   return FlameStats(state_.flame(), prototype_);
 }
 
+EquipStats EquipTabItem::ExceptionalStatGains() const {
+  const int applied = std::min(state_.exceptional_enhancements(),
+                               prototype_.exceptional_slots());
+  std::vector<EquipStats> passes(std::max(applied, 0),
+                                 prototype_.exceptional_stats());
+  return SumEquipStats(passes);
+}
+
 EquipStats EquipTabItem::stats() const {
   const EquipStats stat_sources[] = {
-      prototype_.base_stats(), state_.scroll_stats(), StarForceStatGains(),
-      FlameStatGains(), SoulStats(state_.soul())};
+      prototype_.base_stats(),  state_.scroll_stats(),
+      StarForceStatGains(),     FlameStatGains(),
+      SoulStats(state_.soul()), ExceptionalStatGains()};
   return SumEquipStats(stat_sources);
 }
 

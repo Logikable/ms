@@ -17,3 +17,14 @@ equip_slot: EQUIP_SLOT_MEDAL
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 unsourced: true
+exceptional_slots: 3
+exceptional_stats {
+  str: 20
+  dex: 20
+  int: 20
+  luk: 20
+  attack: 15
+  magic_attack: 15
+  max_hp: 1000
+  max_mp: 1000
+}

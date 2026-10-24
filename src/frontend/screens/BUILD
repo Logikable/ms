@@ -238,6 +238,7 @@ cc_library(
         "//src/frontend/widgets:scroll_card",
         "//src/frontend/widgets:text_columns",
         "//src/item",
+        "//src/item:equip_stats",
         "//src/item:flame",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

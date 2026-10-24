@@ -15,3 +15,14 @@ equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_BELT
 upgrade_slots: 5
 sell_price: 0
+exceptional_slots: 1
+exceptional_stats {
+  str: 20
+  dex: 20
+  int: 20
+  luk: 20
+  attack: 15
+  magic_attack: 15
+  max_hp: 1000
+  max_mp: 1000
+}

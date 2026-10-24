@@ -87,6 +87,30 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrTheDefault) {
   EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
 }
 
+// Each Exceptional Enhancement adds the prototype's block once, up to its
+// slots, and the stars never see it: a star reads the item's own stats.
+TEST(ExceptionalTest, EachEnhancementAddsTheBlockUpToTheSlots) {
+  EquipPrototype face;
+  face.set_name("Face");
+  face.set_required_level(160);
+  face.set_equip_slot(EQUIP_SLOT_FACE_ACCESSORY);
+  face.mutable_base_stats()->set_str(10);
+  face.set_exceptional_slots(3);
+  face.mutable_exceptional_stats()->set_str(15);
+  face.mutable_exceptional_stats()->set_attack(10);
+  Equip state;
+  state.set_stars(10);
+  EquipTrace plain(face, state);
+  state.set_exceptional_enhancements(2);
+  EquipTrace twice(face, state);
+  EXPECT_EQ(twice.ExceptionalStatGains().str(), 30);
+  EXPECT_EQ(twice.ExceptionalStatGains().attack(), 20);
+  EXPECT_EQ(twice.stats().str(), plain.stats().str() + 30);
+  EXPECT_EQ(twice.StarForceStatGains().str(), plain.StarForceStatGains().str());
+  state.set_exceptional_enhancements(5);
+  EXPECT_EQ(EquipTrace(face, state).ExceptionalStatGains().str(), 45);
+}
+
 TEST(UpgradeSlotsTest, AShelfIsSlotsPlusTheBuiltInTwo) {
   EquipPrototype proto;
   proto.set_upgrade_slots(7);

@@ -160,8 +160,11 @@ class EquipTabItem : public Item {
   EquipStats StarForceStatGains(int stars = -1) const;
   // The flat part of the item's flame; see FlameStats.
   EquipStats FlameStatGains() const;
-  // Sum of prototype base stats, scroll stats, star force, flame gains and the
-  // soul's flat stats.
+  // What the Exceptional Enhancements applied add. Kept out of what a star
+  // reads, as GMS keeps it.
+  EquipStats ExceptionalStatGains() const;
+  // Sum of prototype base stats, scroll stats, star force, flame gains, the
+  // soul's flat stats and Exceptional Enhancements.
   EquipStats stats() const;
   // Maximum star force level for the given required_level, per the GMS
   // equipment-level scaling table.

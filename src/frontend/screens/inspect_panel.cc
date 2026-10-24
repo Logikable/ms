@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/scroll_card.h"
 #include "src/frontend/widgets/text_columns.h"
+#include "src/item/equip_stats.h"
 #include "src/item/flame.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -768,7 +769,11 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
   }
 
   const EquipStats& base = proto.base_stats();
-  const EquipStats& scroll = item_state.scroll_stats();
+  // An Exceptional Enhancement reads as a scroll: both are upgrades the item
+  // took, and GMS shows them in one colour.
+  const EquipStats scroll_sources[] = {item_state.scroll_stats(),
+                                       item.ExceptionalStatGains()};
+  const EquipStats scroll = SumEquipStats(scroll_sources);
   EquipStats sf = item.StarForceStatGains();
   EquipStats flame = item.FlameStatGains();
   bool any_stat = false;
@@ -812,6 +817,12 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
       rows.push_back(TextRow(std::move(row)));
       any_stat = true;
     }
+  }
+  if (proto.exceptional_slots() > 0) {
+    rows.push_back(TextRow(
+        ftxui::text(" Exceptional Enhancement " +
+                    std::to_string(item_state.exceptional_enhancements()) +
+                    "/" + std::to_string(proto.exceptional_slots()) + " ")));
   }
   if (!any_stat) {
     rows.push_back(TextRow(EmptyState("no stats")));
