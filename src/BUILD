@@ -264,6 +264,7 @@ cc_library(
         "//src/character:job_branch",
         "//src/character:job_name",
         "//src/character:legion",
+        "//src/character:legion_artifact",
         "//src/character:link",
         "//src/character:max_character",
         "//src/character:sacred_power",

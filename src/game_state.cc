@@ -23,6 +23,7 @@
 #include "src/character/job_branch.h"
 #include "src/character/job_name.h"
 #include "src/character/legion.h"
+#include "src/character/legion_artifact.h"
 #include "src/character/link.h"
 #include "src/character/max_character.h"
 #include "src/character/sacred_power.h"
@@ -340,6 +341,9 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
       Supports(proto, UPGRADE_STAR_FORCE)) {
     built.set_stars(std::min(
         wanted, EquipTabItem::MaxStarsForLevel(proto.required_level())));
+  }
+  if (equips.exceptional) {
+    built.set_exceptional_enhancements(proto.exceptional_slots());
   }
   return built;
 }
@@ -1463,6 +1467,169 @@ void SeedMax(GameState& state, const TestOptions& options) {
   state.current_map = kHomeMap;
 }
 
+// --- The endgame character ---
+
+// The account behind the endgame main: GMS's 10,500 Legion is 42 characters,
+// so forty at 250 and one at 200 besides the main at 300, cycling through
+// every job. Each line's link skill comes from them at its top level.
+std::vector<MaxMember> EndgameAccount(JobAdvancement main) {
+  std::vector<MaxMember> account = {{main, kEndgameLevel}};
+  const std::vector<Job> jobs = EveryFourthJob();
+  constexpr int kAlts = 41;
+  for (int i = 0; i < kAlts; ++i) {
+    const int level = i + 1 == kAlts ? 200 : 250;
+    account.push_back(
+        {CeilingAdvancementFor(jobs[i % jobs.size()], level), level});
+  }
+  return account;
+}
+
+// Every symbol at its kind's top level.
+void WearEndgameSymbols(GameState& state) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (!IsSymbol(proto)) {
+      continue;
+    }
+    Equip raised;
+    raised.set_symbol_level(SymbolMaxLevel(proto));
+    const int row = static_cast<int>(state.character.inventory().size());
+    state.character.PickUp(std::make_unique<EquipInstance>(proto, raised));
+    if (static_cast<int>(state.character.inventory().size()) > row) {
+      state.character.Equip(row);
+    }
+  }
+}
+
+// Each piece's potentials: the bonus track's one recipe, and whichever main
+// recipe hits hardest, measured piece by piece in the order worn.
+void DressEndgamePotentials(GameState& state) {
+  CharacterInstance& character = state.character;
+  const StatField primary = PrimaryStatField(character.proto().job());
+  for (const auto& [slot, preset] : OwnPieces(character)) {
+    const EquipInstance* worn = character.WornAt(preset, slot);
+    if (worn == nullptr || !worn->CanCube()) {
+      continue;
+    }
+    for (PotentialTrack track :
+         {PotentialTrack::kBonus, PotentialTrack::kMain}) {
+      const Potential* best = nullptr;
+      double best_rate = -1.0;
+      const std::vector<Potential> candidates =
+          EndgamePotentials(slot, primary, track);
+      for (const Potential& candidate : candidates) {
+        character.TakePotential(slot, track, candidate, preset);
+        const double rate = candidates.size() == 1
+                                ? 0.0
+                                : EndgameBossRate(character, state.skills,
+                                                  state.bosses, state.mobs);
+        if (rate > best_rate) {
+          best_rate = rate;
+          best = &candidate;
+        }
+      }
+      if (best != nullptr) {
+        character.TakePotential(slot, track, *best, preset);
+      }
+    }
+  }
+}
+
+void DressEndgameFlames(GameState& state) {
+  const Job job = state.character.proto().job();
+  for (const auto& [slot, preset] : OwnPieces(state.character)) {
+    const EquipInstance* worn = state.character.WornAt(preset, slot);
+    if (worn == nullptr || !worn->CanFlame()) {
+      continue;
+    }
+    const FlameLines lines = EndgameFlameFor(
+        worn->prototype(), PrimaryStatField(job), SecondaryStatField(job));
+    if (!lines.empty()) {
+      state.character.TakeFlame(slot, lines, preset);
+    }
+  }
+}
+
+// The main and three of the alts as Legion Champions, every one at SSS.
+void RegisterEndgameChampions(CharacterInstance& character,
+                              const std::vector<MaxMember>& account) {
+  Legion legion = character.legion();
+  legion.clear_champions();
+  std::set<Job> jobs;
+  for (const MaxMember& member : account) {
+    const Job job = JobForAdvancement(member.advancement);
+    if (static_cast<int>(jobs.size()) == kChampionSlots ||
+        !jobs.insert(job).second) {
+      continue;
+    }
+    LegionChampion& champion = *legion.add_champions();
+    champion.set_job(job);
+    champion.set_rank(CHAMPION_RANK_SSS);
+  }
+  character.set_legion(legion);
+}
+
+void EndgameOneCharacter(GameState& state, JobAdvancement advancement,
+                         const std::vector<MaxMember>& account) {
+  GearSetup equips;
+  equips.scrolled = true;
+  equips.stars = 25;
+  equips.weapon_stars = 25;
+  equips.dropped_scrolls = true;
+  equips.exceptional = true;
+
+  state.character.SetUsername(UsernameFor(advancement));
+  state.character.AddMeso(kMaxLeftoverMeso);
+  ClimbToJob(state, advancement, kEndgameLevel, kSpendEveryStage, equips);
+  WearAll(state, EndgameOutfit(state.character.proto().job()), equips);
+  RecordClears(state,
+               [](const std::string&, const BossDifficulty&) { return true; });
+  WearEndgameSymbols(state);
+  WearAll(state, MaxPets(), equips);
+  state.character.ClearEquipInventory();
+
+  DressEndgamePotentials(state);
+  DressEndgameFlames(state);
+  WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
+              state.items);
+  MaxVMatrix(state);
+  state.character.set_familiars(EndgameFamiliars());
+  state.character.set_link_tally(MaxTally(account, account[0]));
+  state.character.ReconcileLinkSkills(state.skills);
+  state.character.set_legion_roster(MaxLegionRoster(account, account[0]));
+  RegisterEndgameChampions(state.character, account);
+  SpendEndgameArtifact(state.character, state.skills, state.bosses, state.mobs);
+  SpendEndgameHexaStats(state.character, state.skills, state.bosses,
+                        state.mobs);
+  SpendMaxLegion(state.character, state.skills, state.bosses, state.mobs);
+  SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
+  SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
+  SpendEndgameAbility(state.character, state.skills, state.bosses, state.mobs);
+  BuyMaxConsumables(state);
+}
+
+// The endgame character: GMS's ceiling, measured where max mode copies a
+// sweep. --job names the line; the level is always 300.
+void SeedEndgame(GameState& state, const TestOptions& options) {
+  state.account.SetAutoswapPresets(true);
+  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
+  BindMuteToM(state);
+  state.MirrorAccount();
+  const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
+                                    ? options.job
+                                    : kTestAdvancement;
+  const JobAdvancement advancement =
+      HighestAdvancementAt(chosen, kEndgameLevel);
+  const std::vector<MaxMember> account = EndgameAccount(advancement);
+  SeedMaxRoster(state, account, /*playable=*/false);
+  ResetToBeginner(state);
+  EndgameOneCharacter(state, advancement, account);
+  *state.account.mutable_legion() = state.character.legion();
+  state.MirrorAccount();
+  state.current_map = kHomeMap;
+}
+
 }  // namespace
 
 GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
@@ -1499,6 +1666,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
     SeedTest(*this, test);
   } else if (mode == GameMode::kMax) {
     SeedMax(*this, test);
+  } else if (mode == GameMode::kEndgame) {
+    SeedEndgame(*this, test);
   } else {
     SeedPlay(*this);
   }

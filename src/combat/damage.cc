@@ -730,7 +730,7 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   return std::max(kMinimumDamage, damage) * (1.0 - defense.dodge_chance);
 }
 
-int CombatPower(const OffenseStats& offense, bool vs_boss) {
+int64_t CombatPower(const OffenseStats& offense, bool vs_boss) {
   // Same start as ExpectedAttackDamage; /100 is GMS's leading 0.01.
   double stat_value = 4.0 * offense.primary + offense.secondary;
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
@@ -744,16 +744,16 @@ int CombatPower(const OffenseStats& offense, bool vs_boss) {
   power *= 1.0 + offense.mirror_pct;
   power *= 1.0 + CritFactor(offense);
   power *= 1.0 + offense.final_dmg_pct;
-  return static_cast<int>(std::floor(power));
+  return static_cast<int64_t>(std::floor(power));
 }
 
-int GmsCombatPower(const OffenseStats& offense) {
+int64_t GmsCombatPower(const OffenseStats& offense) {
   double power = (4.0 * offense.primary + offense.secondary) / 100.0 *
                  offense.attack * offense.weapon_constant;
   power *= 1.0 + offense.damage_pct + offense.boss_pct;
   power *= 1.0 + offense.final_dmg_pct;
   power *= 1.0 + kBaseCritDamage + offense.crit_dmg;
-  return static_cast<int>(std::floor(power));
+  return static_cast<int64_t>(std::floor(power));
 }
 
 bool SwingsOnMagic(Job job) {

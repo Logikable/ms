@@ -7,6 +7,7 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_STAT_ROWS_H_
 #define MS_SRC_FRONTEND_WIDGETS_STAT_ROWS_H_
 
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -66,16 +67,16 @@ std::vector<StatLine> MainStatLines(
 
 // "Combat Power" and the number, shortened to "CP" once the number passes six
 // digits so the number isn't cut.
-std::string CombatPowerText(int power);
+std::string CombatPowerText(int64_t power);
 
 // The Combat Power to show, on GMS's terms when `reader` has the GMS Combat
 // Power option on. `reader` is the account looking, which need not own
 // `character`.
-int ShownCombatPower(const AccountInstance& reader,
-                     const CharacterInstance& character,
-                     const std::map<std::string, Skill>& skills,
-                     Activity preset = Activity::kFarming,
-                     std::optional<StatPreset> gear = std::nullopt);
+int64_t ShownCombatPower(const AccountInstance& reader,
+                         const CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills,
+                         Activity preset = Activity::kFarming,
+                         std::optional<StatPreset> gear = std::nullopt);
 
 }  // namespace ms
 

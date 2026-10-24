@@ -5,6 +5,7 @@
 #ifndef MS_SRC_CHARACTER_CHARACTER_STATS_H_
 #define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
@@ -533,10 +534,10 @@ OffenseStats CharacterOffense(const CharacterInstance& character,
 // The whole stat line as one number, with no attack skill and no target. Combat
 // power describes the character, not a swing. The activity picks the monster
 // type: Boss counts boss %dmg, Farm counts normal.
-int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills,
-                         Activity preset = Activity::kFarming,
-                         std::optional<StatPreset> gear = std::nullopt);
+int64_t CharacterCombatPower(const CharacterInstance& character,
+                             const std::map<std::string, Skill>& skills,
+                             Activity preset = Activity::kFarming,
+                             std::optional<StatPreset> gear = std::nullopt);
 
 // The character's offence on GMS's Combat Power terms: no skill but Blessing of
 // the Fairy, and the weapon priced as the bow of its level. See GmsCombatPower.
@@ -547,10 +548,10 @@ OffenseStats GmsCharacterOffense(const CharacterInstance& character,
 
 // GMS's Combat Power, shown in place of ours when the GMS Combat Power option
 // is on. `preset` picks only the gear; boss damage always counts.
-int GmsCharacterCombatPower(const CharacterInstance& character,
-                            const std::map<std::string, Skill>& skills,
-                            Activity preset = Activity::kFarming,
-                            std::optional<StatPreset> gear = std::nullopt);
+int64_t GmsCharacterCombatPower(const CharacterInstance& character,
+                                const std::map<std::string, Skill>& skills,
+                                Activity preset = Activity::kFarming,
+                                std::optional<StatPreset> gear = std::nullopt);
 
 }  // namespace ms
 

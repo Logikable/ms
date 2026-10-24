@@ -83,8 +83,11 @@ ms::GameMode ParseMode(const std::string& mode) {
   if (mode == "max") {
     return ms::GameMode::kMax;
   }
+  if (mode == "endgame") {
+    return ms::GameMode::kEndgame;
+  }
   LOG(FATAL) << "Unknown --mode '" << mode
-             << "'; expected 'play', 'test' or 'max'";
+             << "'; expected 'play', 'test', 'max' or 'endgame'";
 }
 
 // Every advancement a character can start at, as --job spells them: the enum

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <map>
 #include <string>
 #include <vector>
@@ -9,10 +10,12 @@
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/familiar.h"
+#include "src/character/hexa_stat.h"
 #include "src/character/hyper_plan.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
+#include "src/character/legion_artifact.h"
 #include "src/character/legion_plan.h"
 #include "src/character/noblesse_plan.h"
 #include "src/character/set_pieces.h"
@@ -25,6 +28,7 @@
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/legion.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -1088,6 +1092,357 @@ FamiliarBook MaxFamiliars(StatField primary, int level) {
     }
   }
   return levelled;
+}
+
+namespace {
+
+std::string DestinyWeapon(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return "destiny_two_handed_axe";
+    case JOB_PALADIN:
+      return "destiny_two_handed_hammer";
+    case JOB_DARK_KNIGHT:
+      return "destiny_spear";
+    case JOB_BOW_MASTER:
+      return "destiny_bow";
+    case JOB_MARKSMAN:
+      return "destiny_crossbow";
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
+      return "destiny_staff";
+    case JOB_NIGHT_LORD:
+      return "destiny_guards";
+    case JOB_SHADOWER:
+      return "destiny_dagger";
+    default:
+      return "";
+  }
+}
+
+// The branch's Eternal armour and Mitra's Rage.
+std::vector<std::string> EternalPieces(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return {"eternal_knight_helm",     "eternal_knight_armor",
+              "eternal_knight_pants",    "eternal_knight_shoes",
+              "eternal_knight_gloves",   "eternal_knight_cape",
+              "eternal_knight_shoulder", "mitras_rage_warrior"};
+    case JobBranch::kArcher:
+      return {"eternal_archer_hat",      "eternal_archer_hood",
+              "eternal_archer_pants",    "eternal_archer_shoes",
+              "eternal_archer_gloves",   "eternal_archer_cape",
+              "eternal_archer_shoulder", "mitras_rage_bowman"};
+    case JobBranch::kMagician:
+      return {"eternal_mage_hat",      "eternal_mage_robe",
+              "eternal_mage_pants",    "eternal_mage_shoes",
+              "eternal_mage_gloves",   "eternal_mage_cape",
+              "eternal_mage_shoulder", "mitras_rage_magician"};
+    case JobBranch::kRogue:
+      return {"eternal_thief_bandana",  "eternal_thief_shirt",
+              "eternal_thief_pants",    "eternal_thief_shoes",
+              "eternal_thief_gloves",   "eternal_thief_cape",
+              "eternal_thief_shoulder", "mitras_rage_thief"};
+    default:
+      return {};
+  }
+}
+
+// The Cursed Spellbook whose larger stat is the job's.
+std::string Spellbook(StatField primary) {
+  switch (primary) {
+    case STAT_FIELD_DEX:
+      return "cursed_green_spellbook";
+    case STAT_FIELD_INT:
+      return "cursed_blue_spellbook";
+    case STAT_FIELD_LUK:
+      return "cursed_yellow_spellbook";
+    default:
+      return "cursed_red_spellbook";
+  }
+}
+
+// The kinds of recipe a slot measures, as max mode's Share letters.
+Potential AllLegendary(std::initializer_list<Share> shares,
+                       PotentialTrack track, bool weaponry, StatField primary) {
+  Potential potential;
+  potential.set_rank(L);
+  for (Share share : shares) {
+    AddLine(potential, LineTypeFor(share, L, track, weaponry, primary), L);
+  }
+  return potential;
+}
+
+}  // namespace
+
+std::vector<std::string> EndgameOutfit(Job job) {
+  const StatField primary = PrimaryStatField(job);
+  std::vector<std::string> keys = {DestinyWeapon(job)};
+  for (std::string& piece : EternalPieces(job)) {
+    keys.push_back(std::move(piece));
+  }
+  const std::string secondary =
+      SetPieceFor(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY, job);
+  if (!secondary.empty()) {
+    keys.push_back(secondary);
+  }
+  const std::string ring = std::to_string(kEndgameRingLevel);
+  for (const char* key :
+       {"original_sin_of_pride", "magic_eyepatch", "commanding_force_earring",
+        "source_of_suffering", "oath_of_death", "dreamy_belt", "genesis_badge",
+        "immortal_legacy", "total_control", "endless_terror",
+        "whisper_of_the_source", "blissful_nightmare",
+        "bronze_incense_burner_totem", "horseback_riding_doll_totem",
+        "jade_kettle_totem"}) {
+    keys.push_back(key);
+  }
+  keys.push_back(Spellbook(primary));
+  keys.push_back("ring_of_restraint_" + ring);
+  keys.push_back("continuous_ring_" + ring);
+  return keys;
+}
+
+double EndgameBossRate(CharacterInstance& character,
+                       const std::map<std::string, Skill>& skills,
+                       const std::map<std::string, Boss>& bosses,
+                       const std::map<std::string, Mob>& mobs) {
+  return MaxHyperRate(character, skills, Activity::kBossing,
+                      NominalTarget(bosses, mobs, character.proto().level(),
+                                    Activity::kBossing));
+}
+
+std::vector<Potential> EndgamePotentials(EquipSlot slot, StatField primary,
+                                         PotentialTrack track) {
+  const PotentialGroup group = PotentialGroupOf(slot);
+  if (group == PotentialGroup::kNone) {
+    return {};
+  }
+  const bool weaponry = group == PotentialGroup::kWeaponry;
+  auto make = [&](std::initializer_list<Share> shares) {
+    return AllLegendary(shares, track, weaponry, primary);
+  };
+  if (track == PotentialTrack::kBonus) {
+    return {weaponry ? make({A, A, A}) : make({S, S, S})};
+  }
+  if (weaponry) {
+    // No more than two boss or two ignored-defense lines, as GMS rolls them.
+    return {make({A, A, A}), make({A, A, B}), make({A, A, I}),
+            make({A, B, B}), make({A, B, I}), make({B, B, I})};
+  }
+  if (KindOf(slot) == SlotKind::kGloves) {
+    return {make({C, C, C}), make({C, C, S}), make({S, S, S})};
+  }
+  return {make({S, S, S})};
+}
+
+FlameLines EndgameFlameFor(const EquipPrototype& proto, StatField primary,
+                           StatField secondary) {
+  constexpr int kTopTier = 7;
+  FlameLines lines;
+  if (!SlotTakesFlame(proto.equip_slot()) || !Supports(proto, UPGRADE_FLAME)) {
+    return lines;
+  }
+  const FlameShare weapon[] = {FlameShare::kAttack, FlameShare::kBoss,
+                               FlameShare::kDamage, FlameShare::kPrimary};
+  const FlameShare other[] = {FlameShare::kPrimary, FlameShare::kAttack,
+                              FlameShare::kAllStat, FlameShare::kPrimaryPair};
+  const FlameShare* recipe =
+      proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON ? weapon : other;
+  const std::vector<FlameStat> pool = FlamePool(proto);
+  for (int i = 0; i < kFlameLines; ++i) {
+    const FlameStat stat = FlameStatFor(recipe[i], primary, secondary);
+    if (std::find(pool.begin(), pool.end(), stat) == pool.end()) {
+      continue;
+    }
+    FlameLine& line = *lines.Add();
+    line.set_stat(stat);
+    line.set_tier(kTopTier);
+  }
+  return lines;
+}
+
+FamiliarBook EndgameFamiliars() {
+  FamiliarBook book;
+  for (std::size_t i = 0; i < FamiliarRoster().size(); ++i) {
+    Familiar& familiar = *book.add_familiars();
+    familiar.set_name(FamiliarRoster()[i].name);
+    familiar.set_level(kFamiliarMaxLevel);
+    if (i < kMaxSummonedFamiliars) {
+      for (FamiliarLineType type : {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40,
+                                    FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40}) {
+        FamiliarLine& line = *familiar.add_lines();
+        line.set_type(type);
+        line.set_rank(POTENTIAL_RANK_LEGENDARY);
+      }
+    }
+  }
+  return book;
+}
+
+void SpendEndgameAbility(CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills,
+                         const std::map<std::string, Boss>& bosses,
+                         const std::map<std::string, Mob>& mobs) {
+  const StatField primary = PrimaryStatField(character.proto().job());
+  AbilityLineType stat = ABILITY_LINE_TYPE_STR;
+  switch (primary) {
+    case STAT_FIELD_DEX:
+      stat = ABILITY_LINE_TYPE_DEX;
+      break;
+    case STAT_FIELD_INT:
+      stat = ABILITY_LINE_TYPE_INT;
+      break;
+    case STAT_FIELD_LUK:
+      stat = ABILITY_LINE_TYPE_LUK;
+      break;
+    default:
+      break;
+  }
+  auto preset_of = [](std::initializer_list<AbilityLineType> types) {
+    AbilityPreset preset;
+    preset.set_rank(ABILITY_RANK_LEGENDARY);
+    for (AbilityLineType type : types) {
+      AbilityLine& line = *preset.add_lines();
+      line.set_type(type);
+      line.set_rank(ABILITY_RANK_LEGENDARY);
+    }
+    return preset;
+  };
+  character.SetAbility(
+      preset_of({ABILITY_LINE_TYPE_MESO, ABILITY_LINE_TYPE_ITEM_DROP, stat}),
+      AutoswapSlotFor(Activity::kFarming));
+  // Attack speed is left out for max mode's reason: the Extreme Green Potion
+  // already passes the cap it would raise.
+  const AbilityLineType candidates[] = {ABILITY_LINE_TYPE_CRIT_RATE,
+                                        ABILITY_LINE_TYPE_BOSS_DAMAGE,
+                                        primary == STAT_FIELD_INT
+                                            ? ABILITY_LINE_TYPE_MAGIC_ATTACK
+                                            : ABILITY_LINE_TYPE_ATTACK,
+                                        stat,
+                                        ABILITY_LINE_TYPE_ALL_STATS,
+                                        ABILITY_LINE_TYPE_BUFF_DURATION};
+  const StatPreset slot = AutoswapSlotFor(Activity::kBossing);
+  const int n = static_cast<int>(std::size(candidates));
+  AbilityPreset best;
+  double best_rate = -1.0;
+  for (int a = 0; a < n; ++a) {
+    for (int b = a + 1; b < n; ++b) {
+      for (int c = b + 1; c < n; ++c) {
+        const AbilityPreset preset =
+            preset_of({candidates[a], candidates[b], candidates[c]});
+        character.SetAbility(preset, slot);
+        const double rate = EndgameBossRate(character, skills, bosses, mobs);
+        if (rate > best_rate) {
+          best_rate = rate;
+          best = preset;
+        }
+      }
+    }
+  }
+  character.SetAbility(best, slot);
+}
+
+void SpendEndgameHexaStats(CharacterInstance& character,
+                           const std::map<std::string, Skill>& skills,
+                           const std::map<std::string, Boss>& bosses,
+                           const std::map<std::string, Mob>& mobs) {
+  const HexaStat stats[] = {HEXA_STAT_CRIT_DAMAGE,    HEXA_STAT_BOSS_DAMAGE,
+                            HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_DAMAGE,
+                            HEXA_STAT_ATTACK,         HEXA_STAT_MAIN_STAT};
+  HexaStats held;
+  const int open =
+      std::min(HexaStatNodesOpen(character.proto().level()), kHexaStatNodes);
+  for (int node = 0; node < open; ++node) {
+    HexaStatNode best;
+    double best_rate = -1.0;
+    for (HexaStat primary : stats) {
+      for (HexaStat first : stats) {
+        for (HexaStat second : stats) {
+          if (first >= second || first == primary || second == primary) {
+            continue;
+          }
+          // The primary at its top; the other ten split between the two.
+          for (int split = 0; split <= kHexaStatMaxLevel; ++split) {
+            HexaStats trial = held;
+            HexaStatNode& candidate = *trial.add_nodes();
+            candidate.set_primary(primary);
+            candidate.set_primary_level(kHexaStatMaxLevel);
+            candidate.set_first(first);
+            candidate.set_first_level(split);
+            candidate.set_second(second);
+            candidate.set_second_level(kHexaStatNodeLevels - kHexaStatMaxLevel -
+                                       split);
+            if (!HexaStatsAllowed(trial)) {
+              continue;
+            }
+            character.set_hexa_stats(trial);
+            const double rate =
+                EndgameBossRate(character, skills, bosses, mobs);
+            if (rate > best_rate) {
+              best_rate = rate;
+              best = candidate;
+            }
+          }
+        }
+      }
+    }
+    *held.add_nodes() = best;
+  }
+  character.set_hexa_stats(held);
+}
+
+void SpendEndgameArtifact(CharacterInstance& character,
+                          const std::map<std::string, Skill>& skills,
+                          const std::map<std::string, Boss>& bosses,
+                          const std::map<std::string, Mob>& mobs) {
+  Legion legion = character.legion();
+  legion.clear_artifact();
+  character.set_legion(legion);
+  const double base = EndgameBossRate(character, skills, bosses, mobs);
+  // Each stat alone at 10, two full crystals' worth. The Artifact's stats add
+  // to everything else rather than to each other, so one at a time ranks them.
+  struct Worth {
+    ArtifactStat stat;
+    double gain;
+  };
+  std::vector<Worth> worth;
+  for (int i = ArtifactStat_MIN + 1; i <= ArtifactStat_MAX; ++i) {
+    const ArtifactStat stat = static_cast<ArtifactStat>(i);
+    Legion trial = legion;
+    for (int copy = 0; copy < 2; ++copy) {
+      ArtifactCrystal& crystal = *trial.mutable_artifact()->add_crystals();
+      crystal.set_level(kArtifactCrystalMaxLevel);
+      crystal.add_stats(stat);
+    }
+    character.set_legion(trial);
+    worth.push_back(
+        {stat, EndgameBossRate(character, skills, bosses, mobs) - base});
+  }
+  // Ties (the stats a boss fight never reads) keep the client's order.
+  std::stable_sort(
+      worth.begin(), worth.end(),
+      [](const Worth& a, const Worth& b) { return a.gain > b.gain; });
+  // 27 slots: thirteen stats twice and the fourteenth once. Dealt round the
+  // crystals in order, a stat's two copies land on neighbouring crystals.
+  std::vector<ArtifactStat> slots;
+  const int full = kArtifactCrystals * kArtifactStatsPerCrystal / 2;
+  for (int i = 0; i < full && i < static_cast<int>(worth.size()); ++i) {
+    slots.push_back(worth[i].stat);
+    slots.push_back(worth[i].stat);
+  }
+  if (full < static_cast<int>(worth.size())) {
+    slots.push_back(worth[full].stat);
+  }
+  LegionArtifact artifact;
+  for (int i = 0; i < kArtifactCrystals; ++i) {
+    artifact.add_crystals()->set_level(kArtifactCrystalMaxLevel);
+  }
+  for (std::size_t i = 0; i < slots.size(); ++i) {
+    artifact.mutable_crystals(i % kArtifactCrystals)->add_stats(slots[i]);
+  }
+  *legion.mutable_artifact() = artifact;
+  character.set_legion(legion);
 }
 
 }  // namespace ms

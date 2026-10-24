@@ -209,15 +209,15 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
   };
 }
 
-std::string CombatPowerText(int power) {
+std::string CombatPowerText(int64_t power) {
   std::string value = FormatWithCommas(power);
   return (power > 999999 ? "CP " : "Combat Power ") + value;
 }
 
-int ShownCombatPower(const AccountInstance& reader,
-                     const CharacterInstance& character,
-                     const std::map<std::string, Skill>& skills,
-                     Activity preset, std::optional<StatPreset> gear) {
+int64_t ShownCombatPower(const AccountInstance& reader,
+                         const CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills,
+                         Activity preset, std::optional<StatPreset> gear) {
   return reader.gms_combat_power()
              ? GmsCharacterCombatPower(character, skills, preset, gear)
              : CharacterCombatPower(character, skills, preset, gear);

@@ -5,6 +5,7 @@
 #ifndef MS_SRC_COMBAT_DAMAGE_H_
 #define MS_SRC_COMBAT_DAMAGE_H_
 
+#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -315,7 +316,7 @@ double DefenseShare(const Mob& mob, double ied);
 //
 // Unlike GMS, crit damage is weighted by crit chance, so it's worth more when
 // crits happen more. `vs_boss` picks boss or normal % damage; never both.
-int CombatPower(const OffenseStats& offense, bool vs_boss);
+int64_t CombatPower(const OffenseStats& offense, bool vs_boss);
 
 // GMS's own Combat Power, which compares characters across jobs: every crit
 // lands at base crit damage plus the bonus, damage and boss damage always add,
@@ -323,7 +324,7 @@ int CombatPower(const OffenseStats& offense, bool vs_boss);
 // GmsCharacterOffense, which removes skills and prices the weapon as a bow;
 // `weapon_constant` there is GMS's ratio of the current weapon's constant to
 // the job's best.
-int GmsCombatPower(const OffenseStats& offense);
+int64_t GmsCombatPower(const OffenseStats& offense);
 
 // A character's defensive stats, the counterpart to OffenseStats. Level affects
 // how much DEF counts.

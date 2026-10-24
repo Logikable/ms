@@ -698,12 +698,15 @@ std::optional<int> TuiController::CombatPowerDelta(
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return std::nullopt;
   }
-  return PowerAt(state_.character.Wearing(*item, gear, slot), gear) -
-         PowerAt(state_.character, gear);
+  // A swap moves the number by far less than the number itself, so the
+  // difference fits where a level-300 total wouldn't.
+  return static_cast<int>(
+      PowerAt(state_.character.Wearing(*item, gear, slot), gear) -
+      PowerAt(state_.character, gear));
 }
 
-int TuiController::PowerAt(const CharacterInstance& character,
-                           StatPreset gear) const {
+int64_t TuiController::PowerAt(const CharacterInstance& character,
+                               StatPreset gear) const {
   // The activity the preset stands for, so the Boss tab values a piece by what
   // it is worth against a boss. The third preset belongs to no activity and is
   // treated like the first.
@@ -732,8 +735,9 @@ std::optional<int> TuiController::flame_delta() const {
   const EquipInstance rolled(item->prototype(), rolled_state);
   // Both sides wear the item, so a bag item prices After against Before, not
   // against whatever the slot holds now.
-  return PowerAt(state_.character.Wearing(rolled, gear, slot), gear) -
-         PowerAt(state_.character.Wearing(*item, gear, slot), gear);
+  return static_cast<int>(
+      PowerAt(state_.character.Wearing(rolled, gear, slot), gear) -
+      PowerAt(state_.character.Wearing(*item, gear, slot), gear));
 }
 
 std::optional<int> TuiController::inspect_delta() const {

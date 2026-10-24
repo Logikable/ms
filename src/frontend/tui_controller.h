@@ -698,7 +698,7 @@ class TuiController {
 
  private:
   // `character`'s shown combat power at gear preset `gear`.
-  int PowerAt(const CharacterInstance& character, StatPreset gear) const;
+  int64_t PowerAt(const CharacterInstance& character, StatPreset gear) const;
   // Moves focus off a panel that isn't shown. The game starts focused on the
   // equipped panel, which a level 1 character doesn't have yet.
   void EnsureFocusIsVisible();

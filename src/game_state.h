@@ -41,6 +41,8 @@ enum class GameMode {
   kPlay,
   kTest,
   kMax,
+  // GMS's ceiling at level 300; see EndgameOutfit in max_character.h.
+  kEndgame,
 };
 
 // The upgrade state of a seeded character's gear. The workbench sets it from
@@ -62,6 +64,8 @@ struct GearSetup {
   // theirs, once something drops it. Max mode turns it off: the sweep it copies
   // arrives at every checkpoint before one has dropped.
   bool dropped_scrolls = true;
+  // Every Exceptional Enhancement the item takes.
+  bool exceptional = false;
 };
 
 // What the workbench does with its current job's book, as --skills says.

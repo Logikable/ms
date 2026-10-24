@@ -878,6 +878,31 @@ sim_binary(
 )
 
 sim_binary(
+    name = "endgame_sim",
+    srcs = ["endgame_sim.cc"],
+    deps = [
+        ":parallel",
+        ":sim_boss",
+        ":sim_jobs",
+        ":sim_world",
+        "//src:game_state",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/character:hexa_stat",
+        "//src/character:stat_preset",
+        "//src/combat:encounter",
+        "//src/combat:measure",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+sim_binary(
     name = "save_boss_sim",
     srcs = ["save_boss_sim.cc"],
     deps = [

@@ -266,3 +266,35 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "endgame_test",
+    size = "small",
+    srcs = ["endgame_test.cc"],
+    data = [
+        "//data/bosses:all",
+        "//data/equip:all",
+        "//data/items:all",
+        "//data/maps:all",
+        "//data/mobs:all",
+        "//data/scrolls:all",
+        "//data/sets:all",
+        "//data/skills:all",
+    ],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/character:hexa_stat",
+        "//src/character:legion",
+        "//src/character:legion_artifact",
+        "//src/character:max_character",
+        "//src/character:stat_preset",
+        "//src/character:symbol",
+        "//src/item:equip_instance",
+        "//src/protos:equip_set_proto_cc",
+        "//src/protos:legion_proto_cc",
+        "//src/testing:data_files",
+        "@googletest//:gtest_main",
+    ],
+)

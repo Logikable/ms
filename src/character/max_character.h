@@ -154,6 +154,64 @@ FamiliarBook MaxFamiliars(StatField primary, int level);
 // The three Inner Ability lines `preset` has at `level`.
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level);
 
+// --- The endgame character ---
+//
+// GMS's ceiling rather than this game's: level 300 in the Eternal set, the
+// Destiny Weapon and both boss accessory sets, every upgrade at its top, and
+// every account system full. Unlike the max character it is a character
+// nobody has played, so where max mode copies a sweep, this measures:
+// potentials, Inner Ability, HEXA Stats and the Artifact are each chosen for
+// the hit they give against the toughest boss built.
+
+inline constexpr int kEndgameLevel = 300;
+// GMS's Special Skill Rings stop at level 4.
+inline constexpr int kEndgameRingLevel = 4;
+
+// What the endgame character wears for bosses, in the order to put it on,
+// over the job's own secondary and ammunition.
+std::vector<std::string> EndgameOutfit(Job job);
+
+// The rate every endgame choice is measured by: one plain swing at the
+// toughest boss `character`'s level has unlocked, bossing.
+double EndgameBossRate(CharacterInstance& character,
+                       const std::map<std::string, Skill>& skills,
+                       const std::map<std::string, Boss>& bosses,
+                       const std::map<std::string, Mob>& mobs);
+
+// The potentials `slot` may wear on `track`, every line Legendary: each kind's
+// candidates for the measurement to choose among. Empty for a slot that takes
+// none.
+std::vector<Potential> EndgamePotentials(EquipSlot slot, StatField primary,
+                                         PotentialTrack track);
+
+// Every line at tier 7, the top a boss item's flame rolls.
+FlameLines EndgameFlameFor(const EquipPrototype& proto, StatField primary,
+                           StatField secondary);
+
+// The roster at its top level, the three mains with two Legendary lines.
+FamiliarBook EndgameFamiliars();
+
+// The best three Legendary lines for bosses, measured, into the bossing
+// preset; farming takes meso, drop and the primary stat.
+void SpendEndgameAbility(CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills,
+                         const std::map<std::string, Boss>& bosses,
+                         const std::map<std::string, Mob>& mobs);
+
+// Three full HEXA Stat nodes, each the best the rules allow given the ones
+// before it.
+void SpendEndgameHexaStats(CharacterInstance& character,
+                           const std::map<std::string, Skill>& skills,
+                           const std::map<std::string, Boss>& bosses,
+                           const std::map<std::string, Mob>& mobs);
+
+// Nine level-5 crystals on the character's copy of the Legion: the thirteen
+// stats worth most at level 10 and the next at 5.
+void SpendEndgameArtifact(CharacterInstance& character,
+                          const std::map<std::string, Skill>& skills,
+                          const std::map<std::string, Boss>& bosses,
+                          const std::map<std::string, Mob>& mobs);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_MAX_CHARACTER_H_

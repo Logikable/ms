@@ -557,6 +557,10 @@ class CharacterInstance {
   void set_familiars(const FamiliarBook& book) {
     *character_.mutable_familiars() = book;
   }
+  // Replaces the HEXA Stat nodes whole; see //src/character:hexa_stat.
+  void set_hexa_stats(const HexaStats& stats) {
+    *character_.mutable_hexa_stats() = stats;
+  }
   // Banks one familiar EXP per kill, at any level, up to kFamiliarExpCap.
   // Returns how much was banked: less than `kills` at the cap.
   int64_t AddFamiliarExp(int64_t kills);
