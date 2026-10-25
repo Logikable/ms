@@ -1,24 +1,32 @@
 // Draws every screen from the shipped catalogs at the smallest supported
 // terminal. A centred screen taller than the terminal loses rows at both ends
 // without error, and the data-driven screens grow when a textproto is added.
+// Nor may any text be cut to its column: a new name longer than the longest
+// fails here rather than shipping with its end missing.
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <map>
 #include <random>
+#include <set>
 #include <string>
 #include <vector>
 
+#include "absl/strings/str_join.h"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
+#include "src/combat/damage_breakdown.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/bank_panel.h"
+#include "src/frontend/screens/boss_analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
+#include "src/frontend/screens/box_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/character_select_panel.h"
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
@@ -36,12 +44,15 @@
 #include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/trade_panel.h"
+#include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/inventory_list.h"
 #include "src/game_state.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/soul.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
 #include "src/protos/save.pb.h"
 #include "src/protos/skill.pb.h"
@@ -67,6 +78,9 @@ Size Measure(ftxui::Element element) {
 // per test.
 class ScreenFitTest : public testing::Test {
  protected:
+  // A count wide enough to fill its column: ten million less one.
+  static constexpr int64_t kLargeCount = 9999999;
+
   static void SetUpTestSuite() {
     shared_ = new GameState(
         LoadTestData<EquipPrototype>("equip"), LoadTestData<Scroll>("scrolls"),
@@ -95,6 +109,12 @@ class ScreenFitTest : public testing::Test {
     shared_ = nullptr;
   }
 
+  void TearDown() override {
+    std::set<std::string> cut(cuts_.cuts().begin(), cuts_.cuts().end());
+    EXPECT_TRUE(cut.empty())
+        << "cut to fit a column: " << absl::StrJoin(cut, " | ");
+  }
+
   void ExpectFits(ftxui::Element element, const std::string& what) {
     Size size = Measure(std::move(element));
     EXPECT_LE(size.rows, kMinTerminalRows)
@@ -104,6 +124,7 @@ class ScreenFitTest : public testing::Test {
   }
 
   GameState& state_ = *shared_;
+  PadRightCuts cuts_;
 
  private:
   static constexpr int64_t kFullPurse = 100000000000;
@@ -424,6 +445,112 @@ TEST_F(ScreenFitTest, Scroll) {
     }
     ExpectFits(panel.Render(/*focused=*/true),
                "the scrolls for " + entry.first);
+  }
+}
+
+// Every token beside every shard, which is the Token tab's longest row in both
+// halves.
+TEST_F(ScreenFitTest, TokenTab) {
+  std::vector<CurrencyAmount> tokens;
+  std::vector<CurrencyAmount> shards;
+  for (const std::pair<const std::string, ItemPrototype>& entry :
+       state_.items) {
+    if (entry.second.kind() == ITEM_KIND_TOKEN) {
+      tokens.emplace_back(entry.second, kLargeCount);
+    } else if (entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
+      shards.emplace_back(entry.second, kLargeCount);
+    }
+  }
+  ASSERT_FALSE(tokens.empty());
+  ASSERT_FALSE(shards.empty());
+  ExpectFits(CurrencyHeader(), "the Token tab's header");
+  for (const CurrencyAmount& token : tokens) {
+    for (const CurrencyAmount& shard : shards) {
+      ExpectFits(RenderCurrencyRow(&token, &shard),
+                 token.name() + " beside " + shard.name());
+    }
+  }
+}
+
+// Every box opened by every job, since each lists only its own class's pieces.
+TEST_F(ScreenFitTest, EveryBox) {
+  std::mt19937 rng(1);
+  int boxes = 0;
+  for (int i = 1; i <= Job_MAX; ++i) {
+    if (!Job_IsValid(i)) {
+      continue;
+    }
+    Character sheet;
+    sheet.set_job(static_cast<Job>(i));
+    sheet.set_level(kTrialLevelCap);
+    CharacterInstance character(rng, sheet);
+    BoxPanel panel(character, state_.equips, state_.items);
+    for (const std::pair<const std::string, ItemPrototype>& entry :
+         state_.items) {
+      const ItemPrototype& box = entry.second;
+      if (!box.has_box() && !box.has_ring_box() && !box.has_pick_box()) {
+        continue;
+      }
+      ++boxes;
+      panel.Reset(box);
+      ExpectFits(panel.Render(), entry.first + " for " + Job_Name(sheet.job()));
+    }
+  }
+  EXPECT_GT(boxes, 0);
+}
+
+// A table naming everything that can deal damage: every attack, and the label
+// of every Final Attack and magazine, which get rows of their own.
+TEST_F(ScreenFitTest, BossAnalysis) {
+  std::set<std::string> names;
+  for (const std::pair<const std::string, Skill>& entry : state_.skills) {
+    const Skill& skill = entry.second;
+    if (skill.kind() == SKILL_KIND_ATTACK ||
+        skill.kind() == SKILL_KIND_AUTO_ATTACK) {
+      names.insert(skill.name());
+    }
+    if (!skill.final_attack_label().empty()) {
+      names.insert(skill.final_attack_label());
+    }
+    if (!skill.buff().magazine().label().empty()) {
+      names.insert(skill.buff().magazine().label());
+    }
+  }
+  ASSERT_FALSE(names.empty());
+  // The widest each column is sized for (boss_analysis_panel.cc), with the
+  // whole fight's damage under 9,999 trillion.
+  PlayerBreakdown player;
+  for (const std::string& name : names) {
+    player.rows.push_back(
+        {name, 9.99e15 / static_cast<double>(names.size()), 99999, 99999});
+  }
+  BossAnalysisPanel panel;
+  panel.Open({player}, /*seconds=*/3599.0);
+  // The table shows a screenful at a time, so step through every row.
+  for (size_t i = 0; i < player.rows.size(); ++i) {
+    ExpectFits(panel.Render(), "the damage table");
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+}
+
+// The Soul list with ten of every shard, on an ATT weapon.
+TEST_F(ScreenFitTest, SoulList) {
+  EquipPrototype sword;
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.mutable_base_stats()->set_attack(100);
+  CurrencyPurse purse;
+  for (const std::pair<const std::string, ItemPrototype>& entry :
+       state_.items) {
+    if (entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
+      purse.Add(entry.second, kShardsPerSoul);
+    }
+  }
+  EquipInstance item(sword);
+  SoulPanel panel;
+  panel.SetItem(&item, purse);
+  for (size_t i = 0; i < purse.entries().size(); ++i) {
+    ExpectFits(panel.Render(/*focused=*/true), "the soul list");
+    panel.MoveCursor(1);
   }
 }
 

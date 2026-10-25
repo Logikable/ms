@@ -13,8 +13,27 @@ namespace {
 TEST(PadRightTest, PadsOrTruncatesToTheWidth) {
   EXPECT_EQ(PadRight("hi", 5), "hi   ");
   EXPECT_EQ(PadRight("hello", 5), "hello");
-  EXPECT_EQ(PadRight("toolong", 4), "tool");
   EXPECT_EQ(PadRight("", 3), "   ");
+}
+
+// A cut keeps the last column blank, so the next column never touches it. Text
+// that just fits has nothing to keep apart from: its caller adds the gap.
+TEST(PadRightTest, ACutLeavesTheLastColumnBlank) {
+  EXPECT_EQ(PadRight("toolong", 4), "too ");
+  EXPECT_EQ(PadRight("hello", 5), "hello");
+  EXPECT_EQ(PadRight("hello!", 5), "hell ");
+}
+
+TEST(PadRightCutsTest, RecordsOnlyTheTextThatWasCut) {
+  PadRightCuts outer;
+  {
+    PadRightCuts inner;
+    PadRight("fits", 4);
+    PadRight("toolong", 4);
+    EXPECT_EQ(inner.cuts(), std::vector<std::string>{"toolong"});
+  }
+  PadRight("again!", 4);
+  EXPECT_EQ(outer.cuts(), std::vector<std::string>{"again!"});
 }
 
 // Both pad functions count columns, so a row with a multibyte cell still lines

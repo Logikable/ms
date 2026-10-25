@@ -8,11 +8,13 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
@@ -64,6 +66,20 @@ class CharacterSelectPanelTest : public testing::Test {
 
   GameState state_;
 };
+
+// Every job's name, under the longest name a player can have, fits its column.
+TEST_F(CharacterSelectPanelTest, EveryJobAndTheLongestNameFitTheirColumns) {
+  for (int i = 1; i <= Job_MAX; ++i) {
+    if (Job_IsValid(i)) {
+      AddCharacter(std::string(kMaxUsernameLength, 'W'), 260,
+                   static_cast<Job>(i), i);
+    }
+  }
+  CharacterSelectPanel panel(state_);
+  PadRightCuts cuts;
+  Draw(panel);
+  EXPECT_TRUE(cuts.cuts().empty()) << cuts.cuts().front();
+}
 
 TEST_F(CharacterSelectPanelTest, TheListIsHeadedAndSortedNewestFirst) {
   AddCharacter("Older", 30, JOB_FIGHTER, 100);

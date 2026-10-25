@@ -13,9 +13,30 @@
 namespace ms {
 
 // Pads s to `width` screen columns with trailing spaces, or cuts it if longer.
-// Counts columns rather than bytes, so a name with a multibyte character lines
-// up with the ones above it; see text_columns.h.
+// A cut leaves the last column blank, so a column the text outgrew still never
+// runs into the next one. Counts columns rather than bytes, so a name with a
+// multibyte character lines up with the ones above it; see text_columns.h.
 std::string PadRight(const std::string& s, int width);
+
+// Every text PadRight cuts while one of these is alive, so a test can draw a
+// screen from the shipped data and see whether any of it was too long. Not
+// thread-safe; the innermost recorder gets the cuts.
+class PadRightCuts {
+ public:
+  PadRightCuts();
+  ~PadRightCuts();
+  PadRightCuts(const PadRightCuts&) = delete;
+  PadRightCuts& operator=(const PadRightCuts&) = delete;
+
+  const std::vector<std::string>& cuts() const {
+    return cuts_;
+  }
+
+ private:
+  friend std::string PadRight(const std::string& s, int width);
+  PadRightCuts* outer_;
+  std::vector<std::string> cuts_;
+};
 
 // Pads s to `width` screen columns with leading spaces, right-aligning it.
 // Unlike PadRight this never cuts: it is for numbers, and dropping digits from

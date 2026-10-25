@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
 #include "src/item/equip_instance.h"
 #include "src/item/flame.h"
 #include "src/protos/equip.pb.h"
@@ -120,6 +121,29 @@ TEST_F(FlamePanelTest, BlackOffersAfterAndKeepsEitherSide) {
   ASSERT_EQ(kept.size(), 1);
   EXPECT_EQ(kept[0].stat(), FLAME_STAT_BOSS_DAMAGE);
   EXPECT_FALSE(panel.after().has_value());
+}
+
+// A line the item's pool no longer rolls still sets its column's width, on
+// either side, so its name isn't cut.
+TEST_F(FlamePanelTest, ALineOutsideThePoolStillFitsItsColumn) {
+  Equip state;
+  FlameLine* held = state.add_flame();
+  held->set_stat(FLAME_STAT_BOSS_DAMAGE);
+  held->set_tier(7);
+  EquipInstance item(sword_, state);
+  FlamePanel panel;
+  panel.Reset();
+  panel.MoveCursor(1);
+  panel.SetItem(&item, 2 * kBlackCost);
+  panel.OnEvent(ftxui::Event::Return);
+  PadRightCuts cuts;
+  EXPECT_NE(RenderElement(panel.RenderConfirm()).find("Boss Damage"),
+            std::string::npos);
+  item = Flamed();
+  panel.SetItem(&item, 2 * kBlackCost);
+  panel.SetAfter(OneLine(FLAME_STAT_BOSS_DAMAGE, 7));
+  RenderElement(panel.RenderConfirm());
+  EXPECT_TRUE(cuts.cuts().empty());
 }
 
 // The row under After prices keeping it: a dash until there is a roll, then

@@ -74,6 +74,7 @@ class BoxPanel {
   const std::map<std::string, ItemPrototype>& items_;
   ItemPrototype box_;
   std::vector<BoxChoice> stock_;
+  int name_width_ = 0;
   int selected_ = 0;
   ConfirmPrompt confirm_;
 };

@@ -1,5 +1,6 @@
 #include "src/frontend/screens/box_panel.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
@@ -12,6 +13,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/ring_box.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
@@ -20,11 +22,12 @@
 namespace ms {
 namespace {
 
-// The shop's widths, so a piece reads the same in both.
+// The shop's widths, so a piece reads the same in both. The shop scrolls a
+// name too long for its column; a box has no clock, so its Name column widens
+// to its longest piece instead.
 constexpr int kNameWidth = 26;
 constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
-constexpr int kContentWidth = 2 + kNameWidth + 2 + kTypeWidth + 2 + kLevelWidth;
 
 // Armour has no equip type, so it shows its slot, as the shop does.
 std::string TypeCell(const EquipPrototype& proto) {
@@ -51,6 +54,10 @@ void BoxPanel::Reset(const ItemPrototype& box) {
     if (character_.MeetsJob(piece)) {
       stock_.push_back({piece.name(), &piece, "", ""});
     }
+  }
+  name_width_ = kNameWidth;
+  for (const BoxChoice& choice : stock_) {
+    name_width_ = std::max(name_width_, TextColumns(choice.name));
   }
   selected_ = 0;
   confirm_.Close();
@@ -117,7 +124,7 @@ ftxui::Element BoxPanel::RenderRow(const BoxChoice& choice,
                       character_.MeetsLevel(*piece));
   return ftxui::hbox({
       ftxui::text(std::string(on_cursor ? "> " : "  ") +
-                  PadRight(choice.name, kNameWidth) + "  " +
+                  PadRight(choice.name, name_width_) + "  " +
                   PadRight(type, kTypeWidth) + "  "),
       std::move(level),
   });
@@ -125,7 +132,7 @@ ftxui::Element BoxPanel::RenderRow(const BoxChoice& choice,
 
 ftxui::Element BoxPanel::Render() const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
+  rows.push_back(ftxui::text("  " + PadRight("Name", name_width_) + "  " +
                              PadRight("Type", kTypeWidth) + "  " +
                              PadRight("Level", kLevelWidth)));
   rows.push_back(ThemedSeparator());
@@ -139,7 +146,8 @@ ftxui::Element BoxPanel::Render() const {
   return ThemedWindow(
       " " + box_.name() + " ",
       ftxui::vbox(std::move(rows)) |
-          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
+          ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
+                      2 + name_width_ + 2 + kTypeWidth + 2 + kLevelWidth));
 }
 
 void BoxPanel::OpenConfirm() {

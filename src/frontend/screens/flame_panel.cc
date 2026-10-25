@@ -69,8 +69,10 @@ void MeasureLine(const FlameLine& line, const EquipPrototype& proto,
 }
 
 // Measured over every line the item's pool rolls at the highest tier any flame
-// reaches, where each is widest, so a reroll never moves the columns.
-LineWidths MeasureLines(const EquipPrototype& proto) {
+// reaches, where each is widest, so a reroll never moves the columns. The lines
+// it (or an offered roll) carries count too: one rolled before its pool
+// changed may be outside the pool now.
+LineWidths MeasureLines(const EquipPrototype& proto, const FlameLines& held) {
   int top = 0;
   for (const Flame& flame : kFlames) {
     top = std::max(top, flame.min_tier + kFlameTiers - 1);
@@ -80,6 +82,9 @@ LineWidths MeasureLines(const EquipPrototype& proto) {
     FlameLine line;
     line.set_stat(stat);
     line.set_tier(top);
+    MeasureLine(line, proto, widths);
+  }
+  for (const FlameLine& line : held) {
     MeasureLine(line, proto, widths);
   }
   return widths;
@@ -187,7 +192,12 @@ std::string FlamePanel::Prompt() const {
 ftxui::Element FlamePanel::RenderChoice() const {
   const EquipPrototype& proto = item_->prototype();
   const FlameLines empty;
-  const LineWidths widths = MeasureLines(proto);
+  LineWidths widths = MeasureLines(proto, ItemLines());
+  if (after_.has_value()) {
+    for (const FlameLine& line : *after_) {
+      MeasureLine(line, proto, widths);
+    }
+  }
   std::vector<ftxui::Element> body = {
       CenteredRow(Prompt()),
       TitledSeparator(" Before ", kTheme),
@@ -214,7 +224,7 @@ ftxui::Element FlamePanel::RenderConfirm() const {
   };
   if (item_ != nullptr) {
     AppendLineRows(body, ItemLines(), item_->prototype(),
-                   MeasureLines(item_->prototype()));
+                   MeasureLines(item_->prototype(), ItemLines()));
   }
   body.push_back(ThemedSeparator());
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));

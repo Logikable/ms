@@ -13,8 +13,28 @@
 
 namespace ms {
 
+namespace {
+
+PadRightCuts* recorder = nullptr;
+
+}  // namespace
+
+PadRightCuts::PadRightCuts() : outer_(recorder) {
+  recorder = this;
+}
+
+PadRightCuts::~PadRightCuts() {
+  recorder = outer_;
+}
+
 std::string PadRight(const std::string& s, int width) {
-  return ColumnWindow(s, 0, width);
+  if (width <= 0 || TextColumns(s) <= width) {
+    return ColumnWindow(s, 0, width);
+  }
+  if (recorder != nullptr) {
+    recorder->cuts_.push_back(s);
+  }
+  return ColumnWindow(s, 0, width - 1) + " ";
 }
 
 std::string PadLeft(const std::string& s, int width) {
