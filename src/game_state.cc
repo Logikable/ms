@@ -1570,6 +1570,34 @@ void RegisterEndgameChampions(CharacterInstance& character,
   character.set_legion(legion);
 }
 
+// A cap on the rounds: every branch's choice settles by the fourth.
+constexpr int kEndgameAllocationRounds = 6;
+
+// Every allocation that discards and respends what it held, in the order a
+// player would make them.
+void SpendEndgameAllocations(GameState& state) {
+  CharacterInstance& c = state.character;
+  SpendEndgameArtifact(c, state.skills, state.bosses, state.mobs);
+  SpendEndgameHexaStats(c, state.skills, state.bosses, state.mobs);
+  SpendMaxLegion(c, state.skills, state.bosses, state.mobs);
+  SpendMaxNoblesse(c, state.skills, state.bosses, state.mobs);
+  SpendMaxHyperStats(c, state.skills, state.bosses, state.mobs);
+  SpendEndgameAbility(c, state.skills, state.bosses, state.mobs);
+}
+
+// The state of every piece the character owns, to tell whether a pass changed
+// any potential.
+std::string WornStates(const CharacterInstance& character) {
+  std::string out;
+  for (const auto& [slot, preset] : OwnPieces(character)) {
+    const EquipInstance* worn = character.WornAt(preset, slot);
+    if (worn != nullptr) {
+      out += worn->equip_state().SerializeAsString();
+    }
+  }
+  return out;
+}
+
 void EndgameOneCharacter(GameState& state, JobAdvancement advancement,
                          const std::vector<MaxMember>& account, int stars) {
   GearSetup equips;
@@ -1589,7 +1617,6 @@ void EndgameOneCharacter(GameState& state, JobAdvancement advancement,
   WearAll(state, MaxPets(), equips);
   state.character.ClearEquipInventory();
 
-  DressEndgamePotentials(state);
   DressEndgameFlames(state);
   WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
               state.items);
@@ -1599,13 +1626,19 @@ void EndgameOneCharacter(GameState& state, JobAdvancement advancement,
   state.character.ReconcileLinkSkills(state.skills);
   state.character.set_legion_roster(MaxLegionRoster(account, account[0]));
   RegisterEndgameChampions(state.character, account);
-  SpendEndgameArtifact(state.character, state.skills, state.bosses, state.mobs);
-  SpendEndgameHexaStats(state.character, state.skills, state.bosses,
-                        state.mobs);
-  SpendMaxLegion(state.character, state.skills, state.bosses, state.mobs);
-  SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
-  SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
-  SpendEndgameAbility(state.character, state.skills, state.bosses, state.mobs);
+  // Potentials are chosen against everything else already spent, then that is
+  // spent again around them, until the choice stops moving. Chosen first, on a
+  // bare character, they bought boss and IED that Legion, Hyper Stats, HEXA
+  // and the Artifact later pile past the point of paying.
+  SpendEndgameAllocations(state);
+  for (int round = 0; round < kEndgameAllocationRounds; ++round) {
+    const std::string before = WornStates(state.character);
+    DressEndgamePotentials(state);
+    if (WornStates(state.character) == before) {
+      break;
+    }
+    SpendEndgameAllocations(state);
+  }
   BuyMaxConsumables(state);
 }
 
