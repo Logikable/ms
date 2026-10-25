@@ -97,7 +97,9 @@ int ScrollCard::VisibleRows(const CardRows& rows, int reserved) const {
     return total;
   }
   int fixed = static_cast<int>(rows.head.size() + rows.foot.size()) + reserved;
-  return std::max(1, std::min(total, max_rows_ - kBorderRows - fixed));
+  // At least one row however small the budget, but never more than there are:
+  // an empty body drawing one read past its end and hung the flame screen.
+  return std::min(total, std::max(1, max_rows_ - kBorderRows - fixed));
 }
 
 void ScrollCard::ScrollBy(int delta) {

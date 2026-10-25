@@ -268,6 +268,20 @@ TEST(ScrollCardTest, ScrollsEntireWhenTheFixedRowsDoNotFit) {
   EXPECT_NE(lines[1].find("row1"), std::string::npos) << "the head moved too";
 }
 
+// The flame screen's card for an item with no slots or potential: everything
+// is in the head, and the body draws nothing.
+TEST(ScrollCardTest, DrawsNoBodyRowForAnEmptyBody) {
+  ScrollCard card;
+  card.SetMaxRows(20);
+  CardRows rows;
+  rows.head = {TextRow(ftxui::text("head")), TextRow(ftxui::text("stats"))};
+
+  std::vector<std::string> lines = Draw(card, rows, 8);
+  ASSERT_EQ(lines.size(), 4u) << "the borders and the two head rows";
+  EXPECT_NE(lines[2].find("stats"), std::string::npos);
+  EXPECT_FALSE(card.Overflows());
+}
+
 TEST(ScrollCardTest, AtLeastOneRowHoweverSmallTheBudget) {
   ScrollCard card;
   card.SetMaxRows(2);
