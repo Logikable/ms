@@ -252,6 +252,7 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   offer.slot = slot;
   offer.gear = basis.gear;
   offer.scroll = scroll;
+  offer.stats = scroll->stats();
   offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
                basis.trace->shop_price();
   // A slot's value is its gain times its success rate. A failed scroll still
@@ -311,6 +312,7 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   offer.cost = static_cast<int64_t>(run.cost);
   offer.outlay = static_cast<int64_t>(run.step_cost);
   offer.gain = run.gain * basis.scale;
+  offer.stats = Minus(item->StarForceStatGains(run.to), now);
   return offer;
 }
 
@@ -344,6 +346,7 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   offer.gain =
       PowerWith(state, basis.yard, basis.derived, Plus(basis.worn, added)) -
       basis.power;
+  offer.stats = added;
   return offer;
 }
 
@@ -477,6 +480,7 @@ std::optional<GearShopper::Candidate> GearShopper::ForceRunOffer(
         PowerWith(state, basis.yard, basis.derived, worn) * factor / now -
         basis.power;
     if (!best.has_value() || run.gain / run.cost > best->gain / best->cost) {
+      run.stats = Minus(worn, basis.worn);
       best = run;
     }
   }
@@ -714,7 +718,7 @@ std::vector<GearShopper::Candidate> GearShopper::FlameOffers(GameState& state,
   return offers;
 }
 
-bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
+std::vector<GearShopper::Candidate> GearShopper::Shelf(GameState& state) {
   std::vector<Candidate> offers = Offers(state);
   // Compare by cross-multiplying rather than dividing, so candidates within
   // rounding of each other still sort by value.
@@ -722,6 +726,11 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
             [](const Candidate& a, const Candidate& b) {
               return a.gain * b.cost > b.gain * a.cost;
             });
+  return offers;
+}
+
+bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
+  std::vector<Candidate> offers = Shelf(state);
   // Move down the list when an offer is refused. One piece's refusal shouldn't
   // stop buying for every other piece. It once did, and a full Etc tab silently
   // ended shopping for the rest of the run.

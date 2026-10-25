@@ -181,7 +181,6 @@ class GearShopper {
   // valued in, so a purchase off the shelf can be priced alongside them.
   double Power(GameState& state);
 
- private:
   // One thing the character could buy next.
   struct Candidate {
     EquipSlot slot = EQUIP_SLOT_UNSPECIFIED;
@@ -222,8 +221,16 @@ class GearShopper {
     // Damage it would add against the target fight (see //analysis:yardstick).
     // A double because damage at the cap runs into billions.
     double gain = 0.0;
+    // What the offer adds to the stat line, for a deterministic one: a scroll,
+    // stars or symbol levels. Unset for a roll, whose outcome is a draw.
+    std::optional<EquipStats> stats;
   };
 
+  // Every offer on the shelf now, the best gain per meso first, whether or not
+  // the purse covers it. Buys nothing.
+  std::vector<Candidate> Shelf(GameState& state);
+
+ private:
   // The character as they are now, which every offer is measured against.
   // Computing it needs a rebuild, so it's done once per pass rather than per
   // piece.

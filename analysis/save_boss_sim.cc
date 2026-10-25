@@ -15,15 +15,20 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "analysis/gear_plan.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_world.h"
+#include "src/character/character_stats.h"
 #include "src/character/guild.h"
 #include "src/character/noblesse_plan.h"
+#include "src/combat/damage.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/equip_stats.h"
 #include "src/item/flame.h"
 #include "src/protos/account.pb.h"
 #include "src/protos/boss.pb.h"
@@ -38,6 +43,9 @@ ABSL_FLAG(bool, flames, false,
 ABSL_FLAG(bool, bpot, false,
           "List what each armour bonus potential line is worth instead.");
 ABSL_FLAG(bool, gear, false, "Also list what the boss preset wears.");
+ABSL_FLAG(bool, shelf, false,
+          "List every upgrade the shopper would price instead, with its "
+          "expected meso per Combat Power.");
 ABSL_FLAG(std::string, sweep_to, "",
           "If set, first records a solo clear of every fight the character "
           "wins, spends the Noblesse SP they pay, writes the result here and "
@@ -275,12 +283,115 @@ bool PrintFlameScores(const Catalogs& catalogs, const std::string& path) {
   return true;
 }
 
+// What one offer is, in a few words.
+std::string OfferName(const GameState& state,
+                      const GearShopper::Candidate& offer) {
+  const EquipInstance* item = state.character.WornAt(offer.gear, offer.slot);
+  if (!offer.symbol_run.empty()) {
+    return absl::StrCat("Arcane Force: ", offer.symbol_run.size(),
+                        " symbol levels");
+  }
+  std::string what = item == nullptr ? FormatSlot(offer.slot) : item->name();
+  if (offer.gear == kFarmGear) {
+    what += " (farm)";
+  }
+  if (offer.symbol) {
+    return absl::StrCat(what, ": +1 level");
+  }
+  if (offer.star) {
+    return absl::StrCat(what, ": stars ", item->stars(), " to ", offer.star_to);
+  }
+  if (offer.scroll != nullptr) {
+    return absl::StrCat(what, ": ", offer.scroll->name());
+  }
+  if (offer.cube) {
+    return absl::StrCat(what, ": ", CubeName(offer.cube_type), " x",
+                        absl::StrFormat("%.1f", offer.cube_program.cubes));
+  }
+  if (offer.flame) {
+    return absl::StrCat(what, ": ", FlameName(offer.flame_type), " x",
+                        absl::StrFormat("%.1f", offer.flame_program.flames));
+  }
+  if (offer.split) {
+    return absl::StrCat(what, ": farm copy, cubed");
+  }
+  return what;
+}
+
+// Every offer on the shopper's shelf, best first, against the boss preset.
+// CP-eq is the boss damage gain at the save's CP per unit of damage, so rolls
+// and Arcane Force, which no stat line shows, rank on one scale; CP is the stat
+// line's true change, for a scroll, stars or symbols.
+bool PrintShelf(const Catalogs& catalogs, const std::string& path) {
+  GameState state = NewState(catalogs, 1);
+  if (!Load(catalogs, path, state)) {
+    return false;
+  }
+  GearShopper shopper{GearPlan()};
+  const double power = shopper.Power(state);
+  const std::vector<GearShopper::Candidate> offers = shopper.Shelf(state);
+  const CharacterInstance& character = state.character;
+  const DerivedStats derived =
+      DerivedStatsFor(character, state.skills, {}, {}, Activity::kBossing);
+  const EquipStats worn = TotalEquipStats(character, derived);
+  const Character& p = character.proto();
+  auto cp_with = [&](const EquipStats& added) {
+    const EquipStats sources[] = {worn, added};
+    return CombatPower(
+        OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
+                        SumEquipStats(sources),
+                        character.weapon_type(derived.gear),
+                        /*attack_skill=*/nullptr, /*attack_level=*/0,
+                        PassiveOffenseFor(derived)),
+        /*vs_boss=*/true);
+  };
+  const int cp = cp_with(EquipStats());
+  std::printf(
+      "%s, level %d: %s meso, boss Combat Power %s%s.\n\n", p.name().c_str(),
+      p.level(), FormatWithCommas(character.meso()).c_str(),
+      FormatWithCommas(cp).c_str(),
+      state.account.gms_combat_power() ? " (ours; the save shows GMS's)" : "");
+  std::printf("%-52s %15s %7s %8s %13s %7s %13s\n", "Offer", "Exp. meso", "Dmg",
+              "CP-eq", "Meso/CP-eq", "CP", "Meso/CP");
+  for (const GearShopper::Candidate& offer : offers) {
+    if (offer.gain <= 0.0 || offer.cost <= 0) {
+      continue;
+    }
+    const double cp_eq = cp * offer.gain / power;
+    std::string true_cp = "-";
+    std::string per_cp = "-";
+    if (offer.stats.has_value()) {
+      const int gained = cp_with(*offer.stats) - cp;
+      true_cp = absl::StrCat(gained);
+      if (gained > 0) {
+        per_cp = FormatWithCommas(offer.cost / gained);
+      }
+    }
+    const char* afford =
+        (offer.outlay > 0 ? offer.outlay : offer.cost) <= character.meso()
+            ? " "
+            : "*";
+    std::printf(
+        "%-52s %14s%s %6.2f%% %8.0f %13s %7s %13s\n",
+        OfferName(state, offer).substr(0, 52).c_str(),
+        FormatWithCommas(offer.cost).c_str(), afford,
+        100.0 * offer.gain / power, cp_eq,
+        FormatWithCommas(static_cast<int64_t>(offer.cost / cp_eq)).c_str(),
+        true_cp.c_str(), per_cp.c_str());
+  }
+  std::printf("\n* more than the purse holds to start.\n");
+  return true;
+}
+
 int Run() {
   std::string path = absl::GetFlag(FLAGS_save);
   const int trials = absl::GetFlag(FLAGS_trials);
   const Catalogs catalogs = LoadCatalogs();
   if (absl::GetFlag(FLAGS_flames)) {
     return PrintFlameScores(catalogs, path) ? 0 : 1;
+  }
+  if (absl::GetFlag(FLAGS_shelf)) {
+    return PrintShelf(catalogs, path) ? 0 : 1;
   }
   if (absl::GetFlag(FLAGS_bpot)) {
     return PrintBonusLines(catalogs, path) ? 0 : 1;
