@@ -881,6 +881,8 @@ sim_binary(
     name = "save_boss_sim",
     srcs = ["save_boss_sim.cc"],
     deps = [
+        ":cube_plan",
+        ":flame_plan",
         ":gear_plan",
         ":sim_boss",
         ":sim_world",
@@ -895,6 +897,7 @@ sim_binary(
         "//src/item:equip_instance",
         "//src/item:equip_stats",
         "//src/item:flame",
+        "//src/item:potential",
         "//src/protos:account_proto_cc",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",

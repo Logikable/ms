@@ -48,6 +48,10 @@ struct GearPlan {
   // more per successful slot and wastes the rest, and on a drop-only piece a
   // wasted slot is gone for good.
   int scroll_rate = 100;
+  // Rolls each cube or flame run's stopping rule is solved from. The default
+  // is the sims' speed; at it the cheapest runs are priced short of what they
+  // cost, which a report on one save can't afford.
+  int samples = kCubeSamples;
 };
 
 // One pass of spending, with meso split by what it went on, so a tuning pass
@@ -229,6 +233,15 @@ class GearShopper {
   // Every offer on the shelf now, the best gain per meso first, whether or not
   // the purse covers it. Buys nothing.
   std::vector<Candidate> Shelf(GameState& state);
+  // Buys one offer off the shelf as Spend would. False if the bag or the purse
+  // refused it.
+  bool Buy(GameState& state, const Candidate& offer, GearSpend& spend) {
+    return BuyOffer(state, offer, spend);
+  }
+  // What cube runs are valued with, the shelf's power_per_meso included.
+  const CubeIncome& income() const {
+    return income_;
+  }
 
  private:
   // The character as they are now, which every offer is measured against.

@@ -106,10 +106,13 @@ struct CubeProgram {
 };
 
 // The run of `cube` on what `gear` wears in `slot`; empty when the piece is
-// already worth its reservation value, so no roll pays.
+// already worth its reservation value, so no roll pays. Each rank's rule is
+// solved from `samples` rolls; with few, the reservation value lands near the
+// best of them and the run is priced as far shorter than it is.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
-                            const CubeIncome& income, std::mt19937& rng);
+                            const CubeIncome& income, std::mt19937& rng,
+                            int samples = kCubeSamples);
 
 // A run of cubes on one piece, followed through under its program's rule:
 // rolled while what the piece holds is worth less than its rank's reservation

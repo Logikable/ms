@@ -16,7 +16,6 @@ namespace ms {
 namespace {
 
 // Draws used to value one flame, as for a cube.
-constexpr int kFlameSamples = kCubeSamples;
 
 int FoldAttack(int flat, double pct) {
   return static_cast<int>(std::floor(flat * (1.0 + pct) + 1e-9));
@@ -147,10 +146,11 @@ std::vector<double> FlameGains(const GameState& state, const CubeBasis& basis,
 
 FlameProgram BestFlameProgram(const GameState& state, const CubeBasis& basis,
                               EquipSlot slot, FlameType flame,
-                              double power_per_meso, std::mt19937& rng) {
+                              double power_per_meso, std::mt19937& rng,
+                              int samples) {
   FlameProgram program;
   std::vector<double> gains =
-      FlameGains(state, basis, slot, flame, kFlameSamples, rng);
+      FlameGains(state, basis, slot, flame, samples, rng);
   if (gains.empty()) {
     return program;
   }

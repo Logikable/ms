@@ -303,7 +303,7 @@ std::vector<RankDraws> SampleRanks(const GameState& state,
                                    const CubeBasis& basis,
                                    const CubePricing& pricing,
                                    PotentialRank held, double share,
-                                   const CubeIncome& income,
+                                   const CubeIncome& income, int samples,
                                    std::mt19937& rng) {
   std::vector<RankDraws> ranks;
   if (held == POTENTIAL_RANK_UNSPECIFIED) {
@@ -314,8 +314,8 @@ std::vector<RankDraws> SampleRanks(const GameState& state,
     RankDraws draws;
     draws.rank = static_cast<PotentialRank>(rank);
     draws.rank_up = PotentialRankUpChance(pricing.cube, draws.rank);
-    draws.gains.reserve(kCubeSamples);
-    for (int i = 0; i < kCubeSamples; ++i) {
+    draws.gains.reserve(samples);
+    for (int i = 0; i < samples; ++i) {
       draws.gains.push_back(
           share *
           GainOf(state, basis, pricing,
@@ -332,7 +332,8 @@ std::vector<RankDraws> SampleRanks(const GameState& state,
 
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
-                            const CubeIncome& income, std::mt19937& rng) {
+                            const CubeIncome& income, std::mt19937& rng,
+                            int samples) {
   CubeProgram program;
   const EquipInstance* item = Worn(state, gear, slot);
   if (item == nullptr || !item->CanCube()) {
@@ -351,8 +352,8 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
       pricing.bossed && Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
-  const std::vector<RankDraws> ranks =
-      SampleRanks(state, basis, pricing, held, program.share, income, rng);
+  const std::vector<RankDraws> ranks = SampleRanks(
+      state, basis, pricing, held, program.share, income, samples, rng);
   const double toll = income.power_per_meso * shelf.cost;
 
   // Legendary down: each rank's rule needs the one above's, and the run's

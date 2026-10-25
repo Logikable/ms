@@ -51,7 +51,8 @@ std::vector<double> FlameGains(const GameState& state, const CubeBasis& basis,
 // `power_per_meso` times its price; empty when no roll pays.
 FlameProgram BestFlameProgram(const GameState& state, const CubeBasis& basis,
                               EquipSlot slot, FlameType flame,
-                              double power_per_meso, std::mt19937& rng);
+                              double power_per_meso, std::mt19937& rng,
+                              int samples = kCubeSamples);
 
 // A run of flames on one piece, followed through under its program's rule.
 // Every roll is valued against the lines the run began on.

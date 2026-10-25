@@ -616,7 +616,7 @@ CubeProgram GearShopper::BestMainCubeProgram(const GameState& state,
       continue;
     }
     CubeProgram run = BestCubeProgram(state, basis, kFarmGear, slot, shelf.type,
-                                      income_, rng_);
+                                      income_, rng_, plan_.samples);
     if (run.worth() &&
         (!best.worth() || run.gain * best.cost > best.gain * run.cost)) {
       best = run;
@@ -659,8 +659,9 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       if (!OnShelf(state, shelf.type)) {
         continue;
       }
-      CubeProgram run = BestCubeProgram(state, basis, piece.first, piece.second,
-                                        shelf.type, income_, rng_);
+      CubeProgram run =
+          BestCubeProgram(state, basis, piece.first, piece.second, shelf.type,
+                          income_, rng_, plan_.samples);
       if (!run.worth()) {
         continue;
       }
@@ -699,8 +700,8 @@ std::vector<GearShopper::Candidate> GearShopper::FlameOffers(GameState& state,
   }
   for (EquipSlot slot : slots) {
     for (const Flame& shelf : kFlames) {
-      FlameProgram run =
-          BestFlameProgram(state, basis, slot, shelf.type, best, rng_);
+      FlameProgram run = BestFlameProgram(state, basis, slot, shelf.type, best,
+                                          rng_, plan_.samples);
       if (!run.worth()) {
         continue;
       }
