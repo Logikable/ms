@@ -31,6 +31,7 @@
 #include "src/combat/measure.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
@@ -40,6 +41,7 @@ ABSL_FLAG(std::string, job, "", "One branch (\"bow_master\"); empty for all.");
 ABSL_FLAG(int, trials, 3, "Fights per branch, each on its own seed.");
 ABSL_FLAG(int, stars, 25, "Stars on every piece but the Destiny weapon.");
 ABSL_FLAG(bool, gear, false, "Also list each branch's gear and allocations.");
+ABSL_FLAG(bool, sheet, false, "Also print each branch's bossing stat sheet.");
 ABSL_FLAG(double, seconds, 600.0,
           "How long the dummy is struck for the damage a second.");
 
@@ -161,6 +163,23 @@ std::string Describe(const GameState& state) {
   return out;
 }
 
+// The All Stats screen's Boss sheet in the bossing gear, unbuffed, as text.
+std::string Sheet(const GameState& state) {
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  std::string out;
+  for (const std::vector<StatLine>& lines :
+       {MainStatLines(state.character, state.skills, Activity::kBossing, boss),
+        ExtraStatLines(state.character, state.skills, Activity::kBossing,
+                       boss)}) {
+    for (const StatLine& line : lines) {
+      if (!line.rule) {
+        out += "    " + PadRight(line.label, 28) + line.value + "\n";
+      }
+    }
+  }
+  return out;
+}
+
 Row Measure(const Catalogs& catalogs, Job branch, int trials, bool gear) {
   Row row;
   row.job = branch;
@@ -171,6 +190,9 @@ Row Measure(const Catalogs& catalogs, Job branch, int trials, bool gear) {
       CharacterCombatPower(state.character, state.skills, Activity::kBossing);
   if (gear) {
     row.gear = Describe(state);
+  }
+  if (absl::GetFlag(FLAGS_sheet)) {
+    row.gear += Sheet(state);
   }
   std::pair<std::string, int> fight;
   if (!AimedFight(state, &fight)) {

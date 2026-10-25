@@ -894,6 +894,7 @@ sim_binary(
         "//src/combat:measure",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:stat_rows",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:legion_proto_cc",
