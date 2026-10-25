@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from wz import Wz, read_img
 
-CLIENT = '/mnt/c/Nexon/Games/maplestory/appdata'
+CLIENT = '/mnt/c/Program Files (x86)/Steam/steamapps/common/MapleStory'
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'string_cache.json.gz')
 
 # The String.wz imgs worth caching. The audit reads Skill.img; the rest are

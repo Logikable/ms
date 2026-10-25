@@ -27,7 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from wz import ImgReader
 
-CLIENT = '/mnt/c/Nexon/Games/maplestory/appdata'
+CLIENT = '/mnt/c/Program Files (x86)/Steam/steamapps/common/MapleStory'
 # Offsets a pack's bodies cite for these names. They follow the classic img
 # header layout, and nothing in a pack resolves them.
 TYPES = {1: 'Property', 44: 'Canvas', 70: 'Shape2D#Vector2D',

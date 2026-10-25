@@ -16,7 +16,7 @@ import os
 import struct
 import sys
 
-PACK_DIR = "/mnt/c/Nexon/Games/maplestory/appdata/Data/Packs"
+PACK_DIR = "/mnt/c/Program Files (x86)/Steam/steamapps/common/MapleStory/Data/Packs"
 
 KEY_OBSCURE = bytes([
     0x7B, 0x2F, 0x35, 0x48, 0x43, 0x95, 0x02, 0xB9,

@@ -21,7 +21,7 @@ import sys
 
 import wz
 
-CLIENT = '/mnt/c/Nexon/Games/maplestory/appdata/Data'
+CLIENT = '/mnt/c/Program Files (x86)/Steam/steamapps/common/MapleStory/Data'
 SOUND = CLIENT + '/Sound/Sound_*.wz'
 MAPS = CLIENT + '/Map/Map/Map*/Map*_*.wz'
 STRINGS = CLIENT + '/String/String_000.wz'
