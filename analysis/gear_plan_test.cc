@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -259,6 +260,50 @@ TEST_F(GearPlanTest, AReplacingRunShortOfMesoSettlesForAnyGain) {
   ASSERT_TRUE(shopper.Buy(*state_, offer, spend));
   EXPECT_GT(character.meso(), 0) << "the run rolled until the purse ran dry";
   EXPECT_GT(shopper.Power(*state_), before);
+}
+
+// A piece bought with tokens has no shop copy to recover a boom with. With the
+// tokens for a spare in hand, the run past 15 is priced and taken; without
+// them, it stops where booms begin.
+TEST_F(GearPlanTest, TokensForASpareOpenTheRunPastFifteen) {
+  EquipPrototype weapon = Sword();
+  weapon.set_required_level(160);
+  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
+  weapon.add_unsupported_upgrades(UPGRADE_CUBE);
+  TokenPrice* price = weapon.add_token_prices();
+  price->set_token_item("coin");
+  price->set_count(5);
+  Grow(200, weapon);
+  CharacterInstance& character = state_->character;
+  ItemPrototype coin;
+  coin.set_name("Coin");
+  coin.set_kind(ITEM_KIND_TOKEN);
+  state_->items["coin"] = coin;
+  Equip fifteen;
+  fifteen.set_stars(15);
+  character.PickUp(std::make_unique<EquipInstance>(weapon, fifteen));
+  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
+  // The copy Grow wore is now in the bag, and would be the spare.
+  for (int i = character.inventory().size() - 1; i >= 0; --i) {
+    if (character.inventory().equip_instance(i) != nullptr) {
+      character.SellEquip(i);
+    }
+  }
+  character.AddMeso(1'000'000'000'000);
+
+  auto furthest = [this]() {
+    GearShopper shopper{GearPlan()};
+    int to = 0;
+    for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
+      if (offer.star && offer.slot == EQUIP_SLOT_PRIMARY_WEAPON) {
+        to = std::max(to, offer.star_to);
+      }
+    }
+    return to;
+  };
+  EXPECT_EQ(furthest(), 0) << "every star past 15 can boom";
+  character.AddItem(coin, 5);
+  EXPECT_GT(furthest(), 15);
 }
 
 }  // namespace

@@ -105,21 +105,6 @@ bool HeldInBag(const CharacterInstance& character, const std::string& name) {
   return false;
 }
 
-// The first of `proto`'s token prices the character can pay, or null when
-// they can pay none of them.
-const TokenPrice* PayablePrice(const GameState& state,
-                               const EquipPrototype& proto) {
-  for (const TokenPrice& price : proto.token_prices()) {
-    std::map<std::string, ItemPrototype>::const_iterator token =
-        state.items.find(price.token_item());
-    if (token != state.items.end() &&
-        price.count() <= state.character.CountItem(token->second.name())) {
-      return &price;
-    }
-  }
-  return nullptr;
-}
-
 // Whether the character can currently afford `proto`. A token price is paid
 // from tokens that fights dropped, so this checks the purse rather than meso.
 bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
@@ -1085,6 +1070,19 @@ int UseDroppedScrolls(GameState& state) {
     }
   }
   return used;
+}
+
+const TokenPrice* PayablePrice(const GameState& state,
+                               const EquipPrototype& proto) {
+  for (const TokenPrice& price : proto.token_prices()) {
+    std::map<std::string, ItemPrototype>::const_iterator token =
+        state.items.find(price.token_item());
+    if (token != state.items.end() &&
+        price.count() <= state.character.CountItem(token->second.name())) {
+      return &price;
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace ms

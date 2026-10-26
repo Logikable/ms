@@ -20,6 +20,11 @@
 
 namespace ms {
 
+// The first of `proto`'s token prices the character can pay, or null when
+// they can pay none of them.
+const TokenPrice* PayablePrice(const GameState& state,
+                               const EquipPrototype& proto);
+
 // The gear boss fights wear and the gear farming wears: the autoswap slots,
 // which the sims always run with. Boss fights read the second preset, whose own
 // pieces override the first; farming reads the first. Only accessories ever

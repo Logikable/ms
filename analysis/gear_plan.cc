@@ -142,12 +142,14 @@ int SparesInBag(const CharacterInstance& character, const std::string& name) {
   return spares;
 }
 
-// Whether a boom on this piece could be recovered from. The shop stocking it is
-// enough, since a copy is one purchase away; otherwise it needs a spare in the
-// bag.
-bool CanCoverBoom(const CharacterInstance& character,
-                  const EquipPrototype& proto) {
-  return proto.shop_price() > 0 || SparesInBag(character, proto.name()) > 0;
+// Whether a boom on this piece could be recovered from: a spare in the bag, or
+// one purchase away in meso or in the tokens held. Without the tokens, a set
+// piece never looked past 15 stars and the climb stopped at 10, short of the
+// 15-17 stretch that pays for 12-15.
+bool CanCoverBoom(const GameState& state, const EquipPrototype& proto) {
+  return proto.shop_price() > 0 ||
+         SparesInBag(state.character, proto.name()) > 0 ||
+         PayablePrice(state, proto) != nullptr;
 }
 
 // Spares worth keeping of a piece: the expected booms on the longest star run
@@ -287,7 +289,7 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   // Only risk destruction with a way to recover. The trace a boom leaves needs
   // a spare copy, and if neither the shop nor the bag has one, the piece would
   // simply be lost, which the sim can't undo.
-  const bool coverable = CanCoverBoom(state.character, item->prototype());
+  const bool coverable = CanCoverBoom(state, item->prototype());
   const double spare = static_cast<double>(SpareCost(item->prototype()));
   const EquipStats now = item->StarForceStatGains(stars);
   StarRunChoice run = BestStarRun(
@@ -987,7 +989,15 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
     return false;
   }
   if (spare_index < 0) {
-    if (proto.shop_price() <= 0 || !state.character.Buy(proto, 1)) {
+    const TokenPrice* token =
+        proto.shop_price() > 0 ? nullptr : PayablePrice(state, proto);
+    const bool bought =
+        token != nullptr
+            ? state.character.BuyWithToken(proto, token->token_item(),
+                                           state.items.at(token->token_item()),
+                                           1)
+            : proto.shop_price() > 0 && state.character.Buy(proto, 1);
+    if (!bought) {
       return false;
     }
     spend.replacements += proto.shop_price();
