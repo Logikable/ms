@@ -353,8 +353,11 @@ constexpr MatrixBand kMatrixBands[] = {
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
-// Legendary. Farming never left Rare.
+// Legendary. Farming is rolled once bossing settles: Unique by 230 and
+// Legendary by 260 in the sweep of 2026-10-26.
 constexpr int kLegendaryAbilityLevel = 170;
+constexpr int kUniqueFarmingAbilityLevel = 230;
+constexpr int kLegendaryFarmingAbilityLevel = 260;
 
 // The %stat line for the stat the character fights with.
 PotentialLineType StatShareFor(StatField primary) {
@@ -1026,8 +1029,23 @@ void WearMaxSoul(CharacterInstance& character,
 
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level) {
   AbilityPreset built;
-  // The rank a character starts at. Three All Stat lines are what the sweep's
-  // farming preset sat on for good: the honor all went to bossing.
+  // Meso on top and drop below it, the lines the sweep's farming rolls chase.
+  if (preset == Activity::kFarming && level >= kUniqueFarmingAbilityLevel) {
+    const AbilityRank top = level >= kLegendaryFarmingAbilityLevel
+                                ? ABILITY_RANK_LEGENDARY
+                                : ABILITY_RANK_UNIQUE;
+    built.set_rank(top);
+    const AbilityLineType types[] = {ABILITY_LINE_TYPE_MESO,
+                                     ABILITY_LINE_TYPE_ITEM_DROP,
+                                     ABILITY_LINE_TYPE_MESO};
+    for (int i = 0; i < kAbilityLines; ++i) {
+      AbilityLine& line = *built.add_lines();
+      line.set_type(types[i]);
+      line.set_rank(i == 0 ? top : ABILITY_RANK_EPIC);
+    }
+    return built;
+  }
+  // The rank a character starts at, on three All Stat lines.
   if (preset == Activity::kFarming || level < kLegendaryAbilityLevel) {
     built.set_rank(ABILITY_RANK_RARE);
     for (int i = 0; i < kAbilityLines; ++i) {

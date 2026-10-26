@@ -143,11 +143,19 @@ TEST(MaxCharacterTest, TheMatrixFillsByKind) {
   EXPECT_EQ(MaxMatrixLevel(common, 260), 30);
 }
 
-// Farming stays on the Rare preset a character starts with; bossing reaches
-// Legendary at 170.
-TEST(MaxCharacterTest, OnlyBossingAbilityClimbs) {
-  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 260).rank(),
+// Bossing reaches Legendary at 170; farming is rolled for meso and drop once
+// bossing settles, Unique by 230 and Legendary by 260.
+TEST(MaxCharacterTest, BossingAbilityClimbsFirst) {
+  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 229).rank(),
             ABILITY_RANK_RARE);
+  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 230).rank(),
+            ABILITY_RANK_UNIQUE);
+  const AbilityPreset farm =
+      MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 260);
+  EXPECT_EQ(farm.rank(), ABILITY_RANK_LEGENDARY);
+  ASSERT_EQ(farm.lines_size(), kAbilityLines);
+  EXPECT_EQ(farm.lines(0).type(), ABILITY_LINE_TYPE_MESO);
+  EXPECT_EQ(farm.lines(1).type(), ABILITY_LINE_TYPE_ITEM_DROP);
   EXPECT_EQ(MaxAbilityPreset(Activity::kBossing, STAT_FIELD_STR, 169).rank(),
             ABILITY_RANK_RARE);
   const AbilityPreset boss =
