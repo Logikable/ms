@@ -173,6 +173,10 @@ ABSL_FLAG(bool, cubes, true,
 ABSL_FLAG(bool, flames, true,
           "Whether the shopper uses Rebirth Flames. Off is the counterfactual, "
           "as --cubes is.");
+ABSL_FLAG(bool, hold_dropped_scrolls, false,
+          "Whether a boss-gear slot a dropped scroll fits is left open for one "
+          "once a fight cleared drops it, instead of traced. Its stars wait "
+          "with it.");
 ABSL_FLAG(bool, familiars, true,
           "Whether the player levels, summons and cubes familiars. Off is the "
           "counterfactual, as --cubes is.");
@@ -1474,6 +1478,29 @@ struct FightState {
 // Everything one run of one branch carries while it plays. Kept together
 // because the two halves, the climb and the days after it, differ only in what
 // they farm for and when they stop.
+// Whether a fight `climb` has cleared drops the item named `name`.
+bool FightsClearedDrop(const Climb& climb, const GameState& state,
+                       const std::string& name) {
+  for (const std::pair<const std::string, BossLog>& entry : climb.bosses) {
+    const BossLog& log = entry.second;
+    std::map<std::string, Boss>::const_iterator boss =
+        state.bosses.find(log.boss);
+    if (log.clears == 0 || boss == state.bosses.end() ||
+        log.difficulty >= boss->second.difficulties_size()) {
+      continue;
+    }
+    for (const MobDrop& drop :
+         boss->second.difficulties(log.difficulty).drops()) {
+      std::map<std::string, ItemPrototype>::const_iterator item =
+          state.items.find(drop.item());
+      if (item != state.items.end() && item->second.name() == name) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 struct Session {
   GameState& state;
   const std::vector<std::string>& maps;
@@ -2981,6 +3008,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.cubes = absl::GetFlag(FLAGS_cubes);
   plan.flames = absl::GetFlag(FLAGS_flames);
+  if (absl::GetFlag(FLAGS_hold_dropped_scrolls)) {
+    plan.holds = [&climb, &state](const std::string& paid_with) {
+      return FightsClearedDrop(climb, state, paid_with);
+    };
+  }
 
   Session run = {state,          maps,
                  PathTo(branch), 0,

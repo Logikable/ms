@@ -12,6 +12,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <optional>
@@ -52,6 +53,10 @@ struct GearPlan {
   // is the sims' speed; at it the cheapest runs are priced short of what they
   // cost, which a report on one save can't afford.
   int samples = kCubeSamples;
+  // The dropped scrolls, by the item they're paid with, that a boss-gear slot
+  // is left open for instead of traced. Unset, every slot is traced. A held
+  // slot holds off the piece's stars too, since stars wait for full slots.
+  std::function<bool(const std::string&)> holds;
 };
 
 // One pass of spending, with meso split by what it went on, so a tuning pass

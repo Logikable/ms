@@ -237,6 +237,52 @@ TEST_F(GearPlanTest, AReplacingRunMustBeCoveredWhole) {
   EXPECT_GT(choosing, 0) << "no choosing cube on the shelf to test";
 }
 
+// A weapon a dropped scroll fits is traced as usual, unless the plan holds its
+// slots for that scroll; then the shelf offers it neither trace nor star.
+TEST_F(GearPlanTest, AHeldSlotWaitsForTheDroppedScroll) {
+  EquipPrototype weapon = Sword();
+  weapon.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  weapon.set_required_level(200);
+  weapon.set_upgrade_slots(7);
+  Grow(200, weapon);
+  // Trying on a scroll rebuilds the character from the catalog.
+  state_->equips["sword"] = weapon;
+  ItemPrototype trace;
+  trace.set_name("Spell Trace");
+  trace.set_shop_price(100);
+  state_->items["spell_trace"] = trace;
+  Scroll traced;
+  traced.set_name("Trace");
+  traced.set_tier(TierForLevel(200));
+  traced.set_target(SCROLL_TARGET_WEAPON);
+  traced.set_scroll_type(SCROLL_TYPE_ATT);
+  traced.set_success_rate(100);
+  traced.mutable_stats()->set_attack(3);
+  traced.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  state_->scrolls["trace"] = traced;
+  Scroll magical = traced;
+  magical.set_name("Magical");
+  magical.set_paid_with("Magical");
+  magical.mutable_stats()->set_attack(10);
+  state_->scrolls["magical"] = magical;
+  state_->character.AddMeso(1'000'000'000);
+  auto offers_for_weapon = [this](const GearPlan& plan) {
+    GearShopper shopper{plan};
+    int offers = 0;
+    for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
+      offers += offer.scroll != nullptr || offer.star ? 1 : 0;
+    }
+    return offers;
+  };
+
+  EXPECT_GT(offers_for_weapon(GearPlan()), 0);
+  GearPlan held;
+  held.holds = [](const std::string& paid_with) {
+    return paid_with == "Magical";
+  };
+  EXPECT_EQ(offers_for_weapon(held), 0);
+}
+
 // A replacing run the purse can no longer cover again takes the first roll
 // ahead of where it began, rather than rolling until it is left on the last.
 TEST_F(GearPlanTest, AReplacingRunShortOfMesoSettlesForAnyGain) {

@@ -128,6 +128,11 @@ void WearSkillRings(GameState& state,
                     const std::function<double(GameState&)>& power,
                     std::string* memo);
 
+// Whether `scroll`, one a boss drops, goes on `proto` and raises the attack
+// `job` hits with. One raising only the other attack does the job no good.
+bool DroppedScrollFits(const Scroll& scroll, const EquipPrototype& proto,
+                       Job job);
+
 // Spends the scrolls bosses drop on open upgrade slots of what boss fights
 // wear, the biggest first. Returns how many were used.
 int UseDroppedScrolls(GameState& state);

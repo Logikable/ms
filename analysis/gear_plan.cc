@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <optional>
 #include <set>
@@ -208,6 +209,18 @@ bool AwaitsSplit(const CharacterInstance& character, const std::string& name) {
   return false;
 }
 
+// Whether a dropped scroll `holds` waits for goes on `proto`.
+bool AwaitsDroppedScroll(const GameState& state, const EquipPrototype& proto,
+                         const std::function<bool(const std::string&)>& holds) {
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    if (DroppedScrollFits(entry.second, proto, state.character.proto().job()) &&
+        holds(entry.second.paid_with())) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
@@ -244,6 +257,14 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     int open_slots) {
   if (basis.trace == nullptr || open_slots <= 0) {
     return std::nullopt;
+  }
+  // Only boss gear: UseDroppedScrolls fills nothing else.
+  if (plan_.holds && basis.gear == kBossGear) {
+    const EquipInstance* item = state.character.WornAt(basis.gear, slot);
+    if (item != nullptr &&
+        AwaitsDroppedScroll(state, item->prototype(), plan_.holds)) {
+      return std::nullopt;
+    }
   }
   const Scroll* scroll = ScrollFor(state, slot);
   if (scroll == nullptr) {

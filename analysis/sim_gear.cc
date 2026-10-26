@@ -1020,18 +1020,34 @@ void WearSkillRings(GameState& state,
   }
 }
 
+bool DroppedScrollFits(const Scroll& scroll, const EquipPrototype& proto,
+                       Job job) {
+  const bool magic = PrimaryStatField(job) == STAT_FIELD_INT;
+  const int raise =
+      magic ? scroll.stats().magic_attack() : scroll.stats().attack();
+  if (scroll.paid_with().empty() || raise <= 0 ||
+      TargetForSlot(proto.equip_slot()) != scroll.target() ||
+      !Supports(proto, UPGRADE_SCROLL)) {
+    return false;
+  }
+  std::set<int> categories(scroll.applicable_job_categories().begin(),
+                           scroll.applicable_job_categories().end());
+  for (int category : proto.equip_job_categories()) {
+    if (categories.count(category) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int UseDroppedScrolls(GameState& state) {
   CharacterInstance& character = state.character;
-  const bool magic =
-      PrimaryStatField(character.proto().job()) == STAT_FIELD_INT;
+  const Job job = character.proto().job();
+  const bool magic = PrimaryStatField(job) == STAT_FIELD_INT;
   std::vector<const Scroll*> scrolls;
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
-    const Scroll& scroll = entry.second;
-    // One that raises only the other attack does this job no good.
-    const int raise =
-        magic ? scroll.stats().magic_attack() : scroll.stats().attack();
-    if (!scroll.paid_with().empty() && raise > 0) {
-      scrolls.push_back(&scroll);
+    if (!entry.second.paid_with().empty()) {
+      scrolls.push_back(&entry.second);
     }
   }
   std::sort(scrolls.begin(), scrolls.end(),
@@ -1041,18 +1057,10 @@ int UseDroppedScrolls(GameState& state) {
             });
   int used = 0;
   for (const Scroll* scroll : scrolls) {
-    std::set<int> categories(scroll->applicable_job_categories().begin(),
-                             scroll->applicable_job_categories().end());
     std::vector<EquipSlot> slots;
     for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
          character.equipped(kBossGear)) {
-      const EquipPrototype& proto = worn.second->prototype();
-      bool fits = false;
-      for (int category : proto.equip_job_categories()) {
-        fits = fits || categories.count(category) > 0;
-      }
-      if (fits && TargetForSlot(proto.equip_slot()) == scroll->target() &&
-          Supports(proto, UPGRADE_SCROLL)) {
+      if (DroppedScrollFits(*scroll, worn.second->prototype(), job)) {
         slots.push_back(worn.first);
       }
     }
