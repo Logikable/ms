@@ -1334,14 +1334,15 @@ TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
       << "Early's shards are open, but the Soul entry isn't";
 }
 
-// The max character at the cap: every slot passed, and
-// the stars the level's band pays for, with the weapon three stars higher.
+// The max character at the cap: every slot passed, and the stars the level's
+// band pays for, capped at what the item's level takes.
 TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
   EXPECT_EQ(weapon.remaining_upgrade_slots(), 0);
   EXPECT_EQ(weapon.scroll_successes(), 9);
-  EXPECT_EQ(weapon.stars(), MaxGearForLevel(kTrialLevelCap).weapon_stars);
+  ASSERT_GT(MaxGearForLevel(kTrialLevelCap).weapon_stars, 15);
+  EXPECT_EQ(weapon.stars(), 15) << "the level-120 stand-in takes no more";
   EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(),
             MaxGearForLevel(kTrialLevelCap).stars);
 }

@@ -34,8 +34,9 @@ namespace {
 
 // The stars //analysis:progression_sim's sweep of 2026-10-04 wore on arriving
 // at each level: the fifth of ten branches from the top over every starred
-// piece. A fresh tier arrives at 10 whatever came before it; 230 and 260
-// re-read 2026-10-26.
+// piece. A fresh tier arrives at 10 whatever came before it; 230 re-read
+// 2026-10-26. 260 is read at the run's end instead, the user's call: a capped
+// character stars the new tier to 17 within days.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -43,7 +44,7 @@ struct GearBand {
 
 constexpr GearBand kBands[] = {
     {0, {5, 5, 0}},       {140, {8, 14, 0}},    {170, {10, 14, 0}},
-    {200, {10, 14, 200}}, {230, {10, 11, 230}}, {260, {10, 13, 260}},
+    {200, {10, 14, 200}}, {230, {10, 11, 230}}, {260, {17, 17, 260}},
 };
 
 // One piece of an outfit: a catalog key every job wears, or the job's own
