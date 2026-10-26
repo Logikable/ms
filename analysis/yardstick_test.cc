@@ -10,6 +10,7 @@
 #include "src/character/skill_placement.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -185,6 +186,49 @@ TEST(HeldYardstickTest, HoldsWhatItTookWhileTheKitStands) {
   const Yardstick& again = held.For(*state);
   EXPECT_EQ(again.target.level(), level);
   EXPECT_EQ(again.strands.size(), strands);
+}
+
+// A one-phase boss of one `body` that opens at `unlock`.
+Boss OneBodyBoss(GameState& state, const std::string& body, int unlock) {
+  Mob mob = SnailMob();
+  mob.set_name(body);
+  mob.set_boss(true);
+  mob.set_max_hp(1'000'000'000);
+  state.mobs[body] = mob;
+  Boss boss;
+  boss.set_name(body);
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_unlock_level(unlock);
+  normal->set_time_limit_seconds(1800);
+  BossPhase* phase = normal->add_phases();
+  Spawn* spawn = phase->add_spawns();
+  spawn->set_mob(body);
+  spawn->add_spots()->set_x(2);
+  ArenaSpot* stand = phase->add_player_spots();
+  stand->set_x(2);
+  stand->set_y(1);
+  return boss;
+}
+
+// --goals ranks against the fight the player is on, which may not be the one
+// AimedFight would pick.
+TEST(HeldYardstickTest, AnAimedFightIsJudgedInsteadOfTheDefault) {
+  std::unique_ptr<GameState> state = ArmedOnAField();
+  state->bosses["open"] = OneBodyBoss(*state, "Open Body", 1);
+  state->bosses["other"] = OneBodyBoss(*state, "Other Body", 1);
+  HeldYardstick held;
+  Fight fight;
+  ASSERT_TRUE(held.Aimed(*state, &fight));
+  const std::string defaulted = fight.first;
+  const std::string aimed = defaulted == "open" ? "other" : "open";
+  EXPECT_EQ(held.For(*state).target.name(), state->bosses[defaulted].name());
+
+  held.Aim({aimed, 0});
+  ASSERT_TRUE(held.Aimed(*state, &fight));
+  EXPECT_EQ(fight.first, aimed);
+  EXPECT_EQ(held.For(*state).target.name(), state->bosses[aimed].name())
+      << "a held yardstick taken before the aim must be retaken";
 }
 
 }  // namespace

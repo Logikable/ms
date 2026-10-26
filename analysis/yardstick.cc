@@ -48,14 +48,24 @@ Mob ObjectiveBody(const GameState& state, const BossDifficulty& difficulty) {
                              : *toughest;
 }
 
+// `aim` when set, else AimedFight's pick.
+bool AimOrDefault(const GameState& state, const Fight* aim, Fight* fight) {
+  if (aim != nullptr) {
+    *fight = *aim;
+    return true;
+  }
+  return AimedFight(state, fight);
+}
+
 // Combat params for the target fight, and how many enemies are in it. Uses the
 // boss when there is a target fight, not the map, since a boss uses the bossing
 // preset, halves reach, and gets a different attack choice than a crowd.
-CombatParams AimedParams(const GameState& state, int* enemies) {
-  std::pair<std::string, int> fight;
+CombatParams AimedParams(const GameState& state, const Fight* aim,
+                         int* enemies) {
+  Fight fight;
   CombatParams params;
   *enemies = 1;
-  if (AimedFight(state, &fight) &&
+  if (AimOrDefault(state, aim, &fight) &&
       state.bosses.find(fight.first) != state.bosses.end()) {
     const BossDifficulty& difficulty =
         state.bosses.at(fight.first).difficulties(fight.second);
@@ -109,9 +119,10 @@ constexpr double kStrandFloor = 0.01;
 //
 // Own-clock damage (summons, periodic effects) is credited across the strands
 // in proportion, since it scales with the character rather than any one attack.
-std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
+std::vector<Strand> StrandsFor(const GameState& state, const Mob& target,
+                               const Fight* aim) {
   int enemies = 1;
-  CombatParams params = AimedParams(state, &enemies);
+  CombatParams params = AimedParams(state, aim, &enemies);
   std::vector<Strand> strands;
   if (!params.active || params.attacks.empty()) {
     return strands;
@@ -161,13 +172,13 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
 }
 
 // What a held yardstick is recomputed on: the kit and the target.
-std::string KitKey(const GameState& state) {
+std::string KitKey(const GameState& state, const Fight* aim) {
   std::string key;
   const Character& proto = state.character.proto();
   absl::StrAppend(&key, proto.job(), "/", proto.level(), "/", state.current_map,
                   "\n");
-  std::pair<std::string, int> fight;
-  AimedFight(state, &fight);
+  Fight fight;
+  AimOrDefault(state, aim, &fight);
   absl::StrAppend(&key, fight.first, "/", fight.second, "\n");
   for (const std::pair<const EquipSlot, const EquipInstance*>& item :
        state.character.equipped(AutoswapSlotFor(Activity::kBossing))) {
@@ -185,10 +196,10 @@ std::string KitKey(const GameState& state) {
 
 }  // namespace
 
-Yardstick YardstickFor(const GameState& state) {
+Yardstick YardstickFor(const GameState& state, const Fight* aim) {
   Yardstick yard;
-  std::pair<std::string, int> fight;
-  if (AimedFight(state, &fight)) {
+  Fight fight;
+  if (AimOrDefault(state, aim, &fight)) {
     std::map<std::string, Boss>::const_iterator boss =
         state.bosses.find(fight.first);
     if (boss != state.bosses.end()) {
@@ -199,7 +210,7 @@ Yardstick YardstickFor(const GameState& state) {
   if (yard.target.name().empty()) {
     yard.target = StandIn(state.character.proto().level());
   }
-  yard.strands = StrandsFor(state, yard.target);
+  yard.strands = StrandsFor(state, yard.target, aim);
   return yard;
 }
 
@@ -226,13 +237,18 @@ double WorthOf(const GameState& state, const Yardstick& yard,
 }
 
 const Yardstick& HeldYardstick::For(const GameState& state) {
-  std::string key = KitKey(state);
+  const Fight* aim = aim_.has_value() ? &*aim_ : nullptr;
+  std::string key = KitKey(state, aim);
   if (!taken_ || key != key_) {
-    held_ = YardstickFor(state);
+    held_ = YardstickFor(state, aim);
     key_ = std::move(key);
     taken_ = true;
   }
   return held_;
+}
+
+bool HeldYardstick::Aimed(const GameState& state, Fight* fight) const {
+  return AimOrDefault(state, aim_.has_value() ? &*aim_ : nullptr, fight);
 }
 
 }  // namespace ms

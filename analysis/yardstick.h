@@ -15,7 +15,9 @@
 #ifndef MS_ANALYSIS_YARDSTICK_H_
 #define MS_ANALYSIS_YARDSTICK_H_
 
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/combat/damage.h"
@@ -47,9 +49,13 @@ struct Yardstick {
   std::vector<Strand> strands;
 };
 
-// Computes the yardstick. Expensive: it plays out the target fight to see what
-// the character actually does, which is why HeldYardstick exists.
-Yardstick YardstickFor(const GameState& state);
+// A boss and the index of one of its difficulties.
+using Fight = std::pair<std::string, int>;
+
+// Computes the yardstick against `aim`, or AimedFight's fight when null.
+// Expensive: it plays out the target fight to see what the character actually
+// does, which is why HeldYardstick exists.
+Yardstick YardstickFor(const GameState& state, const Fight* aim = nullptr);
 
 // The same attacks aimed at a monster of `level` with no defence and no boss
 // flag: what farm gear is valued against, since a map's crowd has neither.
@@ -69,7 +75,16 @@ class HeldYardstick {
  public:
   const Yardstick& For(const GameState& state);
 
+  // Judges against `fight` from now on instead of AimedFight's pick.
+  void Aim(const Fight& fight) {
+    aim_ = fight;
+    taken_ = false;
+  }
+  // The fight judged against, as AimedFight reports it.
+  bool Aimed(const GameState& state, Fight* fight) const;
+
  private:
+  std::optional<Fight> aim_;
   Yardstick held_;
   std::string key_;
   bool taken_ = false;

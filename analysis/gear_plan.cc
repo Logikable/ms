@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "analysis/cube_plan.h"
-#include "analysis/sim_boss.h"
 #include "analysis/sim_gear.h"
 #include "analysis/soul_plan.h"
 #include "analysis/star_force_curve.h"
@@ -403,8 +402,8 @@ void GearShopper::PieceOffers(GameState& state, const Basis& basis,
 
 std::optional<GearShopper::Candidate> GearShopper::ForceRunOffer(
     GameState& state, const Basis& basis) {
-  std::pair<std::string, int> fight;
-  if (!AimedFight(state, &fight)) {
+  Fight fight;
+  if (!yard_.Aimed(state, &fight)) {
     return std::nullopt;
   }
   std::map<std::string, Boss>::const_iterator boss =

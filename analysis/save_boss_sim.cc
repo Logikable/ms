@@ -21,11 +21,13 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
 #include "analysis/cube_plan.h"
 #include "analysis/flame_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_world.h"
+#include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/character/guild.h"
 #include "src/character/noblesse_plan.h"
@@ -55,7 +57,11 @@ ABSL_FLAG(bool, shelf, false,
           "expected meso per Combat Power.");
 ABSL_FLAG(bool, goals, false,
           "List the shopper's purchases on the save in order instead, each as "
-          "a goal with its expected meso per Combat Power.");
+          "a goal with its expected meso per DPM against --boss.");
+ABSL_FLAG(std::string, boss, "",
+          "The fight --goals ranks against, as boss:Difficulty (lucid:Hard). "
+          "By default, of the fights the character loses, the one they come "
+          "nearest to clearing.");
 ABSL_FLAG(int, goal_runs, 1000,
           "Follow-throughs of each cube or flame run --goals measures.");
 ABSL_FLAG(int, goal_steps, 40, "Purchases --goals lists at most.");
@@ -72,6 +78,10 @@ ABSL_FLAG(std::string, spend_to, "",
 
 namespace ms {
 namespace {
+
+// The shopper's power is damage per second of the fight's clock, as bench_sim's
+// DPS is.
+constexpr double kDpmPerPower = 60.0;
 
 // Reads `path` into `state`, a fresh NewState.
 bool Load(const Catalogs& catalogs, const std::string& path, GameState& state) {
@@ -567,33 +577,85 @@ struct GoalRow {
   std::vector<std::string> detail;
   int64_t mean = 0;
   std::string p90;
-  double cp = 0.0;
+  double dpm = 0.0;
   std::string piece;  // what it is bought for, which orders steps on it
-  double rank = 0.0;  // meso per CP, never ahead of an earlier step's piece
+  double rank = 0.0;  // meso per DPM, never ahead of an earlier step's piece
 };
+
+// The fight --goals ranks against: --boss when set, else the losing fight that
+// ends with the least HP left at the clock, else AimedFight's pick when the
+// character wins everything open to them.
+bool WorkingOn(const Catalogs& catalogs, const std::string& path,
+               const GameState& state, Fight* fight) {
+  const std::string named = absl::GetFlag(FLAGS_boss);
+  if (!named.empty()) {
+    const std::vector<std::string> parts = absl::StrSplit(named, ':');
+    std::map<std::string, Boss>::const_iterator boss =
+        state.bosses.find(parts[0]);
+    const int index = boss == state.bosses.end() || parts.size() != 2
+                          ? -1
+                          : BossDifficultyIndex(boss->second, parts[1]);
+    if (index < 0) {
+      std::fprintf(stderr, "--boss=%s: no such fight\n", named.c_str());
+      return false;
+    }
+    *fight = {parts[0], index};
+    return true;
+  }
+  double nearest = 2.0;
+  for (const Fight& open :
+       UnlockedBosses(state, state.character.proto().level())) {
+    GameState trial = NewState(catalogs, 1000);
+    if (!Load(catalogs, path, trial)) {
+      return false;
+    }
+    const BossOutcome outcome = FightBoss(trial, open.first, open.second);
+    if (!outcome.won && outcome.left_at_clock < nearest) {
+      nearest = outcome.left_at_clock;
+      *fight = open;
+    }
+  }
+  return nearest <= 1.0 || AimedFight(state, fight);
+}
+
+std::string FightName(const GameState& state, const Fight& fight) {
+  const Boss& boss = state.bosses.at(fight.first);
+  return absl::StrCat(boss.difficulties(fight.second).name(), " ", boss.name());
+}
 
 // The shopper's purchases on the save, each as a goal: what to buy and where
 // to stop. The shopper picks the best boss damage per meso at each step,
 // re-ranked after every purchase; a cube or flame run's cost is measured over
 // `runs` follow-throughs of its stopping rule, and the plan goes on from one
-// of them. Printed by that measured meso per CP, with a later step on a piece
-// never ahead of an earlier one.
+// of them. Printed by that measured meso per DPM against the fight the
+// character is working on (see WorkingOn), with a later step on a piece never
+// ahead of an earlier one. DPM is the shopper's damage rate, which unlike
+// Combat Power counts ignored defence.
 bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
                 int steps, int samples) {
   GameState state = NewState(catalogs, 1);
   if (!Load(catalogs, path, state)) {
     return false;
   }
+  Fight fight;
+  if (!WorkingOn(catalogs, path, state, &fight)) {
+    return false;
+  }
   GearPlan plan;
   plan.samples = samples;
   GearShopper shopper{plan};
+  shopper.yardstick().Aim(fight);
+  const std::string against = FightName(state, fight);
   const int start_cp =
       CharacterCombatPower(state.character, state.skills, Activity::kBossing);
+  const double start_dpm = kDpmPerPower * shopper.Power(state);
   const int64_t purse = state.character.meso();
-  std::printf("%s, level %d: %s meso, boss Combat Power %s.\n",
-              state.character.proto().name().c_str(),
-              state.character.proto().level(), FormatWithCommas(purse).c_str(),
-              FormatWithCommas(start_cp).c_str());
+  std::printf(
+      "%s, level %d: %s meso, DPM against %s %s, boss Combat Power %s.\n",
+      state.character.proto().name().c_str(), state.character.proto().level(),
+      FormatWithCommas(purse).c_str(), against.c_str(),
+      FormatWithCommas(static_cast<int64_t>(start_dpm)).c_str(),
+      FormatWithCommas(start_cp).c_str());
   std::printf(
       "Cube and flame costs over %d runs of each stopping rule. Meso and "
       "drop lines are valued at nothing.\n\n",
@@ -601,8 +663,6 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
   std::vector<GoalRow> rows;
   for (int step = 1; step <= steps; ++step) {
     const double power = shopper.Power(state);
-    const int cp =
-        CharacterCombatPower(state.character, state.skills, Activity::kBossing);
     bool bought = false;
     for (const GearShopper::Candidate& offer : shopper.Shelf(state)) {
       if (offer.gain <= 0.0 || offer.cost <= 0 ||
@@ -631,7 +691,7 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
                                  FlameName(offer.flame_type), sim.least_score,
                                  sim.start_score);
         } else {
-          goal = absl::StrFormat("%s: %ss until +%.2f%% boss damage", piece,
+          goal = absl::StrFormat("%s: %ss until +%.2f%% DPM", piece,
                                  CubeName(offer.cube_type),
                                  100.0 * sim.least_gain);
           std::vector<std::pair<int, std::string>> common;
@@ -655,9 +715,9 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
         continue;  // refused by the bag; the next offer is tried
       }
       bought = true;
-      GoalRow row{goal, detail, mean, p90, cp * gain, piece};
-      row.rank = row.cp > 0.0 ? mean / row.cp
-                              : std::numeric_limits<double>::infinity();
+      GoalRow row{goal, detail, mean, p90, kDpmPerPower * power * gain, piece};
+      row.rank = row.dpm > 0.0 ? mean / row.dpm
+                               : std::numeric_limits<double>::infinity();
       for (const GoalRow& earlier : rows) {
         if (earlier.piece == piece) {
           row.rank = std::max(row.rank, earlier.rank);
@@ -673,8 +733,8 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
   std::stable_sort(
       rows.begin(), rows.end(),
       [](const GoalRow& a, const GoalRow& b) { return a.rank < b.rank; });
-  std::printf("%3s  %-71s %14s %14s %10s %9s %14s\n", "#", "Goal", "Exp. meso",
-              "90% within", "CP", "Meso/CP", "Total exp.");
+  std::printf("%3s  %-71s %14s %14s %17s %11s %14s\n", "#", "Goal", "Exp. meso",
+              "90% within", "+DPM", "Meso/1M DPM", "Total exp.");
   int64_t total = 0;
   for (size_t i = 0; i < rows.size(); ++i) {
     const GoalRow& row = rows[i];
@@ -683,19 +743,23 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
                   FormatWithCommas(purse).c_str());
     }
     total += row.mean;
-    std::printf(
-        "%3zu  %-71s %14s %14s %10s %9s %14s\n", i + 1,
-        row.goal.substr(0, 71).c_str(), FormatWithCommas(row.mean).c_str(),
-        row.p90.c_str(), FormatWithCommas(static_cast<int64_t>(row.cp)).c_str(),
-        FormatWithCommas(static_cast<int64_t>(row.mean / row.cp)).c_str(),
-        FormatWithCommas(total).c_str());
+    std::printf("%3zu  %-71s %14s %14s %17s %11s %14s\n", i + 1,
+                row.goal.substr(0, 71).c_str(),
+                FormatWithCommas(row.mean).c_str(), row.p90.c_str(),
+                FormatWithCommas(static_cast<int64_t>(row.dpm)).c_str(),
+                FormatWithCommas(static_cast<int64_t>(row.rank * 1e6)).c_str(),
+                FormatWithCommas(total).c_str());
     for (const std::string& line : row.detail) {
       std::printf("     %s\n", line.c_str());
     }
   }
+  const double end_dpm = kDpmPerPower * shopper.Power(state);
   std::printf(
-      "\nBoss Combat Power after one play-through of the plan with the "
-      "purse: %s.\n",
+      "\nAfter one play-through of the plan with the purse: DPM against %s %s "
+      "(%+.1f%%), boss Combat Power %s. Combat Power leaves out ignored "
+      "defence.\n",
+      against.c_str(), FormatWithCommas(static_cast<int64_t>(end_dpm)).c_str(),
+      100.0 * (end_dpm / start_dpm - 1.0),
       FormatWithCommas(CharacterCombatPower(state.character, state.skills,
                                             Activity::kBossing))
           .c_str());

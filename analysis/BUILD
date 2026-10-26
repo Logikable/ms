@@ -224,7 +224,6 @@ cc_library(
     deps = [
         ":cube_plan",
         ":flame_plan",
-        ":sim_boss",
         ":sim_gear",
         ":soul_plan",
         ":star_force_curve",
@@ -462,6 +461,7 @@ cc_test(
         "//src/character:character_stats",
         "//src/character:skill_placement",
         "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
@@ -886,6 +886,7 @@ sim_binary(
         ":gear_plan",
         ":sim_boss",
         ":sim_world",
+        ":yardstick",
         "//src:game_state",
         "//src:save",
         "//src/character:character_stats",
