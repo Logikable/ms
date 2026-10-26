@@ -1847,8 +1847,10 @@ void SpendNoblessePoints(Session& run) {
                   });
 }
 
-// Spends collected honor on the bossing Inner Ability preset only: there's one
-// pool, and a character this early can't finish both.
+// Spends collected honor on the bossing Inner Ability preset, and once that has
+// settled, on the farming one: there's one pool, and splitting it early would
+// finish neither. Farming was once never rolled, and kept the Rare preset a
+// character starts with to the cap.
 //
 // New gear doesn't force a re-measure here: a fresh table can name a different
 // target line and restart a chase that a dry pool leaves half done. Forcing it
@@ -1883,6 +1885,11 @@ void SpendHonor(Session& run) {
   }
   run.climb.ability_honor_spent += SpendHonorOnAbility(
       run.state, AbilityRankWanted(), StatPreset::kSecond, run.bossing_worth);
+  if (AbilitySettled(run.state.character.ability(StatPreset::kSecond),
+                     AbilityRankWanted(), run.bossing_worth)) {
+    run.climb.ability_honor_spent += SpendHonorOnAbility(
+        run.state, AbilityRankWanted(), StatPreset::kFirst, run.farming_worth);
+  }
 }
 
 // After a fight: wear what dropped. What it paid waits for the next look's

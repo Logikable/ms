@@ -142,4 +142,9 @@ int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
   return spent;
 }
 
+bool AbilitySettled(const AbilityPreset& preset, AbilityRank climb_to,
+                    const AbilityWorth& worth) {
+  return Settled(preset, climb_to, worth);
+}
+
 }  // namespace ms

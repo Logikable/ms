@@ -48,6 +48,11 @@ AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
 int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
                             StatPreset preset, const AbilityWorth& worth);
 
+// Whether `preset` is finished: `climb_to` reached, the best line on top and
+// nothing dead below it. SpendHonorOnAbility stops there.
+bool AbilitySettled(const AbilityPreset& preset, AbilityRank climb_to,
+                    const AbilityWorth& worth);
+
 }  // namespace ms
 
 #endif  // MS_ANALYSIS_ABILITY_PLAN_H_
