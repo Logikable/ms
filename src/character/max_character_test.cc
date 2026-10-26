@@ -49,10 +49,10 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
 
   const MaxGear at200 = MaxGearForLevel(200);
   EXPECT_EQ(at200.stars, 10);
-  EXPECT_EQ(at200.potential_level, 0);
-  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
-  EXPECT_EQ(MaxGearForLevel(260).stars, 11);
-  EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 14);
+  EXPECT_EQ(at200.potential_level, 200);
+  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 11);
+  EXPECT_EQ(MaxGearForLevel(260).stars, 10);
+  EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 13);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
 
@@ -78,14 +78,14 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
   EXPECT_TRUE(wears(JOB_HERO, 100, "frozen_hat"));
   EXPECT_FALSE(wears(JOB_HERO, 100, "lightning_god_ring"));
   EXPECT_TRUE(wears(JOB_HERO, 229, "frozen_hat"));
-  EXPECT_TRUE(wears(JOB_HERO, 230, "royal_warrior_helm"));
-  EXPECT_TRUE(wears(JOB_BISHOP, 230, "royal_dunwitch_hat"));
+  EXPECT_TRUE(wears(JOB_HERO, 230, "absolab_knight_helm"));
+  EXPECT_TRUE(wears(JOB_BISHOP, 230, "absolab_mage_crown"));
   EXPECT_TRUE(wears(JOB_HERO, 230, "absolab_broad_axe"));
   EXPECT_TRUE(wears(JOB_BISHOP, 230, "absolab_spellsong_staff"));
   EXPECT_TRUE(wears(JOB_NIGHT_LORD, 230, "princess_nos_charm"));
-  EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "falcon_wing_sentinel_shoulder"));
+  EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "absolab_archer_shoulder"));
   EXPECT_TRUE(wears(JOB_SHADOWER, 260, "arcane_umbra_thief_shoulder"));
-  EXPECT_TRUE(wears(JOB_HERO, 260, "absolab_knight_armor"));
+  EXPECT_TRUE(wears(JOB_HERO, 260, "arcane_umbra_knight_suit"));
   EXPECT_TRUE(wears(JOB_HERO, 260, "guardian_angel_ring"));
   EXPECT_FALSE(wears(JOB_HERO, 260, "lightning_god_ring"));
   for (Job job : {JOB_HERO, JOB_BISHOP, JOB_BOW_MASTER, JOB_NIGHT_LORD}) {
@@ -103,20 +103,20 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
 // after they open; a fight it never named never falls.
 TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
   EXPECT_EQ(MaxClearLevel("zakum", "Normal"), 110);
-  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 255);
+  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 247);
   EXPECT_EQ(MaxClearLevel("zakum", "Hard"), 0);
   EXPECT_EQ(MaxClearLevel("wall", ""), 0);
 }
 
-// Three alts at 70 from 230, five at 120 at 260, never on the main's line.
+// Four alts at 120 from 230, seven at 260, never on the main's line.
 TEST(MaxCharacterTest, AltsComeLateAndSkipTheMainsLine) {
   EXPECT_TRUE(MaxAlts(JOB_FIGHTER, 229).empty());
   const std::vector<MaxAlt> at230 = MaxAlts(JOB_FIGHTER, 230);
-  ASSERT_EQ(at230.size(), 3u);
-  EXPECT_EQ(at230[0].line, JOB_CROSSBOWMAN);
-  EXPECT_EQ(at230[0].level, 70);
+  ASSERT_EQ(at230.size(), 4u);
+  EXPECT_EQ(at230[0].line, JOB_FIRE_POISON_WIZARD);
+  EXPECT_EQ(at230[0].level, 120);
   const std::vector<MaxAlt> marksman = MaxAlts(JOB_CROSSBOWMAN, 260);
-  ASSERT_EQ(marksman.size(), 5u);
+  ASSERT_EQ(marksman.size(), 7u);
   for (const MaxAlt& alt : marksman) {
     EXPECT_NE(alt.line, JOB_CROSSBOWMAN);
     EXPECT_EQ(alt.level, 120);
@@ -187,7 +187,7 @@ TEST(MaxCharacterTest, EveryLineCouldHaveBeenRolled) {
   const StatField kStats[] = {STAT_FIELD_STR, STAT_FIELD_DEX, STAT_FIELD_INT,
                               STAT_FIELD_LUK};
   int checked = 0;
-  for (int level : {230, 260}) {
+  for (int level : {200, 230, 260}) {
     for (PotentialTrack track :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
       for (EquipSlot slot : kSlots) {
@@ -229,15 +229,14 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
   EXPECT_EQ(ring.lines(2).rank(), POTENTIAL_RANK_RARE);
 }
 
-// The weapon and secondary hold boss damage and ignored defence; bonus
-// weaponry holds attack.
+// The weapon holds boss damage and attack; bonus weaponry holds attack.
 TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
   const MaxGear gear = MaxGearForLevel(260);
   const Potential weapon = MaxPotentialFor(
       EQUIP_SLOT_PRIMARY_WEAPON, gear, STAT_FIELD_INT, PotentialTrack::kMain);
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
-  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30), 1);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 2);
 
   const Potential bonus = MaxPotentialFor(
       EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_INT, PotentialTrack::kBonus);
@@ -252,7 +251,7 @@ TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
   const Potential early =
       MaxPotentialFor(EQUIP_SLOT_SECONDARY, MaxGearForLevel(230),
                       STAT_FIELD_STR, PotentialTrack::kMain);
-  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
 }
 
 // A slot that takes no potential gets none, nor does a level with no cubing,
@@ -266,7 +265,7 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
                             STAT_FIELD_STR, PotentialTrack::kMain)
                 .lines_size(),
             0);
-  EXPECT_EQ(MaxPotentialFor(EQUIP_SLOT_HAT, MaxGearForLevel(230),
+  EXPECT_EQ(MaxPotentialFor(EQUIP_SLOT_HAT, MaxGearForLevel(229),
                             STAT_FIELD_STR, PotentialTrack::kBonus)
                 .lines_size(),
             0);
@@ -312,7 +311,7 @@ TEST(MaxCharacterTest, FlamesHoldDistinctLinesFromTheItemsPool) {
       }
     }
     EXPECT_TRUE(
-        MaxFlameFor(proto, 250, STAT_FIELD_STR, STAT_FIELD_DEX).empty());
+        MaxFlameFor(proto, 199, STAT_FIELD_STR, STAT_FIELD_DEX).empty());
   }
   EXPECT_TRUE(MaxFlameFor(Flammable(EQUIP_SLOT_RING, 200), 260, STAT_FIELD_STR,
                           STAT_FIELD_DEX)

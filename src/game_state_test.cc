@@ -997,8 +997,9 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   EquipPrototype shoulder = hat;
   shoulder.set_name("Royal Black Metal Shoulder");
   shoulder.set_equip_slot(EQUIP_SLOT_SHOULDER);
-  EquipPrototype cygnus = shoulder;
-  cygnus.set_name("Lionheart Battle Shoulder");
+  EquipPrototype absolab = shoulder;
+  absolab.set_name("AbsoLab Knight Shoulder");
+  absolab.set_required_level(160);
   EquipPrototype helm = hat;
   helm.set_name("AbsoLab Knight Helm");
   helm.set_required_level(160);
@@ -1011,7 +1012,7 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
       {"absolab_knight_helm", helm},
       {"arcane_umbra_knight_hat", umbra},
       {"royal_black_metal_shoulder", shoulder},
-      {"lionheart_battle_shoulder", cygnus}};
+      {"absolab_knight_shoulder", absolab}};
   for (const char* key : {"horseback_riding_doll_totem", "jade_kettle_totem",
                           "bronze_incense_burner_totem"}) {
     EquipPrototype totem;
@@ -1025,7 +1026,8 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   // each displaces.
   const std::tuple<const char*, const char*, EquipSlot> accessories[] = {
       {"magic_eyepatch", "Magic Eyepatch", EQUIP_SLOT_EYE_ACCESSORY},
-      {"black_bean_mark", "Black Bean Mark", EQUIP_SLOT_EYE_ACCESSORY},
+      {"aquatic_letter_eye_accessory", "Aquatic Letter Eye Accessory",
+       EQUIP_SLOT_EYE_ACCESSORY},
       {"guardian_angel_ring", "Guardian Angel Ring", EQUIP_SLOT_RING},
       {"lightning_god_ring", "Lightning God Ring", EQUIP_SLOT_RING}};
   for (const auto& [key, name, slot] : accessories) {
@@ -1219,11 +1221,11 @@ TEST(GameStateTest, MaxModeWearsTheFrierenPetsUnscrolled) {
 }
 
 // A max account holds the alts the sweep levelled for link skills: at the cap
-// five lines at 120, none of them the Hero's own. Lines of one branch sum, so
-// the two archer alts give 4 and the lone rogue 2.
+// seven lines at 120, none of them the Hero's own. Lines of one branch sum, so
+// the two archer alts give 4 and the three magicians 6.
 TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   GameState state = MakeMaxState(kTrialLevelCap);
-  ASSERT_EQ(state.inactive_characters.size(), 5u);
+  ASSERT_EQ(state.inactive_characters.size(), 7u);
   for (const CharacterSave& slot : state.inactive_characters) {
     const Character& sheet = slot.character();
     SCOPED_TRACE(sheet.name());
@@ -1240,9 +1242,9 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 0)
       << "the Hero being played is not in the mirrored half";
   EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 4);
-  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 4);
-  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 2);
-  EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 2);
+  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 6);
+  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 4);
+  EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 4);
 }
 
 // The Legion reads the alts from the mirror and the Hero at their own level,
@@ -1250,7 +1252,7 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
 TEST(GameStateTest, TheLegionSeesTheWholeAccount) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.character.legion_summary().legion_level,
-            kTrialLevelCap + 5 * 120);
+            kTrialLevelCap + 7 * 120);
 
   LegionSummary summary = state.character.legion_summary();
   // Max mode spends Farm and Boss and leaves the spare.
@@ -1381,16 +1383,19 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
   };
   const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
   const StatPreset farm = AutoswapSlotFor(Activity::kFarming);
-  EXPECT_EQ(name_in(farm, EQUIP_SLOT_EYE_ACCESSORY), "Black Bean Mark");
+  EXPECT_EQ(name_in(farm, EQUIP_SLOT_EYE_ACCESSORY),
+            "Aquatic Letter Eye Accessory");
   EXPECT_EQ(name_in(boss, EQUIP_SLOT_EYE_ACCESSORY), "Magic Eyepatch");
-  EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY), "Black Bean Mark");
+  EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY),
+            "Aquatic Letter Eye Accessory");
   EXPECT_EQ(name_in(farm, EQUIP_SLOT_RING), "Lightning God Ring");
   EXPECT_EQ(name_in(boss, EQUIP_SLOT_RING), "Guardian Angel Ring");
 
   const EquipInstance& eye = *character.WornAt(farm, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_EQ(eye.potential().lines_size(), kPotentialLines);
-  EXPECT_EQ(eye.potential().lines(0).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
-  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+  EXPECT_EQ(eye.potential().lines(0).type(),
+            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
+  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
   EXPECT_EQ(eye.equip_state().bonus_potential().lines_size(), 0);
   const EquipInstance& ring = *character.WornAt(farm, EQUIP_SLOT_RING);
   ASSERT_EQ(ring.potential().lines_size(), kPotentialLines);
@@ -1422,7 +1427,7 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 // at each level, so Arcane Force is checked against a real character.
 TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   const std::pair<int, int> kLevelForce[] = {
-      {200, 30}, {230, 4 * 20 + 36 * 10}, {kGrandisLevel, 113 * 10 + 6 * 20}};
+      {200, 30}, {230, 4 * 20 + 45 * 10}, {kGrandisLevel, 114 * 10 + 6 * 20}};
   for (const std::pair<int, int>& entry : kLevelForce) {
     GameState state = MakeMaxState(entry.first);
     EXPECT_EQ(state.character.base_arcane_force(), entry.second) << entry.first;
@@ -1543,14 +1548,13 @@ TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
   }
 }
 
-// The shoulder follows the sweep: the Magnus drop from 170, the Cygnus one
-// once Cygnus falls, and nothing the outfit replaced is left in the bag.
+// The shoulder follows the sweep: the Magnus drop from 170, AbsoLab's from 230,
+// and nothing the outfit replaced is left in the bag.
 TEST(GameStateTest, MaxModeWearsTheShoulderTheSweepWore) {
   EXPECT_EQ(Worn(MakeMaxState(200), EQUIP_SLOT_SHOULDER).name(),
             "Royal Black Metal Shoulder");
   GameState state = MakeMaxState(230);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(),
-            "Lionheart Battle Shoulder");
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(), "AbsoLab Knight Shoulder");
   EXPECT_TRUE(state.character.inventory().empty());
 }
 

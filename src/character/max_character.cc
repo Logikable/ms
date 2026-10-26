@@ -34,15 +34,16 @@ namespace {
 
 // The stars //analysis:progression_sim's sweep of 2026-10-04 wore on arriving
 // at each level: the fifth of ten branches from the top over every starred
-// piece. A fresh tier arrives at 10-11 whatever came before it.
+// piece. A fresh tier arrives at 10 whatever came before it; 230 and 260
+// re-read 2026-10-26.
 struct GearBand {
   int level;
   MaxGear gear;
 };
 
 constexpr GearBand kBands[] = {
-    {0, {5, 5, 0}},     {140, {8, 14, 0}},    {170, {10, 14, 0}},
-    {200, {10, 14, 0}}, {230, {10, 13, 230}}, {260, {11, 14, 260}},
+    {0, {5, 5, 0}},       {140, {8, 14, 0}},    {170, {10, 14, 0}},
+    {200, {10, 14, 200}}, {230, {10, 11, 230}}, {260, {10, 13, 260}},
 };
 
 // One piece of an outfit: a catalog key every job wears, or the job's own
@@ -113,18 +114,18 @@ constexpr OutfitBand kOutfits[] = {
       Item("golden_clover_belt"),
       Item("bronze_incense_burner_totem")}},
     {230,
-     {Set(kRA, EQUIP_SLOT_HAT),
+     {Set(kAL, EQUIP_SLOT_HAT),
       Set(kAL, EQUIP_SLOT_TOP),
-      Set(kRA, EQUIP_SLOT_BOTTOM),
+      Set(kAL, EQUIP_SLOT_BOTTOM),
       Set(kAL, EQUIP_SLOT_CAPE),
       Set(kAL, EQUIP_SLOT_GLOVES),
-      Item("frozen_boots"),
+      Set(kAL, EQUIP_SLOT_SHOES),
+      Set(kAL, EQUIP_SLOT_SHOULDER),
       Set(kAL, EQUIP_SLOT_PRIMARY_WEAPON),
       Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
-      Set(SetFamily::kCygnus, EQUIP_SLOT_SHOULDER),
       Item("gold_maple_leaf_emblem"),
       Item("master_adventurer"),
-      Item("lightning_god_ring"),
+      Item("guardian_angel_ring"),
       Item("meister_ring"),
       Item("silver_blossom_ring"),
       Item("kannas_treasure"),
@@ -141,9 +142,9 @@ constexpr OutfitBand kOutfits[] = {
       Item("jade_kettle_totem")}},
     {260,
      {Set(kAU, EQUIP_SLOT_HAT),
-      Set(kAL, EQUIP_SLOT_TOP),
+      Set(kAU, EQUIP_SLOT_TOP),
       Set(kAU, EQUIP_SLOT_BOTTOM),
-      Set(kAL, EQUIP_SLOT_CAPE),
+      Set(kAU, EQUIP_SLOT_CAPE),
       Set(kAU, EQUIP_SLOT_GLOVES),
       Set(kAU, EQUIP_SLOT_SHOES),
       Set(kAU, EQUIP_SLOT_SHOULDER),
@@ -169,29 +170,34 @@ constexpr OutfitBand kOutfits[] = {
       Item("jade_kettle_totem")}},
 };
 
-// What the farming preset wore in place of the bossing preset's piece, read off
-// the sweep of 2026-10-06: a slot where at least five of ten branches farmed in
-// a piece of their own, and the lines the fifth of them held. Gear meso stops
-// at 100% (kEquipMesoSoftCap), so five pieces take it; the bossing preset
-// keeps the piece kOutfits names there, with no farm lines at all.
+// What the farming preset wore in place of the bossing preset's piece, re-read
+// off the sweep of 2026-10-26: a slot where at least five of ten branches
+// farmed in a piece of their own, and the lines most of them held. The bossing
+// preset keeps the piece kOutfits names there, with no farm lines at all.
 struct FarmBand {
   int level;
   MaxFarmPiece pieces[6];
 };
 
-constexpr MaxFarmPiece kFarmPieces[] = {
-    {EQUIP_SLOT_EYE_ACCESSORY, "black_bean_mark", true, false},
-    {EQUIP_SLOT_FACE_ACCESSORY, "condensed_power_crystal", false, true},
-    {EQUIP_SLOT_PENDANT, "horntail_necklace", true, false},
-    {EQUIP_SLOT_RING, "lightning_god_ring", true, true},
-    {EQUIP_SLOT_RING_2, "meister_ring", true, false},
-    {EQUIP_SLOT_RING_3, "silver_blossom_ring", true, false},
-};
+constexpr MaxFarmPiece kFarmEye = {EQUIP_SLOT_EYE_ACCESSORY,
+                                   "aquatic_letter_eye_accessory", true, true};
+constexpr MaxFarmPiece kFarmFace = {EQUIP_SLOT_FACE_ACCESSORY,
+                                    "condensed_power_crystal", true, false};
+constexpr MaxFarmPiece kFarmMeister = {EQUIP_SLOT_RING_2, "meister_ring", true,
+                                       false};
 
 constexpr FarmBand kFarmOutfits[] = {
     {230,
-     {kFarmPieces[0], kFarmPieces[1], kFarmPieces[2], kFarmPieces[3],
-      kFarmPieces[4], kFarmPieces[5]}},
+     {kFarmEye,
+      kFarmFace,
+      {EQUIP_SLOT_RING, "lightning_god_ring", true, false},
+      kFarmMeister}},
+    {260,
+     {kFarmEye,
+      kFarmFace,
+      {EQUIP_SLOT_PENDANT, "horntail_necklace", true, false},
+      {EQUIP_SLOT_RING, "lightning_god_ring", true, true},
+      kFarmMeister}},
 };
 
 // Each Arcane Symbol's level on arrival, read off the same sweep as kBands, in
@@ -205,12 +211,13 @@ struct SymbolBand {
 
 constexpr SymbolBand kSymbolBands[] = {
     {200, {1, 0, 0, 0, 0, 0}},
-    {230, {12, 10, 8, 6, 0, 0}},
-    {260, {20, 20, 19, 19, 18, 17}},
+    {230, {14, 13, 10, 8, 0, 0}},
+    {260, {20, 20, 20, 19, 18, 17}},
 };
 
-// The level each fight's first solo clear came at in the same sweep. Hard
-// Damien, Hard Lotus and Darknell wait until 255, long after they open.
+// The level each fight's first solo clear came at in the same sweep, re-read
+// 2026-10-26. Hard Damien and Hard Lotus wait until 246-247, long after they
+// open.
 struct Clear {
   const char* boss;
   const char* difficulty;
@@ -223,38 +230,36 @@ constexpr Clear kClears[] = {
     {"horntail", "Normal", 150},
     {"magnus", "Normal", 160},
     {"pink_bean", "Normal", 170},
-    {"arkarium", "Normal", 193},
-    {"horntail", "Chaos", 200},
-    {"hilla", "Hard", 201},
-    {"cygnus", "Normal", 203},
-    {"pierre", "Chaos", 204},
-    {"von_bon", "Chaos", 206},
-    {"crimson_queen", "Chaos", 209},
-    {"zakum", "Chaos", 209},
-    {"pink_bean", "Chaos", 211},
-    {"magnus", "Hard", 211},
-    {"vellum", "Chaos", 212},
-    {"papulatus", "Chaos", 219},
-    {"princess_no", "Normal", 219},
-    {"damien", "Normal", 224},
-    {"lotus", "Normal", 225},
-    {"guardian_angel_slime", "Normal", 231},
-    {"lucid", "Normal", 243},
-    {"will", "Normal", 250},
-    {"gloom", "Normal", 253},
-    {"damien", "Hard", 255},
-    {"lotus", "Hard", 255},
-    {"darknell", "Normal", 255},
-    // Every branch beat her, but only after weeks at the cap.
-    {"guardian_angel_slime", "Chaos", 260},
-    // One past the cap: the sweep's fifth branch never cleared these.
-    {"lucid", "Hard", 261},
-    {"will", "Hard", 261},
-    {"gloom", "Chaos", 261},
-    {"darknell", "Hard", 261},
-    // Provisional until a sweep has her.
-    {"verus_hilla", "Normal", 261},
-    {"verus_hilla", "Hard", 261},
+    {"arkarium", "Normal", 180},
+    {"hilla", "Hard", 190},
+    {"horntail", "Chaos", 190},
+    {"cygnus", "Normal", 200},
+    {"pierre", "Chaos", 200},
+    {"von_bon", "Chaos", 200},
+    {"crimson_queen", "Chaos", 201},
+    {"magnus", "Hard", 202},
+    {"zakum", "Chaos", 202},
+    {"pink_bean", "Chaos", 203},
+    {"vellum", "Chaos", 203},
+    {"princess_no", "Normal", 206},
+    {"papulatus", "Chaos", 210},
+    {"damien", "Normal", 214},
+    {"lotus", "Normal", 216},
+    {"guardian_angel_slime", "Normal", 227},
+    {"lucid", "Normal", 239},
+    {"will", "Normal", 245},
+    {"lotus", "Hard", 246},
+    {"damien", "Hard", 247},
+    {"gloom", "Normal", 247},
+    {"darknell", "Normal", 249},
+    {"guardian_angel_slime", "Chaos", 256},
+    {"verus_hilla", "Normal", 256},
+    // Cleared by the fifth branch only after days or weeks at the cap.
+    {"darknell", "Hard", 260},
+    {"gloom", "Chaos", 260},
+    {"lucid", "Hard", 260},
+    {"verus_hilla", "Hard", 260},
+    {"will", "Hard", 260},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what
@@ -264,20 +269,20 @@ struct AltBand {
   int level;
   int count;
   int alt_level;
-  Job lines[7];
+  Job lines[8];
 };
 
 constexpr AltBand kAltBands[] = {
     {230,
-     3,
-     70,
-     {JOB_CROSSBOWMAN, JOB_HUNTER, JOB_ICE_LIGHTNING_WIZARD,
-      JOB_FIRE_POISON_WIZARD, JOB_BANDIT}},
-    {260,
-     5,
+     4,
      120,
-     {JOB_CROSSBOWMAN, JOB_HUNTER, JOB_FIRE_POISON_WIZARD,
-      JOB_ICE_LIGHTNING_WIZARD, JOB_BANDIT, JOB_CLERIC, JOB_ASSASSIN}},
+     {JOB_FIRE_POISON_WIZARD, JOB_CROSSBOWMAN, JOB_ICE_LIGHTNING_WIZARD,
+      JOB_HUNTER, JOB_CLERIC}},
+    {260,
+     7,
+     120,
+     {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD, JOB_CROSSBOWMAN,
+      JOB_CLERIC, JOB_BANDIT, JOB_HUNTER, JOB_ASSASSIN, JOB_PAGE}},
 };
 
 // The familiars the same sweep had on reaching each level, read at the fifth
@@ -311,7 +316,7 @@ constexpr FamiliarBand kFamiliarBands[] = {
       {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE}}},
     {260,
      4,
-     43,
+     40,
      {{FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY},
       {FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE}}},
 };
@@ -463,33 +468,40 @@ constexpr Share C = Share::kCritDamage;
 
 // What //analysis:progression_sim's sweeps wore on arriving at each level, the
 // fifth of ten branches from the top: a max character spent well, not
-// luckily. Re-read off the sweep of 2026-10-04, which moved 230's gloves and
-// armour to Unique and 260's bonus potentials down a rank. At 200 most pieces
-// have not been cubed yet, so there is no band for it. Bonus potential opens
-// at 230, so that level has none yet.
+// luckily. Re-read 2026-10-26, once a wear-it-now cube run had to be covered
+// whole: the climb now cubes the weapon, secondary and emblem Rare by 200 and
+// leaves the rest uncubed, saves cubing until 230 is well behind, and spends
+// it all by 260. A piece left blank has no potential.
 constexpr PotentialBand kPotentialBands[] = {
+    {200, {{R, {A, S, S}, 3}, {R, {A, S, S}, 3}, {R, {A, S, S}, 3}}, {}},
     {230,
-     {{L, {A, B, I}},
-      {L, {A, B, I}},
-      {L, {B, B, I}},
-      {U, {S, S, T}},
-      {U, {S, S, T}},
-      {U, {S, S, T}},
-      {L, {S, T, H}}},
-     {}},
+     {{U, {B, A, I}},
+      {U, {B, A, I}},
+      {U, {B, A, I}},
+      {R, {S, S, S}, 3},
+      {R, {S, S, S}, 3},
+      {R, {S, S, S}, 3},
+      {}},
+     {{E, {A, A, A}},
+      {R, {A, A, A}, 3},
+      {R, {A, A, A}, 3},
+      {R, {S, S, S}, 3},
+      {R, {S, S, H}, 3},
+      {R, {S, S, S}, 3},
+      {}}},
     {260,
-     {{L, {B, B, I}},
-      {L, {B, B, I}},
-      {L, {B, B, I}},
+     {{L, {B, A, A}},
+      {L, {B, B, A}},
+      {L, {A, B, B}},
       {L, {S, S, T}},
       {L, {C, C, S}, 2},
       {L, {S, S, T}},
-      {L, {S, S, T}}},
+      {U, {S, S, S}}},
      {{L, {A, A, A}},
       {L, {A, A, A}},
       {L, {A, A, A}},
       {E, {S, S, S}},
-      {E, {S, S, S}},
+      {R, {S, S, H}, 3},
       {E, {S, S, S}},
       {R, {S, S, H}, 3}}},
 };
@@ -553,26 +565,39 @@ struct FlameRecipeLine {
   int tier;
 };
 
-// What //analysis:progression_sim's 120-day sweep (2026-10-01, two seeds, all
-// ten branches) wore on arriving at 260, at the upper quartile of the tiers on
-// lines the job uses: weapon 24, armour 21, accessories 20. The sweep shops
-// Burning almost always, so nothing reaches tier 7.
-constexpr int kFlameBandLevel = 260;
-constexpr FlameRecipeLine kWeaponFlame[kFlameLines] = {
-    {FlameShare::kAttack, 6},
-    {FlameShare::kBoss, 6},
-    {FlameShare::kDamage, 6},
-    {FlameShare::kPrimary, 6}};
-constexpr FlameRecipeLine kArmourFlame[kFlameLines] = {
-    {FlameShare::kPrimary, 6},
-    {FlameShare::kAttack, 5},
-    {FlameShare::kAllStat, 5},
-    {FlameShare::kOtherPair, 5}};
-constexpr FlameRecipeLine kAccessoryFlame[kFlameLines] = {
-    {FlameShare::kPrimary, 5},
-    {FlameShare::kPrimaryPair, 5},
-    {FlameShare::kAllStat, 5},
-    {FlameShare::kOtherPair, 5}};
+// What //analysis:progression_sim's sweep of 2026-10-26 wore on arriving at
+// each level, at the upper quartile of each kind's tier total: the weapon 22,
+// 25 and 26, armour 20, 21 and 25, accessories 19, 20 and 22. The climb
+// flames from 200, and Black flames take some lines to tier 7.
+struct FlameBand {
+  int level;
+  FlameRecipeLine weapon[kFlameLines];
+  FlameRecipeLine armour[kFlameLines];
+  FlameRecipeLine accessory[kFlameLines];
+};
+
+constexpr FlameShare P = FlameShare::kPrimary;
+constexpr FlameShare PP = FlameShare::kPrimaryPair;
+constexpr FlameShare OP = FlameShare::kOtherPair;
+constexpr FlameShare FA = FlameShare::kAttack;
+constexpr FlameShare FT = FlameShare::kAllStat;
+constexpr FlameShare FB = FlameShare::kBoss;
+constexpr FlameShare FD = FlameShare::kDamage;
+
+constexpr FlameBand kFlameBands[] = {
+    {200,
+     {{FA, 6}, {FB, 6}, {FD, 5}, {P, 5}},
+     {{P, 5}, {FA, 5}, {FT, 5}, {OP, 5}},
+     {{P, 5}, {PP, 5}, {FT, 5}, {OP, 4}}},
+    {230,
+     {{FA, 7}, {FB, 6}, {FD, 6}, {P, 6}},
+     {{P, 6}, {FA, 5}, {FT, 5}, {OP, 5}},
+     {{P, 5}, {PP, 5}, {FT, 5}, {OP, 5}}},
+    {260,
+     {{FA, 7}, {FB, 7}, {FD, 6}, {P, 6}},
+     {{P, 7}, {FA, 6}, {FT, 6}, {OP, 6}},
+     {{P, 6}, {PP, 6}, {FT, 5}, {OP, 5}}},
+};
 
 FlameStat SingleStat(StatField stat) {
   switch (stat) {
@@ -868,15 +893,21 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
 FlameLines MaxFlameFor(const EquipPrototype& proto, int level,
                        StatField primary, StatField secondary) {
   FlameLines lines;
-  if (level < kFlameBandLevel || !SlotTakesFlame(proto.equip_slot()) ||
+  const FlameBand* band = nullptr;
+  for (const FlameBand& candidate : kFlameBands) {
+    if (level >= candidate.level) {
+      band = &candidate;
+    }
+  }
+  if (band == nullptr || !SlotTakesFlame(proto.equip_slot()) ||
       !Supports(proto, UPGRADE_FLAME)) {
     return lines;
   }
   const FlameRecipeLine* recipe =
-      proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON ? kWeaponFlame
+      proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON ? band->weapon
       : PotentialGroupOf(proto.equip_slot()) == PotentialGroup::kAccessory
-          ? kAccessoryFlame
-          : kArmourFlame;
+          ? band->accessory
+          : band->armour;
   // A line the item's pool lacks, such as ATT below level 60, is left off
   // rather than replaced.
   const std::vector<FlameStat> pool = FlamePool(proto);
