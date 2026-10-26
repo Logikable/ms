@@ -1,11 +1,14 @@
 #include "analysis/familiar_plan.h"
 
+#include <algorithm>
+#include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "src/character/character_stats.h"
 #include "src/character/familiar.h"
 #include "src/character/skill_placement.h"
+#include "src/character/stat_preset.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/familiar.pb.h"
@@ -114,6 +117,27 @@ TEST(SpendFamiliarsTest, CubesFollowTheStoppingRule) {
   const DerivedStats boss = DerivedStatsFor(state.character, state.skills, {},
                                             {}, Activity::kBossing);
   EXPECT_GT(boss.boss_pct + boss.ied, 1.0);
+}
+
+// The Drop preset's own familiar climbs to Legendary and is cubed until the
+// boss drop roll reads the line, while the boss preset keeps its three mains.
+TEST(SpendFamiliarsTest, TheDropPresetGetsADropFamiliar) {
+  GameState state({}, {}, {}, {}, {}, {}, GameMode::kPlay, {}, /*seed=*/1);
+  SetLevel(state, kFamiliarsLevel);
+  state.character.AddFamiliarExp(4 * (1'000 + 9'000 + 50'000 + 200'000));
+  state.character.AddMeso(2'000 * kFamiliarCubeMeso);
+  FamiliarPrices prices;
+  prices.power_per_meso = 1e-12;
+  prices.drop_line_power = 1.0;  // far above any line BossPower reads
+  SpendFamiliars(state, BossPower, prices);
+  const std::string drop = FamiliarRoster()[kMaxSummonedFamiliars].name;
+  EXPECT_EQ(FamiliarLevel(state.character.familiars(), drop),
+            kFamiliarMaxLevel);
+  EXPECT_TRUE(state.character.familiars_boost_boss_drops());
+  const auto& dropping = state.character.summoned_familiars(kDropPreset);
+  EXPECT_NE(std::find(dropping.begin(), dropping.end(), drop), dropping.end());
+  const auto& bossing = state.character.summoned_familiars(StatPreset::kSecond);
+  EXPECT_EQ(std::find(bossing.begin(), bossing.end(), drop), bossing.end());
 }
 
 }  // namespace

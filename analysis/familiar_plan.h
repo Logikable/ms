@@ -9,6 +9,10 @@
  * first step of the best run they start. When the better of the two can't be
  * afforded the pool waits for it.
  *
+ * The Drop preset swaps its third main for the roster's fourth, levelled and
+ * cubed for the +100% boss drop line alone, which only the Drop preset's
+ * familiars give and only one of them counts.
+ *
  * Cubes go only on Legendary mains, since a level-up rerolls anything below.
  * They follow the cube rule (see //analysis:cube_plan): roll while the held
  * lines are worth less than r, with E[max(X, r)] - price = r. Each line is
