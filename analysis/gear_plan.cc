@@ -672,10 +672,12 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       offer.cube_type = shelf.type;
       offer.cube_program = run;
       // Price and value the whole run, so a slot needing a dozen rolls is
-      // ranked on the dozen's cost. The run stops where the purse does, so one
-      // cube is all it must cover to start.
+      // ranked on the dozen's cost. The run stops where the purse does: a
+      // choosing cube keeps the best so far, so one cube is enough to start,
+      // but a replacing one would be left on its last roll, so the purse must
+      // hold the whole run.
       offer.cost = run.cost;
-      offer.outlay = shelf.cost;
+      offer.outlay = shelf.choose ? shelf.cost : 0;
       offer.gain = run.gain;
       offers.push_back(offer);
     }
@@ -711,7 +713,7 @@ std::vector<GearShopper::Candidate> GearShopper::FlameOffers(GameState& state,
       offer.flame_type = shelf.type;
       offer.flame_program = run;
       offer.cost = run.cost;
-      offer.outlay = shelf.cost;
+      offer.outlay = shelf.choose ? shelf.cost : 0;  // as CubeOffers' cubes
       offer.gain = run.gain;
       offers.push_back(offer);
     }
@@ -752,6 +754,10 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
 // choosing cube's when the run's rule would rather be there, and rolling stops
 // where the rule does or the purse runs dry. A player cubes a piece until it's
 // good enough rather than weighing the whole shelf between cubes.
+//
+// A replacing run that could no longer pay for a whole run settles for any roll
+// ahead of where it began: run dry, it is left on its last roll, and on one
+// save that took 10% off boss damage.
 bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
                           CubeType cube, const CubeProgram& program,
                           GearSpend& spend) {
@@ -781,12 +787,15 @@ bool GearShopper::BuyCube(GameState& state, EquipSlot slot, StatPreset gear,
       ++spend.kept_by_cube[which];
       spend.farm_cubes_kept += farm;
     }
-  } while (run.Continues(state));
+  } while (run.Continues(state) &&
+           !(!shelf.choose && state.character.meso() < program.cost &&
+             run.Ahead(state)));
   return bought;
 }
 
 // Rolls `program`'s run through as BuyCube does: Burning's roll always goes on,
-// Black's when it beats what the piece holds.
+// Black's when it beats what the piece holds, and a Burning run short of meso
+// settles as a replacing cube's does.
 bool GearShopper::BuyFlame(GameState& state, EquipSlot slot, FlameType flame,
                            const FlameProgram& program, GearSpend& spend) {
   const FlameRun run(state, yard_.For(state), slot, program);
@@ -811,7 +820,9 @@ bool GearShopper::BuyFlame(GameState& state, EquipSlot slot, FlameType flame,
       state.character.TakeFlame(slot, *rolled, kBossGear);
       ++spend.kept_by_flame[which];
     }
-  } while (run.Continues(state));
+  } while (run.Continues(state) &&
+           !(!shelf.choose && state.character.meso() < program.cost &&
+             run.Ahead(state)));
   return bought;
 }
 

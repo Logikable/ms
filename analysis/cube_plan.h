@@ -134,6 +134,8 @@ class CubeRun {
   // value, whichever is more. A higher rank is taken on its future even when
   // its lines are worse.
   bool Takes(const GameState& state, const Potential& rolled) const;
+  // Whether what the piece holds now beats the lines the run began on.
+  bool Ahead(const GameState& state) const;
 
  private:
   struct Priced;

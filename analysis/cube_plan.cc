@@ -426,6 +426,12 @@ bool CubeRun::Continues(const GameState& state) const {
   return GainOf(state, held) < program_.reserve[held.rank()];
 }
 
+bool CubeRun::Ahead(const GameState& state) const {
+  const EquipInstance* item = Worn(state, gear_, slot_);
+  return item != nullptr &&
+         GainOf(state, PotentialOf(item->equip_state(), track_)) > 0.0;
+}
+
 bool CubeRun::Takes(const GameState& state, const Potential& rolled) const {
   const EquipInstance* item = Worn(state, gear_, slot_);
   if (item == nullptr) {

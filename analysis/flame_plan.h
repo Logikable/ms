@@ -66,6 +66,8 @@ class FlameRun {
   bool Continues(const GameState& state) const;
   // Whether a Black flame's `rolled` beats what the piece holds.
   bool Takes(const GameState& state, const FlameLines& rolled) const;
+  // Whether what the piece holds now beats the lines the run began on.
+  bool Ahead(const GameState& state) const;
 
  private:
   struct Priced;

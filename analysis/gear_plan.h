@@ -220,7 +220,8 @@ class GearShopper {
     // Expected meso cost, including attempts that fail.
     int64_t cost = 0;
     // The meso the purse must hold to start, when that is less than `cost`:
-    // one cube of a run bought a cube at a time.
+    // one star, or one choosing cube or flame. A replacing run left half-done
+    // can leave the piece worse, so it must be covered whole.
     int64_t outlay = 0;
     // Damage it would add against the target fight (see //analysis:yardstick).
     // A double because damage at the cap runs into billions.

@@ -325,6 +325,19 @@ TEST_F(CubePlanTest, ARunRollsOnUntilItsRankIsWorthItsReserve) {
                   .Continues(*state_));
 }
 
+// What a short purse settles for: anything better than where the run began.
+TEST_F(CubePlanTest, ARunIsAheadOnlyOfLinesBetterThanItsStart) {
+  Potential bare;
+  bare.set_rank(POTENTIAL_RANK_EPIC);
+  Wearing(bare);
+  const CubeRun run(*state_, yard_, kBossGear, EQUIP_SLOT_HAT, CubeType::kRed,
+                    income_, program_);
+  EXPECT_FALSE(run.Ahead(*state_));
+
+  Wearing(Rolled(POTENTIAL_RANK_EPIC, POTENTIAL_LINE_TYPE_STR_PCT));
+  EXPECT_TRUE(run.Ahead(*state_));
+}
+
 TEST_F(CubePlanTest, NothingWornIsNeverTaken) {
   EXPECT_FALSE(
       Takes(kBossGear, EQUIP_SLOT_GLOVES, PotentialTrack::kMain,

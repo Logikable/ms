@@ -12,6 +12,7 @@
 #include "src/character/symbol.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/potential.h"
 #include "src/item/soul.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -200,6 +201,64 @@ TEST_F(GearPlanTest, SettingTheIncomeKeepsTheShelfsRate) {
   ASSERT_GT(rate, 0.0);
   shopper.SetIncome(CubeIncome());
   EXPECT_EQ(shopper.power_per_meso(), rate);
+}
+
+// A wear-it-now cube left half-run can leave the piece worse, so the purse
+// must hold its whole run; a choosing cube needs only the next cube.
+TEST_F(GearPlanTest, AReplacingRunMustBeCoveredWhole) {
+  // Stars this cheap would price every cube off the shelf.
+  EquipPrototype weapon = Sword();
+  weapon.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
+  Grow(kBlackCubeUnlockLevel, weapon);
+  CharacterInstance& character = state_->character;
+  Potential bare;
+  bare.set_rank(POTENTIAL_RANK_EPIC);
+  ASSERT_TRUE(character.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON,
+                                      PotentialTrack::kMain, bare, kBossGear));
+  character.AddMeso(1'000'000'000'000);
+  GearShopper shopper{GearPlan()};
+  int replacing = 0;
+  int choosing = 0;
+  for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
+    if (!offer.cube) {
+      continue;
+    }
+    if (CubeOf(offer.cube_type).choose) {
+      EXPECT_EQ(offer.outlay, CubeOf(offer.cube_type).cost);
+      ++choosing;
+    } else {
+      EXPECT_EQ(offer.outlay, 0) << "the run's cost is what must be held";
+      ++replacing;
+    }
+  }
+  EXPECT_GT(replacing, 0) << "no replacing cube on the shelf to test";
+  EXPECT_GT(choosing, 0) << "no choosing cube on the shelf to test";
+}
+
+// A replacing run the purse can no longer cover again takes the first roll
+// ahead of where it began, rather than rolling until it is left on the last.
+TEST_F(GearPlanTest, AReplacingRunShortOfMesoSettlesForAnyGain) {
+  Grow(70);
+  CharacterInstance& character = state_->character;
+  Potential bare;
+  bare.set_rank(POTENTIAL_RANK_EPIC);
+  ASSERT_TRUE(character.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON,
+                                      PotentialTrack::kMain, bare, kBossGear));
+  const Cube& red = CubeOf(CubeType::kRed);
+  character.AddMeso(200 * red.cost - character.meso());
+  GearShopper::Candidate offer;
+  offer.slot = EQUIP_SLOT_PRIMARY_WEAPON;
+  offer.cube = true;
+  offer.cube_type = CubeType::kRed;
+  offer.cube_program.reserve.fill(1e18);  // a goal no roll reaches
+  offer.cube_program.cost = 1000 * red.cost;
+  GearShopper shopper{GearPlan()};
+  const double before = shopper.Power(*state_);
+  GearSpend spend;
+  ASSERT_TRUE(shopper.Buy(*state_, offer, spend));
+  EXPECT_GT(character.meso(), 0) << "the run rolled until the purse ran dry";
+  EXPECT_GT(shopper.Power(*state_), before);
 }
 
 }  // namespace

@@ -211,6 +211,12 @@ bool FlameRun::Continues(const GameState& state) const {
          GainOf(item->equip_state().flame()) < program_.reserve;
 }
 
+bool FlameRun::Ahead(const GameState& state) const {
+  const EquipInstance* item = Flammable(state, slot_);
+  return item != nullptr && priced_ != nullptr &&
+         GainOf(item->equip_state().flame()) > 0.0;
+}
+
 bool FlameRun::Takes(const GameState& state, const FlameLines& rolled) const {
   const EquipInstance* item = Flammable(state, slot_);
   return item != nullptr && priced_ != nullptr &&
