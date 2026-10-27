@@ -49,6 +49,10 @@ struct GearPlan {
   // more per successful slot and wastes the rest, and on a drop-only piece a
   // wasted slot is gone for good.
   int scroll_rate = 100;
+  // Whether a slot may be ground at a lower rate with Clean Slates giving back
+  // each failure, the rate chosen by what the slot nets. Off is the old shop:
+  // `scroll_rate` alone.
+  bool clean_slates = true;
   // Rolls each cube or flame run's stopping rule is solved from. The default
   // is the sims' speed; at it the cheapest runs are priced short of what they
   // cost, which a report on one save can't afford.
@@ -222,6 +226,8 @@ class GearShopper {
     StatPreset gear = kBossGear;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
+    // The Clean Slate a failed `scroll` is followed by, for a ground slot.
+    const Scroll* slate = nullptr;
     // Expected meso cost, including attempts that fail.
     int64_t cost = 0;
     // The meso the purse must hold to start, when that is less than `cost`:
@@ -358,6 +364,8 @@ class GearShopper {
   GearPlan plan_;
   GearSpend life_;
   CubeIncome income_;
+  // The best gain per meso off the last shelf, scrolls aside; see ScrollOffer.
+  std::optional<double> slot_rate_;
   // The yardstick every offer in a pass is judged against. Computing it plays a
   // fight, and nothing a pass buys changes which attacks the character relies
   // on.

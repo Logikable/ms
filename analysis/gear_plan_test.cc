@@ -121,6 +121,35 @@ class GearPlanTest : public ::testing::Test {
     return symbol;
   }
 
+  // A level 200 sword with 7 slots, which takes no stars, and a 100% trace
+  // for it, which is returned.
+  Scroll GrowScrollableSword() {
+    EquipPrototype weapon = Sword();
+    weapon.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    weapon.set_required_level(200);
+    weapon.set_upgrade_slots(7);
+    weapon.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+    Grow(200, weapon);
+    // Trying on a scroll rebuilds the character from the catalog.
+    state_->equips["sword"] = weapon;
+    ItemPrototype trace;
+    trace.set_name("Spell Trace");
+    trace.set_shop_price(100);
+    state_->items["spell_trace"] = trace;
+    Scroll traced;
+    traced.set_name("Trace");
+    traced.set_tier(TierForLevel(200));
+    traced.set_target(SCROLL_TARGET_WEAPON);
+    traced.set_scroll_type(SCROLL_TYPE_ATT);
+    traced.set_success_rate(100);
+    traced.set_trace_cost(10);
+    traced.mutable_stats()->set_attack(3);
+    traced.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    state_->scrolls["trace"] = traced;
+    state_->character.AddMeso(1'000'000'000);
+    return traced;
+  }
+
   const Soul& WornSoul() const {
     return state_->character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)
         ->equip_state()
@@ -240,37 +269,19 @@ TEST_F(GearPlanTest, AReplacingRunMustBeCoveredWhole) {
 // A weapon a dropped scroll fits is traced as usual, unless the plan holds its
 // slots for that scroll; then the shelf offers it neither trace nor star.
 TEST_F(GearPlanTest, AHeldSlotWaitsForTheDroppedScroll) {
-  EquipPrototype weapon = Sword();
-  weapon.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  weapon.set_required_level(200);
-  weapon.set_upgrade_slots(7);
-  Grow(200, weapon);
-  // Trying on a scroll rebuilds the character from the catalog.
-  state_->equips["sword"] = weapon;
-  ItemPrototype trace;
-  trace.set_name("Spell Trace");
-  trace.set_shop_price(100);
-  state_->items["spell_trace"] = trace;
-  Scroll traced;
-  traced.set_name("Trace");
-  traced.set_tier(TierForLevel(200));
-  traced.set_target(SCROLL_TARGET_WEAPON);
-  traced.set_scroll_type(SCROLL_TYPE_ATT);
-  traced.set_success_rate(100);
-  traced.mutable_stats()->set_attack(3);
-  traced.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  state_->scrolls["trace"] = traced;
+  const Scroll traced = GrowScrollableSword();
   Scroll magical = traced;
   magical.set_name("Magical");
   magical.set_paid_with("Magical");
   magical.mutable_stats()->set_attack(10);
   state_->scrolls["magical"] = magical;
-  state_->character.AddMeso(1'000'000'000);
   auto offers_for_weapon = [this](const GearPlan& plan) {
     GearShopper shopper{plan};
+    shopper.Shelf(
+        *state_);  // the first shelf sets the rate slots are judged at
     int offers = 0;
     for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
-      offers += offer.scroll != nullptr || offer.star ? 1 : 0;
+      offers += offer.scroll != nullptr ? 1 : 0;
     }
     return offers;
   };
@@ -281,6 +292,43 @@ TEST_F(GearPlanTest, AHeldSlotWaitsForTheDroppedScroll) {
     return paid_with == "Magical";
   };
   EXPECT_EQ(offers_for_weapon(held), 0);
+}
+
+// With Clean Slates giving back each failure, a 15% slot always lands, and
+// with nothing else to spend on the shopper grinds every slot at 15%. Without
+// slates it keeps the 100% trace.
+TEST_F(GearPlanTest, CleanSlatesGrindEverySlotAtFifteen) {
+  const Scroll traced = GrowScrollableSword();
+  Scroll fifteen = traced;
+  fifteen.set_name("15% Trace");
+  fifteen.set_success_rate(15);
+  fifteen.set_trace_cost(20);
+  fifteen.mutable_stats()->set_attack(9);
+  state_->scrolls["fifteen"] = fifteen;
+  Scroll slate;
+  slate.set_name("Clean Slate");
+  slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  slate.set_tier(traced.tier());
+  slate.set_success_rate(100);
+  slate.set_trace_cost(50);
+  state_->scrolls["slate"] = slate;
+  const Character before = state_->character.ToProto();
+  auto scrolled_attack = [this, &before](const GearPlan& plan) {
+    state_->character.RestoreFrom(before, state_->equips, state_->items);
+    GearShopper shopper{plan};
+    shopper.Spend(*state_);
+    const Equip& sword =
+        state_->character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)
+            ->equip_state();
+    EXPECT_EQ(sword.remaining_upgrade_slots(), 0);
+    return sword.scroll_stats().attack();
+  };
+  const int slots = 7 + 2;  // the Golden Hammer's two built in
+
+  EXPECT_EQ(scrolled_attack(GearPlan()), 9 * slots);
+  GearPlan plain;
+  plain.clean_slates = false;
+  EXPECT_EQ(scrolled_attack(plain), 3 * slots);
 }
 
 // A replacing run the purse can no longer cover again takes the first roll

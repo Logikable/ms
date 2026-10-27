@@ -184,6 +184,10 @@ ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
           "drop-only piece is a slot nothing gets back.");
+ABSL_FLAG(bool, clean_slates, true,
+          "Whether the shopper may grind a slot at a lower rate, a Clean Slate "
+          "giving back each failure. Off is the counterfactual: --scroll_rate "
+          "alone.");
 ABSL_FLAG(bool, endgame, true,
           "Print what the days after the cap add up to: the best money map "
           "farmed and the dailies run, with the purse still spending.");
@@ -2814,10 +2818,11 @@ std::string ClimbSettings() {
       absl::GetFlag(FLAGS_measure_seconds), ";",
       absl::GetFlag(FLAGS_give_up_hours), ";", absl::GetFlag(FLAGS_total_days),
       ";", absl::GetFlag(FLAGS_star_ceiling), ";",
-      absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_cubes), ";",
-      absl::GetFlag(FLAGS_dailies), ";", absl::GetFlag(FLAGS_attention), ";",
-      absl::GetFlag(FLAGS_ability_rank), ";",
-      absl::GetFlag(FLAGS_checkpoint_at), ";",
+      absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_clean_slates),
+      ";", absl::GetFlag(FLAGS_hold_dropped_scrolls), ";",
+      absl::GetFlag(FLAGS_cubes), ";", absl::GetFlag(FLAGS_dailies), ";",
+      absl::GetFlag(FLAGS_attention), ";", absl::GetFlag(FLAGS_ability_rank),
+      ";", absl::GetFlag(FLAGS_checkpoint_at), ";",
       absl::StrJoin(absl::GetFlag(FLAGS_potential_levels), ","));
 }
 
@@ -3006,6 +3011,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+  plan.clean_slates = absl::GetFlag(FLAGS_clean_slates);
   plan.cubes = absl::GetFlag(FLAGS_cubes);
   plan.flames = absl::GetFlag(FLAGS_flames);
   if (absl::GetFlag(FLAGS_hold_dropped_scrolls)) {
@@ -3097,6 +3103,7 @@ AltLadder ClimbAlt(const Catalogs& catalogs, Job branch,
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+  plan.clean_slates = absl::GetFlag(FLAGS_clean_slates);
   plan.cubes = false;
   plan.flames = false;
   Session run = {state,          maps,

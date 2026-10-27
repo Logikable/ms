@@ -209,6 +209,43 @@ bool AwaitsSplit(const CharacterInstance& character, const std::string& name) {
   return false;
 }
 
+// `chosen` and the scrolls like it at every other success rate: the same stat,
+// target and tier, for a job category `proto` takes.
+std::vector<const Scroll*> RatesOf(const GameState& state, const Scroll& chosen,
+                                   const EquipPrototype& proto) {
+  std::set<int> categories(proto.equip_job_categories().begin(),
+                           proto.equip_job_categories().end());
+  std::vector<const Scroll*> rates;
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    if (scroll.scroll_type() != chosen.scroll_type() ||
+        scroll.target() != chosen.target() || scroll.tier() != chosen.tier() ||
+        !scroll.paid_with().empty() ||
+        scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      continue;
+    }
+    for (int category : scroll.applicable_job_categories()) {
+      if (categories.count(category) > 0) {
+        rates.push_back(&scroll);
+        break;
+      }
+    }
+  }
+  return rates;
+}
+
+// The Clean Slate for `scroll`'s tier, or null.
+const Scroll* SlateFor(const GameState& state, const Scroll& scroll) {
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE &&
+        entry.second.tier() == scroll.tier() &&
+        entry.second.paid_with().empty()) {
+      return &entry.second;
+    }
+  }
+  return nullptr;
+}
+
 // Whether a dropped scroll `holds` waits for goes on `proto`.
 bool AwaitsDroppedScroll(const GameState& state, const EquipPrototype& proto,
                          const std::function<bool(const std::string&)>& holds) {
@@ -266,24 +303,58 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
       return std::nullopt;
     }
   }
-  const Scroll* scroll = ScrollFor(state, slot);
-  if (scroll == nullptr) {
+  // Copied before ScrollFor, whose measuring destroys every EquipInstance.
+  const EquipInstance* worn = state.character.WornAt(basis.gear, slot);
+  if (worn == nullptr) {
     return std::nullopt;
   }
-  Candidate offer;
-  offer.slot = slot;
-  offer.gear = basis.gear;
-  offer.scroll = scroll;
-  offer.stats = scroll->stats();
-  offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
-               basis.trace->shop_price();
-  // A slot's value is its gain times its success rate. A failed scroll still
-  // uses up the slot, and on a piece nothing sells that slot is gone.
-  offer.gain = (PowerWith(state, basis.yard, basis.derived,
-                          Plus(basis.worn, scroll->stats())) -
-                basis.power) *
-               basis.scale * plan_.scroll_rate / 100.0;
-  return offer;
+  const EquipPrototype proto = worn->prototype();
+  const Scroll* chosen = ScrollFor(state, slot);
+  // Nothing until a shelf has set the rate a slot is judged at: guessed, the
+  // slot would be spent for good on the guess.
+  if (chosen == nullptr || (plan_.clean_slates && !slot_rate_.has_value())) {
+    return std::nullopt;
+  }
+  const int64_t price = basis.trace->shop_price();
+  const Scroll* slate = plan_.clean_slates ? SlateFor(state, *chosen) : nullptr;
+  std::optional<Candidate> best;
+  double best_net = 0.0;
+  for (const Scroll* scroll : RatesOf(state, *chosen, proto)) {
+    // Below 100% only with a slate to give back each failed slot. A slate here
+    // always lands, so the grind costs 100/rate scrolls and one slate fewer.
+    const bool grind = scroll->success_rate() < 100;
+    if (grind && slate == nullptr) {
+      continue;
+    }
+    Candidate offer;
+    offer.slot = slot;
+    offer.gear = basis.gear;
+    offer.scroll = scroll;
+    offer.slate = grind ? slate : nullptr;
+    offer.stats = scroll->stats();
+    const double tries = 100.0 / scroll->success_rate();
+    offer.cost = static_cast<int64_t>(
+        (tries * TraceCost(*scroll, level) +
+         (grind ? (tries - 1.0) * TraceCost(*slate, level) : 0.0)) *
+        price);
+    // Without a slate a slot's value is its gain times its success rate: a
+    // failed scroll still uses up the slot, and on a piece nothing sells that
+    // slot is gone.
+    offer.gain = (PowerWith(state, basis.yard, basis.derived,
+                            Plus(basis.worn, scroll->stats())) -
+                  basis.power) *
+                 basis.scale * (grind ? 100 : scroll->success_rate()) / 100.0;
+    // A slot takes one scroll for good, so the rate is chosen by what the
+    // slot nets at what a meso buys beyond scrolls, not by gain per meso,
+    // which always favours the cheap 100% trace.
+    const double net =
+        offer.gain - slot_rate_.value_or(0.0) * static_cast<double>(offer.cost);
+    if (!best.has_value() || net > best_net) {
+      best = offer;
+      best_net = net;
+    }
+  }
+  return best;
 }
 
 // The next star `slot`'s item could take. Nothing if it takes no stars, has
@@ -565,6 +636,13 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   offers.insert(offers.end(), cubes.begin(), cubes.end());
   std::vector<Candidate> flames = FlameOffers(state, best);
   offers.insert(offers.end(), flames.begin(), flames.end());
+  double elsewhere = 0.0;
+  for (const Candidate& offer : offers) {
+    if (offer.scroll == nullptr && offer.cost > 0) {
+      elsewhere = std::max(elsewhere, offer.gain / offer.cost);
+    }
+  }
+  slot_rate_ = elsewhere;
   return offers;
 }
 
@@ -856,16 +934,36 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
   if (trace == nullptr || item == nullptr) {
     return false;
   }
-  int traces = TraceCost(*candidate.scroll, item->prototype().required_level());
-  if (!state.character.Buy(*trace, traces) ||
-      !state.character.SpendItem(kSpellTraceName, traces)) {
-    return false;  // the bag refused them, not a lack of meso
+  const int level = item->prototype().required_level();
+  const int traces = TraceCost(*candidate.scroll, level);
+  const int slates =
+      candidate.slate == nullptr ? 0 : TraceCost(*candidate.slate, level);
+  // A grind attempts only with the meso for the slate a failure needs, so a
+  // short purse leaves the slot open rather than spent.
+  bool bought = false;
+  while (state.character.meso() >=
+         static_cast<int64_t>(traces + slates) * trace->shop_price()) {
+    if (!state.character.Buy(*trace, traces) ||
+        !state.character.SpendItem(kSpellTraceName, traces)) {
+      return bought;  // the bag refused them, not a lack of meso
+    }
+    spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
+    bought = true;
+    const ScrollOutcome outcome = state.character.ScrollEquipped(
+        candidate.slot, *candidate.scroll, candidate.gear);
+    if (outcome != kScrollFail || candidate.slate == nullptr) {
+      ++spend.slots_filled;
+      return true;
+    }
+    if (!state.character.Buy(*trace, slates) ||
+        !state.character.SpendItem(kSpellTraceName, slates)) {
+      return true;
+    }
+    spend.scrolls += static_cast<int64_t>(slates) * trace->shop_price();
+    state.character.ScrollEquipped(candidate.slot, *candidate.slate,
+                                   candidate.gear);
   }
-  state.character.ScrollEquipped(candidate.slot, *candidate.scroll,
-                                 candidate.gear);
-  spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
-  ++spend.slots_filled;
-  return true;
+  return bought;
 }
 
 // Attempts until the star lands or meso runs out. The offer's price was the
