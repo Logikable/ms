@@ -263,7 +263,7 @@ const Scroll* BestScrollOfType(const GameState& state,
 // attack. Gloves and hearts are the second case; asking only for the stat left
 // them unscrolled and so without stars.
 const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
-                            bool dropped_scrolls) {
+                            const GearSetup& equips) {
   StatField primary = PrimaryStatField(state.character.proto().job());
   ScrollType wanted = SCROLL_TYPE_UNSPECIFIED;
   switch (primary) {
@@ -289,7 +289,7 @@ const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
   // A pet has one scroll, and it raises both attacks, so the stat doesn't
   // choose.
   if (target == SCROLL_TARGET_PET) {
-    if (!dropped_scrolls) {
+    if (equips.dropped_scrolls_from == std::numeric_limits<int>::max()) {
       return nullptr;
     }
     for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
@@ -301,6 +301,9 @@ const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
   }
   ScrollType attack =
       primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
+  const bool dropped_scrolls =
+      OwnedFromLevel(proto) >= equips.dropped_scrolls_from &&
+      (equips.dropped_weapon_scrolls || target != SCROLL_TARGET_WEAPON);
   const Scroll* dropped = dropped_scrolls
                               ? DroppedScrollFor(state, proto, target, attack)
                               : nullptr;
@@ -321,7 +324,7 @@ const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
   Equip built = FreshEquip(proto);
-  const Scroll* scroll = BestScrollFor(state, proto, equips.dropped_scrolls);
+  const Scroll* scroll = BestScrollFor(state, proto, equips);
   if (equips.scrolled && scroll != nullptr && TakesUpgradeSlots(proto)) {
     int slots = built.remaining_upgrade_slots();
     std::vector<EquipStats> passes(slots, scroll->stats());
@@ -1351,7 +1354,16 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   equips.scrolled = true;
   equips.stars = gear.stars;
   equips.weapon_stars = gear.weapon_stars;
-  equips.dropped_scrolls = false;
+  // At the cap the sweep is read at the run's end, when the boss accessories
+  // and pets are full of dropped scrolls. Not the weapon: it was traced before
+  // ten Magical Scrolls dropped, and holding its slots (and so its stars) for
+  // them paid nothing (2026-10-26, progression_sim --hold_dropped_scrolls).
+  if (level >= kTrialLevelCap) {
+    equips.dropped_scrolls_from = kGuardianAngelSlimeLevel;
+    equips.dropped_weapon_scrolls = false;
+  } else {
+    equips.dropped_scrolls_from = std::numeric_limits<int>::max();
+  }
 
   state.character.SetUsername(UsernameFor(advancement));
   state.character.AddMeso(kMaxLeftoverMeso);

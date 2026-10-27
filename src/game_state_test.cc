@@ -1198,26 +1198,25 @@ TEST(GameStateTest, MaxModeWearsTheTotemsTheClimbBought) {
   }
 }
 
-// Max mode wears the user's three pets unscrolled, even once something drops
-// their scroll: the sweep reached every checkpoint before one dropped.
-TEST(GameStateTest, MaxModeWearsTheFrierenPetsUnscrolled) {
-  GameState unscrolled = MakeMaxState(230);
+// Max mode wears the user's three pets unscrolled below the cap, where the
+// sweep arrives before their scroll drops, and full of it at the cap, which is
+// read at the run's end.
+TEST(GameStateTest, MaxModeScrollsTheFrierenPetsOnlyAtTheCap) {
+  GameState below = MakeMaxState(230);
   const std::vector<std::string> kPets = {"lil_frieren", "lil_fern",
                                           "lil_stark"};
   std::vector<EquipSlot> family = SlotFamily(EQUIP_SLOT_PET);
   for (size_t i = 0; i < family.size(); ++i) {
-    EXPECT_EQ(Worn(unscrolled, family[i]).prototype().name(), kPets[i]);
-    EXPECT_EQ(Worn(unscrolled, family[i]).equip_state().scroll_successes(), 0);
+    EXPECT_EQ(Worn(below, family[i]).prototype().name(), kPets[i]);
+    EXPECT_EQ(Worn(below, family[i]).equip_state().scroll_successes(), 0);
   }
 
-  std::map<std::string, Boss> bosses = MaxBosses();
-  MobDrop* drop = bosses["wall"].mutable_difficulties(0)->add_drops();
-  drop->set_item("premium_scroll_for_pet");
-  drop->set_per_kill(1);
-  GameState dropped =
-      MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO, bosses);
-  EXPECT_EQ(Worn(dropped, EQUIP_SLOT_PET_3).equip_state().scroll_successes(),
-            0);
+  GameState cap = MakeMaxState(kTrialLevelCap);
+  for (EquipSlot slot : family) {
+    const EquipInstance& pet = Worn(cap, slot);
+    EXPECT_GT(pet.equip_state().scroll_successes(), 0);
+    EXPECT_EQ(pet.equip_state().remaining_upgrade_slots(), 0);
+  }
 }
 
 // A max account holds the alts the sweep levelled for link skills: at the cap
