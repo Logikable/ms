@@ -234,6 +234,25 @@ std::vector<const Scroll*> RatesOf(const GameState& state, const Scroll& chosen,
   return rates;
 }
 
+// Whether `proto` is the last tier its slot reaches: nothing the character
+// could wear there is owned from a later level. A grind costs a slot many
+// scrolls, which a piece replaced at the next tier throws away.
+bool LastTier(const GameState& state, const EquipPrototype& proto) {
+  const EquipSlot slot = BaseSlot(proto.equip_slot());
+  const int owned = OwnedFromLevel(proto);
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& other = entry.second;
+    if (BaseSlot(other.equip_slot()) == slot &&
+        (slot != EQUIP_SLOT_PRIMARY_WEAPON ||
+         other.equip_type() == proto.equip_type()) &&
+        state.character.MeetsJob(other) && OwnedFromLevel(other) > owned) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // The Clean Slate for `scroll`'s tier, or null.
 const Scroll* SlateFor(const GameState& state, const Scroll& scroll) {
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
@@ -316,7 +335,9 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     return std::nullopt;
   }
   const int64_t price = basis.trace->shop_price();
-  const Scroll* slate = plan_.clean_slates ? SlateFor(state, *chosen) : nullptr;
+  const Scroll* slate = plan_.clean_slates && LastTier(state, proto)
+                            ? SlateFor(state, *chosen)
+                            : nullptr;
   std::optional<Candidate> best;
   double best_net = 0.0;
   for (const Scroll* scroll : RatesOf(state, *chosen, proto)) {

@@ -299,7 +299,7 @@ TEST_F(GearPlanTest, AHeldSlotWaitsForTheDroppedScroll) {
 
 // With Clean Slates giving back each failure, a 15% slot always lands, and
 // with nothing else to spend on the shopper grinds every slot at 15%. Without
-// slates it keeps the 100% trace.
+// slates, or on a piece a later tier replaces, it keeps the 100% trace.
 TEST_F(GearPlanTest, CleanSlatesGrindEverySlotAtFifteen) {
   const Scroll traced = GrowScrollableSword();
   Scroll fifteen = traced;
@@ -332,6 +332,13 @@ TEST_F(GearPlanTest, CleanSlatesGrindEverySlotAtFifteen) {
   GearPlan plain;
   plain.clean_slates = false;
   EXPECT_EQ(scrolled_attack(plain), 3 * slots);
+
+  // A sword at a later tier would replace this one, and the grind with it.
+  EquipPrototype later = state_->equips.at("sword");
+  later.set_name("Later Sword");
+  later.set_required_level(250);
+  state_->equips["later_sword"] = later;
+  EXPECT_EQ(scrolled_attack(GearPlan()), 3 * slots);
 }
 
 // A replacing run the purse can no longer cover again takes the first roll
