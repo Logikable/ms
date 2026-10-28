@@ -235,6 +235,8 @@ TEST_F(ServerTest, WelcomesANewPlayer) {
 TEST_F(ServerTest, KnowsAPlayerComingBack) {
   Welcome welcome;
   std::unique_ptr<TestClient> first = Greeted("Dagger", &welcome);
+  first.reset();
+  ASSERT_TRUE(StepUntil([&]() { return server_->player_count() == 0; }));
 
   TestClient second;
   ASSERT_TRUE(second.Open(port_));
@@ -265,6 +267,20 @@ TEST_F(ServerTest, RefusesTheWrongTokenForAKnownAccount) {
   impostor.SayHello("Dagger", welcome.account_id(), "not-the-token");
 
   ServerMessage message = Await(impostor);
+  ASSERT_EQ(message.kind_case(), ServerMessage::kRejected);
+  EXPECT_EQ(message.rejected().reason(), Rejected::REASON_BAD_CREDENTIALS);
+  EXPECT_EQ(server_->player_count(), 1);
+}
+
+TEST_F(ServerTest, TurnsAwayASecondSessionOnTheSameAccount) {
+  Welcome welcome;
+  std::unique_ptr<TestClient> first = Greeted("Dagger", &welcome);
+
+  TestClient second;
+  ASSERT_TRUE(second.Open(port_));
+  second.SayHello("Wand", welcome.account_id(), welcome.token());
+
+  ServerMessage message = Await(second);
   ASSERT_EQ(message.kind_case(), ServerMessage::kRejected);
   EXPECT_EQ(message.rejected().reason(), Rejected::REASON_BAD_CREDENTIALS);
   EXPECT_EQ(server_->player_count(), 1);

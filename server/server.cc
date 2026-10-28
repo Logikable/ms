@@ -781,6 +781,13 @@ void Server::HandleHello(Session& session, const Hello& hello) {
            "This account is being played somewhere else.");
     return;
   }
+  // One live session per account: the lobby, parties, trades and Inspect all
+  // find a player by account. A dropped session times out and frees it.
+  if (FindSession(account) != nullptr) {
+    Reject(session, Rejected::REASON_BAD_CREDENTIALS,
+           "This account is being played somewhere else.");
+    return;
+  }
   session.greeted = true;
   session.account_id = account;
   SetPlayer(session, hello.player());
