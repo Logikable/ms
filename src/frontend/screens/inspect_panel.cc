@@ -294,6 +294,10 @@ void InspectPanel::UseCharacter(const CharacterInstance& character) {
   character_ = &character;
 }
 
+void InspectPanel::UseGearPreset(StatPreset preset) {
+  gear_ = preset;
+}
+
 void InspectPanel::UseSkills(const std::map<std::string, Skill>& skills) {
   skills_ = &skills;
 }
@@ -617,14 +621,14 @@ std::vector<CardRow> InspectPanel::MemberRows(
     const EquipSetMember& member) const {
   std::vector<SetFill> fills;
   for (const std::string& name : member.items().name()) {
-    fills.push_back({name, character_->IsWearing(name)});
+    fills.push_back({name, character_->IsWearing(name, gear_)});
   }
   // A family shows what fills it once something does, and asks for one while it
   // is empty, since a weapon depends on the class and the set can't name it
   // directly. It goes under whatever the slot names explicitly, since the named
   // pieces are the ones a player can look up.
   if (member.has_family()) {
-    std::string on = character_->WornOfFamily(member.family());
+    std::string on = character_->WornOfFamily(member.family(), gear_);
     fills.push_back(
         {on.empty() ? "Choose 1 " + member.family() : on, !on.empty()});
   }
@@ -662,7 +666,7 @@ std::vector<CardRow> InspectPanel::MemberRows(
 }
 
 CardRows InspectPanel::SetRows(const EquipSet& set) const {
-  int worn = character_->PiecesWornOf(set);
+  int worn = character_->PiecesWornOf(set, gear_);
   // The set's name and pieces are kept at the top: the tiers below show what
   // those pieces would give, so the tiers scroll and the pieces stay beside
   // them.

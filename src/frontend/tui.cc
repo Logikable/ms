@@ -1053,6 +1053,7 @@ ftxui::Element Tui::RenderMultiSell() {
 }
 
 ftxui::Element Tui::RenderScreen() {
+  inspect_panel_.UseGearPreset(controller_.ComparisonPreset());
   switch (controller_.screen()) {
     // Dialogs are drawn over the main view, so what they are about stays
     // visible behind them.

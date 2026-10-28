@@ -40,6 +40,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/scroll_card.h"
 #include "src/item/item.h"
@@ -95,6 +96,9 @@ class InspectPanel {
   // unset, an item is described alone and no set card appears, which suits
   // tests with no sets.
   void UseCharacter(const CharacterInstance& character);
+  // The gear preset the set card counts worn pieces in: the open Gear tab, so
+  // it agrees with the Equipped card. The first preset by default.
+  void UseGearPreset(StatPreset preset);
   // The skill catalog, which says what an item's equipment skill does. If
   // unset, such an item shows no skill rows.
   void UseSkills(const std::map<std::string, Skill>& skills);
@@ -231,6 +235,7 @@ class InspectPanel {
   std::optional<int> delta_;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;
+  StatPreset gear_ = StatPreset::kFirst;
   const std::map<std::string, Skill>* skills_ = nullptr;
   int max_columns_ = 0;
   ScrollCard item_card_;

@@ -228,6 +228,7 @@ cc_library(
     hdrs = ["inspect_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:stat_preset",
         "//src/character:symbol",
         "//src/combat:damage",
         "//src/frontend/widgets:chrome",

@@ -83,10 +83,10 @@ EquipPrototype FrozenFamilyPiece(const std::string& name, EquipSlot slot,
 }
 
 // Wears one piece of the set, so the tiers it reaches light up.
-void Wear(CharacterInstance& character, const std::string& name,
-          EquipSlot slot) {
+void Wear(CharacterInstance& character, const std::string& name, EquipSlot slot,
+          StatPreset preset = StatPreset::kFirst) {
   character.PickUp(std::make_unique<EquipInstance>(FrozenPiece(name, slot)));
-  character.Equip(static_cast<int>(character.inventory().size()) - 1);
+  character.Equip(static_cast<int>(character.inventory().size()) - 1, preset);
 }
 
 void WearFamilyPiece(CharacterInstance& character, const std::string& name,
@@ -988,6 +988,24 @@ TEST_F(InspectPanelTest, DimsTheTiersTheCharacterHasNotEarned) {
   // Every line of the tier lights up, not only the labelled one.
   EXPECT_FALSE(DimAt(panel, "Attack Power & Magic ATT +5"));
   EXPECT_TRUE(DimAt(panel, "4 Set Effect"));
+}
+
+// Counted in the open Gear tab, as the Equipped card beside it is: a piece the
+// Boss preset wears over a farm item is worn there and not in the first preset.
+TEST_F(InspectPanelTest, CountsPiecesInTheGearPresetItIsGiven) {
+  InspectPanel& panel = Card();
+  Wear(c_, "Plain Top", EQUIP_SLOT_TOP);
+  Wear(c_, "Frozen Hat", EQUIP_SLOT_HAT);
+  Wear(c_, "Frozen Top", EQUIP_SLOT_TOP, StatPreset::kSecond);
+  Wear(c_, "Frozen Bottom", EQUIP_SLOT_BOTTOM, StatPreset::kSecond);
+  EXPECT_TRUE(DimAt(panel, "Top        Frozen Top"));
+  EXPECT_TRUE(DimAt(panel, "3 Set Effect"));
+
+  panel.UseGearPreset(StatPreset::kSecond);
+  EXPECT_FALSE(DimAt(panel, "Top        Frozen Top"));
+  // The hat is inherited from the first preset, so it counts in both.
+  EXPECT_FALSE(DimAt(panel, "Hat        Frozen Hat"));
+  EXPECT_FALSE(DimAt(panel, "3 Set Effect"));
 }
 
 // The card sits beside the item, so a card that resized with its contents would
