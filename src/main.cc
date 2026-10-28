@@ -3,6 +3,7 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,7 @@
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/save.h"
+#include "src/save_lock.h"
 
 ABSL_FLAG(std::string, mode, "play",
           "Which state to start in: 'play' for a new character on Maple "
@@ -231,8 +233,17 @@ int main(int argc, char** argv) {
   // state every run, and must never overwrite a real character.
   std::string save_path;
   ms::OfflineReport offline;
+  std::unique_ptr<ms::SaveLock> save_lock;
   if (mode == ms::GameMode::kPlay) {
     save_path = ms::SavePathFor(argv[0]);
+    save_lock = std::make_unique<ms::SaveLock>(save_path);
+    if (save_lock->taken_elsewhere()) {
+      std::fprintf(stderr,
+                   "This save is already open in another window.\n\nClose "
+                   "that one first. To play two characters at once, run "
+                   "the game from a second folder with a new save.\n");
+      return 1;
+    }
     ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
     if (load.status == ms::LoadStatus::kUnreadable ||
         load.status == ms::LoadStatus::kFromTheFuture) {

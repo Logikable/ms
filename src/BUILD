@@ -228,6 +228,22 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "save_lock",
+    srcs = ["save_lock.cc"],
+    hdrs = ["save_lock.h"],
+)
+
+cc_test(
+    name = "save_lock_test",
+    size = "small",
+    srcs = ["save_lock_test.cc"],
+    deps = [
+        ":save_lock",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "save_test",
     size = "small",
@@ -296,6 +312,7 @@ _MAIN_DEPS = [
     ":console",
     ":embedded_data",
     ":save",
+    ":save_lock",
     ":game_state",
     ":proto_loader",
     "//src/character:exp_table",
