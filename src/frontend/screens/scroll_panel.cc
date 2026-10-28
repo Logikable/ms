@@ -35,8 +35,8 @@ constexpr int kRateWidth = 7;  // matches the width of the "Success" header
 // Wide enough for the longest line any scroll has: an armour All Stats scroll,
 // which grants a stat, HP and DEF at once.
 constexpr int kStatsWidth = 30;
-// Wide enough for a four-digit cost and the two columns 📜 takes.
-constexpr int kCostWidth = 8;
+// Wide enough for the Innocence Scroll's "20,000" and the two columns 📜 takes.
+constexpr int kCostWidth = 9;
 // The Pin column: the pin glyph is two columns, right-aligned under its heading
 // like the cost. Five wide rather than four so a blank column separates it from
 // Cost; at four the two headings read as one phrase, "Cost Pin".
@@ -56,7 +56,7 @@ constexpr int kMenuCol = 1 + 2 + kNameWidth + 2;
 // The cost cell, right-aligned in kCostWidth columns. The scroll glyph takes
 // two of them, which PadLeft counts.
 std::string CostCell(int traces) {
-  return PadLeft(std::to_string(traces) + " 📜", kCostWidth);
+  return PadLeft(FormatWithCommas(traces) + " 📜", kCostWidth);
 }
 
 // Two leading spaces match the "  " / "> " cursor the menu adds to entries.
@@ -157,8 +157,7 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
     }
     // Offered even on an item with nothing to undo: the user's call.
     if (s.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
-      if (item_target != SCROLL_TARGET_PET &&
-          character_.account_max_level() >= kInnocenceScrollLevel) {
+      if (character_.account_max_level() >= kInnocenceScrollLevel) {
         filtered.push_back(&s);
       }
       continue;
@@ -489,8 +488,10 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   std::string effect = scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE
                            ? "Restores one lost slot"
                            : ScrollStats(scroll);
+  std::vector<ftxui::Element> effect_rows = {CenteredRow(effect)};
   if (scroll.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
-    effect = "Undoes all scrolls; stars stay";
+    effect_rows = {CenteredRow("WARNING: undoes all"),
+                   CenteredRow("scrolling on this item.")};
   }
 
   // Only the price. What the player owns is in the list's title behind this
@@ -511,7 +512,7 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
                       {
                           CenteredRow(what),
                           ThemedSeparator(),
-                          CenteredRow(effect),
+                          ftxui::vbox(std::move(effect_rows)),
                           std::move(money_row),
                       },
                       ConfirmButtons(confirm_.focus(), affordable));
