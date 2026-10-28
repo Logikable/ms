@@ -16,6 +16,9 @@ enum ScrollTier {
 enum ScrollCategory {
   SCROLL_CATEGORY_UNSPECIFIED = 0;
   SCROLL_CATEGORY_CLEAN_SLATE = 1;
+  // Undoes every scroll on the item: all slots open, scroll stats gone. Stars
+  // stay, unlike GMS's, by the user's choice.
+  SCROLL_CATEGORY_INNOCENCE = 2;
 }
 
 // The stat the scroll raises. The values are in display order: the scroll list
@@ -40,8 +43,7 @@ enum ScrollType {
 // so without a target every weapon scroll would be offered for it.
 // TargetForSlot gives the item's side.
 enum ScrollTarget {
-  // Any item. Clean slates use this: they restore a slot on any item that has
-  // one.
+  // Any item. Clean slates and the Innocence Scroll use this.
   SCROLL_TARGET_UNSPECIFIED = 0;
   SCROLL_TARGET_WEAPON = 1;
   // Everything worn on the body except gloves; shoulderpads included.
@@ -65,14 +67,15 @@ message Scroll {
   string name = 1;
   ScrollType scroll_type = 2;
   ScrollCategory scroll_category = 3;
-  // Unset only on a scroll paid with an item, which works at every level.
+  // Unset only on a scroll paid with an item and the Innocence Scroll, which
+  // work at every level.
   ScrollTier tier = 4;
   // Success probability in [0, 100].
   int32 success_rate = 5;
   EquipStats stats = 6;
   repeated EquipJobCategory applicable_job_categories = 7;
-  // Spell traces per copy, for clean slates only. GMS doesn't sell clean slates
-  // for traces, so there is no price band to use.
+  // Spell traces per copy, for clean slates and the Innocence Scroll only. GMS
+  // sells neither for traces, so there is no price band to use.
   //
   // Every other scroll leaves this unset; its price comes from the level of the
   // item it is used on, through TraceCost in src/item/spell_trace_cost.h. A

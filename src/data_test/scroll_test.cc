@@ -48,10 +48,11 @@ class ScrollDataTest : public ::testing::Test {
 TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     const Scroll& scroll = entry.second;
-    // A scroll paid with an item is the one exception: a single copy is meant
-    // for every level.
+    // A scroll paid with an item and the Innocence Scroll are the exceptions: a
+    // single copy is meant for every level.
     EXPECT_EQ(scroll.tier() == SCROLL_TIER_UNSPECIFIED,
-              !scroll.paid_with().empty())
+              !scroll.paid_with().empty() ||
+                  scroll.scroll_category() == SCROLL_CATEGORY_INNOCENCE)
         << entry.first;
     if (!scroll.paid_with().empty()) {
       continue;  // spends an item instead; see the next test
@@ -84,12 +85,13 @@ TEST_F(ScrollDataTest, HeldScrollsSpendARealItem) {
 }
 
 // A scroll that names no kind of equipment is offered for none, so nobody can
-// ever buy it. Only a clean slate works on anything.
-TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
+// ever buy it. Only a clean slate and the Innocence Scroll work on anything.
+TEST_F(ScrollDataTest, EveryScrollButTheUndoingOnesNamesWhatItGoesOn) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
-    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE ||
+        entry.second.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
       EXPECT_EQ(entry.second.target(), SCROLL_TARGET_UNSPECIFIED)
-          << entry.first << " is a clean slate held to one kind of item";
+          << entry.first << " is held to one kind of item";
       continue;
     }
     EXPECT_NE(entry.second.target(), SCROLL_TARGET_UNSPECIFIED)
@@ -118,12 +120,13 @@ TEST_F(ScrollDataTest, LongerOddsNeverCostLess) {
   }
 }
 
-// Only a clean slate has its own price. A price written on any other scroll is
-// ignored, so leaving one there creates a second price that drifts from the one
-// the player actually pays.
-TEST_F(ScrollDataTest, OnlyACleanSlateWritesItsOwnPrice) {
+// Only a clean slate and the Innocence Scroll have their own price. A price
+// written on any other scroll is ignored, so leaving one there creates a second
+// price that drifts from the one the player actually pays.
+TEST_F(ScrollDataTest, OnlyTheUndoingScrollsWriteTheirOwnPrice) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
-    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE ||
+        entry.second.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
       EXPECT_GT(entry.second.trace_cost(), 0) << entry.first << " is free";
       continue;
     }

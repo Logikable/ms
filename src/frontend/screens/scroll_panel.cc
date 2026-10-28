@@ -76,6 +76,9 @@ std::string ScrollStats(const Scroll& scroll) {
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
     return "Restores slot";
   }
+  if (scroll.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
+    return "Undoes all scrolls";
+  }
   const EquipStats& s = scroll.stats();
   std::string out;
   AppendStat(out, s.attack(), "ATT");
@@ -94,13 +97,18 @@ std::string ScrollStats(const Scroll& scroll) {
   return out;
 }
 
-// Clean slates, then the scrolls the player holds, then the traces by stat and
-// rate.
+// Clean slates, the Innocence Scroll, then the scrolls the player holds, then
+// the traces by stat and rate.
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   bool a_slate = a->scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE;
   bool b_slate = b->scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE;
   if (a_slate != b_slate) {
     return a_slate;
+  }
+  bool a_innocence = a->scroll_category() == SCROLL_CATEGORY_INNOCENCE;
+  bool b_innocence = b->scroll_category() == SCROLL_CATEGORY_INNOCENCE;
+  if (a_innocence != b_innocence) {
+    return a_innocence;
   }
   if (a->paid_with().empty() != b->paid_with().empty()) {
     return !a->paid_with().empty();
@@ -145,6 +153,14 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
         continue;
       }
       filtered.push_back(&s);
+      continue;
+    }
+    // Offered even on an item with nothing to undo: the user's call.
+    if (s.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
+      if (item_target != SCROLL_TARGET_PET &&
+          character_.account_max_level() >= kInnocenceScrollLevel) {
+        filtered.push_back(&s);
+      }
       continue;
     }
     // GMS doesn't sell weapon scrolls for hats. Both must name the same kind of
@@ -473,6 +489,9 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   std::string effect = scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE
                            ? "Restores one lost slot"
                            : ScrollStats(scroll);
+  if (scroll.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
+    effect = "Undoes all scrolls; stars stay";
+  }
 
   // Only the price. What the player owns is in the list's title behind this
   // window, and showing the subtraction here would only crowd the one number
@@ -512,9 +531,10 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
   ftxui::Color text_color = kMutedYellow;
   ftxui::Color accent = kTheme;
   if (r.outcome == kScrollSuccess) {
-    result_text = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
-                      ? "Slot Restored"
-                      : "SUCCESS";
+    result_text =
+        r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE ? "Slot Restored"
+        : r.scroll_category == SCROLL_CATEGORY_INNOCENCE ? "Scrolls Undone"
+                                                         : "SUCCESS";
     text_color = kYellow;
     accent = kYellow;
   }

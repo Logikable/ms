@@ -1302,7 +1302,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
                 item->equip_state().scroll_successes();
       no_slots = remaining >= cap;
     } else {
-      no_slots = remaining == 0;
+      no_slots = remaining == 0 &&
+                 scroll.scroll_category() != SCROLL_CATEGORY_INNOCENCE;
     }
     if (no_slots) {
       scroll_result_ = {kScrollNoSlots, item->prototype().name(), scroll.name(),

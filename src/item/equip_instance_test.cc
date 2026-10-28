@@ -137,6 +137,25 @@ TEST_F(EquipInstanceTest, CleanSlateRestoresABuiltInSlot) {
   EXPECT_EQ(item.Scroll(slate, rng_), kScrollNoSlots);
 }
 
+TEST_F(EquipInstanceTest, InnocenceUndoesEveryScrollButNotTheStars) {
+  ms::Scroll innocence;
+  innocence.set_success_rate(100);
+  innocence.set_scroll_category(SCROLL_CATEGORY_INNOCENCE);
+  Equip state;
+  state.set_equip_name("Test");
+  state.set_remaining_upgrade_slots(0);
+  state.set_scroll_successes(2);
+  state.mutable_scroll_stats()->set_attack(9);
+  state.set_stars(5);
+  EquipInstance item(MakeEquip(1), state);
+
+  EXPECT_EQ(item.Scroll(innocence, rng_), kScrollSuccess);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 3);
+  EXPECT_EQ(item.equip_state().scroll_successes(), 0);
+  EXPECT_EQ(item.equip_state().scroll_stats().attack(), 0);
+  EXPECT_EQ(item.stars(), 5);
+}
+
 // --- Star Force ---
 
 TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {

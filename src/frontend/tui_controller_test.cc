@@ -1793,6 +1793,37 @@ TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
 }
 
+// Not refused as slotless: it is the one scroll for an item with none left.
+TEST_F(TuiControllerTest, AnInnocenceScrollUndoesEveryScrollAndKeepsTheStars) {
+  Scroll& innocence = state_->scrolls["Innocence"];
+  innocence.set_name("Innocence");
+  innocence.set_success_rate(100);
+  innocence.set_scroll_category(SCROLL_CATEGORY_INNOCENCE);
+  innocence.set_trace_cost(20000);
+  state_->character.set_account_max_level(kInnocenceScrollLevel);
+  sword_.set_upgrade_slots(1);
+  Equip* worn = sword_.mutable_dropped_as();
+  worn->set_remaining_upgrade_slots(0);
+  worn->set_scroll_successes(3);
+  worn->mutable_scroll_stats()->set_attack(15);
+  worn->set_stars(5);
+  WearASwordAndDraw();
+  GiveTraces(20000);
+
+  controller_->OpenEquipMenu();
+  ScrollTheFirstRow();
+
+  ASSERT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
+  EXPECT_EQ(controller_->scroll_result().scroll_name, "Innocence");
+  const Equip& after =
+      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->equip_state();
+  EXPECT_EQ(after.remaining_upgrade_slots(), 3);
+  EXPECT_EQ(after.scroll_successes(), 0);
+  EXPECT_EQ(after.scroll_stats().attack(), 0);
+  EXPECT_EQ(after.stars(), 5);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 0);
+}
+
 TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   // Drops with all but one of its three slots spent.

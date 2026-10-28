@@ -179,6 +179,12 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
     state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() + 1);
     return kScrollSuccess;
   }
+  if (scroll.scroll_category() == SCROLL_CATEGORY_INNOCENCE) {
+    state_.set_remaining_upgrade_slots(TotalUpgradeSlots(prototype_));
+    state_.set_scroll_successes(0);
+    state_.clear_scroll_stats();
+    return kScrollSuccess;
+  }
   if (state_.remaining_upgrade_slots() == 0) {
     return kScrollNoSlots;
   }

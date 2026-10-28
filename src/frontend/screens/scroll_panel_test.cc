@@ -228,6 +228,46 @@ TEST_F(ScrollPanelTest, ACleanSlateIsOfferedForEveryKindOfItem) {
   EXPECT_TRUE(panel.SetFilterForPrototype(hat));
 }
 
+// Below the clean slate and above everything else, once any character on the
+// account reaches the level, and never on a pet.
+TEST_F(ScrollPanelTest, TheInnocenceScrollListsUnderTheCleanSlateFromItsLevel) {
+  Scroll& slate = scrolls_["Slate"];
+  slate.set_name("Slate");
+  slate.set_success_rate(100);
+  slate.set_tier(SCROLL_TIER_1);
+  slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  slate.set_trace_cost(20);
+  Scroll& innocence = scrolls_["Innocence"];
+  innocence.set_name("Innocence");
+  innocence.set_success_rate(100);
+  innocence.set_scroll_category(SCROLL_CATEGORY_INNOCENCE);
+  innocence.set_trace_cost(20000);
+  ScrollPanel panel(c_, scrolls_);
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_required_level(1);
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+
+  c_.set_account_max_level(kInnocenceScrollLevel - 1);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword));
+  EXPECT_EQ(Render(panel).find("Innocence"), std::string::npos);
+
+  c_.set_account_max_level(kInnocenceScrollLevel);
+  ASSERT_TRUE(panel.SetFilterForPrototype(sword));
+  std::string drawn = Render(panel);
+  size_t slate_row = drawn.find("Slate");
+  size_t innocence_row = drawn.find("Innocence");
+  ASSERT_NE(innocence_row, std::string::npos) << drawn;
+  EXPECT_LT(slate_row, innocence_row);
+  EXPECT_LT(innocence_row, drawn.find("AAA Scroll"));
+  EXPECT_NE(drawn.find("Undoes all scrolls"), std::string::npos) << drawn;
+
+  EquipPrototype pet;
+  pet.set_equip_slot(EQUIP_SLOT_PET);
+  EXPECT_FALSE(panel.SetFilterForPrototype(pet)) << "no pet scroll here";
+}
+
 // A pet is offered its own scroll alone, not even a clean slate, and the list
 // counts the ones the player holds instead of pricing them. Using one needs
 // one in the bag.

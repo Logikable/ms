@@ -42,6 +42,9 @@
 
 namespace ms {
 
+// The account level that lists the Innocence Scroll.
+inline constexpr int kInnocenceScrollLevel = 200;
+
 class ScrollPanel {
  public:
   ScrollPanel(const CharacterInstance& character,
