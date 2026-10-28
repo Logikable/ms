@@ -1,0 +1,8 @@
+name: "Grand Sacred Symbol: Geardock"
+required_level: 200
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SYMBOL_GEARDOCK
+# Symbols level by absorbing duplicates instead.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+sacred_symbol { meso_cost_base: 48.8 boss: "jupiter" boss_name: "Jupiter" area_level: 295 grand: true }

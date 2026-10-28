@@ -28,6 +28,11 @@ class SymbolTest : public testing::Test {
     }
     return total;
   }
+  static EquipPrototype Grand(double base) {
+    EquipPrototype proto = Sacred(base);
+    proto.mutable_sacred_symbol()->set_grand(true);
+    return proto;
+  }
 };
 
 class ArcaneSymbolTest : public SymbolTest {};

@@ -1,0 +1,4 @@
+name: "Blooming Spring 1"
+bgm: "The other side of ShangriLa"
+spawns { mob: "shangri_la_skylark" count: 40 }
+sacred_power: 230

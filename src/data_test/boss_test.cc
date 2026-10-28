@@ -64,7 +64,8 @@ class BossDataTest : public testing::Test {
 // The bosses the Sacred Symbols name that aren't in the game yet. Building one
 // takes it off this list, and its file must use the stem named here.
 const std::set<std::string> kUnbuiltSymbolBosses = {
-    "seren", "kalos", "first_adversary", "kaling", "malefic_star", "limbo",
+    "seren",        "kalos", "first_adversary", "kaling",
+    "malefic_star", "limbo", "baldrix",         "jupiter",
 };
 
 // The lowest level any of `boss`'s built difficulties opens at. It marks a
@@ -105,7 +106,7 @@ TEST_F(BossDataTest, SacredSymbolsNameRealBosses) {
     }
     EXPECT_EQ(boss->second.name(), info.boss_name()) << entry.first;
   }
-  EXPECT_EQ(keys.size(), 6u) << "one boss per Sacred Symbol";
+  EXPECT_EQ(keys.size(), 8u) << "one boss per Sacred Symbol";
   EXPECT_EQ(unbuilt, kUnbuiltSymbolBosses);
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     if (LowestUnlockLevel(entry.second) >= kGrandisLevel) {

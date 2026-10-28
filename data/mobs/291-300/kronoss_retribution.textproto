@@ -1,0 +1,9 @@
+name: "Kronos's Retribution"
+level: 299
+attack: 19170
+max_hp: 42439442328
+exp: 5912186
+pdr: 10
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_geardock" per_kill: 0.0001 }

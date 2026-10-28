@@ -1,0 +1,9 @@
+name: "Despairing Guard"
+level: 285
+attack: 17010
+max_hp: 20627681750
+exp: 4062965
+pdr: 10
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_carcion" per_kill: 0.0001 }

@@ -1,0 +1,4 @@
+name: "Combat Zone Outskirts 1"
+bgm: "Fierce fortress"
+spawns { mob: "high_flora_foot_soldier" count: 40 }
+sacred_power: 330

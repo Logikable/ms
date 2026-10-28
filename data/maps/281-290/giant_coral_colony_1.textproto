@@ -1,0 +1,4 @@
+name: "Giant Coral Colony 1"
+bgm: "An occupied coast"
+spawns { mob: "despairing_guard" count: 41 }
+sacred_power: 430

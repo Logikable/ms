@@ -1,0 +1,9 @@
+name: "High Flora Foot Soldier"
+level: 280
+attack: 17460
+max_hp: 14728826112
+exp: 3436027
+pdr: 10
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_arteria" per_kill: 0.0001 }

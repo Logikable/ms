@@ -469,6 +469,22 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
                                    " / " + std::to_string(needed))),
       RuleRow(ThemedSeparator()),
   };
+  if (IsGrandSacredSymbol(proto)) {
+    auto percent = [](double pct) {
+      return "+" + std::to_string(std::lround(pct * 100)) + "%";
+    };
+    rows.push_back(
+        TextRow(StatLine("Sacred Power", SymbolForce(proto, level), 0)));
+    rows.push_back(TextRow(
+        SymbolRow("EXP Obtained", percent(GrandSymbolExpPct(proto, level)))));
+    rows.push_back(TextRow(SymbolRow(
+        "Mesos Obtained", percent(GrandSymbolMesoPct(proto, level)))));
+    rows.push_back(TextRow(SymbolRow(
+        "Item Drop Rate", percent(GrandSymbolDropPct(proto, level)))));
+    Append(rows,
+           MaxLevelBonusRows(proto, SymbolMaxed(proto, item.equip_state())));
+    return rows;
+  }
   if (character_ != nullptr) {
     StatField primary = PrimaryStatField(character_->proto().job());
     const DisplayStat* stat = DisplayStatFor(primary);
@@ -501,18 +517,23 @@ std::vector<CardRow> InspectPanel::MaxLevelBonusRows(
   std::vector<CardRow> rows = {
       RuleRow(ThemedSeparator()),
       TextRow(SymbolRow("Max Level Bonus", "") | earned),
-      TextRow(SymbolRow(" EXP Obtained", "+" +
-                                             std::to_string(static_cast<int>(
-                                                 kSacredMaxExpPct * 100)) +
-                                             "%") |
-              earned),
-      TextRow(SymbolRow(" Damage vs " + proto.sacred_symbol().boss_name(),
-                        "+" +
-                            std::to_string(static_cast<int>(
-                                kSacredMaxBossDamagePct * 100)) +
-                            "%") |
-              earned),
   };
+  // A Grand Sacred Symbol's EXP climbs with its level instead.
+  if (!IsGrandSacredSymbol(proto)) {
+    rows.push_back(TextRow(
+        SymbolRow(" EXP Obtained",
+                  "+" +
+                      std::to_string(static_cast<int>(kSacredMaxExpPct * 100)) +
+                      "%") |
+        earned));
+  }
+  rows.push_back(TextRow(
+      SymbolRow(
+          " Damage vs " + proto.sacred_symbol().boss_name(),
+          "+" +
+              std::to_string(static_cast<int>(kSacredMaxBossDamagePct * 100)) +
+              "%") |
+      earned));
   return rows;
 }
 

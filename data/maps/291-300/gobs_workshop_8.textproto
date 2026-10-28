@@ -1,0 +1,4 @@
+name: "Gob's Workshop 8"
+bgm: "The Ghosts of the Sleepless Gods"
+spawns { mob: "kronoss_retribution" count: 42 }
+sacred_power: 810

@@ -1,0 +1,9 @@
+name: "Ash-Devouring Soul"
+level: 290
+attack: 18360
+max_hp: 28811166384
+exp: 4793318
+pdr: 10
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_tallahart" per_kill: 0.0001 }

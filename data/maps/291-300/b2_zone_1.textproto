@@ -1,0 +1,4 @@
+name: "B2 Zone 1"
+bgm: "Secrets Hidden Under the Sand"
+spawns { mob: "patrol_securitron" count: 42 }
+sacred_power: 740

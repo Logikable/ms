@@ -128,7 +128,9 @@ void AddIncomeLines(const CharacterInstance& character,
   lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
   lines.push_back(
       {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
-  if (character.proto().level() >= kGrandisLevel) {
+  // Sacred Symbols are worn from 200, though Grandis opens at 260.
+  if (character.proto().level() >= kGrandisLevel ||
+      character.sacred_power() > 0) {
     lines.push_back({"Sacred Power", std::to_string(character.sacred_power())});
   }
 }

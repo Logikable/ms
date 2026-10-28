@@ -54,6 +54,31 @@ bool IsSacredSymbol(const EquipPrototype& proto) {
   return proto.has_sacred_symbol();
 }
 
+bool IsGrandSacredSymbol(const EquipPrototype& proto) {
+  return proto.has_sacred_symbol() && proto.sacred_symbol().grand();
+}
+
+double GrandSymbolExpPct(const EquipPrototype& proto, int level) {
+  if (!IsGrandSacredSymbol(proto)) {
+    return 0.0;
+  }
+  return kGrandBaseExpPct + kGrandExpPctPerLevel * (level - 1);
+}
+
+double GrandSymbolMesoPct(const EquipPrototype& proto, int level) {
+  if (!IsGrandSacredSymbol(proto)) {
+    return 0.0;
+  }
+  return kGrandBaseMesoPct + kGrandRatePctPerLevel * (level - 1);
+}
+
+double GrandSymbolDropPct(const EquipPrototype& proto, int level) {
+  if (!IsGrandSacredSymbol(proto)) {
+    return 0.0;
+  }
+  return kGrandBaseDropPct + kGrandRatePctPerLevel * (level - 1);
+}
+
 int SymbolMaxLevel(const EquipPrototype& proto) {
   switch (proto.symbol_case()) {
     case EquipPrototype::kArcaneSymbol:
@@ -132,6 +157,9 @@ void LevelUpSymbol(const EquipPrototype& proto, Equip& item) {
 EquipStats SymbolStatsFor(const EquipPrototype& proto, StatField primary,
                           int level) {
   EquipStats stats;
+  if (IsGrandSacredSymbol(proto)) {
+    return stats;
+  }
   if (IsSacredSymbol(proto)) {
     SetStat(stats, primary,
             kSacredBaseStat + kSacredStatPerLevel * (level - 1));

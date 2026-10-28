@@ -1,0 +1,4 @@
+name: "Silent Ashlands 1"
+bgm: "Reborn gods"
+spawns { mob: "ash_devouring_soul" count: 41 }
+sacred_power: 630

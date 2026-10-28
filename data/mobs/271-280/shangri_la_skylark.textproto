@@ -1,0 +1,11 @@
+# GMS's attack isn't on the wiki (it lists "10%"), so this is halfway between
+# Odium's 270 mob (16,560) and Arteria's 280 mob (17,460).
+name: "Shangri-La Skylark"
+level: 275
+attack: 17010
+max_hp: 10500341040
+exp: 2903024
+pdr: 10
+# The Arcane Symbols' rate. Grandis's one Etc item, Sol Erda Fragment, is a
+# shared-pool one.
+drops { equip: "symbol_shangri_la" per_kill: 0.0001 }

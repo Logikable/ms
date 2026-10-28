@@ -5,6 +5,8 @@
  * their area's force and a final primary stat. They differ in every number:
  * Arcane Symbols climb 20 levels on a gentle curve, Sacred Symbols 11 on a
  * steep one, and only a maxed Sacred Symbol adds anything beyond its stats.
+ * A Grand Sacred Symbol levels as a Sacred one but pays EXP, meso and drop rate
+ * where the others pay a primary stat.
  *
  * Pure math over the protos. What the character actually wears is up to
  * CharacterInstance; see CharacterInstance::arcane_force and sacred_power.
@@ -29,10 +31,25 @@ inline constexpr int kMaxSacredSymbolLevel = 11;
 inline constexpr double kSacredMaxExpPct = 0.10;
 inline constexpr double kSacredMaxBossDamagePct = 0.20;
 
-// Which kind `proto` is, from its symbol block, which nothing else has.
+// A Grand Sacred Symbol at level 1, and what each level after adds (GMS v268,
+// maplestorywiki Template:Equipment_Properties).
+inline constexpr double kGrandBaseExpPct = 0.10;
+inline constexpr double kGrandExpPctPerLevel = 0.04;
+inline constexpr double kGrandBaseMesoPct = 0.05;
+inline constexpr double kGrandBaseDropPct = 0.05;
+inline constexpr double kGrandRatePctPerLevel = 0.01;
+
+// Which kind `proto` is, from its symbol block, which nothing else has. A Grand
+// Sacred Symbol is a Sacred one too.
 bool IsSymbol(const EquipPrototype& proto);
 bool IsArcaneSymbol(const EquipPrototype& proto);
 bool IsSacredSymbol(const EquipPrototype& proto);
+bool IsGrandSacredSymbol(const EquipPrototype& proto);
+
+// What a Grand Sacred Symbol at `level` adds; 0 for any other item.
+double GrandSymbolExpPct(const EquipPrototype& proto, int level);
+double GrandSymbolMesoPct(const EquipPrototype& proto, int level);
+double GrandSymbolDropPct(const EquipPrototype& proto, int level);
 
 // The max level for `proto`'s kind; 0 for an item that isn't a symbol.
 int SymbolMaxLevel(const EquipPrototype& proto);
@@ -75,8 +92,8 @@ void LevelUpSymbol(const EquipPrototype& proto, Equip& item);
 
 // The stats a worn symbol gives, all in the wearer's primary stat: 10 per point
 // of Arcane Force (GMS's 100 per 10), or 500 for a Sacred Symbol plus 200 a
-// level past the first. A symbol gives nothing else, so its prototype has no
-// base stats.
+// level past the first. A Grand Sacred Symbol gives none. A symbol has no base
+// stats.
 EquipStats SymbolStatsFor(const EquipPrototype& proto, StatField primary,
                           int level);
 

@@ -279,6 +279,32 @@ TEST_F(DerivedStatsTest, AMaxedSacredSymbolPaysItsBonuses) {
   EXPECT_DOUBLE_EQ(SymbolBossDamagePct(c, "lotus", StatPreset::kFirst), 0.0);
 }
 
+// A Grand Sacred Symbol pays its rates at every level, and nothing more for
+// reaching the top.
+TEST_F(DerivedStatsTest, AGrandSacredSymbolPaysItsRatesAtEveryLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  const DerivedStats bare = DerivedStatsFor(c, {});
+  EquipPrototype tallahart;
+  tallahart.set_name("Tallahart");
+  tallahart.set_equip_slot(EQUIP_SLOT_SYMBOL_TALLAHART);
+  tallahart.mutable_sacred_symbol()->set_grand(true);
+  Equip third;
+  third.set_symbol_level(3);
+  c.PickUp(std::make_unique<EquipInstance>(tallahart, third));
+  ASSERT_TRUE(c.Equip(0));
+  DerivedStats worn = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(worn.exp_pct, bare.exp_pct + 0.18);
+  EXPECT_DOUBLE_EQ(worn.meso_pct, bare.meso_pct + 0.07);
+  EXPECT_DOUBLE_EQ(worn.item_drop_pct, bare.item_drop_pct + 0.07);
+
+  ASSERT_TRUE(c.Unequip(EQUIP_SLOT_SYMBOL_TALLAHART));
+  Equip maxed;
+  maxed.set_symbol_level(kMaxSacredSymbolLevel);
+  c.PickUp(std::make_unique<EquipInstance>(tallahart, maxed));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).exp_pct, bare.exp_pct + 0.50);
+}
+
 // With autoswap on, the activity picks the gear as well as the allocations. A
 // boss fight uses the boss preset's weapon, and farming never sees it.
 TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {
