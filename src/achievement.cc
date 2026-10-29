@@ -27,18 +27,15 @@ namespace ms {
 namespace {
 
 constexpr AchievementInfo kAchievements[] = {
-    {ACHIEVEMENT_STARS_17, "Starstruck", "Star an item to 17 stars.", "stars"},
-    {ACHIEVEMENT_STARS_22, "Superstar", "Star an item to 22 stars.", "stars"},
-    {ACHIEVEMENT_STARS_25, "Supernova", "Star an item to 25 stars.", "stars"},
+    {ACHIEVEMENT_STARS_17, "Starstruck", "Obtain a 17★ item.", "stars"},
+    {ACHIEVEMENT_STARS_22, "Superstar", "Obtain a 22★ item.", "stars"},
+    {ACHIEVEMENT_STARS_25, "Supernova", "Obtain a 25★ item.", "stars"},
     {ACHIEVEMENT_TRIPLE_PRIME, "Triple Prime",
-     "Roll three Legendary lines of one stat on one potential, main or bonus.",
-     nullptr},
-    {ACHIEVEMENT_PERFECT_FLAME, "Perfect Flame",
-     "Flame an item to four tier 7 lines, all useful to one job: its main "
-     "stat, a pair with it, All Stat%, Boss Damage, Damage, and its attack.",
+     "Roll three prime lines of the same stat, mpot or bpot.", nullptr},
+    {ACHIEVEMENT_PERFECT_FLAME, "Perfect Flame", "Flame four useful T7 lines.",
      nullptr},
     {ACHIEVEMENT_FAMILIARS_MAXED, "Kennel Master",
-     "Raise every familiar to level 4 on one character.", "familiars"},
+     "Get every familiar to level 4 on one character.", "familiars"},
     {ACHIEVEMENT_LEGION_8000, "Legion 8000", "Reach Legion level 8,000.",
      "Legion levels"},
     {ACHIEVEMENT_ARCANE_SYMBOLS_MAXED, "Arcane Mastery",
@@ -48,7 +45,7 @@ constexpr AchievementInfo kAchievements[] = {
      "count.",
      "symbols"},
     {ACHIEVEMENT_GUILD_SKILLS_MAXED, "Guild Grandmaster",
-     "Earn every level of every Guild Skill.", "Noblesse SP"},
+     "Max all Guild Skills.", "Noblesse SP"},
     {ACHIEVEMENT_MESO_10B, "Ten Billion",
      "Hold 10,000,000,000 meso on one character, or in the bank.", "meso"},
     {ACHIEVEMENT_MESO_100B, "Hundred Billion",
@@ -59,9 +56,9 @@ constexpr AchievementInfo kAchievements[] = {
      "levels"},
     {ACHIEVEMENT_ACCOUNT_90_DAYS, "Three Months",
      "Keep an account for 90 days.", "days"},
-    {ACHIEVEMENT_ACCOUNT_365_DAYS, "One Year", "Keep an account for 365 days.",
-     "days"},
-    {ACHIEVEMENT_ACCOUNT_3_YEARS, "Three Years",
+    {ACHIEVEMENT_ACCOUNT_365_DAYS, "Anniversary",
+     "Keep an account for 365 days.", "days"},
+    {ACHIEVEMENT_ACCOUNT_3_YEARS, "Three Years Old",
      "Keep an account for three years.", "days"},
 };
 

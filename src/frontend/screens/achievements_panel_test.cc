@@ -150,6 +150,15 @@ TEST_F(AchievementsPanelTest, OnlyAnEarnedBarIsGold) {
   EXPECT_FALSE(Paints(panel_.RenderCard(), kGold));
 }
 
+// A description longer than the card flows onto the next line, filling each.
+TEST_F(AchievementsPanelTest, ALongDescriptionWrapsInsideTheCard) {
+  Show(Earned({}), {});
+  Select(ACHIEVEMENT_SACRED_SYMBOLS_MAXED);
+  const std::string card = RenderElement(panel_.RenderCard());
+  EXPECT_NE(card.find("Max every Sacred Symbol"), std::string::npos) << card;
+  EXPECT_NE(card.find("count."), std::string::npos) << card;
+}
+
 TEST_F(AchievementsPanelTest, SomeoneElsesPurseIsHidden) {
   Show(Earned({}), {});
   Select(ACHIEVEMENT_MESO_10B);

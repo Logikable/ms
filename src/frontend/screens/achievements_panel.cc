@@ -30,8 +30,6 @@ constexpr int kDateWidth = 10;
 // Borders, the cursor, the gap before the date, the date and a blank column
 // before the right border.
 constexpr int kNameWidth = kAchievementListWidth - 2 - 2 - 1 - kDateWidth - 1;
-// Borders and a blank column each side.
-constexpr int kCardTextWidth = kAchievementCardWidth - 4;
 
 std::tm Local(int64_t unix_seconds) {
   std::time_t when = static_cast<std::time_t>(unix_seconds);
@@ -215,10 +213,11 @@ ftxui::Element AchievementsPanel::RenderCard() const {
           : ftxui::text(""),
       ThemedSeparator(),
   };
-  for (const std::string& line :
-       WrapBalanced(info.description, kCardTextWidth)) {
-    rows.push_back(ftxui::text(" " + line + " "));
-  }
+  rows.push_back(ftxui::hbox({
+      ftxui::text(" "),
+      ftxui::paragraph(info.description) | ftxui::flex,
+      ftxui::text(" "),
+  }));
   if (HasCounter(entry->achievement)) {
     rows.push_back(ftxui::text(""));
     rows.push_back(ftxui::hbox({
