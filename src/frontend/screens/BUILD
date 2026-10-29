@@ -1538,3 +1538,37 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "achievements_panel",
+    srcs = ["achievements_panel.cc"],
+    hdrs = ["achievements_panel.h"],
+    deps = [
+        "//src:achievement",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:marquee",
+        "//src/protos:achievement_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "achievements_panel_test",
+    size = "small",
+    srcs = ["achievements_panel_test.cc"],
+    deps = [
+        ":achievements_panel",
+        "//src:achievement",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/widgets:colors",
+        "//src/protos:achievement_proto_cc",
+        "@ftxui//:component",
+        "@googletest//:gtest_main",
+        "@protobuf",
+    ],
+)

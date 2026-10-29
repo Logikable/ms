@@ -186,6 +186,10 @@ enum Screen : int {
   // the Grid's Reset question over it.
   kLegion,
   kLegionReset,
+  // Achievements under the menu's Characters entry, and the same screen for
+  // someone else from the Players list's Achievs.
+  kAchievements,
+  kPlayerAchievements,
   // Switch under the menu's Characters entry: the account's characters, and
   // the card of the one under the cursor. Farming stops while it is open, and
   // the only way back into the game is to play one of them.
@@ -296,8 +300,9 @@ enum PartyMenuItem : int {
 // only some of them. Trade isn't shown on your own row.
 enum PlayerMenuItem : int {
   kPlayerMenuInspect = 0,
-  kPlayerMenuTrade = 1,
-  kPlayerMenuClose = 2,
+  kPlayerMenuAchievements = 1,
+  kPlayerMenuTrade = 2,
+  kPlayerMenuClose = 3,
 };
 // The skill menu's entries. The middle one is only for toggle skills and is
 // hidden for every other skill.

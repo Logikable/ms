@@ -56,6 +56,7 @@ enum class DailiesEntry {
 enum class CharactersEntry {
   kSwitch,
   kLegion,
+  kAchievements,
 };
 
 // The Multiplayer box, top to bottom.

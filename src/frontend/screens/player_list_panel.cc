@@ -30,7 +30,8 @@ constexpr char kCursorAway[] = "  ";
 
 }  // namespace
 
-PlayerListPanel::PlayerListPanel() : menu_({"Inspect", "Trade", "Close"}) {
+PlayerListPanel::PlayerListPanel()
+    : menu_({"Inspect", "Achievs", "Trade", "Close"}) {
 }
 
 void PlayerListPanel::SetSnapshot(const MultiplayerSnapshot& snapshot) {

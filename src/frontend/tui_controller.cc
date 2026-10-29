@@ -826,6 +826,22 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   return true;
 }
 
+bool TuiController::OnAchievementsEvent(ftxui::Event event) {
+  if (achievements_panel_.OnEvent(event) == AchievementsPanel::Action::kClose) {
+    // Back to the box it was opened from, like Legion.
+    screen_ = kMenuBox;
+  }
+  return true;
+}
+
+bool TuiController::OnPlayerAchievementsEvent(ftxui::Event event) {
+  if (achievements_panel_.OnEvent(event) == AchievementsPanel::Action::kClose) {
+    StopWatching();
+    screen_ = kPlayerList;
+  }
+  return true;
+}
+
 bool TuiController::CloseMainViewDropdown() {
   switch (screen_) {
     // Each of these resets its menu when it opens, so the screen is all that
@@ -1056,6 +1072,10 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
                                               : OnLegionEvent(event);
     case kLegionReset:
       return OnLegionResetEvent(event);
+    case kAchievements:
+      return OnAchievementsEvent(event);
+    case kPlayerAchievements:
+      return OnPlayerAchievementsEvent(event);
     case kCharacterSelect:
       return OnCharacterSelectEvent(event);
     case kCharacterMenu:
@@ -2296,8 +2316,8 @@ void TuiController::AdvanceParty() {
   bool on_lobby_screen =
       screen_ == kPartySelect || screen_ == kPartyMenu ||
       screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
-      screen_ == kPlayerItemInspect || screen_ == kPlayerList ||
-      screen_ == kPlayerMenu || OnTradeScreen();
+      screen_ == kPlayerItemInspect || screen_ == kPlayerAchievements ||
+      screen_ == kPlayerList || screen_ == kPlayerMenu || OnTradeScreen();
   if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
     menu_panel_.CloseBox();
@@ -2416,6 +2436,15 @@ void TuiController::DropBossRun() {
 }
 
 void TuiController::RefreshPlayerInspect(const MultiplayerSnapshot& lobby) {
+  if (screen_ == kPlayerAchievements) {
+    if (!IsOnline(lobby, inspect_account_)) {
+      StopWatching();
+      screen_ = kPlayerList;
+    } else if (lobby.watched.account_id() == inspect_account_) {
+      achievements_player_ = lobby.watched;
+    }
+    return;
+  }
   if (screen_ != kPlayerInspect && screen_ != kPlayerItemInspect) {
     return;
   }
@@ -2541,7 +2570,8 @@ bool TuiController::OnPlayerMenuEvent(ftxui::Event event) {
   std::string account = player_list_panel_.selected_account();
   player_list_panel_.CloseMenu();
   screen_ = kPlayerList;
-  if (chosen == kPlayerMenuInspect) {
+  if (chosen == kPlayerMenuInspect || chosen == kPlayerMenuAchievements) {
+    inspect_achievements_ = chosen == kPlayerMenuAchievements;
     WatchForInspect(account);
   } else if (chosen == kPlayerMenuTrade) {
     AskToTrade(account);
@@ -2627,6 +2657,13 @@ void TuiController::AdvanceWatch(const MultiplayerSnapshot& lobby) {
     inspect_account_ = inspect_pending_;
     inspect_pending_.clear();
     inspect_from_players_ = true;
+    if (inspect_achievements_) {
+      achievements_player_ = lobby.watched;
+      achievements_panel_.Reset(" " + lobby.watched.name() +
+                                "'s Achievements ");
+      screen_ = kPlayerAchievements;
+      return;
+    }
     player_inspect_panel_.SetPlayer(lobby.watched);
     player_inspect_panel_.Reset();
     screen_ = kPlayerInspect;
@@ -3753,6 +3790,10 @@ void TuiController::OpenBoxEntry() {
               MenuPanel::seen_key(CharactersEntry::kLegion));
           legion_panel_.Reset();
           screen_ = kLegion;
+          return;
+        case CharactersEntry::kAchievements:
+          achievements_panel_.Reset(" Achievements ");
+          screen_ = kAchievements;
           return;
       }
       return;

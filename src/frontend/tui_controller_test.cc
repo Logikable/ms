@@ -4076,6 +4076,22 @@ TEST_F(TuiControllerTest, LeavingADailiesScreenGoesBackToTheBox) {
   EXPECT_FALSE(menu_panel_->box_open());
 }
 
+// --- achievements ---
+
+TEST_F(TuiControllerTest, AchievementsOpensFromCharactersAndClosesToTheBox) {
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  ASSERT_EQ(controller_->screen(), kMenuBox);
+  // Up from the row reaches the entry nearest it, the last in the box.
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  ASSERT_EQ(menu_panel_->selected_characters_entry(),
+            CharactersEntry::kAchievements);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kAchievements);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+}
+
 // --- Tab out of a dropdown ---
 
 // Tab leaves a dropdown for the next panel, and the dropdown is gone: back on

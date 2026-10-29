@@ -35,6 +35,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"
+#include "src/protos/achievement.pb.h"
 #include "src/testing/prototypes.h"
 
 namespace ms {
@@ -298,6 +299,7 @@ class PartyControllerTest : public ::testing::Test {
     ASSERT_EQ(client.player_list_panel.selected_name(), name);
     client.controller->OnEvent(ftxui::Event::Return);
     ASSERT_EQ(client.controller->screen(), kPlayerMenu);
+    client.controller->OnEvent(ftxui::Event::ArrowDown);  // Achievs
     client.controller->OnEvent(ftxui::Event::ArrowDown);
     ASSERT_EQ(client.player_list_panel.menu_selected(), kPlayerMenuTrade);
     client.controller->OnEvent(ftxui::Event::Return);
@@ -513,6 +515,7 @@ TEST_F(PartyControllerTest, SwitchingCharacterLeavesTheParty) {
   MakeParty(*leader, *guest);
 
   guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Achievements
   guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Switch
   guest->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(guest->controller->screen(), kCharacterSelect);
@@ -524,6 +527,7 @@ TEST_F(PartyControllerTest, SwitchingCharacterLeavesTheParty) {
   EXPECT_TRUE(guest->party_panel.in_party());
 
   guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Achievements
   guest->controller->OnEvent(ftxui::Event::ArrowUp);  // Switch
   guest->controller->OnEvent(ftxui::Event::Return);
   guest->controller->OnEvent(ftxui::Event::ArrowDown);  // onto Other
@@ -632,6 +636,38 @@ TEST_F(PartyControllerTest, APlayerInspectsSomebodyOutsideTheirParty) {
     return reader->player_inspect_panel->character().proto().level() ==
            read->state->character.proto().level();
   }));
+
+  reader->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(reader->controller->screen(), kPlayerList);
+}
+
+// Achievs asks for the same sheet as Inspect and opens the Achievements screen
+// on it: what they have earned, and their counters.
+TEST_F(PartyControllerTest, APlayerReadsSomebodysAchievements) {
+  std::unique_ptr<Client> reader = Connect("Dagger");
+  std::unique_ptr<Client> read = Connect("Wand");
+  read->state->account.RecordAchievement(ACHIEVEMENT_STARS_17, 1'700'000'000);
+  read->state->achievement_progress[ACHIEVEMENT_STARS_22] = 17;
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenMultiplayer(*reader, MultiplayerEntry::kPlayers);
+  ASSERT_EQ(reader->controller->screen(), kPlayerList);
+  reader->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(reader->player_list_panel.selected_name(), "Wand");
+
+  reader->controller->OnEvent(ftxui::Event::Return);
+  reader->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(reader->player_list_panel.menu_selected(), kPlayerMenuAchievements);
+  reader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->controller->screen() == kPlayerAchievements;
+  }));
+  const PlayerInfo& player = reader->controller->achievements_player();
+  EXPECT_EQ(player.name(), "Wand");
+  ASSERT_EQ(player.achievements_size(), 1);
+  EXPECT_EQ(player.achievements(0).achievement(), ACHIEVEMENT_STARS_17);
+  EXPECT_EQ(player.achievement_progress().at(ACHIEVEMENT_STARS_22), 17);
 
   reader->controller->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(reader->controller->screen(), kPlayerList);

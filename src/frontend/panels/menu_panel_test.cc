@@ -109,13 +109,18 @@ TEST(MenuPanelTest, CharactersHoldsSwitchThenLegion) {
   std::string box = RenderBox(panel);
   EXPECT_NE(box.find("Switch"), std::string::npos) << box;
   EXPECT_EQ(box.find("Legion"), std::string::npos) << box;
+  EXPECT_EQ(panel.CharactersEntries(),
+            (std::vector<CharactersEntry>{CharactersEntry::kSwitch,
+                                          CharactersEntry::kAchievements}))
+      << "Achievements isn't gated";
 
   LevelTo(state, kLegionLevel);
   box = RenderBox(panel);
   EXPECT_LT(box.find("Switch"), box.find("Legion")) << box;
   EXPECT_EQ(panel.CharactersEntries(),
             (std::vector<CharactersEntry>{CharactersEntry::kSwitch,
-                                          CharactersEntry::kLegion}));
+                                          CharactersEntry::kLegion,
+                                          CharactersEntry::kAchievements}));
 }
 
 // The row holds only the entries: no brackets, two columns between them, and a

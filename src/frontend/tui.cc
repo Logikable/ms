@@ -37,6 +37,7 @@
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/placement.h"
+#include "src/frontend/screens/achievements_panel.h"
 #include "src/frontend/screens/boss_clear_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -1017,6 +1018,34 @@ ftxui::Element Tui::RenderFamiliarScreen() {
   return Overlay(std::move(columns), cube.RenderConfirm());
 }
 
+// The list beside the card, for the player's own account or for whoever the
+// Players list asked about. Someone else's counters are paired with this
+// game's targets, which the protocol version keeps the same as theirs.
+ftxui::Element Tui::RenderAchievements() {
+  std::map<Achievement, int64_t> progress;
+  std::vector<AchievementEntry> entries;
+  const std::map<Achievement, int64_t> targets = AchievementTargets(state_);
+  if (controller_.screen() == kPlayerAchievements) {
+    const PlayerInfo& player = controller_.achievements_player();
+    for (const auto& [number, value] : player.achievement_progress()) {
+      progress[static_cast<Achievement>(number)] = value;
+    }
+    entries = AchievementEntries(player.achievements(), progress, targets);
+  } else {
+    entries = AchievementEntries(state_.account.achievements(),
+                                 state_.achievement_progress, targets);
+  }
+  AchievementsPanel& panel = controller_.achievements_panel();
+  panel.SetEntries(std::move(entries));
+  panel.SetMaxRows(ftxui::Terminal::Size().dimy);
+  // The card keeps its own height rather than stretching to the list's.
+  return SideBySide({
+      panel.RenderList(),
+      ftxui::text(" "),
+      ftxui::vbox({panel.RenderCard(), ftxui::filler()}),
+  });
+}
+
 ftxui::Element Tui::RenderInspect() {
   // One screen for two kinds of item: the panel shows whichever the cursor was
   // on and frames both the same way. SetItem has two overloads, so this can't
@@ -1134,6 +1163,9 @@ ftxui::Element Tui::RenderScreen() {
           Centred(controller_.legion_panel().Render()),
           DialogWindow("", {CenteredRow(controller_.legion_reset_question())},
                        controller_.legion_reset_prompt().Render()));
+    case kAchievements:
+    case kPlayerAchievements:
+      return RenderAchievements();
     // kCharacterMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel draws it.
     case kCharacterSelect:

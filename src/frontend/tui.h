@@ -178,6 +178,7 @@ class Tui {
   ftxui::Element RenderFamiliarScreen();
   ftxui::Element RenderFlaming();
   ftxui::Element RenderSouling();
+  ftxui::Element RenderAchievements();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
   // Advances the game by the time since the previous call: combat, and the

@@ -24,6 +24,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/achievements_panel.h"
 #include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
@@ -434,6 +435,14 @@ class TuiController {
   const LegionPanel& legion_panel() const {
     return legion_panel_;
   }
+  // The Achievements screen, and whose it shows on kPlayerAchievements: the
+  // last sheet the server sent for them.
+  AchievementsPanel& achievements_panel() {
+    return achievements_panel_;
+  }
+  const PlayerInfo& achievements_player() const {
+    return achievements_player_;
+  }
   const ConfirmPrompt& legion_reset_prompt() const {
     return legion_reset_prompt_;
   }
@@ -710,6 +719,8 @@ class TuiController {
   ItemRef SelectedItem() const;
 
   bool OnMainViewEvent(ftxui::Event event);
+  bool OnAchievementsEvent(ftxui::Event event);
+  bool OnPlayerAchievementsEvent(ftxui::Event event);
   // Closes a dropdown open over the main view as Escape would, and returns
   // whether there was one. A menu over another screen isn't one of these.
   bool CloseMainViewDropdown();
@@ -1020,6 +1031,9 @@ class TuiController {
   std::string inspect_account_;
   // Which list the open Inspect screen came from, which Escape returns to.
   bool inspect_from_players_ = false;
+  // Whether the sheet being waited for opens the Achievements screen rather
+  // than Inspect.
+  bool inspect_achievements_ = false;
   // The player the Players list has requested from the server and is waiting
   // for. Empty once their sheet has arrived, or once they have left.
   std::string inspect_pending_;
@@ -1096,6 +1110,8 @@ class TuiController {
   DailiesPanel dailies_panel_;
   CharacterSelectPanel character_select_panel_;
   LegionPanel legion_panel_;
+  AchievementsPanel achievements_panel_;
+  PlayerInfo achievements_player_;
   ConfirmPrompt legion_reset_prompt_;
   ConfirmPrompt character_delete_prompt_;
   // The slot the open Delete confirmation is about, stored when it opens, since

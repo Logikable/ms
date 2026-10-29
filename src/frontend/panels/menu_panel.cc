@@ -46,6 +46,8 @@ std::string CharactersEntryName(CharactersEntry entry) {
       return "Switch";
     case CharactersEntry::kLegion:
       return "Legion";
+    case CharactersEntry::kAchievements:
+      return "Achievements";
   }
   return "";
 }
@@ -217,6 +219,7 @@ std::vector<CharactersEntry> MenuPanel::CharactersEntries() const {
   if (Unlocked(Feature::kLegion, state_.character, state_.account)) {
     entries.push_back(CharactersEntry::kLegion);
   }
+  entries.push_back(CharactersEntry::kAchievements);
   return entries;
 }
 
@@ -226,6 +229,8 @@ const char* MenuPanel::seen_key(CharactersEntry entry) {
       return "";
     case CharactersEntry::kLegion:
       return "legion";
+    case CharactersEntry::kAchievements:
+      return "";
   }
   return "";
 }

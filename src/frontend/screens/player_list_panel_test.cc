@@ -60,9 +60,12 @@ TEST_F(PlayerListPanelTest, RaisesAMenuOnAPlayer) {
   EXPECT_EQ(panel_.menu_selected(), kPlayerMenuInspect);
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_NE(screen.find("Achievs"), std::string::npos);
   EXPECT_NE(screen.find("Trade"), std::string::npos);
 
-  // Three entries, so Down reaches Close and Down again wraps back.
+  // Four entries, so Down reaches Close and Down again wraps back.
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuAchievements);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPlayerMenuTrade);
   panel_.MoveMenuCursor(1);
@@ -85,6 +88,9 @@ TEST_F(PlayerListPanelTest, YourOwnRowDoesNotOfferTrade) {
   // that entry isn't there at all.
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
   EXPECT_EQ(screen.find("Trade"), std::string::npos);
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuAchievements)
+      << "your own achievements are fine to look at";
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPlayerMenuClose);
 }
