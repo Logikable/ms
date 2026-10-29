@@ -3605,16 +3605,39 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
   // pool nor the price based on it can be drawn.
   EXPECT_EQ(ability.find("Honor"), std::string::npos) << ability;
 
-  // Ability is the end of the bar. Checked by stepping past, since a narrow
-  // panel's bar scrolls labels out of view.
+  // A member's buffs are shown, read from their sheet.
+  c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Buffs
+  ftxui::Screen buffs = RenderToScreen(comp);
+  EXPECT_NE(ScreenText(buffs).find("R: "), std::string::npos)
+      << ScreenText(buffs);
+  EXPECT_TRUE(HasCell(buffs, "\u2713")) << "the one they have on";
+
+  // Buffs is the end of the bar: no Advance. Checked by stepping past, since a
+  // narrow panel's bar scrolls labels out of view.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Boss Damage"),
-            std::string::npos)
-      << "the bar carried on past Ability";
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("R: "), std::string::npos)
+      << "the bar carried on past Buffs";
 }
 
-// The same character on the player's own panel has the two tabs read-only
+// A member's buff can be looked at but not switched or bought.
+TEST_F(CharacterPanelTest, ReadOnlyBuffRowsOpenNoMenu) {
+  CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  panel.SetWidth(kLeftColumnMax);
+  panel_focus_ = kCharPanel;
+  bool opened = false;
+  CharacterPanelActions actions;
+  actions.buff_menu = [&](ConsumableType) { opened = true; };
+  ftxui::Component comp = OnBuffRows(panel, actions);
+  ASSERT_NE(ScreenText(RenderToScreen(comp)).find("R: "), std::string::npos);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(opened);
+}
+
+// The same character on the player's own panel has the Advance tab read-only
 // removes, so the test above is measuring the flag, not the level.
 TEST_F(CharacterPanelTest, TheBuffsAndAdvanceTabsAreThereWhenItIsYourOwn) {
   CharacterInstance c = MakeInspectedHero(rng_);

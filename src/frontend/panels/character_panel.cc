@@ -302,10 +302,9 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   }
   // Buffs is also gated on this character, for the same reason: a buff below
   // its own level can't be turned on or bought, whoever else on the account got
-  // there. Neither Buffs nor Advance appears on a read-only panel: Buffs lists
-  // what is in a bag, which a character sheet doesn't include, and someone
-  // else's advancement isn't the reader's to take.
-  if (character_.consumables_unlocked() && !read_only_) {
+  // there. A read-only panel shows a member's buffs but not their Advance tab:
+  // someone else's advancement isn't the reader's to take.
+  if (character_.consumables_unlocked()) {
     tabs.push_back(kTabBuffs);
   }
   // The Advance tab exists only while there is an advancement to take, so it
@@ -1884,7 +1883,7 @@ bool CharacterPanel::OnBuffsTabEvent(const ftxui::Event& event,
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (!IsForward(event)) {
+  if (!IsForward(event) || read_only_) {
     return false;
   }
   std::vector<const ConsumableInfo*> buffs = BuffsShown();
