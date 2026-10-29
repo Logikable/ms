@@ -59,11 +59,11 @@ TEST(TriplePrimeTest, ThreeLegendaryLinesOfOneStat) {
                                {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, kL},
                                {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, kL}})))
       << "Max HP% on a bonus potential";
-  EXPECT_TRUE(
+  EXPECT_FALSE(
       IsTriplePrime(Lines(kL, {{POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, kL},
                                {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35, kL},
                                {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, kL}})))
-      << "the sizes of one effect are one stat";
+      << "the lines must be identical, not sizes of one effect";
   EXPECT_TRUE(
       IsTriplePrime(Lines(kL, {{POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kL},
                                {POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kL},
@@ -239,11 +239,26 @@ TEST_F(AchievementTest, EveryFamiliarAtLevelFourOnOneCharacter) {
   EXPECT_FALSE(Met(ACHIEVEMENT_FAMILIARS_MAXED));
 }
 
-TEST_F(AchievementTest, MesoHeldAcrossTheAccount) {
+TEST_F(AchievementTest, MesoHeldByOneCharacter) {
   Alt().set_meso(6'000'000'000);
   Alt().set_meso(4'000'000'000);
+  EXPECT_FALSE(Met(ACHIEVEMENT_MESO_10B)) << "two purses aren't added";
+  Alt().set_meso(10'000'000'000);
   EXPECT_TRUE(Met(ACHIEVEMENT_MESO_10B));
   EXPECT_FALSE(Met(ACHIEVEMENT_MESO_100B));
+}
+
+TEST_F(AchievementTest, ItemsOnTwoPotentialsArentATriplePrime) {
+  Equip& item = AltItem();
+  *item.mutable_main_potential() =
+      Lines(kL, {{POTENTIAL_LINE_TYPE_STR_PCT, kL},
+                 {POTENTIAL_LINE_TYPE_STR_PCT, kL},
+                 {POTENTIAL_LINE_TYPE_DEX_PCT, kL}});
+  *item.mutable_bonus_potential() =
+      Lines(kL, {{POTENTIAL_LINE_TYPE_STR_PCT, kL},
+                 {POTENTIAL_LINE_TYPE_DEX_PCT, kL},
+                 {POTENTIAL_LINE_TYPE_DEX_PCT, kL}});
+  EXPECT_FALSE(Met(ACHIEVEMENT_TRIPLE_PRIME));
 }
 
 TEST_F(AchievementTest, LevelAndLegion) {

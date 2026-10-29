@@ -33,9 +33,9 @@ struct AchievementInfo {
 absl::Span<const AchievementInfo> AllAchievements();
 const AchievementInfo& InfoFor(Achievement achievement);
 
-// Whether `potential` is Legendary with all three lines Legendary and of one
-// stat. A main line and its bonus counterpart are the same stat, as are the
-// sizes of one effect; All Stat% is its own stat, never a part of another.
+// Whether `potential` is Legendary with three identical Legendary lines. A
+// main and a bonus potential are each judged alone, and All Stat% is its own
+// line, never a part of another.
 bool IsTriplePrime(const Potential& potential);
 
 // Whether all four of `equip`'s flame lines are tier 7 and useful to one job:

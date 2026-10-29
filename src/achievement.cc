@@ -61,37 +61,6 @@ constexpr int kAchievementLevel = 300;
 constexpr int kAchievementLegionLevel = 8000;
 constexpr int kFlameTopTier = 7;
 
-// The stat a potential line grants, with the sizes of one effect and a bonus
-// line's main counterpart folded together: the type that stands for them all.
-PotentialLineType StatOf(PotentialLineType type) {
-  switch (type) {
-    case POTENTIAL_LINE_TYPE_BONUS_STR_PCT:
-      return POTENTIAL_LINE_TYPE_STR_PCT;
-    case POTENTIAL_LINE_TYPE_BONUS_DEX_PCT:
-      return POTENTIAL_LINE_TYPE_DEX_PCT;
-    case POTENTIAL_LINE_TYPE_BONUS_INT_PCT:
-      return POTENTIAL_LINE_TYPE_INT_PCT;
-    case POTENTIAL_LINE_TYPE_BONUS_LUK_PCT:
-      return POTENTIAL_LINE_TYPE_LUK_PCT;
-    case POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT:
-      return POTENTIAL_LINE_TYPE_ALL_STATS_PCT;
-    case POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT:
-      return POTENTIAL_LINE_TYPE_MAX_HP_PCT;
-    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
-    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
-    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
-      return POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
-    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
-    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
-    case POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE:
-      return POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
-    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
-      return POTENTIAL_LINE_TYPE_COOLDOWN_1;
-    default:
-      return type;
-  }
-}
-
 // The flame lines useful to a job with one main stat. Every job here is an
 // Explorer, so these four are all of them.
 struct FlameJob {
@@ -223,14 +192,13 @@ bool IsTriplePrime(const Potential& potential) {
       potential.lines_size() != 3) {
     return false;
   }
-  const PotentialLineType stat = StatOf(potential.lines(0).type());
+  const PotentialLineType type = potential.lines(0).type();
   for (const PotentialLine& line : potential.lines()) {
-    if (line.rank() != POTENTIAL_RANK_LEGENDARY ||
-        StatOf(line.type()) != stat) {
+    if (line.rank() != POTENTIAL_RANK_LEGENDARY || line.type() != type) {
       return false;
     }
   }
-  return stat != POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  return type != POTENTIAL_LINE_TYPE_UNSPECIFIED;
 }
 
 bool IsPerfectFlame(const Equip& equip) {
@@ -273,6 +241,7 @@ std::vector<Achievement> MetAchievements(const GameState& state,
 
   std::vector<const Equip*> items;
   CollectEquips(account.bank(), items);
+  // One purse at a time, not their sum: a character's or the bank's.
   int64_t meso = account.bank().meso();
   int top_level = 0;
   std::vector<LegionMember> legion;
@@ -289,7 +258,7 @@ std::vector<Achievement> MetAchievements(const GameState& state,
     meet(AllSymbolsMaxed(sacred, held), ACHIEVEMENT_SACRED_SYMBOLS_MAXED);
     meet(AllFamiliarsMaxed(character.familiars()), ACHIEVEMENT_FAMILIARS_MAXED);
     items.insert(items.end(), held.begin(), held.end());
-    meso += character.meso();
+    meso = std::max(meso, character.meso());
     top_level = std::max(top_level, character.level());
     legion.push_back({character.job(), character.level()});
   }
