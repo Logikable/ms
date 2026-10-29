@@ -59,11 +59,16 @@ TEST(TriplePrimeTest, ThreeLegendaryLinesOfOneStat) {
                                {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, kL},
                                {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, kL}})))
       << "Max HP% on a bonus potential";
+  EXPECT_TRUE(
+      IsTriplePrime(Lines(kL, {{POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, kL},
+                               {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35, kL},
+                               {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, kL}})))
+      << "the sizes of one effect count together";
   EXPECT_FALSE(
       IsTriplePrime(Lines(kL, {{POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, kL},
                                {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35, kL},
-                               {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, kL}})))
-      << "the lines must be identical, not sizes of one effect";
+                               {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, kU}})))
+      << "Boss Damage 30% is a Unique line, not a prime";
   EXPECT_TRUE(
       IsTriplePrime(Lines(kL, {{POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kL},
                                {POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kL},

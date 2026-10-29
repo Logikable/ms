@@ -61,6 +61,25 @@ constexpr int kAchievementLevel = 300;
 constexpr int kAchievementLegionLevel = 8000;
 constexpr int kFlameTopTier = 7;
 
+// The effect a potential line grants, with its sizes folded together: Boss
+// Damage 35% and 40% are both Boss Damage. The smaller sizes are Unique
+// lines, never prime on a Legendary potential, so only primes meet here.
+PotentialLineType EffectOf(PotentialLineType type) {
+  switch (type) {
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
+      return POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+      return POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
+    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+      return POTENTIAL_LINE_TYPE_COOLDOWN_1;
+    default:
+      return type;
+  }
+}
+
 // The flame lines useful to a job with one main stat. Every job here is an
 // Explorer, so these four are all of them.
 struct FlameJob {
@@ -192,13 +211,14 @@ bool IsTriplePrime(const Potential& potential) {
       potential.lines_size() != 3) {
     return false;
   }
-  const PotentialLineType type = potential.lines(0).type();
+  const PotentialLineType effect = EffectOf(potential.lines(0).type());
   for (const PotentialLine& line : potential.lines()) {
-    if (line.rank() != POTENTIAL_RANK_LEGENDARY || line.type() != type) {
+    if (line.rank() != POTENTIAL_RANK_LEGENDARY ||
+        EffectOf(line.type()) != effect) {
       return false;
     }
   }
-  return type != POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  return effect != POTENTIAL_LINE_TYPE_UNSPECIFIED;
 }
 
 bool IsPerfectFlame(const Equip& equip) {
