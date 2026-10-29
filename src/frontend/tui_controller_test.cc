@@ -4092,6 +4092,13 @@ TEST_F(TuiControllerTest, AchievementsOpensFromCharactersAndClosesToTheBox) {
   EXPECT_EQ(controller_->screen(), kMenuBox);
 }
 
+TEST_F(TuiControllerTest, AnEarnedAchievementRaisesTheNotice) {
+  controller_->NoticeAchievements({});
+  EXPECT_FALSE(controller_->notification().visible());
+  controller_->NoticeAchievements({ACHIEVEMENT_STARS_22});
+  EXPECT_TRUE(controller_->notification().visible());
+}
+
 // --- Tab out of a dropdown ---
 
 // Tab leaves a dropdown for the next panel, and the dropdown is gone: back on

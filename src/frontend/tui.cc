@@ -1500,7 +1500,8 @@ void Tui::Tick() {
   }
   if (now - last_achievement_check_ >= kAchievementCheckInterval) {
     last_achievement_check_ = now;
-    CheckAchievements(state_, static_cast<int64_t>(std::time(nullptr)));
+    controller_.NoticeAchievements(
+        CheckAchievements(state_, static_cast<int64_t>(std::time(nullptr))));
   }
   // Counted down before checking for a new level, so a level-up on this tick
   // gets its full four seconds rather than one tick less.

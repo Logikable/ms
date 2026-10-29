@@ -120,6 +120,19 @@ std::vector<AchievementEntry> AchievementEntries(
   return entries;
 }
 
+std::vector<std::string> AchievementNotice(
+    const std::vector<Achievement>& earned) {
+  if (earned.empty()) {
+    return {};
+  }
+  const std::string first = InfoFor(earned.front()).name;
+  if (earned.size() == 1) {
+    return {"Achievement Unlocked:", first + "!"};
+  }
+  return {"Achievements Unlocked:",
+          first + " and " + std::to_string(earned.size() - 1) + " more!"};
+}
+
 std::string LocalDate(int64_t unix_seconds) {
   return Format(unix_seconds, "%Y-%m-%d");
 }

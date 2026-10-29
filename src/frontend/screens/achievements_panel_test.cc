@@ -71,6 +71,16 @@ TEST(AchievementEntriesTest, OnlyACounterCarriesAValue) {
   }
 }
 
+TEST(AchievementNoticeTest, NamesWhatWasEarned) {
+  EXPECT_TRUE(AchievementNotice({}).empty());
+  EXPECT_EQ(AchievementNotice({ACHIEVEMENT_STARS_17}),
+            (std::vector<std::string>{"Achievement Unlocked:", "Starstruck!"}));
+  EXPECT_EQ(AchievementNotice({ACHIEVEMENT_STARS_17, ACHIEVEMENT_STARS_22,
+                               ACHIEVEMENT_LEVEL_300}),
+            (std::vector<std::string>{"Achievements Unlocked:",
+                                      "Starstruck and 2 more!"}));
+}
+
 class AchievementsPanelTest : public PanelTest {
  protected:
   void SetUp() override {

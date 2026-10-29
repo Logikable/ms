@@ -340,6 +340,8 @@ class TuiController {
     return bank_selector_;
   }
   // The notification in the corner, which outlasts the screen that raised it.
+  // Raises the notice for what an achievement check just earned, if anything.
+  void NoticeAchievements(const std::vector<Achievement>& earned);
   const NotificationBox& notification() const {
     return notification_;
   }

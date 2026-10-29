@@ -826,6 +826,12 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   return true;
 }
 
+void TuiController::NoticeAchievements(const std::vector<Achievement>& earned) {
+  if (!earned.empty()) {
+    notification_.Raise(AchievementNotice(earned));
+  }
+}
+
 bool TuiController::OnAchievementsEvent(ftxui::Event event) {
   if (achievements_panel_.OnEvent(event) == AchievementsPanel::Action::kClose) {
     // Back to the box it was opened from, like Legion.

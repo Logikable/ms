@@ -56,6 +56,12 @@ std::vector<AchievementEntry> AchievementEntries(
 std::string LocalDate(int64_t unix_seconds);
 std::string LocalDateTime(int64_t unix_seconds);
 
+// The notification for what one check earned, in two lines: "Achievement
+// Unlocked:" and the name. Several at once (an old save's first check) are
+// one notice naming the first, since a new notice replaces the last.
+std::vector<std::string> AchievementNotice(
+    const std::vector<Achievement>& earned);
+
 class AchievementsPanel {
  public:
   enum class Action { kNone, kClose };
