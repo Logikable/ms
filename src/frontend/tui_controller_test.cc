@@ -4076,6 +4076,70 @@ TEST_F(TuiControllerTest, LeavingADailiesScreenGoesBackToTheBox) {
   EXPECT_FALSE(menu_panel_->box_open());
 }
 
+// --- Tab out of a dropdown ---
+
+// Tab leaves a dropdown for the next panel, and the dropdown is gone: back on
+// the panel, Enter opens it fresh.
+TEST_F(TuiControllerTest, TabLeavesTheItemMenuForTheNextPanel) {
+  controller_->OpenEquipMenu();
+  ASSERT_EQ(controller_->screen(), kItemMenu);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
+}
+
+TEST_F(TuiControllerTest, ShiftTabLeavesTheBagMenuForThePanelBefore) {
+  controller_->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(panel_focus_, kInventoryPanel);
+  controller_->OpenInventoryMenu();
+  ASSERT_EQ(controller_->screen(), kItemMenu);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+TEST_F(TuiControllerTest, TabLeavesTheCharacterPanelsMenus) {
+  controller_->OpenSkillMenu(SlashBlast());
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
+
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(panel_focus_, kMenuPanel);
+
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
+  // The preset in use opens on Move, since Use is dimmed there.
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kPresetMove);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(panel_focus_, kCombatPanel);
+}
+
+TEST_F(TuiControllerTest, TabClosesTheMenuBoxBeforeLeaving) {
+  controller_->OpenMenuEntry(MenuEntry::kSettings);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  ASSERT_EQ(controller_->screen(), kMenuBox);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(menu_panel_->box_open());
+  EXPECT_EQ(menu_panel_->box_cursor(), -1);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
+  // The next key doesn't find the box waiting underneath.
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, AnExpandedPanelsDropdownKeepsTab) {
+  controller_->ToggleExpanded(kEquipPanel);
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
 // --- settings and keybinds ---
 
 TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {

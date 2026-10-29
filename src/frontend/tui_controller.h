@@ -710,6 +710,9 @@ class TuiController {
   ItemRef SelectedItem() const;
 
   bool OnMainViewEvent(ftxui::Event event);
+  // Closes a dropdown open over the main view as Escape would, and returns
+  // whether there was one. A menu over another screen isn't one of these.
+  bool CloseMainViewDropdown();
   bool OnItemMenuEvent(ftxui::Event event);
 
   // The three kinds of screen an item menu opens, each preparing the panel for

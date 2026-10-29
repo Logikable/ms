@@ -826,6 +826,34 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   return true;
 }
 
+bool TuiController::CloseMainViewDropdown() {
+  switch (screen_) {
+    // Each of these resets its menu when it opens, so the screen is all that
+    // keeps one open.
+    case kItemMenu:
+    case kSkillMenu:
+    case kJobMenu:
+    case kBuffMenu:
+    case kPresetMenu:
+      break;
+    // Also opened from the Legion and Link Skills screens, which aren't the
+    // main view.
+    case kPresetMove:
+      if (preset_return_ != kMain) {
+        return false;
+      }
+      break;
+    // OnEvent reopens a box still open on the main view.
+    case kMenuBox:
+      menu_panel_.CloseBox();
+      break;
+    default:
+      return false;
+  }
+  screen_ = kMain;
+  return true;
+}
+
 bool TuiController::OnEvent(ftxui::Event event) {
   // A panel can disappear from under the cursor: the game starts focused on the
   // equipped panel, which a level 1 character hasn't unlocked. This is fixed
@@ -856,6 +884,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnScreenEvent(ftxui::Event event) {
+  // Tab leaves a dropdown for the next panel. An expanded panel has no next
+  // one, so there the dropdown keeps the key, as every other screen does.
+  if (IsSwitchPanel(event) && expanded_panel_ == kNoPanel &&
+      CloseMainViewDropdown()) {
+    return OnMainViewEvent(event);
+  }
   switch (screen_) {
     case kItemMenu:
       return OnItemMenuEvent(event);
