@@ -2610,7 +2610,10 @@ void CharacterInstance::AddVPoints(int64_t amount) {
   if (amount <= 0) {
     return;
   }
-  character_.set_v_points(character_.v_points() + amount);
+  // A refund can leave the pool past the cap; a gain never takes that away.
+  character_.set_v_points(
+      std::min(character_.v_points() + amount,
+               std::max(kMaxVPoints, character_.v_points())));
 }
 
 bool CharacterInstance::SpendVPoints(int64_t amount) {

@@ -198,11 +198,16 @@ int64_t BankPanel::held(BankCurrency currency) const {
 
 void BankPanel::MoveCurrency(BankCurrency currency, int64_t amount) {
   amount = std::clamp<int64_t>(amount, 0, held(currency));
+  BankInstance& bank = account_.mutable_bank();
+  const bool from_bag = zone_ == BankZone::kBag;
+  if (currency == BankCurrency::kVPoints && !from_bag) {
+    // Only what the bag has room for leaves, so none is lost at the cap.
+    amount = std::min(
+        amount, std::max<int64_t>(kMaxVPoints - character_.v_points(), 0));
+  }
   if (amount == 0) {
     return;
   }
-  BankInstance& bank = account_.mutable_bank();
-  const bool from_bag = zone_ == BankZone::kBag;
   // Taken from one side before being given to the other, so a purse that
   // refuses can't hand over what it still holds.
   switch (currency) {

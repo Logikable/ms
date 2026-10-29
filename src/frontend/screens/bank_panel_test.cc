@@ -315,6 +315,16 @@ TEST_F(BankPanelTest, BalancesCrossBothWays) {
   EXPECT_EQ(c_.v_points(), 5000);
 }
 
+// A withdrawal stops at the bag's cap and leaves the rest in the bank, rather
+// than losing it.
+TEST_F(BankPanelTest, VPointsLeaveTheBankOnlyAsFarAsTheCap) {
+  account_.mutable_bank().AddVPoints(kMaxVPoints);
+  panel_->NextZone();
+  panel_->MoveCurrency(BankCurrency::kVPoints, kMaxVPoints);
+  EXPECT_EQ(c_.v_points(), kMaxVPoints);
+  EXPECT_EQ(bank().v_points(), 5000);
+}
+
 TEST_F(BankPanelTest, SortFilesTheHalfTheCursorIsIn) {
   account_.mutable_bank().AddEquip(0, std::make_unique<EquipInstance>(sword_));
   EquipPrototype hat;

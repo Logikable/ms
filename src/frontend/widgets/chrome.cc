@@ -457,13 +457,18 @@ ftxui::Element MoreMark(const char* glyph, bool show) {
 
 }  // namespace
 
-ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
-                      bool row_focused, int width) {
-  int end = static_cast<int>(tabs.size());
+int TabBarWidth(const std::vector<TabSpec>& tabs) {
   int whole = 0;
   for (const TabSpec& tab : tabs) {
     whole += ChipWidth(tab);
   }
+  return whole;
+}
+
+ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
+                      bool row_focused, int width) {
+  int end = static_cast<int>(tabs.size());
+  int whole = TabBarWidth(tabs);
   // A bar that fits is drawn as before, with no marks. Otherwise their columns
   // would indent every bar for the sake of the ones that scroll.
   bool scrolls = width > 0 && whole > width;

@@ -826,6 +826,12 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   }
   // The points counter shares the row, so the bar gets what is left.
   std::string pool = PoolText();
+  // A narrow panel has room for "999 VP" beside every page and no more, so a
+  // bigger pool is shown as that rather than scrolling the pages away.
+  if (IsVPage(SelectedSkillPage()) && character_.v_points() > 999 &&
+      TabBarWidth(specs) + static_cast<int>(pool.size()) + 1 > ContentWidth()) {
+    pool = FormatVPoints(999);
+  }
   std::vector<ftxui::Element> row;
   row.push_back(
       TabBar(specs, SelectedSkillPage(), bar_focused,

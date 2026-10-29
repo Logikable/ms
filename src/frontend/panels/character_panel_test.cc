@@ -3930,5 +3930,34 @@ TEST_F(CharacterPanelTest, NoTabWeldsARowToTheRightBorder) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
 }
+
+// A narrow panel shows a pool past 999 as 999, which is all that fits beside
+// every page; a wide one has room for the whole count.
+TEST_F(CharacterPanelTest, ANarrowVPageShowsAtMost999VP) {
+  struct Case {
+    int width;
+    int64_t v_points;
+    std::string shown;
+  };
+  for (const Case& want : {Case{kLeftColumnMin, 999, " 999 VP"},
+                           Case{kLeftColumnMin, 999'999, " 999 VP"},
+                           Case{kLeftColumnMax, 999'999, " 999,999 VP"}}) {
+    CharacterInstance c = MakeFifthJob(rng_, want.v_points);
+    CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+    panel.SetWidth(want.width);
+    ftxui::Component page = panel.MakeComponent();
+    page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+    page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+    for (int i = 0; i < 5; ++i) {
+      page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
+    }
+    std::string screen = PanelScreen(panel, want.width).ToString();
+    EXPECT_NE(screen.find(want.shown), std::string::npos)
+        << want.v_points << " at " << want.width << ":\n"
+        << screen;
+    EXPECT_EQ(screen.find("\u2039"), std::string::npos)
+        << "no page scrolled off the bar at " << want.width;
+  }
+}
 }  // namespace
 }  // namespace ms

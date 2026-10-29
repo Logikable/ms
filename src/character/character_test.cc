@@ -2066,6 +2066,15 @@ TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
   EXPECT_EQ(c_.meso(), 500);
 }
 
+// A gain stops at the cap and the rest is lost.
+TEST_F(AddMesoTest, VPointsStopAtTheCap) {
+  c_.AddVPoints(kMaxVPoints - 10);
+  c_.AddVPoints(25);
+  EXPECT_EQ(c_.v_points(), kMaxVPoints);
+  c_.AddVPoints(1);
+  EXPECT_EQ(c_.v_points(), kMaxVPoints);
+}
+
 // --- Buy ---
 
 // Fixture with a 5000-meso weapon and a character who can afford two.

@@ -166,6 +166,9 @@ int LevelAfterBurning(int level, const std::vector<int>& other_levels);
 // something in two sales makes two rows.
 inline constexpr int kBuyBackSlots = 32;
 
+// The most V Points a character holds. The bank has no limit.
+inline constexpr int64_t kMaxVPoints = 999'999;
+
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
@@ -305,7 +308,8 @@ class CharacterInstance {
   // Adds `amount` honor, which pays for Inner Ability resets. Does nothing if
   // amount <= 0.
   void AddHonor(int64_t amount);
-  // Adds V Points. Does nothing if amount <= 0.
+  // Adds V Points, up to kMaxVPoints; the rest is lost. Does nothing if
+  // amount <= 0.
   void AddVPoints(int64_t amount);
   // Takes V Points out for a trade or the bank. All or nothing, like
   // SpendMeso.

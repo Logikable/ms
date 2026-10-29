@@ -189,6 +189,9 @@ struct TabSpec {
 ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
                       bool row_focused, int width);
 
+// The columns TabBar needs to show every one of `tabs` without scrolling.
+int TabBarWidth(const std::vector<TabSpec>& tabs);
+
 // A bracketed button in the game's standard style, inverted when focused. Every
 // button the player can select is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
