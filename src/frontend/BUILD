@@ -391,6 +391,7 @@ cc_library(
         ":placement",
         ":progress_watcher",
         ":tui_controller",
+        "//src:achievement",
         "//src:game_state",
         "//src:roster",
         "//src:save",

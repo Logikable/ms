@@ -1500,6 +1500,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       character(rng, MakeBaseBeginnerProto()),
       last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
+  account.SetCreatedUnixSeconds(created_unix_seconds);
   FillTokenShelves(equips, items);
   FillBowAttack(equips);
   FillShardLevels(bosses, items);

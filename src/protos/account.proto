@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ms;
 
+import "src/protos/achievement.proto";
 import "src/protos/equip.proto";
 import "src/protos/item.proto";
 import "src/protos/keybinds.proto";
@@ -53,6 +54,15 @@ message Account {
   // How the Legion's points are spent. Copied onto the character being played;
   // see GameState::MirrorAccount.
   Legion legion = 11;
+
+  // When the account was created, in seconds since the Unix epoch: when its
+  // first save was started, or for a save from before version 5, its oldest
+  // character's creation time.
+  int64 created_unix_seconds = 12;
+
+  // What the account has earned, in the order it earned them. See
+  // //src/achievement.h.
+  repeated EarnedAchievement achievements = 13;
 }
 
 // One boss difficulty, named as BossClear names it.

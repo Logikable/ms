@@ -266,6 +266,7 @@ PartyList Lobby::Listed() const {
     for (PartyMember& member : *listed->mutable_members()) {
       member.mutable_player()->clear_sheet();
       member.mutable_player()->clear_boss_clears();
+      member.mutable_player()->clear_achievements();
     }
   }
   return list;

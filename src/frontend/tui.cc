@@ -6,6 +6,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <string>
 #include <thread>
 #include <utility>
@@ -17,6 +18,7 @@
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/terminal.hpp"
+#include "src/achievement.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
@@ -58,6 +60,10 @@
 
 namespace ms {
 namespace {
+
+// How often the account is checked for achievements. Often enough that meso
+// held for a moment counts; the check reads every character on the account.
+constexpr std::chrono::seconds kAchievementCheckInterval(1);
 
 // Every kill recorded in the step, across all mobs on the map.
 int64_t TotalKills(const CombatSim& sim) {
@@ -1459,6 +1465,10 @@ void Tui::Tick() {
     sample.meso = tally.meso;
     sample.exp = tally.exp;
     analysis_.Advance(sample);
+  }
+  if (now - last_achievement_check_ >= kAchievementCheckInterval) {
+    last_achievement_check_ = now;
+    CheckAchievements(state_, static_cast<int64_t>(std::time(nullptr)));
   }
   // Counted down before checking for a new level, so a level-up on this tick
   // gets its full four seconds rather than one tick less.

@@ -14,6 +14,7 @@
 #include "src/character/equip_presets.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/achievement.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/familiar.pb.h"
 #include "src/protos/multiplayer.pb.h"
@@ -128,6 +129,22 @@ TEST_F(SessionTest, TheAutoswapSwitchTravelsWithThePlayer) {
     return snapshot.party.members_size() == 1;
   }));
   EXPECT_TRUE(session.Snapshot().party.members(0).player().autoswap_presets());
+}
+
+TEST_F(SessionTest, TheAccountsAchievementsTravelWithThePlayer) {
+  state_->account.RecordAchievement(ACHIEVEMENT_STARS_17, 1'700'000'000);
+  MultiplayerSession session = MakeSession();
+  session.Start(*state_);
+  ASSERT_TRUE(WaitUntilConnected(session));
+
+  session.client().CreateParty();
+  ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+  const PlayerInfo player = session.Snapshot().party.members(0).player();
+  ASSERT_EQ(player.achievements_size(), 1);
+  EXPECT_EQ(player.achievements(0).achievement(), ACHIEVEMENT_STARS_17);
+  EXPECT_EQ(player.achievements(0).earned_unix_seconds(), 1'700'000'000);
 }
 
 TEST_F(SessionTest, TellsTheLobbyAboutANewName) {

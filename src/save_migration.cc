@@ -126,6 +126,20 @@ void UpgradeFromV3(const std::map<std::string, EquipPrototype>& equips,
   }
 }
 
+// Version 4 had no account creation time. The oldest character is the best
+// record of it; a save whose characters all predate their own creation time
+// leaves it zero, which loads as "created now".
+void UpgradeFromV4(SaveGame& save) {
+  int64_t oldest = 0;
+  for (const CharacterSave& slot : save.characters()) {
+    const int64_t created = slot.created_unix_seconds();
+    if (created != 0 && (oldest == 0 || created < oldest)) {
+      oldest = created;
+    }
+  }
+  save.mutable_account()->set_created_unix_seconds(oldest);
+}
+
 }  // namespace
 
 bool UpgradeSave(int version, const std::string& bytes,
@@ -146,6 +160,9 @@ bool UpgradeSave(int version, const std::string& bytes,
   }
   if (version < 4) {
     UpgradeFromV3(equips, save);
+  }
+  if (version < 5) {
+    UpgradeFromV4(save);
   }
   return true;
 }

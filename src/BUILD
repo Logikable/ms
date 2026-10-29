@@ -154,6 +154,7 @@ cc_library(
     deps = [
         "//src/item:bank",
         "//src/protos:account_proto_cc",
+        "//src/protos:achievement_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
         "//src/protos:item_proto_cc",
@@ -169,6 +170,7 @@ cc_test(
     deps = [
         ":account",
         "//src/protos:account_proto_cc",
+        "//src/protos:achievement_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -185,6 +187,45 @@ cc_library(
         "//src/protos:item_proto_cc",
         "//src/protos:save_proto_cc",
         "@protobuf",
+    ],
+)
+
+cc_library(
+    name = "achievement",
+    srcs = ["achievement.cc"],
+    hdrs = ["achievement.h"],
+    deps = [
+        ":game_state",
+        "//src/character:familiar",
+        "//src/character:guild",
+        "//src/character:legion",
+        "//src/character:symbol",
+        "//src/protos:achievement_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:save_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/types:span",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "achievement_test",
+    size = "small",
+    srcs = ["achievement_test.cc"],
+    deps = [
+        ":achievement",
+        ":game_state",
+        "//src/character:familiar",
+        "//src/protos:achievement_proto_cc",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:save_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -255,6 +296,7 @@ cc_test(
         "//src/character",
         "//src/character:hyper_stats",
         "//src/item:equip_instance",
+        "//src/protos:achievement_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package ms;
+
+// Every achievement, in the order the tab lists them. The numbers are on disk
+// in every save that has earned one, so they never change; see
+// //src/achievement.h for what each one asks.
+enum Achievement {
+  ACHIEVEMENT_UNSPECIFIED = 0;
+  ACHIEVEMENT_STARS_17 = 1;
+  ACHIEVEMENT_STARS_22 = 2;
+  ACHIEVEMENT_STARS_25 = 3;
+  ACHIEVEMENT_TRIPLE_PRIME = 4;
+  ACHIEVEMENT_PERFECT_FLAME = 5;
+  ACHIEVEMENT_FAMILIARS_MAXED = 6;
+  ACHIEVEMENT_LEGION_8000 = 7;
+  ACHIEVEMENT_ARCANE_SYMBOLS_MAXED = 8;
+  ACHIEVEMENT_SACRED_SYMBOLS_MAXED = 9;
+  ACHIEVEMENT_GUILD_SKILLS_MAXED = 10;
+  ACHIEVEMENT_MESO_10B = 11;
+  ACHIEVEMENT_MESO_100B = 12;
+  ACHIEVEMENT_MESO_1T = 13;
+  ACHIEVEMENT_LEVEL_300 = 14;
+  ACHIEVEMENT_ACCOUNT_90_DAYS = 15;
+  ACHIEVEMENT_ACCOUNT_365_DAYS = 16;
+  ACHIEVEMENT_ACCOUNT_3_YEARS = 17;
+}
+
+// One achievement the account has, and when it was first met, in seconds since
+// the Unix epoch. Never removed: losing the stars or spending the meso keeps it.
+message EarnedAchievement {
+  Achievement achievement = 1;
+  int64 earned_unix_seconds = 2;
+}

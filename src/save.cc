@@ -85,7 +85,13 @@ int OfflineSlot(const SaveGame& save) {
 // from before it existed or edited by hand, but it costs one pass and keeps the
 // account's promise that anything unlocked stays unlocked.
 void LoadAccount(const SaveGame& save, GameState& state) {
+  const int64_t created = state.account.created_unix_seconds();
   state.account = AccountInstance(save.account());
+  // Keeps the session's start time when the file has none, as a character's
+  // creation time does.
+  if (state.account.created_unix_seconds() == 0) {
+    state.account.SetCreatedUnixSeconds(created);
+  }
   state.account.RestoreBank(save.account().bank(),
                             IndexByDisplayName(state.equips),
                             IndexByDisplayName(state.items));

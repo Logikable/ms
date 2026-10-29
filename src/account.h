@@ -10,11 +10,13 @@
 #define MS_SRC_ACCOUNT_H_
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 
 #include "src/item/bank.h"
 #include "src/protos/account.pb.h"
+#include "src/protos/achievement.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
@@ -198,6 +200,24 @@ class AccountInstance {
     account_.mutable_options()->set_boss_bgm_volume(
         std::clamp(volume, 0, kMaxBgmVolume));
   }
+
+  // When the account was created, in seconds since the Unix epoch.
+  int64_t created_unix_seconds() const {
+    return account_.created_unix_seconds();
+  }
+  void SetCreatedUnixSeconds(int64_t seconds) {
+    account_.set_created_unix_seconds(seconds);
+  }
+
+  // What the account has earned, oldest first.
+  const google::protobuf::RepeatedPtrField<EarnedAchievement>& achievements()
+      const {
+    return account_.achievements();
+  }
+  bool HasAchievement(Achievement achievement) const;
+  // Records `achievement` as earned at `unix_seconds`. Returns false, and
+  // records nothing, for one already earned.
+  bool RecordAchievement(Achievement achievement, int64_t unix_seconds);
 
   // Raises this account's high-water marks. See RecordProgress above.
   void RecordProgress(int level, int job_stage);

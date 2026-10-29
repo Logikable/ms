@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "src/protos/account.pb.h"
+#include "src/protos/achievement.pb.h"
 
 namespace ms {
 namespace {
@@ -78,6 +79,16 @@ TEST(AccountTest, BgmVolumesDefaultToTenAndClamp) {
   account.SetBossBgmVolume(500);
   EXPECT_EQ(account.map_bgm_volume(), 0);
   EXPECT_EQ(account.boss_bgm_volume(), kMaxBgmVolume);
+}
+
+TEST(AccountTest, AnAchievementIsRecordedOnceAtItsFirstTime) {
+  AccountInstance account;
+  EXPECT_FALSE(account.HasAchievement(ACHIEVEMENT_LEVEL_300));
+  EXPECT_TRUE(account.RecordAchievement(ACHIEVEMENT_LEVEL_300, 100));
+  EXPECT_FALSE(account.RecordAchievement(ACHIEVEMENT_LEVEL_300, 200));
+  EXPECT_TRUE(account.HasAchievement(ACHIEVEMENT_LEVEL_300));
+  ASSERT_EQ(account.achievements().size(), 1);
+  EXPECT_EQ(account.achievements()[0].earned_unix_seconds(), 100);
 }
 
 }  // namespace

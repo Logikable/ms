@@ -39,6 +39,26 @@ bool AccountInstance::RecordSoloClear(const std::string& boss,
   return true;
 }
 
+bool AccountInstance::HasAchievement(Achievement achievement) const {
+  for (const EarnedAchievement& earned : account_.achievements()) {
+    if (earned.achievement() == achievement) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool AccountInstance::RecordAchievement(Achievement achievement,
+                                        int64_t unix_seconds) {
+  if (HasAchievement(achievement)) {
+    return false;
+  }
+  EarnedAchievement* added = account_.add_achievements();
+  added->set_achievement(achievement);
+  added->set_earned_unix_seconds(unix_seconds);
+  return true;
+}
+
 void AccountInstance::SetMultiplayerAccount(const std::string& account_id,
                                             const std::string& token) {
   account_.set_multiplayer_account_id(account_id);

@@ -224,6 +224,9 @@ class Tui {
   // the player is looking at the map fight.
   BattleAnalysis analysis_;
   std::chrono::steady_clock::time_point last_combat_update_;
+  // When achievements were last checked. Starts at the epoch, so the first
+  // tick checks the save as it loaded.
+  std::chrono::steady_clock::time_point last_achievement_check_;
   // Whether the ticker uses a boss fight's faster step. This is the only thing
   // the loop and ticker threads share; everything else about the fight belongs
   // to the loop.

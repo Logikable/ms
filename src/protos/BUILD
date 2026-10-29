@@ -71,9 +71,20 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "achievement_proto",
+    srcs = ["achievement.proto"],
+)
+
+cc_proto_library(
+    name = "achievement_proto_cc",
+    deps = [":achievement_proto"],
+)
+
+proto_library(
     name = "account_proto",
     srcs = ["account.proto"],
     deps = [
+        ":achievement_proto",
         ":equip_proto",
         ":familiar_proto",
         ":item_proto",
@@ -177,6 +188,7 @@ proto_library(
     name = "multiplayer_proto",
     srcs = ["multiplayer.proto"],
     deps = [
+        ":achievement_proto",
         ":character_proto",
         ":equip_proto",
         ":familiar_proto",

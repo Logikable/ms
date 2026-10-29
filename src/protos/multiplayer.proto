@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ms;
 
+import "src/protos/achievement.proto";
 import "src/protos/character.proto";
 import "src/protos/equip.proto";
 
@@ -76,6 +77,10 @@ message PlayerInfo {
   // their link skills can't be worked out from the sheet alone. See
   // //src/character:link.
   map<int32, int32> link_lines = 9;
+
+  // The account's achievements, for the Inspect screen. Beside the sheet for
+  // the same reason as link_lines, and stripped from listings with it.
+  repeated EarnedAchievement achievements = 11;
 
   // Familiars, which the sheet now carries.
   reserved 10;

@@ -58,6 +58,7 @@ PlayerInfo PlayerFor(const GameState& state) {
   // Their boss screen settings. The server requires the whole party to share
   // one set before it starts a fight.
   *player.mutable_boss_options() = state.FightOptions();
+  *player.mutable_achievements() = state.account.achievements();
   return player;
 }
 

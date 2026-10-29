@@ -131,6 +131,7 @@ cc_test(
         "//src:game_state",
         "//src/character:equip_presets",
         "//src/item:equip_instance",
+        "//src/protos:achievement_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
         "//src/protos:multiplayer_proto_cc",

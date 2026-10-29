@@ -17,6 +17,7 @@
 #include "src/character/skill_placement.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/achievement.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -823,6 +824,53 @@ TEST_F(SaveTest, AVersion3SaveOpensTheSlotsNoHammerAdded) {
                 .remaining_upgrade_slots(),
             5);
   EXPECT_EQ(upgraded.inventory().equip_tab(0).legacy_hammers(), 0);
+}
+
+TEST_F(SaveTest, AVersion4SaveDatesTheAccountFromItsOldestCharacter) {
+  SaveGame old;
+  old.set_format_version(4);
+  old.add_characters()->set_created_unix_seconds(1'700'000'500);
+  old.add_characters()->set_created_unix_seconds(0);
+  old.add_characters()->set_created_unix_seconds(1'700'000'100);
+  std::string bytes;
+  ASSERT_TRUE(old.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.created_unix_seconds(), 1'700'000'100)
+      << "the oldest known, skipping the character with no time";
+}
+
+TEST_F(SaveTest, AVersion4SaveWithNoCreationTimesIsCreatedNow) {
+  SaveGame old;
+  old.set_format_version(4);
+  old.add_characters();
+  std::string bytes;
+  ASSERT_TRUE(old.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  const int64_t started = loaded->account.created_unix_seconds();
+  ASSERT_NE(started, 0);
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.created_unix_seconds(), started);
+}
+
+TEST_F(SaveTest, WritesAndReadsBackAchievementsAndTheAccountsCreation) {
+  std::unique_ptr<GameState> state = MakeState();
+  state->account.SetCreatedUnixSeconds(1'600'000'000);
+  state->account.RecordAchievement(ACHIEVEMENT_STARS_22, 1'650'000'000);
+  ASSERT_TRUE(SaveGameToFile(*state, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.created_unix_seconds(), 1'600'000'000);
+  ASSERT_EQ(loaded->account.achievements().size(), 1);
+  EXPECT_EQ(loaded->account.achievements()[0].achievement(),
+            ACHIEVEMENT_STARS_22);
+  EXPECT_EQ(loaded->account.achievements()[0].earned_unix_seconds(),
+            1'650'000'000);
 }
 
 // Loading an old save and saving again writes the new format, and the upgrade
