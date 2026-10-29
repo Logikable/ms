@@ -15,6 +15,7 @@
 
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/protos/achievement.pb.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -216,6 +217,11 @@ struct GameState {
   // up by the frontend's tick from a monotonic clock, so changing the system
   // time or a daylight-saving change neither adds nor removes playtime.
   double playtime_seconds = 0.0;
+
+  // Each achievement counter as of the last CheckAchievements, which the
+  // Achievements screen draws and PlayerFor sends. Not saved: the next check
+  // reads it off the account again.
+  std::map<Achievement, int64_t> achievement_progress;
 
   // The other party members, rebuilt from the sheets they sent, for their
   // skills that affect this character. Filled only during a party fight and

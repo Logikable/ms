@@ -452,6 +452,7 @@ OnlinePlayers Server::Roster() const {
     player->clear_sheet();
     player->clear_boss_clears();
     player->clear_achievements();
+    player->clear_achievement_progress();
   }
   return roster;
 }

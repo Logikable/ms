@@ -336,6 +336,7 @@ cc_library(
         "//src/item:potential",
         "//src/item:shop",
         "//src/item:soul",
+        "//src/protos:achievement_proto_cc",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

@@ -27,36 +27,46 @@ namespace ms {
 namespace {
 
 constexpr AchievementInfo kAchievements[] = {
-    {ACHIEVEMENT_STARS_17, "Starstruck", "Star an item to 17 stars."},
-    {ACHIEVEMENT_STARS_22, "Superstar", "Star an item to 22 stars."},
-    {ACHIEVEMENT_STARS_25, "Supernova", "Star an item to 25 stars."},
+    {ACHIEVEMENT_STARS_17, "Starstruck", "Star an item to 17 stars.", "stars"},
+    {ACHIEVEMENT_STARS_22, "Superstar", "Star an item to 22 stars.", "stars"},
+    {ACHIEVEMENT_STARS_25, "Supernova", "Star an item to 25 stars.", "stars"},
     {ACHIEVEMENT_TRIPLE_PRIME, "Triple Prime",
-     "Roll three Legendary lines of one stat on a potential."},
+     "Roll three Legendary lines of one stat on one potential, main or bonus.",
+     nullptr},
     {ACHIEVEMENT_PERFECT_FLAME, "Perfect Flame",
-     "Flame an item to four tier 7 lines, all useful to one job."},
+     "Flame an item to four tier 7 lines, all useful to one job: its main "
+     "stat, a pair with it, All Stat%, Boss Damage, Damage, and its attack.",
+     nullptr},
     {ACHIEVEMENT_FAMILIARS_MAXED, "Kennel Master",
-     "Raise every familiar to level 4 on one character."},
-    {ACHIEVEMENT_LEGION_8000, "Legion 8000", "Reach Legion level 8,000."},
+     "Raise every familiar to level 4 on one character.", "familiars"},
+    {ACHIEVEMENT_LEGION_8000, "Legion 8000", "Reach Legion level 8,000.",
+     "Legion levels"},
     {ACHIEVEMENT_ARCANE_SYMBOLS_MAXED, "Arcane Mastery",
-     "Max every Arcane Symbol on one character."},
+     "Max every Arcane Symbol on one character.", "symbols"},
     {ACHIEVEMENT_SACRED_SYMBOLS_MAXED, "Sacred Mastery",
-     "Max every Sacred Symbol on one character."},
+     "Max every Sacred Symbol on one character. Grand Sacred Symbols don't "
+     "count.",
+     "symbols"},
     {ACHIEVEMENT_GUILD_SKILLS_MAXED, "Guild Grandmaster",
-     "Earn every level of every Guild Skill."},
-    {ACHIEVEMENT_MESO_10B, "Ten Billion", "Hold 10,000,000,000 meso."},
-    {ACHIEVEMENT_MESO_100B, "Hundred Billion", "Hold 100,000,000,000 meso."},
-    {ACHIEVEMENT_MESO_1T, "Trillionaire", "Hold 1,000,000,000,000 meso."},
-    {ACHIEVEMENT_LEVEL_300, "Level 300", "Reach level 300."},
+     "Earn every level of every Guild Skill.", "Noblesse SP"},
+    {ACHIEVEMENT_MESO_10B, "Ten Billion",
+     "Hold 10,000,000,000 meso on one character, or in the bank.", "meso"},
+    {ACHIEVEMENT_MESO_100B, "Hundred Billion",
+     "Hold 100,000,000,000 meso on one character, or in the bank.", "meso"},
+    {ACHIEVEMENT_MESO_1T, "Trillionaire",
+     "Hold 1,000,000,000,000 meso on one character, or in the bank.", "meso"},
+    {ACHIEVEMENT_LEVEL_300, "Level 300", "Reach level 300 on any character.",
+     "levels"},
     {ACHIEVEMENT_ACCOUNT_90_DAYS, "Three Months",
-     "Keep an account for 90 days."},
-    {ACHIEVEMENT_ACCOUNT_365_DAYS, "One Year", "Keep an account for 365 days."},
+     "Keep an account for 90 days.", "days"},
+    {ACHIEVEMENT_ACCOUNT_365_DAYS, "One Year", "Keep an account for 365 days.",
+     "days"},
     {ACHIEVEMENT_ACCOUNT_3_YEARS, "Three Years",
-     "Keep an account for three years."},
+     "Keep an account for three years.", "days"},
 };
 
 constexpr int64_t kSecondsPerDay = 24 * 60 * 60;
-// Three years with one leap day.
-constexpr int64_t kThreeYearsDays = 3 * 365 + 1;
+constexpr int64_t kThreeYearsDays = 3 * 365;
 constexpr int kAchievementLevel = 300;
 constexpr int kAchievementLegionLevel = 8000;
 constexpr int kFlameTopTier = 7;
@@ -157,10 +167,9 @@ std::map<std::string, const EquipPrototype*> SymbolsOfKind(
   return symbols;
 }
 
-// Whether `held` has every one of `symbols`, each at its max level.
-bool AllSymbolsMaxed(
-    const std::map<std::string, const EquipPrototype*>& symbols,
-    const std::vector<const Equip*>& held) {
+// How many of `symbols` `held` has at its max level.
+int MaxedSymbols(const std::map<std::string, const EquipPrototype*>& symbols,
+                 const std::vector<const Equip*>& held) {
   std::set<std::string> maxed;
   for (const Equip* item : held) {
     auto found = symbols.find(item->equip_name());
@@ -168,16 +177,21 @@ bool AllSymbolsMaxed(
       maxed.insert(found->first);
     }
   }
-  return !symbols.empty() && maxed.size() == symbols.size();
+  return static_cast<int>(maxed.size());
 }
 
-bool AllFamiliarsMaxed(const FamiliarBook& book) {
+int MaxedFamiliars(const FamiliarBook& book) {
+  int maxed = 0;
   for (const FamiliarSpecies& species : FamiliarRoster()) {
-    if (FamiliarLevel(book, species.name) < kFamiliarMaxLevel) {
-      return false;
+    if (FamiliarLevel(book, species.name) >= kFamiliarMaxLevel) {
+      ++maxed;
     }
   }
-  return true;
+  return maxed;
+}
+
+bool IsSacredNotGrand(const EquipPrototype& proto) {
+  return IsSacredSymbol(proto) && !IsGrandSacredSymbol(proto);
 }
 
 // The Noblesse SP that buys every Noblesse level.
@@ -242,8 +256,43 @@ bool IsPerfectFlame(const Equip& equip) {
   return false;
 }
 
-std::vector<Achievement> MetAchievements(const GameState& state,
-                                         int64_t now_unix_seconds) {
+bool IsMesoAchievement(Achievement achievement) {
+  return achievement == ACHIEVEMENT_MESO_10B ||
+         achievement == ACHIEVEMENT_MESO_100B ||
+         achievement == ACHIEVEMENT_MESO_1T;
+}
+
+bool HasCounter(Achievement achievement) {
+  return InfoFor(achievement).unit != nullptr;
+}
+
+std::map<Achievement, int64_t> AchievementTargets(const GameState& state) {
+  return {
+      {ACHIEVEMENT_STARS_17, 17},
+      {ACHIEVEMENT_STARS_22, 22},
+      {ACHIEVEMENT_STARS_25, 25},
+      {ACHIEVEMENT_FAMILIARS_MAXED,
+       static_cast<int64_t>(FamiliarRoster().size())},
+      {ACHIEVEMENT_LEGION_8000, kAchievementLegionLevel},
+      {ACHIEVEMENT_ARCANE_SYMBOLS_MAXED,
+       static_cast<int64_t>(
+           SymbolsOfKind(state.equips, IsArcaneSymbol).size())},
+      {ACHIEVEMENT_SACRED_SYMBOLS_MAXED,
+       static_cast<int64_t>(
+           SymbolsOfKind(state.equips, IsSacredNotGrand).size())},
+      {ACHIEVEMENT_GUILD_SKILLS_MAXED, NoblesseSpToMax(state.skills)},
+      {ACHIEVEMENT_MESO_10B, 10'000'000'000},
+      {ACHIEVEMENT_MESO_100B, 100'000'000'000},
+      {ACHIEVEMENT_MESO_1T, 1'000'000'000'000},
+      {ACHIEVEMENT_LEVEL_300, kAchievementLevel},
+      {ACHIEVEMENT_ACCOUNT_90_DAYS, 90},
+      {ACHIEVEMENT_ACCOUNT_365_DAYS, 365},
+      {ACHIEVEMENT_ACCOUNT_3_YEARS, kThreeYearsDays},
+  };
+}
+
+AchievementStanding StandingOf(const GameState& state,
+                               int64_t now_unix_seconds) {
   std::vector<Character> characters;
   characters.reserve(state.inactive_characters.size() + 1);
   characters.push_back(state.character.ToProto());
@@ -252,66 +301,86 @@ std::vector<Achievement> MetAchievements(const GameState& state,
   }
   const Account account = state.account.ToProto();
 
-  std::set<Achievement> met;
-  auto meet = [&met](bool condition, Achievement achievement) {
-    if (condition) {
-      met.insert(achievement);
-    }
-  };
-
+  AchievementStanding standing;
   std::vector<const Equip*> items;
   CollectEquips(account.bank(), items);
   // One purse at a time, not their sum: a character's or the bank's.
   int64_t meso = account.bank().meso();
   int top_level = 0;
+  int arcane_maxed = 0;
+  int sacred_maxed = 0;
+  int familiars_maxed = 0;
   std::vector<LegionMember> legion;
   const std::map<std::string, const EquipPrototype*> arcane =
       SymbolsOfKind(state.equips, IsArcaneSymbol);
   const std::map<std::string, const EquipPrototype*> sacred =
-      SymbolsOfKind(state.equips, [](const EquipPrototype& proto) {
-        return IsSacredSymbol(proto) && !IsGrandSacredSymbol(proto);
-      });
+      SymbolsOfKind(state.equips, IsSacredNotGrand);
   for (const Character& character : characters) {
     std::vector<const Equip*> held;
     CollectEquips(character, held);
-    meet(AllSymbolsMaxed(arcane, held), ACHIEVEMENT_ARCANE_SYMBOLS_MAXED);
-    meet(AllSymbolsMaxed(sacred, held), ACHIEVEMENT_SACRED_SYMBOLS_MAXED);
-    meet(AllFamiliarsMaxed(character.familiars()), ACHIEVEMENT_FAMILIARS_MAXED);
+    arcane_maxed = std::max(arcane_maxed, MaxedSymbols(arcane, held));
+    sacred_maxed = std::max(sacred_maxed, MaxedSymbols(sacred, held));
+    familiars_maxed =
+        std::max(familiars_maxed, MaxedFamiliars(character.familiars()));
     items.insert(items.end(), held.begin(), held.end());
     meso = std::max(meso, character.meso());
     top_level = std::max(top_level, character.level());
     legion.push_back({character.job(), character.level()});
   }
 
+  int stars = 0;
   for (const Equip* item : items) {
-    meet(item->stars() >= 17, ACHIEVEMENT_STARS_17);
-    meet(item->stars() >= 22, ACHIEVEMENT_STARS_22);
-    meet(item->stars() >= 25, ACHIEVEMENT_STARS_25);
-    meet(IsTriplePrime(item->main_potential()) ||
-             IsTriplePrime(item->bonus_potential()),
-         ACHIEVEMENT_TRIPLE_PRIME);
-    meet(IsPerfectFlame(*item), ACHIEVEMENT_PERFECT_FLAME);
+    stars = std::max(stars, item->stars());
+    if (IsTriplePrime(item->main_potential()) ||
+        IsTriplePrime(item->bonus_potential())) {
+      standing.met.insert(ACHIEVEMENT_TRIPLE_PRIME);
+    }
+    if (IsPerfectFlame(*item)) {
+      standing.met.insert(ACHIEVEMENT_PERFECT_FLAME);
+    }
   }
-
-  meet(SummarizeLegion(std::move(legion)).legion_level >=
-           kAchievementLegionLevel,
-       ACHIEVEMENT_LEGION_8000);
-  meet(state.account.max_level() >= kGuildSkillsLevel &&
-           NoblesseSpEarned(account.solo_clears(), state.bosses) >=
-               NoblesseSpToMax(state.skills),
-       ACHIEVEMENT_GUILD_SKILLS_MAXED);
-  meet(meso >= 10'000'000'000, ACHIEVEMENT_MESO_10B);
-  meet(meso >= 100'000'000'000, ACHIEVEMENT_MESO_100B);
-  meet(meso >= 1'000'000'000'000, ACHIEVEMENT_MESO_1T);
-  meet(top_level >= kAchievementLevel, ACHIEVEMENT_LEVEL_300);
 
   // Zero only in a state no save or new game makes, which has no age.
   const int64_t created = account.created_unix_seconds();
-  const int64_t age = created == 0 ? 0 : now_unix_seconds - created;
-  meet(age >= 90 * kSecondsPerDay, ACHIEVEMENT_ACCOUNT_90_DAYS);
-  meet(age >= 365 * kSecondsPerDay, ACHIEVEMENT_ACCOUNT_365_DAYS);
-  meet(age >= kThreeYearsDays * kSecondsPerDay, ACHIEVEMENT_ACCOUNT_3_YEARS);
+  const int64_t days =
+      created == 0 ? 0 : (now_unix_seconds - created) / kSecondsPerDay;
+  standing.progress = {
+      {ACHIEVEMENT_STARS_17, stars},
+      {ACHIEVEMENT_STARS_22, stars},
+      {ACHIEVEMENT_STARS_25, stars},
+      {ACHIEVEMENT_FAMILIARS_MAXED, familiars_maxed},
+      {ACHIEVEMENT_LEGION_8000,
+       SummarizeLegion(std::move(legion)).legion_level},
+      {ACHIEVEMENT_ARCANE_SYMBOLS_MAXED, arcane_maxed},
+      {ACHIEVEMENT_SACRED_SYMBOLS_MAXED, sacred_maxed},
+      {ACHIEVEMENT_GUILD_SKILLS_MAXED,
+       NoblesseSpEarned(account.solo_clears(), state.bosses)},
+      {ACHIEVEMENT_MESO_10B, meso},
+      {ACHIEVEMENT_MESO_100B, meso},
+      {ACHIEVEMENT_MESO_1T, meso},
+      {ACHIEVEMENT_LEVEL_300, top_level},
+      {ACHIEVEMENT_ACCOUNT_90_DAYS, days},
+      {ACHIEVEMENT_ACCOUNT_365_DAYS, days},
+      {ACHIEVEMENT_ACCOUNT_3_YEARS, days},
+  };
+  for (const auto& [achievement, target] : AchievementTargets(state)) {
+    // A target of zero is a catalog without the thing counted, which nobody
+    // can finish.
+    if (target > 0 && standing.progress[achievement] >= target) {
+      standing.met.insert(achievement);
+    }
+  }
+  // The passives are the other half of the Guild Skills, and come with the
+  // account's level rather than SP.
+  if (state.account.max_level() < kGuildSkillsLevel) {
+    standing.met.erase(ACHIEVEMENT_GUILD_SKILLS_MAXED);
+  }
+  return standing;
+}
 
+std::vector<Achievement> MetAchievements(const GameState& state,
+                                         int64_t now_unix_seconds) {
+  const std::set<Achievement> met = StandingOf(state, now_unix_seconds).met;
   std::vector<Achievement> ordered;
   for (const AchievementInfo& info : kAchievements) {
     if (met.count(info.achievement) != 0) {
@@ -323,12 +392,15 @@ std::vector<Achievement> MetAchievements(const GameState& state,
 
 std::vector<Achievement> CheckAchievements(GameState& state,
                                            int64_t now_unix_seconds) {
+  AchievementStanding standing = StandingOf(state, now_unix_seconds);
   std::vector<Achievement> earned;
-  for (Achievement achievement : MetAchievements(state, now_unix_seconds)) {
-    if (state.account.RecordAchievement(achievement, now_unix_seconds)) {
-      earned.push_back(achievement);
+  for (const AchievementInfo& info : kAchievements) {
+    if (standing.met.count(info.achievement) != 0 &&
+        state.account.RecordAchievement(info.achievement, now_unix_seconds)) {
+      earned.push_back(info.achievement);
     }
   }
+  state.achievement_progress = std::move(standing.progress);
   return earned;
 }
 

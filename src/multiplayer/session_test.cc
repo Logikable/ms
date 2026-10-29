@@ -147,6 +147,22 @@ TEST_F(SessionTest, TheAccountsAchievementsTravelWithThePlayer) {
   EXPECT_EQ(player.achievements(0).earned_unix_seconds(), 1'700'000'000);
 }
 
+TEST_F(SessionTest, AchievementCountersTravelButNotThePurse) {
+  state_->achievement_progress[ACHIEVEMENT_STARS_22] = 18;
+  state_->achievement_progress[ACHIEVEMENT_MESO_10B] = 5'000'000'000;
+  MultiplayerSession session = MakeSession();
+  session.Start(*state_);
+  ASSERT_TRUE(WaitUntilConnected(session));
+
+  session.client().CreateParty();
+  ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+  const PlayerInfo player = session.Snapshot().party.members(0).player();
+  EXPECT_EQ(player.achievement_progress().at(ACHIEVEMENT_STARS_22), 18);
+  EXPECT_EQ(player.achievement_progress().count(ACHIEVEMENT_MESO_10B), 0u);
+}
+
 TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   MultiplayerSession session = MakeSession();
   session.Start(*state_);

@@ -291,8 +291,8 @@ TEST_F(AchievementTest, AccountAgeFromItsCreation) {
   EXPECT_FALSE(Met(ACHIEVEMENT_ACCOUNT_90_DAYS, kCreated + 90 * kDay - 1));
   EXPECT_TRUE(Met(ACHIEVEMENT_ACCOUNT_90_DAYS, kCreated + 90 * kDay));
   EXPECT_FALSE(Met(ACHIEVEMENT_ACCOUNT_365_DAYS, kCreated + 364 * kDay));
-  EXPECT_FALSE(Met(ACHIEVEMENT_ACCOUNT_3_YEARS, kCreated + 1095 * kDay));
-  EXPECT_TRUE(Met(ACHIEVEMENT_ACCOUNT_3_YEARS, kCreated + 1096 * kDay));
+  EXPECT_FALSE(Met(ACHIEVEMENT_ACCOUNT_3_YEARS, kCreated + 1094 * kDay));
+  EXPECT_TRUE(Met(ACHIEVEMENT_ACCOUNT_3_YEARS, kCreated + 1095 * kDay));
 }
 
 TEST_F(AchievementTest, CheckRecordsOnceAndKeepsWhatIsLost) {
@@ -306,6 +306,45 @@ TEST_F(AchievementTest, CheckRecordsOnceAndKeepsWhatIsLost) {
   ASSERT_EQ(state_->account.achievements().size(), 1);
   EXPECT_EQ(state_->account.achievements()[0].earned_unix_seconds(),
             kCreated + 5);
+}
+
+TEST_F(AchievementTest, CountersReadTheBestOnTheAccount) {
+  AltItem().set_stars(12);
+  AltItem().set_stars(19);
+  Alt().set_meso(4'000'000'000);
+  Alt().set_meso(7'000'000'000);
+  AchievementStanding standing = StandingOf(*state_, kCreated + 40 * kDay);
+  EXPECT_EQ(standing.progress[ACHIEVEMENT_STARS_25], 19);
+  EXPECT_EQ(standing.progress[ACHIEVEMENT_MESO_1T], 7'000'000'000);
+  EXPECT_EQ(standing.progress[ACHIEVEMENT_ACCOUNT_90_DAYS], 40);
+  EXPECT_EQ(standing.progress.count(ACHIEVEMENT_TRIPLE_PRIME), 0u)
+      << "no counter: it has happened or it hasn't";
+
+  std::map<Achievement, int64_t> targets = AchievementTargets(*state_);
+  EXPECT_EQ(targets[ACHIEVEMENT_ARCANE_SYMBOLS_MAXED], 2);
+  EXPECT_EQ(targets[ACHIEVEMENT_SACRED_SYMBOLS_MAXED], 1)
+      << "the Grand Sacred Symbol isn't counted";
+  EXPECT_EQ(targets[ACHIEVEMENT_GUILD_SKILLS_MAXED], 2);
+  EXPECT_EQ(targets[ACHIEVEMENT_ACCOUNT_3_YEARS], 1095);
+}
+
+TEST_F(AchievementTest, EveryCounterHasATargetAndAUnit) {
+  AchievementStanding standing = StandingOf(*state_, kCreated);
+  std::map<Achievement, int64_t> targets = AchievementTargets(*state_);
+  for (const AchievementInfo& info : AllAchievements()) {
+    EXPECT_EQ(HasCounter(info.achievement),
+              standing.progress.count(info.achievement) == 1)
+        << info.name;
+    EXPECT_EQ(HasCounter(info.achievement),
+              targets.count(info.achievement) == 1)
+        << info.name;
+  }
+}
+
+TEST_F(AchievementTest, CheckLeavesTheCountersOnTheState) {
+  AltItem().set_stars(9);
+  CheckAchievements(*state_, kCreated);
+  EXPECT_EQ(state_->achievement_progress[ACHIEVEMENT_STARS_17], 9);
 }
 
 TEST(AchievementCatalogTest, EveryAchievementIsListedOnce) {

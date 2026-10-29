@@ -82,6 +82,11 @@ message PlayerInfo {
   // the same reason as link_lines, and stripped from listings with it.
   repeated EarnedAchievement achievements = 11;
 
+  // Each achievement counter, keyed by Achievement (int32 because of a proto3
+  // map limitation), for the Achievements screen. Meso is left out, as the
+  // sheet leaves out the purse.
+  map<int32, int64> achievement_progress = 12;
+
   // Familiars, which the sheet now carries.
   reserved 10;
 }

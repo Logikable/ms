@@ -13,6 +13,8 @@
 #define MS_SRC_ACHIEVEMENT_H_
 
 #include <cstdint>
+#include <map>
+#include <set>
 #include <vector>
 
 #include "absl/types/span.h"
@@ -27,11 +29,32 @@ struct AchievementInfo {
   Achievement achievement;
   const char* name;
   const char* description;
+  // What its counter counts, or null for one that has no counter: either it
+  // has happened or it hasn't.
+  const char* unit;
 };
 
 // Every achievement, in the order the tab lists them.
 absl::Span<const AchievementInfo> AllAchievements();
 const AchievementInfo& InfoFor(Achievement achievement);
+
+// Whether the achievement is a meso tier, whose counter is the purse.
+bool IsMesoAchievement(Achievement achievement);
+
+// Whether the achievement counts towards a target.
+bool HasCounter(Achievement achievement);
+
+// Each counter's target. Some are read off the catalogs (every familiar, every
+// symbol, every Noblesse level), so they need the state.
+std::map<Achievement, int64_t> AchievementTargets(const GameState& state);
+
+// Where the account stands: what it meets, and every counter's value.
+struct AchievementStanding {
+  std::set<Achievement> met;
+  std::map<Achievement, int64_t> progress;
+};
+AchievementStanding StandingOf(const GameState& state,
+                               int64_t now_unix_seconds);
 
 // Whether `potential` is Legendary with three Legendary lines of one effect,
 // any sizes of it. A main and a bonus potential are each judged alone, and
@@ -49,7 +72,8 @@ std::vector<Achievement> MetAchievements(const GameState& state,
                                          int64_t now_unix_seconds);
 
 // Records every achievement met and not yet earned as earned at
-// `now_unix_seconds`, and returns those, in the tab's order.
+// `now_unix_seconds`, and returns those, in the tab's order. Leaves the
+// counters in GameState::achievement_progress.
 std::vector<Achievement> CheckAchievements(GameState& state,
                                            int64_t now_unix_seconds);
 

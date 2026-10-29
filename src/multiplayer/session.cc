@@ -7,6 +7,7 @@
 
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/util/message_differencer.h"
+#include "src/achievement.h"
 #include "src/character/character.h"
 #include "src/character/link.h"
 #include "src/game_state.h"
@@ -59,6 +60,11 @@ PlayerInfo PlayerFor(const GameState& state) {
   // one set before it starts a fight.
   *player.mutable_boss_options() = state.FightOptions();
   *player.mutable_achievements() = state.account.achievements();
+  for (const auto& [achievement, value] : state.achievement_progress) {
+    if (!IsMesoAchievement(achievement)) {
+      (*player.mutable_achievement_progress())[achievement] = value;
+    }
+  }
   return player;
 }
 

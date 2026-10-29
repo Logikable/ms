@@ -113,6 +113,7 @@ cc_library(
     hdrs = ["session.h"],
     deps = [
         ":client",
+        "//src:achievement",
         "//src:game_state",
         "//src/character",
         "//src/character:link",
