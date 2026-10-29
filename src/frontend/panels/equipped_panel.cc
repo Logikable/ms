@@ -24,6 +24,7 @@
 #include "src/frontend/widgets/text_field.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -32,7 +33,17 @@ namespace ms {
 namespace {
 
 const char* const kTabLabels[] = {"Gear", "Symbols", "Familiar"};
-const char* const kSymbolKindLabels[] = {"Arcane", "Sacred"};
+std::string SymbolKindLabel(SymbolKind kind) {
+  switch (kind) {
+    case SymbolKind::kArcane:
+      return "Arcane";
+    case SymbolKind::kSacred:
+      return "Sacred";
+    case SymbolKind::kGrandSacred:
+      return "G.Sacred";
+  }
+  return "";
+}
 
 }  // namespace
 
@@ -94,7 +105,7 @@ std::vector<EquippedRow> EquippedPanel::Rows(
     return {};  // Expand has no list to move down into
   }
   if (active_tab_ == kSymbolTab) {
-    return SymbolRows(character_, symbol_kind_, selected_, slide);
+    return SymbolRows(character_, ActiveSymbolKind(), selected_, slide);
   }
   if (active_tab_ == kFamiliarTab) {
     return {};  // drawn by RenderFamiliarRow, and counted by ListCount
@@ -123,7 +134,7 @@ bool EquippedPanel::ShowsSubBar() const {
     return false;
   }
   if (active_tab_ == kSymbolTab) {
-    return Unlocked(Feature::kSacredSymbols, character_, account_);
+    return VisibleSymbolKinds().size() > 1;
   }
   // The presets, and the balances beside them, arrive with the tab.
   if (active_tab_ == kFamiliarTab) {
@@ -169,12 +180,45 @@ void EquippedPanel::StepPreset(int direction) {
       std::clamp(IndexOf(preset) + direction, 0, kNumStatPresets - 1));
 }
 
-void EquippedPanel::StepSymbolKind(int direction) {
-  SymbolKind next = SymbolKind::kArcane;
-  if (direction > 0) {
-    next = SymbolKind::kSacred;
+std::vector<SymbolKind> EquippedPanel::VisibleSymbolKinds() const {
+  std::vector<SymbolKind> kinds = {SymbolKind::kArcane};
+  if (Unlocked(Feature::kSacredSymbols, character_, account_)) {
+    kinds.push_back(SymbolKind::kSacred);
   }
-  if (next != symbol_kind_) {
+  // No map below the cap drops one, so the chip waits for a symbol rather than
+  // a level: until then it could only ever be empty.
+  bool grand = false;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       character_.equipped()) {
+    grand = grand || IsGrandSacredSymbol(kv.second->prototype());
+  }
+  const InventoryInstance& bag = character_.inventory();
+  for (int i = 0; i < bag.size() && !grand; ++i) {
+    grand = IsGrandSacredSymbol(bag[i].prototype());
+  }
+  if (grand) {
+    kinds.push_back(SymbolKind::kGrandSacred);
+  }
+  return kinds;
+}
+
+SymbolKind EquippedPanel::ActiveSymbolKind() const {
+  // A chip that went away (its last symbol sold) leaves the cursor on Arcane.
+  std::vector<SymbolKind> kinds = VisibleSymbolKinds();
+  if (std::find(kinds.begin(), kinds.end(), symbol_kind_) == kinds.end()) {
+    return SymbolKind::kArcane;
+  }
+  return symbol_kind_;
+}
+
+void EquippedPanel::StepSymbolKind(int direction) {
+  std::vector<SymbolKind> kinds = VisibleSymbolKinds();
+  int at = static_cast<int>(
+      std::find(kinds.begin(), kinds.end(), ActiveSymbolKind()) -
+      kinds.begin());
+  SymbolKind next =
+      kinds[std::clamp(at + direction, 0, static_cast<int>(kinds.size()) - 1)];
+  if (next != ActiveSymbolKind()) {
     symbol_kind_ = next;
     selected_ = 0;
   }
@@ -503,7 +547,7 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
 
 std::string EquippedPanel::Header() const {
   if (active_tab_ == kSymbolTab) {
-    return SymbolHeader(symbol_kind_);
+    return SymbolHeader(ActiveSymbolKind());
   }
   if (active_tab_ == kFamiliarTab) {
     return FamiliarHeader(FitFamiliarColumns(width_ - 2, /*in_use=*/false));
@@ -578,11 +622,14 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
 ftxui::Element EquippedPanel::RenderSubBar(bool row_selected) const {
   std::vector<TabSpec> specs;
   if (active_tab_ == kSymbolTab) {
-    for (const char* label : kSymbolKindLabels) {
-      specs.push_back({label});
+    std::vector<SymbolKind> kinds = VisibleSymbolKinds();
+    for (SymbolKind kind : kinds) {
+      specs.push_back({SymbolKindLabel(kind)});
     }
-    return TabBar(specs, static_cast<int>(symbol_kind_), row_selected,
-                  /*width=*/0);
+    int active = static_cast<int>(
+        std::find(kinds.begin(), kinds.end(), ActiveSymbolKind()) -
+        kinds.begin());
+    return TabBar(specs, active, row_selected, /*width=*/0);
   }
   const PresetKind kind =
       active_tab_ == kFamiliarTab ? PresetKind::kFamiliars : PresetKind::kEquip;

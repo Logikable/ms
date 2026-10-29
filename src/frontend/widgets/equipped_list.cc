@@ -38,7 +38,9 @@ bool OfKind(const EquipPrototype& proto, SymbolKind kind) {
     case SymbolKind::kArcane:
       return IsArcaneSymbol(proto);
     case SymbolKind::kSacred:
-      return IsSacredSymbol(proto);
+      return IsSacredSymbol(proto) && !IsGrandSacredSymbol(proto);
+    case SymbolKind::kGrandSacred:
+      return IsGrandSacredSymbol(proto);
   }
   return false;
 }
@@ -47,7 +49,7 @@ bool OfKind(const EquipPrototype& proto, SymbolKind kind) {
 
 std::string SymbolHeader(SymbolKind kind) {
   std::string force = "AF";
-  if (kind == SymbolKind::kSacred) {
+  if (kind != SymbolKind::kArcane) {
     force = "SAC";
   }
   return "  Name                            "  // 2 cursor + 32 name

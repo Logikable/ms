@@ -1407,6 +1407,54 @@ TEST_F(SymbolTabTest, TheKindRowSplitsTheListsFromGrandis) {
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_SYMBOL_CERNIUM);
 }
 
+// A Grand Sacred Symbol has its own chip, after Sacred, and leaves the Sacred
+// list. The chip waits for one to be worn or carried: no map below the cap
+// drops them.
+TEST_F(SymbolTabTest, GrandSacredSymbolsHaveTheirOwnChip) {
+  Character proto;
+  proto.set_level(kGrandisLevel);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  EquipPrototype cernium;
+  cernium.set_name("Sacred Symbol: Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+  c.PickUp(std::make_unique<EquipInstance>(cernium));
+  ASSERT_TRUE(c.Equip(0));
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  OpenSymbolTab(component);
+  EXPECT_EQ(RenderComponent(component).find("G.Sacred"), std::string::npos)
+      << "no Grand Sacred Symbol yet";
+
+  EquipPrototype tallahart;
+  tallahart.set_name("Grand Sacred Symbol: Tallahart");
+  tallahart.set_equip_slot(EQUIP_SLOT_SYMBOL_TALLAHART);
+  tallahart.mutable_sacred_symbol()->set_meso_cost_base(39.8);
+  tallahart.mutable_sacred_symbol()->set_grand(true);
+  c.PickUp(std::make_unique<EquipInstance>(tallahart));
+  EXPECT_NE(RenderComponent(component).find("G.Sacred"), std::string::npos)
+      << "carried is enough";
+  ASSERT_TRUE(c.Equip(0));
+
+  component->OnEvent(ftxui::Event::ArrowDown);   // the bar to the kind row
+  component->OnEvent(ftxui::Event::ArrowRight);  // Arcane -> Sacred
+  std::string sacred = RenderComponent(component);
+  EXPECT_NE(sacred.find("Cernium"), std::string::npos) << sacred;
+  EXPECT_EQ(sacred.find("Tallahart"), std::string::npos) << sacred;
+
+  component->OnEvent(ftxui::Event::ArrowRight);  // Sacred -> G.Sacred
+  component->OnEvent(ftxui::Event::ArrowRight);  // the end of the row
+  std::string grand = RenderComponent(component);
+  EXPECT_NE(grand.find("Tallahart"), std::string::npos) << grand;
+  EXPECT_EQ(grand.find("Cernium"), std::string::npos) << grand;
+  EXPECT_NE(grand.find("SAC"), std::string::npos);
+  EXPECT_NE(LineWith(grand, "Tallahart").find("+10"), std::string::npos);
+  component->OnEvent(ftxui::Event::ArrowDown);  // onto the Tallahart row
+  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_SYMBOL_TALLAHART);
+}
+
 // The tab appears when Arcane River opens and stays empty until the player
 // equips their first symbol.
 TEST_F(SymbolTabTest, TheTabIsEmptyUntilASymbolIsWorn) {

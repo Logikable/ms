@@ -175,14 +175,20 @@ class EquippedPanel {
   ftxui::Element RenderContent(ftxui::Component menu);
   ftxui::Element RenderTabBar(bool row_selected) const;
   // The row under the bar, and whether it is shown: Farm/Boss/Drop on Gear once
-  // cubing unlocks the presets, Arcane/Sacred on Symbols once Grandis opens.
+  // cubing unlocks the presets, Arcane/Sacred/G.Sacred on Symbols once there
+  // is more than Arcane to show.
   ftxui::Element RenderSubBar(bool row_selected) const;
   bool ShowsSubBar() const;
   // Moves `direction` chips along the preset row, which doesn't wrap: it is a
   // row of three, not a ring like the bar above it.
   void StepPreset(int direction);
-  // The same along Arcane/Sacred.
+  // The same along the symbol kinds, which doesn't wrap either.
   void StepSymbolKind(int direction);
+  // Arcane always; Sacred once Grandis opens; G.Sacred while the character
+  // wears or carries a Grand Sacred Symbol.
+  std::vector<SymbolKind> VisibleSymbolKinds() const;
+  // symbol_kind_, or Arcane if its chip is no longer shown.
+  SymbolKind ActiveSymbolKind() const;
   bool OnSubBarEvent(const ftxui::Event& event);
   // The content tabs the character has reached, left to right. Symbols arrives
   // with Arcane River. Expand isn't one of these, since it is a door rather

@@ -84,6 +84,7 @@ cc_library(
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:text_field",
         "//src/item:equip_instance",
+        "//src/item:inventory",
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",

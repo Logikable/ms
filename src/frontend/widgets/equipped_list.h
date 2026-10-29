@@ -21,7 +21,7 @@
 namespace ms {
 
 // The two symbol lists the Symbols tab switches between.
-enum class SymbolKind { kArcane, kSacred };
+enum class SymbolKind { kArcane, kSacred, kGrandSacred };
 
 // The column header above a symbol list, which names its kind's force. The
 // Equipped list's own header is ItemListHeader, over the columns its panel
