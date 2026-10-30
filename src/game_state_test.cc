@@ -1411,12 +1411,14 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
 }
 
 // Every buff bought and switched on, with the climb's leftover meso, not the
-// workbench's hundred billion.
+// workbench's hundred billion. Of the totems, only the Frenzy Totem is on.
 TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   GameState state = MakeMaxState(kTrialLevelCap);
   for (const ConsumableInfo& buff : AllConsumables()) {
     EXPECT_TRUE(state.character.ConsumableOwned(buff.type)) << buff.name;
-    EXPECT_TRUE(state.character.ConsumableActive(buff.type)) << buff.name;
+    EXPECT_EQ(state.character.ConsumableActive(buff.type),
+              buff.type != CONSUMABLE_TYPE_WILD_TOTEM)
+        << buff.name;
   }
   EXPECT_EQ(state.character.meso(), 50000000);
   EXPECT_EQ(state.exp_multiplier, 1);

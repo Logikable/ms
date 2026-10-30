@@ -120,6 +120,49 @@ TEST(ConsumablesTest, TheFarmingClockChargesWhatIsPaidForBySecond) {
   EXPECT_EQ(c.meso(), 9'970'000);
 }
 
+// Two totems never stack: switching one on switches the other off, in either
+// direction, and an owned one stays owned.
+TEST(ConsumablesTest, SwitchingOnATotemSwitchesTheOtherOff) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 240, 1'000'000'000);
+  ASSERT_TRUE(c.BuyConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_FRENZY_TOTEM));
+  EXPECT_FALSE(c.ConsumableActive(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_TRUE(c.ConsumableOwned(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_TRUE(c.ConsumableActive(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION))
+      << "only totems are exclusive";
+
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_FALSE(c.ConsumableActive(CONSUMABLE_TYPE_FRENZY_TOTEM));
+  EXPECT_TRUE(c.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM));
+}
+
+// A save with both totems on (written by hand, or before they were exclusive)
+// gets the faster one, and isn't charged for the other.
+TEST(ConsumablesTest, OfTwoTotemsOnOnlyTheFasterWorksAndCharges) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(240);
+  proto.set_meso(1'000'000);
+  proto.mutable_consumables()->add_active(CONSUMABLE_TYPE_WILD_TOTEM);
+  proto.mutable_consumables()->add_active(CONSUMABLE_TYPE_FRENZY_TOTEM);
+  CharacterInstance c(rng, std::move(proto));
+
+  EXPECT_FALSE(c.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_TRUE(c.ConsumableInEffect(CONSUMABLE_TYPE_FRENZY_TOTEM));
+  EXPECT_EQ(c.ChargeFarmingConsumables(10.0), 200'000);
+
+  // Below the Frenzy Totem's level it does nothing, so the Wild Totem works.
+  Character young = c.ToProto();
+  young.set_level(230);
+  CharacterInstance below(rng, std::move(young));
+  EXPECT_TRUE(below.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_FALSE(below.ConsumableInEffect(CONSUMABLE_TYPE_FRENZY_TOTEM));
+}
+
 // The live tick charges three times a second. Dropping a fraction of a meso
 // each time would cost the player a tenth of a percent of the price.
 TEST(ConsumablesTest, PartOfASecondCarriesRatherThanRoundingAway) {

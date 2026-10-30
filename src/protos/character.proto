@@ -211,6 +211,7 @@ enum ConsumableType {
   CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION = 1;
   CONSUMABLE_TYPE_EXTREME_GREEN_POTION = 2;
   CONSUMABLE_TYPE_WILD_TOTEM = 3;
+  CONSUMABLE_TYPE_FRENZY_TOTEM = 4;
 }
 
 // Which consumables are switched on and which are paid for. Two lists instead

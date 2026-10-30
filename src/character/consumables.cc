@@ -13,6 +13,10 @@ namespace {
 // The Wild Totem's 2,000 a second is most of what a bare Lv220 earns on a map,
 // and the extra kills it buys are worth as much again, so it pays for itself.
 // Its billion price is four days of rent, which keeps renting a real decision.
+//
+// The Frenzy Totem's 20,000 a second is against the user's measured 26,000 a
+// second it adds over the Wild Totem on End of the World 2-7 at 240, for a
+// character clearing at the cap. 50B is about three weeks of that.
 
 // The last line of each is how the buff pays out, which is what a player
 // weighing the rent needs to know before the numbers above it.
@@ -31,6 +35,11 @@ constexpr const char* kTotemEffects[] = {
     "Halves respawn time to 3.78s",
     "Farming only",
 };
+constexpr const char* kFrenzyEffects[] = {
+    "Cuts respawn time to 2.16s",
+    "Switches off the Wild Totem",
+    "Farming only",
+};
 
 constexpr ConsumableInfo kConsumables[] = {
     {CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, "Wealth Acquisition Potion",
@@ -40,7 +49,11 @@ constexpr ConsumableInfo kConsumables[] = {
      1'000'000, /*per_second=*/false, 250'000'000,
      absl::MakeConstSpan(kGreenEffects)},
     {CONSUMABLE_TYPE_WILD_TOTEM, "Wild Totem", 220, 2'000,
-     /*per_second=*/true, 1'000'000'000, absl::MakeConstSpan(kTotemEffects)},
+     /*per_second=*/true, 1'000'000'000, absl::MakeConstSpan(kTotemEffects),
+     kWildTotemRespawnSeconds},
+    {CONSUMABLE_TYPE_FRENZY_TOTEM, "Frenzy Totem", 240, 20'000,
+     /*per_second=*/true, 50'000'000'000, absl::MakeConstSpan(kFrenzyEffects),
+     kFrenzyTotemRespawnSeconds},
 };
 
 }  // namespace

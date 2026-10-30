@@ -332,9 +332,11 @@ class CharacterInstance {
   bool ConsumableActive(ConsumableType type) const;
   // Whether it has any effect: switched on and the character meets its level.
   // Anything reading a buff's effect should use this rather than the two above.
+  // Of two totems somehow both on, only the faster is in effect (and charged).
   bool ConsumableInEffect(ConsumableType type) const;
   // Switches it on if off and off if on, and returns the new state. It refuses
-  // a buff the character's level hasn't unlocked, leaving it off.
+  // a buff the character's level hasn't unlocked, leaving it off. Switching a
+  // totem on switches every other totem off.
   bool ToggleConsumable(ConsumableType type);
   // Buys `type` outright. All or nothing: does nothing if the character can't
   // afford it, already owns it, or hasn't reached its level.

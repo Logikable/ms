@@ -2133,12 +2133,15 @@ void HalveBossReach(CombatParams& params) {
   params.buffed_source.halve_reach = true;
 }
 
-// Time for the map to respawn its monsters, before game speed. The Wild Totem
-// halves it; that's all it does.
+// Time for the map to respawn its monsters, before game speed: the totem's, if
+// one is in effect. That's all a totem does.
 double RespawnIntervalFor(const CharacterInstance& character) {
-  return character.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM)
-             ? kWildTotemRespawnSeconds
-             : kRespawnIntervalSeconds;
+  for (const ConsumableInfo& info : AllConsumables()) {
+    if (info.respawn_seconds > 0.0 && character.ConsumableInEffect(info.type)) {
+      return info.respawn_seconds;
+    }
+  }
+  return kRespawnIntervalSeconds;
 }
 
 }  // namespace

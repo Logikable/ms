@@ -2539,8 +2539,22 @@ bool CharacterInstance::ConsumableActive(ConsumableType type) const {
 
 bool CharacterInstance::ConsumableInEffect(ConsumableType type) const {
   const ConsumableInfo* info = ConsumableInfoFor(type);
-  return info != nullptr && character_.level() >= info->unlock_level &&
-         ConsumableActive(type);
+  if (info == nullptr || character_.level() < info->unlock_level ||
+      !ConsumableActive(type)) {
+    return false;
+  }
+  if (info->respawn_seconds <= 0.0) {
+    return true;
+  }
+  for (const ConsumableInfo& other : AllConsumables()) {
+    if (other.respawn_seconds > 0.0 &&
+        other.respawn_seconds < info->respawn_seconds &&
+        character_.level() >= other.unlock_level &&
+        ConsumableActive(other.type)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool CharacterInstance::ToggleConsumable(ConsumableType type) {
@@ -2554,6 +2568,14 @@ bool CharacterInstance::ToggleConsumable(ConsumableType type) {
   if (at >= 0) {
     active.erase(active.begin() + at);
     return false;
+  }
+  if (info->respawn_seconds > 0.0) {
+    for (const ConsumableInfo& other : AllConsumables()) {
+      int other_at = IndexOfConsumable(active, other.type);
+      if (other.respawn_seconds > 0.0 && other_at >= 0) {
+        active.erase(active.begin() + other_at);
+      }
+    }
   }
   active.Add(type);
   return true;

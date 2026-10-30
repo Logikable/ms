@@ -40,6 +40,10 @@ struct ConsumableInfo {
   // Written out instead of derived from the constants below, because the card
   // says what the player gets, which isn't always a single lever.
   absl::Span<const char* const> effects;
+  // The map respawn interval a totem sets, before game speed; 0 for a buff
+  // that isn't a totem. Totems are exclusive: switching one on switches the
+  // others off.
+  double respawn_seconds = 0.0;
 };
 
 // Every buff in the game, in unlock order.
@@ -63,6 +67,9 @@ inline constexpr int kGreenPotionAttackSpeed = 1;
 // kRespawnIntervalSeconds. It is half, so twice as many monsters appear and a
 // player already killing everything the map spawns kills twice as many.
 inline constexpr double kWildTotemRespawnSeconds = 3.78;
+
+// GMS's Frenzy Totem: 3.5x the spawns of an empty map, 1.75x the Wild Totem's.
+inline constexpr double kFrenzyTotemRespawnSeconds = 2.16;
 
 }  // namespace ms
 

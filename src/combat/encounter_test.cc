@@ -5430,6 +5430,28 @@ TEST(ComputeBossParamsTest, TheWildTotemHalvesTheBeatOnAMapAlone) {
       0.0);
 }
 
+// The Frenzy Totem sets its own beat at 240, and a boss fight still has none.
+TEST(ComputeBossParamsTest, TheFrenzyTotemSetsTheBeatOnAMapAlone) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)},
+                   {"blue_snail", MakeMob("Blue Snail", 20)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  Character grown = state.character.ToProto();
+  grown.set_level(240);
+  state.character.RestoreFrom(grown, state.equips, state.items);
+  EquipSword(state);
+
+  ASSERT_TRUE(state.character.ToggleConsumable(CONSUMABLE_TYPE_FRENZY_TOTEM));
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).respawn_seconds,
+                   kFrenzyTotemRespawnSeconds * GameSpeedFactor(240));
+  EXPECT_DOUBLE_EQ(
+      ComputeBossParams(state, "zakum", NormalTwoPhase(), 0).respawn_seconds,
+      0.0);
+}
+
 // A boss's parts stand a room apart, so an attack reaches half as many of them.
 // Rounded up, so no attack loses the part it was aimed at. This applies only in
 // boss fights; the same skill hits a full map's worth on the field.
