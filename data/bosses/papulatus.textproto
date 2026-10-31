@@ -34,8 +34,8 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # GMS allows thirty minutes; twenty makes the timer part of the fight.
-  time_limit_seconds: 1200
+  # GMS allows twenty minutes; fifteen makes the timer part of the fight.
+  time_limit_seconds: 900
   unlock_level: 200
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
   # clears Chaos once a week and this game once a day.

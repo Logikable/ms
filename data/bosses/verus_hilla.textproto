@@ -24,7 +24,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 1800
+  time_limit_seconds: 1200
   unlock_level: 250
   arcane_force: 820
   # Five Intense Power Crystals at GMS's price (116,376,000), divided by seven
@@ -84,7 +84,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 1800
+  time_limit_seconds: 1200
   unlock_level: 250
   arcane_force: 900
   # Five Intense Power Crystals at GMS's price (152,421,000), divided by seven

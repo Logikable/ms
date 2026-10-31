@@ -19,8 +19,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # Fifteen minutes would be a limit nobody beats.
-  time_limit_seconds: 1200
+  time_limit_seconds: 900
   unlock_level: 200
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
   # clears her once a week and this game once a day.

@@ -579,7 +579,7 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   const BossDifficulty& normal = bosses_.at("cygnus").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 900);
+  EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 200);
   EXPECT_EQ(normal.meso(), 10300000);
   EXPECT_EQ(normal.exp(), 204000000);
@@ -596,7 +596,7 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
 }
 
-// The hard difficulties of built fights open at 190 on the same fifteen-minute
+// The hard difficulties of built fights open at 190 on the same ten-minute
 // timer. Each is its Normal fight at GMS's Chaos or Hard numbers and drops the
 // same gear: harder gets it faster, not different.
 TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
@@ -620,7 +620,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     EXPECT_EQ(hard.name(), want.name);
     EXPECT_FALSE(hard.coming_soon());
     EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
-    EXPECT_EQ(hard.time_limit_seconds(), 900);
+    EXPECT_EQ(hard.time_limit_seconds(), 600);
     EXPECT_EQ(hard.unlock_level(), 190);
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
@@ -651,7 +651,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
 
 // Hard Damien and Hard Lotus pay what Normal does plus the AbsoLab boxes,
 // their pitched pieces and the accessory scroll, on Normal's gate and GMS's
-// thirty-minute clock.
+// twenty-minute clock.
 TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
   struct Want {
     std::string boss;
@@ -667,7 +667,7 @@ TEST_F(BossDataTest, HardBlackHeavenAddsTheBoxesAndPitchedPieces) {
     const BossDifficulty& hard = bosses_.at(want.boss).difficulties(1);
     EXPECT_FALSE(hard.coming_soon());
     EXPECT_EQ(hard.reset(), normal.reset());
-    EXPECT_EQ(hard.time_limit_seconds(), 1800);
+    EXPECT_EQ(hard.time_limit_seconds(), 1200);
     EXPECT_EQ(hard.unlock_level(), normal.unlock_level());
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
@@ -846,15 +846,15 @@ TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
   }
 }
 
-// Princess No: one body, a twenty-minute timer, and four ledges above the floor
-// every other single-mob fight uses.
+// Princess No: one body, a fifteen-minute timer, and four ledges above the
+// floor every other single-mob fight uses.
 TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   ASSERT_GT(bosses_.count("princess_no"), 0u);
   ASSERT_EQ(bosses_.at("princess_no").difficulties_size(), 1);
   const BossDifficulty& normal = bosses_.at("princess_no").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 1200);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
   EXPECT_EQ(normal.unlock_level(), 200);
   EXPECT_EQ(normal.meso(), 11550000);
   EXPECT_EQ(normal.exp(), 90000000);
@@ -886,16 +886,16 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   EXPECT_EQ(normal.drops(4).item(), "captivating_fragment");
 }
 
-// Three mobs totalling 1.575T behind 300% PDR at level 210, on a 25-minute
+// Three mobs totalling 1.077T behind 300% PDR at level 210, on a 15-minute
 // timer. Every number is GMS's except the meso and the timer, and it plays a
 // different track in each phase. Fixed here for the same reason as Zakum.
-TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
+TEST_F(BossDataTest, LotusIsThreeBodiesWithATrackEach) {
   ASSERT_GT(bosses_.count("lotus"), 0u);
   ASSERT_EQ(bosses_.at("lotus").difficulties_size(), 2);
   const BossDifficulty& normal = bosses_.at("lotus").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
   EXPECT_EQ(normal.unlock_level(), 210);
   EXPECT_EQ(normal.meso(), 23200000);
   EXPECT_EQ(normal.exp(), 0);
@@ -936,7 +936,7 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   EXPECT_EQ(normal.drops(1).item(), "lotuss_soul_shard");
 }
 
-// 1.2T over two mobs behind the same 300% PDR as Lotus, on the same 25-minute
+// 813.6B over two mobs behind the same 300% PDR as Lotus, on the same 15-minute
 // timer and at the same gate. Every number is GMS's except the meso and the
 // timer. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
@@ -945,7 +945,7 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   const BossDifficulty& normal = bosses_.at("damien").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
   EXPECT_EQ(normal.unlock_level(), 210);
   EXPECT_EQ(normal.meso(), 24150000);
   EXPECT_EQ(normal.exp(), 22000000);
@@ -983,8 +983,8 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   EXPECT_EQ(normal.drops(1).item(), "damiens_soul_shard");
 }
 
-// The Guardian Angel Slime: 5T behind 300% PDR, jumping to the ledge for two
-// thirds of a second every thirty seconds. Every number is GMS's except the
+// The Guardian Angel Slime: 3.425T behind 300% PDR, jumping to the ledge for
+// two thirds of a second every thirty seconds. Every number is GMS's except the
 // meso, the timer and the gate.
 TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   ASSERT_GT(bosses_.count("guardian_angel_slime"), 0u);
@@ -993,7 +993,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   const BossDifficulty& normal = slime.difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
   EXPECT_EQ(normal.unlock_level(), 220);
   EXPECT_EQ(normal.meso(), 33100000);
   EXPECT_EQ(normal.exp(), 0);
@@ -1034,7 +1034,7 @@ TEST_F(BossDataTest, VerusHillaIsFourBarsThatHunt) {
   for (const BossDifficulty& difficulty : hilla.difficulties()) {
     SCOPED_TRACE(difficulty.name());
     EXPECT_EQ(difficulty.unlock_level(), 250);
-    EXPECT_EQ(difficulty.time_limit_seconds(), 1800);
+    EXPECT_EQ(difficulty.time_limit_seconds(), 1200);
     ASSERT_EQ(difficulty.phases_size(), 1);
     const BossPhase& phase = difficulty.phases(0);
     EXPECT_EQ(phase.bgm(), "DepthOfPain");
@@ -1304,13 +1304,13 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     std::string piece;
   };
   std::vector<Want> wants = {
-      {"pierre", "chaos_pierre", 80000000000LL, 35000, 80, 11550000, 900,
+      {"pierre", "chaos_pierre", 80000000000LL, 35000, 80, 11550000, 600,
        "piece_of_mockery"},
-      {"von_bon", "chaos_von_bon", 100000000000LL, 30000, 100, 11550000, 900,
+      {"von_bon", "chaos_von_bon", 100000000000LL, 30000, 100, 11550000, 600,
        "piece_of_time"},
       {"crimson_queen", "chaos_crimson_queen", 140000000000LL, 20400, 120,
-       11550000, 900, "piece_of_anguish"},
-      {"vellum", "chaos_vellum", 200000000000LL, 46000, 200, 15000000, 1200,
+       11550000, 600, "piece_of_anguish"},
+      {"vellum", "chaos_vellum", 200000000000LL, 46000, 200, 15000000, 900,
        "piece_of_destruction"}};
   std::map<std::string, ItemPrototype> items = LoadItems();
   for (const Want& want : wants) {

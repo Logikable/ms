@@ -21,8 +21,8 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # GMS allows thirty minutes.
-  time_limit_seconds: 1500
+  # GMS allows twenty minutes; fifteen makes the timer part of the fight.
+  time_limit_seconds: 900
   # GMS unlocks her at 210 with the Black Heaven fights; ten levels later marks
   # her as the step above them.
   unlock_level: 220
@@ -64,7 +64,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 1800
+  time_limit_seconds: 1200
   unlock_level: 220
   # Five Intense Power Crystals at GMS's price (120,115,625), divided by seven and
   # rounded to the nearest 50k.
