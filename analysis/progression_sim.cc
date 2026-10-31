@@ -1617,8 +1617,8 @@ BuffPolicy BuffPolicyFor(const Session& run) {
 }
 
 // Makes the buff decisions for the current encounter from the yield already
-// measured. The totem needs a second fight at the halved spawn interval, since
-// only a fight shows whether the character was waiting on respawns.
+// measured. Each totem needs a fight on its own spawn interval, since only a
+// fight shows whether the character was waiting on respawns.
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   BuffYield rates;
@@ -1626,24 +1626,49 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
                          DropBasisFor(run.state, run.shopper.power_per_meso(),
                                       run.shopper.yardstick()),
                          params, yield.kills_per_second);
-  // The yield already covers one side of the totem comparison (whichever
-  // interval the character is on), so only the other side is played.
-  Yield counter;
-  const ConsumableInfo* totem = ConsumableInfoFor(CONSUMABLE_TYPE_WILD_TOTEM);
-  if (totem != nullptr &&
-      run.state.character.proto().level() >= totem->unlock_level) {
-    bool planted =
-        run.state.character.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM);
+  // The yield already covers whichever interval the character is on (bare,
+  // or the totem in effect), so only the others are played.
+  const CharacterInstance& character = run.state.character;
+  int level = character.proto().level();
+  ConsumableType current = CONSUMABLE_TYPE_UNSPECIFIED;
+  std::vector<const ConsumableInfo*> totems;
+  for (const ConsumableInfo& info : AllConsumables()) {
+    if (info.respawn_seconds > 0.0 && level >= info.unlock_level) {
+      totems.push_back(&info);
+      if (character.ConsumableInEffect(info.type)) {
+        current = info.type;
+      }
+    }
+  }
+  // Index 0 is the bare map, then one per totem. Sized up front so the spans
+  // into these stay valid; a fight the character died in is left out.
+  std::vector<Yield> counters(totems.size() + 1);
+  std::vector<const Yield*> played(totems.size() + 1, nullptr);
+  for (size_t i = 0; !totems.empty() && i < played.size(); ++i) {
+    ConsumableType option =
+        i == 0 ? CONSUMABLE_TYPE_UNSPECIFIED : totems[i - 1]->type;
+    if (option == current) {
+      played[i] = &yield;
+      continue;
+    }
     CombatParams other = params;
     other.respawn_seconds =
-        (planted ? kRespawnIntervalSeconds : kWildTotemRespawnSeconds) *
-        GameSpeedFactor(run.state.character.proto().level());
-    counter = MeasureYield(run.state, other, run.window, run.step);
-    if (!counter.died) {
-      rates.kills_without_totem = absl::MakeConstSpan(
-          planted ? counter.kills_per_second : yield.kills_per_second);
-      rates.kills_with_totem = absl::MakeConstSpan(
-          planted ? yield.kills_per_second : counter.kills_per_second);
+        (i == 0 ? kRespawnIntervalSeconds : totems[i - 1]->respawn_seconds) *
+        GameSpeedFactor(level);
+    counters[i] = MeasureYield(run.state, other, run.window, run.step);
+    if (!counters[i].died) {
+      played[i] = &counters[i];
+    }
+  }
+  if (!totems.empty() && played[0] != nullptr) {
+    rates.kills_without_totem =
+        absl::MakeConstSpan(played[0]->kills_per_second);
+    for (size_t i = 1; i < played.size(); ++i) {
+      if (played[i] != nullptr) {
+        rates.totems.push_back(
+            {totems[i - 1]->type,
+             absl::MakeConstSpan(played[i]->kills_per_second)});
+      }
     }
   }
   PlanBuffs(run.state, BuffPolicyFor(run), rates, &run.climb.ledger.buffs);

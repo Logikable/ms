@@ -38,7 +38,7 @@ struct Crowd {
   std::vector<double> kills_per_second;
 
   // Returns the same crowd killed at a different rate. Used to measure one
-  // crowd twice, as the Wild Totem comparison does.
+  // crowd at each spawn interval, as the totem comparison does.
   Crowd At(absl::Span<const double> rate) const;
 };
 

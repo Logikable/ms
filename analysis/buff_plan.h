@@ -10,10 +10,12 @@
 #define MS_ANALYSIS_BUFF_PLAN_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "absl/types/span.h"
 #include "analysis/meso_rate.h"
 #include "src/game_state.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 
@@ -54,12 +56,19 @@ struct BuffSpend {
 // What the current encounter kills, which buffs are weighed against. See
 // //analysis:meso_rate for the currency.
 struct BuffYield {
+  // The crowd's kill rate on one totem's spawn interval.
+  struct TotemKills {
+    ConsumableType totem;
+    absl::Span<const double> kills;
+  };
+
   Crowd crowd;
-  // The same crowd's kill rate at the normal spawn interval and at the Wild
-  // Totem's halved one. No arithmetic on `crowd` can replace this pair: a
-  // character who wasn't waiting on spawns kills no more with the totem.
+  // The same crowd's kill rate at the normal spawn interval and on each
+  // unlocked totem's. No arithmetic on `crowd` can replace these: a character
+  // who wasn't waiting on spawns kills no more with a totem. A totem missing
+  // here is never switched on.
   absl::Span<const double> kills_without_totem;
-  absl::Span<const double> kills_with_totem;
+  std::vector<TotemKills> totems;
 };
 
 // Makes the buff decisions for the character as they are now, switching each on

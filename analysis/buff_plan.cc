@@ -36,15 +36,38 @@ double WealthPotionGain(GameState& state, const BuffYield& yield) {
   return was ? standing - flipped : flipped - standing;
 }
 
-// Meso per second gained by placing the totem: the extra kills, valued at the
+// Meso per second gained by placing `totem`: the extra kills, valued at the
 // character's %meso and drop rate. The rent pays for itself in meso alone or
 // not at all.
-double WildTotemGain(GameState& state, const BuffYield& yield) {
-  if (yield.kills_with_totem.empty()) {
+double TotemGain(GameState& state, const BuffYield& yield,
+                 const BuffYield::TotemKills& totem) {
+  if (yield.kills_without_totem.empty() || totem.kills.empty()) {
     return 0.0;
   }
-  return MesoPerSecondFor(state, yield.crowd.At(yield.kills_with_totem)) -
+  return MesoPerSecondFor(state, yield.crowd.At(totem.kills)) -
          MesoPerSecondFor(state, yield.crowd.At(yield.kills_without_totem));
+}
+
+// The totem whose gain most exceeds its rent (none for one already owned), or
+// UNSPECIFIED if none pays. Only one totem can be on, so they are weighed
+// against each other, not each against an empty map.
+ConsumableType BestTotem(GameState& state, const BuffYield& yield) {
+  ConsumableType best = CONSUMABLE_TYPE_UNSPECIFIED;
+  double best_net = 0.0;
+  for (const BuffYield::TotemKills& totem : yield.totems) {
+    const ConsumableInfo* info = ConsumableInfoFor(totem.totem);
+    if (info == nullptr) {
+      continue;
+    }
+    double rent =
+        state.character.ConsumableOwned(totem.totem) ? 0.0 : info->price;
+    double net = TotemGain(state, yield, totem) - rent;
+    if (net > best_net) {
+      best = totem.totem;
+      best_net = net;
+    }
+  }
+  return best;
 }
 
 // Whether the Extreme Green Potion would actually raise the character's attack
@@ -100,13 +123,14 @@ void BuyIfWorthIt(GameState& state, const BuffPolicy& policy,
 // Whether `info` should be switched on. Each buff is decided differently.
 bool WorthSwitchingOn(GameState& state, const BuffYield& yield,
                       const ConsumableInfo& info) {
+  if (info.respawn_seconds > 0.0) {
+    return info.type == BestTotem(state, yield);
+  }
   switch (info.type) {
     case CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION:
       // The map decides: a potion that costs more than the mobs pay stays off
       // until the player is somewhere worth using it.
       return WealthPotionGain(state, yield) > info.price;
-    case CONSUMABLE_TYPE_WILD_TOTEM:
-      return WildTotemGain(state, yield) > info.price;
     default:
       // One attack speed stage for a million meso, in a fight whose clear is
       // worth many times that. It goes on whenever it raises the stage, and is

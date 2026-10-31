@@ -159,6 +159,22 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "buff_plan_test",
+    size = "small",
+    srcs = ["buff_plan_test.cc"],
+    deps = [
+        ":buff_plan",
+        ":meso_rate",
+        "//src:game_state",
+        "//src/character:consumables",
+        "//src/protos:character_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@abseil-cpp//absl/types:span",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "alt_plan",
     srcs = ["alt_plan.cc"],
