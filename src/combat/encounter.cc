@@ -1746,6 +1746,7 @@ void AddBuffs(const GameState& state,
     // Counted in lines rather than seconds, so game speed doesn't apply: the
     // lines are already stretched.
     option.charge_lines = buff.charge_lines();
+    option.final_attack_triggers = buff.final_attack_triggers();
     option.heal_fraction = held.heal_pct();
     SetHowRaised(*skill, level, stage, speed_factor, params.attacks, option);
     // The attack this buff loads, found by the magazine's label, which is the

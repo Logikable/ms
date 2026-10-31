@@ -462,6 +462,9 @@ struct BuffOption {
   // The attack this buff loads, or -1. Its charges refill each time the buff is
   // raised and disappear when it ends. See AttackOption::charges.
   int magazine_attack = -1;
+  // Presses carrying this buff's Final Attack that one raise pays for, or 0 for
+  // no cap. See Buff::final_attack_triggers.
+  int final_attack_triggers = 0;
   // The attack that applies this buff, or -1 if it's raised on its own
   // cooldown. A buff attached to an attack can't be separated from it, so
   // raising it costs an attack. Always -1 for party buffs, which an ally casts

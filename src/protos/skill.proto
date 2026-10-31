@@ -961,6 +961,14 @@ message Buff {
   // Ring of Restraint's ATT is 17x - 17*log5(x). Read through BuffEffectAt and
   // BuffSecondsAt.
   repeated BuffStep step = 32;
+  // Presses whose Final Attack one cast pays for. Once they're spent the levers
+  // above stop until the next cast, ignored defence included, as in a duty
+  // cycle's gap. It exists for Split Shot: GMS v272 caps the split at 140
+  // activations a cast. 0 means no cap.
+  //
+  // Counted per press carrying this skill's Final Attack, so it is exact only
+  // for a chance of 1, which Split Shot's is.
+  int32 final_attack_triggers = 33;
 }
 
 // One of Skill.step.

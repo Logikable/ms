@@ -545,6 +545,9 @@ class CombatSim {
   // attack rather than any form that replaced it, since they belong to the
   // skill. They hit whatever the attack left alive.
   void StrikeExtras(const AttackOption& cast, int swung);
+  // Counts a press against each capped buff whose Final Attack it carried, and
+  // switches the buff's levers off once a raise's presses are spent.
+  void SpendTriggers(const CombatParams& params, const AttackOption& landed);
   // The HP fraction `landed` heals. Recovery comes from hits, so a cast gets
   // none, and a hold pays per pulse rather than per press.
   double SwingRecovery(const CombatParams& params, const AttackOption& landed,
@@ -611,6 +614,9 @@ class CombatSim {
     // Seconds into the on/off cycle of a buff that grants in bursts, from when
     // it was raised and wrapping at its interval. 0 for other buffs.
     double duty_phase = 0.0;
+    // Presses left whose Final Attack this raise pays for. See
+    // BuffOption::final_attack_triggers.
+    int triggers_left = 0;
   };
   std::vector<BuffClock> buffs_;
   // Which buffs are up, and which of those are currently granting. They differ

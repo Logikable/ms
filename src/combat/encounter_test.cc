@@ -2254,6 +2254,7 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
   Buff* buff = resonance.mutable_buff();
   buff->set_duration_seconds(30.0);
   buff->set_cooldown_reduction_seconds(0.35);
+  buff->set_final_attack_triggers(140);
   buff->mutable_base()->set_final_dmg_pct(0.50);
   buff->mutable_base()->set_heal_pct(1.00);
 
@@ -2275,6 +2276,8 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_reduction_seconds, 0.35 * factor);
   EXPECT_DOUBLE_EQ(params.buffs[0].heal_fraction, 1.00);
+  // Presses, so game speed doesn't stretch it.
+  EXPECT_EQ(params.buffs[0].final_attack_triggers, 140);
 
   // One table for the one buff combination, with the same attacks in the same
   // order, hitting half again as hard since the buff is 50% final damage.

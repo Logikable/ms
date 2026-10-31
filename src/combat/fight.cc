@@ -1973,6 +1973,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
                        : buff.stances[clock.stance].duration_seconds;
       clock.cooldown_left = buff.cooldown_seconds;
       clock.charge_left = buff.charge_lines;
+      clock.triggers_left = buff.final_attack_triggers;
       clock.blocks_left = buff.shield_hits;
       clock.duty_phase = 0.0;
       // Refill the charges fully; leftover charges from the last raise don't
@@ -1996,7 +1997,8 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     }
     if (clock.left > 0.0) {
       buff_mask_ |= 1 << i;
-      if (Granting(buff, clock.duty_phase)) {
+      if (Granting(buff, clock.duty_phase) &&
+          (buff.final_attack_triggers <= 0 || clock.triggers_left > 0)) {
         lever_mask_ |= 1 << i;
       }
       continue;
@@ -2083,6 +2085,7 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     // Refreshed rather than stacked: a second puncture leaves one wound.
     buffs_[i].left = BuffWindowSeconds(buff);
     buffs_[i].cooldown_left = buff.cooldown_seconds;
+    buffs_[i].triggers_left = buff.final_attack_triggers;
     // Refill the charges fully, as RunBuffs does.
     if (buff.magazine_attack >= 0 &&
         buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
@@ -2133,6 +2136,7 @@ void CombatSim::RaiseOneWindow(const CombatParams& params, int first, int end) {
   }
   buffs_[free_slot].left = BuffWindowSeconds(buff);
   buffs_[free_slot].cooldown_left = buff.cooldown_seconds;
+  buffs_[free_slot].triggers_left = buff.final_attack_triggers;
   CompactRolledWindows(params);
   // The mask is built before any attacks, so a buff raised mid-attack must
   // update it here, as LayBuffs does.
@@ -2491,6 +2495,7 @@ void CombatSim::LandSwing(const CombatParams& params,
       attack_clocks_[swung].next_strike_seconds = landed.cast_interval_seconds;
     }
     StrikeExtras(*cast, swung);
+    SpendTriggers(params, landed);
     RecoverHp(params, SwingRecovery(params, landed, proc_recovered));
     // The attack is over; anything it triggers runs on its own timer.
     attributing_ = -1;
@@ -2509,6 +2514,38 @@ void CombatSim::LandSwing(const CombatParams& params,
   attributing_ = -1;  // nothing left to credit to this attack
   aimed_ = -1;        // the attack landed, so the next one is chosen fresh
   AimSwing(params);
+}
+
+namespace {
+
+bool CarriesFinalAttack(const AttackOption& attack, const std::string& credit) {
+  for (const std::vector<FinalAttackRoll>* rolls :
+       {&attack.final_attack_rolls, &attack.per_swing_final_attack_rolls}) {
+    for (const FinalAttackRoll& roll : *rolls) {
+      if (roll.credit == credit) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
+void CombatSim::SpendTriggers(const CombatParams& params,
+                              const AttackOption& landed) {
+  for (int i = 0; i < static_cast<int>(buffs_.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    if (buff.final_attack_triggers <= 0 || (lever_mask_ & (1 << i)) == 0 ||
+        !CarriesFinalAttack(landed, buff.name)) {
+      continue;
+    }
+    // Cleared here rather than at the next tick, so the press after the last
+    // paid one already lands without it.
+    if (--buffs_[i].triggers_left <= 0) {
+      lever_mask_ &= ~(1 << i);
+    }
+  }
 }
 
 void CombatSim::StrikeExtras(const AttackOption& cast, int swung) {

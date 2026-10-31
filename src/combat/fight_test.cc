@@ -3378,6 +3378,34 @@ TEST(CombatSimTest, ADutyCycledBuffGrantsInBursts) {
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 180.0);
 }
 
+// Split Shot's shape: a buff whose levers include a split on every press,
+// paid for only so many presses a cast. Once they're spent the press lands
+// without the split for the rest of the window.
+TEST(CombatSimTest, ACappedBuffStopsGrantingOnceItsTriggersAreSpent) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 10.0);
+  GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.buffs.back().name = "Split Shot";
+  FinalAttackRoll split;
+  split.chance = 1.0;
+  split.max_enemies = 1;
+  split.credit = "Split Shot";
+  split.damage.assign(params.types.size(), 100.0);
+  AttackOption& carried = params.buffed[1].attacks[0];
+  carried.per_swing_final_attack_rolls.push_back(split);
+  carried.per_swing_final_attack_damage.assign(params.types.size(), 100.0);
+  carried.per_swing_final_attack_enemies = 1;
+
+  CombatSim uncapped;
+  double free = DamageOver(uncapped, params, 10.0);
+  params.buffs.back().final_attack_triggers = 3;
+  CombatSim capped;
+  // Ten presses either way; only three of them split once capped.
+  EXPECT_DOUBLE_EQ(free - DamageOver(capped, params, 10.0), 7 * 100.0);
+}
+
 // The buff's effect switches on and off, but the buff itself stays. A summon it
 // cast keeps striking through the gaps, which is why the two masks are
 // separate.
