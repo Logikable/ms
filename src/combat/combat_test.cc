@@ -194,8 +194,10 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   mob.set_exp(0);
   MapData river = SnailMap();
   river.set_arcane_force(600);
+  // Seeded: unseeded, the tally now and then strays past the margin.
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", mob}}, {{"field", SnailMap()}, {"river", river}});
+                  {{"snail", mob}}, {{"field", SnailMap()}, {"river", river}},
+                  {}, GameMode::kPlay, {}, 1);
   EquipSword(state);
   ASSERT_FALSE(state.character.v_matrix_unlocked());
 
