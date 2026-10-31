@@ -222,9 +222,9 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   EXPECT_EQ(shells, std::vector<std::string>());
 }
 
-// Each harder fight is its Normal with GMS's Hard or Chaos numbers, and the
-// difficulty is the only difference: the same mobs in the same cells, so
-// building a shell means filling in what's missing, not laying it out. Hard
+// Each harder fight is its Normal with GMS's Hard or Chaos numbers (v272's
+// HP), and the difficulty is the only difference: the same mobs in the same
+// cells, so building a shell means filling in what's missing. Hard
 // Lucid adds a third phase of her own after Normal's two.
 TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   struct Want {
@@ -233,14 +233,14 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
     std::vector<int64_t> hp;
   };
   const std::vector<Want> kHarder = {
-      {"damien", "Hard", {25200000000000LL, 10800000000000LL}},
-      {"lotus", "Hard", {9985500000000LL, 9985500000000LL, 13314000000000LL}},
-      {"guardian_angel_slime", "Chaos", {90000000000000LL}},
-      {"lucid", "Hard", {50800000000000LL, 54000000000000LL, 12800000000000LL}},
-      {"will", "Hard", {42000000000000LL, 31500000000000LL, 52500000000000LL}},
-      {"gloom", "Chaos", {127050000000000LL}},
-      {"darknell", "Hard", {157500000000000LL}},
-      {"verus_hilla", "Hard", {178500000000000LL}}};
+      {"damien", "Hard", {17085600000000LL, 7322400000000LL}},
+      {"lotus", "Hard", {6830082000000LL, 6830082000000LL, 9106776000000LL}},
+      {"guardian_angel_slime", "Chaos", {61650000000000LL}},
+      {"lucid", "Hard", {36322000000000LL, 38610000000000LL, 9152000000000LL}},
+      {"will", "Hard", {28182000000000LL, 21136500000000LL, 35227500000000LL}},
+      {"gloom", "Chaos", {86012850000000LL}},
+      {"darknell", "Hard", {108202500000000LL}},
+      {"verus_hilla", "Hard", {122451000000000LL}}};
   for (const Want& want : kHarder) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
@@ -608,8 +608,8 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     int64_t hp;
   };
   const std::vector<Want> kRungs = {
-      {"zakum", "Chaos", 11550000, 0, 168000000000LL},
-      {"magnus", "Hard", 13600000, 22000000, 120000000000LL},
+      {"zakum", "Chaos", 11550000, 0, 113400000000LL},
+      {"magnus", "Hard", 13600000, 22000000, 81960000000LL},
       {"pink_bean", "Chaos", 9150000, 9590000, 199500000000LL}};
   for (const Want& want : kRungs) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
@@ -901,8 +901,8 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   EXPECT_EQ(normal.exp(), 0);
   const std::vector<std::string> kMobs = {"lotus_phase_1", "lotus_phase_2",
                                           "lotus_phase_3"};
-  const std::vector<int64_t> kHp = {472500000000LL, 472500000000LL,
-                                    630000000000LL};
+  const std::vector<int64_t> kHp = {323190000000LL, 323190000000LL,
+                                    430920000000LL};
   const std::vector<std::string> kTracks = {"Suu1phase", "Suu2phase",
                                             "Suu3phase"};
   ASSERT_EQ(normal.phases_size(), static_cast<int>(kMobs.size()));
@@ -950,7 +950,7 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   EXPECT_EQ(normal.meso(), 24150000);
   EXPECT_EQ(normal.exp(), 22000000);
   const std::vector<std::string> kMobs = {"damien_phase_1", "damien_phase_2"};
-  const std::vector<int64_t> kHp = {840000000000LL, 360000000000LL};
+  const std::vector<int64_t> kHp = {569520000000LL, 244080000000LL};
   const std::vector<std::string> kTracks = {"Demian Spine", "Demian True"};
   ASSERT_EQ(normal.phases_size(), static_cast<int>(kMobs.size()));
   for (int i = 0; i < normal.phases_size(); ++i) {
@@ -1008,7 +1008,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(mob.level(), 220);
   EXPECT_EQ(mob.attack(), 22000);
   EXPECT_EQ(mob.pdr(), 300);
-  EXPECT_EQ(mob.max_hp(), 5000000000000LL);
+  EXPECT_EQ(mob.max_hp(), 3425000000000LL);
   // She walks the row above the player at Lotus's pace, and jumps to the row
   // Lotus hovers in.
   const ArenaWalk& walk = phase.spawns(0).walk();
@@ -1058,7 +1058,7 @@ TEST_F(BossDataTest, VerusHillaIsFourBarsThatHunt) {
   }
   EXPECT_EQ(hilla.difficulties(0).arcane_force(), 820);
   EXPECT_EQ(hilla.difficulties(0).meso(), 83150000);
-  EXPECT_EQ(mobs_.at("verus_hilla").max_hp(), 89250000000000LL);
+  EXPECT_EQ(mobs_.at("verus_hilla").max_hp(), 61225500000000LL);
   EXPECT_EQ(hilla.difficulties(1).arcane_force(), 900);
   EXPECT_EQ(hilla.difficulties(1).meso(), 108850000);
 }

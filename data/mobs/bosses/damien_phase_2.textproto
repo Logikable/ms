@@ -1,7 +1,8 @@
 name: "Damien"
 level: 210
 attack: 22000
-max_hp: 360000000000
+# GMS v272 cut 32.2%.
+max_hp: 244080000000
 exp: 0
 pdr: 300
 boss: true

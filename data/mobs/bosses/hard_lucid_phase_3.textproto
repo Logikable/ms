@@ -2,7 +2,8 @@
 name: "Lucid"
 level: 230
 attack: 22000
-max_hp: 12800000000000
+# GMS v272 cut 28.5%.
+max_hp: 9152000000000
 exp: 0
 pdr: 300
 boss: true

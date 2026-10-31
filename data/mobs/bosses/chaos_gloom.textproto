@@ -2,7 +2,8 @@
 name: "Giant Monster Gloom"
 level: 255
 attack: 22000
-max_hp: 127050000000000
+# GMS v272 cut 32.3%.
+max_hp: 86012850000000
 exp: 0
 pdr: 300
 boss: true

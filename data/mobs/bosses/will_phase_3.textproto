@@ -1,7 +1,8 @@
 name: "Will"
 level: 250
 attack: 22000
-max_hp: 10500000000000
+# GMS v272 cut 32.9%.
+max_hp: 7045500000000
 exp: 0
 pdr: 300
 boss: true
