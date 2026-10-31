@@ -175,6 +175,16 @@ std::string EmpoweredSkillName(const std::string& target);
 // agree.
 std::vector<std::string> BoostTargetNames(const SkillBoost& boost);
 
+// For each skill name, the skills that inherit its boosts: those with
+// Skill.inherits_boosts that supersede it. Read from the catalog alone, since
+// a boost filed under a skill nobody swings changes nothing.
+using BoostHeirs = std::map<std::string, std::vector<std::string>>;
+BoostHeirs BoostHeirsIn(const std::map<std::string, Skill>& skills);
+
+// BoostTargetNames, and every heir of each.
+std::vector<std::string> BoostTargetNames(const SkillBoost& boost,
+                                          const BoostHeirs& heirs);
+
 // Combo Orbs at `level`: `combo_orbs` plus whole orbs gained since level 1. In
 // one place so the stats and skill page always agree.
 int ComboOrbsAt(const Skill& skill, int level);

@@ -896,8 +896,10 @@ int CharacterPanel::NumberedSkillPages() const {
 }
 
 JobAdvancement CharacterPanel::VAdvancement() const {
-  return AdvancementForJobStage(character_.proto().job(),
-                                character_.proto().job_stage());
+  // A 6th job keeps the 5th's matrix; its own is elsewhere.
+  return AdvancementForJobStage(
+      character_.proto().job(),
+      std::min(character_.proto().job_stage(), kFifthJobStage));
 }
 
 std::vector<const Skill*> CharacterPanel::VNodes() const {

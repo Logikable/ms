@@ -1689,6 +1689,13 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return LearnVNode(skill, amount);
   }
+  if (skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+    return LearnHexaNode(skill, amount);
+  }
+  // Levelled with its core; see Skill.hexa_core.
+  if (!skill.hexa_core().empty()) {
+    return false;
+  }
   // The familiar skill's level is the account's familiars'; nothing buys it.
   if (skill.familiar_levels() || !HasBookFor(skill)) {
     return false;
@@ -1737,6 +1744,10 @@ bool CharacterInstance::HoldsSkillFrom(const Skill& skill,
                                        Activity activity) const {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return ReachesVNode(skill);
+  }
+  if (skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED ||
+      !skill.hexa_core().empty()) {
+    return ReachesHexaNode(skill);
   }
   if (skill.link_line() != JOB_UNSPECIFIED) {
     return HoldsLinkSkill(skill, activity);
@@ -1927,6 +1938,34 @@ bool CharacterInstance::ReachesVNode(const Skill& skill) const {
   return ListedIn(skill, JOB_ADVANCEMENT_COMMON) || HasBookFor(skill);
 }
 
+bool CharacterInstance::ReachesHexaNode(const Skill& skill) const {
+  return character_.job_stage() >= kSixthJobStage && HasBookFor(skill) &&
+         MeetsSkillRequirement(skill);
+}
+
+HexaPrice CharacterInstance::HexaNodePriceFor(const Skill& skill,
+                                              int amount) const {
+  if (amount <= 0) {
+    return {};
+  }
+  const int level = skill_level(skill);
+  return HexaNodePrice(skill.hexa_node(), level, level + amount);
+}
+
+bool CharacterInstance::LearnHexaNode(const Skill& skill, int amount) {
+  const int to = skill_level(skill) + amount;
+  if (!ReachesHexaNode(skill) || to > SkillMaxLevel(skill) ||
+      to > MaxHexaNodeLevel(skill.hexa_node())) {
+    return false;
+  }
+  const HexaPrice price = HexaNodePriceFor(skill, amount);
+  if (!SpendSolErda(price.energy, price.fragments)) {
+    return false;
+  }
+  (*character_.mutable_skill_levels())[skill.name()] += amount;
+  return true;
+}
+
 int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {
   if (skill.v_node() == V_NODE_KIND_UNSPECIFIED || amount <= 0) {
     return 0;
@@ -1938,6 +1977,21 @@ int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {
 int CharacterInstance::LevelsAffordable(const Skill& skill) const {
   int room = SkillMaxLevel(skill) - skill_level(skill);
   if (room <= 0) {
+    return 0;
+  }
+  if (skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+    int levels = 0;
+    while (levels < room) {
+      const HexaPrice price = HexaNodePriceFor(skill, levels + 1);
+      if (price.energy > sol_erda_energy() ||
+          price.fragments > sol_erda_fragments()) {
+        break;
+      }
+      ++levels;
+    }
+    return levels;
+  }
+  if (!skill.hexa_core().empty()) {
     return 0;
   }
   if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {

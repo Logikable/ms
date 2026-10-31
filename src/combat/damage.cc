@@ -415,6 +415,30 @@ std::vector<std::string> BoostTargetNames(const SkillBoost& boost) {
   return names;
 }
 
+BoostHeirs BoostHeirsIn(const std::map<std::string, Skill>& skills) {
+  BoostHeirs heirs;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.inherits_boosts() && !skill.supersedes_skill_name().empty()) {
+      heirs[skill.supersedes_skill_name()].push_back(skill.name());
+    }
+  }
+  return heirs;
+}
+
+std::vector<std::string> BoostTargetNames(const SkillBoost& boost,
+                                          const BoostHeirs& heirs) {
+  std::vector<std::string> names = BoostTargetNames(boost);
+  const size_t own = names.size();
+  for (size_t i = 0; i < own; ++i) {
+    BoostHeirs::const_iterator it = heirs.find(names[i]);
+    if (it != heirs.end()) {
+      names.insert(names.end(), it->second.begin(), it->second.end());
+    }
+  }
+  return names;
+}
+
 int ComboOrbsAt(const Skill& skill, int level) {
   // Same epsilon as WholeValue, for the same reason.
   constexpr double kOrbEpsilon = 1e-9;

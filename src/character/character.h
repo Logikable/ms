@@ -24,6 +24,7 @@
 #include "src/character/equip_presets.h"
 #include "src/character/familiar.h"
 #include "src/character/guild.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/legion.h"
@@ -735,6 +736,9 @@ class CharacterInstance {
   // for an ordinary skill. For a node, as far up the ladder as the V Points
   // reach, which differs from the number of points.
   int LevelsAffordable(const Skill& skill) const;
+  // The Sol Erda and Fragments raising HEXA node `skill` by `amount` levels
+  // costs, or nothing for anything that is not a node.
+  HexaPrice HexaNodePriceFor(const Skill& skill, int amount) const;
   // The learned level of `skill`, 0 if unlearned. A Vengeance form reads its
   // Benevolence skill's level, since both are one row of the same book.
   int skill_level(const Skill& skill,
@@ -755,7 +759,8 @@ class CharacterInstance {
     if (skill.granted_by_equip()) {
       return EquipmentSkillLevel(skill, SlotFor(PresetKind::kEquip, activity));
     }
-    const std::string& key = skill.replaces_skill_name().empty()
+    const std::string& key = !skill.hexa_core().empty() ? skill.hexa_core()
+                             : skill.replaces_skill_name().empty()
                                  ? skill.name()
                                  : skill.replaces_skill_name();
     auto it = character_.skill_levels().find(key);
@@ -792,6 +797,10 @@ class CharacterInstance {
   // Whether this character's matrix can hold the node `skill`. A common node is
   // open to every job; any other names the 5th advancement that may buy it.
   bool ReachesVNode(const Skill& skill) const;
+  // Whether HEXA node `skill`, or a skill levelled by one, is open to this
+  // character: the 6th advancement whose book lists it, and its
+  // required_skill still met.
+  bool ReachesHexaNode(const Skill& skill) const;
   // The whole character as one proto, with the live containers written back in.
   // proto() alone doesn't include them: they live in C++ containers and are
   // only written out here.
@@ -998,6 +1007,8 @@ class CharacterInstance {
   // Buys `amount` levels of a V Matrix node with V Points, at the cost its
   // kind's ladder charges for those levels. All or nothing.
   bool LearnVNode(const Skill& skill, int amount);
+  // The same for a HEXA node, with Sol Erda and Fragments.
+  bool LearnHexaNode(const Skill& skill, int amount);
   // Copy of the account setting; see autoswap_presets(). Off is the default, so
   // a character with no account keeps whichever preset is selected.
   bool autoswap_presets_ = false;

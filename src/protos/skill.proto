@@ -1559,6 +1559,26 @@ enum VNodeKind {
   V_NODE_KIND_ARCHETYPE = 4;
 }
 
+// Which kind of HEXA Matrix node a skill is, or none. As with VNodeKind, the
+// kind sets the price ladder (see hexa_matrix.h); every node goes to 30.
+enum HexaNodeKind {
+  HEXA_NODE_KIND_UNSPECIFIED = 0;
+  // The job's 6th job attack. Its first level is free, as GMS grants it with
+  // the advancement.
+  HEXA_NODE_KIND_ORIGIN = 1;
+  // The second 6th job attack, priced like the Origin.
+  HEXA_NODE_KIND_ASCENT = 2;
+  // A rebuilt 4th job attack, or a few, that supersedes the original. Four per
+  // job, half the Origin's price.
+  HEXA_NODE_KIND_MASTERY = 3;
+  // Final damage for one V skill. Four per job, three quarters of the price.
+  HEXA_NODE_KIND_ENHANCEMENT = 4;
+  // Sol Janus and Sol Hecate, which every job has.
+  HEXA_NODE_KIND_COMMON = 5;
+  // A line's 5th job common skill rebuilt, like HEXA Blitz Shield.
+  HEXA_NODE_KIND_ARCHETYPE = 6;
+}
+
 // One job line's own numbers for a skill every line shares. The fields `skill`
 // sets replace the shared ones for a character of `line`; see ForJob.
 message LineOverride {
@@ -1634,6 +1654,18 @@ message Skill {
   // decides which item counts. It costs no SP and gets no granted levels, and
   // the beginner's page lists it only while it is worn.
   bool granted_by_equip = 72;
+  // Which kind of HEXA Matrix node this is, if any. Nodes are bought with Sol
+  // Erda and Fragments; see LearnSkill. A node's required_skill (a Mastery's V
+  // boost at 60, an Enhancement's V skill at 25) must stay met for the node to
+  // grant anything, not just to be bought, as in GMS.
+  HexaNodeKind hexa_node = 73;
+  // The HEXA node whose level this skill has, by display name. A Mastery core
+  // that rebuilds several skills is one node, and each rebuilt skill names it.
+  // Nothing buys such a skill directly.
+  string hexa_core = 74;
+  // Whether boosts naming the skill this one supersedes also reach this one.
+  // GMS's Mastery cores keep the original's Hyper passives and V boost.
+  bool inherits_boosts = 75;
   // A skill nobody buys whose level follows the account's familiars: see
   // FamiliarSkillLevel. max_level states its top.
   bool familiar_levels = 107;

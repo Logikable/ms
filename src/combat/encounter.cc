@@ -1057,6 +1057,7 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
     const std::map<std::string, Skill>& skills, int bonus,
     Activity activity = Activity::kFarming) {
   std::map<std::string, SkillBoosts> by_target;
+  const BoostHeirs heirs = BoostHeirsIn(skills);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // Learned levels are keyed by display name, which branches share, so only
@@ -1079,7 +1080,7 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
                     WholeValue(boost.max_enemies_per_level() * (learned - 1));
       // Empowered forms use their own name, so bonuses that reach them are
       // filed there. See BoostTargetNames.
-      for (const std::string& name : BoostTargetNames(boost)) {
+      for (const std::string& name : BoostTargetNames(boost, heirs)) {
         SkillBoosts& into = by_target[name];
         into.lines += boost.lines();
         into.extra_hit_lines += boost.extra_hit_lines();

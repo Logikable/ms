@@ -15,6 +15,7 @@
 
 #include "absl/strings/str_join.h"
 #include "src/character/character.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/job_branch.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
@@ -633,6 +634,53 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   }
   EXPECT_GT(commons, 0) << "the common folder stopped being read";
   EXPECT_GT(archetypes, 0) << "the line's shared folders stopped being read";
+}
+
+// A HEXA node goes to its kind's level, in a 6th job's book, and a skill its
+// core levels names a node of that book and carries the same requirement,
+// since it stops with the core. Holds trivially until the HEXA skills exist.
+TEST(SkillDataTest, EveryHexaNodeMatchesItsKind) {
+  const std::map<std::string, Skill> skills = LoadSkills();
+  std::map<std::string, const Skill*> by_name;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    by_name[entry.second.name()] = &entry.second;
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED &&
+        skill.hexa_core().empty()) {
+      EXPECT_FALSE(skill.inherits_boosts())
+          << skill.name() << " inherits but is no HEXA skill";
+      continue;
+    }
+    EXPECT_EQ(StageForAdvancement(BookOf(skill)), kSixthJobStage)
+        << skill.name() << " belongs to a 6th job";
+    EXPECT_EQ(skill.v_node(), V_NODE_KIND_UNSPECIFIED)
+        << skill.name() << " cannot be both";
+    EXPECT_FALSE(skill.hyper()) << skill.name() << " cannot be both";
+    EXPECT_FALSE(skill.inherits_boosts() &&
+                 skill.supersedes_skill_name().empty())
+        << skill.name() << " inherits from nothing";
+    if (skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+      EXPECT_TRUE(skill.hexa_core().empty())
+          << skill.name() << " is a node and levels with another";
+      EXPECT_EQ(skill.max_level(), MaxHexaNodeLevel(skill.hexa_node()))
+          << skill.name() << " does not go as far as its kind";
+      continue;
+    }
+    std::map<std::string, const Skill*>::const_iterator core =
+        by_name.find(skill.hexa_core());
+    ASSERT_NE(core, by_name.end())
+        << skill.name() << " names no skill as its core";
+    EXPECT_EQ(core->second->hexa_node(), HEXA_NODE_KIND_MASTERY)
+        << skill.name() << "'s core is no Mastery node";
+    EXPECT_EQ(BookOf(*core->second), BookOf(skill))
+        << skill.name() << "'s core is in another book";
+    EXPECT_EQ(core->second->required_skill().SerializeAsString(),
+              skill.required_skill().SerializeAsString())
+        << skill.name() << " must stop with its core";
+    EXPECT_EQ(skill.max_level(), kHexaNodeMaxLevel) << skill.name();
+  }
 }
 
 // An archetype node belongs to a job line, so every 5th job on that line lists

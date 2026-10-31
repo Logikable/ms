@@ -1108,6 +1108,24 @@ TEST_F(CharacterPanelTest, TheVPageComesAfterTheHyperOne) {
       << "the pool reads in V Points";
 }
 
+// The 6th advancement opens another matrix and keeps the 5th's: the V page
+// still lists the 5th job's nodes, not the 6th's.
+TEST_F(CharacterPanelTest, ASixthJobKeepsItsVPage) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  c.AdvanceJob(JOB_DARK_KNIGHT);
+  ASSERT_EQ(c.proto().job_stage(), kSixthJobStage);
+  CharacterPanel noded(c, account_, panel_focus_, NodeCatalog());
+  ftxui::Component page = noded.MakeComponent();
+  page->OnEvent(ftxui::Event::ArrowRight);
+  page->OnEvent(ftxui::Event::ArrowDown);
+  for (int i = 0; i < 5; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> H -> V
+  }
+  std::string matrix = RenderComponent(page);
+  EXPECT_NE(matrix.find("Radiant Evil"), std::string::npos);
+  EXPECT_NE(matrix.find("11 VP"), std::string::npos);
+}
+
 // Rules where the page splits into blocks, so the job's own nodes read
 // separately from the common nodes below. A numbered book is one list and has
 // none.

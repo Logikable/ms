@@ -1261,6 +1261,40 @@ TEST_F(DerivedStatsTest, ABoostCanTakeALeverAway) {
   EXPECT_NEAR(bonus->second.final_dmg_pct, -0.25, 1e-9);
 }
 
+// The levers a boost gives the skill it names reach a HEXA skill that
+// supersedes it and inherits its boosts, and only such a one.
+TEST_F(DerivedStatsTest, ABoostReachesTheHeirOfTheSkillItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill hyper;
+  hyper.set_name("Hurricane - Reinforce");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Hurricane");
+  boost->mutable_effect()->set_damage_pct(0.20);
+  Skill heir;
+  heir.set_name("HEXA Hurricane");
+  heir.set_kind(SKILL_KIND_ATTACK);
+  heir.set_supersedes_skill_name("Hurricane");
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+
+  for (bool inherits : {true, false}) {
+    SCOPED_TRACE(inherits);
+    heir.set_inherits_boosts(inherits);
+    DerivedStats stats = DerivedStatsFor(c, {{"hyper", hyper}, {"heir", heir}});
+    std::map<std::string, SkillBonus>::const_iterator bonus =
+        stats.skill_bonus.find("HEXA Hurricane");
+    if (inherits) {
+      ASSERT_NE(bonus, stats.skill_bonus.end());
+      EXPECT_NEAR(bonus->second.damage_pct, 0.20, 1e-9);
+    } else {
+      EXPECT_EQ(bonus, stats.skill_bonus.end());
+    }
+    EXPECT_NEAR(stats.skill_bonus.at("Hurricane").damage_pct, 0.20, 1e-9);
+  }
+}
+
 // A boost naming a skill the character doesn't have does nothing, and a Final
 // Attack no boost names keeps its original values.
 TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {

@@ -12,6 +12,7 @@
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/familiar.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/hexa_stat.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
@@ -1202,6 +1203,92 @@ TEST_F(AddExpTest, AHexaStatNodeRollsResetsAndReselects) {
   EXPECT_EQ(HexaStatNodeLevels(c.hexa_stats().nodes(0)), 0);
   EXPECT_EQ(c.sol_erda_fragments(), held);
   EXPECT_EQ(c.hexa_stats().nodes(0).primary(), HEXA_STAT_IGNORE_DEFENSE);
+}
+
+Skill HexaNode(const std::string& name, HexaNodeKind kind) {
+  Skill node;
+  node.set_name(name);
+  node.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(node, JOB_ADVANCEMENT_HERO_VI);
+  node.set_hexa_node(kind);
+  node.set_max_level(kHexaNodeMaxLevel);
+  return node;
+}
+
+// The Origin's first level is free; every other level, and every other node,
+// costs its ladder in both currencies. Only a Hero VI's matrix lists these.
+TEST_F(AddExpTest, AHexaNodeIsBoughtOnItsLadder) {
+  const Skill origin = HexaNode("Spirit Calibur", HEXA_NODE_KIND_ORIGIN);
+  Character fifth_proto = MakeSixthJob(rng_).ToProto();
+  fifth_proto.set_job_stage(kFifthJobStage);
+  CharacterInstance fifth(rng_, fifth_proto);
+  EXPECT_FALSE(fifth.LearnSkill(origin, 1));
+
+  CharacterInstance c = MakeSixthJob(rng_);
+  const int64_t energy = c.sol_erda_energy();
+  const int64_t fragments = c.sol_erda_fragments();
+  ASSERT_TRUE(c.LearnSkill(origin, 1));
+  EXPECT_EQ(c.sol_erda_energy(), energy);
+  EXPECT_EQ(c.sol_erda_fragments(), fragments);
+  const HexaPrice next = c.HexaNodePriceFor(origin, 9);
+  EXPECT_EQ(next.fragments,
+            HexaNodePrice(HEXA_NODE_KIND_ORIGIN, 1, 10).fragments);
+  ASSERT_TRUE(c.LearnSkill(origin, 9));
+  EXPECT_EQ(c.skill_level(origin), 10);
+  EXPECT_EQ(c.sol_erda_fragments(), fragments - next.fragments);
+  EXPECT_EQ(c.sol_erda_energy(), energy - next.energy);
+  EXPECT_FALSE(c.LearnSkill(origin, 21)) << "past 30";
+
+  // The purse sets how far a node can go: the 75 Sol Erda left reach level 25,
+  // whose step past it costs 6 more than remain.
+  EXPECT_EQ(c.LevelsAffordable(origin), 15);
+  CharacterInstance broke(rng_, [&] {
+    Character proto = MakeSixthJob(rng_).ToProto();
+    proto.set_sol_erda_fragments(99);
+    return proto;
+  }());
+  const Skill ascent = HexaNode("Ultrasonic Slash", HEXA_NODE_KIND_ASCENT);
+  EXPECT_EQ(broke.LevelsAffordable(ascent), 0);
+  EXPECT_FALSE(broke.LearnSkill(ascent, 1));
+  EXPECT_EQ(broke.sol_erda_fragments(), 99);
+}
+
+// A Mastery core opens with its V boost at 60 and, as in GMS, grants nothing
+// once that stops being true, though its levels stay bought. A skill its core
+// levels has the core's level and isn't bought on its own.
+TEST_F(AddExpTest, AMasteryCoreWorksOnlyWhileItsRequirementHolds) {
+  Skill core = HexaNode("HEXA Raging Blow", HEXA_NODE_KIND_MASTERY);
+  core.mutable_required_skill()->set_skill_name("Raging Blow Boost");
+  core.mutable_required_skill()->set_level(60);
+  Skill rebuilt;
+  rebuilt.set_name("HEXA Rising Rage");
+  rebuilt.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(rebuilt, JOB_ADVANCEMENT_HERO_VI);
+  rebuilt.set_hexa_core("HEXA Raging Blow");
+  rebuilt.set_max_level(kHexaNodeMaxLevel);
+  *rebuilt.mutable_required_skill() = core.required_skill();
+
+  Character proto = MakeSixthJob(rng_).ToProto();
+  (*proto.mutable_skill_levels())["Raging Blow Boost"] = 59;
+  CharacterInstance short_of(rng_, proto);
+  EXPECT_FALSE(short_of.HoldsSkillFrom(core));
+  EXPECT_FALSE(short_of.LearnSkill(core, 1));
+
+  (*proto.mutable_skill_levels())["Raging Blow Boost"] = 60;
+  CharacterInstance c(rng_, proto);
+  ASSERT_TRUE(c.HoldsSkillFrom(core));
+  ASSERT_TRUE(c.LearnSkill(core, 5));
+  EXPECT_EQ(c.skill_level(rebuilt), 5);
+  EXPECT_TRUE(c.HoldsSkillFrom(rebuilt));
+  EXPECT_FALSE(c.LearnSkill(rebuilt, 1));
+  EXPECT_EQ(c.LevelsAffordable(rebuilt), 0);
+
+  Character reset = c.ToProto();
+  (*reset.mutable_skill_levels())["Raging Blow Boost"] = 0;
+  CharacterInstance after(rng_, reset);
+  EXPECT_EQ(after.skill_level(core), 5);
+  EXPECT_FALSE(after.HoldsSkillFrom(core));
+  EXPECT_FALSE(after.HoldsSkillFrom(rebuilt));
 }
 
 // A 5th job with `v_points` and `hyper_sp`, and no stage SP at all.

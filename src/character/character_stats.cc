@@ -105,6 +105,8 @@ struct RawRegen {
 // The final step writes five inherited fields from scratch: max_hp, max_mp,
 // def, base_def and regen_pulses. They stay at zero until then.
 struct PassiveTotals : DerivedStats {
+  // Who inherits each skill's boosts; see Skill.inherits_boosts.
+  BoostHeirs boost_heirs;
   // Flat HP, MP and DEF from the passives. They are kept apart from the totals
   // because each still has to be combined with the allocation and worn gear.
   int hp_grant = 0;
@@ -457,7 +459,8 @@ void AddSkillBonuses(
     }
     // A form is a separate swing, and the fight looks up its entry by the name
     // it swings under, so a boost reaching it is stored under that name too.
-    for (const std::string& name : BoostTargetNames(boost)) {
+    for (const std::string& name :
+         BoostTargetNames(boost, totals.boost_heirs)) {
       AddSkillBonus(boost, level, totals.skill_bonus[name]);
     }
   }
@@ -889,6 +892,7 @@ PassivesBeforeBuffs LearnedBeforeBuffs(
     StatPreset gear) {
   PassivesBeforeBuffs before;
   PassiveTotals& totals = before.totals;
+  totals.boost_heirs = BoostHeirsIn(skills);
   EquipType weapon = character.weapon_type(gear);
   before.bonus = BonusSkillLevels(character, skills, allies);
   before.in_company = !allies.empty();

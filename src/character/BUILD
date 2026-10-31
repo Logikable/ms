@@ -32,6 +32,7 @@ cc_library(
         ":exp_table",
         ":familiar",
         ":guild",
+        ":hexa_matrix",
         ":hexa_stat",
         ":hyper_stats",
         ":inner_ability",
@@ -214,6 +215,28 @@ cc_library(
     srcs = ["v_matrix.cc"],
     hdrs = ["v_matrix.h"],
     deps = ["//src/protos:skill_proto_cc"],
+)
+
+cc_library(
+    name = "hexa_matrix",
+    srcs = ["hexa_matrix.cc"],
+    hdrs = ["hexa_matrix.h"],
+    deps = [
+        ":sol_erda",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "hexa_matrix_test",
+    size = "small",
+    srcs = ["hexa_matrix_test.cc"],
+    deps = [
+        ":hexa_matrix",
+        ":sol_erda",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_library(
@@ -594,6 +617,7 @@ cc_test(
         ":equip_presets",
         ":exp_table",
         ":familiar",
+        ":hexa_matrix",
         ":hexa_stat",
         ":inner_ability",
         ":sol_erda",

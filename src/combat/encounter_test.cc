@@ -7,9 +7,11 @@
 
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
+#include "src/character/sol_erda.h"
 #include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
@@ -2035,6 +2037,69 @@ TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
   EXPECT_NEAR(after.auto_attacks[0].damage_per_hit[0] /
                   before.auto_attacks[0].damage_per_hit[0],
               1.56 / 0.66, 1e-6);
+}
+
+// A Mastery core's rebuilt attack supersedes the original and keeps what
+// boosted it, as GMS's HEXA skills keep their Hyper passives and V boost: one
+// more enemy here. Without inherits_boosts the rebuilt swing gets none of it.
+TEST(ComputeCombatParamsTest, AMasteryCoreKeepsTheBoostsOfWhatItSupersedes) {
+  for (bool inherits : {true, false}) {
+    SCOPED_TRACE(inherits);
+    Skill swing;
+    swing.set_name("Raging Blow");
+    swing.set_kind(SKILL_KIND_ATTACK);
+    PlaceIn(swing, JOB_ADVANCEMENT_SWORDMAN);
+    swing.set_max_level(1);
+    swing.set_max_enemies(4);
+    swing.mutable_base()->set_skill_pct(1.24);
+
+    Skill hyper;
+    hyper.set_name("Raging Blow - Extra Target");
+    hyper.set_kind(SKILL_KIND_PASSIVE);
+    PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
+    hyper.set_max_level(1);
+    SkillBoost* boost = hyper.add_boost();
+    boost->set_skill_name("Raging Blow");
+    boost->set_max_enemies(1);
+
+    Skill core;
+    core.set_name("HEXA Raging Blow");
+    core.set_kind(SKILL_KIND_ATTACK);
+    PlaceIn(core, JOB_ADVANCEMENT_HERO_VI);
+    core.set_hexa_node(HEXA_NODE_KIND_MASTERY);
+    core.set_max_level(kHexaNodeMaxLevel);
+    core.set_max_enemies(8);
+    core.mutable_base()->set_skill_pct(3.50);
+    core.set_supersedes_skill_name("Raging Blow");
+    core.set_inherits_boosts(inherits);
+
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"swing", swing}, {"hyper", hyper}, {"core", core}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 2);
+    ASSERT_TRUE(state.character.LearnSkill(swing, 1));
+    ASSERT_TRUE(state.character.LearnSkill(hyper, 1));
+    while (state.character.proto().job_stage() < kSixthJobStage) {
+      state.character.AdvanceJob(JOB_HERO);
+    }
+    const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_MASTERY, 0, 1);
+    state.character.AddSolErdaEnergy(price.energy);
+    state.character.AddSolErdaFragments(price.fragments);
+    ASSERT_TRUE(state.character.LearnSkill(core, 1));
+
+    CombatParams params = ComputeCombatParams(state);
+    int found = 0;
+    for (const AttackOption& attack : params.attacks) {
+      EXPECT_NE(attack.name, "Raging Blow") << "superseded";
+      if (attack.name == "HEXA Raging Blow") {
+        ++found;
+        EXPECT_EQ(attack.max_enemies, inherits ? 9 : 8);
+      }
+    }
+    EXPECT_EQ(found, 1);
+  }
 }
 
 // A boost node gives damage from level 1, one more enemy at 20 and ignored
