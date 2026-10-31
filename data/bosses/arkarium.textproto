@@ -15,8 +15,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 180
-  # Five Intense Power Crystals at his level's price.
-  meso: 12602500
+  # GMS v272's Heroic Intense Power Crystal price.
+  meso: 10082000
   # Five times Pink Bean's, the same gap GMS has between the two.
   exp: 50000000
   drops {

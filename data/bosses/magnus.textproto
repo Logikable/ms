@@ -17,8 +17,8 @@ difficulties {
   # Ahead of Pink Bean because he is the easier fight: unlocked at 170, half the
   # branches cleared him that day, while Pink Bean at 160 took until 168.
   unlock_level: 160
-  # Five Intense Power Crystals at his level's price.
-  meso: 12960000
+  # GMS v272's Heroic Intense Power Crystal price.
+  meso: 10368000
   exp: 5300000
   drops {
     equip: "crystal_ventus_badge"

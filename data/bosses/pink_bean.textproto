@@ -82,9 +82,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
-  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
-  # clears him once a week and this game once a day.
-  meso: 9150000
+  # GMS v272's Heroic Intense Power Crystal price; v272 made him a daily.
+  meso: 12800000
   # GMS gives the Chaos bean the same EXP as the Normal one.
   exp: 9590000
   # Normal's drops. Chaos adds nothing of its own in GMS either.

@@ -15,9 +15,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 200
-  # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
-  # clears her once a week and this game once a day.
-  meso: 10300000
+  # GMS v272's Heroic Intense Power Crystal price; v272 made her a daily.
+  meso: 14450000
   exp: 204000000
   # The token buys whichever of the four shoulders the character's branch can
   # wear. A branch-specific shoulder can't be a drop, since four would drop for

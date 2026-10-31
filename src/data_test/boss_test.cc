@@ -429,7 +429,7 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 160);
-  EXPECT_EQ(normal.meso(), 12960000);
+  EXPECT_EQ(normal.meso(), 10368000);
   EXPECT_EQ(normal.exp(), 5300000);
   ASSERT_EQ(normal.phases_size(), 1);
   ASSERT_EQ(normal.phases(0).spawns_size(), 1);
@@ -491,7 +491,7 @@ TEST_F(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 180);
-  EXPECT_EQ(normal.meso(), 12602500);
+  EXPECT_EQ(normal.meso(), 10082000);
   EXPECT_EQ(normal.exp(), 50000000);
   ASSERT_EQ(normal.phases_size(), 1);
   ASSERT_EQ(normal.phases(0).spawns_size(), 1);
@@ -516,7 +516,7 @@ TEST_F(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(hard.time_limit_seconds(), 600);
   EXPECT_EQ(hard.unlock_level(), 190);
-  EXPECT_EQ(hard.meso(), 8050000);
+  EXPECT_EQ(hard.meso(), 11250000);
   EXPECT_EQ(hard.exp(), 20400000);
   const Mob& silver = mobs_.at("hard_hilla");
   EXPECT_EQ(silver.level(), 190);
@@ -581,7 +581,7 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 200);
-  EXPECT_EQ(normal.meso(), 10300000);
+  EXPECT_EQ(normal.meso(), 14450000);
   EXPECT_EQ(normal.exp(), 204000000);
   ASSERT_EQ(normal.phases_size(), 1);
   ASSERT_EQ(normal.phases(0).spawns_size(), 1);
@@ -610,7 +610,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   const std::vector<Want> kRungs = {
       {"zakum", "Chaos", 11550000, 0, 113400000000LL},
       {"magnus", "Hard", 13600000, 22000000, 81960000000LL},
-      {"pink_bean", "Chaos", 9150000, 9590000, 199500000000LL}};
+      {"pink_bean", "Chaos", 12800000, 9590000, 199500000000LL}};
   for (const Want& want : kRungs) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;

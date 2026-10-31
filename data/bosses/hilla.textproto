@@ -44,9 +44,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
-  # Five Intense Power Crystals at her level's price, divided by seven since GMS
-  # clears her once a week and this game once a day.
-  meso: 8050000
+  # GMS v272's Heroic Intense Power Crystal price; v272 made her a daily.
+  meso: 11250000
   exp: 20400000
   drops {
     equip: "will_o_the_wisps"
