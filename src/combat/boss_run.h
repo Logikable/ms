@@ -147,6 +147,7 @@ struct BossReward {
   // Only paid by bosses with a daily or weekly limit. A boss the player can
   // fight as often as they like doesn't give it.
   int64_t honor = 0;
+  int64_t sol_erda_energy = 0;
   std::vector<BossRewardItem> items;
   // Skills this clear opened, by display name: only a first clear of the boss
   // opens any. See Skill.unlock_boss.

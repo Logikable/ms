@@ -215,6 +215,22 @@ cc_library(
     deps = ["//src/protos:skill_proto_cc"],
 )
 
+cc_library(
+    name = "sol_erda",
+    srcs = ["sol_erda.cc"],
+    hdrs = ["sol_erda.h"],
+)
+
+cc_test(
+    name = "sol_erda_test",
+    size = "small",
+    srcs = ["sol_erda_test.cc"],
+    deps = [
+        ":sol_erda",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "v_matrix_test",
     size = "small",

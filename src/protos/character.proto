@@ -487,6 +487,12 @@ message Character {
   // advancement earn them; see v_matrix.h.
   int64 v_points = 24;
 
+  // The 6th job's HEXA currencies, per character like V Points and banked
+  // before the advancement; see sol_erda.h. Energy counts Sol Erda in
+  // thousandths: 1000 is one Sol Erda. 33 is held for HEXA Stats.
+  int64 sol_erda_energy = 34;
+  int64 sol_erda_fragments = 35;
+
   // When this character last claimed the dailies, as a Unix time, or 0 for
   // never. Uses the boss reset clock; see boss_reset.h.
   int64 dailies_claimed_unix_seconds = 26;

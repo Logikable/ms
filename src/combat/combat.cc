@@ -11,6 +11,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/honor.h"
+#include "src/character/sol_erda.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/drop.h"
 #include "src/combat/encounter.h"
@@ -120,6 +121,16 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
           character.AddVPoints(points);
           tally.v_points += points;
         }
+      }
+      if (params.pays_sol_erda) {
+        int64_t energy =
+            RollMobSolErdaEnergy(kills[i], params.item_drop_pct, state.rng);
+        int64_t fragments =
+            RollMobFragments(kills[i], params.item_drop_pct, state.rng);
+        character.AddSolErdaEnergy(energy);
+        character.AddSolErdaFragments(fragments);
+        tally.sol_erda_energy += energy;
+        tally.sol_erda_fragments += fragments;
       }
     }
     for (const MobDrop& drop : mob.drops()) {

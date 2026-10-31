@@ -33,6 +33,8 @@ struct RewardTally {
   int64_t meso = 0;
   int64_t honor = 0;
   int64_t v_points = 0;
+  int64_t sol_erda_energy = 0;
+  int64_t sol_erda_fragments = 0;
   int64_t familiar_exp = 0;       // what was banked, after kFamiliarExpCap
   std::vector<RewardItem> items;  // in drop-table order
   // Potion cost taken out of meso. Listed here because it is charged per second

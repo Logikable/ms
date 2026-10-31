@@ -968,6 +968,21 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 1);
 }
 
+// A clear's Sol Erda Energy is the whole table's for each member, and only with
+// the sixth_job switch on.
+TEST(BossRunTest, AClearPaysItsSolErdaEnergyUnderTheSwitch) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  boss.mutable_difficulties(0)->set_sol_erda_energy(120);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  const int64_t paid = kSixthJobEnabled ? 120 : 0;
+  EXPECT_EQ(run.reward().sol_erda_energy, paid);
+  EXPECT_EQ(state->character.sol_erda_energy(), paid);
+}
+
 // A sim claims a clear it has already settled instead of playing it, so a
 // claim must pay exactly what the played clear does.
 TEST(BossRunTest, AClaimedClearPaysWhatAPlayedOneDoes) {

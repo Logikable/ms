@@ -128,6 +128,7 @@ difficulties {
   # Five Intense Power Crystals at GMS's price (88,935,000), divided by seven and
   # rounded to the nearest 50k, as for Normal.
   meso: 63550000
+  sol_erda_energy: 50
   # GMS lists no EXP on any of the three bodies.
   exp: 0
   drops {

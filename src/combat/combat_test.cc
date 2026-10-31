@@ -11,6 +11,7 @@
 #include "src/character/familiar.h"
 #include "src/character/honor.h"
 #include "src/character/skill_placement.h"
+#include "src/character/sol_erda.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -209,6 +210,40 @@ TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
       AwardCombatRewards(state, ComputeCombatParams(state), {100000});
   EXPECT_NEAR(tally.v_points, 100000 * kVPointDropChance, 40);
   EXPECT_EQ(state.character.v_points(), tally.v_points);
+}
+
+// Grandis mobs drop the HEXA currencies, and only with the sixth_job switch:
+// Arcane River pays V Points and no Sol Erda. A character banks them before
+// the 6th advancement.
+TEST(AwardCombatRewardsTest, OnlyGrandisPaysSolErda) {
+  Mob mob = SnailMob();
+  mob.set_exp(0);
+  MapData river = SnailMap();
+  river.set_arcane_force(600);
+  MapData grandis = SnailMap();
+  grandis.set_sacred_power(100);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", mob}}, {{"river", river}, {"grandis", grandis}});
+  EquipSword(state);
+
+  state.current_map = "river";
+  RewardTally none =
+      AwardCombatRewards(state, ComputeCombatParams(state), {1000000});
+  EXPECT_EQ(none.sol_erda_energy, 0);
+  EXPECT_EQ(none.sol_erda_fragments, 0);
+
+  state.current_map = "grandis";
+  RewardTally tally =
+      AwardCombatRewards(state, ComputeCombatParams(state), {1000000});
+  if (!kSixthJobEnabled) {
+    EXPECT_EQ(tally.sol_erda_energy, 0);
+    EXPECT_EQ(tally.sol_erda_fragments, 0);
+    return;
+  }
+  EXPECT_NEAR(tally.sol_erda_fragments, 1000000 * kFragmentDropChance, 200);
+  EXPECT_NEAR(tally.sol_erda_energy, 1000000 * SolErdaEnergyPerKill(0.0), 4000);
+  EXPECT_EQ(state.character.sol_erda_fragments(), tally.sol_erda_fragments);
+  EXPECT_EQ(state.character.sol_erda_energy(), tally.sol_erda_energy);
 }
 
 // Every farm kill banks one familiar EXP on the character, at any level.

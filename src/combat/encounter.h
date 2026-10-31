@@ -526,6 +526,8 @@ struct CombatParams {
   // Whether kills here can drop V Points: only Arcane River and Grandis maps,
   // which are the maps with a force requirement.
   bool pays_v_points = false;
+  // Grandis maps, and only with the sixth_job switch on; see sol_erda.h.
+  bool pays_sol_erda = false;
   // The character's HP regen effects, each on its own timer whether or not they
   // are attacking.
   std::vector<RegenPulse> regen_pulses;

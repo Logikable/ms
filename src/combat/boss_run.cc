@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/build_config.h"
 #include "src/character/guild.h"
 #include "src/character/honor.h"
 #include "src/combat/combat.h"
@@ -788,6 +789,10 @@ void BossRun::PayReward(GameState& state,
   if (chosen->reset() != RESET_PERIOD_UNSPECIFIED) {
     reward_.honor = kBossClearHonor;
     state.character.AddHonor(reward_.honor);
+  }
+  if (kSixthJobEnabled) {
+    reward_.sol_erda_energy = chosen->sol_erda_energy();
+    state.character.AddSolErdaEnergy(reward_.sol_erda_energy);
   }
   reward_.exp = chosen->exp();
   if (reward_.exp > 0) {

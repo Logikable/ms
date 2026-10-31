@@ -11,6 +11,7 @@
 
 #include "absl/types/span.h"
 #include "google/protobuf/repeated_ptr_field.h"
+#include "src/build_config.h"
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
@@ -2181,6 +2182,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // V Points drop in Arcane River and Grandis, which are the maps with a force
   // requirement.
   params.pays_v_points = AsksForForce(map_it->second);
+  params.pays_sol_erda = kSixthJobEnabled && map_it->second.sacred_power() > 0;
   // The game speed for the whole encounter, and the only place here that uses
   // the character's level directly: the game slows down as they level.
   double speed_factor = GameSpeedFactor(state.character.proto().level());

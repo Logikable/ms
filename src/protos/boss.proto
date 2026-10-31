@@ -88,6 +88,10 @@ message BossDifficulty {
   // The Arcane Force the fight requires, weighed as an Arcane River map weighs
   // it: short of it the player deals less, never is kept out. 0 requires none.
   int32 arcane_force = 10;
+  // Sol Erda Energy a clear pays each member, unsplit, from GMS's table: 50
+  // for Hard Damien, 120 for Hard Verus Hilla. Paid only with the sixth_job
+  // switch on.
+  int64 sol_erda_energy = 11;
 }
 
 // A boss and every difficulty it can be fought at, loaded from data/bosses at

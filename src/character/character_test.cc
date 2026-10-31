@@ -1115,6 +1115,23 @@ Skill MakeCommonNode() {
   return skill;
 }
 
+// Every HEXA price names energy and Fragments, so a purchase short of either
+// takes neither.
+TEST_F(AddExpTest, SolErdaIsSpentBothAtOnceOrNotAtAll) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/260);
+  c.AddSolErdaEnergy(5000);
+  c.AddSolErdaFragments(100);
+  c.AddSolErdaFragments(-10);
+  EXPECT_FALSE(c.SpendSolErda(6000, 10));
+  EXPECT_FALSE(c.SpendSolErda(10, 101));
+  EXPECT_FALSE(c.SpendSolErda(-1, 0));
+  EXPECT_EQ(c.sol_erda_energy(), 5000);
+  EXPECT_EQ(c.sol_erda_fragments(), 100);
+  EXPECT_TRUE(c.SpendSolErda(5000, 100));
+  EXPECT_EQ(c.sol_erda_energy(), 0);
+  EXPECT_EQ(c.sol_erda_fragments(), 0);
+}
+
 // A 5th job with `v_points` and `hyper_sp`, and no stage SP at all.
 CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points,
                                int hyper_sp = 0) {

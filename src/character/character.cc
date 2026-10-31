@@ -2693,6 +2693,29 @@ void CharacterInstance::AddVPoints(int64_t amount) {
                std::max(kMaxVPoints, character_.v_points())));
 }
 
+void CharacterInstance::AddSolErdaEnergy(int64_t amount) {
+  if (amount > 0) {
+    character_.set_sol_erda_energy(character_.sol_erda_energy() + amount);
+  }
+}
+
+void CharacterInstance::AddSolErdaFragments(int64_t amount) {
+  if (amount > 0) {
+    character_.set_sol_erda_fragments(character_.sol_erda_fragments() + amount);
+  }
+}
+
+bool CharacterInstance::SpendSolErda(int64_t energy, int64_t fragments) {
+  if (energy < 0 || fragments < 0 || character_.sol_erda_energy() < energy ||
+      character_.sol_erda_fragments() < fragments) {
+    return false;
+  }
+  character_.set_sol_erda_energy(character_.sol_erda_energy() - energy);
+  character_.set_sol_erda_fragments(character_.sol_erda_fragments() -
+                                    fragments);
+  return true;
+}
+
 bool CharacterInstance::SpendVPoints(int64_t amount) {
   if (amount <= 0 || character_.v_points() < amount) {
     return amount <= 0;

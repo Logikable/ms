@@ -69,6 +69,7 @@ difficulties {
   # Five Intense Power Crystals at GMS's price (120,115,625), divided by seven and
   # rounded to the nearest 50k.
   meso: 85800000
+  sol_erda_energy: 70
   # GMS lists no EXP for her.
   exp: 0
   # GMS rolls her ring from a chest opened after the fight; only the roll is

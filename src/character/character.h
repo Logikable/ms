@@ -315,6 +315,12 @@ class CharacterInstance {
   // Takes V Points out for a trade or the bank. All or nothing, like
   // SpendMeso.
   bool SpendVPoints(int64_t amount);
+  // Add Sol Erda Energy or Fragments; neither has a cap. Do nothing if
+  // amount <= 0.
+  void AddSolErdaEnergy(int64_t amount);
+  void AddSolErdaFragments(int64_t amount);
+  // Takes both at once, all or nothing: every HEXA price names the two.
+  bool SpendSolErda(int64_t energy, int64_t fragments);
 
   /* The potions. A buff is either owned or rented, and on or off; together
    * these decide what it does and what it costs. See
@@ -657,6 +663,12 @@ class CharacterInstance {
   // V Points left to spend on the V Matrix.
   int64_t v_points() const {
     return character_.v_points();
+  }
+  int64_t sol_erda_energy() const {
+    return character_.sol_erda_energy();
+  }
+  int64_t sol_erda_fragments() const {
+    return character_.sol_erda_fragments();
   }
   // Whether the character has taken the 5th advancement. That opens the matrix
   // and makes their kills drop V Points.
