@@ -705,9 +705,8 @@ TEST_F(AddExpTest, NoOpAtTheLevelCap) {
 
 TEST_F(AddExpTest, StopsAtTheLevelCapAndZeroesExp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap - 1);
-  // Far more than the 243B that level 259 needs. The rest is thrown away at the
-  // cap.
-  c.AddExp(500000000000LL);
+  // Twice what the last level needs. The rest is thrown away at the cap.
+  c.AddExp(2 * ExpToNextLevel(kTrialLevelCap - 1));
   EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
 }

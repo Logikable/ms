@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "src/build_config.h"
+
 namespace ms {
 
 constexpr int kMaxLevel = 300;
@@ -10,8 +12,8 @@ constexpr int kMaxLevel = 300;
 // The level where this release stops giving EXP; higher levels are in the table
 // but can't be reached. It matches the top of the map ladder, so move it with
 // the content. It went from 30 to 60 with the 2nd jobs, 200 to 230 with Esfera,
-// and 230 to 260 with Limina and Grandis.
-constexpr int kTrialLevelCap = 260;
+// and 230 to 260 with Limina and Grandis. The 6th job opens the rest.
+constexpr int kTrialLevelCap = kSixthJobEnabled ? kMaxLevel : 260;
 
 // Where Burning stops: a character behind the rest of the account gains several
 // levels at a time up to here, and one at a time above it. Move it by hand when

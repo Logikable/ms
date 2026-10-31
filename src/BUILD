@@ -42,6 +42,16 @@ config_setting(
     values = {"define": "audio=off"},
 )
 
+# The 6th job is built on master behind a switch, off until all of it is done:
+#
+#   bazelisk test --define=sixth_job=on //src/... //analysis/... //server/...
+#
+# With it on, the level cap is 300 and a 5th job advances at 260.
+config_setting(
+    name = "sixth_job_on",
+    values = {"define": "sixth_job=on"},
+)
+
 cc_library(
     name = "build_config",
     hdrs = ["build_config.h"],
@@ -50,6 +60,9 @@ cc_library(
         "//conditions:default": [],
     }) + select({
         ":audio_off": ["MS_AUDIO_OFF"],
+        "//conditions:default": [],
+    }) + select({
+        ":sixth_job_on": ["MS_SIXTH_JOB_ON"],
         "//conditions:default": [],
     }),
 )

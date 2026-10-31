@@ -421,14 +421,13 @@ TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
 TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
-  // Large enough that a whole level at the top of the table fits in the farming
-  // below. The last level costs 243B, and a snail pays very little.
   state.exp_multiplier = 100000000;
   EquipSword(state);
   // Start one level short instead of farming up the whole table. The test is
   // about the cap, and the climb only costs time, which grows every time the
   // cap moves.
   LevelTo(state, kTrialLevelCap - 1);
+  state.character.AddExp(ExpToNextLevel(kTrialLevelCap - 1) - 1);
 
   Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), kTrialLevelCap);

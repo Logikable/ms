@@ -25,6 +25,14 @@ inline constexpr bool kAudioEnabled = false;
 inline constexpr bool kAudioEnabled = true;
 #endif
 
+// Whether the 6th job is in the game. Off until all of it is built, so master
+// keeps shipping hotfixes meanwhile. Turned on by `--define=sixth_job=on`.
+#ifdef MS_SIXTH_JOB_ON
+inline constexpr bool kSixthJobEnabled = true;
+#else
+inline constexpr bool kSixthJobEnabled = false;
+#endif
+
 }  // namespace ms
 
 #endif  // MS_SRC_BUILD_CONFIG_H_

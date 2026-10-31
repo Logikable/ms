@@ -1490,7 +1490,7 @@ TEST(GameStateTest, MaxModeHyperStatsFollowTheFightTheyAreFor) {
 // level gate decides whether it's ahead of them.
 TEST(GameStateTest, MaxModeIgnoresABossItCannotYetFight) {
   GameState shut = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO,
-                                MaxBosses(/*unlock_level=*/300));
+                                MaxBosses(kTrialLevelCap + 1));
   GameState open = MakeMaxState(kTrialLevelCap);
   EXPECT_LT(shut.character.hyper_stat_level(HYPER_STAT_FIELD_IED,
                                             StatPreset::kSecond),

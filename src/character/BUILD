@@ -525,6 +525,7 @@ cc_library(
     name = "exp_table",
     srcs = ["exp_table.cc"],
     hdrs = ["exp_table.h"],
+    deps = ["//src:build_config"],
 )
 
 cc_library(
