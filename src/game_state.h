@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "src/account.h"
+#include "src/build_config.h"
 #include "src/character/character.h"
 #include "src/protos/achievement.pb.h"
 #include "src/protos/boss.pb.h"
@@ -82,7 +83,8 @@ enum class TestSkills {
 // Hero line as far as it's written, with everything this game gives out. It
 // moves up as the line grows, since a workbench with an advancement still
 // pending would have to be finished before the tester could look at anything.
-inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO_V;
+inline constexpr JobAdvancement kTestAdvancement =
+    kSixthJobEnabled ? JOB_ADVANCEMENT_HERO_VI : JOB_ADVANCEMENT_HERO_V;
 
 // The workbench settings, one per flag; kPlay ignores them. `job` is the
 // advancement to start at the top of, and `level` the level to reach (0 lets

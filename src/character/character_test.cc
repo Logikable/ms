@@ -831,8 +831,7 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
-// A Shadower at level 100 has no advancement to take.
-// Level 260 unlocks the 6th stage, but no job has one yet.
+// Level 260 unlocks the 6th stage, which only the sixth_job switch offers.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/260);
   c.AdvanceJob(JOB_ROGUE);
@@ -842,7 +841,7 @@ TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   EXPECT_TRUE(c.CanAdvanceJob());
   c.AdvanceJob(JOB_SHADOWER);
   EXPECT_EQ(c.proto().job_stage(), 5);
-  EXPECT_FALSE(c.CanAdvanceJob());
+  EXPECT_EQ(c.CanAdvanceJob(), kSixthJobEnabled);
 }
 
 TEST_F(AdvanceJobTest, ASwordmanAtThirtyIsOfferedTheirSecondJob) {
@@ -932,7 +931,7 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_DARK_KNIGHT}));
   EXPECT_EQ(JobChoicesForStage(JOB_PALADIN, 5),
             (std::vector<Job>{JOB_PALADIN}));
-  EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 6).empty());
+  EXPECT_EQ(JobChoicesForStage(JOB_DARK_KNIGHT, 6).empty(), !kSixthJobEnabled);
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 

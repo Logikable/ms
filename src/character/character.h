@@ -19,6 +19,7 @@
 #include <random>
 #include <vector>
 
+#include "src/build_config.h"
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
 #include "src/character/familiar.h"
@@ -72,9 +73,9 @@ int ExpectedTotalAp(int level, int job_stage);
 // when the next one is added.
 inline constexpr int kMaxJobStage = 6;
 
-// The last job stage that has branches. GMS has a 6th, which kAdvancementLevels
-// names but nothing grants, so a 5th job levels to the cap.
-inline constexpr int kLastJobStage = 5;
+// The last job stage that has branches. Without the sixth_job switch nothing
+// grants the 6th, so a 5th job levels to the cap.
+inline constexpr int kLastJobStage = kSixthJobEnabled ? 6 : 5;
 
 // The last job stage whose book is bought with SP. 5th job skills cost V
 // Points, so no level pays SP toward that stage and its pool stays empty.

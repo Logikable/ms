@@ -318,10 +318,14 @@ TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
             100);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT).character.proto().level(),
             200);
-  // The 5th job goes to the cap: it is the last advancement, so no band above
-  // it stops it.
+  // The last advancement goes to the cap, since no band above it stops it.
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT_V).character.proto().level(),
-            kTrialLevelCap);
+            kSixthJobEnabled ? 260 : kTrialLevelCap);
+  if (kSixthJobEnabled) {
+    EXPECT_EQ(
+        Workbench(JOB_ADVANCEMENT_DARK_KNIGHT_VI).character.proto().level(),
+        kTrialLevelCap);
+  }
 }
 
 // Max mode's outfit names catalog keys and set families by hand, so every

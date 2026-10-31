@@ -6,6 +6,17 @@
 #include "src/protos/character.pb.h"
 
 namespace ms {
+namespace {
+
+// The 5th and 6th advancements keep the job's name, so the stage says which.
+std::string StageSuffix(int stage) {
+  if (stage == kSixthJobStage) {
+    return " VI";
+  }
+  return stage == kFifthJobStage ? " V" : "";
+}
+
+}  // namespace
 
 std::string JobName(Job job) {
   switch (job) {
@@ -104,11 +115,11 @@ std::string ShortJobName(Job job) {
 }
 
 std::string AdvancementName(Job job, int stage) {
-  return JobName(job) + (stage == kFifthJobStage ? " V" : "");
+  return JobName(job) + StageSuffix(stage);
 }
 
 std::string ShortAdvancementName(Job job, int stage) {
-  return ShortJobName(job) + (stage == kFifthJobStage ? " V" : "");
+  return ShortJobName(job) + StageSuffix(stage);
 }
 
 }  // namespace ms

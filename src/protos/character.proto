@@ -140,6 +140,18 @@ enum JobAdvancement {
   // are held by whichever character the account equips them on. They share one
   // book for the same reason the common nodes do. See Skill.link_line.
   JOB_ADVANCEMENT_LINK = 47;
+  // The 6th advancements, at level 260. Like the 5th, they change no job name
+  // and exist to give HEXA nodes a place to be written.
+  JOB_ADVANCEMENT_DARK_KNIGHT_VI = 48;
+  JOB_ADVANCEMENT_PALADIN_VI = 49;
+  JOB_ADVANCEMENT_HERO_VI = 50;
+  JOB_ADVANCEMENT_BOW_MASTER_VI = 51;
+  JOB_ADVANCEMENT_MARKSMAN_VI = 52;
+  JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI = 53;
+  JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI = 54;
+  JOB_ADVANCEMENT_BISHOP_VI = 55;
+  JOB_ADVANCEMENT_NIGHT_LORD_VI = 56;
+  JOB_ADVANCEMENT_SHADOWER_VI = 57;
 }
 
 // A stat the player can spend AP on through AllocateStat.

@@ -412,6 +412,34 @@ JobAdvancement FifthAdvancement(Job job) {
   }
 }
 
+// The 6th advancement, like the 5th, opens a matrix and keeps the job.
+JobAdvancement SixthAdvancement(Job job) {
+  switch (job) {
+    case JOB_DARK_KNIGHT:
+      return JOB_ADVANCEMENT_DARK_KNIGHT_VI;
+    case JOB_PALADIN:
+      return JOB_ADVANCEMENT_PALADIN_VI;
+    case JOB_HERO:
+      return JOB_ADVANCEMENT_HERO_VI;
+    case JOB_BOW_MASTER:
+      return JOB_ADVANCEMENT_BOW_MASTER_VI;
+    case JOB_MARKSMAN:
+      return JOB_ADVANCEMENT_MARKSMAN_VI;
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+      return JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI;
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI;
+    case JOB_BISHOP:
+      return JOB_ADVANCEMENT_BISHOP_VI;
+    case JOB_NIGHT_LORD:
+      return JOB_ADVANCEMENT_NIGHT_LORD_VI;
+    case JOB_SHADOWER:
+      return JOB_ADVANCEMENT_SHADOWER_VI;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
@@ -428,6 +456,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       return FourthAdvancement(job);
     case 5:
       return FifthAdvancement(job);
+    case 6:
+      return SixthAdvancement(job);
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -485,33 +515,43 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_CHIEF_BANDIT;
     case JOB_ADVANCEMENT_DARK_KNIGHT:
     case JOB_ADVANCEMENT_DARK_KNIGHT_V:
+    case JOB_ADVANCEMENT_DARK_KNIGHT_VI:
       return JOB_DARK_KNIGHT;
     case JOB_ADVANCEMENT_PALADIN:
     case JOB_ADVANCEMENT_PALADIN_V:
+    case JOB_ADVANCEMENT_PALADIN_VI:
       return JOB_PALADIN;
     case JOB_ADVANCEMENT_HERO:
     case JOB_ADVANCEMENT_HERO_V:
+    case JOB_ADVANCEMENT_HERO_VI:
       return JOB_HERO;
     case JOB_ADVANCEMENT_BOW_MASTER:
     case JOB_ADVANCEMENT_BOW_MASTER_V:
+    case JOB_ADVANCEMENT_BOW_MASTER_VI:
       return JOB_BOW_MASTER;
     case JOB_ADVANCEMENT_MARKSMAN:
     case JOB_ADVANCEMENT_MARKSMAN_V:
+    case JOB_ADVANCEMENT_MARKSMAN_VI:
       return JOB_MARKSMAN;
     case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V:
+    case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI:
       return JOB_ICE_LIGHTNING_ARCH_MAGE;
     case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
     case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V:
+    case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI:
       return JOB_FIRE_POISON_ARCH_MAGE;
     case JOB_ADVANCEMENT_BISHOP:
     case JOB_ADVANCEMENT_BISHOP_V:
+    case JOB_ADVANCEMENT_BISHOP_VI:
       return JOB_BISHOP;
     case JOB_ADVANCEMENT_NIGHT_LORD:
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
+    case JOB_ADVANCEMENT_NIGHT_LORD_VI:
       return JOB_NIGHT_LORD;
     case JOB_ADVANCEMENT_SHADOWER:
     case JOB_ADVANCEMENT_SHADOWER_V:
+    case JOB_ADVANCEMENT_SHADOWER_VI:
       return JOB_SHADOWER;
     default:
       return JOB_UNSPECIFIED;
@@ -785,6 +825,10 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 5 && FifthAdvancement(job) != JOB_ADVANCEMENT_UNSPECIFIED) {
     return {job};
   }
+  if (kSixthJobEnabled && stage == 6 &&
+      SixthAdvancement(job) != JOB_ADVANCEMENT_UNSPECIFIED) {
+    return {job};
+  }
   return {};
 }
 
@@ -800,7 +844,7 @@ int BuffWindowsFor(const Buff& buff) {
 }
 
 int StageForAdvancement(JobAdvancement advancement) {
-  static_assert(JobAdvancement_ARRAYSIZE == 48,
+  static_assert(JobAdvancement_ARRAYSIZE == 58,
                 "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -852,6 +896,17 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
     case JOB_ADVANCEMENT_SHADOWER_V:
       return 5;
+    case JOB_ADVANCEMENT_DARK_KNIGHT_VI:
+    case JOB_ADVANCEMENT_PALADIN_VI:
+    case JOB_ADVANCEMENT_HERO_VI:
+    case JOB_ADVANCEMENT_BOW_MASTER_VI:
+    case JOB_ADVANCEMENT_MARKSMAN_VI:
+    case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI:
+    case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI:
+    case JOB_ADVANCEMENT_BISHOP_VI:
+    case JOB_ADVANCEMENT_NIGHT_LORD_VI:
+    case JOB_ADVANCEMENT_SHADOWER_VI:
+      return 6;
     // No one advances into any of these, so none has a stage. Nothing keyed by
     // stage (SP pools, the skills tab's numbered pages) applies to a common
     // node, the beginner book or a link skill.

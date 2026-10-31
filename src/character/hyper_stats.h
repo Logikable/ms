@@ -29,6 +29,7 @@ inline constexpr int kMaxHyperStatLevel = 15;
 // 4th job stops at ten and a 5th job reaches fifteen.
 inline constexpr int kHyperStatLevelsBeforeFifthJob = 5;
 inline constexpr int kFifthJobStage = 5;
+inline constexpr int kSixthJobStage = 6;
 
 // The level Arcane Force unlocks, the same level Arcane Symbols do. The stat is
 // useless without one.

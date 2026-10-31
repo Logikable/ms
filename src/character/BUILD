@@ -40,6 +40,7 @@ cc_library(
         ":skill_placement",
         ":symbol",
         ":v_matrix",
+        "//src:build_config",
         "//src/item",
         "//src/item:currency",
         "//src/item:equip_instance",
