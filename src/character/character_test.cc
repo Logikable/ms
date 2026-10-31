@@ -12,9 +12,11 @@
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/familiar.h"
+#include "src/character/hexa_stat.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
+#include "src/character/sol_erda.h"
 #include "src/character/symbol.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
@@ -1130,6 +1132,76 @@ TEST_F(AddExpTest, SolErdaIsSpentBothAtOnceOrNotAtAll) {
   EXPECT_TRUE(c.SpendSolErda(5000, 100));
   EXPECT_EQ(c.sol_erda_energy(), 0);
   EXPECT_EQ(c.sol_erda_fragments(), 0);
+}
+
+// A 6th job at `level` holding plenty of both HEXA currencies.
+CharacterInstance MakeSixthJob(std::mt19937& rng, int level = 300) {
+  Character proto = MakeCharacter(rng, level).ToProto();
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(kSixthJobStage);
+  proto.set_sol_erda_energy(100 * kEnergyPerSolErda);
+  proto.set_sol_erda_fragments(10000);
+  return CharacterInstance(rng, proto);
+}
+
+TEST_F(AddExpTest, OpeningAHexaStatNodeTakesItsPriceAndKeepsTheRules) {
+  Character fifth_proto = MakeSixthJob(rng_).ToProto();
+  fifth_proto.set_job_stage(kFifthJobStage);
+  CharacterInstance fifth(rng_, fifth_proto);
+  EXPECT_FALSE(fifth.OpenHexaStatNode(HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK,
+                                      HEXA_STAT_DAMAGE));
+
+  CharacterInstance c = MakeSixthJob(rng_);
+  EXPECT_FALSE(c.OpenHexaStatNode(HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_BOSS_DAMAGE,
+                                  HEXA_STAT_DAMAGE));
+  EXPECT_EQ(c.sol_erda_fragments(), 10000) << "a refusal costs nothing";
+  ASSERT_TRUE(c.OpenHexaStatNode(HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK,
+                                 HEXA_STAT_DAMAGE));
+  EXPECT_EQ(c.sol_erda_energy(), 95 * kEnergyPerSolErda);
+  EXPECT_EQ(c.sol_erda_fragments(), 9990);
+  EXPECT_FALSE(c.OpenHexaStatNode(HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_ATTACK,
+                                  HEXA_STAT_DAMAGE))
+      << "the first node isn't full";
+
+  CharacterInstance poor = MakeSixthJob(rng_);
+  ASSERT_TRUE(poor.SpendSolErda(96 * kEnergyPerSolErda, 0));
+  EXPECT_FALSE(poor.OpenHexaStatNode(HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK,
+                                     HEXA_STAT_DAMAGE));
+  EXPECT_EQ(poor.hexa_stats().nodes_size(), 0);
+}
+
+// Enhancing pays Fragments by the primary's level; a reset from level 10 is
+// free and gives none back; a reselect is free and keeps every level.
+TEST_F(AddExpTest, AHexaStatNodeRollsResetsAndReselects) {
+  CharacterInstance c = MakeSixthJob(rng_);
+  ASSERT_TRUE(c.OpenHexaStatNode(HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK,
+                                 HEXA_STAT_DAMAGE));
+  EXPECT_FALSE(c.EnhanceHexaStatNode(1));
+  for (int i = 0; i < 9; ++i) {
+    ASSERT_TRUE(c.EnhanceHexaStatNode(0));
+  }
+  EXPECT_FALSE(c.ResetHexaStatNode(0)) << "nine levels";
+  const int64_t before = c.sol_erda_fragments();
+  const int64_t price = HexaStatEnhancePrice(c.hexa_stats().nodes(0));
+  ASSERT_TRUE(c.EnhanceHexaStatNode(0));
+  EXPECT_EQ(c.sol_erda_fragments(), before - price);
+
+  const HexaStatNode rolled = c.hexa_stats().nodes(0);
+  ASSERT_TRUE(c.ReselectHexaStatNode(
+      0, HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_MAIN_STAT));
+  EXPECT_EQ(c.hexa_stats().nodes(0).primary(), HEXA_STAT_IGNORE_DEFENSE);
+  EXPECT_EQ(c.hexa_stats().nodes(0).primary_level(), rolled.primary_level());
+  EXPECT_EQ(c.hexa_stats().nodes(0).second_level(), rolled.second_level());
+  EXPECT_FALSE(c.ReselectHexaStatNode(0, HEXA_STAT_IGNORE_DEFENSE,
+                                      HEXA_STAT_IGNORE_DEFENSE,
+                                      HEXA_STAT_MAIN_STAT));
+  EXPECT_EQ(c.hexa_stats().nodes(0).first(), HEXA_STAT_CRIT_DAMAGE);
+
+  const int64_t held = c.sol_erda_fragments();
+  ASSERT_TRUE(c.ResetHexaStatNode(0));
+  EXPECT_EQ(HexaStatNodeLevels(c.hexa_stats().nodes(0)), 0);
+  EXPECT_EQ(c.sol_erda_fragments(), held);
+  EXPECT_EQ(c.hexa_stats().nodes(0).primary(), HEXA_STAT_IGNORE_DEFENSE);
 }
 
 // A 5th job with `v_points` and `hyper_sp`, and no stage SP at all.

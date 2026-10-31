@@ -32,6 +32,7 @@ cc_library(
         ":exp_table",
         ":familiar",
         ":guild",
+        ":hexa_stat",
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
@@ -300,6 +301,31 @@ cc_test(
 )
 
 cc_library(
+    name = "hexa_stat",
+    srcs = ["hexa_stat.cc"],
+    hdrs = ["hexa_stat.h"],
+    deps = [
+        ":hyper_stats",
+        ":sol_erda",
+        "//src/combat:damage",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "hexa_stat_test",
+    size = "small",
+    srcs = ["hexa_stat_test.cc"],
+    deps = [
+        ":hexa_stat",
+        ":hyper_stats",
+        ":sol_erda",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hyper_stats",
     srcs = ["hyper_stats.cc"],
     hdrs = ["hyper_stats.h"],
@@ -482,6 +508,7 @@ cc_library(
         ":character",
         ":consumables",
         ":familiar",
+        ":hexa_stat",
         ":hyper_stats",
         ":inner_ability",
         ":legion",
@@ -567,7 +594,9 @@ cc_test(
         ":equip_presets",
         ":exp_table",
         ":familiar",
+        ":hexa_stat",
         ":inner_ability",
+        ":sol_erda",
         ":symbol",
         ":v_matrix",
         "//src/item",

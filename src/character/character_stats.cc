@@ -13,6 +13,7 @@
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/consumables.h"
 #include "src/character/familiar.h"
+#include "src/character/hexa_stat.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/legion.h"
@@ -1002,6 +1003,36 @@ void AddHyperStats(const CharacterInstance& character, StatPreset slot,
                     kPercentToFraction;
 }
 
+// The HEXA Stat nodes. Their main stat is the job's primary stat and, like a
+// Hyper Stat's, final; attack scales with the other sources.
+void AddHexaStats(const CharacterInstance& character, PassiveTotals& totals) {
+  if (character.proto().job_stage() < kSixthJobStage) {
+    return;
+  }
+  const HexaStatTotals hexa = HexaStatTotalsFor(character.proto().hexa_stats(),
+                                                character.proto().level());
+  switch (PrimaryStatField(character.proto().job())) {
+    case STAT_FIELD_DEX:
+      totals.dex += hexa.main_stat;
+      break;
+    case STAT_FIELD_INT:
+      totals.int_ += hexa.main_stat;
+      break;
+    case STAT_FIELD_LUK:
+      totals.luk += hexa.main_stat;
+      break;
+    default:
+      totals.str += hexa.main_stat;
+      break;
+  }
+  totals.attack += hexa.attack;
+  totals.magic_attack += hexa.attack;
+  totals.crit_dmg += hexa.crit_dmg;
+  totals.boss_pct += hexa.boss_pct;
+  totals.damage_pct += hexa.damage_pct;
+  totals.ied = CombineIgnoredDefense(totals.ied, hexa.ied);
+}
+
 // What Inner Ability adds, line by line. Its stats are final stats, like Hyper
 // Stats, but its attack lines are not: GMS scales them like any other source. A
 // line below the unlock level gives nothing, so the panel and its stats unlock
@@ -1661,6 +1692,7 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
   // slot; see stat_preset.h.
   AddHyperStats(character, character.SlotFor(PresetKind::kHyperStats, preset),
                 passives);
+  AddHexaStats(character, passives);
   AddInnerAbility(character,
                   character.SlotFor(PresetKind::kInnerAbility, preset),
                   passives);

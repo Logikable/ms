@@ -305,6 +305,39 @@ TEST_F(DerivedStatsTest, AGrandSacredSymbolPaysItsRatesAtEveryLevel) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).exp_pct, bare.exp_pct + 0.50);
 }
 
+// A HEXA Stat node's main stat lands on the job's primary stat as a final
+// stat, and its percentages join the rest. Below 260, or before the 6th job, it
+// is closed.
+TEST_F(DerivedStatsTest, HexaStatsCountFromTheirLevel) {
+  Character proto = MakeCharacter(rng_, 300, 50).ToProto();
+  proto.set_job_stage(kSixthJobStage);
+  HexaStatNode& node = *proto.mutable_hexa_stats()->add_nodes();
+  node.set_primary(HEXA_STAT_MAIN_STAT);
+  node.set_primary_level(10);
+  node.set_first(HEXA_STAT_BOSS_DAMAGE);
+  node.set_first_level(10);
+  node.set_second(HEXA_STAT_ATTACK);
+  Character bare_sixth = MakeCharacter(rng_, 300, 50).ToProto();
+  bare_sixth.set_job_stage(kSixthJobStage);
+  CharacterInstance bare(rng_, bare_sixth);
+  CharacterInstance hexa(rng_, proto);
+  Character fifth = proto;
+  fifth.set_job_stage(kFifthJobStage);
+  EXPECT_EQ(DerivedStatsFor(CharacterInstance(rng_, fifth), {}).boss_pct,
+            DerivedStatsFor(bare, {}).boss_pct);
+  const DerivedStats without = DerivedStatsFor(bare, {});
+  const DerivedStats with = DerivedStatsFor(hexa, {});
+  EXPECT_EQ(with.skill_stats.str() - without.skill_stats.str(), 2000);
+  EXPECT_NEAR(with.boss_pct - without.boss_pct, 0.10, 1e-12);
+  proto.set_level(259);
+  Character bare_proto = proto;
+  bare_proto.clear_hexa_stats();
+  EXPECT_EQ(
+      DerivedStatsFor(CharacterInstance(rng_, proto), {}).skill_stats.str(),
+      DerivedStatsFor(CharacterInstance(rng_, bare_proto), {})
+          .skill_stats.str());
+}
+
 // With autoswap on, the activity picks the gear as well as the allocations. A
 // boss fight uses the boss preset's weapon, and farming never sees it.
 TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {

@@ -322,6 +322,22 @@ class CharacterInstance {
   // Takes both at once, all or nothing: every HEXA price names the two.
   bool SpendSolErda(int64_t energy, int64_t fragments);
 
+  /* HEXA Stats; see hexa_stat.h. Each returns false and changes nothing when
+   * the rules or the purse refuse. */
+  const HexaStats& hexa_stats() const {
+    return character_.hexa_stats();
+  }
+  // Opens the next node with these three stats, paying its price.
+  bool OpenHexaStatNode(HexaStat primary, HexaStat first, HexaStat second);
+  // Pays for one more level of node `index` and rolls where it goes.
+  bool EnhanceHexaStatNode(int index);
+  // Takes node `index` back to no levels, free, once it has
+  // kHexaStatResetLevel. The Fragments those levels cost are gone.
+  bool ResetHexaStatNode(int index);
+  // Gives node `index` three other stats, free; each level stays where it was.
+  bool ReselectHexaStatNode(int index, HexaStat primary, HexaStat first,
+                            HexaStat second);
+
   /* The potions. A buff is either owned or rented, and on or off; together
    * these decide what it does and what it costs. See
    * //src/character/consumables.h.

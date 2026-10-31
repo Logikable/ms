@@ -22,6 +22,7 @@
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
+#include "src/character/hexa_stat.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
 #include "src/character/symbol.h"
@@ -2713,6 +2714,69 @@ bool CharacterInstance::SpendSolErda(int64_t energy, int64_t fragments) {
   character_.set_sol_erda_energy(character_.sol_erda_energy() - energy);
   character_.set_sol_erda_fragments(character_.sol_erda_fragments() -
                                     fragments);
+  return true;
+}
+
+bool CharacterInstance::OpenHexaStatNode(HexaStat primary, HexaStat first,
+                                         HexaStat second) {
+  HexaStats stats = character_.hexa_stats();
+  if (!HexaStatNextNodeOpens(stats, character_.level(),
+                             character_.job_stage())) {
+    return false;
+  }
+  HexaStatNode& node = *stats.add_nodes();
+  node.set_primary(primary);
+  node.set_first(first);
+  node.set_second(second);
+  const HexaStatPrice price = HexaStatOpenPrice(stats.nodes_size() - 1);
+  if (!HexaStatsAllowed(stats) ||
+      !SpendSolErda(price.energy, price.fragments)) {
+    return false;
+  }
+  *character_.mutable_hexa_stats() = std::move(stats);
+  return true;
+}
+
+bool CharacterInstance::EnhanceHexaStatNode(int index) {
+  if (index < 0 || index >= character_.hexa_stats().nodes_size()) {
+    return false;
+  }
+  HexaStatNode& node = *character_.mutable_hexa_stats()->mutable_nodes(index);
+  const int64_t price = HexaStatEnhancePrice(node);
+  if (price <= 0 || !SpendSolErda(0, price)) {
+    return false;
+  }
+  return RollHexaStatLevel(node, rng_);
+}
+
+bool CharacterInstance::ResetHexaStatNode(int index) {
+  if (index < 0 || index >= character_.hexa_stats().nodes_size()) {
+    return false;
+  }
+  HexaStatNode& node = *character_.mutable_hexa_stats()->mutable_nodes(index);
+  if (HexaStatNodeLevels(node) < kHexaStatResetLevel) {
+    return false;
+  }
+  node.set_primary_level(0);
+  node.set_first_level(0);
+  node.set_second_level(0);
+  return true;
+}
+
+bool CharacterInstance::ReselectHexaStatNode(int index, HexaStat primary,
+                                             HexaStat first, HexaStat second) {
+  if (index < 0 || index >= character_.hexa_stats().nodes_size()) {
+    return false;
+  }
+  HexaStats stats = character_.hexa_stats();
+  HexaStatNode& node = *stats.mutable_nodes(index);
+  node.set_primary(primary);
+  node.set_first(first);
+  node.set_second(second);
+  if (!HexaStatsAllowed(stats)) {
+    return false;
+  }
+  *character_.mutable_hexa_stats() = std::move(stats);
   return true;
 }
 
