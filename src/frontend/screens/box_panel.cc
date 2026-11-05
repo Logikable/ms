@@ -40,7 +40,10 @@ std::string TypeCell(const EquipPrototype& proto) {
 BoxPanel::BoxPanel(const CharacterInstance& character,
                    const std::map<std::string, EquipPrototype>& equips,
                    const std::map<std::string, ItemPrototype>& items)
-    : character_(character), equips_(equips), items_(items) {
+    : character_(character),
+      equips_(equips),
+      items_(items),
+      menu_({"Inspect", "Select", "Close"}) {
 }
 
 void BoxPanel::Reset(const ItemPrototype& box) {
@@ -61,6 +64,7 @@ void BoxPanel::Reset(const ItemPrototype& box) {
   }
   selected_ = 0;
   confirm_.Close();
+  menu_open_ = false;
 }
 
 // A skill the catalog has no ring for is left out rather than offered and
@@ -105,13 +109,29 @@ const BoxChoice* BoxPanel::selected() const {
 
 // A ring row reads its slot and level off the lowest ring it can roll, which
 // every level shares. An Etc item has neither.
+const EquipPrototype* BoxPanel::ChoiceEquip(const BoxChoice& choice) const {
+  if (choice.ring_skill.empty()) {
+    return choice.equip;
+  }
+  return RingAt(choice.ring_skill, box_.ring_box().levels(0).level(), equips_);
+}
+
+const EquipPrototype* BoxPanel::selected_equip() const {
+  const BoxChoice* pick = selected();
+  return pick == nullptr ? nullptr : ChoiceEquip(*pick);
+}
+
+const ItemPrototype* BoxPanel::selected_item() const {
+  const BoxChoice* pick = selected();
+  if (pick == nullptr || pick->item_key.empty()) {
+    return nullptr;
+  }
+  return &items_.at(pick->item_key);
+}
+
 ftxui::Element BoxPanel::RenderRow(const BoxChoice& choice,
                                    bool on_cursor) const {
-  const EquipPrototype* piece = choice.equip;
-  if (!choice.ring_skill.empty()) {
-    piece =
-        RingAt(choice.ring_skill, box_.ring_box().levels(0).level(), equips_);
-  }
+  const EquipPrototype* piece = ChoiceEquip(choice);
   std::string type = piece == nullptr ? "Etc" : TypeCell(*piece);
   // Red on a level not reached yet, as in the shop: the piece is still the
   // player's to pick, and to wear later.
@@ -143,11 +163,60 @@ ftxui::Element BoxPanel::Render() const {
     bool on_cursor = i == selected_;
     rows.push_back(HighlightRow(RenderRow(stock_[i], on_cursor), on_cursor));
   }
-  return ThemedWindow(
+  ftxui::Element window = ThemedWindow(
       " " + box_.name() + " ",
       ftxui::vbox(std::move(rows)) |
           ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
                       2 + name_width_ + 2 + kTypeWidth + 2 + kLevelWidth));
+  if (!menu_open_) {
+    return window;
+  }
+  // Below the border, header and divider; over the Type column, as the shop's
+  // covers its price, so the row's name stays readable. Floated for the shop's
+  // reason too: on the last rows it hangs past the border rather than
+  // stretching the window.
+  constexpr int kFirstRow = 3;
+  return ftxui::dbox({
+      std::move(window),
+      Floating(menu_.Render(kFirstRow + selected_, 1 + 2 + name_width_)),
+  });
+}
+
+void BoxPanel::OpenMenu() {
+  if (selected() == nullptr) {
+    return;
+  }
+  menu_.Reset();
+  menu_open_ = true;
+}
+
+Screen BoxPanel::OnMenuEvent(const ftxui::Event& event) {
+  if (IsBack(event)) {
+    menu_open_ = false;
+    return kBoxOpen;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return kBoxMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return kBoxMenu;
+  }
+  if (IsForward(event)) {
+    // Closed whichever entry was chosen, so the next screen isn't drawn with
+    // the menu still over the list.
+    menu_open_ = false;
+    if (menu_.selected() == kBoxMenuInspect) {
+      return kBoxInspect;
+    }
+    if (menu_.selected() == kBoxMenuSelect) {
+      return kBoxConfirm;
+    }
+    return kBoxOpen;
+  }
+  // Consume everything else, since the menu is modal over the list.
+  return kBoxMenu;
 }
 
 void BoxPanel::OpenConfirm() {

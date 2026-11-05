@@ -78,9 +78,12 @@ enum Screen : int {
   // The equip tab's version of kSell. Equipment doesn't stack, so it asks yes
   // or no instead of an amount.
   kSellEquip,
-  // Open on a box in the Etc tab: what it holds, and the question that trades
-  // one box for the row picked.
+  // Open on a box in the Etc tab: what it holds, a row's Inspect / Select /
+  // Close menu and its card, and the question that trades one box for the row
+  // picked.
   kBoxOpen,
+  kBoxMenu,
+  kBoxInspect,
   kBoxConfirm,
   // The ring a ring box rolled.
   kBoxResult,

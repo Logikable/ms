@@ -637,6 +637,13 @@ TuiController::ComparisonSubject TuiController::InspectSubject() const {
       }
       return {proto, state_.character.SlotToFill(*proto, ComparisonPreset())};
     }
+    case kBoxInspect: {
+      const EquipPrototype* proto = box_panel_.selected_equip();
+      if (proto == nullptr) {
+        return {};
+      }
+      return {proto, state_.character.SlotToFill(*proto, ComparisonPreset())};
+    }
     case kBankInspect:
       item = bank_panel_.selected_equip();
       break;
@@ -970,6 +977,10 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnSellEquipEvent(event);
     case kBoxOpen:
       return OnBoxOpenEvent(event);
+    case kBoxMenu:
+      return OnBoxMenuEvent(event);
+    case kBoxInspect:
+      return OnBoxInspectEvent(event);
     case kBoxConfirm:
       return OnBoxConfirmEvent(event);
     case kBoxResult:
@@ -2107,15 +2118,32 @@ bool TuiController::OnBoxOpenEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    if (box_panel_.selected() != nullptr) {
-      box_panel_.OpenConfirm();
-      screen_ = kBoxConfirm;
+    box_panel_.OpenMenu();
+    if (box_panel_.menu_open()) {
+      screen_ = kBoxMenu;
     }
     return true;
   }
   box_panel_.OnEvent(event);
   // Swallow everything else, since this is a modal screen.
   return true;
+}
+
+bool TuiController::OnBoxMenuEvent(ftxui::Event event) {
+  Screen next = box_panel_.OnMenuEvent(event);
+  if (next == kBoxConfirm) {
+    box_panel_.OpenConfirm();
+  }
+  if (next == kBoxInspect) {
+    OpenInspectCards();
+  }
+  screen_ = next;
+  return true;
+}
+
+// Back to the list, where the player picks once they have looked.
+bool TuiController::OnBoxInspectEvent(ftxui::Event event) {
+  return OnCardEvent(event, inspect_panel_, kBoxOpen);
 }
 
 bool TuiController::OnBoxConfirmEvent(ftxui::Event event) {

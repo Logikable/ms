@@ -783,6 +783,26 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   return Centred(inspect_panel_.Render());
 }
 
+// The shop's card: nothing owns the piece until the box is opened, so a clean
+// copy is built here.
+ftxui::Element Tui::RenderBoxInspect() {
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  const BoxPanel& box = controller_.box_panel();
+  if (const ItemPrototype* stackable = box.selected_item()) {
+    inspect_panel_.SetItem(stackable);
+    return Centred(inspect_panel_.Render());
+  }
+  const EquipPrototype* proto = box.selected_equip();
+  if (proto == nullptr) {
+    return Centred(box.Render());
+  }
+  EquipInstance preview(*proto);
+  inspect_panel_.SetItem(&preview);
+  inspect_panel_.SetComparison(controller_.comparison_slots());
+  inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&preview));
+  return Centred(inspect_panel_.Render());
+}
+
 ftxui::Element Tui::RenderShopInspect() {
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
@@ -1128,7 +1148,10 @@ ftxui::Element Tui::RenderScreen() {
     case kFamiliarLevel:
       return OverMain(controller_.level_up_panel().Render());
     case kBoxOpen:
+    case kBoxMenu:
       return Centred(controller_.box_panel().Render());
+    case kBoxInspect:
+      return RenderBoxInspect();
     case kBoxConfirm:
       return Overlay(Centred(controller_.box_panel().Render()),
                      controller_.box_panel().RenderConfirm());

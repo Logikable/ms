@@ -1508,10 +1508,12 @@ cc_library(
     hdrs = ["box_panel.h"],
     deps = [
         "//src/character",
+        "//src/frontend:types",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:keys",
         "//src/frontend/widgets:text_columns",
         "//src/item:ring_box",

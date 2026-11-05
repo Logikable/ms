@@ -3051,8 +3051,8 @@ TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
 
 // --- Open a box ---
 
-// Open leads to the box's list, Enter asks, and Confirm trades one box for the
-// piece; Cancel goes back to the list.
+// Open leads to the box's list, Select on a row's menu asks, and Confirm trades
+// one box for the piece; Cancel goes back to the list.
 TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
   ItemPrototype box;
   box.set_name("Weapon Box");
@@ -3070,11 +3070,16 @@ TEST_F(TuiControllerTest, OpeningABoxTradesOneBoxForThePick) {
   EXPECT_EQ(controller_->box_panel().selected()->name, "Frozen Sword");
 
   controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBoxMenu);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Select
+  controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBoxConfirm);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kBoxOpen) << "Cancel keeps the list";
 
   controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // Select
   controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
   EXPECT_EQ(controller_->screen(), kMain) << "one box at a time";
   EXPECT_EQ(state_->character.CountItem(box), 1);
@@ -3107,6 +3112,8 @@ TEST_F(TuiControllerTest, ARingBoxNamesTheRingItGave) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBoxOpen);
   controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // Select
   controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
   ASSERT_EQ(controller_->screen(), kBoxResult);
   EXPECT_EQ(
@@ -3115,6 +3122,55 @@ TEST_F(TuiControllerTest, ARingBoxNamesTheRingItGave) {
   EXPECT_EQ(state_->character.CountItem(box), 0);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Inspect on a box's row shows the card and spends nothing; a ring row
+// compares the lowest level the box rolls. Back returns to the list, and Close
+// on the menu does too.
+TEST_F(TuiControllerTest, InspectingABoxRowSpendsNothing) {
+  for (int level : {3, 4}) {
+    EquipPrototype ring;
+    ring.set_name("Ring of Restraint Lv. " + std::to_string(level));
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    ring.mutable_equipment_skill()->set_skill("Ring of Restraint");
+    ring.mutable_equipment_skill()->set_level(level);
+    state_->equips["ring_of_restraint_" + std::to_string(level)] = ring;
+  }
+  ItemPrototype box;
+  box.set_name("Black Jade Boss Ring Box");
+  box.mutable_ring_box()->add_skills("Ring of Restraint");
+  for (int level : {3, 4}) {
+    RingBox::LevelChance* chance = box.mutable_ring_box()->add_levels();
+    chance->set_level(level);
+    chance->set_chance(0.5);
+  }
+  state_->character.AddItem(box, 1);
+  panel_focus_ = kInventoryPanel;
+  OpenBagTab(kEtcTab);
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
+  inventory_component_->OnEvent(ftxui::Event::Return);     // the stack menu
+  controller_->OnEvent(ftxui::Event::Return);              // Open
+  ASSERT_EQ(controller_->screen(), kBoxOpen);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBoxMenu);
+  controller_->OnEvent(ftxui::Event::Return);  // Inspect, the first entry
+  ASSERT_EQ(controller_->screen(), kBoxInspect);
+  ASSERT_NE(controller_->box_panel().selected_equip(), nullptr);
+  EXPECT_EQ(controller_->box_panel().selected_equip()->name(),
+            "Ring of Restraint Lv. 3");
+  EXPECT_FALSE(controller_->comparison_slots().worn.empty())
+      << "compared against the ring slots";
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBoxOpen);
+  EXPECT_EQ(state_->character.CountItem(box), 1);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // wraps to Close
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBoxOpen);
+  EXPECT_FALSE(controller_->box_panel().menu_open());
+  EXPECT_EQ(state_->character.CountItem(box), 1);
 }
 
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {

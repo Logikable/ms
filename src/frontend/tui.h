@@ -160,6 +160,7 @@ class Tui {
   // The dialog over the arena, or null while the fight is in progress.
   ftxui::Element BossFightOverlay();
   ftxui::Element RenderShopInspect();
+  ftxui::Element RenderBoxInspect();
   // The inspect screen for a buy-back row: the item as it was sold, rebuilt
   // from the shelf plus the catalog.
   ftxui::Element RenderBuyBackInspect(const BuyBackEntry& entry);

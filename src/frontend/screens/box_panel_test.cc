@@ -108,6 +108,39 @@ TEST_F(BoxPanelTest, TheQuestionNamesThePick) {
       << "the prompt opens on Confirm";
 }
 
+// Enter's menu sits on the cursor's row over the Type column, offers Inspect,
+// Select and Close, and leads to the card, the question or back to the list.
+TEST_F(BoxPanelTest, TheRowMenuLeadsToTheCardOrTheQuestion) {
+  panel_.OnEvent(ftxui::Event::ArrowDown);
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  // Taller than the window: the menu hangs past its bottom border.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, panel_.Render());
+  int cape = RowIndexOf(screen, "> AbsoLab Knight Cape");
+  ASSERT_GE(cape, 0);
+  int inspect = RowIndexOf(screen, "Inspect");
+  EXPECT_EQ(inspect, cape + 1) << "the menu's top border on the cursor's row";
+  EXPECT_GT(static_cast<int>(ScreenRow(screen, inspect).find("Inspect")),
+            static_cast<int>(ScreenRow(screen, cape).find("Cape")))
+      << "over the Type column, clear of the name";
+  EXPECT_GE(RowIndexOf(screen, "Select"), 0);
+  EXPECT_GE(RowIndexOf(screen, "Close"), 0);
+  EXPECT_EQ(panel_.OnMenuEvent(ftxui::Event::Character('x')), kBoxMenu);
+  EXPECT_EQ(panel_.OnMenuEvent(ftxui::Event::Return), kBoxInspect);
+  EXPECT_FALSE(panel_.menu_open());
+  EXPECT_EQ(panel_.selected_equip()->name(), "AbsoLab Knight Cape");
+  EXPECT_EQ(panel_.selected_item(), nullptr);
+
+  panel_.OpenMenu();
+  EXPECT_EQ(panel_.OnMenuEvent(ftxui::Event::ArrowDown), kBoxMenu);
+  EXPECT_EQ(panel_.OnMenuEvent(ftxui::Event::Return), kBoxConfirm);
+  panel_.OpenMenu();
+  EXPECT_EQ(panel_.OnMenuEvent(ftxui::Event::Escape), kBoxOpen);
+  EXPECT_EQ(RowIndexOf(Draw(panel_.Render()), "Inspect"), -1);
+}
+
 // A class the box holds nothing for sees an empty list and no pick.
 TEST_F(BoxPanelTest, NothingForThisClassIsEmpty) {
   equips_.erase("hat");
@@ -116,6 +149,8 @@ TEST_F(BoxPanelTest, NothingForThisClassIsEmpty) {
   EXPECT_EQ(panel_.selected(), nullptr);
   EXPECT_TRUE(panel_.OnEvent(ftxui::Event::ArrowDown));
   EXPECT_GE(RowIndexOf(Draw(panel_.Render()), "(empty)"), 0);
+  panel_.OpenMenu();
+  EXPECT_FALSE(panel_.menu_open()) << "no row to open a menu on";
 }
 
 // A ring box lists each ring once, by the levels it can roll, then the Etc
@@ -157,8 +192,12 @@ TEST_F(BoxPanelTest, ARingBoxListsRingsByLevelRangeThenItems) {
   EXPECT_NE(ScreenRow(screen, stone).find("Etc"), std::string::npos);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
   EXPECT_EQ(panel_.selected()->ring_skill, "Ring of Restraint");
+  EXPECT_EQ(panel_.selected_equip()->name(), "Ring of Restraint Lv. 3")
+      << "Inspect shows the lowest level it rolls";
   panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected()->item_key, "grindstone_of_life");
+  EXPECT_EQ(panel_.selected_equip(), nullptr);
+  EXPECT_EQ(panel_.selected_item()->name(), "Grindstone of Life");
 }
 
 }  // namespace

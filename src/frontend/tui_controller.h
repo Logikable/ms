@@ -785,6 +785,8 @@ class TuiController {
   bool OnSoulEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnBoxOpenEvent(ftxui::Event event);
+  bool OnBoxMenuEvent(ftxui::Event event);
+  bool OnBoxInspectEvent(ftxui::Event event);
   bool OnBoxConfirmEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
