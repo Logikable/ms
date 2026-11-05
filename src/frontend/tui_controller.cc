@@ -720,27 +720,73 @@ int TuiController::PowerAt(const CharacterInstance& character,
                           gear);
 }
 
+// A Black flame's After against the item; any other flame's item against the
+// lines its question opened on.
 std::optional<int> TuiController::flame_delta() const {
   const EquipInstance* item = flame_item();
-  const std::optional<FlameLines>& after = flame_panel_.after();
-  if (item == nullptr || !after.has_value()) {
+  if (item == nullptr) {
     return std::nullopt;
   }
-  Equip rolled_state = item->equip_state();
-  *rolled_state.mutable_flame() = *after;
-  return RolledDelta(*item, EquipInstance(item->prototype(), rolled_state));
+  Equip other = item->equip_state();
+  if (const FlameLines* opened = flame_panel_.opened_with()) {
+    *other.mutable_flame() = *opened;
+    return RolledDelta(EquipInstance(item->prototype(), other), *item);
+  }
+  const std::optional<FlameLines>& after = flame_panel_.after();
+  if (!after.has_value()) {
+    return std::nullopt;
+  }
+  *other.mutable_flame() = *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), other));
 }
 
+// As flame_delta, on the track the cube rolls.
 std::optional<int> TuiController::cube_delta() const {
   const EquipInstance* item = cube_item();
-  const std::optional<Potential>& after = cube_panel_.after();
-  if (item == nullptr || !after.has_value()) {
+  if (item == nullptr) {
     return std::nullopt;
   }
-  Equip rolled_state = item->equip_state();
-  *MutablePotentialOf(rolled_state, CubeOf(cube_panel_.selected_cube()).track) =
-      *after;
-  return RolledDelta(*item, EquipInstance(item->prototype(), rolled_state));
+  const PotentialTrack track = CubeOf(cube_panel_.selected_cube()).track;
+  Equip other = item->equip_state();
+  if (const Potential* opened = cube_panel_.opened_with()) {
+    *MutablePotentialOf(other, track) = *opened;
+    return RolledDelta(EquipInstance(item->prototype(), other), *item);
+  }
+  const std::optional<Potential>& after = cube_panel_.after();
+  if (!after.has_value()) {
+    return std::nullopt;
+  }
+  *MutablePotentialOf(other, track) = *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), other));
+}
+
+std::optional<int> TuiController::soul_delta() const {
+  const EquipInstance* item = soul_item();
+  const Soul* opened = soul_panel_.opened_with();
+  if (item == nullptr || opened == nullptr) {
+    return std::nullopt;
+  }
+  Equip other = item->equip_state();
+  *other.mutable_soul() = *opened;
+  return RolledDelta(EquipInstance(item->prototype(), other), *item);
+}
+
+// A familiar the comparison preset doesn't summon gives nothing, so its
+// change reads 0.
+std::optional<int> TuiController::familiar_cube_delta() const {
+  const Familiar* opened = familiar_cube_panel_.opened_with();
+  if (opened == nullptr) {
+    return std::nullopt;
+  }
+  FamiliarBook book = state_.character.familiars();
+  for (Familiar& familiar : *book.mutable_familiars()) {
+    if (familiar.name() == opened->name()) {
+      *familiar.mutable_lines() = opened->lines();
+    }
+  }
+  const StatPreset gear = ComparisonPreset();
+  return PowerAt(state_.character, gear) -
+         PowerAt(state_.character.WithFamiliars(book), gear);
 }
 
 std::optional<int> TuiController::RolledDelta(

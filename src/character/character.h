@@ -998,6 +998,9 @@ class CharacterInstance {
   // would choose. If unset, SlotToFill picks, matching Equip.
   CharacterInstance Wearing(const EquipTabItem& item, StatPreset preset,
                             std::optional<EquipSlot> slot = std::nullopt) const;
+  // A copy of this character with `book` for familiars, for pricing a
+  // familiar's lines it no longer has. Only the copy changes.
+  CharacterInstance WithFamiliars(const FamiliarBook& book) const;
 
  private:
   // Private so a character is never copied by accident; only a probe like

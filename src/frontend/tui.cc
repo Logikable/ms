@@ -976,6 +976,7 @@ ftxui::Element Tui::RenderFlaming() {
 ftxui::Element Tui::RenderSouling() {
   const EquipInstance* item = controller_.soul_item();
   soul_panel_.SetItem(item, state_.character.currencies());
+  soul_panel_.SetCombatPowerDelta(controller_.soul_delta());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
@@ -1027,6 +1028,7 @@ ftxui::Element Tui::RenderFamiliarScreen() {
   FamiliarCubePanel& cube = controller_.familiar_cube_panel();
   cube.SetFamiliar(FindFamiliar(book, controller_.familiar_species()),
                    state_.character.meso());
+  cube.SetCombatPowerDelta(controller_.familiar_cube_delta());
   card.SetFamiliar(&book, controller_.familiar_species());
   ftxui::Element columns = SideBySide({
       cube.Render(!right),

@@ -61,8 +61,8 @@ TEST_F(FlamePanelTest, TheShelfListsBothFlamesAndTheirPrices) {
   EXPECT_EQ(panel.selected_flame(), FlameType::kBurning) << "it wraps";
 }
 
-// Burning replaces: one window with the item's own lines, and Confirm rerolls
-// without closing it.
+// Burning replaces: Before is the item's own lines, After waits for a roll,
+// and Confirm rerolls without closing the window.
 TEST_F(FlamePanelTest, BurningAsksOverTheItemsOwnLines) {
   EquipInstance blank(sword_);
   FlamePanel panel;
@@ -72,10 +72,13 @@ TEST_F(FlamePanelTest, BurningAsksOverTheItemsOwnLines) {
   ASSERT_TRUE(panel.IsConfirming());
   std::string rendered = RenderElement(panel.RenderConfirm());
   EXPECT_NE(rendered.find("Grant a flame?"), std::string::npos);
-  EXPECT_EQ(rendered.find("After"), std::string::npos);
+  EXPECT_NE(rendered.find("After"), std::string::npos);
+  EXPECT_EQ(rendered.find("Keep"), std::string::npos) << "nothing to choose";
+  panel.OnEvent(ftxui::Event::Escape);
 
   EquipInstance item = Flamed();
   panel.SetItem(&item, kBurningCost);
+  panel.OnEvent(ftxui::Event::Return);
   rendered = RenderElement(panel.RenderConfirm());
   EXPECT_NE(rendered.find("Reroll these lines?"), std::string::npos);
   // A level 10 item's pairs are 1 a tier. The value column is as wide as the
@@ -83,6 +86,9 @@ TEST_F(FlamePanelTest, BurningAsksOverTheItemsOwnLines) {
   const size_t name = rendered.find("STR & DEX");
   ASSERT_NE(name, std::string::npos) << rendered;
   EXPECT_LT(name, rendered.find("+6"));
+  EXPECT_LT(rendered.find("Before"), name);
+  EXPECT_GT(rendered.find("After"), rendered.find("T6"))
+      << "the lines show once, under Before, until a roll";
   EXPECT_LT(rendered.find("+6"), rendered.find("T6"));
   EXPECT_EQ(LabelColor(panel.RenderConfirm(), "+6"), kTeal);
 
@@ -182,6 +188,38 @@ TEST_F(FlamePanelTest, AShortPurseGreysConfirmAndRedsThePrice) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kClosed)
       << "the cursor opens on Cancel";
   EXPECT_EQ(LabelColor(panel.Render(true), "5,000,000"), kRed);
+}
+
+// A Burning flame's Before stays the lines it opened on and After follows the
+// item, so the CP change is the running total; closing forgets it.
+TEST_F(FlamePanelTest, BurningsBeforeIsTheLinesItOpenedOn) {
+  EquipInstance item = Flamed();
+  FlamePanel panel;
+  panel.Reset();
+  panel.SetItem(&item, 2 * kBurningCost);
+  panel.SetCombatPowerDelta(-77);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(RenderElement(panel.RenderConfirm()).find("-77"), std::string::npos)
+      << "nothing to price before the first roll";
+
+  ASSERT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kReroll);
+  EquipInstance rolled(sword_, [] {
+    Equip state;
+    FlameLine* line = state.add_flame();
+    line->set_stat(FLAME_STAT_BOSS_DAMAGE);
+    line->set_tier(3);
+    return state;
+  }());
+  panel.SetItem(&rolled, kBurningCost);
+  ASSERT_NE(panel.opened_with(), nullptr);
+  EXPECT_EQ(panel.opened_with()->Get(0).stat(), FLAME_STAT_STR_DEX);
+  const std::string rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_LT(rendered.find("STR & DEX"), rendered.find("After"));
+  EXPECT_GT(rendered.find("Boss"), rendered.find("After"));
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "-77"), kRed);
+
+  panel.OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(panel.opened_with(), nullptr);
 }
 
 }  // namespace

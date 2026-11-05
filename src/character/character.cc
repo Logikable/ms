@@ -3122,6 +3122,13 @@ bool CharacterInstance::Equip(int inventory_index, StatPreset preset,
   return true;
 }
 
+CharacterInstance CharacterInstance::WithFamiliars(
+    const FamiliarBook& book) const {
+  CharacterInstance probe(*this);
+  probe.set_familiars(book);
+  return probe;
+}
+
 CharacterInstance CharacterInstance::Wearing(
     const EquipTabItem& item, StatPreset preset,
     std::optional<EquipSlot> slot_override) const {

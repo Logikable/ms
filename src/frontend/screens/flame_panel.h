@@ -53,6 +53,10 @@ class FlamePanel {
   void SetAfter(FlameLines after);
   // Hands back After and clears it, for the caller to apply on Keep After.
   FlameLines TakeAfter();
+  // A flame that doesn't choose: the lines the question opened on, once a roll
+  // has been bought since. Null before the first roll. Its After is the item's
+  // lines now, so the CP change is everything rolled since opening.
+  const FlameLines* opened_with() const;
 
  private:
   const FlameLines& ItemLines() const;
@@ -66,6 +70,9 @@ class FlamePanel {
   int selected_ = 0;
   std::optional<FlameLines> after_;
   std::optional<int> delta_;
+  // See opened_with.
+  std::optional<FlameLines> opened_with_;
+  bool rolled_ = false;
   RerollPrompt prompt_;
 };
 

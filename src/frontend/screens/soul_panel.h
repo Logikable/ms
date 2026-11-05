@@ -6,6 +6,9 @@
  * Red Cube does, so the player can roll again. The question stays on the
  * shard it was opened for even once that shard's row has left the list, and
  * greys Confirm when the shards run short.
+ *
+ * Before is the soul the question opened on and After the weapon's soul now,
+ * so the CP change under After is everything rolled since opening.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SOUL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SOUL_PANEL_H_
@@ -54,6 +57,14 @@ class SoulPanel {
   // The shard the question is about, or the one under the cursor. Null for an
   // empty list.
   const ItemPrototype* selected_shard() const;
+  // The CP change of After against Before, shown under After. Empty before a
+  // roll.
+  void SetCombatPowerDelta(std::optional<int> delta) {
+    delta_ = delta;
+  }
+  // The weapon's soul when the question opened, once a roll has been bought
+  // since. Null before the first roll.
+  const Soul* opened_with() const;
 
  private:
   struct Row {
@@ -62,13 +73,18 @@ class SoulPanel {
   };
 
   bool Affordable() const;
-  std::vector<ftxui::Element> CurrentSoulRows() const;
+  // A soul's two rows, or two placeholders for none.
+  std::vector<ftxui::Element> SoulRows(const Soul& soul) const;
 
   const EquipInstance* item_ = nullptr;
   std::vector<Row> rows_;
   int selected_ = 0;
   // The shard the question was opened for and its balance now.
   std::optional<Row> asked_;
+  std::optional<int> delta_;
+  // See opened_with.
+  std::optional<Soul> opened_with_;
+  bool rolled_ = false;
   RerollPrompt prompt_;
 };
 

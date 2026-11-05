@@ -48,5 +48,30 @@ TEST_F(FamiliarCubePanelTest, AShortPurseCannotReroll) {
   EXPECT_NE(panel.OnEvent(ftxui::Event::Return), RerollAction::kReroll);
 }
 
+// Before stays the lines the question opened on and After follows the
+// familiar, so the CP change is the running total; closing forgets it.
+TEST_F(FamiliarCubePanelTest, BeforeIsTheLinesItOpenedOn) {
+  FamiliarCubePanel panel;
+  panel.SetFamiliar(&familiar_, 2 * kFamiliarCubeMeso);
+  panel.SetCombatPowerDelta(-3);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.opened_with(), nullptr);
+
+  ASSERT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kReroll);
+  Familiar rolled = familiar_;
+  rolled.mutable_lines(0)->set_type(FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40);
+  panel.SetFamiliar(&rolled, kFamiliarCubeMeso);
+  ASSERT_NE(panel.opened_with(), nullptr);
+  EXPECT_EQ(panel.opened_with()->lines(0).type(),
+            FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40);
+  const std::string question = RenderElement(panel.RenderConfirm());
+  EXPECT_LT(question.find("Ignore DEF"), question.find("After"));
+  EXPECT_GT(question.find("Boss"), question.find("After"));
+  EXPECT_NE(question.find("-3"), std::string::npos);
+
+  panel.OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(panel.opened_with(), nullptr);
+}
+
 }  // namespace
 }  // namespace ms

@@ -161,7 +161,13 @@ void CubePanel::Reset() {
   selected_ = 0;
   rank_up_ = false;
   after_.reset();
+  opened_with_.reset();
+  rolled_ = false;
   prompt_.Close();
+}
+
+const Potential* CubePanel::opened_with() const {
+  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 void CubePanel::RaiseRankUp() {
@@ -276,16 +282,20 @@ ftxui::Element CubePanel::RenderConfirm() const {
   if (item_ != nullptr && Choosing()) {
     return RenderChoice(accent);
   }
-  std::vector<ftxui::Element> body = {
-      CenteredRow(Prompt()),
-      AccentSeparator(accent),
-  };
+  std::vector<ftxui::Element> body = {CenteredRow(Prompt())};
   if (item_ != nullptr) {
-    const Potential& potential = SelectedPotential();
+    const Potential empty;
+    const Potential& now = SelectedPotential();
+    const Potential& before =
+        opened_with_.has_value() ? *opened_with_ : SelectedPotential();
     const int level = item_->prototype().required_level();
-    AppendLineRows(
-        body, potential, level,
-        MeasureLines(*item_, CubeOf(selected_cube()).track, {&potential}));
+    const LineWidths widths =
+        MeasureLines(*item_, CubeOf(selected_cube()).track, {&before, &now});
+    body.push_back(TitledSeparator(" Before ", accent));
+    AppendLineRows(body, before, level, widths);
+    body.push_back(TitledSeparator(" After ", accent));
+    AppendLineRows(body, rolled_ ? now : empty, level, widths);
+    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
   }
   body.push_back(AccentSeparator(accent));
   // The purse above the price: the window is the only thing on screen saying
@@ -298,10 +308,22 @@ ftxui::Element CubePanel::RenderConfirm() const {
 }
 
 CubeAction CubePanel::OnEvent(ftxui::Event event) {
+  const bool was_open = prompt_.open();
   const CubeAction action =
       prompt_.OnEvent(std::move(event), Affordable(), after_.has_value());
+  if (!was_open && prompt_.open() && item_ != nullptr) {
+    opened_with_ = SelectedPotential();
+    rolled_ = false;
+  }
+  if (action == CubeAction::kReroll && !Choosing()) {
+    rolled_ = true;
+  }
   if (action == CubeAction::kKeepBefore || action == CubeAction::kClosed) {
     after_.reset();
+  }
+  if (!prompt_.open()) {
+    opened_with_.reset();
+    rolled_ = false;
   }
   return action;
 }

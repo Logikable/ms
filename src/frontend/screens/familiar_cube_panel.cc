@@ -59,7 +59,13 @@ void FamiliarCubePanel::SetFamiliar(const Familiar* familiar, int64_t meso) {
 }
 
 void FamiliarCubePanel::Reset() {
+  opened_with_.reset();
+  rolled_ = false;
   prompt_.Close();
+}
+
+const Familiar* FamiliarCubePanel::opened_with() const {
+  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 bool FamiliarCubePanel::Affordable() const {
@@ -93,22 +99,32 @@ ftxui::Element FamiliarCubePanel::Render(bool focused) const {
 }
 
 ftxui::Element FamiliarCubePanel::RenderConfirm() const {
-  std::vector<ftxui::Element> body = {
-      CenteredRow("Reroll these lines?"),
-      ThemedSeparator(),
-  };
+  std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?")};
   if (familiar_ != nullptr) {
     const LineWidths widths = MeasureLines();
     // The rank dot the card shows on each line, so the lines look the same in
-    // the window and on the card behind it.
-    for (const FamiliarLine& line : familiar_->lines()) {
-      body.push_back(CenteredRow(ftxui::hbox({
-          ftxui::text("◼ ") | ftxui::color(RarityColor(line.rank())),
-          ftxui::text(PadRight(FamiliarLineName(line.type()), widths.name) +
-                      "  " +
-                      PadLeft(FamiliarLineValueText(line), widths.value)),
-      })));
-    }
+    // the window and on the card behind it. Placeholders hold After's height
+    // until the first roll.
+    auto append = [&](const Familiar* shown) {
+      for (int i = 0; i < familiar_->lines_size(); ++i) {
+        if (shown == nullptr) {
+          body.push_back(CenteredRow(ftxui::text("—") | ftxui::dim));
+          continue;
+        }
+        const FamiliarLine& line = shown->lines(i);
+        body.push_back(CenteredRow(ftxui::hbox({
+            ftxui::text("◼ ") | ftxui::color(RarityColor(line.rank())),
+            ftxui::text(PadRight(FamiliarLineName(line.type()), widths.name) +
+                        "  " +
+                        PadLeft(FamiliarLineValueText(line), widths.value)),
+        })));
+      }
+    };
+    body.push_back(TitledSeparator(" Before ", kTheme));
+    append(opened_with_.has_value() ? &*opened_with_ : familiar_);
+    body.push_back(TitledSeparator(" After ", kTheme));
+    append(rolled_ ? familiar_ : nullptr);
+    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
   }
   body.push_back(ThemedSeparator());
   // The purse above the price: the window is the only thing on screen saying
@@ -120,7 +136,21 @@ ftxui::Element FamiliarCubePanel::RenderConfirm() const {
 }
 
 RerollAction FamiliarCubePanel::OnEvent(ftxui::Event event) {
-  return prompt_.OnEvent(std::move(event), Affordable(), /*has_after=*/false);
+  const bool was_open = prompt_.open();
+  const RerollAction action =
+      prompt_.OnEvent(std::move(event), Affordable(), /*has_after=*/false);
+  if (!was_open && prompt_.open() && familiar_ != nullptr) {
+    opened_with_ = *familiar_;
+    rolled_ = false;
+  }
+  if (action == RerollAction::kReroll) {
+    rolled_ = true;
+  }
+  if (!prompt_.open()) {
+    opened_with_.reset();
+    rolled_ = false;
+  }
+  return action;
 }
 
 }  // namespace ms

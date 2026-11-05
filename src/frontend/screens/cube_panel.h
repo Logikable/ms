@@ -18,6 +18,10 @@
  * After, rank included, so Confirm can be pressed again and again; the Keep
  * buttons sit above Confirm and Cancel, a square the arrows walk.
  *
+ * Any other cube rolls onto the item, so its Before is the lines the question
+ * opened on and its After the item's lines now: the CP change under After is
+ * then everything rolled since opening, as a choosing cube's is.
+ *
  * A reroll that raises the potential's rank turns the window gold for
  * kRankUpSeconds and until the player's next key, whichever is later: the one
  * moment on this screen worth stopping at, shown where they are already
@@ -61,7 +65,8 @@ class CubePanel {
   // locked feature isn't shown at all. Called every frame, like SetItem.
   void SetShelf(std::vector<ShelfEntry> shelf);
   // What keeping After would do to the player's combat power, shown under it.
-  // Empty before a roll, or for an item this character can't wear.
+  // Empty before a roll, or for an item this character can't wear. For a cube
+  // that doesn't choose, After is the item now and Before opened_with().
   void SetCombatPowerDelta(std::optional<int> delta) {
     delta_ = delta;
   }
@@ -98,6 +103,9 @@ class CubePanel {
   void SetAfter(Potential after);
   // Hands back After and clears it, for the caller to apply on Keep After.
   Potential TakeAfter();
+  // A cube that doesn't choose: the lines the question opened on, once a roll
+  // has been bought since. Null before the first roll.
+  const Potential* opened_with() const;
 
  private:
   const Potential& SelectedPotential() const;
@@ -115,6 +123,9 @@ class CubePanel {
   std::vector<ShelfEntry> shelf_ = {{CubeType::kRed}};
   std::optional<Potential> after_;
   std::optional<int> delta_;
+  // See opened_with.
+  std::optional<Potential> opened_with_;
+  bool rolled_ = false;
   // The rank-up gold; see RaiseRankUp.
   bool rank_up_ = false;
   double rank_up_seconds_ = 0.0;

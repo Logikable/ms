@@ -94,7 +94,8 @@ TEST_F(CubePanelTest, TheGreenCubeWaitsForItsUnlock) {
 }
 
 // The question shows the lines the selected cube rerolls: none yet for bonus
-// potential on an item only red cubes have touched.
+// potential on an item only red cubes have touched, so Before, After and its
+// CP change are all placeholders.
 TEST_F(CubePanelTest, TheQuestionShowsTheSelectedCubesPotential) {
   EquipInstance item = Cubed();
   CubePanel panel;
@@ -114,7 +115,8 @@ TEST_F(CubePanelTest, TheQuestionShowsTheSelectedCubesPotential) {
        at = rendered.find("—", at + 1)) {
     ++dashes;
   }
-  EXPECT_EQ(dashes, kPotentialLines) << "a placeholder for every line";
+  EXPECT_EQ(dashes, 2 * kPotentialLines + 1)
+      << "a placeholder for every line, and the CP change";
 }
 
 // Both windows measure themselves, so both have to request the margin.
@@ -446,6 +448,37 @@ TEST_F(ChoosingCubeTest, EscapeDropsTheRoll) {
   EXPECT_FALSE(panel.IsConfirming());
   EXPECT_FALSE(panel.after().has_value());
   EXPECT_EQ(panel.selected_cube(), CubeType::kBlack);
+}
+
+// A Red Cube's Before stays the lines it opened on while After follows the
+// item, so the CP change under After is the running total; closing forgets it.
+TEST_F(CubePanelTest, ARedCubesBeforeIsTheLinesItOpenedOn) {
+  EquipInstance item = Cubed();
+  CubePanel panel = Open(item, 5 * kCubeCost);
+  panel.SetCombatPowerDelta(4321);
+  EXPECT_EQ(panel.opened_with(), nullptr) << "no roll yet";
+  std::string rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_EQ(rendered.find("+4,321"), std::string::npos);
+  EXPECT_LT(rendered.find("Before"), rendered.find("STR"));
+  EXPECT_LT(rendered.find("STR"), rendered.find("After"));
+
+  ASSERT_EQ(panel.OnEvent(ftxui::Event::Return), CubeAction::kReroll);
+  Potential rolled;
+  rolled.set_rank(POTENTIAL_RANK_EPIC);
+  PotentialLine* line = rolled.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_DEX_PCT);
+  line->set_rank(POTENTIAL_RANK_EPIC);
+  item.SetPotential(PotentialTrack::kMain, rolled);
+  ASSERT_NE(panel.opened_with(), nullptr);
+  EXPECT_EQ(panel.opened_with()->lines(0).type(), POTENTIAL_LINE_TYPE_STR);
+  rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_LT(rendered.find("STR"), rendered.find("After"));
+  EXPECT_GT(rendered.find("DEX"), rendered.find("After"));
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "+4,321"), kGreen);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
+
+  panel.OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(panel.opened_with(), nullptr);
 }
 
 }  // namespace

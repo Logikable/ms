@@ -762,6 +762,7 @@ cc_test(
     deps = [
         ":soul_panel",
         "//src/frontend/testing:panel_test_base",
+        "//src/frontend/widgets:colors",
         "//src/item:currency",
         "//src/item:equip_instance",
         "//src/item:soul",

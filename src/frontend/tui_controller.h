@@ -681,7 +681,11 @@ class TuiController {
   // be). Empty with no After, or for an item this character can't wear.
   std::optional<int> flame_delta() const;
   // The same for the cubing screen's After, on the track the cube rolls.
+  // A flame or cube that doesn't choose prices the item now against the lines
+  // its question opened on instead, as do these two.
   std::optional<int> cube_delta() const;
+  std::optional<int> soul_delta() const;
+  std::optional<int> familiar_cube_delta() const;
   std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.

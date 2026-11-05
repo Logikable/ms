@@ -6,6 +6,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/frontend/testing/panel_test_base.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/soul.h"
@@ -79,8 +80,8 @@ TEST_F(SoulPanelTest, AnEmptyListSaysHowToFillIt) {
   EXPECT_FALSE(panel.IsConfirming());
 }
 
-// A bare weapon is asked only the question; a souled one also hears what it
-// would lose. Confirm keeps the window open until the shards run out.
+// Before is the weapon's soul, a dash on a bare one, and After waits for a
+// roll. Confirm keeps the window open until the shards run out.
 TEST_F(SoulPanelTest, TheQuestionNamesTheSoulItWouldReplace) {
   CurrencyPurse purse;
   purse.Add(Shard("Zakum", SOUL_TIER_C, 110), 20);
@@ -92,17 +93,19 @@ TEST_F(SoulPanelTest, TheQuestionNamesTheSoulItWouldReplace) {
   ASSERT_TRUE(panel.IsConfirming());
   std::string rendered = RenderElement(panel.RenderConfirm());
   EXPECT_NE(rendered.find("Apply Zakum's Soul?"), std::string::npos);
-  EXPECT_EQ(rendered.find("override"), std::string::npos);
+  EXPECT_EQ(rendered.find("Soul:"), std::string::npos);
+  panel.OnEvent(ftxui::Event::Escape);
 
   EquipInstance souled = Souled();
   panel.SetItem(&souled, purse);
+  panel.OnEvent(ftxui::Event::Return);
   rendered = RenderElement(panel.RenderConfirm());
-  EXPECT_NE(rendered.find("This will override"), std::string::npos);
-  EXPECT_NE(rendered.find("your current Soul:"), std::string::npos);
   EXPECT_NE(rendered.find("Soul: Magnus"), std::string::npos);
   EXPECT_NE(rendered.find("Boss Damage +7%, ATT +20"), std::string::npos);
-  EXPECT_LT(rendered.find("Apply"), rendered.find("override"));
-  EXPECT_LT(rendered.find("Boss Damage"), rendered.find("Confirm"));
+  EXPECT_LT(rendered.find("Apply"), rendered.find("Before"));
+  EXPECT_LT(rendered.find("Before"), rendered.find("Magnus"));
+  EXPECT_LT(rendered.find("Boss Damage"), rendered.find("After"));
+  EXPECT_LT(rendered.find("CP \u0394"), rendered.find("Confirm"));
 
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kReroll);
   EXPECT_TRUE(panel.IsConfirming()) << "Confirm leaves it open";
@@ -115,6 +118,38 @@ TEST_F(SoulPanelTest, TheQuestionNamesTheSoulItWouldReplace) {
       << "the cursor moved to Cancel";
   EXPECT_FALSE(panel.IsConfirming());
   EXPECT_EQ(panel.selected_shard(), nullptr);
+}
+
+// Before stays the soul the question opened on and After follows the weapon,
+// so the CP change is the running total.
+TEST_F(SoulPanelTest, BeforeIsTheSoulItOpenedOn) {
+  CurrencyPurse purse;
+  purse.Add(Shard("Zakum", SOUL_TIER_C, 110), 30);
+  EquipInstance souled = Souled();
+  SoulPanel panel;
+  panel.Reset();
+  panel.SetItem(&souled, purse);
+  panel.SetCombatPowerDelta(55);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.opened_with(), nullptr);
+  EXPECT_EQ(RenderElement(panel.RenderConfirm()).find("+55"),
+            std::string::npos);
+
+  ASSERT_EQ(panel.OnEvent(ftxui::Event::Return), RerollAction::kReroll);
+  Equip state;
+  Soul* soul = state.mutable_soul();
+  soul->set_boss("Zakum");
+  soul->set_tier(SOUL_TIER_C);
+  soul->set_line(SOUL_LINE_BOSS_DAMAGE);
+  EquipInstance zakum(sword_, state);
+  panel.SetItem(&zakum, purse);
+  ASSERT_NE(panel.opened_with(), nullptr);
+  EXPECT_EQ(panel.opened_with()->boss(), "Magnus");
+  const std::string rendered = RenderElement(panel.RenderConfirm());
+  EXPECT_LT(rendered.find("Soul: Magnus"), rendered.find("After"));
+  EXPECT_GT(rendered.find("Soul: Zakum"), rendered.find("After"));
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "+55"), kGreen);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
 }
 
 }  // namespace

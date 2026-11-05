@@ -124,7 +124,13 @@ void FlamePanel::SetItem(const EquipInstance* item, int64_t meso) {
 void FlamePanel::Reset() {
   selected_ = 0;
   after_.reset();
+  opened_with_.reset();
+  rolled_ = false;
   prompt_.Close();
+}
+
+const FlameLines* FlamePanel::opened_with() const {
+  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 FlameType FlamePanel::selected_flame() const {
@@ -210,13 +216,21 @@ ftxui::Element FlamePanel::RenderConfirm() const {
   if (item_ != nullptr && FlameOf(selected_flame()).choose) {
     return RenderChoice();
   }
-  std::vector<ftxui::Element> body = {
-      CenteredRow(Prompt()),
-      ThemedSeparator(),
-  };
+  std::vector<ftxui::Element> body = {CenteredRow(Prompt())};
   if (item_ != nullptr) {
-    AppendLineRows(body, ItemLines(), item_->prototype(),
-                   MeasureLines(item_->prototype(), ItemLines()));
+    const EquipPrototype& proto = item_->prototype();
+    const FlameLines empty;
+    const FlameLines& before =
+        opened_with_.has_value() ? *opened_with_ : ItemLines();
+    LineWidths widths = MeasureLines(proto, ItemLines());
+    for (const FlameLine& line : before) {
+      MeasureLine(line, proto, widths);
+    }
+    body.push_back(TitledSeparator(" Before ", kTheme));
+    AppendLineRows(body, before, proto, widths);
+    body.push_back(TitledSeparator(" After ", kTheme));
+    AppendLineRows(body, rolled_ ? ItemLines() : empty, proto, widths);
+    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
   }
   body.push_back(ThemedSeparator());
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
@@ -225,10 +239,22 @@ ftxui::Element FlamePanel::RenderConfirm() const {
 }
 
 RerollAction FlamePanel::OnEvent(ftxui::Event event) {
+  const bool was_open = prompt_.open();
   const RerollAction action =
       prompt_.OnEvent(std::move(event), Affordable(), after_.has_value());
+  if (!was_open && prompt_.open() && item_ != nullptr) {
+    opened_with_ = ItemLines();
+    rolled_ = false;
+  }
+  if (action == RerollAction::kReroll && !FlameOf(selected_flame()).choose) {
+    rolled_ = true;
+  }
   if (action == RerollAction::kKeepBefore || action == RerollAction::kClosed) {
     after_.reset();
+  }
+  if (!prompt_.open()) {
+    opened_with_.reset();
+    rolled_ = false;
   }
   return action;
 }
