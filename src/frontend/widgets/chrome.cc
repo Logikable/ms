@@ -680,6 +680,13 @@ ftxui::Element CombatPowerDeltaValue(int delta) {
          ftxui::color(delta > 0 ? kGreen : kRed);
 }
 
+ftxui::Element CombatPowerDeltaRow(std::optional<int> delta) {
+  ftxui::Element value = delta.has_value() ? CombatPowerDeltaValue(*delta)
+                                           : ftxui::text("\u2014") | ftxui::dim;
+  return ftxui::hbox({ftxui::text(" CP \u0394"), ftxui::filler(),
+                      std::move(value), ftxui::text(" ")});
+}
+
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {
   // The width the column is held to, whatever the character's meso is now.
   constexpr int64_t kWidestQuietPurse = 100'000'000'000;

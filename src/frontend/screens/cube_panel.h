@@ -60,6 +60,11 @@ class CubePanel {
   // Which cubes the shelf offers, in kCubes order: only unlocked ones, since a
   // locked feature isn't shown at all. Called every frame, like SetItem.
   void SetShelf(std::vector<ShelfEntry> shelf);
+  // What keeping After would do to the player's combat power, shown under it.
+  // Empty before a roll, or for an item this character can't wear.
+  void SetCombatPowerDelta(std::optional<int> delta) {
+    delta_ = delta;
+  }
   // Cursor on the first cube, question closed. Call when the screen opens.
   void Reset();
   // The shelf. `focused` highlights the title; it is off while the item card
@@ -109,6 +114,7 @@ class CubePanel {
   int selected_ = 0;
   std::vector<ShelfEntry> shelf_ = {{CubeType::kRed}};
   std::optional<Potential> after_;
+  std::optional<int> delta_;
   // The rank-up gold; see RaiseRankUp.
   bool rank_up_ = false;
   double rank_up_seconds_ = 0.0;

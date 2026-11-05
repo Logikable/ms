@@ -259,6 +259,8 @@ ftxui::Element CubePanel::RenderChoice(ftxui::Color accent) const {
   body.push_back(CenteredRow(prompt_.KeepButtons(after_.has_value())));
   body.push_back(TitledSeparator(" After ", accent));
   AppendLineRows(body, after, level, widths);
+  body.push_back(
+      CombatPowerDeltaRow(after_.has_value() ? delta_ : std::nullopt));
   body.push_back(AccentSeparator(accent));
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),

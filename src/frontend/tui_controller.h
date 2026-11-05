@@ -680,6 +680,8 @@ class TuiController {
   // power against the item's lines now, in the slot it is worn in (or would
   // be). Empty with no After, or for an item this character can't wear.
   std::optional<int> flame_delta() const;
+  // The same for the cubing screen's After, on the track the cube rolls.
+  std::optional<int> cube_delta() const;
   std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
@@ -708,6 +710,10 @@ class TuiController {
   bool PanelVisible(int panel) const;
 
  private:
+  // `rolled` against `item` as it is, both worn in the slot the upgrade
+  // screen's item is worn in (or would be).
+  std::optional<int> RolledDelta(const EquipInstance& item,
+                                 const EquipInstance& rolled) const;
   // `character`'s shown combat power at gear preset `gear`.
   int PowerAt(const CharacterInstance& character, StatPreset gear) const;
   // Moves focus off a panel that isn't shown. The game starts focused on the

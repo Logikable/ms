@@ -2435,6 +2435,50 @@ TEST_F(TuiControllerTest, FlameDeltaPricesAfterAgainstTheItemsLines) {
   EXPECT_EQ(controller_->flame_delta(), 0) << "an empty roll changes nothing";
 }
 
+// A cube's After is priced on the track it rolls: a Black roll equal to the
+// main potential changes nothing, and the same lines from a White Cube add to
+// the bonus potential.
+TEST_F(TuiControllerTest, CubeDeltaPricesAfterOnTheCubesTrack) {
+  LevelTo(std::max(UnlockLevel(Feature::kBlackCube),
+                   UnlockLevel(Feature::kWhiteCube)));
+  sword_.mutable_base_stats()->set_attack(100);
+  Potential attack;
+  attack.set_rank(POTENTIAL_RANK_LEGENDARY);
+  for (int i = 0; i < kPotentialLines; ++i) {
+    PotentialLine* line = attack.add_lines();
+    line->set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  }
+  sword_.set_upgrade_slots(0);
+  auto sword = std::make_unique<EquipInstance>(sword_);
+  sword->SetPotential(PotentialTrack::kMain, attack);
+  state_->character.PickUp(std::move(sword));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kGearMenuCube);
+  controller_->OnEvent(ftxui::Event::Return);  // the screen
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(cube_panel_.selected_cube(), CubeType::kBlack);
+  EXPECT_FALSE(controller_->cube_delta().has_value()) << "no roll yet";
+  cube_panel_.SetAfter(attack);
+  EXPECT_EQ(controller_->cube_delta(), 0) << "the same main lines";
+  cube_panel_.SetAfter(Potential());
+  ASSERT_TRUE(controller_->cube_delta().has_value());
+  EXPECT_LT(*controller_->cube_delta(), 0) << "losing the main lines";
+
+  cube_panel_.TakeAfter();
+  for (int i = 0; i < 4 && cube_panel_.selected_cube() != CubeType::kWhite;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(cube_panel_.selected_cube(), CubeType::kWhite);
+  cube_panel_.SetAfter(attack);
+  ASSERT_TRUE(controller_->cube_delta().has_value());
+  EXPECT_GT(*controller_->cube_delta(), 0) << "added as bonus lines";
+}
+
 // Black rolls into After and charges, and the item changes only on Keep ↓.
 TEST_F(TuiControllerTest, BlackFlamesChangeNothingUntilKept) {
   LevelTo(UnlockLevel(Feature::kFlame));

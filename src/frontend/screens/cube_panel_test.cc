@@ -312,8 +312,8 @@ class ChoosingCubeTest : public CubePanelTest {
 };
 
 // Top to bottom: the prompt, Before over the item's lines, the Keep row, After
-// over three placeholders until a roll, the price, then Confirm. Before and
-// After sit where the window's title does.
+// over three placeholders until a roll, its CP change, the price, then Confirm.
+// Before and After sit where the window's title does.
 TEST_F(ChoosingCubeTest, TheQuestionStacksBeforeKeepAfterAndPrice) {
   EquipInstance item = Cubed();
   CubePanel panel = OpenBlack(item, 5 * kBlackCubeCost);
@@ -325,6 +325,7 @@ TEST_F(ChoosingCubeTest, TheQuestionStacksBeforeKeepAfterAndPrice) {
   const int str = RowOf(rows, "STR");
   const int keep = RowOf(rows, "[Keep ↑]");
   const int after = RowOf(rows, " After ");
+  const int delta = RowOf(rows, "CP \u0394");
   const int held = RowOf(rows, "Held");
   const int confirm = RowOf(rows, "[Confirm]");
   ASSERT_GE(title, 0);
@@ -333,7 +334,8 @@ TEST_F(ChoosingCubeTest, TheQuestionStacksBeforeKeepAfterAndPrice) {
   EXPECT_LT(before, str);
   EXPECT_LT(str, keep);
   EXPECT_EQ(keep + 1, after);
-  EXPECT_LT(after, held);
+  EXPECT_LT(after, delta);
+  EXPECT_LT(delta, held);
   EXPECT_LT(held, confirm);
   EXPECT_EQ(Column(rows[before], " Before "),
             Column(rows[title], " Black Cube "));
@@ -343,10 +345,30 @@ TEST_F(ChoosingCubeTest, TheQuestionStacksBeforeKeepAfterAndPrice) {
       << "the buttons are a square";
   EXPECT_EQ(Column(rows[keep], "[Keep ↓]"), Column(rows[confirm], "[Cancel]"));
   int dashes = 0;
-  for (int row = after; row < held; ++row) {
+  for (int row = after; row < delta; ++row) {
     dashes += rows[row].find("—") != std::string::npos;
   }
   EXPECT_EQ(dashes, kPotentialLines);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
+}
+
+// The row under After prices keeping it: a dash until there is a roll, then
+// the change in green or red, and a nine-digit change doesn't widen the window.
+TEST_F(ChoosingCubeTest, AfterShowsTheCombatPowerChange) {
+  EquipInstance item = Cubed();
+  CubePanel panel = OpenBlack(item, 5 * kBlackCubeCost);
+  panel.SetCombatPowerDelta(1234);
+  EXPECT_EQ(RenderElement(panel.RenderConfirm()).find("+1,234"),
+            std::string::npos)
+      << "nothing to price before the first roll";
+  const int empty_width = TextColumns(Rows(panel)[0]);
+
+  panel.SetAfter(Roll());
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "+1,234"), kGreen);
+  panel.SetCombatPowerDelta(-5);
+  EXPECT_EQ(LabelColor(panel.RenderConfirm(), "-5"), kRed);
+  panel.SetCombatPowerDelta(-999'999'999);
+  EXPECT_EQ(TextColumns(Rows(panel)[0]), empty_width);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
 }
 

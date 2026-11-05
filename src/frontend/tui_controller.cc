@@ -726,21 +726,37 @@ std::optional<int> TuiController::flame_delta() const {
   if (item == nullptr || !after.has_value()) {
     return std::nullopt;
   }
-  const StatPreset gear =
-      subject_.equipped() ? subject_.preset() : ComparisonPreset();
-  const EquipSlot slot = subject_.equipped() ? subject_.slot()
-                                             : state_.character.SlotToFill(
-                                                   item->prototype(), gear);
-  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+  Equip rolled_state = item->equip_state();
+  *rolled_state.mutable_flame() = *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), rolled_state));
+}
+
+std::optional<int> TuiController::cube_delta() const {
+  const EquipInstance* item = cube_item();
+  const std::optional<Potential>& after = cube_panel_.after();
+  if (item == nullptr || !after.has_value()) {
     return std::nullopt;
   }
   Equip rolled_state = item->equip_state();
-  *rolled_state.mutable_flame() = *after;
-  const EquipInstance rolled(item->prototype(), rolled_state);
+  *MutablePotentialOf(rolled_state, CubeOf(cube_panel_.selected_cube()).track) =
+      *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), rolled_state));
+}
+
+std::optional<int> TuiController::RolledDelta(
+    const EquipInstance& item, const EquipInstance& rolled) const {
+  const StatPreset gear =
+      subject_.equipped() ? subject_.preset() : ComparisonPreset();
+  const EquipSlot slot =
+      subject_.equipped() ? subject_.slot()
+                          : state_.character.SlotToFill(item.prototype(), gear);
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return std::nullopt;
+  }
   // Both sides wear the item, so a bag item prices After against Before, not
   // against whatever the slot holds now.
   return PowerAt(state_.character.Wearing(rolled, gear, slot), gear) -
-         PowerAt(state_.character.Wearing(*item, gear, slot), gear);
+         PowerAt(state_.character.Wearing(item, gear, slot), gear);
 }
 
 std::optional<int> TuiController::inspect_delta() const {
