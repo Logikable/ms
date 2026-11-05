@@ -16,6 +16,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/reroll_prompt.h"
 #include "src/item/equip_instance.h"
 #include "src/item/flame.h"
@@ -31,6 +32,10 @@ class FlamePanel {
   // Empty before a roll, or for an item this character can't wear.
   void SetCombatPowerDelta(std::optional<int> delta) {
     delta_ = delta;
+  }
+  // A flame that doesn't choose: the CP under its lines.
+  void SetRunningCombatPower(RunningCombatPower power) {
+    running_ = power;
   }
   // Cursor on the first flame, question closed. Call when the screen opens.
   void Reset();
@@ -53,10 +58,13 @@ class FlamePanel {
   void SetAfter(FlameLines after);
   // Hands back After and clears it, for the caller to apply on Keep After.
   FlameLines TakeAfter();
-  // A flame that doesn't choose: the lines the question opened on, once a roll
-  // has been bought since. Null before the first roll. Its After is the item's
-  // lines now, so the CP change is everything rolled since opening.
+  // A flame that doesn't choose: the lines the question opened on, while it is
+  // open, and whether a roll has been bought since. Its window shows the CP it
+  // opened on and the change since.
   const FlameLines* opened_with() const;
+  bool rolled() const {
+    return rolled_;
+  }
 
  private:
   const FlameLines& ItemLines() const;
@@ -70,6 +78,7 @@ class FlamePanel {
   int selected_ = 0;
   std::optional<FlameLines> after_;
   std::optional<int> delta_;
+  RunningCombatPower running_;
   // See opened_with.
   std::optional<FlameLines> opened_with_;
   bool rolled_ = false;

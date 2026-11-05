@@ -5,8 +5,7 @@
  * rank is its level.
  *
  * Confirm rerolls and leaves the window open, so the player watches the lines
- * change. Before is the lines the question opened on and After the lines now,
- * so the CP change under After is everything rolled since opening. Once the
+ * change, over the CP the question opened on and the change since. Once the
  * purse is short the price turns red, Confirm greys, and the cursor moves off
  * it.
  */
@@ -18,6 +17,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/reroll_prompt.h"
 #include "src/protos/familiar.pb.h"
 
@@ -44,21 +44,22 @@ class FamiliarCubePanel {
   // Enter opens the question; inside it, Confirm is kReroll and Cancel
   // kClosed. Escape outside the question is the caller's.
   RerollAction OnEvent(ftxui::Event event);
-  // The CP change of After against Before, shown under After. Empty before a
-  // roll.
-  void SetCombatPowerDelta(std::optional<int> delta) {
-    delta_ = delta;
+  void SetRunningCombatPower(RunningCombatPower power) {
+    running_ = power;
   }
-  // The familiar's lines when the question opened, once a roll has been
-  // bought since. Null before the first roll.
+  // The familiar when the question opened, while it is open, and whether a
+  // roll has been bought since.
   const Familiar* opened_with() const;
+  bool rolled() const {
+    return rolled_;
+  }
 
  private:
   bool Affordable() const;
 
   const Familiar* familiar_ = nullptr;
   int64_t meso_ = 0;
-  std::optional<int> delta_;
+  RunningCombatPower running_;
   // See opened_with: the whole familiar, of which only the lines differ.
   std::optional<Familiar> opened_with_;
   bool rolled_ = false;

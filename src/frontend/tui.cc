@@ -937,6 +937,7 @@ ftxui::Element Tui::RenderCubing() {
   cube_panel_.SetItem(item, state_.character.meso());
   cube_panel_.SetShelf(controller_.cube_shelf());
   cube_panel_.SetCombatPowerDelta(controller_.cube_delta());
+  cube_panel_.SetRunningCombatPower(controller_.cube_running());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
@@ -957,6 +958,7 @@ ftxui::Element Tui::RenderFlaming() {
   const EquipInstance* item = controller_.flame_item();
   flame_panel_.SetItem(item, state_.character.meso());
   flame_panel_.SetCombatPowerDelta(controller_.flame_delta());
+  flame_panel_.SetRunningCombatPower(controller_.flame_running());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
@@ -976,7 +978,7 @@ ftxui::Element Tui::RenderFlaming() {
 ftxui::Element Tui::RenderSouling() {
   const EquipInstance* item = controller_.soul_item();
   soul_panel_.SetItem(item, state_.character.currencies());
-  soul_panel_.SetCombatPowerDelta(controller_.soul_delta());
+  soul_panel_.SetRunningCombatPower(controller_.soul_running());
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
@@ -1028,7 +1030,7 @@ ftxui::Element Tui::RenderFamiliarScreen() {
   FamiliarCubePanel& cube = controller_.familiar_cube_panel();
   cube.SetFamiliar(FindFamiliar(book, controller_.familiar_species()),
                    state_.character.meso());
-  cube.SetCombatPowerDelta(controller_.familiar_cube_delta());
+  cube.SetRunningCombatPower(controller_.familiar_cube_running());
   card.SetFamiliar(&book, controller_.familiar_species());
   ftxui::Element columns = SideBySide({
       cube.Render(!right),

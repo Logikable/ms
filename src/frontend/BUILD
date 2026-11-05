@@ -126,6 +126,7 @@ cc_library(
         "//src/frontend/screens:trace_recover_panel",
         "//src/frontend/screens:trade_panel",
         "//src/frontend/widgets:amount_selector",
+        "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:continue_prompt",
         "//src/frontend/widgets:format",

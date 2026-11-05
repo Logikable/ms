@@ -76,7 +76,7 @@ void SoulPanel::Reset() {
 }
 
 const Soul* SoulPanel::opened_with() const {
-  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
+  return opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 const ItemPrototype* SoulPanel::selected_shard() const {
@@ -132,13 +132,18 @@ ftxui::Element SoulPanel::Render(bool focused) const {
                       focused);
 }
 
-std::vector<ftxui::Element> SoulPanel::SoulRows(const Soul& soul) const {
+std::vector<ftxui::Element> SoulPanel::CurrentSoulRows() const {
+  if (item_ == nullptr) {
+    return {};
+  }
+  const Soul& soul = item_->equip_state().soul();
   if (soul.line() == SOUL_LINE_UNSPECIFIED) {
-    // One node per row: ftxui draws a shared node only in the last box.
-    return {CenteredRow(ftxui::text("—") | ftxui::dim),
-            CenteredRow(ftxui::text("—") | ftxui::dim)};
+    return {};
   }
   return {
+      ThemedSeparator(),
+      CenteredRow("This will override"),
+      CenteredRow("your current Soul:"),
       CenteredRow(ftxui::hbox({
           ftxui::text("◈") | ftxui::color(kSoul),
           ftxui::text(" Soul: " + soul.boss()),
@@ -153,19 +158,12 @@ ftxui::Element SoulPanel::RenderConfirm() const {
       CenteredRow("Apply " + (shard == nullptr ? "" : SoulName(*shard)) + "?") |
           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kSoulDialogWidth),
   };
+  for (ftxui::Element& row : CurrentSoulRows()) {
+    body.push_back(std::move(row));
+  }
   if (item_ != nullptr) {
-    const Soul empty;
-    const Soul& now = item_->equip_state().soul();
-    body.push_back(TitledSeparator(" Before ", kTheme));
-    for (ftxui::Element& row :
-         SoulRows(opened_with_.has_value() ? *opened_with_ : now)) {
-      body.push_back(std::move(row));
-    }
-    body.push_back(TitledSeparator(" After ", kTheme));
-    for (ftxui::Element& row : SoulRows(rolled_ ? now : empty)) {
-      body.push_back(std::move(row));
-    }
-    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
+    body.push_back(ThemedSeparator());
+    AppendRunningCombatPower(body, running_);
   }
   return DialogWindow(" Soul ", std::move(body),
                       ConfirmButtons(prompt_.confirm_focus(), Affordable()));

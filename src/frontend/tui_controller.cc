@@ -720,63 +720,72 @@ int TuiController::PowerAt(const CharacterInstance& character,
                           gear);
 }
 
-// A Black flame's After against the item; any other flame's item against the
-// lines its question opened on.
 std::optional<int> TuiController::flame_delta() const {
   const EquipInstance* item = flame_item();
-  if (item == nullptr) {
-    return std::nullopt;
-  }
-  Equip other = item->equip_state();
-  if (const FlameLines* opened = flame_panel_.opened_with()) {
-    *other.mutable_flame() = *opened;
-    return RolledDelta(EquipInstance(item->prototype(), other), *item);
-  }
   const std::optional<FlameLines>& after = flame_panel_.after();
-  if (!after.has_value()) {
+  if (item == nullptr || !after.has_value()) {
     return std::nullopt;
   }
-  *other.mutable_flame() = *after;
-  return RolledDelta(*item, EquipInstance(item->prototype(), other));
+  Equip rolled = item->equip_state();
+  *rolled.mutable_flame() = *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), rolled));
 }
 
-// As flame_delta, on the track the cube rolls.
 std::optional<int> TuiController::cube_delta() const {
   const EquipInstance* item = cube_item();
-  if (item == nullptr) {
-    return std::nullopt;
-  }
-  const PotentialTrack track = CubeOf(cube_panel_.selected_cube()).track;
-  Equip other = item->equip_state();
-  if (const Potential* opened = cube_panel_.opened_with()) {
-    *MutablePotentialOf(other, track) = *opened;
-    return RolledDelta(EquipInstance(item->prototype(), other), *item);
-  }
   const std::optional<Potential>& after = cube_panel_.after();
-  if (!after.has_value()) {
+  if (item == nullptr || !after.has_value()) {
     return std::nullopt;
   }
-  *MutablePotentialOf(other, track) = *after;
-  return RolledDelta(*item, EquipInstance(item->prototype(), other));
+  Equip rolled = item->equip_state();
+  *MutablePotentialOf(rolled, CubeOf(cube_panel_.selected_cube()).track) =
+      *after;
+  return RolledDelta(*item, EquipInstance(item->prototype(), rolled));
 }
 
-std::optional<int> TuiController::soul_delta() const {
+RunningCombatPower TuiController::flame_running() const {
+  const EquipInstance* item = flame_item();
+  const FlameLines* opened = flame_panel_.opened_with();
+  if (item == nullptr || opened == nullptr) {
+    return {};
+  }
+  Equip start = item->equip_state();
+  *start.mutable_flame() = *opened;
+  return RunningFrom(EquipInstance(item->prototype(), start), *item,
+                     flame_panel_.rolled());
+}
+
+RunningCombatPower TuiController::cube_running() const {
+  const EquipInstance* item = cube_item();
+  const Potential* opened = cube_panel_.opened_with();
+  if (item == nullptr || opened == nullptr) {
+    return {};
+  }
+  Equip start = item->equip_state();
+  *MutablePotentialOf(start, CubeOf(cube_panel_.selected_cube()).track) =
+      *opened;
+  return RunningFrom(EquipInstance(item->prototype(), start), *item,
+                     cube_panel_.rolled());
+}
+
+RunningCombatPower TuiController::soul_running() const {
   const EquipInstance* item = soul_item();
   const Soul* opened = soul_panel_.opened_with();
   if (item == nullptr || opened == nullptr) {
-    return std::nullopt;
+    return {};
   }
-  Equip other = item->equip_state();
-  *other.mutable_soul() = *opened;
-  return RolledDelta(EquipInstance(item->prototype(), other), *item);
+  Equip start = item->equip_state();
+  *start.mutable_soul() = *opened;
+  return RunningFrom(EquipInstance(item->prototype(), start), *item,
+                     soul_panel_.rolled());
 }
 
 // A familiar the comparison preset doesn't summon gives nothing, so its
 // change reads 0.
-std::optional<int> TuiController::familiar_cube_delta() const {
+RunningCombatPower TuiController::familiar_cube_running() const {
   const Familiar* opened = familiar_cube_panel_.opened_with();
   if (opened == nullptr) {
-    return std::nullopt;
+    return {};
   }
   FamiliarBook book = state_.character.familiars();
   for (Familiar& familiar : *book.mutable_familiars()) {
@@ -785,12 +794,14 @@ std::optional<int> TuiController::familiar_cube_delta() const {
     }
   }
   const StatPreset gear = ComparisonPreset();
-  return PowerAt(state_.character, gear) -
-         PowerAt(state_.character.WithFamiliars(book), gear);
+  const int start = PowerAt(state_.character.WithFamiliars(book), gear);
+  if (!familiar_cube_panel_.rolled()) {
+    return {start, std::nullopt};
+  }
+  return {start, PowerAt(state_.character, gear) - start};
 }
 
-std::optional<int> TuiController::RolledDelta(
-    const EquipInstance& item, const EquipInstance& rolled) const {
+std::optional<int> TuiController::WornPower(const EquipInstance& item) const {
   const StatPreset gear =
       subject_.equipped() ? subject_.preset() : ComparisonPreset();
   const EquipSlot slot =
@@ -799,10 +810,30 @@ std::optional<int> TuiController::RolledDelta(
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return std::nullopt;
   }
-  // Both sides wear the item, so a bag item prices After against Before, not
-  // against whatever the slot holds now.
-  return PowerAt(state_.character.Wearing(rolled, gear, slot), gear) -
-         PowerAt(state_.character.Wearing(item, gear, slot), gear);
+  return PowerAt(state_.character.Wearing(item, gear, slot), gear);
+}
+
+// Both sides wear the item, so a bag item prices After against Before, not
+// against whatever the slot holds now.
+std::optional<int> TuiController::RolledDelta(
+    const EquipInstance& item, const EquipInstance& rolled) const {
+  const std::optional<int> before = WornPower(item);
+  const std::optional<int> after = WornPower(rolled);
+  if (!before.has_value() || !after.has_value()) {
+    return std::nullopt;
+  }
+  return *after - *before;
+}
+
+RunningCombatPower TuiController::RunningFrom(const EquipInstance& start,
+                                              const EquipInstance& now,
+                                              bool rolled) const {
+  RunningCombatPower power;
+  power.start = WornPower(start);
+  if (rolled) {
+    power.delta = RolledDelta(start, now);
+  }
+  return power;
 }
 
 std::optional<int> TuiController::inspect_delta() const {

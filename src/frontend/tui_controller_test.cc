@@ -2481,8 +2481,8 @@ TEST_F(TuiControllerTest, CubeDeltaPricesAfterOnTheCubesTrack) {
   EXPECT_GT(*controller_->cube_delta(), 0) << "added as bonus lines";
 }
 
-// A Red Cube's CP change is the running total: the item now against the lines
-// the question opened on, however many rolls ago.
+// A Red Cube's Start CP is the item as the question opened on it, and its CP
+// change the running total from there, however many rolls ago.
 TEST_F(TuiControllerTest, RedCubeDeltaIsEverythingRolledSinceOpening) {
   LevelTo(UnlockLevel(Feature::kPotential));
   sword_.mutable_base_stats()->set_attack(100);
@@ -2498,13 +2498,16 @@ TEST_F(TuiControllerTest, RedCubeDeltaIsEverythingRolledSinceOpening) {
   controller_->OnEvent(ftxui::Event::Return);  // the screen
   ASSERT_EQ(cube_panel_.selected_cube(), CubeType::kRed);
   controller_->OnEvent(ftxui::Event::Return);  // the question
-  EXPECT_FALSE(controller_->cube_delta().has_value()) << "no roll yet";
+  ASSERT_TRUE(controller_->cube_running().start.has_value());
+  const int start = *controller_->cube_running().start;
+  EXPECT_FALSE(controller_->cube_running().delta.has_value()) << "no roll yet";
   controller_->OnEvent(ftxui::Event::Return);  // grants Rare
   for (int i = 0; i < 5; ++i) {
     controller_->OnEvent(ftxui::Event::Return);
   }
   ASSERT_EQ(controller_->screen(), kCubing);
-  ASSERT_TRUE(controller_->cube_delta().has_value());
+  ASSERT_TRUE(controller_->cube_running().delta.has_value());
+  EXPECT_EQ(controller_->cube_running().start, start) << "it doesn't move";
   // Lines known to move combat power, as if the last roll had given them; a
   // random roll can leave this character's CP where it was.
   Potential attack;
@@ -2530,10 +2533,12 @@ TEST_F(TuiControllerTest, RedCubeDeltaIsEverythingRolledSinceOpening) {
                                                  EQUIP_SLOT_PRIMARY_WEAPON),
                        state_->skills, Activity::kFarming, StatPreset::kFirst);
   ASSERT_GT(now, then);
-  EXPECT_EQ(*controller_->cube_delta(), now - then);
+  EXPECT_EQ(start, then);
+  EXPECT_EQ(controller_->cube_running().delta, now - then);
 
   controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_FALSE(controller_->cube_delta().has_value()) << "closing forgets it";
+  EXPECT_FALSE(controller_->cube_running().start.has_value())
+      << "closing forgets it";
 }
 
 // Black rolls into After and charges, and the item changes only on Keep ↓.
@@ -5664,8 +5669,8 @@ TEST_F(FamiliarControllerTest, CubeRerollsForMeso) {
   EXPECT_EQ(controller_->screen(), kFamiliarCube);
 }
 
-// The familiar cube prices the familiar now against the lines the question
-// opened on, with the rest of the character as it is.
+// The familiar cube's Start CP is the familiar as the question opened on it,
+// with the rest of the character as it is, and its CP change runs from there.
 TEST_F(FamiliarControllerTest, CubeDeltaIsEverythingRolledSinceOpening) {
   OpenFamiliarTab();
   state_->character.AddFamiliarExp(FamiliarLevelCost(1));
@@ -5674,17 +5679,18 @@ TEST_F(FamiliarControllerTest, CubeDeltaIsEverythingRolledSinceOpening) {
   const FamiliarBook opened = state_->character.familiars();
   OpenFamiliarEntry(kFamiliarMenuCube);
   controller_->OnEvent(ftxui::Event::Return);  // the question
-  EXPECT_FALSE(controller_->familiar_cube_delta().has_value());
+  EXPECT_FALSE(controller_->familiar_cube_running().delta.has_value());
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_TRUE(controller_->familiar_cube_delta().has_value());
+  ASSERT_TRUE(controller_->familiar_cube_running().delta.has_value());
   const int now =
       ShownCombatPower(state_->account, state_->character, state_->skills,
                        Activity::kFarming, StatPreset::kFirst);
   const int then =
       ShownCombatPower(state_->account, state_->character.WithFamiliars(opened),
                        state_->skills, Activity::kFarming, StatPreset::kFirst);
-  EXPECT_EQ(*controller_->familiar_cube_delta(), now - then);
+  EXPECT_EQ(controller_->familiar_cube_running().start, then);
+  EXPECT_EQ(controller_->familiar_cube_running().delta, now - then);
 }
 
 // --- Arcane Symbols ---

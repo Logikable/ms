@@ -18,9 +18,8 @@
  * After, rank included, so Confirm can be pressed again and again; the Keep
  * buttons sit above Confirm and Cancel, a square the arrows walk.
  *
- * Any other cube rolls onto the item, so its Before is the lines the question
- * opened on and its After the item's lines now: the CP change under After is
- * then everything rolled since opening, as a choosing cube's is.
+ * Any other cube rolls onto the item, so its window shows the lines now, the
+ * CP it opened on and the change since: everything rolled while it was open.
  *
  * A reroll that raises the potential's rank turns the window gold for
  * kRankUpSeconds and until the player's next key, whichever is later: the one
@@ -37,6 +36,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/reroll_prompt.h"
 #include "src/item/equip_instance.h"
 #include "src/item/potential.h"
@@ -65,10 +65,13 @@ class CubePanel {
   // locked feature isn't shown at all. Called every frame, like SetItem.
   void SetShelf(std::vector<ShelfEntry> shelf);
   // What keeping After would do to the player's combat power, shown under it.
-  // Empty before a roll, or for an item this character can't wear. For a cube
-  // that doesn't choose, After is the item now and Before opened_with().
+  // Empty before a roll, or for an item this character can't wear.
   void SetCombatPowerDelta(std::optional<int> delta) {
     delta_ = delta;
+  }
+  // A cube that doesn't choose: the CP under its lines.
+  void SetRunningCombatPower(RunningCombatPower power) {
+    running_ = power;
   }
   // Cursor on the first cube, question closed. Call when the screen opens.
   void Reset();
@@ -103,9 +106,12 @@ class CubePanel {
   void SetAfter(Potential after);
   // Hands back After and clears it, for the caller to apply on Keep After.
   Potential TakeAfter();
-  // A cube that doesn't choose: the lines the question opened on, once a roll
-  // has been bought since. Null before the first roll.
+  // A cube that doesn't choose: the lines the question opened on, while it is
+  // open, and whether a roll has been bought since.
   const Potential* opened_with() const;
+  bool rolled() const {
+    return rolled_;
+  }
 
  private:
   const Potential& SelectedPotential() const;
@@ -123,6 +129,7 @@ class CubePanel {
   std::vector<ShelfEntry> shelf_ = {{CubeType::kRed}};
   std::optional<Potential> after_;
   std::optional<int> delta_;
+  RunningCombatPower running_;
   // See opened_with.
   std::optional<Potential> opened_with_;
   bool rolled_ = false;

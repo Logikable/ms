@@ -167,7 +167,7 @@ void CubePanel::Reset() {
 }
 
 const Potential* CubePanel::opened_with() const {
-  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
+  return opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 void CubePanel::RaiseRankUp() {
@@ -282,20 +282,17 @@ ftxui::Element CubePanel::RenderConfirm() const {
   if (item_ != nullptr && Choosing()) {
     return RenderChoice(accent);
   }
-  std::vector<ftxui::Element> body = {CenteredRow(Prompt())};
+  std::vector<ftxui::Element> body = {
+      CenteredRow(Prompt()),
+      AccentSeparator(accent),
+  };
   if (item_ != nullptr) {
-    const Potential empty;
-    const Potential& now = SelectedPotential();
-    const Potential& before =
-        opened_with_.has_value() ? *opened_with_ : SelectedPotential();
+    const Potential& potential = SelectedPotential();
     const int level = item_->prototype().required_level();
-    const LineWidths widths =
-        MeasureLines(*item_, CubeOf(selected_cube()).track, {&before, &now});
-    body.push_back(TitledSeparator(" Before ", accent));
-    AppendLineRows(body, before, level, widths);
-    body.push_back(TitledSeparator(" After ", accent));
-    AppendLineRows(body, rolled_ ? now : empty, level, widths);
-    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
+    AppendLineRows(
+        body, potential, level,
+        MeasureLines(*item_, CubeOf(selected_cube()).track, {&potential}));
+    AppendRunningCombatPower(body, running_);
   }
   body.push_back(AccentSeparator(accent));
   // The purse above the price: the window is the only thing on screen saying

@@ -304,6 +304,17 @@ ftxui::Element CombatPowerDeltaValue(int delta);
 // window keeps its height.
 ftxui::Element CombatPowerDeltaRow(std::optional<int> delta);
 
+// What a window that rolls onto the item shows under its lines: the CP the
+// question opened on, and the change since, a running total.
+struct RunningCombatPower {
+  std::optional<int> start;
+  // Empty until the first roll.
+  std::optional<int> delta;
+};
+// "Start CP" over "CP Δ", a dash for either that is empty.
+void AppendRunningCombatPower(std::vector<ftxui::Element>& rows,
+                              const RunningCombatPower& power);
+
 // The meso held above the price, right-aligned in one column. Every screen that
 // charges uses this so the pair looks the same everywhere, and `affordable`
 // turns an unaffordable price red. The column is always wide enough for a

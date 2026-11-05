@@ -64,6 +64,7 @@
 #include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/amount_selector.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/continue_prompt.h"
 #include "src/frontend/widgets/item_menu.h"
@@ -681,11 +682,13 @@ class TuiController {
   // be). Empty with no After, or for an item this character can't wear.
   std::optional<int> flame_delta() const;
   // The same for the cubing screen's After, on the track the cube rolls.
-  // A flame or cube that doesn't choose prices the item now against the lines
-  // its question opened on instead, as do these two.
   std::optional<int> cube_delta() const;
-  std::optional<int> soul_delta() const;
-  std::optional<int> familiar_cube_delta() const;
+  // A window that rolls onto the item: the CP it opened on, with the item worn
+  // in its slot as it was then, and the change since. Empty while closed.
+  RunningCombatPower flame_running() const;
+  RunningCombatPower cube_running() const;
+  RunningCombatPower soul_running() const;
+  RunningCombatPower familiar_cube_running() const;
   std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
@@ -714,10 +717,14 @@ class TuiController {
   bool PanelVisible(int panel) const;
 
  private:
-  // `rolled` against `item` as it is, both worn in the slot the upgrade
-  // screen's item is worn in (or would be).
+  // The CP wearing `item` in the slot the upgrade screen's item is worn in (or
+  // would be). Empty for an item this character can't wear.
+  std::optional<int> WornPower(const EquipInstance& item) const;
+  // `rolled` against `item`, both worn there.
   std::optional<int> RolledDelta(const EquipInstance& item,
                                  const EquipInstance& rolled) const;
+  RunningCombatPower RunningFrom(const EquipInstance& start,
+                                 const EquipInstance& now, bool rolled) const;
   // `character`'s shown combat power at gear preset `gear`.
   int PowerAt(const CharacterInstance& character, StatPreset gear) const;
   // Moves focus off a panel that isn't shown. The game starts focused on the

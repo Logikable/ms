@@ -130,7 +130,7 @@ void FlamePanel::Reset() {
 }
 
 const FlameLines* FlamePanel::opened_with() const {
-  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
+  return opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 FlameType FlamePanel::selected_flame() const {
@@ -216,21 +216,14 @@ ftxui::Element FlamePanel::RenderConfirm() const {
   if (item_ != nullptr && FlameOf(selected_flame()).choose) {
     return RenderChoice();
   }
-  std::vector<ftxui::Element> body = {CenteredRow(Prompt())};
+  std::vector<ftxui::Element> body = {
+      CenteredRow(Prompt()),
+      ThemedSeparator(),
+  };
   if (item_ != nullptr) {
-    const EquipPrototype& proto = item_->prototype();
-    const FlameLines empty;
-    const FlameLines& before =
-        opened_with_.has_value() ? *opened_with_ : ItemLines();
-    LineWidths widths = MeasureLines(proto, ItemLines());
-    for (const FlameLine& line : before) {
-      MeasureLine(line, proto, widths);
-    }
-    body.push_back(TitledSeparator(" Before ", kTheme));
-    AppendLineRows(body, before, proto, widths);
-    body.push_back(TitledSeparator(" After ", kTheme));
-    AppendLineRows(body, rolled_ ? ItemLines() : empty, proto, widths);
-    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
+    AppendLineRows(body, ItemLines(), item_->prototype(),
+                   MeasureLines(item_->prototype(), ItemLines()));
+    AppendRunningCombatPower(body, running_);
   }
   body.push_back(ThemedSeparator());
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));

@@ -7,8 +7,8 @@
  * shard it was opened for even once that shard's row has left the list, and
  * greys Confirm when the shards run short.
  *
- * Before is the soul the question opened on and After the weapon's soul now,
- * so the CP change under After is everything rolled since opening.
+ * Under the soul it shows the CP the question opened on and the change since:
+ * everything rolled while it was open.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SOUL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SOUL_PANEL_H_
@@ -20,6 +20,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/reroll_prompt.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
@@ -57,14 +58,15 @@ class SoulPanel {
   // The shard the question is about, or the one under the cursor. Null for an
   // empty list.
   const ItemPrototype* selected_shard() const;
-  // The CP change of After against Before, shown under After. Empty before a
-  // roll.
-  void SetCombatPowerDelta(std::optional<int> delta) {
-    delta_ = delta;
+  void SetRunningCombatPower(RunningCombatPower power) {
+    running_ = power;
   }
-  // The weapon's soul when the question opened, once a roll has been bought
-  // since. Null before the first roll.
+  // The weapon's soul when the question opened, while it is open, and whether
+  // a roll has been bought since.
   const Soul* opened_with() const;
+  bool rolled() const {
+    return rolled_;
+  }
 
  private:
   struct Row {
@@ -73,15 +75,14 @@ class SoulPanel {
   };
 
   bool Affordable() const;
-  // A soul's two rows, or two placeholders for none.
-  std::vector<ftxui::Element> SoulRows(const Soul& soul) const;
+  std::vector<ftxui::Element> CurrentSoulRows() const;
 
   const EquipInstance* item_ = nullptr;
   std::vector<Row> rows_;
   int selected_ = 0;
   // The shard the question was opened for and its balance now.
   std::optional<Row> asked_;
-  std::optional<int> delta_;
+  RunningCombatPower running_;
   // See opened_with.
   std::optional<Soul> opened_with_;
   bool rolled_ = false;

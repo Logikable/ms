@@ -65,7 +65,7 @@ void FamiliarCubePanel::Reset() {
 }
 
 const Familiar* FamiliarCubePanel::opened_with() const {
-  return rolled_ && opened_with_.has_value() ? &*opened_with_ : nullptr;
+  return opened_with_.has_value() ? &*opened_with_ : nullptr;
 }
 
 bool FamiliarCubePanel::Affordable() const {
@@ -99,32 +99,23 @@ ftxui::Element FamiliarCubePanel::Render(bool focused) const {
 }
 
 ftxui::Element FamiliarCubePanel::RenderConfirm() const {
-  std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?")};
+  std::vector<ftxui::Element> body = {
+      CenteredRow("Reroll these lines?"),
+      ThemedSeparator(),
+  };
   if (familiar_ != nullptr) {
     const LineWidths widths = MeasureLines();
     // The rank dot the card shows on each line, so the lines look the same in
-    // the window and on the card behind it. Placeholders hold After's height
-    // until the first roll.
-    auto append = [&](const Familiar* shown) {
-      for (int i = 0; i < familiar_->lines_size(); ++i) {
-        if (shown == nullptr) {
-          body.push_back(CenteredRow(ftxui::text("—") | ftxui::dim));
-          continue;
-        }
-        const FamiliarLine& line = shown->lines(i);
-        body.push_back(CenteredRow(ftxui::hbox({
-            ftxui::text("◼ ") | ftxui::color(RarityColor(line.rank())),
-            ftxui::text(PadRight(FamiliarLineName(line.type()), widths.name) +
-                        "  " +
-                        PadLeft(FamiliarLineValueText(line), widths.value)),
-        })));
-      }
-    };
-    body.push_back(TitledSeparator(" Before ", kTheme));
-    append(opened_with_.has_value() ? &*opened_with_ : familiar_);
-    body.push_back(TitledSeparator(" After ", kTheme));
-    append(rolled_ ? familiar_ : nullptr);
-    body.push_back(CombatPowerDeltaRow(rolled_ ? delta_ : std::nullopt));
+    // the window and on the card behind it.
+    for (const FamiliarLine& line : familiar_->lines()) {
+      body.push_back(CenteredRow(ftxui::hbox({
+          ftxui::text("◼ ") | ftxui::color(RarityColor(line.rank())),
+          ftxui::text(PadRight(FamiliarLineName(line.type()), widths.name) +
+                      "  " +
+                      PadLeft(FamiliarLineValueText(line), widths.value)),
+      })));
+    }
+    AppendRunningCombatPower(body, running_);
   }
   body.push_back(ThemedSeparator());
   // The purse above the price: the window is the only thing on screen saying

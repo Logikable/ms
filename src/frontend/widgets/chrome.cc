@@ -687,6 +687,16 @@ ftxui::Element CombatPowerDeltaRow(std::optional<int> delta) {
                       std::move(value), ftxui::text(" ")});
 }
 
+void AppendRunningCombatPower(std::vector<ftxui::Element>& rows,
+                              const RunningCombatPower& power) {
+  ftxui::Element start = power.start.has_value()
+                             ? ftxui::text(FormatWithCommas(*power.start))
+                             : ftxui::text("\u2014") | ftxui::dim;
+  rows.push_back(ftxui::hbox({ftxui::text(" Start CP"), ftxui::filler(),
+                              std::move(start), ftxui::text(" ")}));
+  rows.push_back(CombatPowerDeltaRow(power.delta));
+}
+
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {
   // The width the column is held to, whatever the character's meso is now.
   constexpr int64_t kWidestQuietPurse = 100'000'000'000;
