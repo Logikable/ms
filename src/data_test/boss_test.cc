@@ -236,7 +236,7 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
       {"damien", "Hard", {17085600000000LL, 7322400000000LL}},
       {"lotus", "Hard", {6830082000000LL, 6830082000000LL, 9106776000000LL}},
       {"guardian_angel_slime", "Chaos", {61650000000000LL}},
-      {"lucid", "Hard", {36322000000000LL, 38610000000000LL, 9152000000000LL}},
+      {"lucid", "Hard", {34544000000000LL, 36720000000000LL, 12800000000000LL}},
       {"will", "Hard", {28182000000000LL, 21136500000000LL, 35227500000000LL}},
       {"gloom", "Chaos", {86012850000000LL}},
       {"darknell", "Hard", {108202500000000LL}},
