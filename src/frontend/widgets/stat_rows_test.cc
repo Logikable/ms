@@ -388,6 +388,26 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
       "44.00%");
 }
 
+// The Boss tab's drop rate is the boss drop roll's, which wears the Drop
+// preset; the farm tab keeps its own gear.
+TEST_F(StatRowsTest, AutoswapsBossDropRateReadsTheDropPreset) {
+  CharacterInstance c = MakeWarrior();
+  c.set_autoswap_presets(true);
+  EquipPrototype charm;
+  charm.set_name("Drop Charm");
+  charm.set_equip_slot(EQUIP_SLOT_PENDANT);
+  charm.mutable_base_stats()->set_item_drop_rate(40);
+  c.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(c.Equip(0, kDropPreset));
+
+  EXPECT_EQ(
+      ValueOf(ExtraStatLines(c, {}, Activity::kBossing), "Item Drop Rate"),
+      "40.00%");
+  EXPECT_EQ(
+      ValueOf(ExtraStatLines(c, {}, Activity::kFarming), "Item Drop Rate"),
+      "0.00%");
+}
+
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {
   EXPECT_EQ(CombatPowerText(0), "Combat Power 0");
   EXPECT_EQ(CombatPowerText(999999), "Combat Power 999,999");

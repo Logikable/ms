@@ -265,7 +265,8 @@ std::string AnyRowWith(const std::vector<std::string>& rows,
 }
 
 // Boss drops roll at the Drop preset's gear, so the Drop tab reads the boss
-// stats in it: here a hat only the Drop preset wears.
+// stats in it: here a hat only the Drop preset wears. The Boss tab's drop rate
+// is the roll's too.
 TEST_F(AllStatsPanelTest, TheDropTabWearsTheDropPreset) {
   UnlockEverything();
   Character proto;
@@ -287,7 +288,7 @@ TEST_F(AllStatsPanelTest, TheDropTabWearsTheDropPreset) {
   EXPECT_NE(tabs.find("Boss"), std::string::npos);
   EXPECT_NE(tabs.find("Drop"), std::string::npos);
   const std::string boss = AnyRowWith(Rows(panel.Render()), "Item Drop Rate");
-  EXPECT_EQ(boss.find("150"), std::string::npos) << boss;
+  EXPECT_NE(boss.find("150"), std::string::npos) << boss;
 
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
   EXPECT_TRUE(panel.showing_drop());

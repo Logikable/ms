@@ -386,6 +386,7 @@ cc_library(
         "//src/character:job_branch",
         "//src/character:progression",
         "//src/character:sacred_power",
+        "//src/character:stat_preset",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_instance",

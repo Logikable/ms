@@ -13,6 +13,7 @@
 #include "src/character/job_branch.h"
 #include "src/character/progression.h"
 #include "src/character/sacred_power.h"
+#include "src/character/stat_preset.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/format.h"
@@ -116,7 +117,8 @@ void AddDamageLines(const CharacterInstance& character,
 // chance of one, so they sit together.
 void AddIncomeLines(const CharacterInstance& character,
                     const std::map<std::string, Skill>& skills,
-                    const DerivedStats& derived, std::vector<StatLine>& lines) {
+                    const DerivedStats& derived, double item_drop_pct,
+                    std::vector<StatLine>& lines) {
   lines.push_back(StatRule());
   // How much more a kill pays than it would with no bonus, so a potion that
   // multiplies meso and a passive that adds to it show on the same row. A 20%
@@ -124,7 +126,7 @@ void AddIncomeLines(const CharacterInstance& character,
   lines.push_back(
       {"Meso Drop Rate",
        Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
-  lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
+  lines.push_back({"Item Drop Rate", Percent(item_drop_pct)});
   lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
   lines.push_back(
       {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
@@ -168,7 +170,16 @@ std::vector<StatLine> CombatStatLines(
                        derived.attack_speed_bonus,
                        derived.uncapped_attack_speed_bonus)});
   if (with_advanced) {
-    AddIncomeLines(character, skills, derived, lines);
+    // Autoswap's Boss view shows the rate the boss drop roll uses, which reads
+    // the Drop preset's gear (see DropRollRate), not the Boss preset's.
+    const double item_drop_pct =
+        preset == Activity::kBossing && character.autoswap_presets() &&
+                !gear.has_value()
+            ? DerivedStatsFor(character, skills, /*buffs_up=*/{},
+                              /*allies=*/{}, preset, kDropPreset)
+                  .item_drop_pct
+            : derived.item_drop_pct;
+    AddIncomeLines(character, skills, derived, item_drop_pct, lines);
   }
   return lines;
 }
