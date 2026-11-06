@@ -1,5 +1,6 @@
 #include "src/character/boss_reset.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <ctime>
 #include <string>
@@ -83,6 +84,25 @@ bool BossAvailable(const std::string& key, const Boss& boss,
     }
   }
   return true;
+}
+
+int64_t BossLockedUntil(
+    const std::string& key, const Boss& boss,
+    const google::protobuf::RepeatedPtrField<BossClear>& clears) {
+  int64_t until = 0;
+  for (const BossClear& clear : clears) {
+    if (clear.boss() != key || clear.cleared_unix_seconds() <= 0) {
+      continue;
+    }
+    for (const BossDifficulty& difficulty : boss.difficulties()) {
+      if (difficulty.name() == clear.difficulty() &&
+          difficulty.reset() != RESET_PERIOD_UNSPECIFIED) {
+        until = std::max(until, NextBossReset(difficulty.reset(),
+                                              clear.cleared_unix_seconds()));
+      }
+    }
+  }
+  return until;
 }
 
 }  // namespace ms

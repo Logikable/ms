@@ -20,13 +20,10 @@ PlayerInfo Player(const std::string& account_id, int level) {
   return player;
 }
 
-// Returns `player` with a clear of one boss recorded at `when`.
-PlayerInfo Cleared(PlayerInfo player, const std::string& boss_key,
-                   const std::string& difficulty, int64_t when) {
-  BossClear* clear = player.add_boss_clears();
-  clear->set_boss(boss_key);
-  clear->set_difficulty(difficulty);
-  clear->set_cleared_unix_seconds(when);
+// Returns `player` with `boss_key` locked until `until`, as their game says.
+PlayerInfo Locked(PlayerInfo player, const std::string& boss_key,
+                  int64_t until) {
+  (*player.mutable_boss_locked_until())[boss_key] = until;
   return player;
 }
 
@@ -98,7 +95,7 @@ class LobbyTest : public ::testing::Test {
 
   // Starts the fight.
   LobbyResult Start(const std::string& account_id, const StartFight& request) {
-    return lobby_.Start(account_id, request);
+    return lobby_.Start(account_id, request, kNow);
   }
 
   // Returns whether `account_id` is ready in the listed party.
@@ -311,13 +308,33 @@ TEST_F(LobbyTest, EveryMemberHasToBeReady) {
   EXPECT_TRUE(Start("one", Fight("zakum")).ok);
 }
 
-// Each game counts resets on its own clock, so the server takes a member's
-// clears on trust rather than refuse on its own.
-TEST_F(LobbyTest, AMembersClearDoesNotBlockTheFight) {
+// A member whose own game says the boss is still locked keeps the whole party
+// out, since only the leader's game gates the pick.
+TEST_F(LobbyTest, AMembersLockBlocksTheFight) {
+  PartyOf(2);
+  lobby_.UpdatePlayer(Locked(Player("two", 140), "hilla", kNow + 60));
+
+  LobbyResult refused = Start("one", Fight("hilla", 1));
+  EXPECT_FALSE(refused.ok);
+  EXPECT_EQ(refused.reason, Refused::REASON_ALREADY_CLEARED);
+  EXPECT_EQ(refused.message, "Someone has already cleared this boss.");
+}
+
+// A lock past its end, or on another boss, holds nothing back.
+TEST_F(LobbyTest, AnExpiredOrUnrelatedLockDoesNotBlockTheFight) {
   PartyOf(2);
   lobby_.UpdatePlayer(
-      Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60));
+      Locked(Locked(Player("two", 140), "hilla", kNow), "zakum", kNow + 60));
   EXPECT_TRUE(Start("one", Fight("hilla")).ok);
+}
+
+// Practice records no clear, so a lock doesn't keep anyone out of it.
+TEST_F(LobbyTest, PracticeIgnoresLocks) {
+  PartyOf(2);
+  lobby_.UpdatePlayer(
+      Practising(Locked(Player("two", 140), "hilla", kNow + 60)));
+  lobby_.UpdatePlayer(Practising(Player("one", 140)));
+  EXPECT_TRUE(Start("one", Fight("hilla", 0, /*practice=*/true)).ok);
 }
 
 // One fight cannot reward players differently, so everyone must pick the same

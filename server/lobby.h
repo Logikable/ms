@@ -5,6 +5,7 @@
 #ifndef MS_SERVER_LOBBY_H_
 #define MS_SERVER_LOBBY_H_
 
+#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -49,10 +50,11 @@ class Lobby {
   LobbyResult Kick(const std::string& account_id, const std::string& target);
   LobbyResult Promote(const std::string& account_id, const std::string& target);
   // Moves the party from the list into the fight `request` names. Leader
-  // only, and refused unless every member can fight that boss. Clears are not
-  // checked: each game counts resets on its own clock, which the server's
-  // would contradict, and the leader's game already gates the pick.
-  LobbyResult Start(const std::string& account_id, const StartFight& request);
+  // only, and refused unless every member can fight that boss. `now` is the
+  // Unix time each member's boss_locked_until is held against; Practice
+  // ignores them, as it records no clear.
+  LobbyResult Start(const std::string& account_id, const StartFight& request,
+                    int64_t now);
 
   // Puts a party back in the list after its fight ends, and clears everyone's
   // ready flag.
@@ -100,7 +102,8 @@ class Lobby {
   const Record* Find(const std::string& account_id) const;
   // Checks that every member can fight what `request` names. A refusal says
   // what is wrong but not which member caused it.
-  LobbyResult CheckFight(const Party& party, const StartFight& request) const;
+  LobbyResult CheckFight(const Party& party, const StartFight& request,
+                         int64_t now) const;
   // Removes `account_id` from `party`, promoting a new leader if they led it.
   // Returns false if the party is now empty, and the caller must erase it.
   bool Remove(Party& party, const std::string& account_id);

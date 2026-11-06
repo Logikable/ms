@@ -11,10 +11,12 @@
 
 #include "google/protobuf/util/message_differencer.h"
 #include "server/test_server.h"
+#include "src/character/boss_reset.h"
 #include "src/character/equip_presets.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/achievement.pb.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/familiar.pb.h"
 #include "src/protos/multiplayer.pb.h"
@@ -145,6 +147,22 @@ TEST_F(SessionTest, TheAccountsAchievementsTravelWithThePlayer) {
   ASSERT_EQ(player.achievements_size(), 1);
   EXPECT_EQ(player.achievements(0).achievement(), ACHIEVEMENT_STARS_17);
   EXPECT_EQ(player.achievements(0).earned_unix_seconds(), 1'700'000'000);
+}
+
+// The server can't read a clear on its own clock, so the game sends when its
+// lock ends instead, and only for a boss a clear still holds.
+TEST_F(SessionTest, ABossLockTravelsAsTheInstantItEnds) {
+  Boss& lucid = state_->bosses["lucid"];
+  lucid.add_difficulties()->set_name("Normal");
+  lucid.mutable_difficulties(0)->set_reset(RESET_PERIOD_WEEKLY);
+  state_->bosses["zakum"].add_difficulties()->set_name("Normal");
+  EXPECT_TRUE(PlayerFor(*state_).boss_locked_until().empty());
+
+  state_->character.RecordBossClear("lucid", "Normal", 1'700'000'000);
+  PlayerInfo player = PlayerFor(*state_);
+  ASSERT_EQ(player.boss_locked_until_size(), 1);
+  EXPECT_EQ(player.boss_locked_until().at("lucid"),
+            NextBossReset(RESET_PERIOD_WEEKLY, 1'700'000'000));
 }
 
 TEST_F(SessionTest, AchievementCountersTravelButNotThePurse) {

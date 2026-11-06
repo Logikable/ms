@@ -6,8 +6,8 @@
  * their own early morning.
  *
  * Local time means the player's clock, which the player can change. The
- * multiplayer server does not check clears, since its clock would disagree
- * with a player's about when the day turned over.
+ * multiplayer server's clock would disagree about when the day turned over, so
+ * each game tells it the instant its own lock ends (BossLockedUntil).
  */
 #ifndef MS_SRC_CHARACTER_BOSS_RESET_H_
 #define MS_SRC_CHARACTER_BOSS_RESET_H_
@@ -44,6 +44,13 @@ bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now);
 bool BossAvailable(const std::string& key, const Boss& boss,
                    const google::protobuf::RepeatedPtrField<BossClear>& clears,
                    int64_t now);
+
+// The instant `boss` opens again, on this machine's clock: the latest reset
+// after any of its clears, or 0 if none holds it. An instant, not a date, so
+// a server in another zone can compare it to its own time.
+int64_t BossLockedUntil(
+    const std::string& key, const Boss& boss,
+    const google::protobuf::RepeatedPtrField<BossClear>& clears);
 
 }  // namespace ms
 

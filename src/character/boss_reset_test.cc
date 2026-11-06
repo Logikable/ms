@@ -140,5 +140,26 @@ TEST(BossResetTest, AClearOfOneDifficultyHoldsThemAll) {
       BossAvailable("hilla", hilla, character.proto().boss_clears(), after));
 }
 
+// What a game tells the server: the instant the lock ends, the later reset
+// when two clears hold it, and nothing for a boss it never cleared.
+TEST(BossResetTest, TheLockEndsAtTheNextResetAfterTheLatestClear) {
+  Boss hilla = TwoRungBoss();
+  hilla.mutable_difficulties(1)->set_reset(RESET_PERIOD_WEEKLY);
+  std::mt19937 rng(1);
+  CharacterInstance character(rng, Character());
+  EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
+            0);
+
+  int64_t cleared = LocalTime(2026, 8, kThursday, 12);
+  character.RecordBossClear("hilla", "Normal", cleared);
+  character.RecordBossClear("zakum", "Normal", cleared);
+  EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
+            LocalTime(2026, 8, kThursday + 1, 4));
+
+  character.RecordBossClear("hilla", "Hard", cleared);
+  EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
+            LocalTime(2026, 8, kTuesday + 7, 4));
+}
+
 }  // namespace
 }  // namespace ms

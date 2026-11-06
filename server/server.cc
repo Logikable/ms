@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <ctime>
 #include <map>
 #include <memory>
 #include <optional>
@@ -450,7 +452,7 @@ OnlinePlayers Server::Roster() const {
     // The roster only shows name and level. Clients ask for a full sheet
     // with WatchPlayer.
     player->clear_sheet();
-    player->clear_boss_clears();
+    player->clear_boss_locked_until();
     player->clear_achievements();
     player->clear_achievement_progress();
   }
@@ -661,7 +663,8 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       result = lobby_.Leave(session.account_id);
       break;
     case ClientMessage::kStartFight:
-      result = lobby_.Start(session.account_id, message.start_fight());
+      result = lobby_.Start(session.account_id, message.start_fight(),
+                            static_cast<int64_t>(std::time(nullptr)));
       break;
     case ClientMessage::kSetReady:
       result = lobby_.SetReady(session.account_id, message.set_ready().ready());

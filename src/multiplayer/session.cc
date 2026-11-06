@@ -1,6 +1,7 @@
 #include "src/multiplayer/session.h"
 
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <utility>
@@ -8,6 +9,7 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "src/achievement.h"
+#include "src/character/boss_reset.h"
 #include "src/character/character.h"
 #include "src/character/link.h"
 #include "src/game_state.h"
@@ -44,9 +46,15 @@ PlayerInfo PlayerFor(const GameState& state) {
   player.set_job(AdvancementForJobStage(state.character.proto().job(),
                                         state.character.proto().job_stage()));
   *player.mutable_sheet() = PublicSheet(state.character);
-  // Kept next to the sheet, not in it: the server checks these before letting a
-  // party fight a boss with a reset timer, and PublicSheet strips them.
-  *player.mutable_boss_clears() = state.character.proto().boss_clears();
+  // Worked out here, not on the server: the reset is at 4am on this player's
+  // clock, which the server's zone would put hours off.
+  for (const auto& [key, boss] : state.bosses) {
+    int64_t until =
+        BossLockedUntil(key, boss, state.character.proto().boss_clears());
+    if (until > 0) {
+      (*player.mutable_boss_locked_until())[key] = until;
+    }
+  }
   // The owner's setting, not the reader's: the owner has already decided which
   // allocation their sheet shows.
   player.set_autoswap_presets(state.account.autoswap_presets());

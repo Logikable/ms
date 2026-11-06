@@ -1,6 +1,7 @@
 #include "server/lobby.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -199,7 +200,7 @@ LobbyResult Lobby::Promote(const std::string& account_id,
 }
 
 LobbyResult Lobby::Start(const std::string& account_id,
-                         const StartFight& request) {
+                         const StartFight& request, int64_t now) {
   Record* record = Find(account_id);
   if (record == nullptr) {
     return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
@@ -212,7 +213,7 @@ LobbyResult Lobby::Start(const std::string& account_id,
     return Refusal(Refused::REASON_FIGHT_STARTED,
                    "The fight has already started.");
   }
-  LobbyResult allowed = CheckFight(record->party, request);
+  LobbyResult allowed = CheckFight(record->party, request, now);
   if (!allowed.ok) {
     return allowed;
   }
@@ -265,7 +266,7 @@ PartyList Lobby::Listed() const {
     // huge, so they are sent only in the state of a player's own party.
     for (PartyMember& member : *listed->mutable_members()) {
       member.mutable_player()->clear_sheet();
-      member.mutable_player()->clear_boss_clears();
+      member.mutable_player()->clear_boss_locked_until();
       member.mutable_player()->clear_achievements();
       member.mutable_player()->clear_achievement_progress();
     }
@@ -319,8 +320,8 @@ const Lobby::Record* Lobby::Find(const std::string& account_id) const {
   return found == parties_.end() ? nullptr : &found->second;
 }
 
-LobbyResult Lobby::CheckFight(const Party& party,
-                              const StartFight& request) const {
+LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
+                              int64_t now) const {
   const BossDifficulty* difficulty =
       FindDifficulty(bosses_, request.boss_key(), request.difficulty_index());
   if (difficulty == nullptr) {
@@ -349,6 +350,16 @@ LobbyResult Lobby::CheckFight(const Party& party,
     if (!MessageDifferencer::Equals(theirs, terms)) {
       return Refusal(Refused::REASON_OPTIONS_DIFFER,
                      "Players selected different bossing options.");
+    }
+  }
+  if (!request.options().practice()) {
+    for (const PartyMember& member : party.members()) {
+      const auto& locks = member.player().boss_locked_until();
+      auto lock = locks.find(request.boss_key());
+      if (lock != locks.end() && lock->second > now) {
+        return Refusal(Refused::REASON_ALREADY_CLEARED,
+                       "Someone has already cleared this boss.");
+      }
     }
   }
   for (const PartyMember& member : party.members()) {

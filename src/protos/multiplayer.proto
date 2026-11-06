@@ -54,12 +54,11 @@ message PlayerInfo {
   // which the protocol version guarantees. The lobby listing strips it.
   Character sheet = 5;
 
-  // Boss clears this character has that still count against the reset timer.
-  // Sent separately from the sheet, which strips them: what party members may
-  // see about someone is a different question from what the server must check
-  // before letting a party into a daily. Stripped from the listing along with
-  // the sheet.
-  repeated BossClear boss_clears = 6;
+  // When each boss this character has cleared opens again, as a Unix time
+  // worked out on the player's own clock, keyed by boss. The server refuses a
+  // party fight while any member's lock is still ahead of it. Stripped from the
+  // listing along with the sheet.
+  map<string, int64> boss_locked_until = 13;
 
   // Whether this player has Autoswap Presets on. It sits beside the sheet, not
   // in it, because it is an account setting, not a character one. It is still
@@ -89,6 +88,8 @@ message PlayerInfo {
 
   // Familiars, which the sheet now carries.
   reserved 10;
+  // The raw clears, which the server could only read on its own clock.
+  reserved 6;
 }
 
 // One player's place in a party.
