@@ -1591,7 +1591,8 @@ void Tui::UpdateMusic() {
                    ? state_.account.boss_bgm_volume()
                    : state_.account.map_bgm_volume();
   music_player_.SetVolume(state_.account.mute() ? 0 : volume);
-  music_director_.Update(state_.account.jukebox_mode(), NormalTrack());
+  music_director_.Update(state_.account.jukebox_mode(), NormalTrack(),
+                         state_.account.jukebox_repeat_track());
 }
 
 Panel Tui::FocusedPanel() const {

@@ -8,7 +8,7 @@
  *
  * Tab switches between the two windows, Left and Right move along the buttons,
  * and Up and Down move through whichever list has the cursor. The mode button
- * opens a box below itself, the only place the three modes are named.
+ * opens a box below itself, the only place the four modes are named.
  *
  * The panel controls the MusicDirector and writes the mode to the account. It
  * asks the director for everything it shows about the current track and keeps
@@ -118,6 +118,8 @@ class JukeboxPanel {
   // The song `delta` places from the one playing, in list order and wrapping at
   // either end. Plays it.
   void StepTrack(int delta);
+  // Plays `track`, and under Repeat One makes it the song that loops.
+  void PlaySong(std::string_view track);
 
   ftxui::Element RenderNowPlaying() const;
   ftxui::Element RenderIdentity() const;
@@ -130,7 +132,7 @@ class JukeboxPanel {
   MusicDirector& director_;
   AccountInstance& account_;
   std::vector<Song> songs_;
-  // The three modes, in the order the box lists them.
+  // The modes, in the order the box lists them.
   ItemMenu mode_menu_;
 
   int row_ = 0;

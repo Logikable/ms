@@ -302,6 +302,37 @@ TEST_F(JukeboxPanelTest, TheModeBoxOpensOnTheModeInUseAndEnterTakesOne) {
   EXPECT_EQ(account_.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
 }
 
+// Taking Repeat One keeps the song playing; picking another then moves the
+// loop to it, and the song is saved so a restart loops it again.
+TEST_F(JukeboxPanelTest, RepeatOneTakesTheSongPlayingAndFollowsEachPick) {
+  director_.Play(kFloral);
+  SelectButton(JukeboxButton::kMode);
+  panel_.Activate();
+  panel_.MoveRow(-1);
+  panel_.Activate();
+  EXPECT_EQ(account_.jukebox_mode(), JUKEBOX_MODE_REPEAT_ONE);
+  EXPECT_EQ(account_.jukebox_repeat_track(), kFloral);
+  EXPECT_NE(Text().find("Mode: Repeat One"), std::string::npos);
+
+  SelectButton(JukeboxButton::kNext);
+  panel_.Activate();
+  EXPECT_EQ(account_.jukebox_repeat_track(), director_.playing());
+  EXPECT_NE(director_.playing(), kFloral);
+
+  panel_.SwitchHalf();
+  SelectTrack(kTreetops);
+  panel_.Activate();
+  EXPECT_EQ(account_.jukebox_repeat_track(), kTreetops);
+}
+
+// Outside Repeat One a pick leaves the saved song alone.
+TEST_F(JukeboxPanelTest, OnlyRepeatOneRemembersAPick) {
+  account_.SetJukeboxMode(JUKEBOX_MODE_PLAYLIST);
+  SelectTrack(kFloral);
+  panel_.Activate();
+  EXPECT_EQ(account_.jukebox_repeat_track(), "");
+}
+
 TEST_F(JukeboxPanelTest, EscapeShutsTheBoxBeforeItShutsTheScreen) {
   SelectButton(JukeboxButton::kMode);
   panel_.Activate();

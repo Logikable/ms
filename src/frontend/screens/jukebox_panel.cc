@@ -21,14 +21,15 @@
 namespace ms {
 namespace {
 
-// The three modes in the order the box lists them, and the one name each uses.
-// The button shows the same word as the box.
+// The modes in the order the box lists them, and the one name each uses. The
+// button shows the same word as the box.
 constexpr JukeboxMode kModes[] = {
     JUKEBOX_MODE_FOLLOW_MAP,
     JUKEBOX_MODE_PLAYLIST,
     JUKEBOX_MODE_SHUFFLE,
+    JUKEBOX_MODE_REPEAT_ONE,
 };
-constexpr int kModeCount = 3;
+constexpr int kModeCount = 4;
 
 // The mode button reads "[Mode: <name> ▾]", and the box that opens under it is
 // only as wide as the widest name. Every entry is padded to that width so the
@@ -43,6 +44,8 @@ std::string ModeName(JukeboxMode mode) {
       return "Playlist";
     case JUKEBOX_MODE_SHUFFLE:
       return "Shuffle";
+    case JUKEBOX_MODE_REPEAT_ONE:
+      return "Repeat One";
     default:
       return "Follow Map";
   }
@@ -117,8 +120,8 @@ JukeboxPanel::JukeboxPanel(const GameState& state, MusicDirector& director,
                            AccountInstance& account)
     : director_(director),
       account_(account),
-      mode_menu_(
-          {ModeEntry(kModes[0]), ModeEntry(kModes[1]), ModeEntry(kModes[2])}) {
+      mode_menu_({ModeEntry(kModes[0]), ModeEntry(kModes[1]),
+                  ModeEntry(kModes[2]), ModeEntry(kModes[3])}) {
   BuildSongs(state);
 }
 
@@ -227,7 +230,14 @@ void JukeboxPanel::StepTrack(int delta) {
     }
   }
   int total = static_cast<int>(songs_.size());
-  director_.Play(songs_[StepCursor(playing, delta, total)].track);
+  PlaySong(songs_[StepCursor(playing, delta, total)].track);
+}
+
+void JukeboxPanel::PlaySong(std::string_view track) {
+  if (account_.jukebox_mode() == JUKEBOX_MODE_REPEAT_ONE) {
+    account_.SetJukeboxRepeatTrack(track);
+  }
+  director_.Play(track);
 }
 
 void JukeboxPanel::PressButton() {
@@ -235,7 +245,7 @@ void JukeboxPanel::PressButton() {
     case JukeboxButton::kPrevious:
       if (director_.position_seconds() >= kRestartAfterSeconds &&
           !director_.playing().empty()) {
-        director_.Play(director_.playing());
+        PlaySong(std::string(director_.playing()));
         return;
       }
       StepTrack(-1);
@@ -264,7 +274,13 @@ void JukeboxPanel::PressButton() {
 
 void JukeboxPanel::Activate() {
   if (mode_box_open_) {
-    account_.SetJukeboxMode(ModeAt(mode_menu_.selected()));
+    JukeboxMode mode = ModeAt(mode_menu_.selected());
+    if (mode == JUKEBOX_MODE_REPEAT_ONE &&
+        account_.jukebox_mode() != JUKEBOX_MODE_REPEAT_ONE &&
+        !director_.playing().empty()) {
+      account_.SetJukeboxRepeatTrack(director_.playing());
+    }
+    account_.SetJukeboxMode(mode);
     mode_box_open_ = false;
     return;
   }
@@ -273,7 +289,7 @@ void JukeboxPanel::Activate() {
     return;
   }
   if (!songs_.empty()) {
-    director_.Play(songs_[row_].track);
+    PlaySong(songs_[row_].track);
   }
 }
 

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <string_view>
 
 #include "src/item/bank.h"
 #include "src/protos/account.pb.h"
@@ -122,13 +123,19 @@ class AccountInstance {
     account_.mutable_options()->set_autoswap_presets(on);
   }
 
-  // Where the music comes from: the map's own track, the song list in order, or
-  // shuffle. Set on the Jukebox screen.
+  // Where the music comes from: the map's own track, the song list in order,
+  // shuffle, or one song on repeat. Set on the Jukebox screen.
   JukeboxMode jukebox_mode() const {
     return account_.options().jukebox_mode();
   }
   void SetJukeboxMode(JukeboxMode mode) {
     account_.mutable_options()->set_jukebox_mode(mode);
+  }
+  const std::string& jukebox_repeat_track() const {
+    return account_.options().jukebox_repeat_track();
+  }
+  void SetJukeboxRepeatTrack(std::string_view track) {
+    account_.mutable_options()->set_jukebox_repeat_track(std::string(track));
   }
 
   bool buff_indicators() const {

@@ -103,6 +103,8 @@ enum JukeboxMode {
   JUKEBOX_MODE_PLAYLIST = 1;
   // Play a random track, skipping the last few played.
   JUKEBOX_MODE_SHUFFLE = 2;
+  // Loop one song, `Options.jukebox_repeat_track`, whatever the map plays.
+  JUKEBOX_MODE_REPEAT_ONE = 3;
 }
 
 // The switches on the Options screen, one field each. Each field's default (an
@@ -150,6 +152,10 @@ message Options {
   // across jobs, instead of ours, which tracks one character's growth. Off by
   // default. See GmsCombatPower.
   bool gms_combat_power = 11;
+
+  // The song Repeat One loops, kept so a restart loops it again. Empty, or a
+  // track this build lacks, loops the map's own track instead.
+  string jukebox_repeat_track = 12;
 
   // Field 5 was a shuffle switch on the Options screen, replaced by
   // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on

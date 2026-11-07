@@ -23,8 +23,15 @@ std::string_view MusicDirector::NextInPlaylist(std::string_view track) const {
   return *it;
 }
 
-void MusicDirector::Update(JukeboxMode mode, std::string_view map_track) {
+void MusicDirector::Update(JukeboxMode mode, std::string_view map_track,
+                           std::string_view repeat_track) {
   if (!player_.ready() || player_.paused()) {
+    return;
+  }
+  if (mode == JUKEBOX_MODE_REPEAT_ONE) {
+    bool known = std::find(tracks_.begin(), tracks_.end(), repeat_track) !=
+                 tracks_.end();
+    player_.Play(known ? repeat_track : map_track);
     return;
   }
   // A track playing through once is left to finish; see the header.

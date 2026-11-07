@@ -44,8 +44,8 @@ TEST_F(MusicDirectorTest, FollowMapLoopsTheMapsOwnTrack) {
   EXPECT_TRUE(player_.looping());
 }
 
-// The rule the three modes rely on: a track playing through once is never cut
-// short, whatever the mode does afterwards.
+// The rule Follow Map, Playlist and Shuffle rely on: a track playing through
+// once is never cut short, whatever the mode does afterwards.
 TEST_F(MusicDirectorTest, APickedTrackPlaysOutAndTheModeTakesOverAtItsEnd) {
   std::vector<std::string_view> songs = Songs();
   director_.Update(JUKEBOX_MODE_FOLLOW_MAP, songs[0]);
@@ -56,6 +56,35 @@ TEST_F(MusicDirectorTest, APickedTrackPlaysOutAndTheModeTakesOverAtItsEnd) {
   // Ticking while it plays leaves it alone; the map's track doesn't come back.
   director_.Update(JUKEBOX_MODE_FOLLOW_MAP, songs[0]);
   EXPECT_EQ(player_.playing(), songs[3]);
+}
+
+TEST_F(MusicDirectorTest, RepeatOneLoopsItsSongWhateverTheMapPlays) {
+  std::vector<std::string_view> songs = Songs();
+  director_.Update(JUKEBOX_MODE_REPEAT_ONE, songs[0], songs[2]);
+  EXPECT_EQ(player_.playing(), songs[2]);
+  EXPECT_TRUE(player_.looping());
+  director_.Update(JUKEBOX_MODE_REPEAT_ONE, songs[1], songs[2]);
+  EXPECT_EQ(player_.playing(), songs[2]);
+}
+
+// Unlike the other modes, a song picked under Repeat One loops at once rather
+// than playing out first.
+TEST_F(MusicDirectorTest, RepeatOneLoopsAPickedSongAtOnce) {
+  std::vector<std::string_view> songs = Songs();
+  director_.Play(songs[3]);
+  ASSERT_FALSE(player_.looping());
+  director_.Update(JUKEBOX_MODE_REPEAT_ONE, songs[0], songs[3]);
+  EXPECT_EQ(player_.playing(), songs[3]);
+  EXPECT_TRUE(player_.looping());
+}
+
+TEST_F(MusicDirectorTest, RepeatOneWithNoSongLoopsTheMapsTrack) {
+  std::vector<std::string_view> songs = Songs();
+  director_.Update(JUKEBOX_MODE_REPEAT_ONE, songs[1], "");
+  EXPECT_EQ(player_.playing(), songs[1]);
+  EXPECT_TRUE(player_.looping());
+  director_.Update(JUKEBOX_MODE_REPEAT_ONE, songs[1], "NoSuchTrack");
+  EXPECT_EQ(player_.playing(), songs[1]);
 }
 
 TEST_F(MusicDirectorTest, LeavingTheMapsTrackForAListTakesTheLoopOffIt) {
