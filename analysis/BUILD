@@ -925,3 +925,21 @@ sim_binary(
         "@abseil-cpp//absl/strings:str_format",
     ],
 )
+
+sim_binary(
+    name = "save_farm_sim",
+    srcs = ["save_farm_sim.cc"],
+    deps = [
+        ":sim_world",
+        "//src:game_state",
+        "//src:save",
+        "//src/combat",
+        "//src/combat:encounter",
+        "//src/combat:fight",
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
+    ],
+)
