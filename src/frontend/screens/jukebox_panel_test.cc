@@ -306,12 +306,18 @@ TEST_F(JukeboxPanelTest, TheModeBoxOpensOnTheModeInUseAndEnterTakesOne) {
 // loop to it, and the song is saved so a restart loops it again.
 TEST_F(JukeboxPanelTest, RepeatOneTakesTheSongPlayingAndFollowsEachPick) {
   director_.Play(kFloral);
+  director_.Nudge(2 * kSkipSeconds);
   SelectButton(JukeboxButton::kMode);
   panel_.Activate();
   panel_.MoveRow(-1);
   panel_.Activate();
   EXPECT_EQ(account_.jukebox_mode(), JUKEBOX_MODE_REPEAT_ONE);
   EXPECT_EQ(account_.jukebox_repeat_track(), kFloral);
+  // The song carries on where it was, now looping.
+  director_.Update(account_.jukebox_mode(), "",
+                   account_.jukebox_repeat_track());
+  EXPECT_TRUE(player_.looping());
+  EXPECT_GE(director_.position_seconds(), 2 * kSkipSeconds - 1.0f);
   EXPECT_NE(Text().find("Mode: Repeat One"), std::string::npos);
 
   SelectButton(JukeboxButton::kNext);

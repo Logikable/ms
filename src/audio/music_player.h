@@ -36,7 +36,7 @@ class MusicPlayer {
 
   // Crossfades to `track` and loops it, or stops if this build has no such
   // track. Requesting the track already looping costs nothing; requesting one
-  // playing through once sets it looping again.
+  // playing through once sets it looping from where it is, without a restart.
   void Play(std::string_view track);
   // Like Play, but plays `track` once instead of looping. Always restarts it,
   // so the track that's ending can be requested again, which is what happens

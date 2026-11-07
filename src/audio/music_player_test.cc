@@ -88,9 +88,12 @@ TEST(MusicPlayerTest, PlayLoopsATrackThatWasPlayingThrough) {
   MusicPlayer player = MakePlayer();
   player.PlayOnce(AnyTrack());
   EXPECT_FALSE(player.looping());
+  player.Seek(10.0f);
   player.Play(AnyTrack());
   EXPECT_EQ(player.playing(), AnyTrack());
   EXPECT_TRUE(player.looping());
+  // It carries on from where it was rather than starting over.
+  EXPECT_GE(player.position_seconds(), 9.0f);
 }
 
 TEST(MusicPlayerTest, PlayOnceRestartsTheSameTrack) {

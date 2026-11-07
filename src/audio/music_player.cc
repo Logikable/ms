@@ -75,6 +75,13 @@ void MusicPlayer::Play(std::string_view track) {
   if (!ready_ || (track == playing_ && looping_)) {
     return;
   }
+  // A track still playing through keeps its place and just loops from here.
+  if (track == playing_ && loaded_[live_] &&
+      !ma_sound_at_end(&sounds_[live_])) {
+    ma_sound_set_looping(&sounds_[live_], MA_TRUE);
+    looping_ = true;
+    return;
+  }
   Start(track, /*looping=*/true);
 }
 
