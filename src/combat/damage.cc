@@ -771,15 +771,12 @@ int CombatPower(const OffenseStats& offense, bool vs_boss) {
   return static_cast<int>(std::floor(power));
 }
 
-DamageRangeValues DamageRange(const OffenseStats& offense) {
-  double top = (4.0 * offense.primary + offense.secondary) / 100.0 *
-               offense.attack * offense.weapon_constant;
-  top *= 1.0 + offense.damage_pct;
-  top *= 1.0 + offense.final_dmg_pct;
-  DamageRangeValues range;
-  range.max = static_cast<int64_t>(std::floor(top));
-  range.min = static_cast<int64_t>(std::floor(top * offense.mastery));
-  return range;
+int64_t DamageRange(const OffenseStats& offense) {
+  double range = (4.0 * offense.primary + offense.secondary) / 100.0 *
+                 offense.attack * offense.weapon_constant;
+  range *= 1.0 + offense.damage_pct;
+  range *= 1.0 + offense.final_dmg_pct;
+  return static_cast<int64_t>(std::floor(range));
 }
 
 int GmsCombatPower(const OffenseStats& offense) {

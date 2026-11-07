@@ -15,6 +15,7 @@
 #include "src/character/sacred_power.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/damage.h"
+#include "src/frontend/widgets/format.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -435,7 +436,7 @@ TEST_F(StatRowsTest, AStatsBreakdownAddsUpToItsRow) {
 }
 
 // GMS's Damage Range: weapon constant, 4 x primary + secondary, attack, %
-// damage and final damage over 100, and the floor is mastery's share of it.
+// damage and final damage over 100. Mastery is left out with the low end.
 TEST_F(StatRowsTest, DamageRangeIsTheFormulasCharacterHalf) {
   OffenseStats offense;
   offense.primary = 1000;
@@ -446,31 +447,16 @@ TEST_F(StatRowsTest, DamageRangeIsTheFormulasCharacterHalf) {
   offense.boss_pct = 3.0;  // left out, as GMS's window leaves it out
   offense.crit_dmg = 1.0;  // left out too
   offense.final_dmg_pct = 0.2;
-  offense.mastery = 0.9;
-  const DamageRangeValues range = DamageRange(offense);
+  offense.mastery = 0.5;  // and mastery
   // 4200 / 100 * 500 * 1.34 * 1.5 * 1.2 = 50652.
-  EXPECT_EQ(range.max, 50652);
-  EXPECT_EQ(range.min, 45586);
+  EXPECT_EQ(DamageRange(offense), 50652);
 }
 
-// Both ends fit the Stats tab's value column: written out under ten thousand,
-// then three digits and a unit, rounded down.
-TEST_F(StatRowsTest, TheDamageRangeRowIsShortEnoughForThePanel) {
+// One number, written out in full.
+TEST_F(StatRowsTest, TheDamageRangeRowIsOneNumber) {
   CharacterInstance c = MakeWarrior();
-  const std::string row = ValueOf(ExtraStatLines(c, {}), "Damage Range");
-  EXPECT_NE(row.find(" ~ "), std::string::npos) << row;
-  const DamageRangeValues range = DamageRange(CharacterOffense(c, {}));
-  ASSERT_LT(range.max, 10000);
-  EXPECT_EQ(row, std::to_string(range.min) + " ~ " + std::to_string(range.max));
-}
-
-TEST_F(StatRowsTest, TheDamageRangesUnitsKeepThreeDigits) {
-  EXPECT_EQ(DamageRangeText({.min = 9999, .max = 10000}), "9,999 ~ 10K");
-  EXPECT_EQ(DamageRangeText({.min = 45586, .max = 50652}), "45.5K ~ 50.6K");
-  EXPECT_EQ(DamageRangeText({.min = 1239999, .max = 999999999}),
-            "1.23M ~ 999M");
-  EXPECT_EQ(DamageRangeText({.min = 12345678901, .max = 2000000000000}),
-            "12.3B ~ 2T");
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, {}), "Damage Range"),
+            FormatWithCommas(DamageRange(CharacterOffense(c, {}))));
 }
 
 // Attack has no final source, so all of it is base and %Attack.

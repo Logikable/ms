@@ -328,16 +328,12 @@ double DefenseShare(const Mob& mob, double ied);
 // crits happen more. `vs_boss` picks boss or normal % damage; never both.
 int CombatPower(const OffenseStats& offense, bool vs_boss);
 
-// GMS's Damage Range, the stat window's "min ~ max": the damage formula's
+// GMS's Damage Range, the one number the stat window shows since KMS's
+// October 2023 Combat Power patch removed its low end: the damage formula's
 // character-only factors (weapon constant, stats, attack, % damage and final
-// damage, but not boss or normal damage, crit, mastery's average or anything
-// about the target), with the minimum the maximum times mastery. Source:
-// maplestorywiki.net/w/Damage_Formula, "Default Damage Range".
-struct DamageRangeValues {
-  int64_t min = 0;
-  int64_t max = 0;
-};
-DamageRangeValues DamageRange(const OffenseStats& offense);
+// damage), leaving out boss and normal damage, crit, mastery and the target.
+// Source: maplestorywiki.net/w/Damage_Formula, "Default Damage Range".
+int64_t DamageRange(const OffenseStats& offense);
 
 // GMS's own Combat Power, which compares characters across jobs: every crit
 // lands at base crit damage plus the bonus, damage and boss damage always add,

@@ -15,7 +15,6 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
-#include "src/combat/damage.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -64,11 +63,6 @@ std::vector<StatLine> MainStatLines(
     const std::map<std::string, Skill>& skills,
     Activity preset = Activity::kFarming,
     std::optional<StatPreset> gear = std::nullopt);
-
-// "45,586 ~ 50,652" written short enough for the Stats tab: each end in full
-// below ten thousand, otherwise three digits and a unit ("45.5K ~ 50.6K"),
-// rounded down.
-std::string DamageRangeText(const DamageRangeValues& range);
 
 // The six stats the Stats tab and the All Stats screen open a Stat Inspect
 // card on, in the order the cursor visits them.

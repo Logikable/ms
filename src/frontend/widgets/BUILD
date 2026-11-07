@@ -400,6 +400,7 @@ cc_test(
     size = "small",
     srcs = ["stat_rows_test.cc"],
     deps = [
+        ":format",
         ":stat_rows",
         "//src/character:character_stats",
         "//src/character:consumables",

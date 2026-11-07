@@ -1,8 +1,6 @@
 #include "src/frontend/widgets/stat_rows.h"
 
 #include <algorithm>
-#include <cmath>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -59,41 +57,6 @@ std::string AttackSpeedText(Job job, const WornGear& equipped, int bonus,
       BaseAttackSpeedStage(job, it->second->prototype().attack_speed()), bonus,
       uncapped);
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
-}
-
-// One end of the Damage Range: written out below ten thousand, otherwise three
-// significant digits and a unit, so both ends fit the Stats tab's value column.
-std::string RangeEnd(int64_t n) {
-  if (n < 10000) {
-    return FormatWithCommas(n);
-  }
-  static const std::pair<int64_t, const char*> kUnits[] = {
-      {1000000000000LL, "T"},
-      {1000000000LL, "B"},
-      {1000000LL, "M"},
-      {1000LL, "K"},
-  };
-  for (const auto& [scale, suffix] : kUnits) {
-    if (n < scale) {
-      continue;
-    }
-    double value = static_cast<double>(n) / scale;
-    int decimals = value >= 100.0 ? 0 : (value >= 10.0 ? 1 : 2);
-    // Rounded down, so the top of the range never reads above what it is.
-    const double step = decimals == 2 ? 100.0 : (decimals == 1 ? 10.0 : 1.0);
-    value = std::floor(value * step) / step;
-    char buf[32];
-    snprintf(buf, sizeof(buf), "%.*f", decimals, value);
-    std::string text = buf;
-    if (text.find('.') != std::string::npos) {
-      text.erase(text.find_last_not_of('0') + 1);
-      if (text.back() == '.') {
-        text.pop_back();
-      }
-    }
-    return text + suffix;
-  }
-  return FormatWithCommas(n);
 }
 
 // "358", or "(308+50) 358" when gear or a skill adds to it. A skill can also
@@ -193,10 +156,9 @@ std::vector<StatLine> CombatStatLines(
   // only this row needs the split.
   int flat_attack = worn.attack() + derived.skill_stats.attack();
   int flat_magic = worn.magic_attack() + derived.skill_stats.magic_attack();
-  const DamageRangeValues range =
-      DamageRange(CharacterOffense(character, skills, preset, gear));
   std::vector<StatLine> lines = {
-      {"Damage Range", DamageRangeText(range)},
+      {"Damage Range", FormatWithCommas(DamageRange(
+                           CharacterOffense(character, skills, preset, gear)))},
       {"Attack", TotalWithBreakdown(flat_attack, e.attack() - flat_attack)},
       {"Magic Attack",
        TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
@@ -260,10 +222,6 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
       {"INT", TotalWithBreakdown(a.int_(), e.int_())},
       {"LUK", TotalWithBreakdown(a.luk(), e.luk())},
   };
-}
-
-std::string DamageRangeText(const DamageRangeValues& range) {
-  return RangeEnd(range.min) + " ~ " + RangeEnd(range.max);
 }
 
 std::string InspectStatName(InspectStat stat) {
