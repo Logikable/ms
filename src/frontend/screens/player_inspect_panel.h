@@ -49,6 +49,8 @@ struct PlayerInspectActions {
   // Hyper tabs.
   std::function<void(const Skill&)> skill;
   std::function<void(HyperStatField)> hyper_stat;
+  // The Stats tab's Stat Inspect card.
+  std::function<void(InspectStat)> stat;
   // The View All Stats row, which opens the member's own All Stats screen (see
   // RenderAllStats below).
   std::function<void()> all_stats;
@@ -92,6 +94,9 @@ class PlayerInspectPanel {
   void SyncAllStats();
   ftxui::Element RenderAllStats() const;
   bool OnAllStatsEvent(const ftxui::Event& event);
+  const AllStatsPanel& all_stats() const {
+    return stats_;
+  }
 
   // The member as this build reads them, for anything that needs their stats.
   const CharacterInstance& character() const {

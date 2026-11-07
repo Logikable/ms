@@ -10,6 +10,11 @@
  * opens on whichever one the Character panel was showing. Once gear presets
  * unlock, the player's own sheet adds Drop: their boss stats in the Drop
  * preset's gear, which is what boss drops roll at.
+ *
+ * Below that row the cursor walks the six stats Enter inspects, STR to LUK
+ * and Attack and Magic Attack, in the grid they are drawn in. Left and Right
+ * switch tabs only while the cursor is on the row; Up and Down wrap between
+ * the row and the grid.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_ALL_STATS_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_ALL_STATS_PANEL_H_
@@ -59,10 +64,15 @@ class AllStatsPanel {
   // Whether the Drop tab is the one showing.
   bool showing_drop() const;
 
-  // Left and Right on the preset row, the only keys this screen handles.
-  // Returns whether the event was consumed; false leaves closing the screen to
-  // the caller.
+  // The gear preset the showing tab overrides, if any.
+  std::optional<StatPreset> gear() const;
+
+  // The arrows. Returns whether the event was consumed; false leaves Enter and
+  // closing the screen to the caller.
   bool OnEvent(const ftxui::Event& event);
+
+  // The stat under the cursor, or nothing while it is on the preset row.
+  std::optional<InspectStat> selected_stat() const;
 
   // Whether the preset row is drawn. Public because it adds a row and a rule,
   // which a screen sizing itself around this one has to count.
@@ -91,7 +101,12 @@ class AllStatsPanel {
   ftxui::Element RenderBody() const;
   // `lines` laid out two per row, in order. An odd row's second half is left
   // blank instead of pulling the next row up.
-  static ftxui::Element Pairs(const std::vector<StatLine>& lines);
+  // `highlight` is the index of the line whose label inverts, or -1.
+  static ftxui::Element Pairs(const std::vector<StatLine>& lines,
+                              int highlight = -1);
+  // Whether the cursor is on the preset row, which only it can be while the
+  // row is drawn.
+  bool OnTabs() const;
 
   const CharacterInstance& character_;
   const AccountInstance* account_ = nullptr;
@@ -101,6 +116,8 @@ class AllStatsPanel {
   // is no Farm/Boss pair.
   Activity preset_ = Activity::kFarming;
   int tab_ = 0;
+  bool on_tabs_ = true;
+  InspectStat stat_ = InspectStat::kStr;
 };
 
 }  // namespace ms

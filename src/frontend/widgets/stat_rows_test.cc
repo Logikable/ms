@@ -388,6 +388,61 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
       "44.00%");
 }
 
+// The card's three parts add up to the Stats tab's number: %stat multiplies
+// the AP and the potential's own pile, and a Hyper Stat is added after it.
+TEST_F(StatRowsTest, AStatsBreakdownAddsUpToItsRow) {
+  auto make = [this](int hyper_level) {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(JOB_SWORDMAN);
+    proto.set_job_stage(1);
+    proto.mutable_allocated_stats()->set_str(1000);
+    (*PresetOf(*proto.mutable_hyper_stats(), StatPreset::kFirst)
+          .mutable_levels())[HYPER_STAT_FIELD_STR] = hyper_level;
+    CharacterInstance c(rng_, std::move(proto));
+    EquipPrototype ring;
+    ring.set_name("Potted Ring");
+    ring.set_equip_slot(EQUIP_SLOT_HAT);
+    ring.set_required_level(100);
+    Equip state;
+    Potential* potential = state.mutable_main_potential();
+    potential->set_rank(POTENTIAL_RANK_LEGENDARY);
+    PotentialLine* line = potential->add_lines();
+    line->set_type(POTENTIAL_LINE_TYPE_STR_PCT);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+    c.PickUp(std::make_unique<EquipInstance>(ring, state));
+    c.Equip(c.inventory().size() - 1);
+    return c;
+  };
+  CharacterInstance plain = make(0);
+  CharacterInstance hyper = make(5);
+  const StatBreakdown before = StatBreakdownFor(plain, {}, InspectStat::kStr);
+  const StatBreakdown after = StatBreakdownFor(hyper, {}, InspectStat::kStr);
+
+  EXPECT_EQ(after.base, 1000);
+  EXPECT_DOUBLE_EQ(after.pct, 0.12);
+  EXPECT_EQ(after.total, after.base + 120 + after.final_stat);
+  // The Hyper Stat lands in Final Stat alone: %stat doesn't multiply it.
+  EXPECT_EQ(after.base, before.base);
+  EXPECT_EQ(after.final_stat - before.final_stat,
+            static_cast<int>(hyper.hyper_stat_bonus(HYPER_STAT_FIELD_STR,
+                                                    StatPreset::kFirst)));
+  const std::string row = ValueOf(MainStatLines(hyper, {}), "STR");
+  EXPECT_NE(row.find(") " + std::to_string(after.total)), std::string::npos)
+      << row;
+}
+
+// Attack has no final source, so all of it is base and %Attack.
+TEST_F(StatRowsTest, AttacksBreakdownHasNoFinalPart) {
+  CharacterInstance c = MakeWarrior();
+  const StatBreakdown attack = StatBreakdownFor(c, {}, InspectStat::kAttack);
+  EXPECT_EQ(attack.final_stat, 0);
+  EXPECT_EQ(
+      std::to_string(attack.total),
+      ValueOf(ExtraStatLines(c, {}), "Attack")
+          .substr(ValueOf(ExtraStatLines(c, {}), "Attack").rfind(' ') + 1));
+}
+
 // The Boss tab's drop rate is the boss drop roll's, which wears the Drop
 // preset; the farm tab keeps its own gear.
 TEST_F(StatRowsTest, AutoswapsBossDropRateReadsTheDropPreset) {

@@ -37,6 +37,7 @@ void PlayerInspectPanel::BuildPanels() {
   CharacterPanelActions char_actions;
   char_actions.menu = actions_.skill;
   char_actions.hyper_inspect = actions_.hyper_stat;
+  char_actions.stat_inspect = actions_.stat;
   char_actions.all_stats = actions_.all_stats;
   char_component_ = char_panel_->MakeComponent(std::move(char_actions));
 

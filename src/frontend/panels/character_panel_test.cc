@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -654,16 +655,73 @@ TEST_F(CharacterPanelTest, ShowsAvailableApInTheMpRow) {
   EXPECT_NE(RenderElement(panel.Render()).find("5 AP"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, DownFromTabBarThenEnterAllocatesStr) {
+TEST_F(CharacterPanelTest, DownFromTabBarThenRightAndEnterAllocatesStr) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   CharacterPanelActions actions;
   actions.allocate = [&](StatField f) { field = f; };
   ftxui::Component comp = panel.MakeComponent(actions);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> STR row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // its name -> its [+]
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(field, STAT_FIELD_STR);
+}
+
+// The cursor lands on the name, where Enter opens the stat and spends nothing.
+TEST_F(CharacterPanelTest, EnterOnAStatsNameInspectsIt) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, account_, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  std::optional<InspectStat> inspected;
+  CharacterPanelActions actions;
+  actions.allocate = [&](StatField f) { field = f; };
+  actions.stat_inspect = [&](InspectStat s) { inspected = s; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
+  comp->OnEvent(ftxui::Event::ArrowDown);  // STR -> DEX
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // back to the name
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, InspectStat::kDex);
+  EXPECT_EQ(field, STAT_FIELD_UNSPECIFIED);
+}
+
+// Attack and Magic Attack sit between LUK and View All Stats, with only a name.
+TEST_F(CharacterPanelTest, AttackAndMagicAttackAreInspectedFromTheirNames) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
+  CharacterPanel panel(c, account_, panel_focus_);
+  std::vector<InspectStat> inspected;
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  CharacterPanelActions actions;
+  actions.allocate = [&](StatField f) { field = f; };
+  actions.stat_inspect = [&](InspectStat s) { inspected.push_back(s); };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> ... -> Attack
+  }
+  comp->OnEvent(ftxui::Event::ArrowRight);  // no [+] to move to
+  comp->OnEvent(ftxui::Event::Return);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // Attack -> Magic Attack
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, (std::vector<InspectStat>{InspectStat::kAttack,
+                                                 InspectStat::kMagicAttack}));
+  EXPECT_EQ(field, STAT_FIELD_UNSPECIFIED);
+}
+
+// A party member's sheet has no [+], but its stat names still open.
+TEST_F(CharacterPanelTest, AReadOnlyPanelInspectsStatsToo) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  std::optional<InspectStat> inspected;
+  CharacterPanelActions actions;
+  actions.stat_inspect = [&](InspectStat s) { inspected = s; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, InspectStat::kStr);
 }
 
 TEST_F(CharacterPanelTest, DownMovesTheCursorToTheNextStat) {
@@ -674,7 +732,8 @@ TEST_F(CharacterPanelTest, DownMovesTheCursorToTheNextStat) {
   actions.allocate = [&](StatField f) { field = f; };
   ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
-  comp->OnEvent(ftxui::Event::ArrowDown);  // STR -> DEX
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // STR's [+] -> DEX's
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(field, STAT_FIELD_DEX);
 }
@@ -715,7 +774,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
   EXPECT_EQ(field, STAT_FIELD_UNSPECIFIED);
 }
 
-TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
+TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheUsername) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
@@ -727,10 +786,13 @@ TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
   for (int i = 0; i < 4; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR -> ... -> LUK
   }
+  comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(field, STAT_FIELD_LUK);
 
-  comp->OnEvent(ftxui::Event::ArrowDown);  // LUK -> View All Stats
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);  // LUK -> Attack -> MA -> View All
+  }
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1);
 
@@ -2234,8 +2296,9 @@ TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent();
-  // The tab bar, four AP stats and View All Stats, then round to the name.
-  for (int i = 0; i < 6; ++i) {
+  // The tab bar, four AP stats, Attack, Magic Attack and View All Stats, then
+  // round to the name.
+  for (int i = 0; i < 8; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
@@ -2363,6 +2426,7 @@ TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
   EXPECT_EQ(c.username(), "Logikable");
   EXPECT_FALSE(IsInverted(comp, "Logikable"));
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
+  comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(field, STAT_FIELD_STR) << "the cursor moved off the name";
 }
@@ -2381,7 +2445,7 @@ TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
 
 // The combat block is filled in by a job, so a Beginner's tab ends at the AP
 // rows, and so does the way to the All Stats screen. Two steps up from the bar
-// land on LUK instead, and Enter there spends the point.
+// land on LUK instead, and its [+] spends the point.
 TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2395,6 +2459,7 @@ TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the username row
   comp->OnEvent(ftxui::Event::ArrowUp);  // username -> LUK
+  comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(opened);
   EXPECT_EQ(field, STAT_FIELD_LUK);
@@ -2803,6 +2868,7 @@ TEST_F(CharacterPanelTest, TheFarmBossRowIsAStopBetweenTheTabsAndTheStats) {
   ftxui::Component comp = panel.MakeComponent(actions);
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the Farm/Boss row
   comp->OnEvent(ftxui::Event::ArrowDown);  // -> STR
+  comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(allocated, STAT_FIELD_STR);
 }
@@ -3697,27 +3763,34 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
   EXPECT_FALSE(account_.Seen(kAbilityTabKey));
 }
 
-// Read-only, the four AP rows aren't stops, since they have no [+], and the row
-// below them is the one worth moving to.
-TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
+// Read-only, the stats are stops for their names alone: Right finds no [+] to
+// spend on, and Enter inspects.
+TEST_F(CharacterPanelTest, ReadOnlyStatsAreStopsWithNothingToSpend) {
   CharacterInstance c = MakeInspectedHero(rng_);
   UnlockEverything();
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetReadOnly(true);
   panel_focus_ = kCharPanel;
   int opened = 0;
+  int inspected = 0;
   CharacterPanelActions actions;
   actions.all_stats = [&opened]() { ++opened; };
+  actions.stat_inspect = [&inspected](InspectStat) { ++inspected; };
   actions.allocate = [](StatField) { FAIL() << "a reader spent their AP"; };
   ftxui::Component comp = panel.MakeComponent(actions);
 
   comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Farm/Boss row
-  comp->OnEvent(ftxui::Event::ArrowDown);  // -> View All Stats, not STR
+  for (int i = 0; i < 6; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);  // STR to Magic Attack
+    comp->OnEvent(ftxui::Event::ArrowRight);
+    comp->OnEvent(ftxui::Event::Return);
+  }
+  EXPECT_EQ(inspected, 6);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> View All Stats
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1);
 
-  // That row is the bottom of the ring: one more step wraps to the name, rather
-  // than passing four rows with nothing to press.
+  // That row is the bottom of the ring: one more step wraps to the name.
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1) << "the ring did not come round off View All Stats";

@@ -64,6 +64,30 @@ std::vector<StatLine> MainStatLines(
     Activity preset = Activity::kFarming,
     std::optional<StatPreset> gear = std::nullopt);
 
+// The six stats the Stats tab and the All Stats screen open a Stat Inspect
+// card on, in the order the cursor visits them.
+enum class InspectStat { kStr, kDex, kInt, kLuk, kAttack, kMagicAttack };
+inline constexpr int kNumInspectStats = 6;
+
+// "STR" to "LUK", "Attack" or "Magic Attack".
+std::string InspectStatName(InspectStat stat);
+
+// One stat split the way %stat sees it: `base` is what a %stat line multiplies,
+// `pct` the share it adds, and `final_stat` what is added after it, so
+// `total` is base, plus the share, plus final_stat. Attack has no final source,
+// so its final_stat is 0 and its total is the Attack row's.
+struct StatBreakdown {
+  int base = 0;
+  double pct = 0.0;
+  int final_stat = 0;
+  int total = 0;
+};
+StatBreakdown StatBreakdownFor(const CharacterInstance& character,
+                               const std::map<std::string, Skill>& skills,
+                               InspectStat stat,
+                               Activity preset = Activity::kFarming,
+                               std::optional<StatPreset> gear = std::nullopt);
+
 // "Combat Power" and the number, shortened to "CP" once the number passes six
 // digits so the number isn't cut.
 std::string CombatPowerText(int power);

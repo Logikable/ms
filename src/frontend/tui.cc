@@ -50,6 +50,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/game_state.h"
@@ -215,6 +216,10 @@ void Tui::BuildComponents() {
     // pressing Enter never changes the numbers.
     all_stats_panel_.SetPreset(char_panel_.SelectedActivity());
     controller_.OpenAllStats();
+  };
+  char_actions.stat_inspect = [this](InspectStat stat) {
+    controller_.OpenStatInspect(stat, char_panel_.SelectedActivity(),
+                                std::nullopt, kMain);
   };
   char_actions.learn = [this](const Skill& skill) {
     controller_.OpenSkillLearn(skill);
@@ -1320,6 +1325,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(BuffBuyDialog());
     case kBuffInfo:
       return Centred(buff_info_panel_.Render());
+    case kStatInspect:
+      stat_inspect_panel_.SetStat(controller_.stat_inspect_stat(),
+                                  controller_.stat_inspect_breakdown());
+      return Centred(stat_inspect_panel_.Render());
     case kHyperStatInspect:
       hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
                                         controller_.hyper_inspect_level(),
@@ -1631,6 +1640,13 @@ bool Tui::OnEvent(ftxui::Event event) {
   // rather than on the controller. Keys it doesn't handle, such as the ones
   // that close the screen, work as usual.
   if (controller_.screen() == kAllStats && all_stats_panel_.OnEvent(event)) {
+    return true;
+  }
+  if (controller_.screen() == kAllStats && IsForward(event) &&
+      all_stats_panel_.selected_stat()) {
+    controller_.OpenStatInspect(*all_stats_panel_.selected_stat(),
+                                all_stats_panel_.preset(),
+                                all_stats_panel_.gear(), kAllStats);
     return true;
   }
   bool handled = controller_.OnEvent(event);

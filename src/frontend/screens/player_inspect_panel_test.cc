@@ -434,7 +434,10 @@ TEST_F(PlayerInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
 
   Send(panel, ftxui::Event::ArrowDown);  // to the Farm/Boss row
   Send(panel, ftxui::Event::ArrowRight);
-  Send(panel, ftxui::Event::ArrowDown);  // to View All Stats
+  // Past STR to LUK, Attack and Magic Attack, to View All Stats.
+  for (int i = 0; i < 7; ++i) {
+    Send(panel, ftxui::Event::ArrowDown);
+  }
   Send(panel, ftxui::Event::Return);
   ASSERT_EQ(opened, 1);
 

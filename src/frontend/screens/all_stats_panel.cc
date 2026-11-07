@@ -22,15 +22,62 @@ namespace {
 // with an odd number of stats. The value's right edge is fixed and the gap
 // before it shrinks. Attack is shown as "(base+bonus) total", so padding the
 // label would leave it no room and push it into the gutter.
-std::string ColumnText(const StatLine& line) {
+ftxui::Element ColumnText(const StatLine& line, bool selected) {
   if (line.label.empty()) {
-    return std::string(AllStatsPanel::kColumnWidth, ' ');
+    return ftxui::text(std::string(AllStatsPanel::kColumnWidth, ' '));
   }
   int gap =
       AllStatsPanel::kColumnWidth - 2 - static_cast<int>(line.value.size());
   // PadRight truncates, so a value long enough to reach the label cuts into it
   // instead of breaking the column layout the whole screen depends on.
-  return " " + PadRight(line.label, std::max(0, gap)) + line.value + " ";
+  std::string padded = PadRight(line.label, std::max(0, gap));
+  if (!selected || padded.size() < line.label.size()) {
+    return ftxui::text(" " + padded + line.value + " ");
+  }
+  // Only the name inverts, as on the Stats tab.
+  return ftxui::hbox({
+      ftxui::text(" "),
+      ftxui::text(line.label) | ftxui::inverted,
+      ftxui::text(padded.substr(line.label.size()) + line.value + " "),
+  });
+}
+
+// Where each stat is drawn: MainStatLines fills the left column before the
+// right, and Attack and Magic Attack head the extras' left column.
+struct GridCell {
+  int row;
+  int col;
+};
+GridCell CellOf(InspectStat stat) {
+  switch (stat) {
+    case InspectStat::kStr:
+      return {0, 0};
+    case InspectStat::kDex:
+      return {1, 0};
+    case InspectStat::kInt:
+      return {0, 1};
+    case InspectStat::kLuk:
+      return {1, 1};
+    case InspectStat::kAttack:
+      return {2, 0};
+    case InspectStat::kMagicAttack:
+      return {3, 0};
+  }
+  return {0, 0};
+}
+constexpr int kGridRows = 4;
+
+// The stat at `row`, in `col` or the nearest column left of it that row has.
+InspectStat StatAt(int row, int col) {
+  for (int c = col; c >= 0; --c) {
+    for (int i = 0; i < kNumInspectStats; ++i) {
+      const InspectStat stat = static_cast<InspectStat>(i);
+      if (CellOf(stat).row == row && CellOf(stat).col == c) {
+        return stat;
+      }
+    }
+  }
+  return InspectStat::kStr;
 }
 
 }  // namespace
@@ -94,6 +141,24 @@ bool AllStatsPanel::ShowsPresetBar() const {
 void AllStatsPanel::SetPreset(Activity preset) {
   preset_ = preset;
   tab_ = ShowsFarmBoss() && preset == Activity::kBossing ? 1 : 0;
+  // Called as the screen opens, which starts the cursor at the top.
+  on_tabs_ = true;
+  stat_ = InspectStat::kStr;
+}
+
+std::optional<StatPreset> AllStatsPanel::gear() const {
+  return Current().gear;
+}
+
+bool AllStatsPanel::OnTabs() const {
+  return on_tabs_ && ShowsPresetBar();
+}
+
+std::optional<InspectStat> AllStatsPanel::selected_stat() const {
+  if (OnTabs()) {
+    return std::nullopt;
+  }
+  return stat_;
 }
 
 Activity AllStatsPanel::preset() const {
@@ -105,23 +170,41 @@ bool AllStatsPanel::showing_drop() const {
 }
 
 bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
-  const int last = static_cast<int>(Views().size()) - 1;
-  if (last <= 0) {
+  const bool left = event == ftxui::Event::ArrowLeft;
+  const bool right = event == ftxui::Event::ArrowRight;
+  if (OnTabs() && (left || right)) {
+    // Stops at the ends, like every tab bar in the game.
+    const int last = static_cast<int>(Views().size()) - 1;
+    tab_ =
+        left ? std::max(0, std::min(tab_, last) - 1) : std::min(last, tab_ + 1);
+    return true;
+  }
+  const GridCell at = CellOf(stat_);
+  if (left || right) {
+    // Stops at the ends too; a row with one stat keeps it.
+    stat_ = StatAt(at.row, std::clamp(at.col + (right ? 1 : -1), 0, 1));
+    return true;
+  }
+  const bool up = event == ftxui::Event::ArrowUp;
+  if (!up && event != ftxui::Event::ArrowDown) {
     return false;
   }
-  // Stops at the ends, like every tab bar in the game.
-  if (event == ftxui::Event::ArrowLeft) {
-    tab_ = std::max(0, std::min(tab_, last) - 1);
-    return true;
+  // One ring: the preset row, if drawn, then the grid's rows. The column is
+  // kept where the next row has it.
+  const bool bar = ShowsPresetBar();
+  const bool was_on_tabs = OnTabs();
+  const int stops = kGridRows + (bar ? 1 : 0);
+  int stop = was_on_tabs ? 0 : at.row + (bar ? 1 : 0);
+  stop = (stop + (up ? stops - 1 : 1)) % stops;
+  on_tabs_ = bar && stop == 0;
+  if (!on_tabs_) {
+    stat_ = StatAt(stop - (bar ? 1 : 0), was_on_tabs ? 0 : at.col);
   }
-  if (event == ftxui::Event::ArrowRight) {
-    tab_ = std::min(last, tab_ + 1);
-    return true;
-  }
-  return false;
+  return true;
 }
 
-ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
+ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines,
+                                    int highlight) {
   std::vector<ftxui::Element> rows;
   // Each group between rules fills its left column top to bottom before
   // starting the right one, so the list reads down a column instead of
@@ -140,11 +223,15 @@ ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
     size_t left = (end - start + 1) / 2;
     for (size_t i = 0; i < left; ++i) {
       StatLine right;
-      if (start + left + i < end) {
-        right = lines[start + left + i];
+      const size_t r = start + left + i;
+      if (r < end) {
+        right = lines[r];
       }
-      rows.push_back(
-          ftxui::text(ColumnText(lines[start + i]) + ColumnText(right)));
+      const int l = static_cast<int>(start + i);
+      rows.push_back(ftxui::hbox({
+          ColumnText(lines[l], l == highlight),
+          ColumnText(right, r < end && static_cast<int>(r) == highlight),
+      }));
     }
     start = end;
   }
@@ -174,16 +261,26 @@ ftxui::Element AllStatsPanel::RenderBody() const {
     }
     const int active = std::clamp(tab_, 0, static_cast<int>(specs.size()) - 1);
     rows.push_back(ftxui::hbox({
-        TabBar(specs, active, /*row_focused=*/true, kContentWidth),
+        TabBar(specs, active, /*row_focused=*/OnTabs(), kContentWidth),
         ftxui::filler(),
     }));
     rows.push_back(ThemedSeparator());
   }
-  rows.push_back(
-      Pairs(MainStatLines(character_, skills_, view.activity, view.gear)));
+  // MainStatLines lists STR to LUK in InspectStat's order, and the extras
+  // start with Attack and Magic Attack.
+  const std::optional<InspectStat> lit = selected_stat();
+  const int main_lit =
+      lit && *lit <= InspectStat::kLuk ? static_cast<int>(*lit) : -1;
+  const int extra_lit =
+      lit && *lit >= InspectStat::kAttack
+          ? static_cast<int>(*lit) - static_cast<int>(InspectStat::kAttack)
+          : -1;
+  rows.push_back(Pairs(
+      MainStatLines(character_, skills_, view.activity, view.gear), main_lit));
   rows.push_back(ThemedSeparator());
   rows.push_back(
-      Pairs(ExtraStatLines(character_, skills_, view.activity, view.gear)));
+      Pairs(ExtraStatLines(character_, skills_, view.activity, view.gear),
+            extra_lit));
   return ftxui::vbox(std::move(rows));
 }
 

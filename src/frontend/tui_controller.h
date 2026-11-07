@@ -170,11 +170,12 @@ class TuiController {
   // preset the character is using.
   void OpenLinkSkills();
 
-  // The four screens the Inspect panel opens. They are the player's own cards
+  // The five screens the Inspect panel opens. They are the player's own cards
   // showing someone else's numbers, so they read from the inspected member and
   // close back to the screen that opened them.
   void OpenPlayerSkillInspect(const Skill& skill);
   void OpenPlayerHyperStatInspect(HyperStatField field);
+  void OpenPlayerStatInspect(InspectStat stat);
   void OpenPlayerAllStats();
   void OpenPlayerItemInspect();
   // Spends a point on `field`, or refunds the last one. Neither has a dialog:
@@ -238,6 +239,17 @@ class TuiController {
   // and inspecting again shows the new level.
   int hyper_inspect_level() const;
   int hyper_inspect_max_level() const;
+
+  // The Stat Inspect card for the player's own character, read with
+  // `activity`'s allocations and `gear`'s items, as the screen behind it
+  // shows them. Escape goes back to `back`.
+  void OpenStatInspect(InspectStat stat, Activity activity,
+                       std::optional<StatPreset> gear, Screen back);
+  InspectStat stat_inspect_stat() const {
+    return stat_inspect_;
+  }
+  // Read live, like hyper_inspect_level().
+  StatBreakdown stat_inspect_breakdown() const;
   const ConfirmPrompt& hyper_reset_prompt() const {
     return hyper_reset_prompt_;
   }
@@ -1155,6 +1167,11 @@ class TuiController {
   // from the panel, so the answer applies to the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
   StatPreset hyper_preset_ = StatPreset::kFirst;
+  // The open Stat Inspect card: which stat, read how, and where it returns.
+  InspectStat stat_inspect_ = InspectStat::kStr;
+  Activity stat_inspect_activity_ = Activity::kFarming;
+  std::optional<StatPreset> stat_inspect_gear_;
+  Screen stat_inspect_return_ = kMain;
   ConfirmPrompt ability_reroll_prompt_;
   // The allocation the open Inner Ability confirmation is about, kept separate
   // from the Hyper one above so neither answer can apply to the other.

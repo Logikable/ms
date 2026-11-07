@@ -114,6 +114,9 @@ TuiController::TuiController(GameState& state, Screens screens,
   inspect_actions.hyper_stat = [this](HyperStatField field) {
     OpenPlayerHyperStatInspect(field);
   };
+  inspect_actions.stat = [this](InspectStat stat) {
+    OpenPlayerStatInspect(stat);
+  };
   inspect_actions.all_stats = [this]() { OpenPlayerAllStats(); };
   player_inspect_panel_.UseActions(std::move(inspect_actions));
 
@@ -266,6 +269,22 @@ void TuiController::OpenHyperStatInspect(HyperStatField field,
   hyper_preset_ = preset;
   card_from_inspect_ = false;
   screen_ = kHyperStatInspect;
+}
+
+void TuiController::OpenStatInspect(InspectStat stat, Activity activity,
+                                    std::optional<StatPreset> gear,
+                                    Screen back) {
+  stat_inspect_ = stat;
+  stat_inspect_activity_ = activity;
+  stat_inspect_gear_ = gear;
+  stat_inspect_return_ = back;
+  card_from_inspect_ = false;
+  screen_ = kStatInspect;
+}
+
+StatBreakdown TuiController::stat_inspect_breakdown() const {
+  return StatBreakdownFor(card_character(), state_.skills, stat_inspect_,
+                          stat_inspect_activity_, stat_inspect_gear_);
 }
 
 int TuiController::hyper_inspect_level() const {
@@ -1034,6 +1053,12 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
     case kAllStats:
     case kHyperStatInspect:
       return OnSkillInspectEvent(event);
+    case kStatInspect:
+      // Only a key that means leaving closes it; see OnPlayerAllStatsEvent.
+      if (IsBack(event) || IsForward(event)) {
+        screen_ = stat_inspect_return_;
+      }
+      return true;
     case kJobMenu:
       return OnJobMenuEvent(event);
     case kPresetMenu:
@@ -3431,6 +3456,12 @@ void TuiController::OpenPlayerHyperStatInspect(HyperStatField field) {
   screen_ = kHyperStatInspect;
 }
 
+void TuiController::OpenPlayerStatInspect(InspectStat stat) {
+  OpenStatInspect(stat, player_inspect_panel_.preset(), std::nullopt,
+                  kPlayerInspect);
+  card_from_inspect_ = true;
+}
+
 void TuiController::OpenPlayerAllStats() {
   player_inspect_panel_.SyncAllStats();
   screen_ = kPlayerAllStats;
@@ -3476,6 +3507,13 @@ bool TuiController::OnPlayerAllStatsEvent(ftxui::Event event) {
   // Left and Right belong to the member's Farm/Boss row, if they have one; the
   // panel decides.
   if (player_inspect_panel_.OnAllStatsEvent(event)) {
+    return true;
+  }
+  const AllStatsPanel& sheet = player_inspect_panel_.all_stats();
+  if (IsForward(event) && sheet.selected_stat()) {
+    OpenStatInspect(*sheet.selected_stat(), sheet.preset(), sheet.gear(),
+                    kPlayerAllStats);
+    card_from_inspect_ = true;
     return true;
   }
   // Only a key that means leaving closes it. Everything else is swallowed: the

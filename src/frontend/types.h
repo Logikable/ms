@@ -39,6 +39,9 @@ enum Screen : int {
   // Enter on a Hyper Stat's name: its current value and what the next level
   // would give. Read-only, like the skill card.
   kHyperStatInspect,
+  // Enter on a stat's name on the Stats tab or the All Stats screen: its base,
+  // %stat, final stat and total. Read-only.
+  kStatInspect,
   // Enter on the preset row: use one, move one, or close. Move opens a second
   // menu listing the presets to swap it with.
   kPresetMenu,

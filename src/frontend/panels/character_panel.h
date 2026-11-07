@@ -30,6 +30,7 @@
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/frontend/widgets/text_field.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
@@ -37,7 +38,8 @@
 namespace ms {
 
 // What Enter does on the Character panel, depending on where it lands:
-// `allocate` on a stat's [+], `learn` on a skill's, `advance` on a job (which
+// `allocate` on a stat's [+], `stat_inspect` on a stat's name, `learn` on a
+// skill's [+], `advance` on a job (which
 // should ask for confirmation first, since the panel advances nothing itself),
 // `menu` on a skill's name, and `all_stats` on the row below the stats. Only
 // the last two are never gated.
@@ -47,6 +49,7 @@ namespace ms {
 struct CharacterPanelActions {
   // The Stats tab.
   std::function<void(StatField)> allocate;
+  std::function<void(InspectStat)> stat_inspect;
   std::function<void()> all_stats;
   // The Skills tab.
   std::function<void(const Skill&)> learn;
@@ -193,10 +196,10 @@ class CharacterPanel {
   // The Skills tab's count, plus the V page's bottom rows.
   int SkillsTabFixedRows() const;
 
-  // How many of the Stats tab's four AP rows the cursor stops on. None on a
-  // read-only panel: there is no [+] to press, and the block is only moved
-  // through to reach the View All Stats row below it.
-  int StatStops() const;
+  // The Stats tab's rows the cursor stops on, as stat_sel_ values in screen
+  // order: the four AP stats, Attack and Magic Attack while their rows are
+  // drawn, and View All Stats.
+  std::vector<int> StatStops() const;
 
   // The Stats tab's count, plus the Farm/Boss row.
   int StatsTabFixedRows() const;
@@ -291,6 +294,10 @@ class CharacterPanel {
   // ends.
   enum HyperCol { kHyperColName, kHyperColMinus, kHyperColPlus };
 
+  // An AP row's two parts: the stat to inspect and the [+] that spends on it.
+  // Attack, Magic Attack and every read-only row have only the name.
+  enum StatCol { kStatColName, kStatColPlus };
+
   // Tracks panel focus, so tabbing into the panel with an unnamed character
   // puts the cursor on the name row. Called from Render, which is where the
   // change is noticed.
@@ -308,9 +315,14 @@ class CharacterPanel {
   // bar in this panel.
   bool OnPresetBarEvent(const ftxui::Event& event,
                         const CharacterPanelActions& actions);
-  // Whether the cursor is on the View All Stats row rather than a stat. It is
-  // the one stop in the ring that spends nothing.
-  bool OnViewAllStatsRow() const;
+  // stat_sel_, moved onto a row that is drawn: a row the budget has since cut
+  // leaves the cursor on the next one down.
+  int EffectiveStatSel() const;
+  // The column Enter acts on: the name wherever there is no [+].
+  StatCol EffectiveStatCol() const;
+  // How many of the Attack and Magic Attack rows are drawn, which the row
+  // budget can cut.
+  int AttackRowsShown() const;
   // Whether the Stats tab shows its combat block. Everything below the AP rows
   // depends on it, including that row's stop in the cursor ring.
   bool ShowsCombatStats() const;
@@ -543,9 +555,13 @@ class CharacterPanel {
   // The MP row, with unspent AP right-aligned as "N AP".
   ftxui::Element MpRow(int mp, int ap) const;
   // One stat row: label and value on the left, [+] on the right. The [+] dims
-  // with no AP to spend and inverts under the cursor, since Enter acts on it.
+  // with no AP to spend. Under the cursor the name or the [+] inverts, the one
+  // Enter acts on.
   ftxui::Element AllocRow(const std::string& label, int base, int bonus,
                           int index, bool content_focused) const;
+  // Attack or Magic Attack, whose name inverts under the cursor.
+  ftxui::Element AttackRow(const StatLine& line, int index,
+                           bool content_focused) const;
 
   CharacterInstance& character_;
   // Not const, because opening a tab is recorded on the account.
@@ -560,7 +576,13 @@ class CharacterPanel {
   // yet. Mutable because NoteFocus runs from the render.
   mutable bool was_focused_;
   bool cursor_moved_ = false;
-  int stat_sel_ = 0;  // selected Stats row (0-3 = STR/DEX/INT/LUK)
+  // The selected Stats row: 0-3 are STR to LUK, then kStatSelAttack,
+  // kStatSelMagic and kStatSelViewAll.
+  static constexpr int kStatSelAttack = 4;
+  static constexpr int kStatSelMagic = 5;
+  static constexpr int kStatSelViewAll = 6;
+  int stat_sel_ = 0;
+  StatCol stat_col_ = kStatColName;  // selected column of that row
   // The page the player moved the bar to, and whether they have moved it at
   // all. Read it through SelectedSkillPage, which handles the case where nobody
   // has chosen a page yet and a bar that has since grown.

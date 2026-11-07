@@ -1,6 +1,7 @@
 #include "src/character/character_stats.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <optional>
@@ -1200,7 +1201,9 @@ void AddLegionJobEffects(const LegionSummary& summary, PassiveTotals& totals) {
 // which reads the AP pool alone. Two %stat sources add rather than compound, so
 // both are applied to the same base.
 EquipStats PotentialFlatGrant(const int pile[4], int level,
-                              const PotentialTotals& potential) {
+                              const PotentialTotals& potential,
+                              std::array<int, 4>* base_out = nullptr,
+                              std::array<int, 4>* granted_out = nullptr) {
   EquipStats flat = potential.flat;
   const EquipStats& per_step = potential.per_9_levels;
   const int steps = level / 9;
@@ -1220,6 +1223,12 @@ EquipStats PotentialFlatGrant(const int pile[4], int level,
   for (int i = 0; i < 4; ++i) {
     granted[i] =
         static_cast<int>(std::floor(base[i] * share[i] + kPercentEpsilon));
+  }
+  if (base_out != nullptr) {
+    std::copy(std::begin(base), std::end(base), base_out->begin());
+  }
+  if (granted_out != nullptr) {
+    std::copy(std::begin(granted), std::end(granted), granted_out->begin());
   }
   EquipStats paid;
   paid.set_str(flat.str() + granted[0]);
@@ -1297,7 +1306,10 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   int pile[4];
   StatPileFor(character, passives, EquipStats(), worn, pile);
   const EquipStats paid =
-      PotentialFlatGrant(pile, character.proto().level(), potential);
+      PotentialFlatGrant(pile, character.proto().level(), potential,
+                         &totals.stat_base, &totals.stat_from_pct);
+  totals.stat_share = {potential.str_pct, potential.dex_pct, potential.int_pct,
+                       potential.luk_pct};
   totals.potential_stats = paid;
   totals.str += paid.str();
   totals.dex += paid.dex();

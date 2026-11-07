@@ -222,6 +222,55 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
   };
 }
 
+std::string InspectStatName(InspectStat stat) {
+  switch (stat) {
+    case InspectStat::kStr:
+      return "STR";
+    case InspectStat::kDex:
+      return "DEX";
+    case InspectStat::kInt:
+      return "INT";
+    case InspectStat::kLuk:
+      return "LUK";
+    case InspectStat::kAttack:
+      return "Attack";
+    case InspectStat::kMagicAttack:
+      return "Magic Attack";
+  }
+  return "";
+}
+
+StatBreakdown StatBreakdownFor(const CharacterInstance& character,
+                               const std::map<std::string, Skill>& skills,
+                               InspectStat stat, Activity preset,
+                               std::optional<StatPreset> gear) {
+  DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
+                                         /*allies=*/{}, preset, gear);
+  const EquipStats e = TotalEquipStats(character, derived);
+  StatBreakdown out;
+  if (stat == InspectStat::kAttack || stat == InspectStat::kMagicAttack) {
+    // The same split as the Attack row's "(base+bonus)".
+    const bool magic = stat == InspectStat::kMagicAttack;
+    const EquipStats& worn = character.equip_stats(derived.gear);
+    out.base = magic ? worn.magic_attack() + derived.skill_stats.magic_attack()
+                     : worn.attack() + derived.skill_stats.attack();
+    out.pct = magic ? derived.magic_attack_pct : derived.attack_pct;
+    out.total = magic ? e.magic_attack() : e.attack();
+    return out;
+  }
+  const int i = static_cast<int>(stat);
+  const AllocatedStats& a = character.proto().allocated_stats();
+  const int allocated[4] = {a.str(), a.dex(), a.int_(), a.luk()};
+  const int bonus[4] = {e.str(), e.dex(), e.int_(), e.luk()};
+  out.base = derived.stat_base[i];
+  out.pct = derived.stat_share[i];
+  out.total = allocated[i] + bonus[i];
+  // The remainder rather than a sum of the final sources, so the card always
+  // adds up to the Stats tab's number.
+  out.final_stat = out.total - out.base - derived.stat_from_pct[i];
+  return out;
+}
+
 std::string CombatPowerText(int power) {
   std::string value = FormatWithCommas(power);
   return (power > 999999 ? "CP " : "Combat Power ") + value;

@@ -5,6 +5,7 @@
 #ifndef MS_SRC_CHARACTER_CHARACTER_STATS_H_
 #define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
+#include <array>
 #include <map>
 #include <memory>
 #include <optional>
@@ -309,6 +310,13 @@ struct DerivedStats {
   // separate so a caller pricing a different potential can remove the worn one
   // first.
   EquipStats potential_stats;
+  // STR, DEX, INT and LUK as %stat sees them: the part it multiplies, the
+  // share it adds and what that share came to. Whatever the total holds past
+  // base + stat_from_pct is a final stat (symbols, Maple Warrior, Hyper Stats
+  // and the rest added after it).
+  std::array<int, 4> stat_base{};
+  std::array<double, 4> stat_share{};
+  std::array<int, 4> stat_from_pct{};
 };
 
 // The most %meso worn equipment can give. It is also the cap on all additive

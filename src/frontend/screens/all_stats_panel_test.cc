@@ -215,7 +215,10 @@ TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, account_, no_skills_);
   EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+  // With no row, Right moves across the stats instead.
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(panel.preset(), Activity::kFarming);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kInt);
 }
 
 // Someone else's sheet has no account behind it, so the level on the sheet
@@ -237,7 +240,8 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   younger.set_autoswap_presets(true);
   AllStatsPanel below(younger, /*account=*/nullptr, account_, no_skills_);
   EXPECT_EQ(RowWith(below.Render(), "Farm"), "");
-  EXPECT_FALSE(below.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(below.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(below.preset(), Activity::kFarming);
 }
 
 // With the autoswap off there is one allocation in play, so the screen shows it
@@ -250,7 +254,70 @@ TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
   CharacterInstance them(rng_, std::move(proto));
   AllStatsPanel panel(them, /*account=*/nullptr, account_, no_skills_);
   EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+  // With no row, Right moves across the stats instead.
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(panel.preset(), Activity::kFarming);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kInt);
+}
+
+// Left and Right belong to the row only while the cursor is on it. Down leaves
+// it for the grid, where they move between the stats.
+TEST_F(AllStatsPanelTest, LeftAndRightSwitchTabsOnlyOnTheRow) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance them(rng_, std::move(proto));
+  them.set_autoswap_presets(true);
+  AllStatsPanel panel(them, /*account=*/nullptr, account_, no_skills_);
+  ASSERT_TRUE(panel.ShowsPresetBar());
+  EXPECT_EQ(panel.selected_stat(), std::nullopt);
+
+  ASSERT_TRUE(panel.OnEvent(ftxui::Event::ArrowDown));
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kStr);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.preset(), Activity::kFarming);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kInt);
+  panel.OnEvent(ftxui::Event::ArrowRight);  // stops at the edge
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kInt);
+
+  // Down the right column to LUK, then on to the rows with only a left stat.
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kLuk);
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kAttack);
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kMagicAttack);
+
+  // Wraps back to the row, where Right switches tabs again.
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected_stat(), std::nullopt);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.preset(), Activity::kBossing);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel.selected_stat(), InspectStat::kMagicAttack);
+}
+
+// Only the selected stat's name inverts, not its value.
+TEST_F(AllStatsPanelTest, TheCursorInvertsOnlyTheStatsName) {
+  CharacterInstance c = MakeWarrior();
+  AllStatsPanel panel(c, &account_, account_, no_skills_);
+  ASSERT_EQ(panel.selected_stat(), InspectStat::kStr);
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, panel.Render());
+  int inverted = 0;
+  std::string lit;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).inverted) {
+        ++inverted;
+        lit += screen.PixelAt(x, y).character;
+      }
+    }
+  }
+  EXPECT_EQ(lit, "STR");
+  EXPECT_EQ(inverted, 3);
 }
 
 // The row holding `label` in either column, or "" if none has it.

@@ -32,6 +32,7 @@
 #include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"
@@ -1225,9 +1226,25 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   })) << "the leader's learned skill never reached the reader";
   guest->controller->OnEvent(ftxui::Event::Tab);
 
+  // Their LUK, on the Stat Inspect card, read from their sheet.
+  for (int i = 0; i < 4; ++i) {
+    guest->controller->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> LUK
+  }
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kStatInspect);
+  EXPECT_EQ(guest->controller->stat_inspect_stat(), InspectStat::kLuk);
+  EXPECT_EQ(guest->controller->stat_inspect_breakdown().total,
+            StatBreakdownFor(guest->player_inspect_panel->character(),
+                             guest->state->skills, InspectStat::kLuk)
+                .total);
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
+
   // View All Stats: their sheet, on the same screen their own last stats row
-  // opens.
-  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  // opens. It is below Attack and Magic Attack.
+  for (int i = 0; i < 3; ++i) {
+    guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  }
   guest->controller->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(guest->controller->screen(), kPlayerAllStats);
   // It stays open over the following frames. The ticker's redraw is an event
@@ -1237,12 +1254,19 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   guest->Tick();
   ASSERT_EQ(guest->controller->screen(), kPlayerAllStats)
       << "a repaint closed the screen";
+  // Their sheet's STR opens the card too, and Escape goes back to the sheet.
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kStatInspect);
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kPlayerAllStats);
   guest->controller->OnEvent(ftxui::Event::Escape);
   ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
 
   // Their Skills tab, and the card a row opens: the leader's level, not the
   // reader's.
-  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // -> the tab bar
+  for (int i = 0; i < 7; ++i) {
+    guest->controller->OnEvent(ftxui::Event::ArrowUp);  // -> the tab bar
+  }
   guest->controller->OnEvent(ftxui::Event::ArrowRight);
   guest->controller->OnEvent(ftxui::Event::ArrowDown);  // -> the page bar
   guest->controller->OnEvent(ftxui::Event::ArrowDown);  // -> the first skill

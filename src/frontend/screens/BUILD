@@ -366,6 +366,31 @@ cc_test(
 )
 
 cc_library(
+    name = "stat_inspect_panel",
+    srcs = ["stat_inspect_panel.cc"],
+    hdrs = ["stat_inspect_panel.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:stat_rows",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "stat_inspect_panel_test",
+    size = "small",
+    srcs = ["stat_inspect_panel_test.cc"],
+    deps = [
+        ":stat_inspect_panel",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/widgets:stat_rows",
+        "@ftxui//:dom",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "buff_info_panel",
     srcs = ["buff_info_panel.cc"],
     hdrs = ["buff_info_panel.h"],

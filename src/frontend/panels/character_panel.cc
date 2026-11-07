@@ -158,13 +158,30 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
+// A stat's name after the row's gutter, inverted under the cursor. Only the
+// name, as on a Hyper Stat row: Enter opens the stat.
+ftxui::Element StatName(const std::string& label, bool selected) {
+  return ftxui::hbox({
+      ftxui::text(" "),
+      selected ? ftxui::text(label) | ftxui::inverted : ftxui::text(label),
+  });
+}
+
 // One extra stat: a label column and a number column against the right edge,
 // one gutter from the border. The value's right edge is fixed and the gap
 // before it shrinks. Padding the label instead would leave a long value no
 // room, and Defense would then stick out a column past the rest.
-ftxui::Element StatRow(const std::string& label, const std::string& value) {
+ftxui::Element StatRow(const std::string& label, const std::string& value,
+                       bool selected = false) {
   int gap = kStatsWidth - 2 - static_cast<int>(value.size());
-  return ftxui::text(" " + PadRight(label, std::max(0, gap)) + value + " ");
+  std::string padded = PadRight(label, std::max(0, gap));
+  if (!selected || padded.size() < label.size()) {
+    return ftxui::text(" " + padded + value + " ");
+  }
+  return ftxui::hbox({
+      StatName(label, true),
+      ftxui::text(padded.substr(label.size()) + value + " "),
+  });
 }
 
 // "STR: 13", with " (base+bonus)" appended when gear contributes.
@@ -258,24 +275,26 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
                                         bool content_focused) const {
   if (read_only_) {
-    // Nothing to press or select: the row is just the number.
+    // Nothing to press: the name is the row's only stop.
     return StatsAligned(ftxui::hbox({
-        ftxui::text(" " + StatText(label, base, bonus)),
+        StatName(label, content_focused && EffectiveStatSel() == index),
+        ftxui::text(StatText(label, base, bonus).substr(label.size())),
         ftxui::filler(),
     }));
   }
-  bool selected = content_focused && stat_sel_ == index;
+  bool selected = content_focused && EffectiveStatSel() == index;
   // The cursor takes priority over the unavailable look, as on the skill rows:
   // a selected [+] inverts even with no AP, so the cursor stays visible while
   // the player reads down the stats.
   ftxui::Element plus = ftxui::text("[+]");
-  if (selected) {
+  if (selected && EffectiveStatCol() == kStatColPlus) {
     plus = plus | ftxui::inverted;
   } else if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
   }
   return StatsAligned(ftxui::hbox({
-      ftxui::text(" " + StatText(label, base, bonus)),
+      StatName(label, selected && EffectiveStatCol() == kStatColName),
+      ftxui::text(StatText(label, base, bonus).substr(label.size())),
       ftxui::filler(),
       plus,
       ftxui::text(" "),
@@ -356,8 +375,36 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   return kZoneTabs;
 }
 
-int CharacterPanel::StatStops() const {
-  return read_only_ ? 0 : kNumAllocStats;
+std::vector<int> CharacterPanel::StatStops() const {
+  std::vector<int> stops;
+  for (int i = 0; i < kNumAllocStats; ++i) {
+    stops.push_back(i);
+  }
+  if (!ShowsCombatStats()) {
+    return stops;
+  }
+  for (int i = 0; i < AttackRowsShown(); ++i) {
+    stops.push_back(kStatSelAttack + i);
+  }
+  stops.push_back(kStatSelViewAll);
+  return stops;
+}
+
+int CharacterPanel::AttackRowsShown() const {
+  // They lead the extras, so the budget cuts them last.
+  return ShowsCombatStats() ? ExtraStatsShown(2) : 0;
+}
+
+int CharacterPanel::EffectiveStatSel() const {
+  const std::vector<int> stops = StatStops();
+  std::vector<int>::const_iterator it =
+      std::lower_bound(stops.begin(), stops.end(), stat_sel_);
+  return it == stops.end() ? stops.back() : *it;
+}
+
+CharacterPanel::StatCol CharacterPanel::EffectiveStatCol() const {
+  return !read_only_ && EffectiveStatSel() < kNumAllocStats ? stat_col_
+                                                            : kStatColName;
 }
 
 int CharacterPanel::FirstStatStop() const {
@@ -371,11 +418,9 @@ int CharacterPanel::RingStops() const {
   // puts the name one step up from the bar and one step down from the bottom
   // row without a separate rule for either.
   if (ActiveTab() == kTabStats) {
-    // The name and tab bar, the Farm/Boss row if shown, the four AP stats, and
-    // the View All Stats row below them, which is absent while there are no
-    // combat stats to lead to.
-    return 2 + (ShowsPresetBar() ? 1 : 0) + StatStops() +
-           (ShowsCombatStats() ? 1 : 0);
+    // The name and tab bar, the Farm/Boss row if shown, and the stat rows.
+    return 2 + (ShowsPresetBar() ? 1 : 0) +
+           static_cast<int>(StatStops().size());
   }
   if (ActiveTab() == kTabHyper) {
     // The name and tab bar, the Farm/Boss row, one stop per stat, and [Reset].
@@ -411,10 +456,13 @@ int CharacterPanel::CursorStop() const {
       return 1;
     case kZonePresets:
       return 2;
-    case kZoneStatRows:
-      // Clamped to the stops that exist: with the AP rows gone, the zone holds
-      // only the View All Stats row, whatever stat_sel_ says.
-      return std::min(stat_sel_, StatStops()) + FirstStatStop();
+    case kZoneStatRows: {
+      const std::vector<int> stops = StatStops();
+      return static_cast<int>(
+                 std::find(stops.begin(), stops.end(), EffectiveStatSel()) -
+                 stops.begin()) +
+             FirstStatStop();
+    }
     case kZoneJobRows:
       return job_sel_ + 2;
     case kZoneAdvTabs:
@@ -452,7 +500,9 @@ void CharacterPanel::SetCursorStop(int stop) {
       return;
     }
     zone_ = kZoneStatRows;
-    stat_sel_ = read_only_ ? kNumAllocStats : stop - FirstStatStop();
+    const std::vector<int> stops = StatStops();
+    stat_sel_ = stops[std::clamp(stop - FirstStatStop(), 0,
+                                 static_cast<int>(stops.size()) - 1)];
     return;
   }
   if (ActiveTab() == kTabHyper) {
@@ -773,16 +823,26 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
       rows.push_back(PanelSeparator(highlighted_));
       continue;
     }
+    if (i < AttackRowsShown()) {
+      rows.push_back(AttackRow(extras[i], kStatSelAttack + i, content_focused));
+      continue;
+    }
     rows.push_back(StatsAligned(StatRow(extras[i].label, extras[i].value)));
   }
   // Ends the block. Whatever didn't fit above is on the screen this row opens,
   // and the cursor reaches it by moving past the last stat. This is the last
   // row to be dropped, not the first.
-  bool selected = content_focused && stat_sel_ == kNumAllocStats;
+  bool selected = content_focused && EffectiveStatSel() == kStatSelViewAll;
   rows.push_back(CenteredCell("View All Stats",
                               selected ? ftxui::inverted : ftxui::nothing,
                               ContentWidth()));
   return ftxui::vbox(std::move(rows));
+}
+
+ftxui::Element CharacterPanel::AttackRow(const StatLine& line, int index,
+                                         bool content_focused) const {
+  return StatsAligned(StatRow(line.label, line.value,
+                              content_focused && EffectiveStatSel() == index));
 }
 
 std::string CharacterPanel::PoolText() const {
@@ -1764,32 +1824,42 @@ bool CharacterPanel::OnStatsTabEvent(const ftxui::Event& event,
     return OnPresetBarEvent(event, actions);
   }
   // Stat rows: Up and Down move through them, and past either end is the tab
-  // bar. Left and Right do nothing here; they belong to the tab bar.
+  // bar. Left and Right pick the name or the [+], and a row with no [+] keeps
+  // the cursor on its name.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    stat_col_ = event == ftxui::Event::ArrowRight && !read_only_ &&
+                        EffectiveStatSel() < kNumAllocStats
+                    ? kStatColPlus
+                    : kStatColName;
     return true;
   }
   if (!IsForward(event)) {
     return false;
   }
-  if (OnViewAllStatsRow()) {
+  const int sel = EffectiveStatSel();
+  if (sel == kStatSelViewAll) {
     if (actions.all_stats) {
       actions.all_stats();
     }
     return true;
   }
-  if (!read_only_ && character_.proto().ap() > 0) {
+  if (EffectiveStatCol() == kStatColName) {
+    if (actions.stat_inspect) {
+      actions.stat_inspect(static_cast<InspectStat>(sel));
+    }
+    return true;
+  }
+  if (character_.proto().ap() > 0) {
     if (actions.allocate) {
-      actions.allocate(kAllocStats[stat_sel_].field);
+      actions.allocate(kAllocStats[sel].field);
     }
     return true;
   }
   return false;
-}
-
-bool CharacterPanel::OnViewAllStatsRow() const {
-  return ShowsCombatStats() && EffectiveZone() == kZoneStatRows &&
-         stat_sel_ == kNumAllocStats;
 }
 
 bool CharacterPanel::ShowsCombatStats() const {

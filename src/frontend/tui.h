@@ -63,6 +63,7 @@
 #include "src/frontend/screens/skill_inspect_screen.h"
 #include "src/frontend/screens/soul_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
+#include "src/frontend/screens/stat_inspect_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -290,6 +291,7 @@ class Tui {
   // Every stat on one screen, opened from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   HyperStatInspectPanel hyper_stat_inspect_panel_;
+  StatInspectPanel stat_inspect_panel_;
   // One buff's effects and its two prices, opened from the Buffs tab's menu.
   BuffInfoPanel buff_info_panel_;
   ShopPanel shop_panel_;
