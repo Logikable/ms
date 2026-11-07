@@ -14,6 +14,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/sacred_power.h"
 #include "src/character/skill_placement.h"
+#include "src/combat/damage.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -116,13 +117,14 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   // The Character panel drops the end of this list on a short terminal, and All
   // Stats lays it out in two columns, so both depend on this order. The empty
   // label is the rule before the non-combat rows.
-  EXPECT_EQ(labels, (std::vector<std::string>{
-                        "Attack", "Magic Attack", "Final Damage", "Damage",
-                        "Boss Damage", "Normal Damage", "Ignore DEF",
-                        "Critical Rate", "Critical Damage", "Buff Duration",
-                        "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
-                        "Additional EXP", "Arcane Force"}));
-  EXPECT_TRUE(lines[11].rule) << "the empty row is the rule, not a blank stat";
+  EXPECT_EQ(labels,
+            (std::vector<std::string>{
+                "Damage Range", "Attack", "Magic Attack", "Final Damage",
+                "Damage", "Boss Damage", "Normal Damage", "Ignore DEF",
+                "Critical Rate", "Critical Damage", "Buff Duration",
+                "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
+                "Additional EXP", "Arcane Force"}));
+  EXPECT_TRUE(lines[12].rule) << "the empty row is the rule, not a blank stat";
 }
 
 // The Sacred Power row appears at the Grandis level, not before.
@@ -154,15 +156,15 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 16u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 17u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
   for (const StatLine& line : PanelExtraStatLines(first, account_, {})) {
     labels.push_back(line.label);
   }
-  EXPECT_EQ(labels, (std::vector<std::string>{"Attack", "Magic Attack",
-                                              "Attack Speed"}));
+  EXPECT_EQ(labels, (std::vector<std::string>{"Damage Range", "Attack",
+                                              "Magic Attack", "Attack Speed"}));
 
   // The second advancement adds the percent rows, but not the rows for things
   // the player hasn't reached yet, nor the rule above them.
@@ -171,14 +173,14 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, account_, {}).size(), 8u);
+  EXPECT_EQ(PanelExtraStatLines(second, account_, {}).size(), 9u);
 
   Character third_proto;
   third_proto.set_level(70);
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 16u);
+  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 17u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
@@ -430,6 +432,45 @@ TEST_F(StatRowsTest, AStatsBreakdownAddsUpToItsRow) {
   const std::string row = ValueOf(MainStatLines(hyper, {}), "STR");
   EXPECT_NE(row.find(") " + std::to_string(after.total)), std::string::npos)
       << row;
+}
+
+// GMS's Damage Range: weapon constant, 4 x primary + secondary, attack, %
+// damage and final damage over 100, and the floor is mastery's share of it.
+TEST_F(StatRowsTest, DamageRangeIsTheFormulasCharacterHalf) {
+  OffenseStats offense;
+  offense.primary = 1000;
+  offense.secondary = 200;
+  offense.attack = 500;
+  offense.weapon_constant = 1.34;
+  offense.damage_pct = 0.5;
+  offense.boss_pct = 3.0;  // left out, as GMS's window leaves it out
+  offense.crit_dmg = 1.0;  // left out too
+  offense.final_dmg_pct = 0.2;
+  offense.mastery = 0.9;
+  const DamageRangeValues range = DamageRange(offense);
+  // 4200 / 100 * 500 * 1.34 * 1.5 * 1.2 = 50652.
+  EXPECT_EQ(range.max, 50652);
+  EXPECT_EQ(range.min, 45586);
+}
+
+// Both ends fit the Stats tab's value column: written out under ten thousand,
+// then three digits and a unit, rounded down.
+TEST_F(StatRowsTest, TheDamageRangeRowIsShortEnoughForThePanel) {
+  CharacterInstance c = MakeWarrior();
+  const std::string row = ValueOf(ExtraStatLines(c, {}), "Damage Range");
+  EXPECT_NE(row.find(" ~ "), std::string::npos) << row;
+  const DamageRangeValues range = DamageRange(CharacterOffense(c, {}));
+  ASSERT_LT(range.max, 10000);
+  EXPECT_EQ(row, std::to_string(range.min) + " ~ " + std::to_string(range.max));
+}
+
+TEST_F(StatRowsTest, TheDamageRangesUnitsKeepThreeDigits) {
+  EXPECT_EQ(DamageRangeText({.min = 9999, .max = 10000}), "9,999 ~ 10K");
+  EXPECT_EQ(DamageRangeText({.min = 45586, .max = 50652}), "45.5K ~ 50.6K");
+  EXPECT_EQ(DamageRangeText({.min = 1239999, .max = 999999999}),
+            "1.23M ~ 999M");
+  EXPECT_EQ(DamageRangeText({.min = 12345678901, .max = 2000000000000}),
+            "12.3B ~ 2T");
 }
 
 // Attack has no final source, so all of it is base and %Attack.

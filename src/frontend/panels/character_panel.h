@@ -581,6 +581,7 @@ class CharacterPanel {
   static constexpr int kStatSelAttack = 4;
   static constexpr int kStatSelMagic = 5;
   static constexpr int kStatSelViewAll = 6;
+  static constexpr int kAttackRows = 2;
   int stat_sel_ = 0;
   StatCol stat_col_ = kStatColName;  // selected column of that row
   // The page the player moved the bar to, and whether they have moved it at

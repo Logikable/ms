@@ -43,7 +43,8 @@ ftxui::Element ColumnText(const StatLine& line, bool selected) {
 }
 
 // Where each stat is drawn: MainStatLines fills the left column before the
-// right, and Attack and Magic Attack head the extras' left column.
+// right, and Attack and Magic Attack follow Damage Range down the extras' left
+// column.
 struct GridCell {
   int row;
   int col;
@@ -267,13 +268,13 @@ ftxui::Element AllStatsPanel::RenderBody() const {
     rows.push_back(ThemedSeparator());
   }
   // MainStatLines lists STR to LUK in InspectStat's order, and the extras
-  // start with Attack and Magic Attack.
+  // start with Damage Range, then Attack and Magic Attack.
   const std::optional<InspectStat> lit = selected_stat();
   const int main_lit =
       lit && *lit <= InspectStat::kLuk ? static_cast<int>(*lit) : -1;
   const int extra_lit =
       lit && *lit >= InspectStat::kAttack
-          ? static_cast<int>(*lit) - static_cast<int>(InspectStat::kAttack)
+          ? 1 + static_cast<int>(*lit) - static_cast<int>(InspectStat::kAttack)
           : -1;
   rows.push_back(Pairs(
       MainStatLines(character_, skills_, view.activity, view.gear), main_lit));

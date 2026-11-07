@@ -70,13 +70,16 @@ TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   // screen always shows everything.
   EXPECT_NE(RowWith(panel.Render(), "STR").find("INT"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);
+  EXPECT_NE(RowWith(panel.Render(), "Damage Range").find("Normal Damage"),
+            std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Ignore DEF"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Magic Attack").find("Critical Rate"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Final Damage").find("Critical Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Damage").find("Buff Duration"),
+  // Two spaces, so Damage Range doesn't answer for it.
+  EXPECT_NE(RowWith(panel.Render(), "Damage  ").find("Buff Duration"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Attack Speed"),
             std::string::npos);
@@ -84,12 +87,8 @@ TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Item Drop Rate").find("Arcane Force"),
             std::string::npos);
-  // Eleven combat stats, so the right column is a row short and the gap is at
-  // its bottom.
-  EXPECT_EQ(RowWith(panel.Render(), "Normal Damage").find_last_not_of(' '),
-            static_cast<size_t>(AllStatsPanel::kColumnWidth) - 2);
   // The rule breaks the columns too: Meso Drop Rate starts the group below it
-  // in the left column instead of filling the gap Normal Damage left.
+  // in the left column, though the stats above it filled the right one.
   EXPECT_LT(RowWith(panel.Render(), "Meso Drop Rate").find("Meso Drop Rate"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth));
 }

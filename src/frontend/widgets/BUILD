@@ -404,6 +404,7 @@ cc_test(
         "//src/character:character_stats",
         "//src/character:consumables",
         "//src/character:sacred_power",
+        "//src/combat:damage",
         "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],
