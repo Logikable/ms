@@ -5,7 +5,6 @@
 #ifndef MS_SRC_COMBAT_DAMAGE_H_
 #define MS_SRC_COMBAT_DAMAGE_H_
 
-#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -327,13 +326,6 @@ double DefenseShare(const Mob& mob, double ied);
 // Unlike GMS, crit damage is weighted by crit chance, so it's worth more when
 // crits happen more. `vs_boss` picks boss or normal % damage; never both.
 int CombatPower(const OffenseStats& offense, bool vs_boss);
-
-// GMS's Damage Range, the one number the stat window shows since KMS's
-// October 2023 Combat Power patch removed its low end: the damage formula's
-// character-only factors (weapon constant, stats, attack, % damage and final
-// damage), leaving out boss and normal damage, crit, mastery and the target.
-// Source: maplestorywiki.net/w/Damage_Formula, "Default Damage Range".
-int64_t DamageRange(const OffenseStats& offense);
 
 // GMS's own Combat Power, which compares characters across jobs: every crit
 // lands at base crit damage plus the bonus, damage and boss damage always add,

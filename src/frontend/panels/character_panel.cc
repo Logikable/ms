@@ -391,10 +391,8 @@ std::vector<int> CharacterPanel::StatStops() const {
 }
 
 int CharacterPanel::AttackRowsShown() const {
-  // They follow Damage Range at the head of the extras, so the budget cuts
-  // them last.
-  return ShowsCombatStats() ? std::max(0, ExtraStatsShown(1 + kAttackRows) - 1)
-                            : 0;
+  // They lead the extras, so the budget cuts them last.
+  return ShowsCombatStats() ? ExtraStatsShown(2) : 0;
 }
 
 int CharacterPanel::EffectiveStatSel() const {
@@ -825,9 +823,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
       rows.push_back(PanelSeparator(highlighted_));
       continue;
     }
-    if (i >= 1 && i <= AttackRowsShown()) {
-      rows.push_back(
-          AttackRow(extras[i], kStatSelAttack + i - 1, content_focused));
+    if (i < AttackRowsShown()) {
+      rows.push_back(AttackRow(extras[i], kStatSelAttack + i, content_focused));
       continue;
     }
     rows.push_back(StatsAligned(StatRow(extras[i].label, extras[i].value)));

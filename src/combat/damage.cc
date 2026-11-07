@@ -771,14 +771,6 @@ int CombatPower(const OffenseStats& offense, bool vs_boss) {
   return static_cast<int>(std::floor(power));
 }
 
-int64_t DamageRange(const OffenseStats& offense) {
-  double range = (4.0 * offense.primary + offense.secondary) / 100.0 *
-                 offense.attack * offense.weapon_constant;
-  range *= 1.0 + offense.damage_pct;
-  range *= 1.0 + offense.final_dmg_pct;
-  return static_cast<int64_t>(std::floor(range));
-}
-
 int GmsCombatPower(const OffenseStats& offense) {
   double power = (4.0 * offense.primary + offense.secondary) / 100.0 *
                  offense.attack * offense.weapon_constant;

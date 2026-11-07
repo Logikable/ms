@@ -2090,7 +2090,7 @@ TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
   // stats and the row that leads to the rest.
   panel.SetMaxRows(19);
   EXPECT_EQ(ExtrasShown(panel.Render()),
-            (std::vector<std::string>{"Damage Range", "Attack", "Magic Attack",
+            (std::vector<std::string>{"Attack", "Magic Attack", "Final Damage",
                                       "View All Stats"}));
 }
 
@@ -2125,7 +2125,7 @@ TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   int natural = PanelHeight(panel.Render());
-  EXPECT_EQ(natural, 25) << "chrome, the AP stats, 9 extras and the way out";
+  EXPECT_EQ(natural, 24) << "chrome, the AP stats, 8 extras and the way out";
   // From the tightest budget up past the natural height: it takes every row it
   // is given and no more. 15 is the minimum: the fixed rows and View All Stats.
   for (int budget = 15; budget <= natural + 2; ++budget) {
@@ -2148,7 +2148,7 @@ TEST_F(CharacterPanelTest, ABeginnerPanelIsTheChromeAndTheApRows) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 10u);  // 9 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 9u);  // 8 stats and the row
 }
 
 // --- The Skills tab's row budget ---
@@ -2472,8 +2472,8 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterInstance first = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(first, account_, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
-            (std::vector<std::string>{"Damage Range", "Attack", "Magic Attack",
-                                      "Attack Speed", "View All Stats"}));
+            (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
+                                      "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
   CharacterPanel later(second, account_, panel_focus_);

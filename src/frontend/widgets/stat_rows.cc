@@ -157,8 +157,6 @@ std::vector<StatLine> CombatStatLines(
   int flat_attack = worn.attack() + derived.skill_stats.attack();
   int flat_magic = worn.magic_attack() + derived.skill_stats.magic_attack();
   std::vector<StatLine> lines = {
-      {"Damage Range", FormatWithCommas(DamageRange(
-                           CharacterOffense(character, skills, preset, gear)))},
       {"Attack", TotalWithBreakdown(flat_attack, e.attack() - flat_attack)},
       {"Magic Attack",
        TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
