@@ -897,6 +897,10 @@ TEST(SkillDataTest, OnlyADamagingSkillStatesAKeptHalf) {
         << entry.first << " states a kept half nothing will read";
     EXPECT_FALSE(skill.has_passive_per_level())
         << entry.first << " states a kept half nothing will read";
+    for (const SkillStep& step : skill.step()) {
+      EXPECT_FALSE(step.has_passive())
+          << entry.first << " states a kept half nothing will read";
+    }
   }
 }
 

@@ -548,8 +548,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     AddEffect(WithoutSwingLevers(granted), totals);
     // The part of an attack skill that stays with the character rather than the
     // swing. See Skill.passive.
-    AddEffect(EffectAt(skill.passive(), skill.passive_per_level(), level),
-              totals);
+    AddEffect(PassiveEffectAt(skill, level), totals);
   } else {
     AddEffect(granted, totals);
   }

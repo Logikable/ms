@@ -975,6 +975,9 @@ message Buff {
 message SkillStep {
   int32 from_level = 1;
   SkillEffect base = 2;
+  // What the step adds to Skill.passive, the half an attack keeps. Sol Janus:
+  // Dawn's +30% damage to normal enemies arrives whole at 30.
+  SkillEffect passive = 3;
 }
 
 // One of Buff.step.

@@ -1882,10 +1882,12 @@ std::vector<Row> PermanentRows(const Skill& skill, int level) {
   const SkillEffect at = SkillEffectAt(skill, level);
   if (skill.kind() == SKILL_KIND_ATTACK) {
     rows = LeverRows(WithoutSwingLevers(at), SkillEffect(), 1, "");
-    Append(LeverRows(skill.passive(), skill.passive_per_level(), level, ""),
-           rows);
   } else {
     rows = LeverRows(at, SkillEffect(), 1, "");
+  }
+  if (DealsDamage(skill.kind())) {
+    Append(LeverRows(PassiveEffectAt(skill, level), SkillEffect(), 1, ""),
+           rows);
   }
   Append(ProcRows(skill, level), rows);
   return rows;

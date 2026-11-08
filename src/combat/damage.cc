@@ -302,6 +302,16 @@ SkillEffect SkillEffectAt(const Skill& skill, int level) {
   return at;
 }
 
+SkillEffect PassiveEffectAt(const Skill& skill, int level) {
+  SkillEffect at = EffectAt(skill.passive(), skill.passive_per_level(), level);
+  for (const SkillStep& step : skill.step()) {
+    if (level >= step.from_level()) {
+      at = EffectAt(at, step.passive(), 2);
+    }
+  }
+  return at;
+}
+
 SkillEffect BuffEffectAt(const Buff& buff, int level) {
   SkillEffect at = EffectAt(buff.base(), buff.per_level(), level);
   for (const BuffStep& step : buff.step()) {

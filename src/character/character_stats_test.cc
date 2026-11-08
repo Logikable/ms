@@ -2709,6 +2709,25 @@ TEST_F(DerivedStatsTest, AnAttacksKeptHalfReachesTheStatLine) {
   EXPECT_NEAR(stats.final_dmg_pct, 0.24, 1e-9);
 }
 
+// A step's kept share arrives at its level and not before, and only on the
+// character: the swing's own normal_pct isn't the one being read.
+TEST_F(DerivedStatsTest, AStepsKeptShareArrivesAtItsLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill dawn = Marksmanship();
+  dawn.set_name("Sol Janus: Dawn");
+  dawn.set_kind(SKILL_KIND_AUTO_ATTACK);
+  dawn.set_max_level(30);
+  SkillStep* step = dawn.add_step();
+  step->set_from_level(30);
+  step->mutable_passive()->set_normal_pct(0.30);
+  std::map<std::string, Skill> skills = {{"sol_janus_dawn", dawn}};
+  ASSERT_TRUE(c.LearnSkill(dawn, 29));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).normal_pct, 0.0, 1e-9);
+
+  ASSERT_TRUE(c.LearnSkill(dawn, 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).normal_pct, 0.30, 1e-9);
+}
+
 // The two halves together are the whole effect: each lever is in exactly one,
 // and neither adds a lever. The skill page lists them separately, so a lever
 // missing from both would be neither shown nor applied.
