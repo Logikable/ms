@@ -156,6 +156,10 @@ std::map<int, int> OrdersOf(const Skill& skill) {
 // can reach from where it is referenced is a grant nothing will ever read.
 bool SameCharacterCanHold(const std::map<std::string, Skill>& skills,
                           const Skill& skill, const std::string& name) {
+  // Holding a skill holds it, even in a book this build switches off.
+  if (name == skill.name()) {
+    return true;
+  }
   for (Job job : EveryValueOf<Job>(Job_descriptor())) {
     std::set<JobAdvancement> books = BooksFor(job);
     if (!ReachedBy(books, skill)) {

@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "src/build_config.h"
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
 #include "src/character/hexa_matrix.h"
@@ -23,6 +24,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
@@ -4677,6 +4679,53 @@ TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
   // Counted in defeats, so neither pace scaling nor attacking affects it.
   EXPECT_DOUBLE_EQ(cast.interval_seconds, 0.0);
   EXPECT_DOUBLE_EQ(cast.swing_seconds, 0.0);
+}
+
+// The shipped Sol Janus: Dawn: the second ring's reach at 10, and the switch's
+// passive whole at 30. The rings are one object; see its file.
+TEST(ComputeCombatParamsTest, SolJanusDawnGrowsAtTenAndPaysItsPassiveAtThirty) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const Skill& dawn = TestData<Skill>("skills").at("sol_janus_dawn");
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"sol_janus_dawn", dawn}});
+  state.current_map = "field";
+  EquipSword(state);
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_HERO);
+  }
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_COMMON, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  const auto ring = [&state]() {
+    CombatParams params = ComputeCombatParams(state);
+    for (const AttackOption& attack : params.auto_attacks) {
+      if (attack.name == "Sol Janus: Dawn") {
+        return attack;
+      }
+    }
+    ADD_FAILURE() << "no ring";
+    return AttackOption();
+  };
+
+  ASSERT_TRUE(state.character.LearnSkill(dawn, 9));
+  EXPECT_EQ(ring().max_enemies, 9);
+  EXPECT_DOUBLE_EQ(ring().interval_seconds,
+                   1.9 * GameSpeedFactor(state.character.proto().level()));
+  ASSERT_TRUE(state.character.LearnSkill(dawn, 1));
+  EXPECT_EQ(ring().max_enemies, 14);
+  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).exp_pct, 0.37,
+              1e-9);
+  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).normal_pct, 0.0,
+              1e-9);
+
+  ASSERT_TRUE(state.character.LearnSkill(dawn, 20));
+  EXPECT_EQ(ring().max_enemies, 14);
+  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).exp_pct, 1.00,
+              1e-9);
+  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).normal_pct, 0.30,
+              1e-9);
 }
 
 // Speed Mirage II's shape: a passive that replaces the named skill's clock

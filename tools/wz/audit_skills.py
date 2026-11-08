@@ -141,7 +141,10 @@ def our_skills():
         # A V node pool and a job's book both have a skill called Quad Star,
         # and the 5th job's id sorts first. So a skill searches only the one
         # id space it belongs to, never both.
-        if re.search(r'^v_node:', text, re.M):
+        # HEXA common nodes sit in 50000 the way V common nodes sit in 40000.
+        if re.search(r'^hexa_node:\s*HEXA_NODE_KIND_COMMON', text, re.M):
+            prefixes = {'50000'}
+        elif re.search(r'^v_node:', text, re.M):
             # The node's own line, plus the shared pool: GMS files the nodes
             # every warrior shares under 40000, not under each branch.
             branch = rel.split(os.sep)[2] if rel.count(os.sep) > 2 else ''
@@ -167,8 +170,8 @@ def gms_skills(cache):
             continue
         if not sid.isdigit() or len(sid) not in (7, 9):
             continue                          # 8 digits is another class's
-        if len(sid) == 9 and not sid.startswith('400'):
-            continue                          # 9 digits that are not 5th job
+        if len(sid) == 9 and not sid.startswith(('400', '500')):
+            continue                          # 9 digits not 5th or 6th job
         out[entry['name']].append((sid, entry))
     return out
 

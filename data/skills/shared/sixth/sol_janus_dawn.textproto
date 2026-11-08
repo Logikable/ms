@@ -1,0 +1,93 @@
+# GMS's Sol Janus is a mode switch between Dawn's rings and Dusk's crystals.
+# Only Dawn is built, as the form a farmer runs, and it carries the switch's own
+# passive (500001000's expR and nbdR). Boss maps bar every form.
+#
+# GMS summons up to three rings, each shrinking the others: on our 261-300 maps
+# one ring reaches about 9 mobs and two or three about 14, from the client's
+# spawn points. One object stands in for them. No cooldown, duration or HP cost,
+# since a farm map keeps the rings up. v271's ring attacks every 1.9s
+# (attackDelay 1900).
+name: "Sol Janus: Dawn"
+description:
+  "Summons a Cyclic Ring that endlessly creates and destroys Sol Erda. The "
+  "cycling Erda Flow attacks nearby enemies. Also increases EXP obtained, and "
+  "damage to normal enemies at the master level. Cannot be used on boss maps."
+kind: SKILL_KIND_AUTO_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 1 }
+placement {
+  job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
+  skill_order: 1
+}
+placement {
+  job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
+  skill_order: 1
+}
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 1 }
+hexa_node: HEXA_NODE_KIND_COMMON
+max_level: 30
+max_enemies: 9
+lines: 6
+cast_interval_seconds: 1.9
+farming_only: true
+# The second ring, at 10.
+boost {
+  skill_name: "Sol Janus: Dawn"
+  max_enemies: 5
+  min_level: 10
+}
+# EXP is 8+2x, plus 9, 10 and 13 at 10, 20 and 30: 100% at the master level.
+base { skill_pct: 4.72 exp_pct: 0.10 }
+per_level { skill_pct: 0.11 exp_pct: 0.02 }
+step { from_level: 10 base { exp_pct: 0.09 } }
+step { from_level: 20 base { exp_pct: 0.10 } }
+step {
+  from_level: 30
+  base { exp_pct: 0.13 }
+  passive { normal_pct: 0.30 }
+}
+# v271's per-job damage, from the client's attackInfo; the Hero's is the base.
+line_overrides {
+  line: JOB_PAGE
+  skill { base { skill_pct: 9.08 } per_level { skill_pct: 0.22 } }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill { base { skill_pct: 5.09 } per_level { skill_pct: 0.13 } }
+}
+line_overrides {
+  line: JOB_FIRE_POISON_WIZARD
+  skill { base { skill_pct: 4.38 } per_level { skill_pct: 0.11 } }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill { base { skill_pct: 4.47 } per_level { skill_pct: 0.11 } }
+}
+line_overrides {
+  line: JOB_CLERIC
+  skill { base { skill_pct: 4.59 } per_level { skill_pct: 0.12 } }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill { base { skill_pct: 11.72 } per_level { skill_pct: 0.30 } }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill { base { skill_pct: 9.53 } per_level { skill_pct: 0.23 } }
+}
+# Shadow Partner doesn't copy an auto attack; GMS gives the ring 70% final
+# damage instead (checkSkillDamR), folded in: 5.65 and 0.14 for the Night
+# Lord, 5.26 and 0.14 for the Shadower, x1.7.
+line_overrides {
+  line: JOB_ASSASSIN
+  skill { base { skill_pct: 9.605 } per_level { skill_pct: 0.238 } }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill { base { skill_pct: 8.942 } per_level { skill_pct: 0.238 } }
+}

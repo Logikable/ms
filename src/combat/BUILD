@@ -343,9 +343,11 @@ cc_test(
     name = "encounter_test",
     size = "small",
     srcs = ["encounter_test.cc"],
+    data = ["//data/skills:all"],
     deps = [
         ":constants",
         ":encounter",
+        "//src:build_config",
         "//src:game_state",
         "//src/character:character_stats",
         "//src/character:consumables",
@@ -360,6 +362,7 @@ cc_test(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
+        "//src/testing:data_files",
         "@googletest//:gtest_main",
     ],
 )
