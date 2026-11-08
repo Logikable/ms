@@ -181,20 +181,26 @@ void EquippedPanel::StepPreset(int direction) {
 }
 
 std::vector<SymbolKind> EquippedPanel::VisibleSymbolKinds() const {
-  std::vector<SymbolKind> kinds = {SymbolKind::kArcane};
-  if (Unlocked(Feature::kSacredSymbols, character_, account_)) {
-    kinds.push_back(SymbolKind::kSacred);
-  }
-  // No map below the cap drops one, so the chip waits for a symbol rather than
-  // a level: until then it could only ever be empty.
+  // Sacred shows at Grandis's level or with a symbol in hand, which a trade or
+  // the bank can bring sooner. No map below the cap drops a Grand one, so its
+  // chip waits for the symbol alone: until then it could only ever be empty.
+  bool sacred = false;
   bool grand = false;
+  auto note = [&](const EquipPrototype& proto) {
+    sacred = sacred || (IsSacredSymbol(proto) && !IsGrandSacredSymbol(proto));
+    grand = grand || IsGrandSacredSymbol(proto);
+  };
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character_.equipped()) {
-    grand = grand || IsGrandSacredSymbol(kv.second->prototype());
+    note(kv.second->prototype());
   }
   const InventoryInstance& bag = character_.inventory();
-  for (int i = 0; i < bag.size() && !grand; ++i) {
-    grand = IsGrandSacredSymbol(bag[i].prototype());
+  for (int i = 0; i < bag.size(); ++i) {
+    note(bag[i].prototype());
+  }
+  std::vector<SymbolKind> kinds = {SymbolKind::kArcane};
+  if (sacred || Unlocked(Feature::kSacredSymbols, character_, account_)) {
+    kinds.push_back(SymbolKind::kSacred);
   }
   if (grand) {
     kinds.push_back(SymbolKind::kGrandSacred);

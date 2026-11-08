@@ -1407,6 +1407,27 @@ TEST_F(SymbolTabTest, TheKindRowSplitsTheListsFromGrandis) {
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_SYMBOL_CERNIUM);
 }
 
+// A Sacred Symbol in hand shows the chip before Grandis: a trade or the bank
+// can bring one sooner, and a symbol with no list to sit in is lost.
+TEST_F(SymbolTabTest, ACarriedSacredSymbolShowsTheChipBeforeGrandis) {
+  CharacterInstance c = Traveller();
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/0);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  OpenSymbolTab(component);
+  ASSERT_EQ(RenderComponent(component).find("Sacred"), std::string::npos);
+
+  EquipPrototype cernium;
+  cernium.set_name("Sacred Symbol: Cernium");
+  cernium.set_equip_slot(EQUIP_SLOT_SYMBOL_CERNIUM);
+  cernium.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+  c.PickUp(std::make_unique<EquipInstance>(cernium));
+  std::string carried = RenderComponent(component);
+  EXPECT_NE(carried.find("Sacred"), std::string::npos) << carried;
+  EXPECT_EQ(carried.find("G.Sacred"), std::string::npos) << carried;
+}
+
 // A Grand Sacred Symbol has its own chip, after Sacred, and leaves the Sacred
 // list. The chip waits for one to be worn or carried: no map below the cap
 // drops them.
