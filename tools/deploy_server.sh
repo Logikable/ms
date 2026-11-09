@@ -15,7 +15,7 @@
 # runs here every time.
 set -euo pipefail
 
-HOST=${MS_SERVER_HOST:-68.42.95.210}
+HOST=${MS_SERVER_HOST:-38.81.233.43}
 SSH_PORT=${MS_SERVER_SSH_PORT:-21967}
 LOGIN=${MS_SERVER_USER:-logikable}
 REMOTE=$LOGIN@$HOST
