@@ -1,0 +1,82 @@
+# GMS's Sol Hecate (500001005) is a toggled summon with three skills of its
+# own. Charon (a second life) and Pactum (binding keys) are left out by the
+# user's call, as is Styx's stun. Styx and Phlegethon level with this node.
+#
+# v271's particle (500001010) is fired four at a time every 3.5s (attackDelay
+# 3500), each one enemy: all four on a lone boss. Shadow Partner doesn't copy
+# a summon, and v271 gives these jobs no checkSkillDamR for it either.
+#
+# 500001005's ignoreMobpdpR and bdR are log10(x)*20+log20(x)*20: 20 from 10
+# and 20 more from 20. Its psdSkill list carries them to Styx, Phlegethon and
+# their follow-up hits, so each of those states the same steps.
+name: "Sol Hecate"
+description:
+  "Coalesce Sol Erda drawn to the Adversary's determination into a guardian "
+  "spirit. Sol Hecate follows the Adversary, automatically attacking enemies "
+  "and using exclusive skills. Sol Hecate grows as it levels up, with "
+  "additional skills becoming available at certain level milestones. "
+  "Prioritizes the boss with the highest Max HP."
+kind: SKILL_KIND_AUTO_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 2 }
+placement {
+  job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
+  skill_order: 2
+}
+placement {
+  job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
+  skill_order: 2
+}
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 2 }
+hexa_node: HEXA_NODE_KIND_COMMON
+max_level: 30
+max_enemies: 4
+lines: 6
+cast_interval_seconds: 3.5
+scatter { hits: 4 }
+base { skill_pct: 1.11 }
+per_level { skill_pct: 0.08 }
+step { from_level: 10 base { ied_pct: 0.20 boss_pct: 0.20 } }
+step { from_level: 20 base { ied_pct: 0.20 boss_pct: 0.20 } }
+# v271's per-job damage, from the particle's attackInfo; the Hero's is the base.
+line_overrides {
+  line: JOB_PAGE
+  skill { base { skill_pct: 2.07 } per_level { skill_pct: 0.12 } }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill { base { skill_pct: 1.83 } per_level { skill_pct: 0.11 } }
+}
+line_overrides {
+  line: JOB_FIRE_POISON_WIZARD
+  skill { base { skill_pct: 1.34 } per_level { skill_pct: 0.09 } }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill { base { skill_pct: 1.87 } per_level { skill_pct: 0.11 } }
+}
+line_overrides {
+  line: JOB_CLERIC
+  skill { base { skill_pct: 1.34 } per_level { skill_pct: 0.08 } }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill { base { skill_pct: 2.74 } per_level { skill_pct: 0.18 } }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill { base { skill_pct: 3.21 } per_level { skill_pct: 0.18 } }
+}
+line_overrides {
+  line: JOB_ASSASSIN
+  skill { base { skill_pct: 2.73 } per_level { skill_pct: 0.18 } }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill { base { skill_pct: 2.76 } per_level { skill_pct: 0.18 } }
+}

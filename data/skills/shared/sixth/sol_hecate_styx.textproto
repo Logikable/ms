@@ -1,0 +1,260 @@
+# GMS's Styx (500001006) stuns, which bosses here ignore, so only its damage
+# is built. The Death Seed (500001011) ticks four times a second apart and
+# then blooms (500001012) seven times. Both land with the wave, as Slash
+# Shadow Formation's allies do: the seconds between them aren't priced.
+#
+# GMS halves the Night Lord's and Shadower's wave and bloom for Shadow Partner
+# to double back. The seed is a debuff, so the shadow skips it.
+#
+# Cast mid-swing, like a bound skill. The client's action frames aren't
+# traced; 960 is Phlegethon's first strike (multiAttackInfo), never charged.
+name: "Sol Hecate: Styx"
+description:
+  "Releases a wave of concentrated Sol Erda to devastate enemies, sewing a "
+  "seed of death into enemies struck. The seed will grow, dealing continuous "
+  "damage to the host, before blooming to take their life."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 3 }
+placement {
+  job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
+  skill_order: 3
+}
+placement {
+  job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
+  skill_order: 3
+}
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 3 }
+hexa_core: "Sol Hecate"
+max_level: 30
+base_delay_ms: 960
+waives_cast: true
+cooldown_seconds: 60.0
+max_enemies: 15
+lines: 8
+base { skill_pct: 1.68 }
+per_level { skill_pct: 0.11 }
+step { from_level: 10 base { ied_pct: 0.20 boss_pct: 0.20 } }
+step { from_level: 20 base { ied_pct: 0.20 boss_pct: 0.20 } }
+extra_hit {
+  label: "Death Seed"
+  lines: 4
+  casts: 4
+  skips_mirror: true
+  base { skill_pct: 1.63 }
+  per_level { skill_pct: 0.11 }
+}
+extra_hit {
+  label: "Death Seed Bloom"
+  lines: 7
+  casts: 7
+  base { skill_pct: 2.02 }
+  per_level { skill_pct: 0.12 }
+}
+# v271's per-job damage, from each part's attackInfo; the Hero's is the base.
+# An override's extra hits replace the shared ones whole.
+line_overrides {
+  line: JOB_PAGE
+  skill {
+    base { skill_pct: 3.23 }
+    per_level { skill_pct: 0.21 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 3.36 }
+      per_level { skill_pct: 0.21 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 3.74 }
+      per_level { skill_pct: 0.24 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill {
+    base { skill_pct: 3.8 }
+    per_level { skill_pct: 0.24 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 3.56 }
+      per_level { skill_pct: 0.22 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 4.05 }
+      per_level { skill_pct: 0.26 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_FIRE_POISON_WIZARD
+  skill {
+    base { skill_pct: 2.72 }
+    per_level { skill_pct: 0.17 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 2.74 }
+      per_level { skill_pct: 0.17 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 3.24 }
+      per_level { skill_pct: 0.2 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill {
+    base { skill_pct: 3.91 }
+    per_level { skill_pct: 0.25 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 3.2 }
+      per_level { skill_pct: 0.2 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 3.77 }
+      per_level { skill_pct: 0.23 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_CLERIC
+  skill {
+    base { skill_pct: 2.12 }
+    per_level { skill_pct: 0.14 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 2.57 }
+      per_level { skill_pct: 0.15 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 3.09 }
+      per_level { skill_pct: 0.19 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill {
+    base { skill_pct: 5.38 }
+    per_level { skill_pct: 0.33 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 5.46 }
+      per_level { skill_pct: 0.35 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 6.62 }
+      per_level { skill_pct: 0.4 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill {
+    base { skill_pct: 5.24 }
+    per_level { skill_pct: 0.32 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 5.45 }
+      per_level { skill_pct: 0.32 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 7
+      casts: 7
+      base { skill_pct: 6.13 }
+      per_level { skill_pct: 0.37 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ASSASSIN
+  skill {
+    lines: 4
+    base { skill_pct: 5.15 }
+    per_level { skill_pct: 0.32 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 4.49 }
+      per_level { skill_pct: 0.29 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 4
+      casts: 7
+      base { skill_pct: 5.46 }
+      per_level { skill_pct: 0.35 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill {
+    lines: 4
+    base { skill_pct: 7.14 }
+    per_level { skill_pct: 0.46 }
+    extra_hit {
+      label: "Death Seed"
+      lines: 4
+      casts: 4
+      skips_mirror: true
+      base { skill_pct: 4.09 }
+      per_level { skill_pct: 0.25 }
+    }
+    extra_hit {
+      label: "Death Seed Bloom"
+      lines: 4
+      casts: 7
+      base { skill_pct: 4.82 }
+      per_level { skill_pct: 0.29 }
+    }
+  }
+}

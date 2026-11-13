@@ -151,8 +151,8 @@ SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
 int WholeValue(double value);
 
 // `skill` as `job`'s line has it: what that line's override sets replaces the
-// shared fields. Returns `skill` itself for a line with no override, else
-// `scratch`.
+// shared fields, a repeated field whole. Returns `skill` itself for a line with
+// no override, else `scratch`.
 const Skill& ForJob(const Skill& skill, Job job, Skill& scratch);
 
 // Hits per enemy at `level`: `lines` plus whole lines gained from

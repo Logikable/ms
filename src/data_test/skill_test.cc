@@ -67,8 +67,8 @@ std::vector<Enum> EveryValueOf(const google::protobuf::EnumDescriptor* desc) {
 // The books a job has: its own and every one before it.
 std::set<JobAdvancement> BooksFor(Job job) {
   std::set<JobAdvancement> books;
-  // Up to 5, not 4, so the 5th job's book is included.
-  for (int stage = 1; stage <= 5; ++stage) {
+  // Through the 6th, whatever this build offers, so its books are checked too.
+  for (int stage = 1; stage <= 6; ++stage) {
     JobAdvancement advancement = AdvancementForJobStage(job, stage);
     if (advancement != JOB_ADVANCEMENT_UNSPECIFIED) {
       books.insert(advancement);
@@ -193,6 +193,21 @@ bool HasACastAnimation(const Skill& skill) {
     return false;
   }
   return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
+}
+
+// Whether `skill` is, or levels with, a node every job's matrix has.
+bool IsCommonNode(const std::map<std::string, Skill>& skills,
+                  const Skill& skill) {
+  if (skill.v_node() == V_NODE_KIND_COMMON ||
+      skill.hexa_node() == HEXA_NODE_KIND_COMMON) {
+    return true;
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (entry.second.name() == skill.hexa_core()) {
+      return entry.second.hexa_node() == HEXA_NODE_KIND_COMMON;
+    }
+  }
+  return false;
 }
 
 // Whether pressing it does nothing but cast a buff. Distinguished from a heal
@@ -676,12 +691,17 @@ TEST(SkillDataTest, EveryHexaNodeMatchesItsKind) {
         by_name.find(skill.hexa_core());
     ASSERT_NE(core, by_name.end())
         << skill.name() << " names no skill as its core";
-    EXPECT_EQ(core->second->hexa_node(), HEXA_NODE_KIND_MASTERY)
-        << skill.name() << "'s core is no Mastery node";
+    EXPECT_TRUE(core->second->hexa_node() == HEXA_NODE_KIND_MASTERY ||
+                core->second->hexa_node() == HEXA_NODE_KIND_COMMON)
+        << skill.name() << "'s core is no Mastery or common node";
     EXPECT_EQ(BookOf(*core->second), BookOf(skill))
         << skill.name() << "'s core is in another book";
-    EXPECT_EQ(core->second->required_skill().SerializeAsString(),
-              skill.required_skill().SerializeAsString())
+    // Or it opens at a level of the core, as Phlegethon does at Sol Hecate 30.
+    const bool opens_with_core =
+        skill.required_skill().skill_name() == skill.hexa_core();
+    EXPECT_TRUE(opens_with_core ||
+                core->second->required_skill().SerializeAsString() ==
+                    skill.required_skill().SerializeAsString())
         << skill.name() << " must stop with its core";
     EXPECT_EQ(skill.max_level(), kHexaNodeMaxLevel) << skill.name();
   }
@@ -1085,8 +1105,10 @@ TEST(SkillDataTest, EveryScatteredSwingReachesNoFurtherThanItsStrikes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     if (skill.has_scatter()) {
-      EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
-          << entry.first << " scatters strikes but is not a swing";
+      // A timed attack scatters the same way: Sol Hecate's four particles.
+      EXPECT_TRUE(skill.kind() == SKILL_KIND_ATTACK ||
+                  skill.kind() == SKILL_KIND_AUTO_ATTACK)
+          << entry.first << " scatters strikes but never attacks";
       CheckScatter(entry.first, skill.scatter(), skill.max_enemies());
     }
     if (skill.side_strike().has_scatter()) {
@@ -1365,9 +1387,10 @@ TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
 // cast Energy Bolt with a longsword. A common node is the exception: it is in
 // every matrix, and GMS casts it with whatever is held.
 TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+  const std::map<std::string, Skill> skills = LoadSkills();
+  for (const std::pair<const std::string, Skill>& entry : skills) {
     if (entry.second.kind() != SKILL_KIND_ATTACK ||
-        entry.second.v_node() == V_NODE_KIND_COMMON) {
+        IsCommonNode(skills, entry.second)) {
       continue;
     }
     EXPECT_GT(entry.second.required_equip_type_size(), 0)
@@ -1460,10 +1483,10 @@ TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
     expected[book.book] = book.lists;
   }
   std::set<JobAdvancement> seen;
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+  const std::map<std::string, Skill> skills = LoadSkills();
+  for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    if (skill.kind() != SKILL_KIND_ATTACK ||
-        skill.v_node() == V_NODE_KIND_COMMON) {
+    if (skill.kind() != SKILL_KIND_ATTACK || IsCommonNode(skills, skill)) {
       continue;
     }
     JobAdvancement book = BookOf(skill);

@@ -4784,6 +4784,184 @@ TEST(ComputeCombatParamsTest, ATimedAttacksOwnLeversReachOnlyItsHits) {
   EXPECT_NEAR(swung[1], swung[0], 1e-9);
 }
 
+// A Hero at the 6th job holding the shipped Sol Hecate at `level`, with a
+// boss to hit. `book` is the three Hecate files, edited or not.
+std::unique_ptr<GameState> HecateHero(const std::map<std::string, Skill>& book,
+                                      int level) {
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  auto owned = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{},
+      std::map<std::string, Mob>{{"snail", boss}},
+      std::map<std::string, MapData>{{"field", TwoSnailMap()}}, book);
+  GameState& state = *owned;
+  state.current_map = "field";
+  EquipSword(state);
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_HERO);
+  }
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_COMMON, 0, level);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  EXPECT_TRUE(state.character.LearnSkill(book.at("sol_hecate"), level));
+  return owned;
+}
+
+std::map<std::string, Skill> HecateBook() {
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  return {{"sol_hecate", skills.at("sol_hecate")},
+          {"sol_hecate_styx", skills.at("sol_hecate_styx")},
+          {"sol_hecate_phlegethon", skills.at("sol_hecate_phlegethon")}};
+}
+
+// The named attack on the swing list or the timed list, or null.
+const AttackOption* AnyAttack(const CombatParams& params,
+                              const std::string& name) {
+  if (const AttackOption* swung = FindAttack(params, name)) {
+    return swung;
+  }
+  for (const AttackOption& timed : params.auto_attacks) {
+    if (timed.name == name) {
+      return &timed;
+    }
+  }
+  return nullptr;
+}
+
+// The shipped Sol Hecate: the summon and Styx from the first level, both on
+// the node's level, and Phlegethon only at 30. Styx and Phlegethon are cast
+// mid-swing, so they cost the waived cast and not their animation.
+TEST(ComputeCombatParamsTest, SolHecateOpensPhlegethonAtThirty) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  std::unique_ptr<GameState> owned = HecateHero(HecateBook(), 29);
+  GameState& state = *owned;
+  const double speed = GameSpeedFactor(state.character.proto().level());
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* summon = AnyAttack(params, "Sol Hecate");
+  ASSERT_NE(summon, nullptr);
+  EXPECT_EQ(summon->scatter_hits, 4);
+  EXPECT_NEAR(summon->interval_seconds, 3.5 * speed, 1e-9);
+  const AttackOption* styx = FindAttack(params, "Sol Hecate: Styx");
+  ASSERT_NE(styx, nullptr);
+  EXPECT_NEAR(styx->cooldown_seconds, 60.0 * speed, 1e-9);
+  EXPECT_EQ(AnyAttack(params, "Sol Hecate: Phlegethon"), nullptr);
+
+  const HexaPrice step = HexaNodePrice(HEXA_NODE_KIND_COMMON, 29, 30);
+  state.character.AddSolErdaEnergy(step.energy);
+  state.character.AddSolErdaFragments(step.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(HecateBook().at("sol_hecate"), 1));
+  params = ComputeCombatParams(state);
+  const AttackOption* phlegethon = FindAttack(params, "Sol Hecate: Phlegethon");
+  ASSERT_NE(phlegethon, nullptr);
+  EXPECT_NEAR(phlegethon->cooldown_seconds, 120.0 * speed, 1e-9);
+  EXPECT_NEAR(phlegethon->swing_seconds,
+              FindAttack(params, "Sol Hecate: Styx")->swing_seconds, 1e-9);
+}
+
+// Sol Hecate's 20% IED and boss damage at 10 and 20 reach the summon, Styx and
+// Phlegethon alike (GMS's psdSkill) and nothing else the character does.
+TEST(ComputeCombatParamsTest, SolHecatesDefenseAndBossDamageStayOnItsSkills) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  std::map<std::string, Skill> stripped = HecateBook();
+  for (std::pair<const std::string, Skill>& entry : stripped) {
+    entry.second.clear_step();
+    entry.second.mutable_base()->clear_ied_pct();
+    entry.second.mutable_base()->clear_boss_pct();
+  }
+  const char* kNames[] = {"Sol Hecate", "Sol Hecate: Styx",
+                          "Sol Hecate: Phlegethon"};
+  for (int level : {9, 19, 30}) {
+    std::unique_ptr<GameState> shipped = HecateHero(HecateBook(), level);
+    std::unique_ptr<GameState> bare = HecateHero(stripped, level);
+    CombatParams with = ComputeCombatParams(*shipped);
+    CombatParams without = ComputeCombatParams(*bare);
+    double gained[3] = {1.0, 1.0, 1.0};
+    for (int i = 0; i < 3; ++i) {
+      const AttackOption* paid = AnyAttack(with, kNames[i]);
+      const AttackOption* plain = AnyAttack(without, kNames[i]);
+      if (level < 30 && i == 2) {
+        EXPECT_EQ(paid, nullptr);
+        continue;
+      }
+      ASSERT_NE(paid, nullptr) << kNames[i];
+      ASSERT_NE(plain, nullptr) << kNames[i];
+      gained[i] = paid->damage_per_hit[0] / plain->damage_per_hit[0];
+    }
+    if (level == 9) {
+      EXPECT_NEAR(gained[0], 1.0, 1e-9);
+      EXPECT_NEAR(gained[1], 1.0, 1e-9);
+    } else {
+      EXPECT_GT(gained[0], 1.0) << level;
+      EXPECT_NEAR(gained[1], gained[0], 1e-9) << level;
+    }
+    if (level == 30) {
+      EXPECT_NEAR(gained[2], gained[0], 1e-9);
+    }
+    EXPECT_NEAR(DerivedStatsFor(shipped->character, shipped->skills).ied,
+                DerivedStatsFor(bare->character, bare->skills).ied, 1e-12);
+    EXPECT_NEAR(DerivedStatsFor(shipped->character, shipped->skills).boss_pct,
+                DerivedStatsFor(bare->character, bare->skills).boss_pct, 1e-12);
+  }
+  // The second step is worth more than the first.
+  std::unique_ptr<GameState> ten = HecateHero(HecateBook(), 10);
+  std::unique_ptr<GameState> twenty = HecateHero(HecateBook(), 20);
+  std::unique_ptr<GameState> ten_bare = HecateHero(stripped, 10);
+  std::unique_ptr<GameState> twenty_bare = HecateHero(stripped, 20);
+  const double at_ten =
+      AnyAttack(ComputeCombatParams(*ten), "Sol Hecate")->damage_per_hit[0] /
+      AnyAttack(ComputeCombatParams(*ten_bare), "Sol Hecate")
+          ->damage_per_hit[0];
+  const double at_twenty =
+      AnyAttack(ComputeCombatParams(*twenty), "Sol Hecate")->damage_per_hit[0] /
+      AnyAttack(ComputeCombatParams(*twenty_bare), "Sol Hecate")
+          ->damage_per_hit[0];
+  EXPECT_GT(at_ten, 1.0);
+  EXPECT_GT(at_twenty, at_ten);
+}
+
+// GMS halves the thieves' Styx and Phlegethon for Shadow Partner to double
+// back, so the shadow copies the wave, the bloom and all of Phlegethon, but
+// not the Death Seed or the summon.
+TEST(ComputeCombatParamsTest, TheShadowCopiesSolHecatesSwingsButNotItsSeed) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  Skill partner;
+  partner.set_name("Shadow Partner");
+  partner.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(partner, JOB_ADVANCEMENT_SWORDMAN);
+  partner.set_max_level(20);
+  partner.mutable_base()->set_mirror_line_pct(0.70);
+
+  std::map<std::string, Skill> book = HecateBook();
+  book["shadow_partner"] = partner;
+  std::unique_ptr<GameState> bare = HecateHero(book, 30);
+  std::unique_ptr<GameState> shadowed = HecateHero(book, 30);
+  GrantFirstJobSp(*bare, 1);
+  GrantFirstJobSp(*shadowed, 1);
+  ASSERT_TRUE(shadowed->character.LearnSkill(partner, 1));
+  CombatParams without = ComputeCombatParams(*bare);
+  CombatParams with = ComputeCombatParams(*shadowed);
+  const auto gained = [&](const std::string& name) {
+    return AnyAttack(with, name)->damage_per_hit[0] /
+           AnyAttack(without, name)->damage_per_hit[0];
+  };
+  EXPECT_NEAR(gained("Sol Hecate"), 1.0, 1e-9);
+  EXPECT_NEAR(gained("Sol Hecate: Phlegethon"), 1.70, 1e-9);
+  // The Hero's level-30 shares: the wave 487% x 8, the seed 482% x 16 and the
+  // bloom 550% x 49, each line priced alike.
+  const double wave = 4.87 * 8;
+  const double seed = 4.82 * 16;
+  const double bloom = 5.50 * 49;
+  EXPECT_NEAR(gained("Sol Hecate: Styx"),
+              (1.70 * (wave + bloom) + seed) / (wave + seed + bloom), 1e-9);
+}
+
 // Speed Mirage II's shape: a passive that replaces the named skill's clock
 // instead of adding to it. Strikes and reach add up; the clock is replaced.
 TEST(ComputeCombatParamsTest, ABoostCanResetTheClockItNames) {

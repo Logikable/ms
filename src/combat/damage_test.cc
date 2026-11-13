@@ -38,6 +38,22 @@ TEST(ForJobTest, OnlyTheNamedLineGetsItsNumbers) {
   EXPECT_EQ(&ForJob(skill, JOB_HERO, scratch), &skill);
 }
 
+// A repeated field the override sets is the line's whole list, not more hits
+// appended to the shared ones.
+TEST(ForJobTest, AnOverridesExtraHitsReplaceTheSharedOnes) {
+  Skill skill;
+  skill.add_extra_hit()->set_label("Seed");
+  skill.add_extra_hit()->set_label("Bloom");
+  LineOverride* assassin = skill.add_line_overrides();
+  assassin->set_line(JOB_ASSASSIN);
+  assassin->mutable_skill()->add_extra_hit()->set_label("Thief's Bloom");
+
+  Skill scratch;
+  const Skill& night_lord = ForJob(skill, JOB_NIGHT_LORD, scratch);
+  ASSERT_EQ(night_lord.extra_hit_size(), 1);
+  EXPECT_EQ(night_lord.extra_hit(0).label(), "Thief's Bloom");
+}
+
 // A ladder with a fractional step goes up every few levels instead of every
 // level, and flooring turns it back into a whole number. GMS's ceil(L/5), used
 // by the Decent nodes' All Stats, is `base 1, per_level 0.2`.

@@ -387,6 +387,16 @@ const Skill& ForJob(const Skill& skill, Job job, Skill& scratch) {
     if (line_override.line() == line) {
       scratch = skill;
       scratch.clear_line_overrides();
+      // MergeFrom appends repeated fields; an override's extra hits replace
+      // the shared ones, like every other field it sets.
+      std::vector<const google::protobuf::FieldDescriptor*> set;
+      line_override.skill().GetReflection()->ListFields(line_override.skill(),
+                                                        &set);
+      for (const google::protobuf::FieldDescriptor* field : set) {
+        if (field->is_repeated()) {
+          scratch.GetReflection()->ClearField(&scratch, field);
+        }
+      }
       scratch.MergeFrom(line_override.skill());
       return scratch;
     }

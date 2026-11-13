@@ -1,0 +1,156 @@
+# GMS's Phlegethon (500001008) opens at Sol Hecate 30 (req 500001005: 30),
+# and its damage is flat. Eight torrents 180ms apart, then ten blooms
+# (500001013) 60ms apart (multiAttackInfo): all of it lands as one moment.
+#
+# GMS halves the Night Lord's and Shadower's lines for Shadow Partner to
+# double back. Cast mid-swing, like a bound skill; 960 is the client's first
+# strike, never charged. Sol Hecate's psdSkill brings its 40% at 30.
+name: "Sol Hecate: Phlegethon"
+description:
+  "Disrupts Sol Erda to breach the boundary of the underworld. Torrents of the "
+  "underworld flow out to burn enemies. After the rift closes, the remaining "
+  "energy blooms."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 4 }
+placement {
+  job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
+  skill_order: 4
+}
+placement {
+  job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
+  skill_order: 4
+}
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 4 }
+hexa_core: "Sol Hecate"
+required_skill { skill_name: "Sol Hecate" level: 30 }
+max_level: 30
+base_delay_ms: 960
+waives_cast: true
+cooldown_seconds: 120.0
+max_enemies: 15
+lines: 4
+casts: 8
+base { skill_pct: 3 ied_pct: 0.40 boss_pct: 0.40 }
+extra_hit {
+  label: "Bloom"
+  lines: 6
+  casts: 10
+  base { skill_pct: 2.4 }
+}
+# v271's per-job damage, from each part's attackInfo; the Hero's is the base.
+line_overrides {
+  line: JOB_PAGE
+  skill {
+    base { skill_pct: 6.03 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 4.72 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill {
+    base { skill_pct: 6.9 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 5.4 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_FIRE_POISON_WIZARD
+  skill {
+    base { skill_pct: 4.55 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 3.41 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill {
+    base { skill_pct: 5.4 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 4.2 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_CLERIC
+  skill {
+    base { skill_pct: 2.59 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 2.03 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill {
+    base { skill_pct: 8.15 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 6.74 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill {
+    base { skill_pct: 7.93 }
+    extra_hit {
+      label: "Bloom"
+      lines: 6
+      casts: 10
+      base { skill_pct: 6.29 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ASSASSIN
+  skill {
+    lines: 2
+    base { skill_pct: 9.09 }
+    extra_hit {
+      label: "Bloom"
+      lines: 3
+      casts: 10
+      base { skill_pct: 7.13 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill {
+    lines: 2
+    base { skill_pct: 7.87 }
+    extra_hit {
+      label: "Bloom"
+      lines: 3
+      casts: 10
+      base { skill_pct: 6.3 }
+    }
+  }
+}

@@ -142,7 +142,10 @@ def our_skills():
         # and the 5th job's id sorts first. So a skill searches only the one
         # id space it belongs to, never both.
         # HEXA common nodes sit in 50000 the way V common nodes sit in 40000.
-        if re.search(r'^hexa_node:\s*HEXA_NODE_KIND_COMMON', text, re.M):
+        # So do the skills that level with one, like Sol Hecate's Styx.
+        sixth = os.path.join('data', 'skills', 'shared', 'sixth')
+        if (re.search(r'^hexa_node:\s*HEXA_NODE_KIND_COMMON', text, re.M) or
+                rel.startswith(sixth)):
             prefixes = {'50000'}
         elif re.search(r'^v_node:', text, re.M):
             # The node's own line, plus the shared pool: GMS files the nodes
