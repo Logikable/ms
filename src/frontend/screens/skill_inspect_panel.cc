@@ -1880,7 +1880,7 @@ std::vector<Row> PermanentRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   // Read through SkillEffectAt, which adds a Skill.step ladder's steps.
   const SkillEffect at = SkillEffectAt(skill, level);
-  if (skill.kind() == SKILL_KIND_ATTACK) {
+  if (DealsDamage(skill.kind())) {
     rows = LeverRows(WithoutSwingLevers(at), SkillEffect(), 1, "");
   } else {
     rows = LeverRows(at, SkillEffect(), 1, "");
@@ -1931,7 +1931,7 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   // always keeps. Each gets a heading when another is present, since otherwise
   // "Ignore DEF" would be one row meaning three things.
   std::vector<Row> swing =
-      skill.kind() == SKILL_KIND_ATTACK
+      DealsDamage(skill.kind())
           ? LeverRows(SwingLeversOf(SkillEffectAt(skill, level)), SkillEffect(),
                       1, "")
           : std::vector<Row>();

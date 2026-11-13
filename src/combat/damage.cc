@@ -592,33 +592,19 @@ void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
 // an attack skill apply to that attack only. GMS lists them on the skill (e.g.
 // Gungnir's Descent ignores 30%, Snipe always crits). Passives that grant them
 // apply to the character instead.
-void AddSwingLevers(const Skill& attack_skill, int attack_level,
-                    OffenseStats& offense) {
-  offense.ied = CombineIgnoredDefense(
-      offense.ied, attack_skill.base().ied_pct() +
-                       attack_skill.per_level().ied_pct() * (attack_level - 1));
-  offense.ier += attack_skill.base().ier_pct() +
-                 attack_skill.per_level().ier_pct() * (attack_level - 1);
-  offense.boss_pct += attack_skill.base().boss_pct() +
-                      attack_skill.per_level().boss_pct() * (attack_level - 1);
-  offense.damage_pct +=
-      attack_skill.base().damage_pct() +
-      attack_skill.per_level().damage_pct() * (attack_level - 1);
-  offense.normal_pct +=
-      attack_skill.base().normal_pct() +
-      attack_skill.per_level().normal_pct() * (attack_level - 1);
+void AddSwingLevers(const SkillEffect& at, OffenseStats& offense) {
+  offense.ied = CombineIgnoredDefense(offense.ied, at.ied_pct());
+  offense.ier += at.ier_pct();
+  offense.boss_pct += at.boss_pct();
+  offense.damage_pct += at.damage_pct();
+  offense.normal_pct += at.normal_pct();
   // Added to the character's crit chance, so 1.00 guarantees a crit no matter
   // what else they have.
-  offense.crit_rate +=
-      attack_skill.base().crit_rate() +
-      attack_skill.per_level().crit_rate() * (attack_level - 1);
+  offense.crit_rate += at.crit_rate();
   // Multiplied with the character's final damage, like all final damage
   // sources. See SkillEffect::final_dmg_pct.
-  double swing_fd =
-      attack_skill.base().final_dmg_pct() +
-      attack_skill.per_level().final_dmg_pct() * (attack_level - 1);
   offense.final_dmg_pct =
-      (1.0 + offense.final_dmg_pct) * (1.0 + swing_fd) - 1.0;
+      (1.0 + offense.final_dmg_pct) * (1.0 + at.final_dmg_pct()) - 1.0;
 }
 
 // The attack skill's multiplier, replacing the basic attack's 100%. At level L
@@ -633,9 +619,9 @@ void AddAttackSkill(const Skill& attack_skill, int attack_level,
       attack_skill.base().normal_skill_pct() +
       attack_skill.per_level().normal_skill_pct() * (attack_level - 1);
   AddNamedBoost(attack_skill, passives, offense);
-  if (attack_skill.kind() == SKILL_KIND_ATTACK) {
-    AddSwingLevers(attack_skill, attack_level, offense);
-  }
+  // A summon's levers are its hits' too: AddPassive keeps them off the
+  // character for every skill that deals damage.
+  AddSwingLevers(SkillEffectAt(attack_skill, attack_level), offense);
   // A multi-hit skill hits each target this many times per attack, so
   // per-target damage is skill_pct once per line.
   offense.lines = SkillLinesAt(attack_skill, attack_level);

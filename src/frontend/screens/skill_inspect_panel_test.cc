@@ -1506,6 +1506,16 @@ TEST_F(SkillInspectPanelTest, ShowsTheDamageOfASkillOnItsOwnClock) {
   EXPECT_EQ(out.find("no effect"), std::string::npos);
 }
 
+// What a timed attack lists for itself is its own hits', as a swing's is, so
+// it reads under the same heading and not as something the character keeps.
+TEST_F(SkillInspectPanelTest, ATimedAttacksOwnLeversAreThisAttacksOnly) {
+  Skill shock = MakeEvilEyeShock();
+  shock.mutable_base()->set_ied_pct(0.20);
+  std::string out = RenderAt(shock, 1);
+  EXPECT_NE(out.find("This Attack Only"), std::string::npos) << out;
+  EXPECT_NE(out.find("Ignore DEF"), std::string::npos) << out;
+}
+
 // How often it triggers isn't the player's to change, and the seconds in the
 // data aren't the seconds the game's speed scaling plays them at.
 TEST_F(SkillInspectPanelTest, SaysNothingAboutHowOftenASkillFires) {

@@ -4728,6 +4728,62 @@ TEST(ComputeCombatParamsTest, SolJanusDawnGrowsAtTenAndPaysItsPassiveAtThirty) {
               1e-9);
 }
 
+// A skill on its own clock carries its own levers onto its own hits, as a
+// swing does, and onto nothing else: Radiant Evil's 20% IED, Thunder Sphere's
+// damage to normal enemies, a pulse's boss damage. A step adds to them.
+TEST(ComputeCombatParamsTest, ATimedAttacksOwnLeversReachOnlyItsHits) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.mutable_base()->set_skill_pct(1.83);
+  double timed[2] = {0.0, 0.0};
+  double swung[2] = {0.0, 0.0};
+  double stepped = 0.0;
+  for (int pass = 0; pass < 3; ++pass) {
+    Skill eye;
+    eye.set_name("Radiant Evil");
+    eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+    PlaceIn(eye, JOB_ADVANCEMENT_SWORDMAN);
+    eye.set_max_level(20);
+    eye.set_cast_interval_seconds(2.0);
+    eye.mutable_base()->set_skill_pct(1.15);
+    if (pass >= 1) {
+      eye.mutable_base()->set_ied_pct(0.20);
+    }
+    if (pass == 2) {
+      SkillStep* step = eye.add_step();
+      step->set_from_level(1);
+      step->mutable_base()->set_ied_pct(0.20);
+    }
+    GameState state({}, {}, {}, {{"snail", MakeArmouredMob("Snail", 15, 60)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"slash_blast", slash}, {"radiant_evil", eye}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 2);
+    ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+    ASSERT_TRUE(state.character.LearnSkill(eye, 1));
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.auto_attacks.size(), 1u);
+    const AttackOption* swing = FindAttack(params, "Slash Blast");
+    ASSERT_NE(swing, nullptr);
+    if (pass == 2) {
+      stepped = params.auto_attacks[0].damage_per_hit[0];
+      continue;
+    }
+    timed[pass] = params.auto_attacks[0].damage_per_hit[0];
+    swung[pass] = swing->damage_per_hit[0];
+  }
+  // 60% PDR, of which every character ignores 10%: 1 - 0.6 * 0.9 lands bare,
+  // 1 - 0.6 * 0.9 * 0.8 with 20% more ignored, and 1 - 0.6 * 0.9 * 0.6 with
+  // the step's 20% on top of the base's.
+  EXPECT_NEAR(timed[1] / timed[0], 0.568 / 0.46, 1e-9);
+  EXPECT_NEAR(stepped / timed[0], 0.676 / 0.46, 1e-9);
+  EXPECT_NEAR(swung[1], swung[0], 1e-9);
+}
+
 // Speed Mirage II's shape: a passive that replaces the named skill's clock
 // instead of adding to it. Strikes and reach add up; the clock is replaced.
 TEST(ComputeCombatParamsTest, ABoostCanResetTheClockItNames) {
