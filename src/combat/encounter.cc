@@ -1021,6 +1021,10 @@ struct SkillBoosts {
   // The fraction of the cooldown left, so two reductions combine
   // multiplicatively like ignore defense. 1.0 means no reduction.
   double cooldown_left = 1.0;
+  // Seconds off the cooldown, taken before the share above.
+  double cooldown_cut_seconds = 0.0;
+  // Strikes added to Skill.casts.
+  int casts = 0;
   // What the book adds to the skill's buff: duration, shield hits, and damage
   // reduction against hits the shield can't block.
   double buff_duration_seconds = 0.0;
@@ -1086,6 +1090,12 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
         into.extra_hit_lines += boost.extra_hit_lines();
         into.max_enemies += enemies;
         into.cooldown_left *= 1.0 - boost.cooldown_pct();
+        if (boost.cooldown_levels_per_second() > 0) {
+          into.cooldown_cut_seconds +=
+              (learned + boost.cooldown_levels_per_second() - 1) /
+              boost.cooldown_levels_per_second();
+        }
+        into.casts += boost.casts();
         into.buff_duration_seconds += boost.buff_duration_seconds();
         into.shield_hits += boost.shield_hits();
         into.shield_boss_damage_taken_pct +=
@@ -1156,10 +1166,17 @@ const Skill& Boosted(const Skill& skill, int level,
   if (it->second.attacks_per_cast > 0) {
     scratch.set_attacks_per_cast(it->second.attacks_per_cast);
   }
+  if (it->second.casts > 0) {
+    scratch.set_casts(SkillCasts(skill) + it->second.casts);
+    scratch.set_base_delay_ms(skill.base_delay_ms() +
+                              skill.cast_interval_ms() * it->second.casts);
+  }
   // Scale the whole per-level cooldown so the reduction is the same share at
   // every level; CooldownAt then reads the scaled copy normally.
+  scratch.set_cooldown_seconds(skill.cooldown_seconds() -
+                               it->second.cooldown_cut_seconds);
   if (it->second.cooldown_left < 1.0) {
-    scratch.set_cooldown_seconds(skill.cooldown_seconds() *
+    scratch.set_cooldown_seconds(scratch.cooldown_seconds() *
                                  it->second.cooldown_left);
     scratch.set_cooldown_seconds_per_level(skill.cooldown_seconds_per_level() *
                                            it->second.cooldown_left);

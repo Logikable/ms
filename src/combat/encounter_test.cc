@@ -4096,6 +4096,57 @@ TEST(ComputeCombatParamsTest, ABoostCanShortenTheWaitOfTheSkillItNames) {
                    15.0 * 0.7 * factor);
 }
 
+// The Shadow Assault Enhancement's shape: more dashes in the one press, each
+// taking its own time, and a second off the wait for every three levels.
+TEST(ComputeCombatParamsTest, ABoostCanAddDashesAndCutWholeSeconds) {
+  Skill assault;
+  assault.set_name("Shadow Assault");
+  assault.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(assault, JOB_ADVANCEMENT_SWORDMAN);
+  assault.set_max_level(30);
+  assault.set_max_enemies(12);
+  assault.set_lines(6);
+  assault.set_casts(4);
+  assault.set_cast_interval_ms(420);
+  assault.set_base_delay_ms(1680);
+  assault.set_cooldown_seconds(60.0);
+  assault.mutable_base()->set_skill_pct(7.40);
+  Skill core;
+  core.set_name("Shadow Assault Boost");
+  core.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(core, JOB_ADVANCEMENT_SWORDMAN);
+  core.set_max_level(30);
+  SkillBoost* boost = core.add_boost();
+  boost->set_skill_name("Shadow Assault");
+  boost->set_casts(1);
+  boost->set_cooldown_levels_per_second(3);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"assault", assault}, {"core", core}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 32);
+  ASSERT_TRUE(state.character.LearnSkill(assault, 1));
+
+  double factor = GameSpeedFactor(state.character.proto().level());
+  CombatParams bare = ComputeCombatParams(state);
+  ASSERT_EQ(bare.attacks.size(), 2u);
+  EXPECT_EQ(bare.attacks[1].strikes_in_sequence, 4);
+  EXPECT_DOUBLE_EQ(bare.attacks[1].cooldown_seconds, 60.0 * factor);
+  double bare_swing = bare.attacks[1].swing_seconds;
+
+  // Level 1 takes ceil(1/3), one second; level 4 takes two.
+  ASSERT_TRUE(state.character.LearnSkill(core, 1));
+  CombatParams one = ComputeCombatParams(state);
+  EXPECT_EQ(one.attacks[1].strikes_in_sequence, 5);
+  EXPECT_DOUBLE_EQ(one.attacks[1].cooldown_seconds, 59.0 * factor);
+  EXPECT_NEAR(one.attacks[1].swing_seconds, bare_swing * 2100.0 / 1680.0, 1e-9);
+  ASSERT_TRUE(state.character.LearnSkill(core, 3));
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks[1].cooldown_seconds,
+                   58.0 * factor);
+}
+
 // Creeping Toxin's shape: a summon that upgrades its own pulse instead of
 // another skill's attack. That's what a form naming no skill means.
 TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {

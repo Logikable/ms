@@ -1471,6 +1471,15 @@ message SkillBoost {
   // skill's level.
   SkillEffect buff_effect = 22;
   SkillEffect buff_effect_per_level = 23;
+  // Strikes added to the named skill's Skill.casts. A skill whose strikes are
+  // spaced by cast_interval_ms takes that much longer to swing per strike
+  // added. It exists for the Shadow Assault Enhancement, whose extra uses are
+  // dashes in the one press here.
+  int32 casts = 24;
+  // One second off the named skill's cooldown for every this many levels of
+  // the granting skill, rounded up: the Shadow Assault Enhancement's
+  // 60-ceil(x/3). Taken off before any share.
+  int32 cooldown_levels_per_second = 25;
 }
 
 // One of SkillBoost.step.

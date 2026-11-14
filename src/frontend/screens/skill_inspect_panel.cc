@@ -769,6 +769,18 @@ std::string StructureBoostText(const SkillBoost& boost, int level) {
   if (boost.cooldown_pct() > 0.0) {
     AppendGain("-" + FormatPercent(boost.cooldown_pct()) + " Cooldown", gains);
   }
+  if (boost.cooldown_levels_per_second() > 0) {
+    int seconds = (level + boost.cooldown_levels_per_second() - 1) /
+                  boost.cooldown_levels_per_second();
+    AppendGain("-" + std::to_string(seconds) + "s Cooldown", gains);
+  }
+  // GMS's word: a dash is a use of the skill, all of them one press here.
+  if (boost.casts() > 0) {
+    AppendGain(
+        "+" + std::to_string(boost.casts()) +
+            (boost.casts() == 1 ? " Consecutive Use" : " Consecutive Uses"),
+        gains);
+  }
   // The new timer rather than the change: a replacement can't be read as a
   // difference, and the target's own page shows the same figure the same way.
   if (boost.attacks_per_cast() > 0) {
