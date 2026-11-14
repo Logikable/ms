@@ -129,6 +129,10 @@ SkillEffect PassiveEffectAt(const Skill& skill, int level);
 
 // A buff's levers at `level`: its ladder, plus every Buff.step it has reached.
 SkillEffect BuffEffectAt(const Buff& buff, int level);
+
+// What a boost gives its target when the granting skill is at `level`: its
+// ladder, plus every SkillBoost.step reached.
+SkillEffect BoostEffectAt(const SkillBoost& boost, int level);
 // Seconds a buff lasts at `level` the same way, before any boost or Buff
 // Duration.
 double BuffSecondsAt(const Buff& buff, int level);

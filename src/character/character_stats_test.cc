@@ -2520,6 +2520,41 @@ TEST_F(DerivedStatsTest, AGatedBoostPaysNothingBelowItsLevel) {
               1e-9);
 }
 
+// A HEXA Enhancement's jumps add to its ladder: 10+x, plus 5 at 10, 5 at 20 and
+// 10 at 30, is 60% at 30, where boosts gated by min_level would compound.
+TEST_F(DerivedStatsTest, ABoostsStepsAddToItsLadder) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill core = SpeedMirage();
+  core.set_max_level(30);
+  SkillBoost* boost = core.mutable_boost(0);
+  boost->clear_effect();
+  boost->clear_effect_per_level();
+  boost->mutable_effect()->set_final_dmg_pct(0.11);
+  boost->mutable_effect_per_level()->set_final_dmg_pct(0.01);
+  for (const auto& [from, jump] : std::vector<std::pair<int, double>>{
+           {10, 0.05}, {20, 0.05}, {30, 0.10}}) {
+    BoostStep* step = boost->add_step();
+    step->set_from_level(from);
+    step->mutable_effect()->set_final_dmg_pct(jump);
+  }
+  std::map<std::string, Skill> skills = {{"core", core}};
+  int learned = 0;
+  for (const auto& [level, want] :
+       std::vector<std::pair<int, double>>{{1, 0.11},
+                                           {9, 0.19},
+                                           {10, 0.25},
+                                           {20, 0.40},
+                                           {29, 0.49},
+                                           {30, 0.60}}) {
+    ASSERT_TRUE(c.LearnSkill(core, level - learned));
+    learned = level;
+    EXPECT_NEAR(
+        DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow").final_dmg_pct,
+        want, 1e-9)
+        << "at level " << level;
+  }
+}
+
 // A boost aimed at the passive that owns a Final Attack has no swing to apply
 // to, so all its levers go on the extra hit, not only the damage.
 TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackItNames) {

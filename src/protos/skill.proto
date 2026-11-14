@@ -1459,6 +1459,17 @@ message SkillBoost {
   // it. A doubled chance can exceed 100%, which RolledFinalAttack treats as one
   // guaranteed hit plus a roll for the remainder.
   double final_attack_chance_mult = 19;
+  // Jumps in `effect` from a level up, added to the ladder rather than
+  // multiplied with it. It exists for the HEXA Enhancements: GMS's one final
+  // damage line of 10+x% jumps 5 at 10, 5 at 20 and 10 at 30, 60% in all.
+  // Separate boosts with min_level would compound to 70%.
+  repeated BoostStep step = 21;
+}
+
+// One of SkillBoost.step.
+message BoostStep {
+  int32 from_level = 1;
+  SkillEffect effect = 2;
 }
 
 // The heavier form of a skill that has two, with its own multiplier, reach and

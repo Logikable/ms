@@ -412,7 +412,7 @@ void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
 // Adds one boost's levers into the entry of the skill it targets. Each lever
 // combines with what is already there the usual way.
 void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
-  SkillEffect aimed = EffectAt(boost.effect(), boost.effect_per_level(), level);
+  SkillEffect aimed = BoostEffectAt(boost, level);
   into.skill_pct += aimed.skill_pct();
   into.damage_pct += aimed.damage_pct();
   into.boss_pct += aimed.boss_pct();

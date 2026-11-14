@@ -323,6 +323,16 @@ SkillEffect BuffEffectAt(const Buff& buff, int level) {
   return at;
 }
 
+SkillEffect BoostEffectAt(const SkillBoost& boost, int level) {
+  SkillEffect at = EffectAt(boost.effect(), boost.effect_per_level(), level);
+  for (const BoostStep& step : boost.step()) {
+    if (level >= step.from_level()) {
+      at = EffectAt(at, step.effect(), 2);
+    }
+  }
+  return at;
+}
+
 double BuffSecondsAt(const Buff& buff, int level) {
   double seconds =
       buff.duration_seconds() + buff.duration_seconds_per_level() * (level - 1);

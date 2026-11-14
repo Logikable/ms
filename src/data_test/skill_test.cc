@@ -2141,6 +2141,14 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
       EXPECT_TRUE(BoostEffectIsSupported(boost.effect_per_level(), unread))
           << entry.first << " climbs " << boost.skill_name() << "'s " << unread
           << ", which no swing reads";
+      for (const BoostStep& step : boost.step()) {
+        EXPECT_TRUE(BoostEffectIsSupported(step.effect(), unread))
+            << entry.first << " steps " << boost.skill_name() << "'s " << unread
+            << ", which no swing reads";
+        EXPECT_LE(step.from_level(), entry.second.max_level())
+            << entry.first << " steps " << boost.skill_name()
+            << " at a level it never reaches";
+      }
       ++checked;
       EXPECT_TRUE(
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))

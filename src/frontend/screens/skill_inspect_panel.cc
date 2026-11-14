@@ -861,9 +861,9 @@ std::string BoostText(const SkillBoost& boost, int level) {
                    " Final Attack Rate",
                gains);
   }
+  const SkillEffect aimed = BoostEffectAt(boost, level);
   for (const BoostLever& lever : kBoostLevers) {
-    double value = (boost.effect().*lever.fn)() +
-                   (boost.effect_per_level().*lever.fn)() * (level - 1);
+    double value = (aimed.*lever.fn)();
     if (value == 0.0) {
       continue;
     }
