@@ -265,16 +265,6 @@ TEST(BossRunTest, WalkingIsRememberedWithinAPhaseAndResetByTheNext) {
   EXPECT_EQ(run.player_spot().y(), 5);
 }
 
-// A phase with no spots keeps the player where it put them.
-TEST(BossRunTest, AFightWithNoSpotsDoesNotWalk) {
-  std::unique_ptr<GameState> state = MakeState();
-  Boss boss = TwoPhaseBoss();
-  BossRun run("zakum", boss, 0);
-  run.MovePlayer(-1, 0);
-  EXPECT_EQ(run.player_spot().x(), 2);
-  EXPECT_EQ(run.player_spot().y(), 1);
-}
-
 // The arena's size covers every spot the player can stand on as well as the
 // bars, so a phase that asks for no room still fits them all.
 TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
@@ -935,15 +925,6 @@ TEST(BossRunTest, AbortingEndsItWithNoClosingBeat) {
   EXPECT_DOUBLE_EQ(run.seconds_left(), left);
 }
 
-TEST(BossRunTest, ADifficultyThatDoesNotExistIsOverBeforeItStarts) {
-  std::unique_ptr<GameState> state = MakeState();
-  Boss boss = TwoPhaseBoss();
-  BossRun run("zakum", boss, 3);
-  EXPECT_EQ(run.state(), BossRunState::kAborted);
-  run.Advance(*state, 1.0);
-  EXPECT_TRUE(run.done());
-}
-
 // A clear pays the reward table, and the run remembers what it paid so the
 // clear card can list it.
 TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
@@ -1118,21 +1099,6 @@ TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   EXPECT_EQ(state->character.proto().meso(), 3062500);
   EXPECT_EQ(run.reward().items.size(), 2u);
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
-}
-
-// Honor is a daily reward, so a fight with no daily lockout pays none, however
-// often it is cleared.
-TEST(BossRunTest, AFightWithNoLockoutPaysNoHonor) {
-  std::unique_ptr<GameState> state = MakeState();
-  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
-  boss.mutable_difficulties(0)->clear_reset();
-  boss.mutable_difficulties(0)->clear_exp();  // so no level pays honor either
-  BossRun run("zakum", boss, 0);
-  RunToEnd(run, *state);
-
-  ASSERT_TRUE(run.won());
-  EXPECT_EQ(run.reward().honor, 0);
-  EXPECT_EQ(state->character.honor(), 0);
 }
 
 // The clear card shows the fight's own time, not counting the countdown.

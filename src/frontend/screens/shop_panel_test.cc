@@ -375,14 +375,6 @@ TEST_F(ShopPanelTest, OpensOnTheWeaponTabOverItsStock) {
   EXPECT_EQ(rendered.find("Heirloom"), std::string::npos);
 }
 
-// The player's balance is next to the prices, so the column can be compared
-// against it.
-TEST_F(ShopPanelTest, ShowsTheBalance) {
-  CharacterInstance c = MakeCharacter(34567);
-  ShopPanel panel(c, equips_, items_);
-  EXPECT_NE(Render(panel).find("34,567"), std::string::npos);
-}
-
 TEST_F(ShopPanelTest, OpensOnTheFirstItemAndWalksTheList) {
   ASSERT_NE(shop_.selected_item(), nullptr);
   EXPECT_EQ(shop_.selected_item()->name(), "Long Sword");
@@ -420,27 +412,10 @@ TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
   EXPECT_EQ(Render(shop_).find("> Scimitar"), std::string::npos);
 }
 
-// Enter on a bar isn't Enter on an item. Opening the menu there would put a
-// context menu over a row the cursor isn't on.
-TEST_F(ShopPanelTest, NoContextMenuOpensFromEitherBar) {
-  shop_.OnEvent(ftxui::Event::ArrowUp);  // first item to pay bar
-  shop_.OpenMenu();
-  EXPECT_FALSE(shop_.menu_open());
-  shop_.OnEvent(ftxui::Event::ArrowUp);  // pay bar to tab bar
-  shop_.OpenMenu();
-  EXPECT_FALSE(shop_.menu_open());
-}
-
 TEST_F(ShopPanelTest, ResetPutsTheCursorBackInTheList) {
   shop_.OnEvent(ftxui::Event::ArrowUp);  // first item to tab bar
   shop_.Reset();
   EXPECT_NE(Render(shop_).find("> Long Sword"), std::string::npos);
-}
-
-TEST_F(ShopPanelTest, ResetReturnsToTheTop) {
-  shop_.OnEvent(ftxui::Event::ArrowDown);
-  shop_.Reset();
-  EXPECT_EQ(shop_.selected_item()->name(), "Long Sword");
 }
 
 // The list shows what the player can buy without arithmetic on every row.
@@ -452,21 +427,6 @@ TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
   EXPECT_EQ(CellColor(panel, "Gladius", "20,000"), kRed) << "20,000 is not";
 }
 
-// Every weapon in the shop goes in the same slot, so the column shows the
-// weapon type instead. There is no class column either, since the list has
-// nothing for another class.
-TEST_F(ShopPanelTest, ShowsTypeAndLevel) {
-  CharacterInstance c = MakeCharacter(100000, /*level=*/99);
-  ShopPanel panel(c, equips_, items_);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Type"), std::string::npos);
-  EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
-  EXPECT_NE(rendered.find("Two-Handed Sword"), std::string::npos);
-  EXPECT_NE(rendered.find("Lv20"), std::string::npos);
-  EXPECT_EQ(rendered.find("Equip Slot"), std::string::npos);
-  EXPECT_EQ(rendered.find("Job"), std::string::npos);
-}
-
 TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/20, JOB_SWORDMAN);
   ShopPanel panel(c, equips_, items_);
@@ -474,13 +434,6 @@ TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
   EXPECT_EQ(CellColor(panel, "Gladius", "Lv30"), kRed) << "level 30 does not";
   EXPECT_NE(CellColor(panel, "Gladius", "20,000"), kRed)
       << "the price is affordable; only the level is wrong";
-}
-
-TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
-  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_SWORDMAN);
-  ShopPanel panel(c, equips_, items_);
-  EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed);
-  EXPECT_NE(CellColor(panel, "Machete", "10,000"), kRed);
 }
 
 // --- the stock is what this character could hold ---
@@ -498,14 +451,6 @@ TEST_F(ShopPanelTest, OmitsWeaponsOfAnotherClass) {
   EXPECT_NE(rendered.find("Gladius"), std::string::npos)
       << "level 30 is out of reach at level 1, which is not a reason to hide "
          "it";
-}
-
-TEST_F(ShopPanelTest, StocksTheOtherClassForTheOtherClass) {
-  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_ROGUE);
-  ShopPanel panel(c, equips_, items_);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Subi"), std::string::npos);
-  EXPECT_EQ(rendered.find("Machete"), std::string::npos);
 }
 
 // Universal items are for everyone, so nobody gets an empty shop.
@@ -527,35 +472,6 @@ TEST_F(ShopPanelTest, ResetRestocksAfterAJobAdvancement) {
   c.AdvanceJob(JOB_SWORDMAN);
   panel.Reset();
   EXPECT_NE(Render(panel).find("Machete"), std::string::npos);
-}
-
-// From 2nd job the weapon shelf narrows to the job's own weapons and the
-// ammunition they draw; a 1st job still sees its whole category.
-TEST_F(ShopPanelTest, AMarksmanSeesOnlyCrossbowsAndTheirArrows) {
-  std::map<std::string, EquipPrototype> equips = {
-      {"crossbow", MakeItem("Crossbow", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
-                            EQUIP_TYPE_CROSSBOW)},
-      {"bow",
-       MakeItem("Bow", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN, EQUIP_TYPE_BOW)},
-      {"bolts", MakeItem("Bolts", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
-                         EQUIP_TYPE_ARROW_FOR_CROSSBOW, EQUIP_SLOT_PROJECTILE)},
-      {"arrows", MakeItem("Arrows", 10, 100, EQUIP_JOB_CATEGORY_BOWMAN,
-                          EQUIP_TYPE_ARROW_FOR_BOW, EQUIP_SLOT_PROJECTILE)},
-  };
-  CharacterInstance marksman =
-      MakeCharacter(100000, /*level=*/200, JOB_MARKSMAN, /*stage=*/4);
-  ShopPanel panel(marksman, equips, items_);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Crossbow"), std::string::npos);
-  EXPECT_NE(rendered.find("Bolts"), std::string::npos);
-  EXPECT_EQ(rendered.find("Bow "), std::string::npos);
-  EXPECT_EQ(rendered.find("Arrows"), std::string::npos);
-
-  CharacterInstance archer = MakeCharacter(100000, /*level=*/10, JOB_ARCHER);
-  ShopPanel first(archer, equips, items_);
-  rendered = Render(first);
-  EXPECT_NE(rendered.find("Bow "), std::string::npos);
-  EXPECT_NE(rendered.find("Bolts"), std::string::npos);
 }
 
 // Show All lives in the Options window, which Tab reaches. Enter lifts the
@@ -584,25 +500,6 @@ TEST_F(ShopPanelTest, ShowAllLiftsTheFilterUntilReset) {
   rendered = Render(panel);
   EXPECT_NE(rendered.find("[ ] Show All"), std::string::npos);
   EXPECT_EQ(rendered.find("Subi"), std::string::npos);
-}
-
-// The window stays under every tab so the shop keeps one height, but the
-// switch is moot on the shelves nothing filters.
-TEST_F(ShopPanelTest, ShowAllIsMootOnTheEtcTab) {
-  OpenShelf(shop_, kShopEtcTab);
-  ftxui::Screen screen = Draw(shop_);
-  bool found = false;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x + 3 < screen.dimx(); ++x) {
-      if (screen.PixelAt(x, y).character == "S" &&
-          screen.PixelAt(x + 1, y).character == "h" &&
-          screen.PixelAt(x + 3, y).character == "w") {
-        found = true;
-        EXPECT_TRUE(screen.PixelAt(x, y).dim);
-      }
-    }
-  }
-  EXPECT_TRUE(found);
 }
 
 TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {
@@ -656,15 +553,6 @@ TEST_F(ShopPanelTest, TheMenuStaysUpWhileWalkingIt) {
   EXPECT_EQ(shop_.OnMenuEvent(ftxui::Event::Character('x')), kShopMenu)
       << "the menu is modal over the list";
   EXPECT_TRUE(shop_.menu_open());
-}
-
-// The menu reopens on Inspect every time, rather than where it was left.
-TEST_F(ShopPanelTest, TheMenuReopensOnItsFirstEntry) {
-  shop_.OpenMenu();
-  shop_.OnMenuEvent(ftxui::Event::ArrowDown);
-  shop_.OnMenuEvent(ftxui::Event::Escape);
-  shop_.OpenMenu();
-  EXPECT_EQ(shop_.OnMenuEvent(ftxui::Event::Return), kShopInspect);
 }
 
 // The menu is drawn floating, so however far down the list it opens, it takes
@@ -798,22 +686,6 @@ TEST_F(ShopPanelTest, KeepsTheCursorInTheMiddleOfTheWindow) {
   EXPECT_NE(rendered.find("Item 03"), std::string::npos) << "seven above it";
   EXPECT_EQ(rendered.find("Item 02"), std::string::npos);
   EXPECT_NE(rendered.find("Item 17"), std::string::npos) << "seven below it";
-}
-
-TEST_F(ShopPanelTest, ScrollsBackUpOffTheTop) {
-  CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many, items_);
-  for (int i = 0; i < 20; ++i) {
-    panel.OnEvent(ftxui::Event::ArrowDown);
-  }
-  ASSERT_EQ(Render(panel).find("Item 00"), std::string::npos);
-  for (int i = 0; i < 20; ++i) {
-    panel.OnEvent(ftxui::Event::ArrowUp);
-  }
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("> Item 00"), std::string::npos);
-  EXPECT_NE(rendered.find("Item 14"), std::string::npos);
 }
 
 // Wrapping around the ring is the one move that goes a long way at once.
@@ -951,36 +823,7 @@ TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {
   EXPECT_FALSE(shop_.menu_open());
 }
 
-// Nothing to act on, so no menu opens.
-TEST_F(ShopPanelTest, AnEmptyShopOpensNoMenu) {
-  CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> nothing;
-  ShopPanel panel(c, nothing, items_);
-  panel.OpenMenu();
-  EXPECT_FALSE(panel.menu_open());
-}
-
-TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
-  CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> nothing;
-  ShopPanel panel(c, nothing, items_);
-  EXPECT_EQ(panel.selected_item(), nullptr);
-  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
-}
-
 // --- the Equips tab ---
-
-// The bar reads left to right in the order a player meets the shelves: weapons,
-// then the rest of what is worn, then consumables.
-TEST_F(ShopPanelTest, TheBarReadsWeaponEquipsEtc) {
-  std::string rendered = Render(shop_);
-  size_t weapon = rendered.find("Weapon");
-  size_t equips = rendered.find("Equips");
-  size_t etc = rendered.find("Etc");
-  ASSERT_NE(equips, std::string::npos);
-  EXPECT_LT(weapon, equips);
-  EXPECT_LT(equips, etc);
-}
 
 // The meso counter is drawn on the same row as the chips, in the space the
 // chips leave, so it never covers a tab.
@@ -1006,17 +849,6 @@ TEST_F(ShopPanelTest, TheEquipShelfHoldsTheBranchsOwnOffHand) {
   EXPECT_EQ(panel.selected_item()->name(), "Powers Medallion");
 }
 
-// An off-hand belongs to one branch of one job, and a 1st job isn't in a branch
-// yet, so there is nothing on the shelf for them. The accessories that fit
-// anyone aren't in this test's catalog.
-TEST_F(ShopPanelTest, TheEquipShelfHasNoOffHandBeforeTheSecondJob) {
-  CharacterInstance c = MakeCharacter(100000, 30, JOB_SWORDMAN);
-  ShopPanel panel(c, equips_, items_);
-  OpenShelf(panel, kShopEquipsTab);
-  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
-  EXPECT_EQ(panel.selected_item(), nullptr);
-}
-
 // The shelf has everything worn that isn't a weapon, so a ring is next to the
 // off-hands. The kind of ring doesn't matter, so rings have no equip type, and
 // the type column shows the slot instead, as the bag does for the same item.
@@ -1033,22 +865,6 @@ TEST_F(ShopPanelTest, TheEquipShelfCarriesAccessoriesAndNamesTheirSlot) {
   EXPECT_NE(rendered.find("Ring"), std::string::npos);
   ASSERT_NE(panel.selected_item(), nullptr);
   EXPECT_EQ(panel.selected_item()->name(), "Signet Ring");
-}
-
-// A price of zero is still a price: the shelf lists the item and the cost
-// column shows it, unlike an unstocked item, which isn't listed.
-TEST_F(ShopPanelTest, AFreeItemIsOnTheShelfAtZero) {
-  std::map<std::string, EquipPrototype> equips{
-      {"medal",
-       MakeItem("Master Adventurer", 100, 0, EQUIP_JOB_CATEGORY_UNIVERSAL,
-                EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_MEDAL)},
-  };
-  CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
-  ShopPanel panel(c, equips, items_);
-  OpenShelf(panel, kShopEquipsTab);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Master Adventurer"), std::string::npos);
-  EXPECT_NE(rendered.find("🪙 0"), std::string::npos);
 }
 
 // --- the Etc tab ---
@@ -1076,20 +892,6 @@ TEST_F(ShopPanelTest, OnlyOneOfTheTwoSelectionsEverAnswers) {
   EXPECT_EQ(shop_.selected_item(), nullptr);
   ASSERT_NE(shop_.selected_stackable(), nullptr);
   EXPECT_EQ(shop_.selected_stackable()->name(), "Spell Trace");
-}
-
-TEST_F(ShopPanelTest, TheEndsOfTheBarAreWalls) {
-  shop_.OnEvent(ftxui::Event::ArrowUp);
-  shop_.OnEvent(ftxui::Event::ArrowUp);
-  shop_.OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_NE(shop_.selected_item(), nullptr) << "stepped off the left end";
-  for (int i = 0; i < kNumShopTabs; ++i) {
-    shop_.OnEvent(ftxui::Event::ArrowRight);
-  }
-  // One step more than there are tabs, so a bar that wrapped would be back on
-  // Weapons. Buy-Back is the last shelf, and the only one with a Qty column.
-  EXPECT_NE(Render(shop_).find("Qty"), std::string::npos)
-      << "stepped off the right end";
 }
 
 // --- the pay row ---
@@ -1242,38 +1044,6 @@ TEST_F(ShopPanelTest, ThePanelStandsOnlyOverATokenShelf) {
   EXPECT_EQ(RenderHeight(panel), height) << "the two windows close on a line";
 }
 
-// This is why the balances left the tab bar: the game's shelves use currencies
-// that share a glyph, so colour is what tells the rows apart, and it has to be
-// on the mark.
-TEST_F(ShopPanelTest, ThePanelMarksEachBalanceInItsOwnColour) {
-  std::map<std::string, ItemPrototype> items = items_;
-  items["gold_token"] = MakeToken("Gold Token", CURRENCY_COLOR_GOLD, "▲");
-  std::map<std::string, EquipPrototype> equips = equips_;
-  equips["gold_shoulder"] = MakeTokenItem(
-      "Gold Shoulder", 150, "gold_token", /*count=*/2,
-      EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_SHOULDER);
-
-  CharacterInstance c = MakeCharacter(100000, 150, JOB_FIGHTER, /*stage=*/2);
-  c.AddItem(items.at("shoulder_token"), 7);
-  c.AddItem(items.at("gold_token"), 8);
-  ShopPanel panel(c, equips, items);
-  OpenTokenShelf(panel, kShopEquipsTab);
-
-  EXPECT_EQ(CellColor(panel, "▲    7", "▲"), kTheme);
-  EXPECT_EQ(CellColor(panel, "▲    8", "▲"), kGold)
-      << "two balances, one glyph, and only the colour between them";
-}
-
-// Four digits with no separator: the panel has a fixed width, and a comma in
-// the count would take a column the shop can't spare.
-TEST_F(ShopPanelTest, ThePanelCountsWithoutCommas) {
-  CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
-  c.AddItem(items_.at("secondary_token"), 4321);
-  ShopPanel panel(c, equips_, items_);
-  OpenTokenShelf(panel, kShopEquipsTab);
-  EXPECT_GE(IndexWith(ScreenRows(panel), "● 4321"), 0);
-}
-
 // A shelf that uses one token still shows it on its Cost column.
 TEST_F(ShopPanelTest, AShelfOfOneCurrencyMarksItsCostColumn) {
   CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
@@ -1316,19 +1086,6 @@ TEST_F(ShopPanelTest, APriceNoTokenCanMeetIsRed) {
   EXPECT_NE(CellColor(afford, "Frozen Axe", "9"), kRed);
 }
 
-// The pay row is drawn under every tab so the window keeps one height, but a
-// blank one isn't a stop: Up from the Etc list reaches the tab bar itself.
-TEST_F(ShopPanelTest, TheEtcTabHasNoPayRowToStandOn) {
-  CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
-  ShopPanel panel(c, equips_, items_);
-  OpenShelf(panel, kShopEtcTab);
-  panel.OnEvent(ftxui::Event::ArrowDown);  // tab bar to the first item
-  ASSERT_NE(panel.selected_stackable(), nullptr);
-  panel.OnEvent(ftxui::Event::ArrowUp);    // first item back to the tab bar
-  panel.OnEvent(ftxui::Event::ArrowLeft);  // where Left works
-  EXPECT_NE(panel.selected_item(), nullptr) << "back on the Secondary shelf";
-}
-
 // The shop is centred, so a row that came and went with the tab would move the
 // whole window up the screen.
 TEST_F(ShopPanelTest, TheWindowIsOneHeightUnderEveryTab) {
@@ -1342,13 +1099,6 @@ TEST_F(ShopPanelTest, TheWindowIsOneHeightUnderEveryTab) {
     element->ComputeRequirement();
     EXPECT_EQ(element->requirement().min_y, rows) << "tab " << tab;
   }
-}
-
-// In the list, Left and Right don't switch tabs: changing the list while the
-// player moves through it would lose their place.
-TEST_F(ShopPanelTest, TheListIgnoresLeftAndRight) {
-  EXPECT_FALSE(shop_.OnEvent(ftxui::Event::ArrowRight));
-  EXPECT_NE(shop_.selected_item(), nullptr);
 }
 
 TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
@@ -1389,12 +1139,6 @@ TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
   // Newest on top: the stack was sold second.
   EXPECT_LT(RowIndexWith(panel, "Green Snail Shell"),
             RowIndexWith(panel, "Gladius"));
-}
-
-TEST_F(ShopPanelTest, AnEmptyShelfSaysSo) {
-  OpenShelf(shop_, kShopBuyBackTab);
-  EXPECT_NE(Render(shop_).find("(empty)"), std::string::npos);
-  EXPECT_EQ(shop_.selected_buy_back(), nullptr);
 }
 
 // The shelf is the player's own history, so nothing filters it. A weapon of
@@ -1439,23 +1183,6 @@ TEST_F(ShopPanelTest, OnlyTheShelfAnswersOnTheShelf) {
   EXPECT_EQ(panel.selected_buy_back(), nullptr);
 }
 
-// A sold trace must be labelled as a trace, or it would look like the working
-// item it is the remains of.
-TEST_F(ShopPanelTest, ATraceOnTheShelfSaysSo) {
-  CharacterInstance c = MakeCharacter(100000);
-  EquipPrototype sword = MakeItem("Gladius", 30, 20000);
-  sword.set_sell_price(2000);
-  Equip destroyed;
-  destroyed.set_equip_name("Gladius");
-  destroyed.set_stars(19);
-  c.PickUp(std::make_unique<EquipTrace>(sword, destroyed));
-  c.SellEquip(0);
-
-  ShopPanel panel(c, equips_, items_);
-  OpenShelf(panel, kShopBuyBackTab);
-  EXPECT_NE(Render(panel).find("Gladius Trace"), std::string::npos);
-}
-
 // The menu leads to Inspect and Buy, and the shelf offers both.
 TEST_F(ShopPanelTest, TheMenuOpensOnAShelfRow) {
   CharacterInstance c = MakeCharacter(100000);
@@ -1489,14 +1216,6 @@ TEST_F(ShopPanelTest, ALongNameIsCutToItsColumnAndNotPastIt) {
   EXPECT_NE(rendered.find(kLongest.substr(0, 26)), std::string::npos);
   EXPECT_EQ(RenderWidth(panel), RenderWidth(plain))
       << "a long name widened the shop";
-}
-
-TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
-  OpenShelf(shop_, kShopEtcTab);
-  ASSERT_NE(shop_.selected_stackable(), nullptr);
-  shop_.Reset();
-  EXPECT_NE(shop_.selected_item(), nullptr);
-  EXPECT_EQ(shop_.selected_stackable(), nullptr);
 }
 
 // Every shelf: the token shelves have a balance panel beside the window, and

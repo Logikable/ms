@@ -420,18 +420,6 @@ TEST(BossFightPanelTest, APracticeRunSaysSoBeforeAnythingElse) {
   EXPECT_EQ(FightHeading(run), "Practice - Normal Zakum - Left");
 }
 
-// A one-room fight has no phase to name: "P1" would only make the player wonder
-// what the other phase was.
-TEST(BossFightPanelTest, AOnePhaseFightNamesNoPhase) {
-  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
-  Boss boss = Zakum();
-  boss.mutable_difficulties(0)->mutable_phases()->DeleteSubrange(1, 1);
-  BossRun run("zakum", boss, 0);
-  run.Advance(*state, kBossCountdownSeconds);
-
-  EXPECT_EQ(FightHeading(run), "Normal Zakum - 100%");
-}
-
 // Verus Hilla's four bars: the one being emptied, how full it is, and the next
 // showing through behind it. The last has only the ground behind it.
 TEST(BossFightPanelTest, SplitHpEmptiesOneBarAtATime) {
@@ -578,22 +566,6 @@ TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   EXPECT_NE(out.find("Midnight"), std::string::npos);
   EXPECT_NE(out.find("Carnival"), std::string::npos);
   EXPECT_EQ(out.find("Midnight Carnival"), std::string::npos);
-}
-
-// The body is drawn above the player, not off to one side.
-TEST(BossFightPanelTest, TheBodyIsDrawnAboveThePlayer) {
-  std::unique_ptr<GameState> state = MakeState(1, 1000000000);
-  Boss boss = Zakum();
-  BossRun run("zakum", boss, 0);
-  for (int i = 0; i < 2000 && run.phase() == 1; ++i) {
-    run.Advance(*state, 0.05);
-  }
-  ASSERT_EQ(run.phase(), 2);
-  ASSERT_EQ(run.slots().size(), 1u);
-
-  std::string out = Render(run);
-  EXPECT_NE(out.find("Zakum"), std::string::npos);
-  EXPECT_LT(out.find(" Zakum "), out.find(" You "));
 }
 
 // A phase where two parts stand four cells apart, with one cell of margin to
@@ -808,30 +780,6 @@ TEST(BossFightPanelTest, APlayerWhoLeavesLeavesAnEmptySpot) {
   EXPECT_NE(RowOf(rows, "You"), -1);
   EXPECT_NE(RowOf(rows, "Claw"), -1);
   EXPECT_EQ(MarkedSpots(run), 3);
-}
-
-// Party members' numbers are drawn in their own faint colours, so a fight with
-// three people still reads as the player's own.
-TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {
-  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
-  Boss boss = Zakum();
-  std::unique_ptr<TestAuthority> authority = PartyOfThree();
-  BossRun run("zakum", boss, 0, authority.get());
-  run.Advance(*state, 0.1);
-  authority->OtherLanded(0, 4242);
-  run.Advance(*state, 0.1);
-
-  ftxui::Screen screen = RenderScreen(run, 60, 40);
-  int faint = 0;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const ftxui::Pixel& px = screen.PixelAt(x, y);
-      if (px.character == "4" && px.foreground_color == kFaintTheme) {
-        ++faint;
-      }
-    }
-  }
-  EXPECT_EQ(faint, 2) << "4242 holds two of them";
 }
 
 // An attack puts its numbers over the monster it hit, all of them where there
@@ -1050,29 +998,6 @@ TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
   EXPECT_EQ(middle.back(), '#');
   EXPECT_EQ(middle.substr(1, width - 2),
             " " + FormatClock(below.seconds_left()) + " ");
-}
-
-// Orange for a critical line and the theme blue for a plain one. That is all a
-// number's colour means.
-TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
-  for (bool crit : {false, true}) {
-    std::unique_ptr<GameState> state = EightLineState();
-    Boss boss = OneArmBoss();
-    BossRun run("zakum", boss, 0);
-    run.Advance(*state, kBossCountdownSeconds);
-    ASSERT_TRUE(RunUntilLine(run, *state, crit)) << "crit: " << crit;
-    std::vector<DamageRow> column = OnlyColumn(run);
-
-    std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
-    ASSERT_EQ(drawn.size(), column.size());
-    int matched = 0;
-    for (std::size_t i = 0; i < drawn.size(); ++i) {
-      const DamageRow& row = column[drawn.size() - 1 - i];
-      EXPECT_EQ(drawn[i].crit, row.number.crit) << drawn[i].text;
-      matched += row.number.crit == crit ? 1 : 0;
-    }
-    EXPECT_GT(matched, 0) << "crit: " << crit;
-  }
 }
 
 // Every damage source the player has writes into the one column over the

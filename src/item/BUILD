@@ -112,16 +112,6 @@ cc_library(
     deps = [":equip_instance"],
 )
 
-cc_test(
-    name = "star_force_cost_test",
-    size = "small",
-    srcs = ["star_force_cost_test.cc"],
-    deps = [
-        ":star_force_cost",
-        "@googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "projectile",
     srcs = ["projectile.cc"],

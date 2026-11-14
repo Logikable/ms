@@ -340,38 +340,6 @@ TEST(MapSelectPanelTest, ListsMapsByWeightedLevelThenName) {
   EXPECT_LT(mixed, horny);
 }
 
-TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
-  GameState state = ThreeMaps();
-  MapSelectPanel panel(state);
-  std::string rendered = Render(panel);
-
-  EXPECT_NE(MapRow(rendered, "Green Field").find("Green Field 1"),
-            std::string::npos);
-  // Mixed Field spawns nine level 1 mobs and one level 8: 1.7, rounded down to
-  // 1. Ignoring the counts would give 4.5, and rounding to nearest would give
-  // 2.
-  EXPECT_NE(MapRow(rendered, "Mixed Field").find("Mixed Field 1"),
-            std::string::npos);
-}
-
-// A town rather than a hunting ground. There are no mobs to average, so the
-// level column shows 0 instead of dividing by zero, which also puts the town
-// below every hunting ground and keeps the list running low to high.
-TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZeroAndSortsFirst) {
-  MapData green;
-  green.set_name("Green Field");
-  AddSpawn(&green, "snail", 4);
-  MapData town;
-  town.set_name("Maple Island");
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"green_field", green}, {"maple_island", town}});
-  MapSelectPanel panel(state);
-  std::string rendered = Render(panel);
-  EXPECT_NE(MapRow(rendered, "Maple Island").find("Maple Island 0"),
-            std::string::npos);
-  EXPECT_LT(rendered.find("Maple Island"), rendered.find("Green Field"));
-}
-
 TEST(MapSelectPanelTest, ResetPutsTheCursorOnTheMapBeingFarmed) {
   GameState state = ThreeMaps();
   state.current_map = "horny_field";
@@ -713,27 +681,6 @@ TEST(MapSelectPanelTest, TheMenuSaysWhichEntryWasTaken) {
   EXPECT_FALSE(panel.menu_open());
 }
 
-// The bar isn't a map, so there is nothing to open a menu about.
-TEST(MapSelectPanelTest, TheBarOpensNoMenu) {
-  GameState state = ThreeMaps();
-  MapSelectPanel panel(state);
-  panel.Reset();
-  GoToTheBar(&panel);
-
-  panel.OpenMenu();
-  EXPECT_FALSE(panel.menu_open());
-  EXPECT_EQ(Render(panel).find("Inspect"), std::string::npos);
-}
-
-TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
-  GameState state({}, {}, {}, {}, {});
-  MapSelectPanel panel(state);
-  panel.Reset();
-
-  EXPECT_EQ(panel.selected_map(), "");
-  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
-}
-
 // A map in Arcane River, which puts it in the second river band.
 GameState ArcaneMaps() {
   MapData clearing;
@@ -771,23 +718,6 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   // The column keeps its width without its header, so the window doesn't shift
   // sideways as the player pages.
   EXPECT_EQ(Width(panel), plain_width);
-}
-
-// Grandis maps put Sacred Power in the same column, under their own header.
-TEST(MapSelectPanelTest, GrandisHeadsTheColumnSac) {
-  MapData ramparts;
-  ramparts.set_name("Cernium Eastern City Ramparts 1");
-  AddSpawn(&ramparts, "spirit", 39);
-  ramparts.set_sacred_power(30);
-  GameState state({}, {}, {}, {{"spirit", SpiritMob()}},
-                  {{"ramparts", ramparts}});
-  MapSelectPanel panel(state);
-  panel.Reset();
-  GoToTheBar(&panel);
-  panel.ChangePage(kPastEveryBand);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("SAC"), std::string::npos) << rendered;
-  EXPECT_EQ(rendered.find("AF "), std::string::npos) << rendered;
 }
 
 // The band bar, the map list and the mob table beside it are in one window

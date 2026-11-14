@@ -37,7 +37,6 @@ BossPhase XArena() {
 
 constexpr int kFloorMiddle = 0;
 constexpr int kFloorLeft = 1;
-constexpr int kFloorRight = 2;
 constexpr int kFloorInnerLeft = 3;
 constexpr int kFloorInnerRight = 4;
 constexpr int kLowLeft = 5;

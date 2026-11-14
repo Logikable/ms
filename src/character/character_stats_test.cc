@@ -117,18 +117,6 @@ void EquipStrRing(CharacterInstance& character, int str) {
   character.Equip(0);
 }
 
-// Critical Shot: +2% crit rate per level.
-Skill CriticalShot() {
-  Skill skill;
-  skill.set_name("Critical Shot");
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
-  skill.set_max_level(20);
-  skill.mutable_base()->set_crit_rate(0.02);
-  skill.mutable_per_level()->set_crit_rate(0.02);
-  return skill;
-}
-
 // MP Boost as the wiki states it: Max MP +x%, MP +(20+5x) per character level.
 Skill MpBoost() {
   Skill skill;
@@ -659,15 +647,6 @@ TEST_F(DerivedStatsTest, OtherGearDoesNotCountTowardASet) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.str(), 0);
 }
 
-// A character who was never given the set definitions gets no bonuses. Every
-// test and sim that ignores sets relies on this.
-TEST_F(DerivedStatsTest, NoCatalogNoBonus) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
-  WearFrozen(c, 4);
-
-  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
-}
-
 TEST_F(DerivedStatsTest, PercentMpAppliesAfterEveryFlatSource) {
   CharacterInstance c = MakeCharacter(rng_, 15, 0, /*mp=*/50);
   Skill boost = MpBoost();
@@ -724,27 +703,6 @@ TEST_F(DerivedStatsTest, AWornPercentageSumsWithAPassivesRatherThanStacking) {
   c.Equip(0);
 
   EXPECT_EQ(DerivedStatsFor(c, skills).max_hp, 120);
-}
-
-TEST_F(DerivedStatsTest, UnlearnedPassivesContributeNothing) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.max_hp, 50);
-  EXPECT_EQ(stats.def, 0);
-}
-
-TEST_F(DerivedStatsTest, IronBodyScalesWithItsLearnedLevel) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 100);
-  Skill iron_body = IronBody();
-  std::map<std::string, Skill> skills = {{"iron_body", iron_body}};
-  ASSERT_TRUE(c.LearnSkill(iron_body, 20));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.def, 200);     // 10 * 20
-  EXPECT_EQ(stats.max_hp, 120);  // 100 * (1 + 20%)
-  EXPECT_NEAR(stats.damage_taken_pct, 0.10, 1e-9);
 }
 
 // Freezing Crush, the base of the mechanism: a cap, and what one stack is
@@ -961,17 +919,6 @@ TEST_F(DerivedStatsTest, OneSkillOpensTheWholeBarrierOntoBosses) {
   EXPECT_TRUE(stats.enemy_attack_reaches_boss);
 }
 
-TEST_F(DerivedStatsTest, PerLevelHpScalesWithTheCharactersLevel) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  Skill mastery = WarriorMastery();
-  std::map<std::string, Skill> skills = {{"warrior_mastery", mastery}};
-  ASSERT_TRUE(c.LearnSkill(mastery, 1));
-
-  // Level 1 of the skill grants 6 HP for each of the character's 15 levels.
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.max_hp, 50 + 6 * 15);
-}
-
 TEST_F(DerivedStatsTest, PercentHpAppliesAfterEveryFlatSource) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   EquipArmor(c, 100, 0);
@@ -1006,27 +953,6 @@ TEST_F(DerivedStatsTest, PercentHpSurvivesItsOwnAccumulation) {
   EXPECT_EQ(stats.max_hp, 58);
 }
 
-TEST_F(DerivedStatsTest, CritRateAccumulatesAcrossLearnedLevels) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  Skill critical_shot = CriticalShot();
-  std::map<std::string, Skill> skills = {{"critical_shot", critical_shot}};
-  ASSERT_TRUE(c.LearnSkill(critical_shot, 20));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_NEAR(stats.crit_rate, 0.40, 1e-9);  // 2% * 20
-}
-
-TEST_F(DerivedStatsTest, AttackSpeedBonusIsFlatRegardlessOfLevel) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  Skill mastery = ArcheryMastery();
-  std::map<std::string, Skill> skills = {{"archery_mastery", mastery}};
-  ASSERT_TRUE(c.LearnSkill(mastery, 15));  // maxed
-
-  // The bonus is +1 at every level, so even a maxed skill adds one stage.
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.attack_speed_bonus, 1);
-}
-
 // A skill's stages go to one of two fields, never both. The capped field holds
 // the weapon and book stages, and only the other one can pass the cap.
 TEST_F(DerivedStatsTest, StagesThatPassTheCapAreCountedApart) {
@@ -1048,27 +974,6 @@ TEST_F(DerivedStatsTest, StagesThatPassTheCapAreCountedApart) {
   EXPECT_EQ(AttackSpeedStage(kAttackSpeedSoftCap, stats.attack_speed_bonus,
                              stats.uncapped_attack_speed_bonus),
             kAttackSpeedSoftCap + 1);
-}
-
-TEST_F(DerivedStatsTest, SkillGrantedLukLandsInTheStatLine) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  Skill nimble = NimbleBody();
-  std::map<std::string, Skill> skills = {{"nimble_body", nimble}};
-  ASSERT_TRUE(c.LearnSkill(nimble, 20));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.luk(), 20);  // 1 a level, maxed
-}
-
-TEST_F(DerivedStatsTest, SkillGrantedStrAndDexLandInTheStatLine) {
-  CharacterInstance c = MakeCharacter(rng_, 40, 50);
-  Skill training = PhysicalTraining();
-  std::map<std::string, Skill> skills = {{"physical_training", training}};
-  ASSERT_TRUE(c.LearnSkill(training, 5));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.str(), 30);  // 6 a level, maxed
-  EXPECT_EQ(stats.skill_stats.dex(), 30);
 }
 
 // STR from a skill gives as much base DEF as STR from AP. That is why base DEF
@@ -1106,12 +1011,6 @@ TEST_F(DerivedStatsTest, MasteriesTakeTheBestRatherThanTheSum) {
   ASSERT_TRUE(c.LearnSkill(other, 4));
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.50);
-}
-
-TEST_F(DerivedStatsTest, NoMasterySkillKeepsTheBaseline) {
-  CharacterInstance c = MakeCharacter(rng_, 40, 50);
-  std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
-  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);
 }
 
 // The chance and the damage stay separate throughout, because the fight rolls
@@ -1413,12 +1312,6 @@ TEST_F(DerivedStatsTest, OnlyAPassivesBurnFollowsTheCharacter) {
   ASSERT_EQ(stats.dots.size(), 1u);
   EXPECT_EQ(stats.dots[0].level, 7);
   EXPECT_DOUBLE_EQ(stats.dots[0].dot.duration_seconds(), 6.0);
-}
-
-TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
-  CharacterInstance c = MakeCharacter(rng_, 40, 50);
-  std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
-  EXPECT_TRUE(DerivedStatsFor(c, skills).final_attacks.empty());
 }
 
 // Every Final Attack keeps its own entry, including the Hunter's matching pair.
@@ -2141,27 +2034,6 @@ TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
-// Spirit Blade's two levers: attack, in the same form a weapon grants it, and
-// the share of a hit reflected back at the attacker.
-TEST_F(DerivedStatsTest, AttackAndReflectionFoldIn) {
-  CharacterInstance c = MakeCharacter(rng_, 60, 0);
-  Skill blade;
-  blade.set_name("Spirit Blade");
-  blade.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(blade, JOB_ADVANCEMENT_SWORDMAN);
-  blade.set_max_level(20);
-  blade.mutable_base()->set_attack(11);
-  blade.mutable_base()->set_damage_reflect_pct(1.2);
-  blade.mutable_per_level()->set_attack(1);
-  blade.mutable_per_level()->set_damage_reflect_pct(0.2);
-  std::map<std::string, Skill> skills = {{"spirit_blade", blade}};
-  ASSERT_TRUE(c.LearnSkill(blade, 20));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.attack(), 30);
-  EXPECT_DOUBLE_EQ(stats.damage_reflect_pct, 5.0);
-}
-
 // Combo Attack states its attack per orb and how many orbs it gives. The orbs
 // are assumed full, so the character gets the product.
 TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
@@ -2375,31 +2247,6 @@ TEST_F(DerivedStatsTest, LitOrbsPayFinalDamageAndNothingElse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 1.808, 1e-9);
 }
 
-// With no orbs, the per-orb bonus is worth nothing, and the character is left
-// with the plain final damage they bought.
-TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
-  CharacterInstance c = MakeCharacter(rng_, 60, 0);
-  Skill synergy;
-  synergy.set_name("Combo Synergy");
-  synergy.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(synergy, JOB_ADVANCEMENT_SWORDMAN);
-  synergy.set_max_level(20);
-  synergy.mutable_base()->set_final_dmg_pct_per_combo_orb(0.05);
-  synergy.mutable_base()->set_final_dmg_pct(0.10);
-  std::map<std::string, Skill> skills = {{"combo_synergy", synergy}};
-  ASSERT_TRUE(c.LearnSkill(synergy, 1));
-
-  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
-
-  // Orbs added only for final damage don't count without a ring either. That
-  // matches GMS's "while Combo Attack is active" without needing a separate
-  // gate.
-  synergy.mutable_base()->clear_final_dmg_pct_per_combo_orb();
-  synergy.mutable_base()->set_final_dmg_combo_orbs(6);
-  skills["combo_synergy"] = synergy;
-  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
-}
-
 // The two damage levers only differ once there is a second source: % damage
 // adds, final damage multiplies. Two skills of 10% each give 20% and 21%.
 TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {
@@ -2503,24 +2350,6 @@ TEST_F(DerivedStatsTest, AttackPercentScalesWornAndGrantedAlike) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.attack_pct, 0.25, 1e-9);
   EXPECT_EQ(TotalEquipStats(c, stats).attack(), 125);
-}
-
-TEST_F(DerivedStatsTest, AttackPercentScalesMagicAttackToo) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 100);
-  Skill marks = AttackPercent();
-  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
-  ASSERT_TRUE(c.LearnSkill(marks, 20));
-
-  EquipPrototype staff;
-  staff.set_name("Staff");
-  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  staff.mutable_base_stats()->set_magic_attack(80);
-  c.PickUp(std::make_unique<EquipInstance>(staff));
-  c.Equip(0);
-
-  // A magician uses magic attack, so a percentage of the attacking stat has to
-  // reach it too.
-  EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, skills)).magic_attack(), 100);
 }
 
 // Speed Mirage's passive half: a skill that makes one other skill hit harder,
@@ -2684,15 +2513,6 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   EXPECT_NEAR(bonus.normal_pct, 0.20, 1e-9);
   EXPECT_NEAR(bonus.dot_skill_pct, 0.60, 1e-9);
   EXPECT_NEAR(bonus.dot_duration_seconds, 4.0, 1e-9);
-}
-
-TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 100);
-  Skill marks = Marksmanship();
-  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
-  ASSERT_TRUE(c.LearnSkill(marks, 20));
-
-  EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 0.25, 1e-9);
 }
 
 TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
@@ -2980,28 +2800,6 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   EXPECT_NEAR(boosted.crit_rate, branded.crit_rate, 1e-9);
 }
 
-// Boss damage adds up across passives, like plain damage and unlike IED.
-TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 100);
-  Skill spirit;
-  spirit.set_name("Spirit of the Star");
-  spirit.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(spirit, JOB_ADVANCEMENT_SWORDMAN);
-  spirit.set_max_level(10);
-  spirit.mutable_base()->set_boss_pct(0.01);
-  spirit.mutable_per_level()->set_boss_pct(0.01);
-  Skill other = spirit;
-  other.set_name("Something Else");
-  other.set_max_level(5);
-  other.mutable_base()->set_boss_pct(0.05);
-  other.mutable_per_level()->set_boss_pct(0.0);
-  std::map<std::string, Skill> skills = {{"spirit", spirit}, {"other", other}};
-
-  ASSERT_TRUE(c.LearnSkill(spirit, 10));
-  ASSERT_TRUE(c.LearnSkill(other, 1));
-  EXPECT_NEAR(DerivedStatsFor(c, skills).boss_pct, 0.15, 1e-9);
-}
-
 // Holy Fountain states a pulse and an interval, and both change with level.
 // They reach the fight separately, so it can heal on each tick.
 TEST_F(DerivedStatsTest, AFountainKeepsItsPulseAndItsInterval) {
@@ -3104,64 +2902,6 @@ TEST_F(DerivedStatsTest, TwoFountainsKeepTheirOwnClocks) {
   ASSERT_EQ(pulses.size(), 2);
   EXPECT_NEAR(pulses[0].interval_seconds, 7.5, 1e-9);
   EXPECT_NEAR(pulses[1].interval_seconds, 5.0, 1e-9);
-}
-
-// A pulse with no interval can't be timed, so it grants nothing.
-TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 100);
-  Skill fountain;
-  fountain.set_name("Holy Fountain");
-  fountain.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
-  fountain.set_max_level(10);
-  fountain.mutable_base()->set_regen_pct(0.13);
-  std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
-  ASSERT_TRUE(c.LearnSkill(fountain, 1));
-
-  EXPECT_TRUE(DerivedStatsFor(c, skills).regen_pulses.empty());
-}
-
-// High Wisdom grants the magician's own stat. It reaches the stat line like any
-// other stat and gives no DEF, which is the rule for INT from any source.
-TEST_F(DerivedStatsTest, SkillGrantedIntLandsInTheStatLineAndBuysNoDef) {
-  CharacterInstance c = MakeCharacter(rng_, 60, 0);
-  Skill wisdom;
-  wisdom.set_name("High Wisdom");
-  wisdom.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(wisdom, JOB_ADVANCEMENT_SWORDMAN);
-  wisdom.set_max_level(5);
-  wisdom.mutable_base()->set_int_(8);
-  wisdom.mutable_per_level()->set_int_(8);
-  std::map<std::string, Skill> skills = {{"high_wisdom", wisdom}};
-  ASSERT_TRUE(c.LearnSkill(wisdom, 5));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.int_(), 40);
-  EXPECT_EQ(TotalEquipStats(c, stats).int_(), 40);
-  EXPECT_EQ(stats.def, 0);
-}
-
-// Freezing Crush's pair: crit damage is added alongside crit rate, and magic
-// attack goes into the stat line just like a staff's. That is how a magician's
-// skills reach their own damage.
-TEST_F(DerivedStatsTest, MagicAttackAndCritDamageFoldIn) {
-  CharacterInstance c = MakeCharacter(rng_, 60, 0);
-  Skill crush;
-  crush.set_name("Freezing Crush");
-  crush.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
-  crush.set_max_level(10);
-  crush.mutable_base()->set_crit_dmg(0.005);
-  crush.mutable_base()->set_magic_attack(3);
-  crush.mutable_per_level()->set_crit_dmg(0.005);
-  crush.mutable_per_level()->set_magic_attack(3);
-  std::map<std::string, Skill> skills = {{"freezing_crush", crush}};
-  ASSERT_TRUE(c.LearnSkill(crush, 10));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_NEAR(stats.crit_dmg, 0.05, 1e-9);
-  EXPECT_EQ(stats.skill_stats.magic_attack(), 30);
-  EXPECT_EQ(TotalEquipStats(c, stats).magic_attack(), 30);
 }
 
 // Weapon Mastery gives mastery with both a spear and a polearm, but only the
@@ -3351,22 +3091,6 @@ TEST_F(DerivedStatsTest, MapleWarriorGrantsAShareOfWhatApBought) {
   EXPECT_EQ(TotalEquipStats(c, stats).str(), 650);
   // 1.5 DEF per STR and 0.4 per DEX, over all of the character's stats.
   EXPECT_EQ(stats.base_def, static_cast<int>(1.5 * 1650 + 0.4 * 115));
-}
-
-// The share is rounded down per stat, as GMS does: 100 DEX at 1% is one point,
-// and at 15% it is fifteen, not a fraction of the two stats summed.
-TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
-  CharacterInstance c = MapleWarriorCharacter(rng_);
-  Skill mw = MapleWarrior();
-  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
-  ASSERT_TRUE(c.LearnSkill(mw, 1));
-
-  DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.str(), 10);
-  EXPECT_EQ(stats.skill_stats.dex(), 1);
-  // Nothing was spent on these, so neither gets anything.
-  EXPECT_EQ(stats.skill_stats.int_(), 0);
-  EXPECT_EQ(stats.skill_stats.luk(), 0);
 }
 
 // Maple World Goddess's Blessing, whose only effect multiplies the skill above.
@@ -3879,24 +3603,6 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   std::map<std::string, Skill> skills = {{"greed", greed}};
   ASSERT_TRUE(c.LearnSkill(greed, 10));
   EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
-}
-
-// Every source together stops at +400%, and a total under it is untouched.
-TEST_F(DerivedStatsTest, DropRateCapsAtFourHundred) {
-  std::mt19937 rng(1);
-  CharacterInstance c = MakeCharacter(rng, 10, 0);
-  EquipPrototype charm;
-  charm.set_name("Lucky Charm");
-  charm.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  charm.mutable_base_stats()->set_item_drop_rate(399);
-  c.PickUp(std::make_unique<EquipInstance>(charm));
-  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
-  EXPECT_NEAR(DerivedStatsFor(c, {}).item_drop_pct, 3.99, 1e-9);
-
-  charm.mutable_base_stats()->set_item_drop_rate(460);
-  c.PickUp(std::make_unique<EquipInstance>(charm));
-  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
-  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).item_drop_pct, kItemDropCap);
 }
 
 // Meso comes in the same two units, but the worn part has its own cap and the

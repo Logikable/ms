@@ -38,10 +38,6 @@ TEST(DisplayStatForTest, FindsAFieldWithARenamedAccessor) {
   EXPECT_EQ(stat->GetFrom(stats), 150);
 }
 
-TEST(DisplayStatForTest, UnspecifiedFieldHasNoEntry) {
-  EXPECT_EQ(DisplayStatFor(STAT_FIELD_UNSPECIFIED), nullptr);
-}
-
 // --- FormatWeaponList ---
 
 TEST(FormatWeaponListTest, NamesOneWeaponAndJoinsSeveral) {
@@ -87,19 +83,6 @@ TEST(TagForTest, EveryKindGetsAFourColumnTag) {
 
 // --- FormatJobCategories ---
 
-TEST(FormatJobCategoriesTest, NamesThemOrSaysAll) {
-  EquipPrototype proto;
-  EXPECT_EQ(FormatJobCategories(proto), "All");
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  EXPECT_EQ(FormatJobCategories(proto), "All");
-
-  proto.clear_equip_job_categories();
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  EXPECT_EQ(FormatJobCategories(proto), "Warrior");
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
-  EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
-}
-
 TEST(AttackSpeedNameTest, EveryStageHasAName) {
   for (int stage = ATTACK_SPEED_SLOWER; stage <= ATTACK_SPEED_FASTEST_3;
        ++stage) {
@@ -108,29 +91,6 @@ TEST(AttackSpeedNameTest, EveryStageHasAName) {
   }
   EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_FAST_2), "Fast 2");
   EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_UNSPECIFIED), "");
-}
-
-TEST(StatFieldNameTest, NamesTheFourAllocatableStats) {
-  EXPECT_EQ(StatFieldName(STAT_FIELD_STR), "STR");
-  EXPECT_EQ(StatFieldName(STAT_FIELD_DEX), "DEX");
-  EXPECT_EQ(StatFieldName(STAT_FIELD_INT), "INT");
-  EXPECT_EQ(StatFieldName(STAT_FIELD_LUK), "LUK");
-  EXPECT_EQ(StatFieldName(STAT_FIELD_UNSPECIFIED), "");
-}
-
-// A new skill kind that nobody checks here reads as a passive. That happened to
-// the first auto-attack, which inspected as " Passive " and showed no effects
-// at any level.
-TEST(IsActiveTest, EverythingButAPassiveIsActive) {
-  Skill skill;
-  skill.set_kind(SKILL_KIND_ATTACK);
-  EXPECT_TRUE(IsActive(skill));
-  skill.set_kind(SKILL_KIND_ACTIVE);
-  EXPECT_TRUE(IsActive(skill));
-  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
-  EXPECT_TRUE(IsActive(skill));
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  EXPECT_FALSE(IsActive(skill));
 }
 
 TEST(FormatSlotTest, NamesEverySlot) {

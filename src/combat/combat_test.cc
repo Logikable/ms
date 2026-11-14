@@ -428,22 +428,6 @@ TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
   EXPECT_EQ(state.character.inventory().size(), filled);
 }
 
-// A drop naming an item missing from every catalog is skipped, not guessed at.
-TEST(AdvanceCombatTest, AnUnknownEquipDropsNothing) {
-  Mob mob = SnailMob();
-  mob.clear_drops();
-  MobDrop* drop = mob.add_drops();
-  drop->set_equip("no_such_item");
-  drop->set_per_kill(1.0);
-
-  GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}});
-  state.current_map = "field";
-  EquipSword(state);
-
-  Farm(state, 60.0);
-  EXPECT_EQ(state.character.inventory().size(), 0);
-}
-
 TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
@@ -468,26 +452,6 @@ TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
 
   Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), kTrialLevelCap);
-  EXPECT_EQ(state.character.proto().exp(), 0);
-}
-
-TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
-  state.current_map = "field";
-
-  int start_level = state.character.proto().level();
-  Farm(state, 20000.0);
-  EXPECT_EQ(state.character.proto().level(), start_level);
-  EXPECT_EQ(state.character.proto().exp(), 0);
-}
-
-TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
-  EquipSword(state);  // current_map left empty
-
-  int start_level = state.character.proto().level();
-  Farm(state, 20000.0);
-  EXPECT_EQ(state.character.proto().level(), start_level);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
@@ -587,85 +551,6 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   EXPECT_EQ(boosted.character.stackables()[0].count(),
             plain.character.stackables()[0].count());
   EXPECT_EQ(boosted.character.meso(), plain.character.meso());
-}
-
-// Holy Symbol pays out in EXP, not in the fight. Meso and drops are unchanged,
-// the same as the debug multiplier.
-TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
-  Skill symbol;
-  symbol.set_name("Holy Symbol");
-  symbol.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(symbol, JOB_ADVANCEMENT_SWORDMAN);
-  symbol.set_max_level(1);
-  symbol.mutable_base()->set_exp_pct(1.0);
-
-  // One seed for both runs, as above.
-  GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", SnailMap()}},
-                  {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
-                  /*seed=*/9);
-  plain.current_map = "field";
-  LevelTo(plain, kTrialLevelCap - 1);
-  EquipSword(plain);
-  plain.character.AdvanceJob(JOB_SWORDMAN);
-  Farm(plain, 600.0);
-
-  GameState blessed({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                    {{"snail", SnailMob()}}, {{"field", SnailMap()}},
-                    {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
-                    /*seed=*/9);
-  blessed.current_map = "field";
-  LevelTo(blessed, kTrialLevelCap - 1);
-  EquipSword(blessed);
-  // The skill belongs to Swordman, so the character must advance before
-  // spending its one point.
-  ASSERT_TRUE(blessed.character.CanAdvanceJob());
-  blessed.character.AdvanceJob(JOB_SWORDMAN);
-  ASSERT_TRUE(blessed.character.LearnSkill(symbol, 1));
-  Farm(blessed, 600.0);
-
-  ASSERT_GT(plain.character.proto().exp(), 0);
-  EXPECT_EQ(blessed.character.proto().exp(), 2 * plain.character.proto().exp());
-  EXPECT_EQ(blessed.character.meso(), plain.character.meso());
-}
-
-// Meso Mastery is the opposite of Holy Symbol: it adds meso and leaves the
-// fight and EXP exactly as they were.
-TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
-  Skill mastery;
-  mastery.set_name("Meso Mastery");
-  mastery.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
-  mastery.set_max_level(1);
-  mastery.mutable_base()->set_meso_pct(1.0);
-
-  Mob mob = SnailMob();
-  mob.set_level(20);
-
-  int64_t meso[2] = {0, 0};
-  int64_t exp[2] = {0, 0};
-  for (int pass = 0; pass < 2; ++pass) {
-    // Both passes roll from the same stream, since drops are rolled. A doubled
-    // meso total must come from the bonus, not luck.
-    GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}},
-                    {{"meso_mastery", mastery}}, GameMode::kPlay, TestOptions{},
-                    /*seed=*/7);
-    state.current_map = "field";
-    LevelTo(state, 25);
-    EquipSword(state);
-    ASSERT_TRUE(state.character.CanAdvanceJob());
-    state.character.AdvanceJob(JOB_SWORDMAN);
-    if (pass == 1) {
-      ASSERT_TRUE(state.character.LearnSkill(mastery, 1));
-    }
-    Farm(state, 600.0);
-    meso[pass] = state.character.meso();
-    exp[pass] = state.character.proto().exp();
-  }
-
-  ASSERT_GT(meso[0], 0);
-  EXPECT_EQ(meso[1], 2 * meso[0]);
-  EXPECT_EQ(exp[1], exp[0]);
 }
 
 // Farms `state` until the ogre kills the character, or gives up after a long

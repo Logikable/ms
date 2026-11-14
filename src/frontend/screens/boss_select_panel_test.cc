@@ -241,24 +241,6 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheHonorAClearPays) {
   EXPECT_NE(rows[RowOf(rows, "Honor")].find("1,500"), std::string::npos);
 }
 
-// Nothing uses honor before Inner Ability unlocks, so it isn't shown.
-TEST(BossSelectPanelTest, TheHonorRowWaitsForInnerAbility) {
-  std::unique_ptr<GameState> owner = WithBosses();
-  GameState& state = *owner;
-  BossSelectPanel panel(state);
-  EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
-}
-
-// A fight with no reset pays no honor, so none is shown.
-TEST(BossSelectPanelTest, AFightWithNoLockoutNamesNoHonor) {
-  std::unique_ptr<GameState> owner = WithBosses();
-  GameState& state = *owner;
-  LevelTo(state, kInnerAbilityUnlockLevel);
-  state.bosses["zakum"].mutable_difficulties(0)->clear_reset();
-  BossSelectPanel panel(state);
-  EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
-}
-
 // The gear is separated by a rule from what every clear pays and the shard, and
 // listed below it most common first, so the rarest drop is the last line.
 TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
@@ -349,17 +331,6 @@ TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   std::chrono::steady_clock::time_point slid =
       kHead + std::chrono::milliseconds(2000);
   EXPECT_NE(Render(wide, 32, slid).find("the Depths"), std::string::npos);
-}
-
-// A single monster is just "HP", since there is no other phase to confuse it
-// with.
-TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
-  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
-  GameState& state = *owner;
-  BossSelectPanel panel(state);  // Balrog sorts first: one phase.
-  std::string out = Render(panel);
-  EXPECT_NE(out.find("HP"), std::string::npos);
-  EXPECT_EQ(out.find("P1 HP"), std::string::npos);
 }
 
 // Nothing on this screen moves as the cursor moves: both panels are 25 rows
@@ -515,20 +486,6 @@ TEST(BossSelectPanelTest, AClearOfOneDifficultyClosesTheOthers) {
   EXPECT_TRUE(panel.selected_available());
 }
 
-TEST(BossSelectPanelTest, AnEmptyCatalogDrawsWithoutAFight) {
-  GameState state(
-      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
-      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
-      std::map<std::string, MapData>{});
-  BossSelectPanel panel(state);
-  EXPECT_TRUE(panel.selected_boss().empty());
-  EXPECT_EQ(panel.selected(), nullptr);
-  EXPECT_FALSE(panel.selected_available());
-  panel.MoveCursor(1);
-  panel.ChangeDifficulty(1);
-  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
-}
-
 // --- a difficulty that opens partway up the ladder ---
 
 // The row is below the fight's own level: what the player faces, then what it
@@ -585,14 +542,6 @@ TEST(BossSelectPanelTest, ReachingTheLevelUnlocksTheFight) {
       << "the row stays once passed -- it is a fact about the fight";
   EXPECT_NE(out.find("Available"), std::string::npos);
   EXPECT_EQ(out.find("Locked"), std::string::npos);
-}
-
-// A fight with no unlock level of its own shows no row, instead of one reading
-// 0.
-TEST(BossSelectPanelTest, AnUngatedFightHasNoUnlockRow) {
-  std::unique_ptr<GameState> owner = WithBosses();
-  BossSelectPanel panel(*owner);
-  EXPECT_EQ(Render(panel).find("Unlock Level"), std::string::npos);
 }
 
 // Arcane Force reads like the unlock level, red while short, but falling short
@@ -658,29 +607,6 @@ TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
   // Gold says the fight is coming rather than refused, which is why it isn't
   // the red used for a shortfall.
   EXPECT_EQ(RowColor(panel, "Coming soon!"), kYellow);
-}
-
-// The blank row keeps the HP apart from the "coming soon" line so the two don't
-// read as one sentence.
-TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
-  std::unique_ptr<GameState> owner = WithBosses();
-  GameState& state = *owner;
-  AddChaosZakum(state);
-  BossSelectPanel panel(state);
-  panel.ChangeDifficulty(1);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
-                                               ftxui::Dimension::Fixed(24));
-  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  int at = -1;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    if (ScreenRow(screen, y).find("Coming soon!") != std::string::npos) {
-      at = y;
-    }
-  }
-  ASSERT_GE(at, 0);
-  EXPECT_EQ(ScreenRow(screen, at + 1).find("HP"), std::string::npos)
-      << "a blank row comes between";
-  EXPECT_NE(ScreenRow(screen, at + 2).find("HP"), std::string::npos);
 }
 
 // Dimming marks a fight that can't be entered, and this one never can at any

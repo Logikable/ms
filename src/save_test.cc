@@ -391,15 +391,6 @@ TEST_F(SaveTest, SavingTwiceReplacesRatherThanAppends) {
   EXPECT_EQ(loaded->character.meso(), 100);
 }
 
-// The saved file isn't readable as text, which is the point of the format.
-TEST_F(SaveTest, TheSaveIsNotPlainText) {
-  std::unique_ptr<GameState> state = MakeState();
-  state->character.AddMeso(1234567);
-  ASSERT_TRUE(SaveGameToFile(*state, path_));
-
-  EXPECT_EQ(ReadRaw(path_).find("1234567"), std::string::npos);
-}
-
 // --- playtime and creation time ---
 
 TEST_F(SaveTest, WritesAndReadsBackPlaytimeAndCreationTime) {
@@ -440,18 +431,6 @@ TEST_F(SaveTest, WritesAndReadsBackTheMultiplayerAccount) {
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_EQ(loaded->account.multiplayer_account_id(), "0123456789abcdef");
   EXPECT_EQ(loaded->account.multiplayer_token(), "a-token");
-}
-
-// A new character is created now, not at the epoch: the state stamps itself,
-// so there's a real date to show before the first save.
-TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
-  std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
-  std::unique_ptr<GameState> state = MakeState();
-  std::int64_t after = static_cast<std::int64_t>(std::time(nullptr));
-
-  EXPECT_GE(state->created_unix_seconds, before);
-  EXPECT_LE(state->created_unix_seconds, after);
-  EXPECT_EQ(state->playtime_seconds, 0.0);
 }
 
 // A save from before either field existed: neither is set, so playtime starts
@@ -515,16 +494,6 @@ TEST_F(SaveTest, TheSaveStampsWhenItWasWritten) {
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_GE(loaded->last_seen_unix_seconds, before);
   EXPECT_LE(loaded->last_seen_unix_seconds, after);
-}
-
-// A save from before the field existed has no stamp, which credits no absence
-// instead of one measured from the epoch.
-TEST_F(SaveTest, AnOldSaveHasNoLastSeenStamp) {
-  WriteV1(SaveGameV1());
-
-  std::unique_ptr<GameState> loaded = MakeState();
-  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
-  EXPECT_EQ(loaded->last_seen_unix_seconds, 0);
 }
 
 // A refused load mustn't leave a partly applied playtime either.

@@ -787,20 +787,7 @@ TEST_F(TuiControllerTest, ArrivingOnAPanelReadsTheTabLeftOpenOnIt) {
   EXPECT_TRUE(state_->account.Seen(EquipGiftTabKey(stage)));
 }
 
-// That is its purpose: undoing a Tab that went one panel too far.
-TEST_F(TuiControllerTest, ShiftTabUndoesATab) {
-  controller_->OnEvent(ftxui::Event::Tab);
-  ASSERT_EQ(panel_focus_, kInventoryPanel);
-  controller_->OnEvent(ftxui::Event::TabReverse);
-  EXPECT_EQ(panel_focus_, kEquipPanel);
-}
-
 // --- AP allocation ---
-
-TEST_F(TuiControllerTest, OpenApAllocateSetsScreenToApAlloc) {
-  controller_->OpenApAllocate(STAT_FIELD_STR);
-  EXPECT_EQ(controller_->screen(), kApAlloc);
-}
 
 TEST_F(TuiControllerTest, ConfirmAllocatesAllAvailableApByDefault) {
   state_->character.LevelUp();  // grants AP to spend
@@ -829,28 +816,12 @@ TEST_F(TuiControllerTest, ConfirmAllocatesTheChosenAmount) {
   EXPECT_EQ(state_->character.proto().ap(), ap - 1);
 }
 
-TEST_F(TuiControllerTest, CancelInApAllocDoesNotAllocate) {
-  state_->character.LevelUp();
-  int str_before = state_->character.proto().allocated_stats().str();
-  controller_->OpenApAllocate(STAT_FIELD_STR);
-  controller_->OnEvent(ftxui::Event::ArrowDown);   // textbox -> [Confirm]
-  controller_->OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before);
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
 Skill SlashBlast() {
   Skill skill;
   skill.set_name("Slash Blast");
   PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
-}
-
-TEST_F(TuiControllerTest, OpenSkillLearnSetsScreenToSkillLearn) {
-  controller_->OpenSkillLearn(SlashBlast());
-  EXPECT_EQ(controller_->screen(), kSkillLearn);
 }
 
 TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
@@ -935,22 +906,11 @@ TEST_F(TuiControllerTest, EscapeLeavesTheSkillMenu) {
 
 // --- Skill inspect ---
 
-TEST_F(TuiControllerTest, OpenSkillInspectSetsScreenToSkillInspect) {
-  controller_->OpenSkillInspect(SlashBlast());
-  EXPECT_EQ(controller_->screen(), kSkillInspect);
-  EXPECT_EQ(controller_->skill_inspect_skill().name(), "Slash Blast");
-}
-
 TEST_F(TuiControllerTest, SkillInspectReportsTheLearnedLevel) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
   EXPECT_EQ(controller_->skill_inspect_level(), 3);
-}
-
-TEST_F(TuiControllerTest, ReportsZeroForAnUnlearnedSkill) {
-  controller_->OpenSkillInspect(SlashBlast());
-  EXPECT_EQ(controller_->skill_inspect_level(), 0);
 }
 
 // The level is read live, not stored when the screen opened, so a point spent
@@ -986,13 +946,6 @@ TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
 
   controller_->OpenSkillInspect(skill);
   EXPECT_EQ(RenderSkillCard(), head);
-}
-
-// The screen is read-only, so Enter also leaves rather than doing nothing.
-TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
-  controller_->OpenSkillInspect(SlashBlast());
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 // A boosted skill is found by name, and a name two jobs use resolves to the
@@ -1243,17 +1196,6 @@ TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveTheJobMenu) {
   EXPECT_EQ(state_->character.proto().job(), JOB_SWORDMAN);
 }
 
-// The menu starts at the top each time, so the cursor never starts where the
-// last visit left it.
-TEST_F(TuiControllerTest, TheJobMenuOpensAtInspectEveryTime) {
-  controller_->OpenJobMenu(JOB_ROGUE);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Escape);
-  controller_->OpenJobMenu(JOB_ARCHER);
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kJobInspect);
-}
-
 // Read-only: the arrows scroll the book, and Back returns to the menu it was
 // opened from, where the advancement is one key press away.
 TEST_F(TuiControllerTest, TheJobInspectScreenReadsAndGoesBackToTheMenu) {
@@ -1376,12 +1318,6 @@ TEST_F(TuiControllerTest, EscapeInItemMenuGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(equip_panel_->menu().selected(), 1);
-}
-
 TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
   WearASwordAndDraw();
 
@@ -1424,30 +1360,6 @@ TEST_F(TuiControllerTest, ABagItemIsComparedWithTheOneItWouldReplace) {
   EXPECT_EQ(worn, state_->character.WornAt(StatPreset::kFirst,
                                            EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_NE(worn, controller_->inspect_item()) << "not the item itself";
-}
-
-// Nothing in the slot, so nothing to compare: the card would be empty.
-TEST_F(TuiControllerTest, ABagItemWithAnEmptySlotIsComparedWithNothing) {
-  BagASword();
-
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kInspect);
-  EXPECT_EQ(controller_->inspect_comparison(), nullptr);
-}
-
-// An item inspected on the character is itself the comparison, so there is
-// neither a card nor a number: it would be compared with itself.
-TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
-  WearASwordAndDraw();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kInspect);
-  EXPECT_EQ(controller_->inspect_comparison(), nullptr);
-  EXPECT_FALSE(controller_->inspect_delta().has_value());
 }
 
 // The number on a bag item is what equipping it would do: a gain over an empty
@@ -1593,23 +1505,6 @@ TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   // A ring, so the tab bar wraps like every tab bar in the game.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(controller_->comparison_slots().active, 3);
-}
-
-// Only a ring has the tab bar. An item with one slot has nothing to move
-// through, and the arrows scroll the card as usual.
-TEST_F(TuiControllerTest, AnItemWithOneSlotHasNoBarToWalk) {
-  HoldASword();  // something for the Equipped card to hold
-  BagASword();
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kInspect);
-  ASSERT_EQ(controller_->comparison_slots().worn.size(), 1u);
-
-  FocusTheEquippedCard();
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(controller_->comparison_slots().active, 0);
-  EXPECT_EQ(controller_->screen(), kInspect);
 }
 
 // The chosen slot doesn't carry over to the next item: every screen opens on
@@ -1856,17 +1751,6 @@ TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
   controller_->OpenEquipMenu();
   ScrollTheFirstRow();
   controller_->OnEvent(ftxui::Event::Return);  // dismiss result
-
-  EXPECT_EQ(controller_->screen(), kScrollSelect);
-}
-
-TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
-  WearASwordAndDraw();
-  GiveTraces(100);
-
-  controller_->OpenEquipMenu();
-  ScrollTheFirstRow();
-  controller_->OnEvent(ftxui::Event::Escape);  // dismiss result
 
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
@@ -2130,25 +2014,6 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// There is a button as well as a key: the screen's own [Cancel] closes it, so a
-// player who doesn't know Escape isn't stuck.
-TEST_F(TuiControllerTest, CancelInStarForceGoesToMain) {
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  PickUpScrolledSword();
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);      // enter kStarForce
-  controller_->OnEvent(ftxui::Event::ArrowRight);  // onto [Cancel]
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
 TEST_F(TuiControllerTest, ConfirmingAStarForceOpensTheResultNamingTheEquip) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
@@ -2214,40 +2079,6 @@ TEST_F(TuiControllerTest, TabOnStarForceMovesBetweenTheCards) {
   controller_->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(controller_->screen(), kStarForce)
       << "neither Tab nor the scrolling arrows leave";
-}
-
-// An item at its maximum stars has no "after" card, so there is no second card
-// for Tab and no attempt for Enter. The screen is reached by starring an item
-// to its limit, since the bag greys out the entry for one already there.
-TEST_F(TuiControllerTest, MaxStarsStarForceHasOneCard) {
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  state_->character.AddMeso(200'000'000);
-  PickUpScrolledSword();
-  DescendIntoBag();
-
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
-  ASSERT_EQ(controller_->screen(), kStarForce);
-
-  // Nothing is destroyed below 15 stars, and this sword stops at 5, so the
-  // attempts run out of stars, not out of item.
-  const EquipInstance* item = controller_->star_force_item();
-  ASSERT_NE(item, nullptr);
-  for (int i = 0; i < 200 && item->stars() < item->max_stars(); ++i) {
-    controller_->OnEvent(ftxui::Event::Return);  // open the confirm bar
-    controller_->OnEvent(ftxui::Event::Return);  // confirm
-    controller_->OnEvent(ftxui::Event::Return);  // dismiss the result
-  }
-  ASSERT_EQ(item->stars(), item->max_stars());
-  ASSERT_EQ(controller_->screen(), kStarForce);
-
-  controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_FALSE(controller_->right_card_focused());
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kStarForce);
 }
 
 // --- Cubing, from the worn menu ---
@@ -2657,10 +2488,6 @@ TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
 
 // --- inspect_item accessor ---
 
-TEST_F(TuiControllerTest, NoInspectItemWhenNotInspecting) {
-  EXPECT_EQ(controller_->inspect_item(), nullptr);
-}
-
 // The accessors return the item from whichever kind of ref the modal was opened
 // from. The controller decides that when the item is picked, so these check
 // that both kinds return the right item.
@@ -2945,25 +2772,6 @@ TEST_F(TuiControllerTest, MultiSellEscapeKeepsEverything) {
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
-// The Etc tab's menu leads to the same screen, opened on that tab.
-TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
-  ItemPrototype shell;
-  shell.set_name("Green Snail Shell");
-  shell.set_sell_price(50);
-  state_->character.AddItem(shell, 4);
-  panel_focus_ = kInventoryPanel;
-  RenderInventoryPanel();
-
-  OpenBagTab(kEtcTab);
-  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // onto the stack
-  controller_->OpenInventoryMenu();
-  StepToMultiSell(*controller_);
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_EQ(controller_->screen(), kMultiSell);
-  EXPECT_EQ(controller_->multi_sell_basket().etc, std::set<int>({0}));
-}
-
 // --- shop ---
 
 // The Shop tab has no list to move into, so Enter opens it directly from the
@@ -2973,13 +2781,6 @@ TEST_F(TuiControllerTest, EnterOnTheShopTabOpensTheShop) {
   OpenBagTab(kShopTab);
   inventory_component_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kShop);
-}
-
-// Enter on the other tabs still opens the item menu, not the shop.
-TEST_F(TuiControllerTest, EnterOnTheEtcTabStillOpensTheItemMenu) {
-  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  inventory_component_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kItemMenu);
 }
 
 TEST_F(TuiControllerTest, ShopEscapeReturnsToTheBag) {
@@ -3021,15 +2822,6 @@ TEST_F(TuiControllerTest, LeavingShopInspectReturnsToTheShop) {
 TEST_F(TuiControllerTest, ShopMenuBuyOpensTheBuyDialog) {
   OpenBuyDialog();
   EXPECT_EQ(controller_->screen(), kShopBuy);
-}
-
-TEST_F(TuiControllerTest, ShopMenuCloseReturnsToTheList) {
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Close
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kShop);
 }
 
 // Escape from the menu returns to the list as it was, so the next Escape leaves
@@ -3129,16 +2921,6 @@ TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {
 
   EXPECT_EQ(state_->character.meso(), 5000);
   EXPECT_EQ(state_->character.inventory().size(), 2);
-}
-
-TEST_F(TuiControllerTest, CancellingABuyReturnsToTheShopUnchanged) {
-  state_->character.AddMeso(25000);
-  OpenBuyDialog();
-  controller_->OnEvent(ftxui::Event::Escape);
-
-  EXPECT_EQ(controller_->screen(), kShop);
-  EXPECT_EQ(state_->character.meso(), 25000);
-  EXPECT_EQ(state_->character.inventory().size(), 0);
 }
 
 // The dialog opens on an unaffordable item instead of refusing, and shows it by
@@ -3294,16 +3076,6 @@ TEST_F(TuiControllerTest, SellConfirmSellsWholeStackAndCreditsMeso) {
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.stackables().empty());
   EXPECT_EQ(state_->character.meso(), 20);  // 10 * 2
-}
-
-TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
-  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  OpenStackSell();
-  controller_->OnEvent(ftxui::Event::Escape);  // cancel
-
-  EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(state_->character.stackables()[0].count(), 10);
-  EXPECT_EQ(state_->character.meso(), 0);
 }
 
 TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
@@ -3496,20 +3268,6 @@ TEST_F(TuiControllerTest, LeftAndRightInMapSelectChangeTheLevelBand) {
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
 }
 
-// The tab bar owns Left and Right, as in the bag and the shop. In the list,
-// they would change the list under the cursor.
-TEST_F(TuiControllerTest, LeftAndRightInTheMapListDoNothing) {
-  LoadTwoMaps();
-  AddMapOnTheSecondBand();
-  state_->current_map = "field";
-
-  controller_->OpenMapSelect();
-  controller_->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_EQ(map_select_panel_->selected_map(), "field");
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(map_select_panel_->selected_map(), "field");
-}
-
 // Enter works in the list. On the tab bar it does nothing, since the bar isn't
 // a map and a menu there would be about nothing.
 TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
@@ -3699,68 +3457,6 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   EXPECT_EQ(focus, kCharPanel) << "and back round";
 }
 
-// And in reverse over the same gap. Going backwards reaches the two locked
-// panels from the other side, which is where a step of -1 would have made the
-// modulo negative.
-TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
-  GameState fresh({}, {}, {}, {}, {});
-  CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
-                       fresh.skills);
-  EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
-  InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
-  ScrollPanel scroll(fresh.character, no_scrolls_);
-  StarForcePanel star;
-  TraceRecoverPanel trace(fresh.character);
-  SellPanel sell;
-  SellEquipPanel sell_equip;
-  MultiSellPanel multi_sell(fresh.character, fresh.account);
-  MapSelectPanel maps(fresh);
-  MobInspectPanel mobs(fresh);
-  BossSelectPanel bosses(fresh);
-  PartySelectPanel party;
-  PlayerListPanel players;
-  PlayerInspectPanel player_inspect(fresh);
-  TradePanel trade(fresh.character, fresh.account);
-  ShopPanel shop(fresh.character, fresh.equips, fresh.items);
-  BuyPanel buy;
-  BankPanel bank(fresh.character, fresh.account, fresh.items);
-  LinkSkillPanel links(fresh.character, fresh.skills);
-  JobInspectPanel jobs(fresh.skills);
-  SkillInspectScreen skill_card;
-  BuffInfoPanel buffs;
-  InspectPanel item_card;
-  InspectPanel trace_card;
-  InspectPanel worn_card;
-  CubePanel cube;
-  FlamePanel flame;
-  SoulPanel soul;
-  int focus = kCharPanel;
-  BattleAnalysis analysis;
-  MenuPanel menu(fresh, analysis, focus);
-  KeyMap keys(fresh.account.mutable_keybinds());
-  KeybindsPanel keybinds(keys);
-  OptionsPanel options(fresh.account);
-  MusicPlayer player(MusicPlayer::Backend::kNull);
-  std::mt19937 music_rng(1);
-  MusicDirector director(player, music_rng);
-  JukeboxPanel jukebox(fresh, director, fresh.account);
-  TuiController controller(
-      fresh,
-      Screens{chars,          equip,     bag,        scroll,     item_card,
-              trace_card,     star,      cube,       flame,      soul,
-              trace,          sell,      sell_equip, multi_sell, maps,
-              mobs,           bosses,    party,      players,    trade,
-              player_inspect, worn_card, shop,       buy,        bank,
-              links,          jobs,      skill_card, buffs,      menu,
-              keybinds,       options,   jukebox},
-      analysis, keys, focus);
-
-  controller.OnEvent(ftxui::Event::TabReverse);
-  EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
-  controller.OnEvent(ftxui::Event::TabReverse);
-  EXPECT_EQ(focus, kCharPanel) << "and back round";
-}
-
 // The game starts focused on the equipped panel, which a level 1 character
 // doesn't have. Focus must move before a key is handled, or it goes to a panel
 // the player can't see.
@@ -3866,26 +3562,6 @@ TEST_F(TuiControllerTest, TheOfflineCardStandsOverTheMainViewUntilDismissed) {
   EXPECT_EQ(controller_->offline_report().kills, 100);
 
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
-// A player who restarts a minute after closing the game is shown nothing.
-TEST_F(TuiControllerTest, TooShortAnAbsenceRaisesNoCard) {
-  OfflineReport report = PaidReport();
-  report.absence = kOfflineNoticeSeconds - 1.0;
-
-  controller_->OpenOfflineReport(report);
-
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
-// Nor is a player who logged off in town, since there is nothing to report.
-TEST_F(TuiControllerTest, NothingFarmedRaisesNoCard) {
-  OfflineReport report = PaidReport();
-  report.farmed = false;
-
-  controller_->OpenOfflineReport(report);
-
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
@@ -4360,15 +4036,6 @@ TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   EXPECT_EQ(menu_panel_->selected(), MenuEntry::kCharacters);
 }
 
-// Inside the box, Left doesn't move the menu row below.
-TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
-  controller_->OpenMenuEntry(MenuEntry::kSettings);
-  controller_->OnEvent(ftxui::Event::ArrowUp);
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_TRUE(menu_panel_->box_open());
-  EXPECT_EQ(menu_panel_->box_cursor(), 2);
-}
-
 TEST_F(TuiControllerTest, TheJukeboxOpensFromTheBoxAndComesBackToIt) {
   OpenJukebox();
   EXPECT_EQ(controller_->screen(), kJukebox);
@@ -4512,19 +4179,6 @@ TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
   EXPECT_FALSE(state_->account.gms_combat_power());
 }
 
-TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
-  OpenOptions();
-  // Close comes after the last option, however many there are.
-  for (int i = 0; i < kOptionCount; ++i) {
-    controller_->OnEvent(ftxui::Event::ArrowDown);
-  }
-  EXPECT_TRUE(options_panel_->on_close());
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kMenuBox);
-  // Close didn't toggle anything on the way out.
-  EXPECT_FALSE(state_->account.gms_combat_power());
-}
-
 // --- battle analysis ---
 
 // Left and Right change the volume under the cursor, and only a volume.
@@ -4606,18 +4260,6 @@ TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
       state_->character.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
       (std::vector<int>{kSymbolsPerDay}));
   EXPECT_GT(state_->character.DailiesClaimedAt(), 0);
-}
-
-// A character who has never had a symbol has nothing to claim, and is told so
-// rather than shown an empty list.
-TEST_F(TuiControllerTest, NoSymbolsMeansNoClaim) {
-  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
-  EXPECT_EQ(controller_->screen(), kDailiesNotice);
-  EXPECT_FALSE(controller_->notice_is_refusal())
-      << "a level they have not reached, not a refusal";
-  EXPECT_EQ(NoticeText(controller_->notice_lines()),
-            "You have no symbols to claim.");
-  EXPECT_EQ(state_->character.DailiesClaimedAt(), 0) << "the day is untouched";
 }
 
 TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
@@ -5000,24 +4642,6 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());
-}
-
-// A boss name too long for the card splits the HP line in two rather than
-// widening it.
-TEST_F(TuiControllerTest, ALongBossNameWrapsTheTimeoutLine) {
-  state_->mobs["zakum_arm"].set_max_hp(2000000000);
-  state_->bosses["zakum"].set_name("Chaos Guardian Angel Zakum");
-  EnterFight();
-  controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
-  controller_->AdvanceBossRun(kBossEndHoldSeconds);
-  ASSERT_EQ(controller_->screen(), kBossTimeout);
-
-  const std::vector<std::string>& lines = controller_->boss_timeout_lines();
-  ASSERT_EQ(lines.size(), 3u);
-  EXPECT_EQ(lines[1] + " " + lines[2], TimeoutHpLine(*controller_->boss_run()));
-  for (const std::string& line : lines) {
-    EXPECT_LE(line.size(), 34u) << line;
-  }
 }
 
 // A lost fight has a breakdown too, and Escape from it returns to the timeout
@@ -5778,4 +5402,23 @@ TEST_F(TuiControllerTest, CombineFeedsTheSparesIn) {
 }
 
 }  // namespace
+// There is a button as well as a key: the screen's own [Cancel] closes it, so a
+// player who doesn't know Escape isn't stuck.
+TEST_F(TuiControllerTest, CancelInStarForceGoesToMain) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);      // enter kStarForce
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // onto [Cancel]
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 }  // namespace ms

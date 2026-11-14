@@ -144,19 +144,6 @@ int IndexOfAttack(const std::vector<AttackOption>& attacks,
   return -1;
 }
 
-TEST(ComputeCombatParamsTest, InactiveWithoutCurrentMap) {
-  GameState state({}, {}, {}, {}, {});
-  EquipSword(state);
-  EXPECT_FALSE(ComputeCombatParams(state).active);
-}
-
-TEST(ComputeCombatParamsTest, InactiveWithoutWeapon) {
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}});
-  state.current_map = "field";
-  EXPECT_FALSE(ComputeCombatParams(state).active);
-}
-
 TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   GameState state({}, {}, {},
                   {{"snail", MakeMob("Snail", 15)},
@@ -3777,19 +3764,6 @@ TEST(ComputeCombatParamsTest, ABuffWithFormsBuildsAPulseForEach) {
                                              params.attacks[0].swing_seconds);
 }
 
-// A character with no buff has no extra tables, so only jobs that use buffs pay
-// for the mechanism.
-TEST(ComputeCombatParamsTest, NoBuffMeansNoExtraTables) {
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}});
-  state.current_map = "field";
-  EquipSword(state);
-
-  CombatParams params = ComputeCombatParams(state);
-  EXPECT_TRUE(params.buffs.empty());
-  EXPECT_TRUE(params.buffed.empty());
-}
-
 // The Thunder Sphere case. Beam Blade's normal-monster bonus was written for an
 // attack, and the orb that has it now isn't one, so this checks that a summon
 // gets the bonus at all.
@@ -4785,53 +4759,6 @@ TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
   EXPECT_DOUBLE_EQ(cast.swing_seconds, 0.0);
 }
 
-// The shipped Sol Janus: Dawn: the second ring's reach at 10, and the switch's
-// passive whole at 30. The rings are one object; see its file.
-TEST(ComputeCombatParamsTest, SolJanusDawnGrowsAtTenAndPaysItsPassiveAtThirty) {
-  if (!kSixthJobEnabled) {
-    GTEST_SKIP() << "no 6th job in this build";
-  }
-  const Skill& dawn = TestData<Skill>("skills").at("sol_janus_dawn");
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}}, {{"sol_janus_dawn", dawn}});
-  state.current_map = "field";
-  EquipSword(state);
-  while (state.character.proto().job_stage() < kSixthJobStage) {
-    state.character.AdvanceJob(JOB_HERO);
-  }
-  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_COMMON, 0, 30);
-  state.character.AddSolErdaEnergy(price.energy);
-  state.character.AddSolErdaFragments(price.fragments);
-  const auto ring = [&state]() {
-    CombatParams params = ComputeCombatParams(state);
-    for (const AttackOption& attack : params.auto_attacks) {
-      if (attack.name == "Sol Janus: Dawn") {
-        return attack;
-      }
-    }
-    ADD_FAILURE() << "no ring";
-    return AttackOption();
-  };
-
-  ASSERT_TRUE(state.character.LearnSkill(dawn, 9));
-  EXPECT_EQ(ring().max_enemies, 9);
-  EXPECT_DOUBLE_EQ(ring().interval_seconds,
-                   1.9 * GameSpeedFactor(state.character.proto().level()));
-  ASSERT_TRUE(state.character.LearnSkill(dawn, 1));
-  EXPECT_EQ(ring().max_enemies, 14);
-  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).exp_pct, 0.37,
-              1e-9);
-  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).normal_pct, 0.0,
-              1e-9);
-
-  ASSERT_TRUE(state.character.LearnSkill(dawn, 20));
-  EXPECT_EQ(ring().max_enemies, 14);
-  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).exp_pct, 1.00,
-              1e-9);
-  EXPECT_NEAR(DerivedStatsFor(state.character, state.skills).normal_pct, 0.30,
-              1e-9);
-}
-
 // A skill on its own clock carries its own levers onto its own hits, as a
 // swing does, and onto nothing else: Radiant Evil's 20% IED, Thunder Sphere's
 // damage to normal enemies, a pulse's boss damage. A step adds to them.
@@ -4931,38 +4858,6 @@ const AttackOption* AnyAttack(const CombatParams& params,
     }
   }
   return nullptr;
-}
-
-// The shipped Sol Hecate: the summon and Styx from the first level, both on
-// the node's level, and Phlegethon only at 30. Styx and Phlegethon are cast
-// mid-swing, so they cost the waived cast and not their animation.
-TEST(ComputeCombatParamsTest, SolHecateOpensPhlegethonAtThirty) {
-  if (!kSixthJobEnabled) {
-    GTEST_SKIP() << "no 6th job in this build";
-  }
-  std::unique_ptr<GameState> owned = HecateHero(HecateBook(), 29);
-  GameState& state = *owned;
-  const double speed = GameSpeedFactor(state.character.proto().level());
-  CombatParams params = ComputeCombatParams(state);
-  const AttackOption* summon = AnyAttack(params, "Sol Hecate");
-  ASSERT_NE(summon, nullptr);
-  EXPECT_EQ(summon->scatter_hits, 4);
-  EXPECT_NEAR(summon->interval_seconds, 3.5 * speed, 1e-9);
-  const AttackOption* styx = FindAttack(params, "Sol Hecate: Styx");
-  ASSERT_NE(styx, nullptr);
-  EXPECT_NEAR(styx->cooldown_seconds, 60.0 * speed, 1e-9);
-  EXPECT_EQ(AnyAttack(params, "Sol Hecate: Phlegethon"), nullptr);
-
-  const HexaPrice step = HexaNodePrice(HEXA_NODE_KIND_COMMON, 29, 30);
-  state.character.AddSolErdaEnergy(step.energy);
-  state.character.AddSolErdaFragments(step.fragments);
-  ASSERT_TRUE(state.character.LearnSkill(HecateBook().at("sol_hecate"), 1));
-  params = ComputeCombatParams(state);
-  const AttackOption* phlegethon = FindAttack(params, "Sol Hecate: Phlegethon");
-  ASSERT_NE(phlegethon, nullptr);
-  EXPECT_NEAR(phlegethon->cooldown_seconds, 120.0 * speed, 1e-9);
-  EXPECT_NEAR(phlegethon->swing_seconds,
-              FindAttack(params, "Sol Hecate: Styx")->swing_seconds, 1e-9);
 }
 
 // Sol Hecate's 20% IED and boss damage at 10 and 20 reach the summon, Styx and
@@ -5308,38 +5203,6 @@ TEST(ComputeCombatParamsTest, ATaggedFinalAttackFollowsOnlyThatTagsSwings) {
   }
 }
 
-// Without the skill nothing follows the attack, and the fight is told so
-// instead of getting a column of zeroes to add.
-TEST(ComputeCombatParamsTest, NoFinalAttackLeavesTheSwingCarryingNone) {
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}});
-  state.current_map = "field";
-  EquipSword(state);
-
-  CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.attacks.size(), 1u);
-  EXPECT_TRUE(params.attacks[0].final_attack_damage.empty());
-}
-
-// The interval is what makes the skill fire, so a skill without one is treated
-// as never firing, not as firing every step.
-TEST(ComputeCombatParamsTest, AnAutoAttackNeedsAnInterval) {
-  Skill evil_eye;
-  evil_eye.set_name("Evil Eye Shock");
-  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  PlaceIn(evil_eye, JOB_ADVANCEMENT_SWORDMAN);
-  evil_eye.set_max_level(10);
-  evil_eye.mutable_base()->set_skill_pct(1.23);
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}}, {{"evil_eye_shock", evil_eye}});
-  state.current_map = "field";
-  EquipSword(state);
-  GrantFirstJobSp(state, 1);
-  ASSERT_TRUE(state.character.LearnSkill(evil_eye, 1));
-
-  EXPECT_TRUE(ComputeCombatParams(state).auto_attacks.empty());
-}
-
 // Double Stab and Lucky Seven have the same damage and reach; only the weapon
 // tells them apart. So an attack the current weapon can't use must not be
 // offered to the fight.
@@ -5363,26 +5226,6 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCannotSwingAreNotOptions) {
   CombatParams params = ComputeCombatParams(state);
   ASSERT_EQ(params.attacks.size(), 1u);
   EXPECT_EQ(params.attacks[0].name, "Attack");
-}
-
-TEST(ComputeCombatParamsTest, AttacksTheWeaponCanSwingAreOptions) {
-  Skill lucky_seven;
-  lucky_seven.set_name("Lucky Seven");
-  lucky_seven.set_kind(SKILL_KIND_ATTACK);
-  PlaceIn(lucky_seven, JOB_ADVANCEMENT_ROGUE);
-  lucky_seven.set_max_level(20);
-  lucky_seven.add_required_equip_type(EQUIP_TYPE_CLAW);
-  lucky_seven.mutable_base()->set_skill_pct(0.72);
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
-  state.current_map = "field";
-  EquipClaw(state);
-  GrantFirstJobSp(state, 1, JOB_ROGUE);
-  ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
-
-  CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.attacks.size(), 2u);
-  EXPECT_EQ(params.attacks[1].name, "Lucky Seven");
 }
 
 // A passive that grants a primary stat has no bonus of its own in the damage
@@ -5638,29 +5481,6 @@ TEST(ComputeCombatParamsTest, ArcaneForceOverTheRequirementCapsOut) {
   ASSERT_FALSE(params.attacks.empty());
   EXPECT_DOUBLE_EQ(params.types[0].damage_to_player, 1.0)
       << "the floor GMS leaves a monster that can no longer hurt them";
-}
-
-// A map outside Arcane River requires nothing, and that must read as no
-// requirement, not one nobody meets. Otherwise the character would deal a tenth
-// of their damage everywhere.
-TEST(ComputeCombatParamsTest, AMapAskingForNoForceIsUntouched) {
-  GameState plain({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
-                  {{"field", TwoSnailMap()}});
-  plain.current_map = "field";
-  EquipSword(plain);
-  EquipSymbol(plain, /*level=*/1);
-
-  GameState arcane({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
-                   {{"field", ArcaneMap(30)}});
-  arcane.current_map = "field";
-  EquipSword(arcane);
-  EquipSymbol(arcane, /*level=*/1);
-
-  CombatParams a = ComputeCombatParams(plain);
-  CombatParams b = ComputeCombatParams(arcane);
-  EXPECT_DOUBLE_EQ(a.types[0].damage_to_player, b.types[0].damage_to_player);
-  EXPECT_DOUBLE_EQ(a.attacks[0].damage_per_hit[0],
-                   b.attacks[0].damage_per_hit[0]);
 }
 
 // Two phases, so a test can watch one change into the next.

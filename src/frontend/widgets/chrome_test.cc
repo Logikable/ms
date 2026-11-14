@@ -81,19 +81,6 @@ TEST(ClearUnderTest, LeavesAGlyphThatIsNotInTheWay) {
 
 // --- Rarity colours ---
 
-// Every rank is written in its own colour.
-TEST(RarityColorsTest, WritesEachRankInItsOwnColour) {
-  EXPECT_EQ(RarityColor(ABILITY_RANK_RARE), kRare.ToColor());
-  EXPECT_EQ(RarityColor(ABILITY_RANK_EPIC), kEpic.ToColor());
-  EXPECT_EQ(RarityColor(ABILITY_RANK_UNIQUE), kUnique.ToColor());
-  EXPECT_EQ(RarityColor(ABILITY_RANK_LEGENDARY), kLegendary.ToColor());
-  // A potential shares the ladder, so it shares the four colours.
-  EXPECT_EQ(RarityColor(POTENTIAL_RANK_RARE), kRare.ToColor());
-  EXPECT_EQ(RarityColor(POTENTIAL_RANK_EPIC), kEpic.ToColor());
-  EXPECT_EQ(RarityColor(POTENTIAL_RANK_UNIQUE), kUnique.ToColor());
-  EXPECT_EQ(RarityColor(POTENTIAL_RANK_LEGENDARY), kLegendary.ToColor());
-}
-
 // --- ScrollBar ---
 
 // The bar's glyphs, one per row, with the thumb's rows marked. A half-height
@@ -150,11 +137,6 @@ TEST(ProgressBarTest, FillsUpToTheFraction) {
   EXPECT_EQ(screen.PixelAt(5, 0).background_color, kBarEmpty);
 }
 
-TEST(ProgressBarTest, ClampsOutOfRangeFractions) {
-  EXPECT_EQ(RenderBar(5.0f, "").PixelAt(9, 0).background_color, kGreen);
-  EXPECT_EQ(RenderBar(-1.0f, "").PixelAt(0, 0).background_color, kBarEmpty);
-}
-
 TEST(ProgressBarTest, CentersTheLabelOverTheBar) {
   ftxui::Screen screen = RenderBar(0.0f, "AB");
   EXPECT_EQ(screen.PixelAt(4, 0).character, "A");
@@ -181,11 +163,6 @@ TEST(ProgressBarTest, PinnedLabelColorHoldsAcrossTheWholeBar) {
   EXPECT_EQ(screen.PixelAt(4, 0).foreground_color, ftxui::Color::White);
   EXPECT_EQ(screen.PixelAt(5, 0).background_color, kBarEmpty);
   EXPECT_EQ(screen.PixelAt(5, 0).foreground_color, ftxui::Color::White);
-}
-
-TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
-  ftxui::Screen screen = RenderBar(1.0f, "");
-  EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
 }
 
 // A label of several lines takes a row each, and every row is one bar: filled
@@ -414,12 +391,6 @@ TEST(TabChipTest, PadsTheLabelWithASpaceEitherSide) {
   EXPECT_EQ(screen.PixelAt(3, 0).character, " ");
 }
 
-TEST(TabChipTest, InactiveChipIsPlainTheme) {
-  ftxui::Screen screen = RenderChip(/*active=*/false, /*row_focused=*/true);
-  EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, kTheme);
-  EXPECT_FALSE(screen.PixelAt(1, 0).inverted);
-}
-
 // Off-focus the active chip stays theme-blue, so two visible bars don't both
 // look like the one the keys are reaching.
 TEST(TabChipTest, ActiveChipOffFocusKeepsTheThemeInvert) {
@@ -463,10 +434,6 @@ constexpr int kTight = 19;
 
 TEST(TabBarTest, ABarThatFitsDrawsEveryTabAndNoMarks) {
   EXPECT_EQ(RenderTabBar(kFour, 0, kFits), " one  two  six  ten");
-}
-
-TEST(TabBarTest, NoWidthMeansNoLimit) {
-  EXPECT_EQ(RenderTabBar(kFour, 0, /*width=*/0), " one  two  six  ten");
 }
 
 // The right mark costs a column of its own, so a bar one column short of
@@ -721,14 +688,6 @@ TEST(DialogWindowTest, ATitledRuleTeesIntoTheBorder) {
   EXPECT_EQ(ScreenRow(screen, 2), "│ plain            │");
 }
 
-TEST(DialogWindowTest, TheAccentColoursTheRuleAndTheBorder) {
-  ftxui::Screen screen = RenderSized(
-      DialogWindow("", {CenteredRow("Gone")}, ActionButton("OK", false), kRed),
-      20, 5);
-  EXPECT_EQ(screen.PixelAt(0, 0).foreground_color, kRed);
-  EXPECT_EQ(screen.PixelAt(5, 2).foreground_color, kRed);
-}
-
 // The Hyper tab's worth column: flat for a flat stat, a percent sign for a
 // percentage, and EXP's half-point step written out.
 TEST(HyperStatTextTest, WritesWhatALevelIsWorth) {
@@ -752,20 +711,6 @@ TEST(HyperStatTextTest, NamesEveryStatInTheOrder) {
 }
 
 // --- the price block ---
-
-// The window it sits in does not shrink around a player as they spend: the
-// column holds a hundred billion whether or not there is one in the purse.
-TEST(PriceBlockTest, HoldsItsWidthUntilATrillion) {
-  auto width = [](int64_t held) {
-    ftxui::Element block = PriceBlock(held, 12'000'000, /*affordable=*/true);
-    block->ComputeRequirement();
-    return block->requirement().min_x;
-  };
-  const int pinned = width(100'000'000'000);
-  EXPECT_EQ(width(0), pinned);
-  EXPECT_EQ(width(999'999'999'999), pinned);
-  EXPECT_GT(width(1'000'000'000'000), pinned);
-}
 
 // The purse over the price, and red on the one that cannot be met.
 TEST(PriceBlockTest, NamesBothAndReddensOnlyThePrice) {

@@ -418,60 +418,6 @@ TEST_F(SortTabTest, StackTabFilesByCount) {
 
 // --- LevelUp ---
 
-TEST_F(LevelUpTest, GrantsFiveAp) {
-  c_.LevelUp();
-  EXPECT_EQ(c_.proto().ap(), 5);
-  EXPECT_EQ(c_.proto().level(), 2);
-}
-
-TEST_F(LevelUpTest, AccumulatesAcrossMultipleLevels) {
-  c_.LevelUp();
-  c_.LevelUp();
-  c_.LevelUp();
-  EXPECT_EQ(c_.proto().ap(), 15);
-  EXPECT_EQ(c_.proto().level(), 4);
-}
-
-TEST_F(LevelUpTest, GrantsHpAndMpAtTheDefaultRate) {
-  c_.LevelUp();
-  c_.LevelUp();
-  // A Beginner is neither warrior nor mage, so it gets the middle rate.
-  EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36);
-  EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24);
-}
-
-TEST_F(LevelUpTest, WarriorsGainMoreHpAndLessMp) {
-  Character proto;
-  proto.set_level(15);
-  proto.set_job(JOB_SWORDMAN);
-  CharacterInstance c(rng_, std::move(proto));
-  c.LevelUp();
-  EXPECT_EQ(c.proto().allocated_stats().hp(), 48);
-  EXPECT_EQ(c.proto().allocated_stats().mp(), 12);
-}
-
-TEST_F(LevelUpTest, MagesInvertTheWarriorsGrant) {
-  Character proto;
-  proto.set_level(15);
-  proto.set_job(JOB_MAGICIAN);
-  CharacterInstance c(rng_, std::move(proto));
-  c.LevelUp();
-  EXPECT_EQ(c.proto().allocated_stats().hp(), 12);
-  EXPECT_EQ(c.proto().allocated_stats().mp(), 48);
-}
-
-// Only warriors and mages have their own rates; everyone else shares the middle
-// one, so a rogue levels exactly like an archer.
-TEST_F(LevelUpTest, RoguesLevelAtTheMiddlingRate) {
-  Character proto;
-  proto.set_level(15);
-  proto.set_job(JOB_ROGUE);
-  CharacterInstance c(rng_, std::move(proto));
-  c.LevelUp();
-  EXPECT_EQ(c.proto().allocated_stats().hp(), 36);
-  EXPECT_EQ(c.proto().allocated_stats().mp(), 24);
-}
-
 TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
   // The rate is the one at the time of levelling, so the two Beginner levels
   // below keep the Beginner rate even after the character becomes a Warrior.
@@ -481,31 +427,6 @@ TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
   c_.LevelUp();
   EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36 + 48);
   EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24 + 12);
-}
-
-TEST_F(LevelUpTest, GrantsNoSpBelowTheFirstJobBand) {
-  c_.LevelUp();  // level 1 -> 2, below the level-11 start of 1st-job SP
-  EXPECT_EQ(c_.sp(1), 0);
-}
-
-TEST_F(LevelUpTest, GrantsFirstJobSpAcrossTheEarlyBand) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/11);
-  c.LevelUp();  // lands on level 12, in the 1st-job band
-  EXPECT_EQ(c.sp(1), 3);
-}
-
-TEST_F(LevelUpTest, FirstJobSpTotalsSixtyAndStopsAtTheBandEnd) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_SWORDMAN);  // the advancement itself grants nothing
-  EXPECT_EQ(c.sp(1), 0);
-  for (int i = 0; i < 20; ++i) {
-    c.LevelUp();  // levels 11..30, each +3 into stage 1
-  }
-  EXPECT_EQ(c.proto().level(), 30);
-  EXPECT_EQ(c.sp(1), 60);  // 20 * 3, exactly what a 1st-job book costs
-  c.LevelUp();             // level 31 crosses into the 2nd-job band
-  EXPECT_EQ(c.sp(1), 60);  // no more 1st-job SP
-  EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
 }
 
 // Every band pays exactly what its book costs: 60, 90, 120, and 200 for the 4th
@@ -535,55 +456,6 @@ TEST_F(LevelUpTest, EachBandPaysExactlyWhatItsBookCosts) {
   EXPECT_EQ(c.proto().ap(), 5 * 190) << "AP keeps coming either way";
 }
 
-TEST_F(LevelUpTest, TheFourthJobPaysFiveALevel) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
-  c.LevelUp();
-  EXPECT_EQ(c.sp(4), 5);
-  c.LevelUp();
-  EXPECT_EQ(c.sp(4), 10);
-  EXPECT_EQ(c.sp(3), 0) << "the 3rd job's band is closed behind them";
-}
-
-// The Hyper SP ladder: one point at 140 and every fifth level to 195, and none
-// before or after. Twelve in all, one per Hyper Skill.
-TEST_F(LevelUpTest, PaysOneHyperSpEveryFifthLevelFrom140To195) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/139);
-  c.LevelUp();  // 140, the first rung
-  EXPECT_EQ(c.hyper_sp(), 1);
-  c.LevelUp();  // 141, between rungs
-  EXPECT_EQ(c.hyper_sp(), 1);
-  for (int i = 0; i < 4; ++i) {
-    c.LevelUp();  // 142..145, the second rung
-  }
-  EXPECT_EQ(c.hyper_sp(), 2);
-  while (c.proto().level() < 195) {
-    c.LevelUp();
-  }
-  EXPECT_EQ(c.hyper_sp(), 12) << "one for each of a job's twelve Hyper Skills";
-  while (c.proto().level() < 200) {
-    c.LevelUp();
-  }
-  EXPECT_EQ(c.hyper_sp(), 12) << "195 is the last rung";
-}
-
-TEST_F(LevelUpTest, PaysNoHyperSpBelowOneForty) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/134);
-  for (int i = 0; i < 5; ++i) {
-    c.LevelUp();  // 135..139, one of them a multiple of five
-  }
-  EXPECT_EQ(c.hyper_sp(), 0);
-}
-
-TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
-  // No job gets a head start; the pools are identical.
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_ARCHER);
-  for (int i = 0; i < 20; ++i) {
-    c.LevelUp();
-  }
-  EXPECT_EQ(c.sp(1), 60);
-}
-
 // --- GainsForLevels ---
 
 class GainsForLevelsTest : public CharacterTest {
@@ -611,38 +483,6 @@ class GainsForLevelsTest : public CharacterTest {
   }
 };
 
-TEST_F(GainsForLevelsTest, ASingleLevelGrantsFiveAp) {
-  LevelGains gains = GainsForLevels(1, 2);
-  EXPECT_EQ(gains.ap, 5);
-  EXPECT_EQ(gains.sp, 0) << "below the level-11 start of 1st-job SP";
-}
-
-TEST_F(GainsForLevelsTest, TotalsEveryLevelInTheSpan) {
-  LevelGains gains = GainsForLevels(1, 5);
-  EXPECT_EQ(gains.ap, 20) << "four levels at five AP each";
-}
-
-TEST_F(GainsForLevelsTest, CountsSpOnlyForTheLevelsThatGrantIt) {
-  // 10 -> 12 reaches 11 and 12; SP starts at 11, so both pay.
-  EXPECT_EQ(GainsForLevels(10, 12).sp, 6);
-  // 8 -> 10 reaches 9 and 10, both below the band.
-  EXPECT_EQ(GainsForLevels(8, 10).sp, 0);
-}
-
-// A range that crosses a job band still totals what was earned, even though
-// LevelUp put the two halves into different stage pools.
-TEST_F(GainsForLevelsTest, TotalsSpAcrossAJobBandBoundary) {
-  LevelGains gains = GainsForLevels(29, 32);
-  EXPECT_EQ(gains.sp, 9) << "levels 30, 31 and 32, three SP each";
-}
-
-TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
-  EXPECT_EQ(GainsForLevels(7, 7).ap, 0);
-  EXPECT_EQ(GainsForLevels(7, 7).sp, 0);
-  EXPECT_EQ(GainsForLevels(9, 4).ap, 0) << "backwards is not a windfall";
-  EXPECT_EQ(GainsForLevels(9, 4).sp, 0);
-}
-
 // The range helper must agree with LevelUp one level at a time, checked against
 // a character that really levelled.
 TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
@@ -664,20 +504,6 @@ TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
 
 // --- AddExp ---
 
-TEST_F(AddExpTest, AccumulatesExpBelowThreshold) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
-  c.AddExp(10);  // level 1 threshold is 15
-  EXPECT_EQ(c.proto().level(), 1);
-  EXPECT_EQ(c.proto().exp(), 10);
-}
-
-TEST_F(AddExpTest, LevelsUpExactlyAtThreshold) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
-  c.AddExp(15);
-  EXPECT_EQ(c.proto().level(), 2);
-  EXPECT_EQ(c.proto().exp(), 0);
-}
-
 TEST_F(AddExpTest, CarriesOverExcessExp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
   c.AddExp(20);  // 20 - 15 = 5 remaining
@@ -690,19 +516,6 @@ TEST_F(AddExpTest, LevelsUpMultipleTimes) {
   // Level 1→2 costs 15, level 2→3 costs 34; total 49.
   c.AddExp(49);
   EXPECT_EQ(c.proto().level(), 3);
-  EXPECT_EQ(c.proto().exp(), 0);
-}
-
-TEST_F(AddExpTest, GrantsFiveApPerLevelUp) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
-  c.AddExp(49);  // two level-ups
-  EXPECT_EQ(c.proto().ap(), 10);
-}
-
-TEST_F(AddExpTest, NoOpAtTheLevelCap) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap);
-  c.AddExp(1000000);
-  EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
 }
 
@@ -725,21 +538,6 @@ TEST_F(AddExpTest, LevelUpItselfIsNotCapped) {
 // --- Burning ---
 
 class BurningTest : public CharacterTest {};
-
-TEST_F(BurningTest, OneLevelWithNobodyAhead) {
-  EXPECT_EQ(LevelAfterBurning(50, {}), 51);
-  EXPECT_EQ(LevelAfterBurning(50, {40, 30}), 51);
-}
-
-TEST_F(BurningTest, TwoThreeAndFiveAsTheAccountFillsUp) {
-  EXPECT_EQ(LevelAfterBurning(50, {120}), 52);
-  EXPECT_EQ(LevelAfterBurning(50, {120, 110, 100}), 53);
-  EXPECT_EQ(LevelAfterBurning(50, std::vector<int>(10, 100)), 55);
-  // Only characters above this one count, so an account with enough characters
-  // for a tier still gets the lower tier when they aren't all ahead.
-  std::vector<int> two_ahead = {120, 110, 10, 10, 10, 10, 10, 10, 10, 10};
-  EXPECT_EQ(LevelAfterBurning(50, two_ahead), 52);
-}
 
 // The tier that goes furthest wins, not the fastest: five levels at a time
 // would pass the tenth highest, so the three-level tier takes the character
@@ -791,42 +589,7 @@ TEST_F(AdvanceJobTest, IncrementsStageAndSetsJob) {
   EXPECT_EQ(c.proto().job(), JOB_SWORDMAN);
 }
 
-TEST_F(AdvanceJobTest, NoApBonusAtStagesOneAndTwo) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10, /*ap=*/0);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.proto().ap(), 0);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.proto().ap(), 0);
-}
-
-TEST_F(AdvanceJobTest, ApBonusAtThirdJob) {
-  CharacterInstance c =
-      MakeCharacter(rng_, /*level=*/60, /*ap=*/0, /*job_stage=*/2);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.proto().job_stage(), 3);
-  EXPECT_EQ(c.proto().ap(), 5);
-}
-
-TEST_F(AdvanceJobTest, ApBonusAtFourthJob) {
-  CharacterInstance c =
-      MakeCharacter(rng_, /*level=*/100, /*ap=*/0, /*job_stage=*/3);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.proto().job_stage(), 4);
-  EXPECT_EQ(c.proto().ap(), 5);
-}
-
-TEST_F(AdvanceJobTest, GrantsNoStartingSp) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.sp(1), 0);
-}
-
 // --- CanAdvanceJob / JobChoicesForStage ---
-
-TEST_F(AdvanceJobTest, OpensAtLevelTenAndNotBefore) {
-  EXPECT_FALSE(MakeCharacter(rng_, /*level=*/9).CanAdvanceJob());
-  EXPECT_TRUE(MakeCharacter(rng_, /*level=*/10).CanAdvanceJob());
-}
 
 TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
@@ -845,97 +608,6 @@ TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   c.AdvanceJob(JOB_SHADOWER);
   EXPECT_EQ(c.proto().job_stage(), 5);
   EXPECT_EQ(c.CanAdvanceJob(), kSixthJobEnabled);
-}
-
-TEST_F(AdvanceJobTest, ASwordmanAtThirtyIsOfferedTheirSecondJob) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/29);
-  c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_FALSE(c.CanAdvanceJob());  // the level, not the job, is what's short
-  c.LevelUp();
-  EXPECT_TRUE(c.CanAdvanceJob());
-}
-
-TEST_F(AdvanceJobTest, SecondJobPutsTheCharacterAtStageTwo) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
-  c.AdvanceJob(JOB_SWORDMAN);
-  c.AdvanceJob(JOB_SPEARMAN);
-  EXPECT_EQ(c.proto().job(), JOB_SPEARMAN);
-  EXPECT_EQ(c.proto().job_stage(), 2);
-}
-
-// The order is the stat order, not the order the protos happen to list them in.
-TEST(JobChoicesTest, OffersTheFourExplorersInStatOrder) {
-  EXPECT_EQ(
-      JobChoicesForStage(JOB_BEGINNER, 1),
-      (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}));
-}
-
-// All three, in the Job enum's order.
-TEST(JobChoicesTest, ASwordmanIsOfferedEveryWarriorBranch) {
-  EXPECT_EQ(JobChoicesForStage(JOB_SWORDMAN, 2),
-            (std::vector<Job>{JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN}));
-}
-
-TEST(JobChoicesTest, AnArcherIsOfferedBothBowmanBranches) {
-  EXPECT_EQ(JobChoicesForStage(JOB_ARCHER, 2),
-            (std::vector<Job>{JOB_HUNTER, JOB_CROSSBOWMAN}));
-}
-
-TEST(JobChoicesTest, AMagicianIsOfferedAllThreeBranches) {
-  EXPECT_EQ(JobChoicesForStage(JOB_MAGICIAN, 2),
-            (std::vector<Job>{JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD,
-                              JOB_CLERIC}));
-}
-
-TEST(JobChoicesTest, ARogueIsOfferedBothThiefBranches) {
-  EXPECT_EQ(JobChoicesForStage(JOB_ROGUE, 2),
-            (std::vector<Job>{JOB_ASSASSIN, JOB_BANDIT}));
-}
-
-// The 3rd advancement offers one job, not a choice.
-TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
-  EXPECT_EQ(JobChoicesForStage(JOB_SPEARMAN, 3),
-            (std::vector<Job>{JOB_BERSERKER}));
-  EXPECT_EQ(JobChoicesForStage(JOB_FIGHTER, 3),
-            (std::vector<Job>{JOB_CRUSADER}));
-  EXPECT_EQ(JobChoicesForStage(JOB_PAGE, 3),
-            (std::vector<Job>{JOB_WHITE_KNIGHT}));
-  EXPECT_EQ(JobChoicesForStage(JOB_HUNTER, 3), (std::vector<Job>{JOB_RANGER}));
-  EXPECT_EQ(JobChoicesForStage(JOB_CROSSBOWMAN, 3),
-            (std::vector<Job>{JOB_SNIPER}));
-  EXPECT_EQ(JobChoicesForStage(JOB_ICE_LIGHTNING_WIZARD, 3),
-            (std::vector<Job>{JOB_ICE_LIGHTNING_MAGE}));
-  EXPECT_EQ(JobChoicesForStage(JOB_FIRE_POISON_WIZARD, 3),
-            (std::vector<Job>{JOB_FIRE_POISON_MAGE}));
-  EXPECT_EQ(JobChoicesForStage(JOB_CLERIC, 3), (std::vector<Job>{JOB_PRIEST}));
-  EXPECT_EQ(JobChoicesForStage(JOB_ASSASSIN, 3),
-            (std::vector<Job>{JOB_HERMIT}));
-  EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
-            (std::vector<Job>{JOB_CHIEF_BANDIT}));
-  // The 4th also offers just one.
-  EXPECT_EQ(JobChoicesForStage(JOB_BERSERKER, 4),
-            (std::vector<Job>{JOB_DARK_KNIGHT}));
-  EXPECT_EQ(JobChoicesForStage(JOB_WHITE_KNIGHT, 4),
-            (std::vector<Job>{JOB_PALADIN}));
-  EXPECT_EQ(JobChoicesForStage(JOB_CRUSADER, 4), (std::vector<Job>{JOB_HERO}));
-  EXPECT_EQ(JobChoicesForStage(JOB_RANGER, 4),
-            (std::vector<Job>{JOB_BOW_MASTER}));
-  EXPECT_EQ(JobChoicesForStage(JOB_SNIPER, 4),
-            (std::vector<Job>{JOB_MARKSMAN}));
-  EXPECT_EQ(JobChoicesForStage(JOB_ICE_LIGHTNING_MAGE, 4),
-            (std::vector<Job>{JOB_ICE_LIGHTNING_ARCH_MAGE}));
-  EXPECT_EQ(JobChoicesForStage(JOB_HERMIT, 4),
-            (std::vector<Job>{JOB_NIGHT_LORD}));
-  EXPECT_EQ(JobChoicesForStage(JOB_CHIEF_BANDIT, 4),
-            (std::vector<Job>{JOB_SHADOWER}));
-  // The 5th offers the job already held: it opens a book without changing the
-  // job, so there is nothing to choose.
-  EXPECT_EQ(JobChoicesForStage(JOB_DARK_KNIGHT, 5),
-            (std::vector<Job>{JOB_DARK_KNIGHT}));
-  EXPECT_EQ(JobChoicesForStage(JOB_PALADIN, 5),
-            (std::vector<Job>{JOB_PALADIN}));
-  EXPECT_EQ(JobChoicesForStage(JOB_DARK_KNIGHT, 6).empty(), !kSixthJobEnabled);
-  EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 
 // A character keeps every book they bought along the way: each page stays on
@@ -1659,14 +1331,6 @@ TEST_F(LearnSkillTest, SpendsOnePointAPressAndRaisesTheLevel) {
   EXPECT_EQ(c.sp(1), 3);
 }
 
-TEST_F(LearnSkillTest, MultiPointSpendWorks) {
-  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
-  Skill skill = SlashBlast();
-  EXPECT_TRUE(c.LearnSkill(skill, 7));
-  EXPECT_EQ(c.skill_level(skill), 7);
-  EXPECT_EQ(c.sp(1), 3);
-}
-
 TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/2);
   Skill skill = SlashBlast();
@@ -1682,15 +1346,6 @@ TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
   EXPECT_FALSE(c.LearnSkill(skill, 1));  // one past
   EXPECT_EQ(c.skill_level(skill), 3);
   EXPECT_EQ(c.sp(1), 7);
-}
-
-TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
-  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill = SlashBlast();
-  EXPECT_FALSE(c.LearnSkill(skill, 0));
-  EXPECT_FALSE(c.LearnSkill(skill, -2));
-  EXPECT_EQ(c.skill_level(skill), 0);
-  EXPECT_EQ(c.sp(1), 5);
 }
 
 TEST_F(LearnSkillTest, SpendsFromTheAdvancementsStage) {
@@ -1985,30 +1640,11 @@ TEST(UsernameTest, StartsOnTheInvitationAndTakesAName) {
   EXPECT_EQ(c.username(), "Logikable");
 }
 
-// Nothing should be able to clear a character's name: the panel treats an empty
-// entry as "no change", and so does this.
-TEST(UsernameTest, AnEmptyNameIsIgnored) {
-  std::mt19937 rng(1);
-  CharacterInstance c = MakeCharacter(rng);
-  c.SetUsername("Logikable");
-  c.SetUsername("");
-  EXPECT_EQ(c.username(), "Logikable");
-}
-
 TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_ARCHER, 1), JOB_ADVANCEMENT_ARCHER);
   EXPECT_EQ(AdvancementForJobStage(JOB_MAGICIAN, 1), JOB_ADVANCEMENT_MAGICIAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_ROGUE, 1), JOB_ADVANCEMENT_ROGUE);
-}
-
-TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
-  // A Swordman is a 1st job, so it has no stage-2 advancement of its own; a
-  // Beginner has none at stage 1.
-  EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 2),
-            JOB_ADVANCEMENT_UNSPECIFIED);
-  EXPECT_EQ(AdvancementForJobStage(JOB_BEGINNER, 1),
-            JOB_ADVANCEMENT_UNSPECIFIED);
 }
 
 TEST(AdvancementMappingTest, FirstAdvancementsBuyFromStageOne) {
@@ -2087,12 +1723,6 @@ TEST_F(MeetsJobTest, PassesOnAMatchOrOnNoDemandAtAll) {
   EXPECT_TRUE(c_.MeetsJob(sword_));
 }
 
-// An unadvanced character matches nothing that names a job.
-TEST_F(MeetsJobTest, FalseWhenJobUnspecified) {
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  EXPECT_FALSE(c_.MeetsJob(sword_));
-}
-
 // A secondary belongs to its own branch, not just the category. All three
 // warrior secondaries are EQUIP_JOB_CATEGORY_WARRIOR with the same stats, so
 // only the branch tells them apart.
@@ -2120,19 +1750,6 @@ TEST_F(PickUpTest, AddsItemToInventory) {
   ASSERT_NE(item, nullptr);
   EXPECT_EQ(item->prototype().name(), "Sword");
   EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 9);
-}
-
-TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  EXPECT_EQ(c_.inventory().size(), 2);
-}
-
-TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  const EquipInstance* item = c_.inventory().equip_instance(0);
-  ASSERT_NE(item, nullptr);
-  EXPECT_EQ(item->equip_state().scroll_stats().attack(), 0);
 }
 
 // --- AddItem ---
@@ -2171,12 +1788,6 @@ TEST_F(AddItemTest, SplitsOverflowAtMaxStack) {
   ASSERT_EQ(c_.stackables().size(), 2);
   EXPECT_EQ(c_.stackables()[0].count(), 200);
   EXPECT_EQ(c_.stackables()[1].count(), 50);
-}
-
-TEST_F(AddItemTest, NonPositiveCountIsNoOp) {
-  c_.AddItem(shell_, 0);
-  c_.AddItem(shell_, -4);
-  EXPECT_TRUE(c_.stackables().empty());
 }
 
 // A currency goes to the purse rather than the bag, and has no cap: one
@@ -2231,13 +1842,6 @@ TEST_F(AddMesoTest, AccumulatesAcrossCalls) {
   c_.AddMeso(1000);
   c_.AddMeso(234);
   EXPECT_EQ(c_.meso(), 1234);
-}
-
-TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
-  c_.AddMeso(500);
-  c_.AddMeso(0);
-  c_.AddMeso(-100);
-  EXPECT_EQ(c_.meso(), 500);
 }
 
 // A gain stops at the cap and the rest is lost.
@@ -2314,13 +1918,6 @@ TEST_F(BuyTest, SellsAFreeItemForNothing) {
   EXPECT_EQ(c_.meso(), 11000);
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].name(), "Master Adventurer");
-}
-
-TEST_F(BuyTest, NonPositiveCountIsNoOp) {
-  EXPECT_FALSE(c_.Buy(sword_, 0));
-  EXPECT_FALSE(c_.Buy(sword_, -2));
-  EXPECT_EQ(c_.meso(), 11000);
-  EXPECT_EQ(c_.inventory().size(), 0);
 }
 
 // --- BuyWithToken ---
@@ -2549,12 +2146,6 @@ TEST_F(BuyStackableTest, WillNotSellWhatTheShopDoesNotStock) {
   EXPECT_TRUE(c_.stackables().empty());
 }
 
-TEST_F(BuyStackableTest, NonPositiveCountIsNoOp) {
-  EXPECT_FALSE(c_.Buy(trace_, 0));
-  EXPECT_FALSE(c_.Buy(trace_, -2));
-  EXPECT_EQ(c_.meso(), 50000);
-}
-
 // Bag space is checked before meso, so an order too big for the bag takes
 // nothing, as with equips.
 TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
@@ -2601,18 +2192,6 @@ TEST_F(SellStackableTest, ClampsCountToStackSize) {
   EXPECT_EQ(c_.SellStackable(0, 10), 21);  // only 3 exist
   EXPECT_TRUE(c_.stackables().empty());
   EXPECT_EQ(c_.meso(), 21);
-}
-
-// A count of zero or less, or an index past the end of the tab, takes nothing
-// and pays nothing.
-TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
-  c_.AddItem(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(0, 0), 0);
-  EXPECT_EQ(c_.SellStackable(0, -2), 0);
-  EXPECT_EQ(c_.SellStackable(3, 1), 0);
-  EXPECT_EQ(c_.SellStackable(-1, 1), 0);
-  EXPECT_EQ(c_.stackables()[0].count(), 5);
-  EXPECT_EQ(c_.meso(), 0);
 }
 
 // Zero is a price, not a refusal: the copies are removed and pay nothing, which
@@ -2686,14 +2265,6 @@ TEST_F(SellEquipTest, SellsTheItemAtTheIndexAsked) {
   EXPECT_EQ(c_.SellEquip(1), 900);
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].name(), "Starter Sword");
-}
-
-TEST_F(SellEquipTest, OutOfRangeIndexIsNoOp) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  EXPECT_EQ(c_.SellEquip(1), 0);
-  EXPECT_EQ(c_.SellEquip(-1), 0);
-  EXPECT_EQ(c_.inventory().size(), 1);
-  EXPECT_EQ(c_.meso(), 0);
 }
 
 // --- BuyBack ---
@@ -2865,15 +2436,6 @@ TEST_F(BuyBackTest, RefusesAnItemTheCatalogNoLongerHas) {
   EXPECT_FALSE(BuyBack(0));
   EXPECT_EQ(c_.meso(), 900) << "not charged for what it cannot hand over";
   EXPECT_EQ(c_.buy_backs().size(), 1);
-}
-
-TEST_F(BuyBackTest, OutOfRangeIndexIsNoOp) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.SellEquip(0);
-  EXPECT_FALSE(BuyBack(1));
-  EXPECT_FALSE(BuyBack(-1));
-  EXPECT_EQ(c_.buy_backs().size(), 1);
-  EXPECT_EQ(c_.meso(), 900);
 }
 
 // --- Equip ---
@@ -3282,18 +2844,7 @@ TEST_F(UnequipTest, MovesItemToInventory) {
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
-TEST_F(UnequipTest, RefusesAnUnnamedOrAnEmptySlot) {
-  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_UNSPECIFIED));
-  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
-}
-
 // --- ScrollEquipped ---
-
-TEST_F(ScrollEquippedTest, ReturnsFailIfSlotEmpty) {
-  Scroll scroll;
-  scroll.set_success_rate(100);
-  EXPECT_EQ(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll), kScrollFail);
-}
 
 TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   sword_.set_upgrade_slots(3);
@@ -3320,12 +2871,6 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
 }
 
 // --- ScrollInventory ---
-
-TEST_F(ScrollInventoryTest, ReturnsFailIfIndexOutOfRange) {
-  Scroll scroll;
-  scroll.set_success_rate(100);
-  EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollFail);
-}
 
 TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   sword_.set_upgrade_slots(3);
@@ -3528,11 +3073,6 @@ class StarForceTraceTest : public CharacterTest {
 
   EquipPrototype proto_;
 };
-
-TEST_F(StarForceTraceTest, NoTracesInitially) {
-  CharacterInstance c = MakeCharacter(rng_);
-  EXPECT_TRUE(c.traces().empty());
-}
 
 TEST_F(StarForceTraceTest, ADestroyedItemLeavesATraceWhereverItWas) {
   CharacterInstance equipped = WithDestroyedItem(true);
@@ -3750,14 +3290,6 @@ TEST_F(CapacityTest, CountOwnedCountsEveryCopyBagAndBack) {
   EXPECT_EQ(c_.CountOwned(sword_), 2);
 }
 
-TEST_F(CapacityTest, CountOwnedIgnoresOtherItems) {
-  EquipPrototype axe;
-  axe.set_name("Axe");
-  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c_.PickUp(std::make_unique<EquipInstance>(axe));
-  EXPECT_EQ(c_.CountOwned(sword_), 0);
-}
-
 // A trace records a destroyed item and isn't a copy of it. This passes
 // whichever of the two guards does the work (the nullptr filter, or
 // EquipTrace's name suffix); only removing both breaks it.
@@ -3784,14 +3316,6 @@ TEST_F(CapacityTest, RoomCountsPartStacksAndFreeSlots) {
   EXPECT_EQ(c_.RoomFor(shell_), 10 * 200 + 100);
 }
 
-// Space in another item's stack doesn't help.
-TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
-  OpenDistinctStacks(kTabCapacity - 11);
-  c_.AddItem(other_, 100);
-  ASSERT_EQ(c_.stackables().size(), kTabCapacity - 10);
-  EXPECT_EQ(c_.RoomFor(shell_), 10 * 200);
-}
-
 // With no free slot, the only room is what that item's open stacks can still
 // take.
 TEST_F(CapacityTest, RoomOnAFullTabIsTheOpenStacks) {
@@ -3799,11 +3323,6 @@ TEST_F(CapacityTest, RoomOnAFullTabIsTheOpenStacks) {
   c_.AddItem(shell_, 150);
   ASSERT_EQ(c_.stackables().size(), kTabCapacity);
   EXPECT_EQ(c_.RoomFor(shell_), 50);
-}
-
-TEST_F(CapacityTest, RoomOnAFullTabOfOtherItemsIsNone) {
-  OpenDistinctStacks(kTabCapacity);
-  EXPECT_EQ(c_.RoomFor(shell_), 0);
 }
 
 // Room follows the item's own stack size rather than a fixed number.

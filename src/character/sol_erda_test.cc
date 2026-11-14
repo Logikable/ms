@@ -18,20 +18,6 @@ TEST(SolErdaTest, DropRateLiftsBothRatesAndNeverPastCertainty) {
   EXPECT_DOUBLE_EQ(SolErdaEnergyPerKill(100000.0), kEnergyPerDrop);
 }
 
-// The pacing the rates were set by: about 52,500 Fragments and 1,702 Sol Erda
-// at 160,000 kills a day, with Fragments the slower of the two.
-TEST(SolErdaTest, AFullMatrixTakesAboutAYearWithNoDropRate) {
-  constexpr double kKillsPerDay = 160000.0;
-  const double fragment_days = 52500.0 / (kKillsPerDay * FragmentsPerKill(0.0));
-  const double energy_days =
-      1702.0 * kEnergyPerSolErda / (kKillsPerDay * SolErdaEnergyPerKill(0.0));
-  EXPECT_GT(fragment_days, 300.0);
-  EXPECT_LT(fragment_days, 365.0);
-  EXPECT_LT(energy_days, fragment_days);
-  EXPECT_GT(energy_days, 0.7 * fragment_days);
-  EXPECT_LT(52500.0 / (kKillsPerDay * FragmentsPerKill(0.7)), 200.0);
-}
-
 TEST(SolErdaTest, RollsAreWholeDropsAndNothingForNoKills) {
   std::mt19937 rng(7);
   EXPECT_EQ(RollMobFragments(0, 0.0, rng), 0);

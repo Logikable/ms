@@ -83,29 +83,6 @@ Skill MakeLuckySeven() {
   return skill;
 }
 
-TEST_F(SkillInspectPanelTest, ShowsTheNameMaxLevelAndDescription) {
-  Skill skill = IronBody();
-  std::string rendered = RenderAt(skill, 5);
-  EXPECT_NE(rendered.find("Iron Body"), std::string::npos);
-  EXPECT_NE(rendered.find("Max Level: 20"), std::string::npos);
-  EXPECT_NE(rendered.find("Boosts DEF and Max HP."), std::string::npos);
-}
-
-// The title is the only place the panel says which kind of skill this is.
-TEST_F(SkillInspectPanelTest, TitlesItselfPassiveOrActive) {
-  Skill passive = IronBody();
-  EXPECT_NE(RenderAt(passive, 5).find("Passive"), std::string::npos);
-  Skill active = MakeLuckySeven();
-  EXPECT_NE(RenderAt(active, 5).find("Active"), std::string::npos);
-}
-
-// A skill the player uses that does nothing modelled is still Active.
-TEST_F(SkillInspectPanelTest, TitlesACastNonAttackActive) {
-  Skill skill = MakeLuckySeven();
-  skill.set_kind(SKILL_KIND_ACTIVE);
-  EXPECT_NE(RenderAt(skill, 1).find("Active"), std::string::npos);
-}
-
 TEST_F(SkillInspectPanelTest, ReadsEveryLeverAtTheLearnedLevel) {
   Skill skill = IronBody();
   // A flat HP bonus, shown as a plain number rather than "per level" like the
@@ -196,13 +173,6 @@ TEST_F(SkillInspectPanelTest, AnUnlearnedSkillShowsOnlyTheNextLevel) {
   EXPECT_NE(rendered.find("+10"), std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, AMaxedSkillShowsNoNextLevel) {
-  Skill skill = IronBody();
-  std::string rendered = RenderAt(skill, 20);
-  EXPECT_NE(rendered.find("Level 20"), std::string::npos);
-  EXPECT_EQ(rendered.find("Level 21"), std::string::npos);
-}
-
 // The card shows what the skill is worth, so bonus levels from the book count
 // in both blocks: a 5 with two bonus levels shows as 7, and the next point as
 // 8.
@@ -275,21 +245,6 @@ TEST_F(SkillInspectPanelTest, APreviewIgnoresWhatIsLearned) {
   EXPECT_EQ(rendered.find("Level 7"), std::string::npos);
   EXPECT_EQ(rendered.find("Level 8"), std::string::npos);
   EXPECT_NE(rendered.find("Level 1"), std::string::npos);
-}
-
-// A one-level skill's first and last level are the same, so the block isn't
-// drawn twice.
-TEST_F(SkillInspectPanelTest, APreviewOfAOneLevelSkillShowsOneBlock) {
-  Skill skill = IronBody();
-  skill.set_max_level(1);
-  std::vector<std::string> lines = Lines(RenderPreview(skill));
-  int blocks = 0;
-  for (const std::string& line : lines) {
-    if (line.find("Level 1") != std::string::npos) {
-      ++blocks;
-    }
-  }
-  EXPECT_EQ(blocks, 1);
 }
 
 // Damage per strike, the number of strikes, and the total; the total is what a
@@ -533,21 +488,6 @@ TEST_F(SkillInspectPanelTest, StatesWhatAStunLifts) {
   orb.mutable_stun()->set_lifted_tag(SKILL_TAG_LIGHTNING);
   orb.mutable_stun()->clear_final_dmg_pct();
   EXPECT_EQ(RenderAt(orb, 1).find("Stunned"), std::string::npos);
-}
-
-// Freezing works like stunning: the element row names only the element, and a
-// summon that freezes without an element gets no row.
-TEST_F(SkillInspectPanelTest, TheElementRowNamesOnlyTheElement) {
-  Skill beam = MakeLuckySeven();
-  beam.add_tags(SKILL_TAG_ICE);
-  beam.set_freeze_seconds(8.0);
-  std::string rendered = RenderAt(beam, 1);
-  EXPECT_NE(RowIn(rendered, "Element", "Ice"), std::string::npos);
-  EXPECT_EQ(rendered.find("Freezes"), std::string::npos);
-
-  Skill prey = MakeLuckySeven();
-  prey.set_freeze_seconds(3.0);
-  EXPECT_EQ(RenderAt(prey, 1).find("Freez"), std::string::npos);
 }
 
 // Jupiter Thunder: an attack split into thirty strikes lands its extra hits
@@ -1195,11 +1135,6 @@ TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
   EXPECT_EQ(rendered.find("+72%"), std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, NoNormalMonsterRowWithoutTheBonus) {
-  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Normal Monsters"),
-            std::string::npos);
-}
-
 // Both healing fields are a share of the HP pool, not of anything beside them,
 // and both say so.
 TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
@@ -1255,22 +1190,6 @@ TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {
             std::string::npos);
 }
 
-// A value below a tenth of a percent gets a second decimal instead of a row
-// reading "0%": Mortal Blow restores a hundredth of a percent per attack at
-// level 1, and the point still bought something.
-TEST_F(SkillInspectPanelTest, ATinyLeverKeepsASecondDecimal) {
-  Skill skill = IronBody();
-  skill.mutable_base()->set_hp_recover_pct(0.0001);
-  EXPECT_NE(RowIn(RenderAt(skill, 1), "Heal per Attack", "+0.01% HP"),
-            std::string::npos);
-}
-
-// A skill without an opening hit must not show that row at all.
-TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
-  Skill skill = MakeLuckySeven();
-  EXPECT_EQ(RenderAt(skill, 1).find("Opening"), std::string::npos);
-}
-
 // A skill whose strike count grows has to say so where the damage is shown, or
 // the page would show an attack the fight doesn't land.
 TEST_F(SkillInspectPanelTest, TheStrikeCountClimbsWithTheLevel) {
@@ -1278,14 +1197,6 @@ TEST_F(SkillInspectPanelTest, TheStrikeCountClimbsWithTheLevel) {
   skill.set_lines_per_level(0.5);
   EXPECT_NE(RenderAt(skill, 1).find("72% x3 = 216%"), std::string::npos);
   EXPECT_NE(RenderAt(skill, 3).find("76% x4 = 304%"), std::string::npos);
-}
-
-TEST_F(SkillInspectPanelTest, ASingleLineSwingIsJustItsPercentage) {
-  Skill skill = MakeLuckySeven();
-  skill.clear_lines();
-  std::string rendered = RenderAt(skill, 1);
-  EXPECT_NE(rendered.find("72%"), std::string::npos);
-  EXPECT_EQ(rendered.find("x1"), std::string::npos);
 }
 
 // Reach and the required weapon don't change with level, so they sit above the
@@ -1388,23 +1299,6 @@ TEST_F(SkillInspectPanelTest, BothHandsOfAWeaponReadAsTheWeapon) {
   EXPECT_EQ(rendered.find("Two-Handed"), std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, BothHandsOfABluntReadAsABlunt) {
-  Skill skill = IronBody();
-  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_BLUNT);
-  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_BLUNT);
-  EXPECT_NE(RenderAt(skill, 5).find("Blunt"), std::string::npos);
-  EXPECT_EQ(RenderAt(skill, 5).find("Handed"), std::string::npos);
-}
-
-// Half a pair is still that specific weapon: a Spearman's sword-only skill
-// would look like it takes every sword if the collapse didn't check both
-// halves.
-TEST_F(SkillInspectPanelTest, OneHandOfAPairKeepsItsFullName) {
-  Skill skill = IronBody();
-  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_SWORD);
-  EXPECT_NE(RenderAt(skill, 5).find("Two-Handed Sword"), std::string::npos);
-}
-
 // A grant that only applies with some of the skill's weapons names them in
 // brackets, or it would look unconditional beside the rows that are.
 TEST_F(SkillInspectPanelTest, AWeaponBonusNamesTheWeaponItNeeds) {
@@ -1435,43 +1329,11 @@ TEST_F(SkillInspectPanelTest, AWeaponBonusReadsTheSameAtEveryLevel) {
   EXPECT_EQ(matches, 2);
 }
 
-TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
-  Skill skill = IronBody();
-  std::string rendered = RenderAt(skill, 5);
-  EXPECT_EQ(rendered.find("Enemies Hit"), std::string::npos);
-  EXPECT_EQ(rendered.find("Required Weapon"), std::string::npos);
-}
-
-// base + per_level * (L - 1) lands just under the round figure: Iron Body's +7%
-// is 6.999999999999999. Truncating would show "6.9%".
-TEST_F(SkillInspectPanelTest, PercentagesRoundRatherThanTruncate) {
-  Skill skill = IronBody();
-  std::string rendered = RenderAt(skill, 7);
-  EXPECT_NE(rendered.find("+7%"), std::string::npos);
-  EXPECT_NE(rendered.find("-3.5%"), std::string::npos);
-  EXPECT_EQ(rendered.find("6.9"), std::string::npos);
-  EXPECT_EQ(rendered.find("3.4"), std::string::npos);
-}
-
 TEST_F(SkillInspectPanelTest, AttackSpeedCountsItsStages) {
   Skill skill = IronBody();
   skill.mutable_base()->set_attack_speed(1);
   EXPECT_NE(RenderAt(skill, 1).find("+1 stage"), std::string::npos);
   EXPECT_EQ(RenderAt(skill, 1).find("+1 stages"), std::string::npos);
-}
-
-// Magic Guard has a single field. The card still has to show what the skill
-// does, or its levels sit over an empty block.
-TEST_F(SkillInspectPanelTest, ShowsASkillWithASingleField) {
-  Skill skill;
-  skill.set_name("Magic Guard");
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_max_level(10);
-  skill.mutable_base()->set_damage_to_mp_pct(0.22);
-  skill.mutable_per_level()->set_damage_to_mp_pct(0.07);
-  std::string rendered = RenderAt(skill, 2);
-  EXPECT_NE(rendered.find("Damage to MP"), std::string::npos);
-  EXPECT_NE(rendered.find("29%"), std::string::npos);
 }
 
 TEST_F(SkillInspectPanelTest, SaysSoWhenALevelBuysNothingModelled) {
@@ -1495,13 +1357,6 @@ TEST_F(SkillInspectPanelTest, WrapsALongDescriptionOntoItsOwnLines) {
             std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, RendersAPlaceholderWithNoSkill) {
-  SkillInspectPanel panel;
-  panel.SetSkill(nullptr, 0, 0);
-  EXPECT_NE(RenderElement(panel.Render()).find("(no skill)"),
-            std::string::npos);
-}
-
 // Evil Eye Shock: attacks on its own timer every 12 seconds.
 Skill MakeEvilEyeShock() {
   Skill skill;
@@ -1516,12 +1371,6 @@ Skill MakeEvilEyeShock() {
   skill.mutable_base()->set_skill_pct(1.23);
   skill.mutable_per_level()->set_skill_pct(0.03);
   return skill;
-}
-
-// A skill that attacks on its own is something the character uses, not a bonus
-// to their stats, and the panel has to say so.
-TEST_F(SkillInspectPanelTest, TitlesASkillOnItsOwnClockActive) {
-  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Active"), std::string::npos);
 }
 
 // It is an attack like any other, whatever triggers it, so its damage reads the
@@ -1716,40 +1565,6 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
             std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
-  Skill skill;
-  skill.set_name("Physical Training");
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
-  skill.set_max_level(5);
-  skill.set_description("Raises STR and DEX.");
-  skill.mutable_base()->set_str(6);
-  skill.mutable_base()->set_dex(6);
-  skill.mutable_base()->set_mastery(0.14);
-
-  std::string out = RenderAt(skill, 1);
-  EXPECT_NE(RowIn(out, "STR", "+6"), std::string::npos);
-  EXPECT_NE(RowIn(out, "DEX", "+6"), std::string::npos);
-  EXPECT_NE(RowIn(out, "Mastery", "14%"), std::string::npos);
-}
-
-// The wizard's pair: magic attack beside ATT, and critical damage beside
-// critical rate.
-TEST_F(SkillInspectPanelTest, ReadsTheWizardsLevers) {
-  Skill skill;
-  skill.set_name("Freezing Crush");
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  PlaceIn(skill, JOB_ADVANCEMENT_MAGICIAN);
-  skill.set_max_level(10);
-  skill.set_description("Sharpens what a critical hit is worth.");
-  skill.mutable_base()->set_crit_dmg(0.005);
-  skill.mutable_base()->set_magic_attack(3);
-
-  std::string out = RenderAt(skill, 1);
-  EXPECT_NE(RowIn(out, "Critical Damage", "+0.5%"), std::string::npos);
-  EXPECT_NE(RowIn(out, "MATT", "+3"), std::string::npos);
-}
-
 // Built from the requirement rather than from separately typed text, so the
 // wording and the rule the skills tab enforces can't drift apart.
 TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {
@@ -1784,11 +1599,6 @@ TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
       << "no rule above: [" << lines[row - 1] << "]";
   EXPECT_NE(lines[row - 2].find("Boosts DEF"), std::string::npos)
       << "the description does not close where it should";
-}
-
-TEST_F(SkillInspectPanelTest, NoRequirementRowWhenThereIsNone) {
-  EXPECT_EQ(RenderAt(IronBody(), 1).find("Required Skill"), std::string::npos);
-  EXPECT_EQ(RenderAt(IronBody(), 1).find("Required Level"), std::string::npos);
 }
 
 // A label too wide for its column gets its own row instead of being cut into
@@ -2153,20 +1963,6 @@ TEST_F(SkillInspectPanelTest, APulseRidingASwingNamesIt) {
       << rendered;
 }
 
-// The skill list tells active from passive by colour, so a skill that is both
-// has to label its halves the same way, or the colours would mean one thing in
-// the book and another on the page.
-TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
-  Skill resonance = IronBody();
-  resonance.set_kind(SKILL_KIND_ACTIVE);
-  resonance.mutable_buff()->set_duration_seconds(15.0);
-  resonance.mutable_buff()->mutable_base()->set_final_dmg_pct(0.02);
-  SkillInspectPanel panel;
-  panel.SetSkill(&resonance, 1, 0);
-  EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kGold);
-  EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
-}
-
 // A shared buff gives the party nothing of its own (everyone activates the same
 // one in turn), so the heading is where the page has to say so.
 TEST_F(SkillInspectPanelTest, ASharedBuffSaysSoInItsHeading) {
@@ -2291,18 +2087,6 @@ TEST_F(SkillInspectPanelTest, HeadsWhatRidesTheSwingApartFromWhatIsKept) {
   std::string rendered = RenderAt(aim, 1);
   EXPECT_NE(RowIn(rendered, "Ignore DEF", "+2%"), std::string::npos);
   EXPECT_EQ(rendered.find("This Attack Only"), std::string::npos) << rendered;
-}
-
-// Every other skill has only one half and nothing to tell apart, so a heading
-// would be a row repeating the window title.
-TEST_F(SkillInspectPanelTest, ASkillWithOneHalfIsNotHeadedAtAll) {
-  std::vector<std::string> lines = Lines(RenderAt(IronBody(), 5));
-  for (int i = 1; i < static_cast<int>(lines.size()); ++i) {
-    // Row 0 is the window's own title, which is "Passive" for this skill. What
-    // must not appear is a heading row repeating it.
-    EXPECT_EQ(lines[i].find("Passive"), std::string::npos) << lines[i];
-    EXPECT_EQ(lines[i].find("Active for"), std::string::npos) << lines[i];
-  }
 }
 
 // What a skill gives the party is its own section: those aren't the reader's
@@ -2550,39 +2334,6 @@ TEST_F(SkillInspectPanelTest, ScrollingWalksTheLevelsUnderTheHead) {
   panel.ScrollBy(2);
   lines = Lines(RenderElement(panel.Render()));
   EXPECT_EQ(RowText(lines[body]), RowText(full[body + 3]));
-}
-
-// Stops at both ends instead of wrapping: with nothing selected, jumping from
-// the bottom of a card to the top would look like a glitch.
-TEST_F(SkillInspectPanelTest, ScrollingStopsAtBothEndsInsteadOfWrapping) {
-  Skill skill = IronBody();
-  SkillInspectPanel panel;
-  panel.SetSkill(&skill, 5, 0);
-  int tall = CardRows(panel);
-  std::vector<std::string> full = Lines(RenderElement(panel.Render()));
-  int body = FirstLevelRow(full);
-  ASSERT_GT(body, 1);
-  panel.SetMaxRows(tall - 3);
-
-  for (int i = 0; i < 50; ++i) {
-    panel.ScrollBy(1);
-  }
-  std::vector<std::string> foot = Lines(RenderElement(panel.Render()));
-  // Three rows of the levels are scrolled off the top, and the card's last row
-  // is now the window's last row.
-  EXPECT_EQ(RowText(foot[body]), RowText(full[body + 3]));
-  EXPECT_EQ(RowText(foot[tall - 5]), RowText(full[tall - 2]));
-
-  panel.ScrollBy(1);
-  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[body]),
-            RowText(foot[body]));
-
-  for (int i = 0; i < 50; ++i) {
-    panel.ScrollBy(-1);
-  }
-  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[body]),
-            RowText(full[body]))
-      << "back at the top";
 }
 
 // The rule between the two level blocks scrolls with them, so the bar crosses

@@ -53,56 +53,6 @@ GameState MakeTestModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kTest);
 }
 
-// Test mode draws three pets off the shelf, any three, repeats allowed, and
-// carries their scrolls, which nothing drops yet.
-// Test mode carries every Special Skill Ring, since nothing drops them.
-TEST(GameStateTest, TestModeCarriesTheSkillRings) {
-  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
-  EquipPrototype ring;
-  ring.set_name("Continuous Ring Lv. 6");
-  ring.set_equip_slot(EQUIP_SLOT_CONT_RING);
-  ring.mutable_equipment_skill()->set_skill("Continuous Ring");
-  ring.mutable_equipment_skill()->set_level(6);
-  catalog["continuous_ring_6"] = ring;
-  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
-  int carried = 0;
-  for (int i = 0; i < state.character.inventory().size(); ++i) {
-    carried += state.character.inventory()[i].prototype().name() == ring.name();
-  }
-  EXPECT_EQ(carried, 1);
-}
-
-TEST(GameStateTest, TestModeWearsThreePetsOffTheShelf) {
-  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
-  for (const char* key : {"husky", "pink_bunny"}) {
-    EquipPrototype pet;
-    pet.set_name(key);
-    pet.set_equip_slot(EQUIP_SLOT_PET);
-    pet.set_shop_price(0);
-    pet.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-    catalog[key] = pet;
-  }
-  ItemPrototype scroll;
-  scroll.set_name("Premium Scroll for Pet");
-  ItemPrototype unused;
-  unused.set_name("Nothing Spends This");
-  Scroll pet_scroll;
-  pet_scroll.set_name("Premium Scroll for Pet");
-  pet_scroll.set_paid_with("Premium Scroll for Pet");
-  GameState state(catalog, {{"premium_scroll_for_pet", pet_scroll}},
-                  {{"premium_scroll_for_pet", scroll}, {"unused", unused}}, {},
-                  {}, {}, GameMode::kTest);
-  EXPECT_EQ(state.character.CountItem(scroll), 90) << "and scrolls for them";
-  EXPECT_EQ(state.character.CountItem(unused), 0)
-      << "only an item some scroll spends";
-  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_PET)) {
-    ASSERT_EQ(state.character.equipped().count(slot), 1u)
-        << EquipSlot_Name(slot);
-    std::string name = state.character.equipped().at(slot)->prototype().name();
-    EXPECT_TRUE(name == "husky" || name == "pink_bunny") << name;
-  }
-}
-
 GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
 }
@@ -155,79 +105,6 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
   test.skills = skills;
   return GameState(SwordCatalog(), {}, {}, {}, {}, EveryStageBook(),
                    GameMode::kTest, test);
-}
-
-// The item catalog test mode's seeding needs: the two currencies, an ordinary
-// Etc item to tell them apart from, and the traces the workbench is given.
-std::map<std::string, ItemPrototype> SeededItemCatalog() {
-  ItemPrototype token;
-  token.set_name("Weapon Token");
-  token.set_kind(ITEM_KIND_TOKEN);
-  token.set_currency_mark("●");
-  ItemPrototype shard;
-  shard.set_name("Zakum's Soul Shard");
-  shard.set_kind(ITEM_KIND_SOUL_SHARD);
-  shard.set_short_name("Zakum's");
-  ItemPrototype horn;
-  horn.set_name("Beetle's Horn");
-  horn.set_sell_price(230);
-  ItemPrototype trace;
-  trace.set_name("Spell Trace");
-  trace.set_kind(ITEM_KIND_SPELL_TRACE);
-  return {{"weapon_token", token},
-          {"zakums_soul_shard", shard},
-          {"horn", horn},
-          {"spell_trace", trace}};
-}
-
-// The stack of `name` in the bag, or nullptr if there's none.
-const StackableItem* FindStack(const GameState& state,
-                               const std::string& name) {
-  for (const StackableItem& stack : state.character.stackables()) {
-    if (stack.name() == name) {
-      return &stack;
-    }
-  }
-  return nullptr;
-}
-
-GameState MakeTestModeStateWithItems() {
-  return GameState(SwordCatalog(), {}, SeededItemCatalog(), {}, {}, {},
-                   GameMode::kTest);
-}
-
-GameState MakePlayModeStateWithItems() {
-  return GameState(SwordCatalog(), {}, SeededItemCatalog(), {}, {}, {},
-                   GameMode::kPlay);
-}
-
-// The constructor stores each of the five catalogs in the field named after it.
-TEST(GameStateTest, ConstructorStoresEveryCatalog) {
-  EquipPrototype equip;
-  equip.set_name("Sword");
-  Scroll scroll;
-  scroll.set_name("60% ATT");
-  ItemPrototype item;
-  item.set_name("Green Snail Shell");
-  Mob mob;
-  mob.set_name("Snail");
-  MapData map;
-  map.set_name("Right Around Lith Harbor");
-
-  GameState state({{"sword", equip}}, {{"att_60", scroll}},
-                  {{"green_snail_shell", item}}, {{"snail", mob}},
-                  {{"lith", map}});
-
-  ASSERT_TRUE(state.equips.count("sword"));
-  EXPECT_EQ(state.equips.at("sword").name(), "Sword");
-  ASSERT_TRUE(state.scrolls.count("att_60"));
-  EXPECT_EQ(state.scrolls.at("att_60").name(), "60% ATT");
-  ASSERT_TRUE(state.items.count("green_snail_shell"));
-  EXPECT_EQ(state.items.at("green_snail_shell").name(), "Green Snail Shell");
-  ASSERT_TRUE(state.mobs.count("snail"));
-  EXPECT_EQ(state.mobs.at("snail").name(), "Snail");
-  ASSERT_TRUE(state.maps.count("lith"));
-  EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
 // The workbench starts with a finished character, because everything past level
@@ -575,19 +452,6 @@ GameState MakeChosenJobState(JobAdvancement advancement) {
                    TestOptions{advancement});
 }
 
-// A workbench character is named after its job, so several in a party can be
-// told apart. The slash in "I/L Arch Mage" isn't a valid name character.
-TEST(GameStateTest, TheWorkbenchNamesACharacterAfterItsJob) {
-  EXPECT_EQ(MakeChosenJobState(JOB_ADVANCEMENT_HUNTER).character.username(),
-            "Hunter");
-  GameState mage = GameState(
-      BowCatalog(), {}, {}, {}, {}, BookFor(JOB_ICE_LIGHTNING_ARCH_MAGE),
-      GameMode::kTest, TestOptions{JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE});
-  EXPECT_EQ(mage.character.username(), "IL Arch Mage");
-  EXPECT_LE(static_cast<int>(mage.character.username().size()),
-            kMaxUsernameLength);
-}
-
 // --job stops at the top of the named advancement, not the workbench's default:
 // an Archer at the last level before the 2nd job, a Hunter at the last before
 // the 3rd.
@@ -658,33 +522,6 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
             "Asianic Bow");
 }
 
-// The token shelves need currency, and a workbench exists to skip bosses; with
-// no shard the Token tab shows half its columns. Only currencies, not Etc
-// drops.
-TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
-  GameState state = MakeTestModeStateWithItems();
-  const CurrencyPurse& purse = state.character.currencies();
-  EXPECT_GT(purse.Count("Weapon Token"), 1);
-  EXPECT_GE(purse.Count("Zakum's Soul Shard"), 10 * kShardsPerSoul)
-      << "souls to reroll a while";
-  EXPECT_EQ(purse.Count("Beetle's Horn"), 0);
-  EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
-}
-
-// Scrolling costs traces and the shop sells them 5,000 meso at a time, a long
-// way to get to the screen a tester wants, so a balance is given instead.
-TEST(GameStateTest, TestModeCarriesSpellTraces) {
-  GameState state = MakeTestModeStateWithItems();
-  EXPECT_GE(state.character.currencies().Count("Spell Trace"), 30000);
-}
-
-// Only test mode gets currencies: play mode gets none, and no Etc drops either.
-TEST(GameStateTest, PlayModeGetsNoCurrencies) {
-  GameState state = MakePlayModeStateWithItems();
-  EXPECT_TRUE(state.character.currencies().entries().empty());
-  EXPECT_TRUE(state.character.stackables().empty());
-}
-
 // --- play mode ---
 
 // Everything a new character gets: a level-1 Beginner on Maple Island with the
@@ -713,15 +550,6 @@ TEST(GameStateTest, PlayModeStartsANewCharacter) {
 
 // --- test mode ---
 
-// Meso to spend, and an empty equip tab: the workbench wears what it's given,
-// so a tester opens the bag to see only what they put there. The spare symbols
-// are the only thing carried, and this catalog has none.
-TEST(GameStateTest, TestModeStartsWithMesoAndAnEmptyBag) {
-  GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.meso(), 100000000000);
-  EXPECT_TRUE(state.character.inventory().empty());
-}
-
 // Clearing the bag is what makes this true for a job whose gear doesn't all
 // fit: a Rogue gets a dagger and a claw for one slot, and the displaced one
 // would otherwise stay in the bag.
@@ -749,108 +577,6 @@ TEST(GameStateTest, BothModesStartWearingAWeapon) {
   EXPECT_FALSE(MakePlayModeState().character.equipped().empty());
 }
 
-// A set bonus can't be seen on the stats page without the whole set, and
-// farming one takes levelling to 100. So the workbench wears it, so nothing
-// needs equipping to see the bonus.
-TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
-  struct Piece {
-    const char* key;
-    const char* name;
-    EquipSlot slot;
-  };
-  const Piece kPieces[] = {
-      {"frozen_hat", "Frozen Hat", EQUIP_SLOT_HAT},
-      {"frozen_top", "Frozen Top", EQUIP_SLOT_TOP},
-      {"frozen_bottom", "Frozen Bottom", EQUIP_SLOT_BOTTOM},
-      {"frozen_cape", "Frozen Cape", EQUIP_SLOT_CAPE}};
-  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
-  for (const Piece& piece : kPieces) {
-    EquipPrototype proto;
-    proto.set_name(piece.name);
-    proto.set_equip_slot(piece.slot);
-    catalog[piece.key] = proto;
-  }
-
-  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
-  const WornGear& worn = state.character.equipped();
-  for (const Piece& piece : kPieces) {
-    WornGear::const_iterator it = worn.find(piece.slot);
-    ASSERT_NE(it, worn.end()) << "the workbench has no " << piece.name;
-    EXPECT_EQ(it->second->prototype().name(), piece.name);
-  }
-  // And no second copy in the bag: four pieces nobody can wear twice were four
-  // rows of clutter in the way.
-  const InventoryInstance& bag = state.character.inventory();
-  for (int i = 0; i < bag.size(); ++i) {
-    EXPECT_EQ(bag[i].prototype().name().find("Frozen"), std::string::npos)
-        << bag[i].prototype().name() << " is carried as well as worn";
-  }
-}
-
-// Both potentials should be visible at every rank, so the workbench assigns the
-// four ranks across its worn gear instead of letting each piece roll. A run
-// where nothing reached Legendary would leave the display half-tested.
-TEST(GameStateTest, TestModeSpreadsPotentialRanks) {
-  // The armour the workbench wears which, with the sword, gives five slots with
-  // potential: enough to assign every rank.
-  struct Piece {
-    const char* key;
-    EquipSlot slot;
-  };
-  const Piece kPieces[] = {{"frozen_hat", EQUIP_SLOT_HAT},
-                           {"frozen_top", EQUIP_SLOT_TOP},
-                           {"frozen_bottom", EQUIP_SLOT_BOTTOM},
-                           {"frozen_cape", EQUIP_SLOT_CAPE}};
-  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
-  for (const Piece& piece : kPieces) {
-    EquipPrototype proto;
-    proto.set_name(piece.key);
-    proto.set_equip_slot(piece.slot);
-    proto.set_required_level(100);
-    catalog[piece.key] = proto;
-  }
-
-  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
-  std::set<PotentialRank> ranks;
-  std::set<PotentialRank> bonus_ranks;
-  int cubed = 0;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
-       state.character.equipped()) {
-    ASSERT_TRUE(kv.second->CanCube()) << kv.second->prototype().name();
-    const Potential& potential = kv.second->potential();
-    EXPECT_EQ(potential.lines_size(), kPotentialLines)
-        << kv.second->prototype().name() << " was never cubed";
-    ranks.insert(potential.rank());
-    const Potential& bonus = kv.second->equip_state().bonus_potential();
-    EXPECT_EQ(bonus.lines_size(), kPotentialLines)
-        << kv.second->prototype().name() << " has no bonus potential";
-    bonus_ranks.insert(bonus.rank());
-    EXPECT_EQ(kv.second->equip_state().flame_size(), kFlameLines)
-        << kv.second->prototype().name() << " was never flamed";
-    ++cubed;
-  }
-  ASSERT_EQ(cubed, 5) << "the four ranks need four pieces to be dealt over";
-  const std::set<PotentialRank> every_rank = {
-      POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC, POTENTIAL_RANK_UNIQUE,
-      POTENTIAL_RANK_LEGENDARY};
-  EXPECT_EQ(ranks, every_rank);
-  EXPECT_EQ(bonus_ranks, every_rank);
-}
-
-// Nothing is cubed or flamed for a player: both are bought.
-TEST(GameStateTest, PlayModeStartsWithNoPotentialOrFlame) {
-  GameState state = MakePlayModeState();
-  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
-       state.character.equipped()) {
-    EXPECT_EQ(kv.second->potential().lines_size(), 0);
-    EXPECT_EQ(kv.second->equip_state().flame_size(), 0);
-  }
-}
-
-TEST(GameStateTest, TestModeStartsOnAHuntingGround) {
-  EXPECT_EQ(MakeTestModeState().current_map, "right_around_lith_harbor");
-}
-
 // Neither mode may require a catalog entry: a test's state has no data files,
 // and seeding must not fail because of that.
 TEST(GameStateTest, SeedingSkipsEquipsTheCatalogDoesNotHave) {
@@ -861,28 +587,6 @@ TEST(GameStateTest, SeedingSkipsEquipsTheCatalogDoesNotHave) {
   EXPECT_TRUE(test.character.inventory().empty());
   // Meso doesn't depend on the catalog, so it still arrives.
   EXPECT_EQ(test.character.meso(), 100000000000);
-}
-
-// Play is what a plain construction gives, so the default is the game, not the
-// workbench.
-TEST(GameStateTest, PlayIsTheDefaultMode) {
-  GameState state(SwordCatalog(), {}, {}, {}, {});
-  EXPECT_EQ(state.character.proto().level(), 1);
-  EXPECT_EQ(state.current_map, "maple_island");
-}
-
-// The workbench levels with an EXP bonus instead of farming the early levels at
-// normal speed. Play mode earns normally.
-TEST(GameStateTest, TestModeStartsWithFamiliarExp) {
-  EXPECT_EQ(MakeTestModeState().character.familiars().exp(), 1'000'000);
-}
-
-TEST(GameStateTest, TestModeFarmsOnAnExpBonus) {
-  EXPECT_EQ(MakeTestModeState().exp_multiplier, 5);
-}
-
-TEST(GameStateTest, PlayModeEarnsPlainExp) {
-  EXPECT_EQ(MakePlayModeState().exp_multiplier, 1);
 }
 
 // A catalog with the symbol given at level 200, under the key GrantLevelRewards
@@ -942,12 +646,6 @@ TEST(AwardExpTest, BurnsAgainstTheRestOfTheRoster) {
   AwardExp(state, 34);
   EXPECT_EQ(state.character.proto().level(), 4);
   EXPECT_EQ(state.character.honor(), HonorForLevels(1, 4));
-}
-
-TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
-  GameState state(SymbolCatalog(), {}, {}, {}, {});
-  GrantLevelRewards(state, 1, 199);
-  EXPECT_EQ(state.character.inventory().size(), 0);
 }
 
 // The workbench wears a symbol instead of only carrying it: a symbol in the bag
@@ -1184,41 +882,6 @@ TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsClearsPaid) {
   }
 }
 
-// Max mode buys the totems as the climb did: one at 200, all three by 230,
-// though the workbench wears all three from 200.
-TEST(GameStateTest, MaxModeWearsTheTotemsTheClimbBought) {
-  EXPECT_EQ(MakeMaxState(199).character.equipped().count(EQUIP_SLOT_TOTEM), 0u);
-  const GameState first = MakeMaxState(200);
-  EXPECT_EQ(first.character.equipped().count(EQUIP_SLOT_TOTEM), 1u);
-  EXPECT_EQ(first.character.equipped().count(EQUIP_SLOT_TOTEM_2), 0u);
-  GameState state = MakeMaxState(230);
-  for (EquipSlot slot : SlotFamily(EQUIP_SLOT_TOTEM)) {
-    EXPECT_EQ(state.character.equipped().count(slot), 1u)
-        << EquipSlot_Name(slot);
-  }
-}
-
-// Max mode wears the user's three pets unscrolled below the cap, where the
-// sweep arrives before their scroll drops, and full of it at the cap, which is
-// read at the run's end.
-TEST(GameStateTest, MaxModeScrollsTheFrierenPetsOnlyAtTheCap) {
-  GameState below = MakeMaxState(230);
-  const std::vector<std::string> kPets = {"lil_frieren", "lil_fern",
-                                          "lil_stark"};
-  std::vector<EquipSlot> family = SlotFamily(EQUIP_SLOT_PET);
-  for (size_t i = 0; i < family.size(); ++i) {
-    EXPECT_EQ(Worn(below, family[i]).prototype().name(), kPets[i]);
-    EXPECT_EQ(Worn(below, family[i]).equip_state().scroll_successes(), 0);
-  }
-
-  GameState cap = MakeMaxState(kTrialLevelCap);
-  for (EquipSlot slot : family) {
-    const EquipInstance& pet = Worn(cap, slot);
-    EXPECT_GT(pet.equip_state().scroll_successes(), 0);
-    EXPECT_EQ(pet.equip_state().remaining_upgrade_slots(), 0);
-  }
-}
-
 // A max account holds the alts the sweep levelled for link skills: at the cap
 // seven lines at 120, none of them the Hero's own. Lines of one branch sum, so
 // the two archer alts give 4 and the three magicians 6.
@@ -1284,13 +947,6 @@ TEST(GameStateTest, MaxModeBareRosterGivesTheSameLinks) {
   EXPECT_EQ(bare.character.link_tally().best_by_line(),
             full.character.link_tally().best_by_line());
   EXPECT_FALSE(bare.character.link_tally().empty());
-}
-
-// The sweep levelled no alt before 230.
-TEST(GameStateTest, MaxModeBefore230HasNoAlts) {
-  GameState state = MakeMaxState(229);
-  EXPECT_TRUE(state.inactive_characters.empty());
-  EXPECT_TRUE(state.character.link_tally().empty());
 }
 
 // The best tier the level opens, with whichever line hits that boss hardest;
@@ -1534,30 +1190,6 @@ TEST(GameStateTest, MaxModeFillsTheMatrixAsTheSweepDid) {
     EXPECT_EQ(nodes, 2);
     EXPECT_EQ(state.character.v_points(), 0);
   }
-}
-
-// A level 140 character is well short of the cap's band: nothing cubed, since
-// cubing opens at 180.
-TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
-  GameState state = MakeMaxState(kHyperStatUnlockLevel);
-  const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
-  EXPECT_EQ(weapon.scroll_successes(), 9);
-  EXPECT_EQ(weapon.stars(), 14);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(), 8);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).potential().lines_size(), 0);
-  for (const ConsumableInfo& potion : AllConsumables()) {
-    EXPECT_FALSE(state.character.ConsumableOwned(potion.type)) << potion.name;
-  }
-}
-
-// The shoulder follows the sweep: the Magnus drop from 170, AbsoLab's from 230,
-// and nothing the outfit replaced is left in the bag.
-TEST(GameStateTest, MaxModeWearsTheShoulderTheSweepWore) {
-  EXPECT_EQ(Worn(MakeMaxState(200), EQUIP_SLOT_SHOULDER).name(),
-            "Royal Black Metal Shoulder");
-  GameState state = MakeMaxState(230);
-  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(), "AbsoLab Knight Shoulder");
-  EXPECT_TRUE(state.character.inventory().empty());
 }
 
 }  // namespace

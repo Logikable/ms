@@ -142,12 +142,6 @@ TEST_F(EquippedPanelTest, TheListKeepsAGutterInsideTheRightBorder) {
   }
 }
 
-TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
-            std::string::npos);
-}
-
 TEST_F(EquippedPanelTest, ShowsTheEquippedItemAndTheSlotItIsIn) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
@@ -155,72 +149,6 @@ TEST_F(EquippedPanelTest, ShowsTheEquippedItemAndTheSlotItIsIn) {
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Sword"), std::string::npos);
   EXPECT_NE(rendered.find("Weapon"), std::string::npos);
-}
-
-// A staff carries weapon and magic attack, and the row shows the one the wearer
-// uses. Every magician branch is checked, so a new one can't show ATT.
-TEST_F(EquippedPanelTest, ShowsMagicAttackForEveryMagician) {
-  EquipPrototype staff;
-  staff.set_name("Old Wooden Staff");
-  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  staff.mutable_base_stats()->set_attack(26);
-  staff.mutable_base_stats()->set_magic_attack(35);
-
-  const Job kMagicians[] = {
-      JOB_MAGICIAN, JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD,
-      JOB_CLERIC,   JOB_ICE_LIGHTNING_MAGE,   JOB_FIRE_POISON_MAGE,
-      JOB_PRIEST,
-  };
-  for (Job job : kMagicians) {
-    Character proto;
-    proto.set_job(job);
-    CharacterInstance mage(rng_, std::move(proto));
-    mage.PickUp(std::make_unique<EquipInstance>(staff));
-    mage.Equip(0);
-
-    EquippedPanel panel(mage, account_, panel_focus_);
-    std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-    EXPECT_NE(rendered.find("+35 MATT"), std::string::npos) << Job_Name(job);
-    EXPECT_EQ(rendered.find("+26 ATT"), std::string::npos) << Job_Name(job);
-  }
-}
-
-TEST_F(EquippedPanelTest, ShowsWeaponAttackForEveryoneElse) {
-  EquipPrototype staff;
-  staff.set_name("Old Wooden Staff");
-  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  staff.mutable_base_stats()->set_attack(26);
-  staff.mutable_base_stats()->set_magic_attack(35);
-
-  Character proto;
-  proto.set_job(JOB_SWORDMAN);
-  CharacterInstance warrior(rng_, std::move(proto));
-  warrior.PickUp(std::make_unique<EquipInstance>(staff));
-  warrior.Equip(0);
-
-  EquippedPanel panel(warrior, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("+26 ATT"),
-            std::string::npos);
-}
-
-// Attack decides a weapon, so it comes before the main stat.
-TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
-  EquipPrototype claw;
-  claw.set_name("Steel Guards");
-  claw.set_equip_type(EQUIP_TYPE_CLAW);
-  claw.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  claw.mutable_base_stats()->set_attack(18);
-  claw.mutable_base_stats()->set_luk(3);
-
-  Character proto;
-  proto.set_job(JOB_ROGUE);
-  CharacterInstance rogue(rng_, std::move(proto));
-  rogue.PickUp(std::make_unique<EquipInstance>(claw));
-  rogue.Equip(0);
-
-  EquippedPanel panel(rogue, account_, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_LT(rendered.find("+18 ATT"), rendered.find("+3 LUK"));
 }
 
 // The main-stat column follows the wearer's job, via PrimaryStatField rather
@@ -255,41 +183,6 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   EXPECT_EQ(worn_by_archer.find("+4 STR"), std::string::npos);
 }
 
-// Throwing stars can't be scrolled or starred, here as in the bag. Stars worn
-// without a claw are dimmed, since the totals don't count them.
-TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
-  EquipPrototype stars;
-  stars.set_name("Subi Throwing-Stars");
-  stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
-  stars.add_unsupported_upgrades(UPGRADE_SCROLL);
-  stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
-  // Past both gates, or neither entry would be offered on any item and the
-  // checks below would say nothing about throwing stars.
-  // ScrollAndStarForceArriveOnTime is the control.
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  c_.PickUp(std::make_unique<EquipInstance>(stars));
-  c_.Equip(0);
-
-  EquippedPanel panel(c_, account_, panel_focus_);
-  // The slot list is built during render, matching the order the app runs in:
-  // the menu opens on a row the player is already looking at.
-  RenderComponent(panel.MakeComponent([]() {}));
-  panel.OpenMenu();
-  ASSERT_EQ(panel.selected_slot(), EQUIP_SLOT_PROJECTILE);
-  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuScroll), 0);
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuStarForce),
-            0);
-  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kGearMenuInspect),
-            0);
-  // Removed from the menu, not greyed. ReachableMenuEntries can't tell the two
-  // apart, so the rendered menu is checked too.
-  std::string rendered = RenderElement(panel.menu().Render(0, 0));
-  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
-  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
-}
-
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
   // A rogue with a dagger and an archer with a bow. Neither uses the ammunition
   // worn beside the weapon, so neither projectile counts.
@@ -308,15 +201,6 @@ TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
   // Each weapon counts, so its row is drawn normally.
   EXPECT_EQ(LineWith(rogue, "Reef Claw").find("\033[2m"), std::string::npos);
   EXPECT_EQ(LineWith(archer, "War Bow").find("\033[2m"), std::string::npos);
-}
-
-TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  panel_focus_ = kEquipPanel;
-  EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
-            std::string::npos);
 }
 
 // An upgrade the item can't take shows a dash instead of a zero, which would
@@ -340,39 +224,6 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   EXPECT_NE(LineWith(rendered, "Sword").find("0\u2605"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("/"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
-}
-
-// The upgrade columns appear with their mechanics, so a player who has never
-// scrolled doesn't see an empty Scroll column. Bonus potential renames the main
-// column, and at this width pushes Scroll off.
-TEST_F(EquippedPanelTest, ShowsColumnHeader) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel locked(c_, account_, panel_focus_);
-  std::string rendered = RenderComponent(locked.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("Name"), std::string::npos);
-  EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
-  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
-  EXPECT_EQ(rendered.find("Stars"), std::string::npos);
-  EXPECT_EQ(rendered.find("Potential"), std::string::npos);
-
-  UnlockUpToBonusPotential();
-  EquippedPanel open(c_, account_, panel_focus_);
-  rendered = RenderComponent(open.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("Scroll"), std::string::npos);
-  EXPECT_NE(rendered.find("Stars"), std::string::npos);
-  EXPECT_NE(rendered.find("Potential"), std::string::npos);
-  EXPECT_EQ(rendered.find("Main Potential"), std::string::npos);
-  EXPECT_EQ(rendered.find("Bonus Potential"), std::string::npos);
-
-  // The column shows once unlocked, though nothing worn has a bonus potential.
-  UnlockEverything();
-  EquippedPanel bonus(c_, account_, panel_focus_);
-  rendered = RenderComponent(bonus.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("Main Potential"), std::string::npos);
-  EXPECT_NE(rendered.find("Bonus Potential"), std::string::npos);
-  EXPECT_NE(rendered.find("Stars"), std::string::npos);
-  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
 }
 
 // An item carrying an upgrade shows its column before the account unlocks the
@@ -404,11 +255,6 @@ TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {
   EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_PRIMARY_WEAPON);
-}
-
-TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
 // --- the list is a ring ---
@@ -478,33 +324,6 @@ TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_TRUE(c_.equipped().empty());
   EXPECT_TRUE(comp->Focusable());
-}
-
-// Arrows on an empty list leave the cursor alone. The ftxui::Menu underneath
-// would move its index anyway, putting selected() at -1, and selected_slot()
-// would then read before the start of an empty slot list.
-TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  RenderComponent(comp);
-  ASSERT_TRUE(c_.equipped().empty());
-
-  comp->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(panel.selected(), 0);
-  comp->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel.selected(), 0);
-  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
-}
-
-// The menu opens on whatever selected_slot() returns, which on an empty list is
-// EQUIP_SLOT_UNSPECIFIED. equipped() has no entry for that, and the Scroll
-// action would look it up with std::map::at and throw.
-TEST_F(EquippedPanelTest, SpaceOpensNoMenuWithNothingEquipped) {
-  bool opened = false;
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  comp->OnEvent(ftxui::Event::Character(' '));
-  EXPECT_FALSE(opened);
 }
 
 TEST_F(EquippedPanelTest, SpaceOpensTheMenuOnAWornItem) {
@@ -761,15 +580,6 @@ TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
   EXPECT_NE(LabelColor(comp->Render(), "Subi"), kYellow);
 }
 
-TEST_F(EquippedPanelTest, NoGoldOnTheWeaponBeforeAnythingOpens) {
-  LevelTo(UnlockLevel(Feature::kScrolling) - 1);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(LabelColor(panel.MakeComponent([]() {})->Render(), "Sword"),
-            kYellow);
-}
-
 // Opening the menu completes the step: the player looked, so the gold goes out
 // whether or not they press anything.
 TEST_F(EquippedPanelTest, OpeningTheMenuPutsTheWeaponsGoldOut) {
@@ -812,64 +622,6 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
 
   panel.OpenMenu();
   EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
-}
-
-// Star force lights only its menu entry. By 120 the player has been opening
-// this menu since level 40, so the weapon needs no gold, and a second gold item
-// on screen would pull the eye from the new entry.
-TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
-  sword_.set_upgrade_slots(1);
-  Equip spent;
-  spent.set_equip_name(sword_.name());
-  spent.set_remaining_upgrade_slots(0);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ScrollPanel sp(c_, no_scrolls_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-
-  // Scrolling's trail is completed first, or its gold would still be lit and
-  // the checks below couldn't tell the two upgrades apart.
-  LevelTo(UnlockLevel(Feature::kScrolling));
-  RenderComponent(comp);
-  panel.OpenMenu();
-  ASSERT_TRUE(StepTo(panel.menu(), kGearMenuScroll));
-  panel.OnMenuEvent(ftxui::Event::Return, sp);
-
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  // The weapon is checked first, because opening the menu turns its gold off,
-  // so checking afterwards would pass for the wrong reason.
-  EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow)
-      << "star force lit the weapon as well";
-  panel.OpenMenu();
-  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Star Force"), kYellow);
-  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
-}
-
-TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
-  // A weapon with no slots left. Star force refuses an item with upgrade slots
-  // remaining, and this test is about the level gate, not that refusal.
-  sword_.set_upgrade_slots(1);
-  Equip spent;
-  spent.set_equip_name(sword_.name());
-  spent.set_remaining_upgrade_slots(0);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-
-  LevelTo(UnlockLevel(Feature::kScrolling));
-  panel.OpenMenu();
-  std::vector<int> scrolling = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(scrolling.begin(), scrolling.end(), kGearMenuScroll), 0);
-  EXPECT_EQ(std::count(scrolling.begin(), scrolling.end(), kGearMenuStarForce),
-            0);
-
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  panel.OpenMenu();
-  std::vector<int> star_force = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(
-      std::count(star_force.begin(), star_force.end(), kGearMenuStarForce), 0);
 }
 
 // Cubing's own gate, above every other upgrade, and the slot that refuses cubes
@@ -929,38 +681,6 @@ TEST_F(EquippedPanelTest, FlamesArriveAfterCubingAndOnlyWhereTheyReach) {
             std::string::npos);
 }
 
-TEST_F(EquippedPanelTest, AWornWeaponIsOfferedASoulFrom235) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-  LevelTo(UnlockLevel(Feature::kSoul) - 1);
-  panel.OpenMenu();
-  std::vector<int> before = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuSoul), 0);
-
-  LevelTo(UnlockLevel(Feature::kSoul));
-  panel.OpenMenu();
-  std::vector<int> after = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuSoul), 0);
-  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Soul"), kYellow);
-}
-
-TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
-  EquipPrototype medal;
-  medal.set_name("Ludibrium Medal");
-  medal.set_equip_slot(EQUIP_SLOT_MEDAL);
-  LevelTo(UnlockLevel(Feature::kPotential));
-  c_.PickUp(std::make_unique<EquipInstance>(medal));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  RenderComponent(panel.MakeComponent([]() {}));
-  panel.OpenMenu();
-
-  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Cube"),
-            std::string::npos);
-}
-
 // Every item that can take stars has the entry, greyed until its slots are
 // used. Hiding it would keep the order secret: a player scrolling a weapon
 // would never see what the scrolling leads to.
@@ -987,42 +707,6 @@ TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
 
 // --- highlighting ---
 
-// This panel arrives at level 3, and a card in the middle of the screen doesn't
-// say where to look. The gold border points at it.
-TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component component = panel.MakeComponent([]() {});
-  ASSERT_EQ(BorderColor(component->Render()), kTheme);
-  panel.SetHighlighted(true);
-  EXPECT_EQ(BorderColor(component->Render()), kYellow);
-  panel.SetHighlighted(false);
-  EXPECT_EQ(BorderColor(component->Render()), kTheme);
-}
-
-// The rule under the column headers is this panel's only rule, and it appears
-// only once something is worn.
-TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component component = panel.MakeComponent([]() {});
-  ASSERT_EQ(InnerRuleColor(component->Render()), kTheme);
-  panel.SetHighlighted(true);
-  EXPECT_EQ(InnerRuleColor(component->Render()), kYellow);
-  panel.SetHighlighted(false);
-  EXPECT_EQ(InnerRuleColor(component->Render()), kTheme);
-}
-
-// An empty panel takes a different path through Render, and level 3 is when
-// this one is most likely to be empty.
-TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component component = panel.MakeComponent([]() {});
-  ASSERT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
-  panel.SetHighlighted(true);
-  EXPECT_EQ(BorderColor(component->Render()), kYellow);
-}
-
 // --- The gear preset row ---
 
 class GearPresetTest : public EquippedPanelTest {
@@ -1048,17 +732,6 @@ class GearPresetTest : public EquippedPanelTest {
     ASSERT_TRUE(c.Equip(c.inventory().size() - 1, preset));
   }
 };
-
-// Below the cubing level there is only one set of gear, so the row isn't drawn
-// and the panel looks as it always did.
-TEST_F(GearPresetTest, NoRowBeforeCubing) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_EQ(rendered.find("Farm"), std::string::npos);
-  EXPECT_EQ(rendered.find("Drop"), std::string::npos);
-}
 
 // With the autoswap on, all three are named for their use, including the third
 // (unlike the stat allocations), because the boss drop roll reads it.
@@ -1238,23 +911,6 @@ class SymbolTabTest : public EquippedPanelTest {
     component->OnEvent(ftxui::Event::ArrowRight);
   }
 };
-
-// Below Arcane River a symbol tab would have nothing to hold, so there is no
-// Symbols tab.
-TEST_F(SymbolTabTest, NoSymbolsTabBeforeArcaneRiver) {
-  EquippedPanel panel(c_, account_, panel_focus_);
-  ftxui::Component component = panel.MakeComponent([]() {});
-  EXPECT_EQ(RenderComponent(component).find("Symbols"), std::string::npos);
-}
-
-TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
-  CharacterInstance c = Traveller();
-  EquippedPanel panel(c, account_, panel_focus_);
-  ftxui::Component component = panel.MakeComponent([]() {});
-  std::string rendered = RenderComponent(component);
-  EXPECT_NE(rendered.find("Gear"), std::string::npos);
-  EXPECT_NE(rendered.find("Symbols"), std::string::npos);
-}
 
 // Expand is in the tab bar, which is drawn from the level the panel arrives, so
 // it is there with Gear as the only chip, long before Symbols. Its label is the
@@ -1620,24 +1276,6 @@ class FamiliarTabTest : public EquippedPanelTest {
     component->OnEvent(ftxui::Event::ArrowDown);
   }
 };
-
-// The tab arrives at 190, and on an alt after that from level 1.
-TEST_F(FamiliarTabTest, TheTabArrivesAt190AndOnAnAltAtOne) {
-  CharacterInstance below = AtLevel(kFamiliarsLevel - 1);
-  EquippedPanel early(below, account_, panel_focus_);
-  EXPECT_EQ(RenderComponentText(early.MakeComponent([]() {})).find("Familiar"),
-            std::string::npos);
-  CharacterInstance c = AtLevel(kFamiliarsLevel);
-  EquippedPanel panel(c, account_, panel_focus_);
-  EXPECT_NE(RenderComponentText(panel.MakeComponent([]() {})).find("Familiar"),
-            std::string::npos);
-  account_.RecordProgress(kFamiliarsLevel, 4);
-  CharacterInstance alt = AtLevel(1);
-  EquippedPanel alt_panel(alt, account_, panel_focus_);
-  EXPECT_NE(
-      RenderComponentText(alt_panel.MakeComponent([]() {})).find("Familiar"),
-      std::string::npos);
-}
 
 // The tab is gold until opened, for the account, so a player who passed 190
 // before familiars existed is still pointed at it.

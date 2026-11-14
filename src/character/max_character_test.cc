@@ -23,15 +23,6 @@
 namespace ms {
 namespace {
 
-// A level 200 4th job, with a full Hyper Stat pool to spend and every gear band
-// behind them.
-Character MaxProto(Job job = JOB_HERO, int level = 200) {
-  Character proto;
-  proto.set_level(level);
-  proto.set_job(job);
-  return proto;
-}
-
 int LinesOf(const Potential& potential, PotentialLineType type) {
   int found = 0;
   for (const PotentialLine& line : potential.lines()) {

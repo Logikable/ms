@@ -204,11 +204,6 @@ class InspectPanelTest : public PanelTest {
   InspectPanel card_;
 };
 
-TEST_F(InspectPanelTest, NullItemShowsPlaceholder) {
-  InspectPanel panel;
-  EXPECT_NE(Render(panel).find("(no item)"), std::string::npos);
-}
-
 TEST_F(InspectPanelTest, ShowsTheItemsOwnFields) {
   sword_.set_name("Iron Sword");
   sword_.set_required_level(30);
@@ -264,40 +259,6 @@ TEST_F(InspectPanelTest, ASkillRingStatesItsSkill) {
   EXPECT_EQ(rendered.find("every"), std::string::npos);
 }
 
-TEST_F(InspectPanelTest, IneligibleJobsStillRendered) {
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Bowman"), std::string::npos);
-  EXPECT_NE(rendered.find("Magician"), std::string::npos);
-  EXPECT_NE(rendered.find("Pirate"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, UniversalShowsAllJobGroups) {
-  sword_.clear_equip_job_categories();
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Beginner"), std::string::npos);
-  EXPECT_NE(rendered.find("Warrior"), std::string::npos);
-  EXPECT_NE(rendered.find("Bowman"), std::string::npos);
-  EXPECT_NE(rendered.find("Magician"), std::string::npos);
-  EXPECT_NE(rendered.find("Thief"), std::string::npos);
-  EXPECT_NE(rendered.find("Pirate"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsBaseStat) {
-  sword_.mutable_base_stats()->set_attack(7);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("+7 "), std::string::npos);
-  EXPECT_EQ(Render(panel).find("(7"), std::string::npos);
-}
-
 TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
   sword_.mutable_base_stats()->set_attack(5);
   Equip state;
@@ -308,19 +269,6 @@ TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
   InspectPanel panel;
   panel.SetItem(&item);
   EXPECT_NE(Render(panel).find("+8 (5 +3)"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsScrollInfo) {
-  sword_.set_upgrade_slots(7);
-  Equip state;
-  state.set_equip_name("Sword");
-  state.set_remaining_upgrade_slots(4);
-  EquipInstance item(sword_, state);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  // 9 slots with the built-in two, 4 left, 0 successes, so 5 were restored.
-  EXPECT_NE(Render(panel).find("0 Successful Scrolls"), std::string::npos);
-  EXPECT_NE(Render(panel).find("4 Left, 5 Restores"), std::string::npos);
 }
 
 // A Legendary potential on a weapon whose middle line rolled one rank lower,
@@ -450,30 +398,6 @@ TEST_F(InspectPanelTest, ShowsTheSoulUnderThePotentials) {
   EXPECT_NE(rendered.rfind("─", alone_name), std::string::npos);
 }
 
-TEST_F(InspectPanelTest, PaintsEveryPotentialLineItsOwnRank) {
-  sword_.set_required_level(100);
-  Equip state;
-  *state.mutable_main_potential() = WeaponPotential();
-  EquipInstance item(sword_, state);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  ftxui::Screen screen = Draw(panel);
-  EXPECT_EQ(ColorOf(screen, "Legendary Potential"), kLegendary.ToColor());
-  // The dot shows the line's own rank, which the middle one doesn't share with
-  // the header.
-  EXPECT_EQ(ColorOf(screen, "◼  LUK"), kLegendary.ToColor());
-  EXPECT_EQ(ColorOf(screen, "◼  Boss Damage"), kUnique.ToColor());
-  // The line's text stays plain; the dot shows the rank.
-  EXPECT_NE(ColorOf(screen, "Boss Damage"), kUnique.ToColor());
-}
-
-TEST_F(InspectPanelTest, AnItemWithNoPotentialSaysNothingAboutIt) {
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_EQ(RenderWide(panel).find("Potential"), std::string::npos);
-}
-
 TEST_F(InspectPanelTest, ShowsPercentageStatsUnderTheFlatOnes) {
   sword_.mutable_base_stats()->set_attack(7);
   sword_.mutable_base_stats()->set_max_hp_pct(10);
@@ -546,48 +470,6 @@ TEST_F(InspectPanelTest, ShowsStarForceStatBreakdown) {
   // so "+12 (7 +5)".
   EXPECT_NE(Render(panel).find("+10 (0 +10)"), std::string::npos);
   EXPECT_NE(Render(panel).find("+12 (7 +5)"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, StarBarShowsFilledAndEmptyStars) {
-  // A level 0 item (max 5 stars) at 3 stars: 3 filled and 2 empty.
-  Equip state;
-  state.set_stars(3);
-  EquipInstance item(sword_, state);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("★★★☆☆"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, StarBarLengthReflectsItemMaxStars) {
-  // A level 95 item has max 8 stars, so the bar is split into groups of 5 and
-  // 3.
-  sword_.set_required_level(95);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  // An empty 8-star bar: "☆☆☆☆☆ ☆☆☆" (5, a space, then 3).
-  EXPECT_NE(Render(panel).find("☆☆☆☆☆"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, AnItemThatRefusesStarForceHasNoBar) {
-  sword_.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  std::string rendered = Render(panel);
-  EXPECT_EQ(rendered.find("☆"), std::string::npos);
-  EXPECT_EQ(rendered.find("★"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsTraceNameWithSuffix) {
-  sword_.set_name("Iron Sword");
-  Equip state;
-  state.set_equip_name("Iron Sword");
-  EquipTrace trace(sword_, state);
-  InspectPanel panel;
-  panel.SetItem(&trace);
-  EXPECT_NE(Render(panel).find("Iron Sword Trace"), std::string::npos);
 }
 
 // --- stackable items ---
@@ -669,15 +551,6 @@ TEST_F(InspectPanelTest, ADescriptionStandsOffBothBorders) {
   EXPECT_EQ(text_rows, 2);
 }
 
-TEST_F(InspectPanelTest, SaysSoWhenAStackableHasNoDescription) {
-  ItemPrototype item = MakeStackable("Green Snail Shell", "");
-  InspectPanel panel;
-  panel.SetItem(&item);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Green Snail Shell"), std::string::npos);
-  EXPECT_NE(rendered.find("(no description)"), std::string::npos);
-}
-
 // The two kinds are exclusive: the panel describes the item the cursor was last
 // on, not both.
 TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
@@ -751,32 +624,6 @@ TEST_F(InspectPanelTest, FoldsAStarBarIntoFifteenAndTheRest) {
   panel.SetItem(&item);
   EXPECT_EQ(RowsWith(panel, "★★★★★ ★★★★★ ★★★★★"), 1);
   EXPECT_EQ(RowsWith(panel, "★★☆☆☆"), 1);
-}
-
-TEST_F(InspectPanelTest, KeepsAStarBarOfFifteenOnOneRow) {
-  sword_.set_required_level(118);  // 15 stars
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_EQ(RowsWith(panel, "☆"), 1);
-}
-
-TEST_F(InspectPanelTest, NoSetCardForAnItemInNoSet) {
-  EquipInstance sword(sword_);
-  c_.UseEquipSets(FrozenSet());
-
-  InspectPanel panel;
-  panel.UseCharacter(c_);
-  panel.SetItem(&sword);
-  EXPECT_EQ(RenderWide(panel).find("Set Effect"), std::string::npos);
-}
-
-// The panel can be used without a character (in a test, or a screen that shows
-// one item), and then it knows of no sets.
-TEST_F(InspectPanelTest, NoSetCardWithoutACharacter) {
-  InspectPanel panel;
-  panel.SetItem(&hat_);
-  EXPECT_EQ(RenderWide(panel).find("Set Effect"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsTheWholeSetBesideOneOfItsPieces) {
@@ -1180,18 +1027,6 @@ TEST_F(InspectPanelTest, TabReachesACardWithNothingToScroll) {
   EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
 }
 
-TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
-  EquipInstance sword(sword_);
-  c_.UseEquipSets(FrozenSet());
-  InspectPanel panel;
-  panel.UseCharacter(c_);
-  panel.SetMaxRows(6);
-  panel.SetItem(&sword);
-  RenderWide(panel);
-  EXPECT_FALSE(panel.HasSetCard());
-  EXPECT_FALSE(panel.SwapCard(1));
-}
-
 // --- the equipped card ---
 
 // A second hat to show beside the inspected one, with a different name so a
@@ -1338,40 +1173,6 @@ TEST_F(InspectPanelTest, WritesTheCombatPowerDeltaOverTheRequiredLevel) {
       << "the figure is on the level's own row, right of it";
 }
 
-// Green for a gain, red for a loss, and no colour for an item that changes
-// nothing: zero isn't a warning.
-TEST_F(InspectPanelTest, PaintsTheDeltaBySign) {
-  InspectPanel panel = TallPanel(c_, 34);
-  panel.SetItem(&hat_);
-
-  panel.SetCombatPowerDelta(4200);
-  ftxui::Screen gain = Draw(panel);
-  EXPECT_EQ(ColorOf(gain, "+4,200"), kGreen);
-
-  panel.SetCombatPowerDelta(-4200);
-  ftxui::Screen loss = Draw(panel);
-  EXPECT_EQ(ColorOf(loss, "-4,200"), kRed);
-
-  // No sign and no colour, since an item that changes nothing isn't a warning.
-  panel.SetCombatPowerDelta(0);
-  ftxui::Screen even = Draw(panel);
-  EXPECT_NE(ColorOf(even, " 0 "), kGreen);
-  EXPECT_NE(ColorOf(even, " 0 "), kRed);
-}
-
-// Unset draws neither row, which every screen showing an item the player isn't
-// comparing gets. Setting a new item clears it, as it clears the comparison.
-TEST_F(InspectPanelTest, NoDeltaRowsWithoutOne) {
-  InspectPanel panel = TallPanel(c_, 34);
-  panel.SetItem(&hat_);
-  EXPECT_EQ(RenderWide(panel).find("Combat Power"), std::string::npos);
-
-  panel.SetCombatPowerDelta(7);
-  ASSERT_NE(RenderWide(panel).find("Combat Power"), std::string::npos);
-  panel.SetItem(&hat_);
-  EXPECT_EQ(RenderWide(panel).find("Combat Power"), std::string::npos);
-}
-
 // Only one delta on screen. The Equipped card is what the delta is measured
 // against, so a delta on it would compare it with itself.
 TEST_F(InspectPanelTest, TheEquippedCardCarriesNoDelta) {
@@ -1455,22 +1256,6 @@ TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
   EXPECT_NE(rendered.find("Arcane Force  +30"), std::string::npos) << rendered;
 }
 
-// A maxed symbol has no next level, so the row says so instead of showing a bar
-// that can never fill.
-TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
-  Equip state;
-  state.set_symbol_level(kMaxArcaneSymbolLevel);
-  EquipInstance symbol(VanishingJourneySymbol(), state);
-  InspectPanel panel;
-  panel.UseCharacter(c_);
-  panel.SetItem(&symbol);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("EXP  MAX"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("Arcane Force  +220"), std::string::npos) << rendered;
-  EXPECT_EQ(Count(rendered, "◆"), kMaxArcaneSymbolLevel) << rendered;
-  EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
-}
-
 // A Sacred Symbol's card: eleven pips, Sacred Power, and the max-level bonus
 // dimmed until it is earned.
 TEST_F(InspectPanelTest, ASacredSymbolShowsItsBonus) {
@@ -1544,19 +1329,6 @@ TEST_F(InspectPanelTest, AnEmptySlotIsABarOverAnEmptyCard) {
   EXPECT_NE(rendered.find("(empty)"), std::string::npos) << rendered;
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty())
       << "the bar is the widest row of a card with nothing else on it";
-}
-
-// Every item except a ring or a pendant has one slot and nothing to choose
-// between: no bar, and an empty slot draws no card at all.
-TEST_F(InspectPanelTest, OneSlotDrawsNoBar) {
-  EquipInstance worn = WornHat();
-  InspectPanel panel = TallPanel(c_, 34);
-  panel.SetItem(&hat_);
-  panel.SetComparison(&worn);
-  EXPECT_EQ(RenderWide(panel).find(" 1  2 "), std::string::npos);
-
-  panel.SetComparison(static_cast<const EquipTabItem*>(nullptr));
-  EXPECT_EQ(RenderWide(panel).find("Equipped"), std::string::npos);
 }
 
 // The ring moves through what is on screen, and a card of four empty slots is

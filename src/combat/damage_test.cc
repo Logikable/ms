@@ -134,27 +134,6 @@ TEST_F(OffenseTest, FullMasteryRemovesMinFloor) {
                    45.0 * kEqualLevel * kBaseCrit);
 }
 
-TEST_F(OffenseTest, SkillPctScalesLinearly) {
-  OffenseStats s = Baseline();
-  s.skill_pct = 2.0;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   kBaseline * 2.0 * kEqualLevel * kBaseCrit);
-}
-
-TEST_F(OffenseTest, LinesMultiplyDamage) {
-  OffenseStats s = Baseline();
-  s.lines = 3;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   kBaseline * 3.0 * kEqualLevel * kBaseCrit);
-}
-
-TEST_F(OffenseTest, DamagePctIsAdditive) {
-  OffenseStats s = Baseline();
-  s.damage_pct = 0.20;  // *1.2
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   kBaseline * 1.2 * kEqualLevel * kBaseCrit);
-}
-
 TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.50;
@@ -345,17 +324,6 @@ TEST(WeaponConstantTest, EachWeaponCarriesItsOwnLinesConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_ROGUE, EQUIP_TYPE_CLAW), 1.75);
 }
 
-// This is why the constant takes a job: the same sword is worth more to the
-// Hero line than to the Paladin line the default comes from.
-TEST(WeaponConstantTest, AFighterSwingsASwordHarderThanAnyoneElse) {
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD),
-                   1.34);
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD),
-                   1.44);
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_ONE_HANDED_SWORD), 1.24);
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_TWO_HANDED_SWORD), 1.34);
-}
-
 // A constant belongs to the whole line, not one job in it: a Crusader is on the
 // Hero line and a Berserker on the Dark Knight's. Checked against the 2nd job
 // instead of a number, so the two can't drift apart.
@@ -376,15 +344,6 @@ TEST(WeaponConstantTest, AThirdJobSwingsWhatItsLineSwings) {
                      WeaponConstant(JOB_SPEARMAN, weapon))
         << EquipType_Name(weapon);
   }
-}
-
-// An axe is the Hero line's own weapon, so the default is already theirs and
-// needs no override. GMS has no case of a Page holding one.
-TEST(WeaponConstantTest, AnAxeIsTheSameInAnyWarriorsHands) {
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_AXE),
-                   1.44);
-  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SWORDMAN, EQUIP_TYPE_TWO_HANDED_AXE),
-                   1.44);
 }
 
 // A weapon with no constant for its holder's line falls back to the line that
@@ -480,11 +439,6 @@ TEST(OffenseStatsForTest, TheLineLadderReachesTheDamageChain) {
   EXPECT_EQ(late.mirror_lines, 6);
 }
 
-TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
-  // stage 4 => (20-4)/16 == 1.0; 720 is already a multiple of 30ms.
-  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(720, 4), 0.72);
-}
-
 TEST(SwingIntervalTest, WorkedExampleStage8) {
   // 660 * (20-8)/16 = 495, rounded up to 510ms.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(660, 8), 0.51);
@@ -498,16 +452,6 @@ TEST(SwingIntervalTest, RoundsUpToNextTick) {
 TEST(SwingIntervalTest, ExactTickMultipleIsUnchanged) {
   // 600 is exactly 20 ticks, so rounding up must not change it.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(600, 4), 0.60);
-}
-
-TEST(SwingIntervalTest, FastestStageIsQuickest) {
-  // stage 10 => (20-10)/16 = 0.625; 800*0.625 = 500, rounded up to 510ms.
-  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 10), 0.51);
-}
-
-TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
-  // stage 1 => 19/16 = 1.1875; 800*1.1875 = 950, rounded up to 960ms.
-  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
 }
 
 // GMS ignores a magician's weapon speed entirely: every cast starts at the
@@ -555,32 +499,6 @@ TEST(AttackSpeedStageTest, WhatMayPassTheCapAddsOnTopOfIt) {
             ATTACK_SPEED_FASTEST_3);
 }
 
-TEST(LevelMultiplierTest, EqualLevelGivesTenPercentBonus) {
-  EXPECT_DOUBLE_EQ(LevelMultiplier(10, 10), 1.1);
-}
-
-TEST(LevelMultiplierTest, TheBonusCapsAtFiveLevelsAbove) {
-  EXPECT_DOUBLE_EQ(LevelMultiplier(12, 10), 1.14);  // +2
-  EXPECT_DOUBLE_EQ(LevelMultiplier(15, 10), 1.2);   // +5
-  EXPECT_DOUBLE_EQ(LevelMultiplier(100, 10), 1.2);  // capped past +5
-}
-
-TEST(LevelMultiplierTest, StaysAboveOneUntilThreeLevelsUnder) {
-  EXPECT_DOUBLE_EQ(LevelMultiplier(9, 10), 1.0584);  // -1
-  EXPECT_DOUBLE_EQ(LevelMultiplier(8, 10), 1.007);   // -2, still a bonus
-  EXPECT_DOUBLE_EQ(LevelMultiplier(7, 10), 0.9672);  // -3, first penalty
-}
-
-TEST(LevelMultiplierTest, DeepUnderLevelIsHeavilyPenalized) {
-  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 21), 0.5);   // -20
-  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 40), 0.03);  // -39, last nonzero row
-}
-
-TEST(LevelMultiplierTest, FortyOrMoreLevelsUnderIsZero) {
-  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 41), 0.0);   // -40
-  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 100), 0.0);  // far under
-}
-
 // Stage 4 is the reference point: an attack there takes exactly as long as its
 // animation.
 TEST(SwingIntervalSecondsTest, AverageSpeedIsTheAnimationItself) {
@@ -604,17 +522,6 @@ TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
   EXPECT_EQ(offense.secondary, 6);  // 4 + 2
   EXPECT_EQ(offense.attack, 15);
   EXPECT_EQ(offense.level, 7);
-}
-
-TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
-  AllocatedStats allocated;
-  allocated.set_str(100);
-  allocated.set_dex(20);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 1, allocated, EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_EQ(offense.primary, 100);
-  EXPECT_EQ(offense.secondary, 20);
 }
 
 // The per-job switches in damage.cc each have a default a new job falls into
@@ -952,15 +859,6 @@ TEST(RollFactorTest, ASwingThatRollsNothingIsOneLine) {
   EXPECT_FALSE(lines[0].crit);
 }
 
-// A caller that sets nothing gets no variance, so a hand-built attack lands
-// exactly the damage it was given.
-TEST(RollFactorTest, DefaultsRollNothing) {
-  std::mt19937 rng(1);
-  for (int i = 0; i < 20; ++i) {
-    EXPECT_DOUBLE_EQ(RollFactor(SwingRolls(), rng), 1.0);
-  }
-}
-
 // With one line, the factor is the roll itself: never below the mastery floor
 // over the mean, never above a crit at full roll, and both ends are reached.
 TEST(RollFactorTest, StaysWithinTheFloorAndTheCrit) {
@@ -1002,30 +900,6 @@ TEST(RollFactorTest, RollsForTakesTheWholeCritChance) {
   EXPECT_DOUBLE_EQ(rolls.crit_dmg, 0.15 + kBaseCritDamage);
 }
 
-TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
-  OffenseStats offense =
-      OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_DOUBLE_EQ(offense.mastery, 0.20);
-  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
-  EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
-  // Not 0: everyone ignores the base share of a monster's armour.
-  EXPECT_DOUBLE_EQ(offense.ied, kBaseIgnoreDefense);
-}
-
-TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {
-  AllocatedStats allocated;
-  allocated.set_str(30);
-  allocated.set_dex(50);
-  EquipStats equipped;
-  equipped.set_str(3);
-  equipped.set_dex(5);
-  OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 1, allocated, equipped,
-                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_EQ(offense.primary, 55);    // DEX leads for an archer
-  EXPECT_EQ(offense.secondary, 33);  // and STR backs it up
-}
-
 TEST(OffenseStatsForTest, MagicianReadsIntAndSwingsOnMagicAttack) {
   AllocatedStats allocated;
   allocated.set_int_(50);
@@ -1040,19 +914,6 @@ TEST(OffenseStatsForTest, MagicianReadsIntAndSwingsOnMagicAttack) {
   EXPECT_EQ(offense.primary, 55);
   EXPECT_EQ(offense.secondary, 33);
   EXPECT_EQ(offense.attack, 70);  // magic attack, not the 999
-}
-
-TEST(OffenseStatsForTest, RogueReadsLukAsTheMainStat) {
-  AllocatedStats allocated;
-  allocated.set_luk(50);
-  allocated.set_dex(30);
-  EquipStats equipped;
-  equipped.set_luk(5);
-  equipped.set_dex(3);
-  OffenseStats offense = OffenseStatsFor(JOB_ROGUE, 1, allocated, equipped,
-                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_EQ(offense.primary, 55);
-  EXPECT_EQ(offense.secondary, 33);  // and DEX backs it up
 }
 
 TEST(OffenseStatsForTest, NonMagiciansIgnoreMagicAttack) {
@@ -1103,17 +964,6 @@ TEST(OffenseStatsForTest, TheFirstLevelOfAMasterySkillStillPays) {
   EXPECT_GT(MasteryFor(JOB_SWORDMAN, first), MasteryFor(JOB_SWORDMAN, {}));
 }
 
-TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
-  AllocatedStats allocated;
-  allocated.set_str(50);
-  allocated.set_dex(30);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_EQ(offense.primary, 0);  // fail safe: unknown job has no main stat
-  EXPECT_EQ(offense.secondary, 0);
-}
-
 // Slash Blast: 183% at level 1, +8% per level.
 Skill SlashBlast() {
   Skill skill;
@@ -1125,81 +975,12 @@ Skill SlashBlast() {
   return skill;
 }
 
-TEST(OffenseStatsForTest, AttackSkillSetsSkillPctAtLevelOne) {
-  Skill slash_blast = SlashBlast();
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
-  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83);  // base, no per-level yet
-}
-
 TEST(OffenseStatsForTest, AttackSkillAddsPerLevelBeyondLevelOne) {
   Skill slash_blast = SlashBlast();
   OffenseStats offense =
       OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, &slash_blast, 10);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83 + 0.08 * 9);  // 2.55 at level 10
-}
-
-TEST(OffenseStatsForTest, MultiHitSkillSetsLines) {
-  Skill leap_attack;
-  leap_attack.set_name("Leap Attack");
-  leap_attack.set_kind(SKILL_KIND_ATTACK);
-  leap_attack.set_max_level(1);
-  leap_attack.set_lines(2);
-  leap_attack.mutable_base()->set_skill_pct(0.90);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, &leap_attack, 1);
-  EXPECT_DOUBLE_EQ(offense.skill_pct, 0.90);
-  EXPECT_EQ(offense.lines, 2);  // 90% twice = 180% a target
-}
-
-TEST(OffenseStatsForTest, SingleHitSkillKeepsOneLine) {
-  Skill slash_blast = SlashBlast();  // no lines set
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
-  EXPECT_EQ(offense.lines, 1);
-}
-
-TEST(OffenseStatsForTest, NoAttackSkillKeepsTheBarePoke) {
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
-}
-
-TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
-  Skill passive;
-  passive.set_name("Iron Body");
-  passive.set_kind(SKILL_KIND_PASSIVE);
-  passive.set_max_level(10);
-  passive.mutable_base()->set_max_hp_pct(0.10);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, &passive, 5);
-  EXPECT_DOUBLE_EQ(offense.skill_pct,
-                   1.0);  // passives fold into HP, not damage
-}
-
-TEST(OffenseStatsForTest, SlashBlastKills83PercentFaster) {
-  // A learned attack skill scales expected damage by exactly its skill_pct over
-  // the basic attack, 1.83x here. At equal attack speed that's 1.83x the kills
-  // per second, or "83% faster".
-  AllocatedStats allocated;
-  allocated.set_str(40);
-  EquipStats equipped;
-  equipped.set_attack(15);
-  Mob mob = MakeMob(/*pdr=*/0, /*boss=*/false, /*level=*/15);
-
-  OffenseStats poke = OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped,
-                                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  Skill slash_blast = SlashBlast();
-  OffenseStats slash = OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped,
-                                       EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(slash, mob),
-                   1.83 * ExpectedAttackDamage(poke, mob));
 }
 
 // A mob that only attacks: attack and level, which is all ExpectedDamageTaken

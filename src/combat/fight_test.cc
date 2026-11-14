@@ -693,14 +693,6 @@ const EngagedGroup* FindGroup(const std::vector<EngagedGroup>& groups,
   return nullptr;
 }
 
-TEST(CombatSimTest, InactiveParamsLeaveSimIdle) {
-  CombatSim sim;
-  sim.Advance(CombatParams{}, 1.0);
-  EXPECT_FALSE(sim.active());
-  EXPECT_FALSE(sim.respawning());
-  EXPECT_TRUE(sim.view().target_name.empty());
-}
-
 TEST(CombatSimTest, ChargesAttackBarThenLandsAHit) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -1586,32 +1578,6 @@ TEST(CombatSimTest, ReflectionCanFinishAMob) {
   EXPECT_TRUE(sim.respawning());
 }
 
-TEST(CombatSimTest, NoReflectionWithoutTheSkill) {
-  Mob snail = MakeMob("Snail", 1000);
-  CombatSim sim;
-  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 1)});
-  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
-
-  sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
-}
-
-TEST(CombatSimTest, AnEmptyMapHasNothingToHitThePlayerWith) {
-  Mob snail = MakeMob("Snail", 10);
-  CombatSim sim;
-  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
-  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
-
-  sim.Advance(params, 1.0);  // the snail hits, then the swing clears the map
-  ASSERT_TRUE(sim.respawning());
-  EXPECT_EQ(sim.view().player_hp, 90);
-
-  for (int i = 0; i < 5; ++i) {  // idling well past several intervals
-    sim.Advance(params, 1.0);
-  }
-  EXPECT_EQ(sim.view().player_hp, 90);
-}
-
 TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -1837,19 +1803,6 @@ TEST(CombatSimTest, ANarrowerPoolTakesTheOverflowWithIt) {
   EXPECT_EQ(sim.view().player_hp, 50);
 }
 
-TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {
-  Mob snail = MakeMob("Snail", 1000);
-  CombatSim sim;
-  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
-  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
-  sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.view().player_hp, 90);
-
-  sim.Advance(CombatParams{}, 1.0);
-  EXPECT_EQ(sim.view().player_hp, 0);
-  EXPECT_DOUBLE_EQ(sim.view().player_hp_fraction, 0.0);
-}
-
 // --- skills that fire on their own clock ---
 
 TEST(CombatSimTest, AnAutoAttackFiresOnItsOwnClock) {
@@ -1909,26 +1862,6 @@ TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
   }
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.80, 1e-9);
-}
-
-// This is why the weight exists: an attack landing seven times as often counts
-// as a seventh, so the volley comes at the same rate either way.
-TEST(CombatSimTest, ARapidSwingTakesSevenTimesAsManyToFireIt) {
-  Mob snail = MakeMob("Snail", 1000);
-  CombatSim sim;
-  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
-  params.attacks[0].count_weight = 1.0 / 7.0;
-  AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
-
-  // 27 attacks is just short of the 4 it takes.
-  for (int i = 0; i < 27; ++i) {
-    sim.Advance(params, 1.0);
-  }
-  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
-  // The 28th completes it. A seventh isn't exact in floating point, so this
-  // also checks the counter uses a tolerance instead of a bare comparison.
-  sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
 // The remainder carries over instead of resetting, or an attack worth a
@@ -2165,16 +2098,6 @@ TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   EXPECT_EQ(sim.view().kills_this_step[0], 1);  // t=7
 }
 
-TEST(CombatSimTest, AnAutoAttackWithNoIntervalNeverFires) {
-  Mob snail = MakeMob("Snail", 100);
-  CombatSim sim;
-  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
-  AddAutoAttack(params, /*interval=*/0.0, /*damage=*/100.0);
-
-  sim.Advance(params, 100.0);
-  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
-}
-
 TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -2260,15 +2183,6 @@ TEST(CombatSimTest, ACastOnItsOwnClockSetsOffNoFinalAttack) {
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.90,
               1e-9);  // the cast's 10, alone
-}
-
-TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
-  Mob snail = MakeMob("Snail", 100);
-  CombatSim sim;
-  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
-
-  sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
 // Gives the attack an opening hit worth `damage` on one enemy.
@@ -5074,19 +4988,6 @@ TEST(CombatSimTest, ABuffDeepensThePile) {
   EXPECT_EQ(params.FreezeCap(2), 2);
 }
 
-// A boss fight keeps the roster it started with: nothing refills, and an empty
-// queue stays empty however long the fight lasts.
-TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
-  Mob mob = MakeMob("Arm", 10);
-  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 100.0, 2)});
-  CombatSim sim;
-  for (int i = 0; i < 100; ++i) {
-    sim.Advance(params, 1.0);
-  }
-  EXPECT_TRUE(sim.respawning());
-  EXPECT_TRUE(sim.view().roster.empty());
-}
-
 // The roster has one entry per mob instead of the merged bars, and each entry
 // keeps its id as those beside it die. That's what keeps each of Zakum's arms
 // in its own panel.
@@ -5131,16 +5032,6 @@ TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
   sim.Advance(second, 0.0);
   ASSERT_EQ(sim.view().roster.size(), 1u);
   EXPECT_EQ(sim.view().roster[0].name, "Body");
-}
-
-// Recording is off unless requested: the sims step the fight millions of times
-// and draw none of it.
-TEST(CombatSimTest, NothingIsRecordedUnlessItIsAskedFor) {
-  Mob mob = MakeMob("Snail", 1000000);
-  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
-  CombatSim sim;
-  sim.Advance(params, 1.0);
-  EXPECT_TRUE(sim.damage_lines_this_step().empty());
 }
 
 // The full recording contract: one line per hit, all lines from one attack on

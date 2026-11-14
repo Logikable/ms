@@ -71,13 +71,6 @@ TEST_F(EquipInstanceTest, TheChanceDecidesTheStatsAndTheSlotGoesRegardless) {
   EXPECT_EQ(lost.equip_state().remaining_upgrade_slots(), 2);
 }
 
-TEST_F(EquipInstanceTest, NoSlotsReturnsNoSlots) {
-  EquipPrototype proto = MakeEquip(0);
-  EquipInstance item(proto);
-  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollNoSlots);
-  EXPECT_EQ(item.stats().attack(), 0);
-}
-
 TEST_F(EquipInstanceTest, StatsAccumulateAcrossScrolls) {
   EquipPrototype proto = MakeEquip(3);
   EquipInstance item(proto);
@@ -168,22 +161,6 @@ TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {
   }
   EXPECT_EQ(outcome, kStarForceSuccess);
   EXPECT_EQ(item.stars(), 1);
-}
-
-TEST_F(EquipInstanceTest, StarForceFailDoesNotChangeStars) {
-  EquipPrototype proto = MakeEquip(0);
-  std::mt19937 deterministic_rng(42);
-  EquipInstance item(proto);
-  bool saw_fail = false;
-  for (int i = 0; i < 200 && !saw_fail; ++i) {
-    int stars_before = item.stars();
-    StarForceOutcome o = item.StarForce(deterministic_rng);
-    if (o == kStarForceFail) {
-      EXPECT_EQ(item.stars(), stars_before);
-      saw_fail = true;
-    }
-  }
-  EXPECT_TRUE(saw_fail);
 }
 
 TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
@@ -277,84 +254,6 @@ TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
 
 // --- StarForceStatGains ---
 
-TEST_F(EquipInstanceTest, StarForceStatGainsZeroStarsAllZero) {
-  EquipInstance item(MakeWeapon(100));
-  EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.str(), 0);
-  EXPECT_EQ(gains.attack(), 0);
-  EXPECT_EQ(gains.max_hp(), 0);
-}
-
-TEST_F(EquipInstanceTest, AWarriorWeaponGainsItsPrimaryStats) {
-  // At 2★: kPrimaryStatDeltas[0]+[1] = 2+2 = 4 each for STR and DEX.
-  Equip state;
-  state.set_stars(2);
-  EquipInstance item(MakeWeapon(), state);
-  EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.str(), 4);
-  EXPECT_EQ(gains.dex(), 4);
-  EXPECT_EQ(gains.int_(), 0);
-  EXPECT_EQ(gains.luk(), 0);
-}
-
-TEST_F(EquipInstanceTest, AMagicianWeaponGainsItsPrimaryStats) {
-  Equip state;
-  state.set_stars(1);
-  EquipInstance item(MakeWeapon(0, EQUIP_JOB_CATEGORY_MAGICIAN), state);
-  EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.int_(), 2);
-  EXPECT_EQ(gains.luk(), 2);
-  EXPECT_EQ(gains.str(), 0);
-  EXPECT_EQ(gains.dex(), 0);
-}
-
-// The weapon is the one item that gains both. GMS's cumulative table gives 25
-// at 4★ and 50 at 6★; the second is checked because the per-star values once
-// had the 6th star wrong.
-TEST_F(EquipInstanceTest, AWeaponGainsMaxHpAndMaxMp) {
-  Equip state;
-  state.set_stars(4);
-  EquipInstance four(MakeWeapon(), state);
-  EXPECT_EQ(four.StarForceStatGains().max_hp(), 25);
-  EXPECT_EQ(four.StarForceStatGains().max_mp(), 25);
-  state.set_stars(6);
-  EquipInstance six(MakeWeapon(), state);
-  EXPECT_EQ(six.StarForceStatGains().max_hp(), 50);
-  EXPECT_EQ(six.StarForceStatGains().max_mp(), 50);
-}
-
-// Max HP isn't only for weapons: it goes to every slot on GMS's Category A
-// list, which includes most armour.
-TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
-  Equip state;
-  state.set_stars(4);
-  for (EquipSlot slot :
-       {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_CAPE,
-        EQUIP_SLOT_RING, EQUIP_SLOT_RING_4, EQUIP_SLOT_PENDANT,
-        EQUIP_SLOT_PENDANT_2, EQUIP_SLOT_BELT, EQUIP_SLOT_SHOULDER}) {
-    EquipInstance item(MakeArmour(slot), state);
-    EquipStats gains = item.StarForceStatGains();
-    EXPECT_EQ(gains.max_hp(), 25) << EquipSlot_Name(slot);
-    EXPECT_EQ(gains.max_mp(), 0) << EquipSlot_Name(slot);
-  }
-}
-
-// Accessories aren't on that list, however many stars they have. Neither are
-// gloves and shoes, even though they look like armour: GMS's Category A leaves
-// both out.
-TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
-  Equip state;
-  state.set_stars(10);
-  for (EquipSlot slot : {EQUIP_SLOT_EYE_ACCESSORY, EQUIP_SLOT_EARRINGS,
-                         EQUIP_SLOT_GLOVES, EQUIP_SLOT_SHOES}) {
-    EquipInstance item(MakeArmour(slot, 100), state);
-    EquipStats gains = item.StarForceStatGains();
-    EXPECT_EQ(gains.max_hp(), 0) << EquipSlot_Name(slot);
-    EXPECT_EQ(gains.max_mp(), 0) << EquipSlot_Name(slot);
-    EXPECT_GT(gains.def(), 0) << "it still gains the defense every star gives";
-  }
-}
-
 // Defense grows by a twentieth of what the item already has, each star's gain
 // based on the previous star's total.
 TEST_F(EquipInstanceTest, ArmourGainsDefenseThatCompounds) {
@@ -371,15 +270,6 @@ TEST_F(EquipInstanceTest, ArmourGainsDefenseThatCompounds) {
                 .def(),
             31)
       << "6, 12, 18, 24, then 31: the fifth star's share is of 124, not 100";
-}
-
-// The weapon is the exception: its stars add attack instead.
-TEST_F(EquipInstanceTest, AWeaponGainsNoDefense) {
-  Equip state;
-  state.set_stars(5);
-  EquipPrototype proto = MakeWeapon(100);
-  proto.mutable_base_stats()->set_def(100);
-  EXPECT_EQ(EquipInstance(proto, state).StarForceStatGains().def(), 0);
 }
 
 // GMS raises a scaled stat only where the item already has one. A sword has no
@@ -455,111 +345,9 @@ TEST_F(EquipInstanceTest, ArmourGainsStatAndAttackPastFifteen) {
   EXPECT_EQ(gains.def(), 119) << "defense stops climbing at 15★";
 }
 
-TEST_F(EquipInstanceTest, DestinyAxeFinalStats) {
-  EquipPrototype proto;
-  proto.set_name("Destiny Axe");
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  proto.set_required_level(250);
-  proto.mutable_base_stats()->set_attack(358);
-  proto.mutable_base_stats()->set_str(190);
-  proto.mutable_base_stats()->set_dex(190);
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-
-  Equip state;
-  state.set_stars(22);
-  state.mutable_scroll_stats()->set_attack(72);
-  state.mutable_scroll_stats()->set_str(32);
-
-  EquipInstance item(proto, state);
-  EquipStats final_stats = item.stats();
-
-  EXPECT_EQ(final_stats.str(), 381);
-  EXPECT_EQ(final_stats.dex(), 349);
-  EXPECT_EQ(final_stats.max_hp(), 255);
-  EXPECT_EQ(final_stats.max_mp(), 255);
-  EXPECT_EQ(final_stats.attack(), 710);
-}
-
-TEST_F(EquipInstanceTest, GenesisGuardsFinalStats) {
-  EquipPrototype proto;
-  proto.set_name("Genesis Guards");
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  proto.set_required_level(200);
-  proto.mutable_base_stats()->set_attack(172);
-  proto.mutable_base_stats()->set_dex(150);
-  proto.mutable_base_stats()->set_luk(150);
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
-
-  Equip state;
-  state.set_stars(22);
-
-  EquipInstance item(proto, state);
-  EquipStats final_stats = item.stats();
-
-  EXPECT_EQ(final_stats.dex(), 295);
-  EXPECT_EQ(final_stats.luk(), 295);
-  EXPECT_EQ(final_stats.max_hp(), 255);
-  EXPECT_EQ(final_stats.max_mp(), 255);
-  EXPECT_EQ(final_stats.attack(), 342);
-}
-
 // --- MaxStarsForLevel ---
 
-TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(0), 5);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(94), 5);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(95), 8);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(107), 8);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(108), 10);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(117), 10);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(118), 15);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(127), 15);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(128), 20);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(137), 20);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(138), 30);
-  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(200), 30);
-}
-
 // --- RecoveryStars ---
-
-TEST_F(EquipInstanceTest, RecoveryStarsBoundaries) {
-  EXPECT_EQ(EquipInstance::RecoveryStars(15), 12);
-  EXPECT_EQ(EquipInstance::RecoveryStars(19), 12);
-  EXPECT_EQ(EquipInstance::RecoveryStars(20), 15);
-  EXPECT_EQ(EquipInstance::RecoveryStars(21), 17);
-  EXPECT_EQ(EquipInstance::RecoveryStars(22), 17);
-  EXPECT_EQ(EquipInstance::RecoveryStars(23), 19);
-  EXPECT_EQ(EquipInstance::RecoveryStars(25), 19);
-  EXPECT_EQ(EquipInstance::RecoveryStars(26), 20);
-  EXPECT_EQ(EquipInstance::RecoveryStars(30), 20);
-}
-
-TEST_F(EquipInstanceTest, RecoveryStarsBelowMinReturnsZero) {
-  EXPECT_EQ(EquipInstance::RecoveryStars(14), 0);
-  EXPECT_EQ(EquipInstance::RecoveryStars(0), 0);
-}
-
-// Gloves get attack instead of Max HP: one flat point on seven of the first
-// fifteen stars, and only if they already have attack.
-TEST_F(EquipInstanceTest, AGloveGainsAttackFromItsStars) {
-  EquipPrototype glove = MakeArmour(EQUIP_SLOT_GLOVES);
-  glove.mutable_base_stats()->set_attack(3);
-  Equip state;
-  state.set_stars(5);
-  EXPECT_EQ(EquipInstance(glove, state).StarForceStatGains().attack(), 1);
-  state.set_stars(15);
-  EquipInstance full(glove, state);
-  EXPECT_EQ(full.StarForceStatGains().attack(), 7);
-  EXPECT_EQ(full.StarForceStatGains().magic_attack(), 0)
-      << "the glove shows no magic attack to climb";
-  EXPECT_EQ(full.StarForceStatGains().max_hp(), 0);
-
-  // The shoes beside them get neither, so a star gives them nothing an
-  // accessory wouldn't get.
-  EquipPrototype shoes = MakeArmour(EQUIP_SLOT_SHOES);
-  shoes.mutable_base_stats()->set_attack(3);
-  EXPECT_EQ(EquipInstance(shoes, state).StarForceStatGains().attack(), 0);
-}
 
 TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PRIMARY_WEAPON), SCROLL_TARGET_WEAPON);

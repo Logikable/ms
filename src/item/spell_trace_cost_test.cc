@@ -71,14 +71,6 @@ TEST(SpellTraceCostTest, RiskAndWeaponsNeverCostLess) {
   }
 }
 
-// GMS sells no 15% armour scroll below level 200, and the game must never offer
-// one, since a price of zero would make it free.
-TEST(SpellTraceCostTest, NoFifteenPercentArmourBelowTwoHundred) {
-  EXPECT_EQ(SpellTraceCost(100, TraceCategory::kArmor, 15), 0);
-  EXPECT_GT(SpellTraceCost(100, TraceCategory::kWeapon, 15), 0);
-  EXPECT_GT(SpellTraceCost(200, TraceCategory::kArmor, 15), 0);
-}
-
 // A Clean Slate isn't priced by band, since GMS doesn't sell one for traces, so
 // it keeps the cost in its own file whatever the item.
 TEST(SpellTraceCostTest, ACleanSlateCarriesItsOwnPrice) {

@@ -46,22 +46,6 @@ EquipPrototype Hat() {
   return hat;
 }
 
-// The columns row `y` spans, or {-1, -1} for a blank row.
-std::pair<int, int> RowSpan(const ftxui::Screen& screen, int y) {
-  std::pair<int, int> span = {-1, -1};
-  for (int x = 0; x < screen.dimx(); ++x) {
-    const std::string& glyph = screen.PixelAt(x, y).character;
-    if (glyph.empty() || glyph == " ") {
-      continue;
-    }
-    if (span.first < 0) {
-      span.first = x;
-    }
-    span.second = x;
-  }
-  return span;
-}
-
 // An armour piece in `slot`, for filling a list longer than the screen.
 EquipPrototype Armour(const std::string& name, EquipSlot slot) {
   EquipPrototype piece;

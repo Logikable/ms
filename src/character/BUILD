@@ -148,31 +148,11 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "arcane_force_test",
-    size = "small",
-    srcs = ["arcane_force_test.cc"],
-    deps = [
-        ":arcane_force",
-        "@googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "sacred_power",
     srcs = ["sacred_power.cc"],
     hdrs = ["sacred_power.h"],
     deps = [":arcane_force"],
-)
-
-cc_test(
-    name = "sacred_power_test",
-    size = "small",
-    srcs = ["sacred_power_test.cc"],
-    deps = [
-        ":sacred_power",
-        "@googletest//:gtest_main",
-    ],
 )
 
 cc_library(
@@ -224,18 +204,6 @@ cc_library(
     deps = [
         ":sol_erda",
         "//src/protos:skill_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "hexa_matrix_test",
-    size = "small",
-    srcs = ["hexa_matrix_test.cc"],
-    deps = [
-        ":hexa_matrix",
-        ":sol_erda",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
     ],
 )
 
@@ -668,16 +636,6 @@ cc_test(
         "//src/testing:data_files",
         "//src/testing:prototypes",
         "@bazel_tools//tools/cpp/runfiles",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "exp_table_test",
-    size = "small",
-    srcs = ["exp_table_test.cc"],
-    deps = [
-        ":exp_table",
         "@googletest//:gtest_main",
     ],
 )

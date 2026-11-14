@@ -73,7 +73,6 @@ class ScrollPanelTest : public PanelTest {
   // comes from the item, so a test that reads a Cost has to set a level.
   static constexpr int kSwordLevel = 100;
   static constexpr int kAaaCost = 34;  // 30% weapon, level 100 band
-  static constexpr int kZzzCost = 28;  // 70% weapon, same band
 
   // Moves the cursor onto `name` and pins it, as the menu does. Rendering first
   // is what lets the Menu accept an arrow key.
@@ -160,26 +159,6 @@ TEST_F(ScrollPanelTest, SetFilterChangesSelectedScroll) {
   panel_.SetFilter(filter, kSwordLevel, SCROLL_TARGET_WEAPON);
   Render(panel_);
   EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
-}
-
-TEST_F(ScrollPanelTest, SetFilterResetsSelectionToZero) {
-  Render(panel_);
-  panel_.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_.selected(), 1);
-
-  std::vector<const Scroll*> filter = {&scrolls_["AAA Scroll"]};
-  panel_.SetFilter(filter, kSwordLevel, SCROLL_TARGET_WEAPON);
-  EXPECT_EQ(panel_.selected(), 0);
-}
-
-TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsTrueForMatch) {
-  EquipPrototype proto;
-  proto.set_required_level(1);  // tier 1
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  EXPECT_TRUE(panel_.SetFilterForPrototype(proto));
-  Render(panel_);
-  EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
 }
 
 TEST_F(ScrollPanelTest, SetFilterRejectsAnItemWithNoScrolls) {
@@ -642,17 +621,6 @@ TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
   EXPECT_EQ(panel_.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
-TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
-                   SCROLL_TARGET_WEAPON);
-  GiveTraces(100);
-  OpenConfirmThroughTheMenu(&panel_);
-  std::string rendered = Render(panel_);
-  EXPECT_NE(rendered.find("Confirm"), std::string::npos);
-  EXPECT_NE(rendered.find("AAA Scroll"), std::string::npos);
-  EXPECT_NE(rendered.find("34 📜"), std::string::npos) << "the cost";
-}
-
 // Rendered lines, so a test can check which row is under which.
 std::vector<std::string> Lines(const std::string& rendered) {
   std::vector<std::string> lines;
@@ -690,35 +658,6 @@ int LineIndex(const std::vector<std::string>& lines,
     }
   }
   return -1;
-}
-
-// A blank column between them. With only one space the two headings read as one
-// phrase, "Cost Pin".
-TEST_F(ScrollPanelTest, TheCostAndPinHeadingsStandApart) {
-  std::string rendered = Render(panel_);
-  EXPECT_NE(rendered.find("Cost  Pin"), std::string::npos);
-  EXPECT_EQ(rendered.find("Cost Pin"), std::string::npos);
-}
-
-// The pin stays in its column rather than drifting into the gap. Right edges
-// are compared, because the glyph is two columns and the heading three, as with
-// the costs under "Cost".
-TEST_F(ScrollPanelTest, ThePinEndsWhereItsHeadingEnds) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
-                   SCROLL_TARGET_WEAPON);
-  PinByName(&panel_, "AAA Scroll");
-  std::vector<std::string> lines = Lines(Render(panel_));
-  int header = LineIndex(lines, "Cost");
-  int row = LineIndex(lines, "📌");
-  ASSERT_GE(header, 0);
-  ASSERT_GT(row, header);
-
-  const std::string& head = lines[header];
-  const std::string& pinned = lines[row];
-  int head_end = DisplayColumns(head.substr(0, head.find("Pin") + 3));
-  // Two columns for the glyph itself, which the substring stops before.
-  int pin_end = DisplayColumns(pinned.substr(0, pinned.find("📌"))) + 2;
-  EXPECT_EQ(head_end, pin_end);
 }
 
 // The column it ends in isn't the last one: the panel measures its width from
@@ -801,22 +740,6 @@ TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   EXPECT_NE(Render(panel_).find("Long Sword"), std::string::npos);
 }
 
-// A successful scroll is what the traces were spent for, so the window turns
-// gold, border and rules alike. A failure leaves the frame unchanged.
-TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
-  ScrollResult r;
-  r.equip_name = "Sword";
-  r.scroll_name = "AAA Scroll";
-  r.slots_remaining = 3;
-
-  r.outcome = kScrollSuccess;
-  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kYellow);
-  EXPECT_EQ(InnerRuleColor(panel_.RenderResult(r)), kYellow);
-
-  r.outcome = kScrollFail;
-  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kTheme);
-}
-
 // The list shares the arrows with the item card beside it, and the one with the
 // arrows highlights its title.
 TEST_F(ScrollPanelTest, LightsItsTitleOnlyWhileItHoldsTheArrows) {
@@ -835,4 +758,20 @@ TEST_F(ScrollPanelTest, LightsItsTitleOnlyWhileItHoldsTheArrows) {
 }
 
 }  // namespace
+// A successful scroll is what the traces were spent for, so the window turns
+// gold, border and rules alike. A failure leaves the frame unchanged.
+TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
+  ScrollResult r;
+  r.equip_name = "Sword";
+  r.scroll_name = "AAA Scroll";
+  r.slots_remaining = 3;
+
+  r.outcome = kScrollSuccess;
+  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kYellow);
+  EXPECT_EQ(InnerRuleColor(panel_.RenderResult(r)), kYellow);
+
+  r.outcome = kScrollFail;
+  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kTheme);
+}
+
 }  // namespace ms

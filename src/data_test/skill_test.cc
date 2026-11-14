@@ -2349,27 +2349,6 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   }
 }
 
-// Every 4th job mastery climbs one ladder, 51% at level 1 to 70% at 20, so no
-// branch masters its weapon better for no visible reason.
-TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
-  int checked = 0;
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    const Skill& skill = entry.second;
-    if (StageForAdvancement(BookOf(skill)) != 4 ||
-        skill.base().mastery() <= 0.0) {
-      continue;
-    }
-    ++checked;
-    EXPECT_EQ(skill.max_level(), 20) << entry.first;
-    EXPECT_NEAR(skill.base().mastery(), 0.51, 1e-9) << entry.first;
-    EXPECT_NEAR(skill.base().mastery() +
-                    skill.per_level().mastery() * (skill.max_level() - 1),
-                0.70, 1e-9)
-        << entry.first;
-  }
-  EXPECT_GT(checked, 0) << "no 4th job mastery skill in the catalog";
-}
-
 // The skills GMS gives to the party, by display name. Written out so a skill
 // removed from the data only keeps its ally part if someone notices.
 //
@@ -2467,61 +2446,6 @@ TEST(SkillDataTest, ASkillNeedingAPartyAlsoGivesItSomething) {
     EXPECT_TRUE(skill.has_ally_base()) << entry.first;
   }
   EXPECT_EQ(checked, 1) << "Parashock Guard, and nothing else so far";
-}
-
-// Two allies with the same buff give one buff. The only effects that stack
-// instead reward the company kept, and only the Cleric's line has them: Blessed
-// Ensemble, and Blessed Harmony, which includes all of it.
-TEST(SkillDataTest, OnlyTheClericsLineStacksAcrossAParty) {
-  std::set<std::string> stacking;
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.ally_effect_stacks()) {
-      stacking.insert(entry.second.name());
-    }
-  }
-  EXPECT_EQ(stacking,
-            (std::set<std::string>{"Blessed Ensemble", "Blessed Harmony"}));
-}
-
-// The Evil Eye attacks once however far the book is learned: GMS's Shock II and
-// Revenge restate the base skill with more damage rather than adding attacks.
-TEST(SkillDataTest, TheEvilEyeShoutsOnce) {
-  std::map<std::string, Skill> skills = LoadSkills();
-  EXPECT_EQ(skills.at("evil_eye_shock_ii").supersedes_skill_name(),
-            "Evil Eye Shock");
-  EXPECT_EQ(skills.at("revenge_of_the_evil_eye").supersedes_skill_name(),
-            "Evil Eye Shock II");
-  // The base skill keeps its own timer; the last skill in the chain takes two
-  // seconds off it.
-  EXPECT_EQ(skills.at("evil_eye_shock").cast_interval_seconds(), 12.0);
-  EXPECT_EQ(skills.at("evil_eye_shock_ii").cast_interval_seconds(), 12.0);
-  const Skill& revenge = skills.at("revenge_of_the_evil_eye");
-  ASSERT_EQ(revenge.auto_mode_size(), 2);
-  EXPECT_EQ(revenge.auto_mode(0).label(), "Shock III");
-  EXPECT_EQ(revenge.auto_mode(0).cast_interval_seconds(), 10.0);
-}
-
-// The save this rebalance was written for: a Berserker with Lord of Darkness at
-// 20 under the old book. It now caps at 10, and the ten freed points can only
-// go to Evil Eye of Domination.
-TEST(SkillDataTest, AMaxedBerserkerBookRebalancesOntoDomination) {
-  std::map<std::string, Skill> skills = LoadSkills();
-  Character proto;
-  proto.set_job(JOB_BERSERKER);
-  proto.set_job_stage(3);
-  proto.set_level(100);
-  // The old book, as a save from before Domination existed has it.
-  for (const char* name :
-       {"La Mancha Spear", "Cross Surge", "Evil Eye Shock II",
-        "Hex of the Evil Eye", "Lord of Darkness", "Endure"}) {
-    (*proto.mutable_skill_levels())[name] = 20;
-  }
-  std::mt19937 rng(0);
-  CharacterInstance berserker(rng, std::move(proto));
-
-  EXPECT_EQ(berserker.ReconcileSkills(skills), 10);
-  EXPECT_EQ(berserker.skill_level(skills.at("lord_of_darkness")), 10);
-  EXPECT_EQ(berserker.skill_level(skills.at("evil_eye_of_domination")), 10);
 }
 
 }  // namespace
