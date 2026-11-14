@@ -1104,7 +1104,10 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
               (learned + boost.cooldown_levels_per_second() - 1) /
               boost.cooldown_levels_per_second();
         }
-        into.casts += boost.casts();
+        if (boost.levels_per_cast() > 0) {
+          into.casts +=
+              (learned + boost.levels_per_cast() - 1) / boost.levels_per_cast();
+        }
         into.buff_duration_seconds += boost.buff_duration_seconds();
         into.shield_hits += boost.shield_hits();
         into.shield_boss_damage_taken_pct +=

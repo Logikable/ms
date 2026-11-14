@@ -166,7 +166,12 @@ bool SameCharacterCanHold(const std::map<std::string, Skill>& skills,
       continue;
     }
     for (const std::pair<const std::string, Skill>& other : skills) {
-      if (other.second.name() == name && ReachedBy(books, other.second)) {
+      // A load or a wound's form swings under its own label, and boosts
+      // reach it there.
+      const Skill& held = other.second;
+      if ((held.name() == name || held.buff().magazine().label() == name ||
+           held.wound().form().label() == name) &&
+          ReachedBy(books, held)) {
         return true;
       }
     }
@@ -2107,7 +2112,7 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           boost.shield_boss_damage_taken_pct() != 0.0 ||
           boost.final_attack_chance_mult() != 0.0 || boost.has_effect() ||
           boost.extra_hit_size() > 0 || boost.has_buff_effect() ||
-          boost.casts() > 0 || boost.cooldown_levels_per_second() > 0)
+          boost.levels_per_cast() > 0 || boost.cooldown_levels_per_second() > 0)
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       // Scaling a rate to zero, or negative, isn't a grant. GMS's only one

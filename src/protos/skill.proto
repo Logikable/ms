@@ -1475,11 +1475,12 @@ message SkillBoost {
   // skill's level.
   SkillEffect buff_effect = 22;
   SkillEffect buff_effect_per_level = 23;
-  // Strikes added to the named skill's Skill.casts. A skill whose strikes are
-  // spaced by cast_interval_ms takes that much longer to swing per strike
-  // added. It exists for the Shadow Assault Enhancement, whose extra uses are
-  // dashes in the one press here.
-  int32 casts = 24;
+  // One strike added to the named skill's Skill.casts for every this many
+  // levels of the granting skill, rounded up: the Shadow Assault Enhancement's
+  // 4+ceil(x/15) uses, which are dashes in the one press here. A skill whose
+  // strikes are spaced by cast_interval_ms takes that much longer to swing per
+  // strike added.
+  int32 levels_per_cast = 24;
   // One second off the named skill's cooldown for every this many levels of
   // the granting skill, rounded up: the Shadow Assault Enhancement's
   // 60-ceil(x/3). Taken off before any share.
@@ -1698,8 +1699,8 @@ message Skill {
   bool granted_by_equip = 72;
   // Which kind of HEXA Matrix node this is, if any. Nodes are bought with Sol
   // Erda and Fragments; see LearnSkill. A node's required_skill (a Mastery's V
-  // boost at 60, an Enhancement's V skill at 25) must stay met for the node to
-  // grant anything, not just to be bought, as in GMS.
+  // boost at 60, an Enhancement's V skill at 30, both their max) must stay met
+  // for the node to grant anything, not just to be bought, as in GMS.
   HexaNodeKind hexa_node = 73;
   // The HEXA node whose level this skill has, by display name. A Mastery core
   // that rebuilds several skills is one node, and each rebuilt skill names it.

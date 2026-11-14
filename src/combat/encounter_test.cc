@@ -4166,7 +4166,7 @@ TEST(ComputeCombatParamsTest, ABoostCanAddDashesAndCutWholeSeconds) {
   core.set_max_level(30);
   SkillBoost* boost = core.add_boost();
   boost->set_skill_name("Shadow Assault");
-  boost->set_casts(1);
+  boost->set_levels_per_cast(15);
   boost->set_cooldown_levels_per_second(3);
 
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -4193,6 +4193,11 @@ TEST(ComputeCombatParamsTest, ABoostCanAddDashesAndCutWholeSeconds) {
   ASSERT_TRUE(state.character.LearnSkill(core, 3));
   EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks[1].cooldown_seconds,
                    58.0 * factor);
+  // A second dash at 16, ceil(16/15).
+  ASSERT_TRUE(state.character.LearnSkill(core, 11));
+  EXPECT_EQ(ComputeCombatParams(state).attacks[1].strikes_in_sequence, 5);
+  ASSERT_TRUE(state.character.LearnSkill(core, 1));
+  EXPECT_EQ(ComputeCombatParams(state).attacks[1].strikes_in_sequence, 6);
 }
 
 // Creeping Toxin's shape: a summon that upgrades its own pulse instead of
