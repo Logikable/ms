@@ -39,6 +39,7 @@ side_strike {
   max_enemies: 6
   lines: 9
   casts: 12
+  takes_final_damage_boosts: true
   base { skill_pct: 2.86 }
   per_level { skill_pct: 0.11 }
 }

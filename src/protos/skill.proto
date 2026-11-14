@@ -1249,6 +1249,10 @@ message SideStrike {
   // every enemy the hammer tracks down. 0 means one, as for Showdown's
   // shuriken.
   int32 casts = 8;
+  // Whether final damage aimed at the skill reaches the strike too. Mighty
+  // Mjolnir's shockwave is part of the skill GMS's HEXA Enhancement raises,
+  // where Showdown - Reinforce never touched Showdown's shuriken.
+  bool takes_final_damage_boosts = 9;
 }
 
 // A stronger version of a skill's attack that lands in place of every Nth

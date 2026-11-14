@@ -3344,6 +3344,54 @@ TEST(ComputeCombatParamsTest, ABoostStopsAtTheStrikeTheSwingSetsOff) {
                    before.attacks[1].side->damage_per_hit[0]);
 }
 
+// Mighty Mjolnir's Enhancement raises the whole skill, shockwave included,
+// where a strike that doesn't take final damage boosts keeps its own.
+TEST(ComputeCombatParamsTest, AStrikeCanTakeTheSkillsFinalDamageBoosts) {
+  Skill mjolnir;
+  mjolnir.set_name("Mighty Mjolnir");
+  mjolnir.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(mjolnir, JOB_ADVANCEMENT_SWORDMAN);
+  mjolnir.set_max_level(30);
+  mjolnir.set_base_delay_ms(570);
+  mjolnir.set_max_enemies(4);
+  mjolnir.set_lines(6);
+  mjolnir.mutable_base()->set_skill_pct(2.35);
+  SideStrike* side = mjolnir.mutable_side_strike();
+  side->set_label("Shockwave");
+  side->set_max_enemies(6);
+  side->set_lines(9);
+  side->set_takes_final_damage_boosts(true);
+  side->mutable_base()->set_skill_pct(2.75);
+
+  Skill core;
+  core.set_name("Mighty Mjolnir Boost");
+  core.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(core, JOB_ADVANCEMENT_SWORDMAN);
+  core.set_max_level(1);
+  SkillBoost* boost = core.add_boost();
+  boost->set_skill_name("Mighty Mjolnir");
+  boost->mutable_effect()->set_final_dmg_pct(0.60);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"mjolnir", mjolnir}, {"core", core}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(mjolnir, 1));
+
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_TRUE(state.character.LearnSkill(core, 1));
+  CombatParams after = ComputeCombatParams(state);
+
+  ASSERT_NE(before.attacks[1].side, nullptr);
+  ASSERT_NE(after.attacks[1].side, nullptr);
+  EXPECT_NEAR(after.attacks[1].damage_per_hit[0],
+              before.attacks[1].damage_per_hit[0] * 1.60, 1e-6);
+  EXPECT_NEAR(after.attacks[1].side->damage_per_hit[0],
+              before.attacks[1].side->damage_per_hit[0] * 1.60, 1e-6);
+}
+
 // Puncture's shape: the buff is attached to an attack, so that attack applies
 // it instead of it being cast on its own cooldown. The fight needs to know
 // which attack applies it, as an index into the attack list.

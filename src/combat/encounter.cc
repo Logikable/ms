@@ -592,6 +592,15 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   stats.normal_skill_pct = thrown.normal_skill_pct();
   stats.normal_pct += thrown.normal_pct();
   stats.crit_rate += thrown.crit_rate();
+  if (side.takes_final_damage_boosts()) {
+    std::map<std::string, SkillBonus>::const_iterator aimed =
+        derived.skill_bonus.find(skill.name());
+    if (aimed != derived.skill_bonus.end()) {
+      stats.final_dmg_pct =
+          (1.0 + stats.final_dmg_pct) * (1.0 + aimed->second.final_dmg_pct) -
+          1.0;
+    }
+  }
   stats.lines = std::max(1, side.lines());
   stats.mirror_lines = stats.lines;
   AttackOption strike;

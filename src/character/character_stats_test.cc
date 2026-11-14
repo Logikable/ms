@@ -1203,6 +1203,48 @@ TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   EXPECT_NEAR(standing.final_attacks[0].chance, 0.80, 1e-9);
 }
 
+// Throwing Star Barrage's Enhancement: the spread is the barrage's damage, so
+// final damage aimed at the barrage reaches the hits it gives Quad Star.
+TEST_F(DerivedStatsTest, AGivenHitTakesTheGiversFinalDamage) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill barrage;
+  barrage.set_name("Throwing Star Barrage");
+  barrage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(barrage, JOB_ADVANCEMENT_SWORDMAN);
+  barrage.set_max_level(1);
+  barrage.mutable_buff()->set_duration_seconds(20.0);
+  SkillBoost* spread = barrage.mutable_buff()->add_boost();
+  spread->set_skill_name("Quad Star");
+  SwingHit* hit = spread->add_extra_hit();
+  hit->set_lines(4);
+  hit->mutable_base()->set_skill_pct(3.79);
+  Skill core;
+  core.set_name("Throwing Star Barrage Boost");
+  core.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(core, JOB_ADVANCEMENT_SWORDMAN);
+  core.set_max_level(1);
+  SkillBoost* boost = core.add_boost();
+  boost->set_skill_name("Throwing Star Barrage");
+  boost->mutable_effect()->set_final_dmg_pct(0.60);
+  std::map<std::string, Skill> skills = {{"barrage", barrage}, {"core", core}};
+  ASSERT_TRUE(c.LearnSkill(barrage, 1));
+
+  const BuffUp up[] = {{&skills["barrage"]}};
+  DerivedStats bare = DerivedStatsFor(c, skills, up);
+  ASSERT_EQ(bare.skill_bonus.at("Quad Star").extra_hit.size(), 1u);
+  EXPECT_DOUBLE_EQ(
+      bare.skill_bonus.at("Quad Star").extra_hit[0].base().final_dmg_pct(),
+      0.0);
+
+  ASSERT_TRUE(c.LearnSkill(core, 1));
+  DerivedStats cored = DerivedStatsFor(c, skills, up);
+  EXPECT_NEAR(
+      cored.skill_bonus.at("Quad Star").extra_hit[0].base().final_dmg_pct(),
+      0.60, 1e-9);
+  // Quad Star's own swing isn't the barrage's.
+  EXPECT_DOUBLE_EQ(cored.skill_bonus.at("Quad Star").final_dmg_pct, 0.0);
+}
+
 // Benediction's Enhancement: the buff's own final damage grows, additively, and
 // only while the buff stands. See SkillBoost::buff_effect.
 TEST_F(DerivedStatsTest, ABoostCanLiftABuffsOwnEffect) {

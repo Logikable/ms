@@ -255,6 +255,10 @@ struct SkillBonus {
   // granting skill's level, so each has its full damage in `base` and no
   // per-level value. See SkillBoost::extra_hit.
   std::vector<SwingHit> extra_hit;
+  // The skill that gave each of extra_hit. Final damage aimed at it reaches
+  // the hit: Throwing Star Barrage's Enhancement raises the spread it gives
+  // Quad Star.
+  std::vector<std::string> extra_hit_from;
   // A wound the named skill applies, given by the skill that describes it: for
   // example, Trickblade adds a wound to Assassinate and Sonic Blow. See Wound.
   int wound_stacks = 0;

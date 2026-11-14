@@ -411,7 +411,8 @@ void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
 
 // Adds one boost's levers into the entry of the skill it targets. Each lever
 // combines with what is already there the usual way.
-void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
+void AddSkillBonus(const SkillBoost& boost, int level, const std::string& from,
+                   SkillBonus& into) {
   SkillEffect aimed = BoostEffectAt(boost, level);
   into.skill_pct += aimed.skill_pct();
   into.damage_pct += aimed.damage_pct();
@@ -446,6 +447,7 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
     *landed.mutable_base() = EffectAt(hit.base(), hit.per_level(), level);
     landed.clear_per_level();
     into.extra_hit.push_back(std::move(landed));
+    into.extra_hit_from.push_back(from);
   }
 }
 
@@ -454,7 +456,7 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
 // the boost. Both a skill's own boosts and its buff's boosts come through here.
 void AddSkillBonuses(
     const google::protobuf::RepeatedPtrField<SkillBoost>& boosts, int level,
-    PassiveTotals& totals) {
+    const std::string& from, PassiveTotals& totals) {
   for (const SkillBoost& boost : boosts) {
     // The boost gives nothing until the granting skill reaches its
     // SkillBoost.min_level.
@@ -465,7 +467,7 @@ void AddSkillBonuses(
     // it swings under, so a boost reaching it is stored under that name too.
     for (const std::string& name :
          BoostTargetNames(boost, totals.boost_heirs)) {
-      AddSkillBonus(boost, level, totals.skill_bonus[name]);
+      AddSkillBonus(boost, level, from, totals.skill_bonus[name]);
     }
   }
 }
@@ -555,7 +557,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   } else {
     AddEffect(granted, totals);
   }
-  AddSkillBonuses(skill.boost(), level, totals);
+  AddSkillBonuses(skill.boost(), level, skill.name(), totals);
   AddWoundSources(skill, totals);
   AddFinalAttack(skill, granted, totals);
   AddProc(skill, level, totals);
@@ -601,6 +603,26 @@ void FoldMesoExplosion(PassiveTotals& totals) {
   }
   totals.meso_hit_pct *= totals.meso_lines;
   totals.meso_normal_skill_pct *= totals.meso_lines;
+}
+
+// Gives each extra hit one skill hands another the final damage aimed at the
+// giver. Run once every skill and buff is read, like the fold below.
+void FoldGivenHitBoosts(PassiveTotals& totals) {
+  for (std::pair<const std::string, SkillBonus>& entry : totals.skill_bonus) {
+    SkillBonus& bonus = entry.second;
+    for (std::size_t i = 0; i < bonus.extra_hit.size(); ++i) {
+      std::map<std::string, SkillBonus>::const_iterator giver =
+          totals.skill_bonus.find(bonus.extra_hit_from[i]);
+      if (giver == totals.skill_bonus.end() ||
+          giver->second.final_dmg_pct == 0.0) {
+        continue;
+      }
+      SkillEffect& lands = *bonus.extra_hit[i].mutable_base();
+      lands.set_final_dmg_pct((1.0 + lands.final_dmg_pct()) *
+                                  (1.0 + giver->second.final_dmg_pct) -
+                              1.0);
+    }
+  }
 }
 
 // Gives each Final Attack the boosts aimed at the skill that triggers it. This
@@ -877,7 +899,7 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
   AddFinalAttack(skill, held, totals);
   // What the buff gives a named skill goes through the same path as a permanent
   // boost. Only the buff's uptime makes it temporary.
-  AddSkillBonuses(skill.buff().boost(), level, totals);
+  AddSkillBonuses(skill.buff().boost(), level, skill.name(), totals);
 }
 
 // Sums every passive the character has learned. HP needs its whole flat total
@@ -944,6 +966,7 @@ PassiveTotals LearnedWithBuffs(const CharacterInstance& character,
   }
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);
+  FoldGivenHitBoosts(totals);
   FoldFreezeStacks(totals);
   FoldScar(totals);
   FoldEnemyCondition(totals);
