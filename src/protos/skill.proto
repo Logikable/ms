@@ -1464,6 +1464,13 @@ message SkillBoost {
   // damage line of 10+x% jumps 5 at 10, 5 at 20 and 10 at 30, 60% in all.
   // Separate boosts with min_level would compound to 70%.
   repeated BoostStep step = 21;
+  // Added to what the named skill's buff gives its caster, as if the buff
+  // granted more: not to its swings, and not to what allies get. It exists for
+  // the Benediction and Divine Echo Enhancements, which raise the buff's own
+  // final damage; GMS says Benediction's "are additive". Read at the granting
+  // skill's level.
+  SkillEffect buff_effect = 22;
+  SkillEffect buff_effect_per_level = 23;
 }
 
 // One of SkillBoost.step.

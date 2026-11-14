@@ -423,6 +423,9 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   into.final_dmg_pct =
       (1.0 + into.final_dmg_pct) * (1.0 + aimed.final_dmg_pct()) - 1.0;
   into.final_attack_chance += aimed.final_attack_chance();
+  into.buff_effect = EffectAt(
+      into.buff_effect,
+      EffectAt(boost.buff_effect(), boost.buff_effect_per_level(), level), 2);
   // A separate field from the other seven because it applies to the burn the
   // skill leaves, not to the swing. See SkillBoost.
   into.dot_skill_pct +=
@@ -854,6 +857,11 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
     level = character.EquipmentSkillLevel(skill, gear);
   }
   SkillEffect held = BuffEffectAt(skill.buff(), level);
+  std::map<std::string, SkillBonus>::const_iterator boost =
+      totals.skill_bonus.find(skill.name());
+  if (boost != totals.skill_bonus.end()) {
+    held = EffectAt(held, boost->second.buff_effect, 2);
+  }
   AddEffect(held, totals);
   // The share the buff gives only while in a party. It gets its own AddEffect
   // call rather than being summed into the one above, so two final damage

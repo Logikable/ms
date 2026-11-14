@@ -716,6 +716,32 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
             std::string::npos);
 }
 
+// A HEXA Enhancement's jumps fold into its one final damage figure, and a lift
+// to a buff's own effect says it lasts while the buff does.
+TEST_F(SkillInspectPanelTest, ABoostsStepsAndBuffLiftShowAsOneFigure) {
+  Skill core = IronBody();
+  core.set_max_level(30);
+  SkillBoost* damage = core.add_boost();
+  damage->set_skill_name("Raging Blow");
+  damage->mutable_effect()->set_final_dmg_pct(0.11);
+  damage->mutable_effect_per_level()->set_final_dmg_pct(0.01);
+  BoostStep* step = damage->add_step();
+  step->set_from_level(30);
+  step->mutable_effect()->set_final_dmg_pct(0.10);
+  EXPECT_NE(
+      RowIn(RenderAt(core, 30), "Boosts Raging Blow", "+50% Final Damage"),
+      std::string::npos);
+
+  Skill lift = IronBody();
+  lift.set_max_level(30);
+  SkillBoost* zone = lift.add_boost();
+  zone->set_skill_name("Benediction");
+  zone->mutable_buff_effect()->set_final_dmg_pct(0.17);
+  EXPECT_NE(RowIn(RenderAt(lift, 30), "Boosts Benediction",
+                  "+17% Final Damage while up"),
+            std::string::npos);
+}
+
 // A boost node shows its damage from level 1, one more enemy at 20 and ignored
 // defence at 40: three grants for one skill on one row, with nothing shown for
 // a tier the node hasn't reached.

@@ -2106,7 +2106,7 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           boost.buff_duration_seconds() != 0.0 || boost.shield_hits() != 0.0 ||
           boost.shield_boss_damage_taken_pct() != 0.0 ||
           boost.final_attack_chance_mult() != 0.0 || boost.has_effect() ||
-          boost.extra_hit_size() > 0)
+          boost.extra_hit_size() > 0 || boost.has_buff_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       // Scaling a rate to zero, or negative, isn't a grant. GMS's only one
@@ -2141,6 +2141,9 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
       EXPECT_TRUE(BoostEffectIsSupported(boost.effect_per_level(), unread))
           << entry.first << " climbs " << boost.skill_name() << "'s " << unread
           << ", which no swing reads";
+      EXPECT_FALSE(boost.has_buff_effect_per_level() &&
+                   !boost.has_buff_effect())
+          << entry.first << " climbs a buff lever it never grants";
       for (const BoostStep& step : boost.step()) {
         EXPECT_TRUE(BoostEffectIsSupported(step.effect(), unread))
             << entry.first << " steps " << boost.skill_name() << "'s " << unread
@@ -2178,6 +2181,11 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           EXPECT_GT(target.second.attacks_per_cast(), 0)
               << entry.first << " reclocks " << target.first
               << ", which is not clocked by swings landed";
+        }
+        if (boost.has_buff_effect()) {
+          EXPECT_TRUE(target.second.has_buff())
+              << entry.first << " lifts " << target.first
+              << "'s buff, which it does not cast";
         }
         if (boost.cooldown_pct() > 0.0) {
           EXPECT_GT(target.second.cooldown_seconds(), 0.0)

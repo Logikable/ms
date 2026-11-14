@@ -260,6 +260,9 @@ struct SkillBonus {
   int wound_stacks = 0;
   int wound_max_stacks = 0;
   double wound_seconds = 0.0;
+  // Added to what the named skill's own buff gives the caster. See
+  // SkillBoost::buff_effect.
+  SkillEffect buff_effect;
 };
 
 // What a character's passives add to every attack, whichever one they use. None

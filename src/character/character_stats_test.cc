@@ -1203,6 +1203,35 @@ TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   EXPECT_NEAR(standing.final_attacks[0].chance, 0.80, 1e-9);
 }
 
+// Benediction's Enhancement: the buff's own final damage grows, additively, and
+// only while the buff stands. See SkillBoost::buff_effect.
+TEST_F(DerivedStatsTest, ABoostCanLiftABuffsOwnEffect) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill zone;
+  zone.set_name("Benediction");
+  zone.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(zone, JOB_ADVANCEMENT_SWORDMAN);
+  zone.set_max_level(1);
+  zone.mutable_buff()->set_duration_seconds(30.0);
+  zone.mutable_buff()->mutable_base()->set_final_dmg_pct(0.33);
+  Skill core;
+  core.set_name("Benediction Boost");
+  core.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(core, JOB_ADVANCEMENT_SWORDMAN);
+  core.set_max_level(30);
+  SkillBoost* boost = core.add_boost();
+  boost->set_skill_name("Benediction");
+  boost->mutable_buff_effect()->set_final_dmg_pct(0.025);
+  boost->mutable_buff_effect_per_level()->set_final_dmg_pct(0.005);
+  std::map<std::string, Skill> skills = {{"zone", zone}, {"core", core}};
+  ASSERT_TRUE(c.LearnSkill(zone, 1));
+  ASSERT_TRUE(c.LearnSkill(core, 30));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).final_dmg_pct, 0.0);
+  const BuffUp up[] = {{&skills["zone"]}};
+  EXPECT_NEAR(DerivedStatsFor(c, skills, up).final_dmg_pct, 0.50, 1e-9);
+}
+
 // The other damage a boost can give a Final Attack: points on the hit's own
 // multiplier, like GMS's "Night Lord's Mark Damage: +100% points".
 TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {

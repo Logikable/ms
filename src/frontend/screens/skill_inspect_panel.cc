@@ -873,6 +873,17 @@ std::string BoostText(const SkillBoost& boost, int level) {
         (value > 0.0 ? "+" : "") + FormatPercent(value) + " " + lever.label,
         gains);
   }
+  // What the buff itself gives the caster, which is not a lever on the swing.
+  const SkillEffect held =
+      EffectAt(boost.buff_effect(), boost.buff_effect_per_level(), level);
+  for (const BoostLever& lever : kBoostLevers) {
+    double value = (held.*lever.fn)();
+    if (value != 0.0) {
+      AppendGain((value > 0.0 ? "+" : "") + FormatPercent(value) + " " +
+                     lever.label + " while up",
+                 gains);
+    }
+  }
   return gains;
 }
 
