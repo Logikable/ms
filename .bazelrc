@@ -9,3 +9,17 @@ build --per_file_copt=external/.*@-w
 # all share one configuration: switching -c discards the analysis cache and
 # compiles each edit once per mode. Nothing here relies on assert().
 build -c opt
+
+# One action cache shared by every checkout and worktree, so a new worktree or
+# a release branch reuses what master already compiled instead of starting
+# from scratch. Trimmed to 20GB by Bazel itself.
+build --disk_cache=~/.cache/bazel-disk
+build --experimental_disk_cache_gc_max_size=20G
+
+# The 6th job build, in an output directory of its own so switching between it
+# and the plain build doesn't recompile everything: the switch is a -D that
+# reaches every file including character.h.
+#
+#   bazelisk test --config=sixth //src/... //analysis/... //server/...
+build:sixth --define=sixth_job=on
+build:sixth --platform_suffix=sixth

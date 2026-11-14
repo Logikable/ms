@@ -44,7 +44,7 @@ config_setting(
 
 # The 6th job is built on master behind a switch, off until all of it is done:
 #
-#   bazelisk test --define=sixth_job=on //src/... //analysis/... //server/...
+#   bazelisk test --config=sixth //src/... //analysis/... //server/...
 #
 # With it on, the level cap is 300 and a 5th job advances at 260.
 config_setting(
