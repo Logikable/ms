@@ -1,0 +1,16 @@
+# GMS raises Echo's own final damage to 75+ceil(x/2)% and the echo's to
+# 45+floor(x/2)%, from 75% and 40% at 30. The buff here is their product, so the
+# boost is what that adds to it: 1.90 x 1.60 - 1.75 x 1.40 = 59 points at 30,
+# about 10 at 1, smoothed to end there. Measured against Echo at 30.
+name: "Divine Echo Boost"
+description: "Boosts Divine Echo."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 1 }
+hexa_node: HEXA_NODE_KIND_ENHANCEMENT
+max_level: 30
+required_skill { skill_name: "Divine Echo" level: 30 }
+boost {
+  skill_name: "Divine Echo"
+  buff_effect { final_dmg_pct: 0.097 }
+  buff_effect_per_level { final_dmg_pct: 0.017 }
+}

@@ -14,22 +14,22 @@ description:
   "seed of death into enemies struck. The seed will grow, dealing continuous "
   "damage to the host, before blooming to take their life."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 7 }
 placement {
   job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
-  skill_order: 3
+  skill_order: 7
 }
 placement {
   job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
-  skill_order: 3
+  skill_order: 7
 }
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 3 }
-placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 7 }
 hexa_core: "Sol Hecate"
 max_level: 30
 base_delay_ms: 960

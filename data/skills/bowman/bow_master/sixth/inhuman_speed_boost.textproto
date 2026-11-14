@@ -1,0 +1,16 @@
+# GMS: 10+x% final damage, jumping 5 at 10, 5 at 20 and 10 at 30.
+name: "Inhuman Speed Boost"
+description: "Boosts Inhuman Speed."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 2 }
+hexa_node: HEXA_NODE_KIND_ENHANCEMENT
+max_level: 30
+required_skill { skill_name: "Inhuman Speed" level: 30 }
+boost {
+  skill_name: "Inhuman Speed"
+  effect { final_dmg_pct: 0.11 }
+  effect_per_level { final_dmg_pct: 0.01 }
+  step { from_level: 10 effect { final_dmg_pct: 0.05 } }
+  step { from_level: 20 effect { final_dmg_pct: 0.05 } }
+  step { from_level: 30 effect { final_dmg_pct: 0.10 } }
+}

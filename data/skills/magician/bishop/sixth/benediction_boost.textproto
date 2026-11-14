@@ -1,0 +1,16 @@
+# GMS: 2+floor(x/2)% added to Benediction's own final damage, smoothed to end
+# at 17%, and All Stats +3x.
+name: "Benediction Boost"
+description: "Boosts Benediction."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 1 }
+hexa_node: HEXA_NODE_KIND_ENHANCEMENT
+max_level: 30
+required_skill { skill_name: "Benediction" level: 30 }
+base { str: 3 dex: 3 int: 3 luk: 3 }
+per_level { str: 3 dex: 3 int: 3 luk: 3 }
+boost {
+  skill_name: "Benediction"
+  buff_effect { final_dmg_pct: 0.025 }
+  buff_effect_per_level { final_dmg_pct: 0.005 }
+}

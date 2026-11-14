@@ -13,22 +13,22 @@ description:
   "cycling Erda Flow attacks nearby enemies. Also increases EXP obtained, and "
   "damage to normal enemies at the master level. Cannot be used on boss maps."
 kind: SKILL_KIND_AUTO_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 5 }
 placement {
   job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
-  skill_order: 1
+  skill_order: 5
 }
 placement {
   job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
-  skill_order: 1
+  skill_order: 5
 }
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 5 }
 hexa_node: HEXA_NODE_KIND_COMMON
 max_level: 30
 max_enemies: 9

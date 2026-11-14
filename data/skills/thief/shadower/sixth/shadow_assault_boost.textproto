@@ -1,0 +1,20 @@
+# GMS: 10+x% final damage, jumping 5 at 10, 5 at 20 and 10 at 30.
+# Uses 4+ceil(x/15) and cooldown 60-ceil(x/3) seconds; the uses are dashes in
+# the one press here.
+name: "Shadow Assault Boost"
+description: "Boosts Shadow Assault."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 1 }
+hexa_node: HEXA_NODE_KIND_ENHANCEMENT
+max_level: 30
+required_skill { skill_name: "Shadow Assault" level: 30 }
+boost {
+  skill_name: "Shadow Assault"
+  effect { final_dmg_pct: 0.11 }
+  effect_per_level { final_dmg_pct: 0.01 }
+  step { from_level: 10 effect { final_dmg_pct: 0.05 } }
+  step { from_level: 20 effect { final_dmg_pct: 0.05 } }
+  step { from_level: 30 effect { final_dmg_pct: 0.10 } }
+  levels_per_cast: 15
+  cooldown_levels_per_second: 3
+}
