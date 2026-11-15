@@ -1610,12 +1610,13 @@ int PartyHolders(const CharacterInstance& character,
   return holders;
 }
 
-// Buff Duration applies to every buff except V nodes: GMS marks all of those
-// notIncBuffDuration, so we check v_node rather than marking each file. The
-// base from constants.h is added here rather than to the stats, so V nodes skip
-// it too.
+// Buff Duration applies to every buff except V and HEXA nodes: GMS marks all
+// of those notIncBuffDuration, so we check the node kind rather than marking
+// each file. The base from constants.h is added here rather than to the stats,
+// so nodes skip it too.
 double BuffDurationFor(const Skill& skill, double buff_duration_pct) {
-  return skill.v_node() == V_NODE_KIND_UNSPECIFIED
+  return skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
+                 skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED
              ? kBaseBuffDuration + buff_duration_pct
              : 0.0;
 }

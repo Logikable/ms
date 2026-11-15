@@ -2769,6 +2769,40 @@ TEST(ComputeCombatParamsTest, BuffDurationSkipsAVNode) {
   EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
 }
 
+// GMS marks the HEXA nodes notIncBuffDuration too (HEXA Arcane Overdrive,
+// 500001021), so a node's buff keeps its own length under Buff Duration.
+TEST(ComputeCombatParamsTest, BuffDurationSkipsAHexaNode) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  Skill node;
+  node.set_name("HEXA Arcane Overdrive");
+  node.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(node, JOB_ADVANCEMENT_HERO_VI);
+  node.set_hexa_node(HEXA_NODE_KIND_ARCHETYPE);
+  node.set_max_level(kHexaNodeMaxLevel);
+  node.set_cooldown_seconds(120.0);
+  node.mutable_buff()->set_duration_seconds(30.0);
+  node.mutable_buff()->mutable_base()->set_final_dmg_pct(0.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"arcane_overdrive", node}});
+  state.current_map = "field";
+  EquipSword(state);
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_HERO);
+  }
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_ARCHETYPE, 0, 1);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(node, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+}
+
 // Flame Sweep's shape: the attack leaves a burn on what it hit, priced on its
 // own multiplier and given its own slot. Nothing on its own clock leaves one,
 // so a summon marks nothing.
