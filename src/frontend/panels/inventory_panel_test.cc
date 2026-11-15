@@ -12,6 +12,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/character/symbol.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
@@ -1428,6 +1429,22 @@ TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
+}
+
+// A worn symbol at the max level has no room for a spare's EXP, so Combine
+// would only use the spare up.
+TEST_F(SpareSymbolTest, AMaxedSymbolTakesNoCombine) {
+  CharacterInstance c = Traveller();
+  Equip maxed;
+  maxed.set_symbol_level(kMaxArcaneSymbolLevel);
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol(), maxed));
+  ASSERT_TRUE(c.Equip(0));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
+  InventoryPanel panel(c, account_, panel_focus_);
+  panel.MakeComponent([]() {});
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
 // Combine opens the dialog that asks how many to feed in.

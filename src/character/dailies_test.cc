@@ -94,6 +94,31 @@ TEST_F(DailiesTest, OneSymbolOpensEveryAreaBelowIt) {
   EXPECT_EQ(Claimable().size(), 4u);
 }
 
+// A symbol whose copies already reach the max level isn't claimed again: the
+// day's copies would have nowhere to go. The areas around it still are.
+TEST_F(DailiesTest, ASymbolHeldToItsMaxIsNotClaimed) {
+  Equip maxed;
+  maxed.set_symbol_level(kMaxArcaneSymbolLevel);
+  c_.PickUp(std::make_unique<EquipInstance>(
+      Proto(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), maxed));
+  ASSERT_TRUE(c_.Equip(c_.inventory().size() - 1));
+  PutInBag(EQUIP_SLOT_SYMBOL_LACHELEIN);
+  EXPECT_EQ(Claimable(),
+            (std::vector<EquipSlot>{EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
+                                    EQUIP_SLOT_SYMBOL_LACHELEIN}));
+
+  // Spares that would finish it count as well as levels already bought.
+  Equip nearly;
+  nearly.set_symbol_level(19);
+  nearly.set_symbol_exp(371);
+  c_.PickUp(std::make_unique<EquipInstance>(
+      Proto(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND), nearly));
+  ASSERT_TRUE(c_.Equip(c_.inventory().size() - 1));
+  EXPECT_EQ(Claimable().size(), 2u);
+  PutInBag(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
+  EXPECT_EQ(Claimable(), (std::vector<EquipSlot>{EQUIP_SLOT_SYMBOL_LACHELEIN}));
+}
+
 // A day's worth comes packed into one item per area, and is worth the same as
 // 75 separate copies.
 TEST_F(DailiesTest, AClaimPacksADaysCopiesIntoOneItem) {

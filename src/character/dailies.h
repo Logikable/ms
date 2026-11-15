@@ -29,7 +29,8 @@ namespace ms {
 inline constexpr int kSymbolsPerDay = 75;
 
 // The symbols `character` can claim, in area order: every one at or below the
-// furthest they own, worn or in the bag. Empty if they own none.
+// furthest they own, worn or in the bag, except those whose copies held
+// already reach the max level. Empty if none is left.
 std::vector<const EquipPrototype*> ClaimableSymbols(
     const CharacterInstance& character,
     const std::map<std::string, EquipPrototype>& equips);

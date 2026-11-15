@@ -1351,6 +1351,7 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
     symbol_combine_panel_.Reset(
         worn.prototype().name(), level, worn.equip_state().symbol_exp(),
         SymbolExpToNextLevel(worn.prototype(), level),
+        SymbolExpRoom(worn.prototype(), level),
         state_.character.SpareSymbolWorths(symbol_slot_));
   }
   return next;
@@ -3720,10 +3721,11 @@ void TuiController::OpenSymbolClaim() {
   std::vector<const EquipPrototype*> claimable =
       ClaimableSymbols(state_.character, state_.equips);
   if (claimable.empty()) {
-    // Nothing to claim: the character has never had a symbol. It is reported
+    // Nothing to claim: the character has never had a symbol, or holds enough
+    // of every one to max it. It is reported
     // here rather than at the confirmation, where the claim's own refusal is a
     // full bag.
-    OpenNotice(kDailiesNotice, {"You have no symbols to claim."},
+    OpenNotice(kDailiesNotice, {"No symbols left to claim."},
                /*refusal=*/false, "Close");
     return;
   }

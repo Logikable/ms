@@ -1238,6 +1238,25 @@ TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
   EXPECT_EQ(Count(rendered, "◇"), kMaxArcaneSymbolLevel - 8) << rendered;
 }
 
+// At the max level there is no next level to count toward, so the EXP row
+// says MAX instead of a fraction.
+TEST_F(InspectPanelTest, AMaxedSymbolsExpReadsMax) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance hero(rng_, std::move(proto));
+  Equip state;
+  state.set_symbol_level(kMaxArcaneSymbolLevel);
+  EquipInstance symbol(VanishingJourneySymbol(), state);
+
+  InspectPanel panel;
+  panel.UseCharacter(hero);
+  panel.SetItem(&symbol);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("EXP  MAX"), std::string::npos) << rendered;
+}
+
 // The stat a symbol grants is the wearer's primary stat, so a magician sees INT
 // on the same item a warrior sees STR on.
 TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {

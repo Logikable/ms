@@ -109,6 +109,14 @@ int SymbolExpToNextLevel(const EquipPrototype& proto, int level) {
   return level * level + 11;
 }
 
+int SymbolExpRoom(const EquipPrototype& proto, int level) {
+  int room = 0;
+  for (int l = level; l < SymbolMaxLevel(proto); ++l) {
+    room += SymbolExpToNextLevel(proto, l);
+  }
+  return room;
+}
+
 int64_t SymbolLevelUpCost(const EquipPrototype& proto, int level) {
   int64_t duplicates = SymbolExpToNextLevel(proto, level);
   if (duplicates == 0) {

@@ -43,6 +43,22 @@ EquipSlot HighestSymbolOwned(const CharacterInstance& character) {
   return highest;
 }
 
+// Whether the copies of `proto` that `character` holds, worn or in the bag,
+// already add up to its max level, so another day's copies would be wasted.
+bool HoldsEnoughToMax(const CharacterInstance& character,
+                      const EquipPrototype& proto) {
+  int held = 0;
+  auto worn = character.equipped().find(proto.equip_slot());
+  if (worn != character.equipped().end() &&
+      IsSymbol(worn->second->prototype())) {
+    held += SymbolWorth(worn->second->prototype(), worn->second->equip_state());
+  }
+  for (int worth : character.SpareSymbolWorths(proto.equip_slot())) {
+    held += worth;
+  }
+  return held >= 1 + SymbolExpRoom(proto, 1);
+}
+
 }  // namespace
 
 Equip PackedSymbol(const EquipPrototype& proto, int copies) {
@@ -65,7 +81,8 @@ std::vector<const EquipPrototype*> ClaimableSymbols(
   }
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
     if (IsArcaneSymbol(entry.second) &&
-        Below(entry.second.equip_slot(), highest)) {
+        Below(entry.second.equip_slot(), highest) &&
+        !HoldsEnoughToMax(character, entry.second)) {
       claimable.push_back(&entry.second);
     }
   }

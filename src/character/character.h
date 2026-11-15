@@ -929,8 +929,9 @@ class CharacterInstance {
   // them. See SymbolWorth.
   std::vector<int> SpareSymbolWorths(EquipSlot slot) const;
   // Absorbs up to `count` spares into the symbol worn in `slot`, deletes them,
-  // and returns how many it used. Raising the symbol's level is a separate step
-  // that costs meso; see LevelUpSymbol.
+  // and returns how many it used. It stops once the symbol is full (see
+  // SymbolExpRoom); the last spare's EXP past that is lost. Raising the
+  // symbol's level is a separate step that costs meso; see LevelUpSymbol.
   int CombineSymbols(EquipSlot slot, int count,
                      StatPreset preset = StatPreset::kFirst);
   // Raises the symbol worn in `slot` one level, charging that level's meso cost

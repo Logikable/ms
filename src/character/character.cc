@@ -2282,9 +2282,11 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
     return 0;
   }
   ms::Equip state = symbol->equip_state();
+  const int room = SymbolExpRoom(symbol->prototype(), SymbolLevel(state));
   int taken = 0;
   // Backwards, so removing one doesn't shift the ones not yet checked.
-  for (int i = inventory_.size() - 1; i >= 0 && taken < count; --i) {
+  for (int i = inventory_.size() - 1;
+       i >= 0 && taken < count && state.symbol_exp() < room; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
     if (spare == nullptr || !IsSymbol(spare->prototype()) ||
         spare->prototype().equip_slot() != slot) {
@@ -2297,6 +2299,7 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
     inventory_.remove_equip(i);
     ++taken;
   }
+  state.set_symbol_exp(std::min(state.symbol_exp(), room));
   if (taken > 0) {
     *symbol = EquipInstance(symbol->prototype(), state);
   }

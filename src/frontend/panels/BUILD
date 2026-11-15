@@ -151,6 +151,7 @@ cc_test(
     deps = [
         ":inventory_panel",
         "//src/character:progression",
+        "//src/character:symbol",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",

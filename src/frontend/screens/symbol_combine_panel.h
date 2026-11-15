@@ -6,8 +6,9 @@
  *
  * The amount counts spare items, which aren't worth one each: a claimed stack
  * carries twenty. The EXP row shows this, and it goes past the level's
- * requirement rather than stopping there, since the overflow goes toward the
- * next level.
+ * requirement, since the overflow goes toward the next level, but stops at
+ * what the symbol can hold (SymbolExpRoom). The amount offered stops at the
+ * spare that fills it.
  *
  * The panel holds no game state: Reset() sets it up, quantity() reports the
  * choice, and OnEvent returns the ConfirmChoice every dialog returns.
@@ -27,10 +28,11 @@ namespace ms {
 class SymbolCombinePanel {
  public:
   // Sets up the panel for feeding spares into a symbol at `level` that has
-  // `exp` of the `needed` EXP for its next level. `spare_worths` is what each
-  // spare is worth, in the order they would be used.
+  // `exp` of the `needed` EXP for its next level and can hold `room` in all.
+  // `spare_worths` is what each spare is worth, in the order they would be
+  // used.
   void Reset(const std::string& symbol_name, int level, int exp, int needed,
-             std::vector<int> spare_worths);
+             int room, std::vector<int> spare_worths);
   ftxui::Element Render() const;
   ConfirmChoice OnEvent(ftxui::Event event);
   int quantity() const {
@@ -42,6 +44,7 @@ class SymbolCombinePanel {
   int level_ = 1;
   int exp_ = 0;
   int needed_ = 0;
+  int room_ = 0;
   std::vector<int> spare_worths_;
   AmountSelector selector_;
 };

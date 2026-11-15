@@ -67,6 +67,11 @@ bool SymbolMaxed(const EquipPrototype& proto, const Equip& item);
 // total.
 int SymbolExpToNextLevel(const EquipPrototype& proto, int level);
 
+// The most EXP a symbol at `level` can hold: what every level from it to the
+// max asks for, 0 at the max. Combining stops there, as in GMS, so a level 19
+// Arcane Symbol tops out at 372 / 372 instead of storing EXP no level can use.
+int SymbolExpRoom(const EquipPrototype& proto, int level);
+
 // Meso needed to level up from `level`, 0 at the max level. Arcane: 10,000 x
 // floor[(base + 0.1 x level) x duplicates]. Sacred: 100,000 x floor[(base - 0.6
 // x level) x duplicates]. The base rises with the area.

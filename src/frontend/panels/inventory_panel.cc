@@ -236,8 +236,15 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuCube);
   menu_.Hide(kMenuFlame);
   menu_.Hide(kMenuSoul);
-  if (character_.equipped().count(symbol.prototype().equip_slot()) > 0) {
+  auto worn = character_.equipped().find(symbol.prototype().equip_slot());
+  if (worn != character_.equipped().end()) {
     menu_.Hide(kMenuAction);
+    // A full symbol would only use the spare up.
+    const EquipInstance& into = *worn->second;
+    if (into.equip_state().symbol_exp() >=
+        SymbolExpRoom(into.prototype(), SymbolLevel(into.equip_state()))) {
+      menu_.Disable(kMenuCombine);
+    }
   } else {
     menu_.Hide(kMenuCombine);
     if (!character_.CanEquip(symbol.prototype())) {

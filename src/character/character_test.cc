@@ -3954,6 +3954,30 @@ TEST_F(SymbolTest, ASpareCarriesEverythingBankedInItAcross) {
             25);
 }
 
+// Combining stops at what the symbol can still use: at level 19 that is the
+// last level's 372, so 350 plus a 75 stack is 372, and the next stack is kept.
+TEST_F(SymbolTest, CombiningStopsWhereTheSymbolIsFull) {
+  CharacterInstance c_ = MakeHero(rng_);
+  EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  Equip worn;
+  worn.set_symbol_level(19);
+  worn.set_symbol_exp(350);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, worn));
+  ASSERT_TRUE(c_.Equip(0));
+  Equip stack;
+  stack.set_symbol_exp(74);  // worth 75: itself and 74 absorbed
+  c_.PickUp(std::make_unique<EquipInstance>(proto, stack));
+  c_.PickUp(std::make_unique<EquipInstance>(proto, stack));
+
+  EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 2), 1);
+  EXPECT_EQ(c_.equipped()
+                .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
+                ->equip_state()
+                .symbol_exp(),
+            372);
+  EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 1);
+}
+
 TEST_F(SymbolTest, CombiningIntoAnEmptySlotTakesNothing) {
   CharacterInstance c_ = MakeHero(rng_);
   c_.PickUp(std::make_unique<EquipInstance>(
