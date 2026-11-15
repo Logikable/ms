@@ -943,3 +943,25 @@ sim_binary(
         "@abseil-cpp//absl/strings:str_format",
     ],
 )
+
+sim_binary(
+    name = "save_swap_sim",
+    srcs = ["save_swap_sim.cc"],
+    deps = [
+        ":sim_boss",
+        ":sim_world",
+        "//src:game_state",
+        "//src:save",
+        "//src/character",
+        "//src/character:stat_preset",
+        "//src/combat:encounter",
+        "//src/combat:measure",
+        "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+    ],
+)
