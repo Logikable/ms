@@ -4,6 +4,7 @@
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/sacred_power.h"
+#include "src/character/stat_preset.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"
 
@@ -11,12 +12,13 @@ namespace ms {
 namespace {
 
 MapForce ArcaneForceFor(int required, const CharacterInstance& character,
-                        const std::map<std::string, Skill>& skills) {
+                        const std::map<std::string, Skill>& skills,
+                        Activity activity) {
   MapForce force;
   force.name = "Arcane Force";
   force.abbreviation = "AF";
   force.required = required;
-  force.owned = OwnedArcaneForce(character, skills);
+  force.owned = OwnedArcaneForce(character, skills, activity);
   force.factors = ArcaneFactorsFor(force.owned, force.required);
   return force;
 }
@@ -27,7 +29,8 @@ MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills) {
   MapForce force;
   if (map.arcane_force() > 0) {
-    force = ArcaneForceFor(map.arcane_force(), character, skills);
+    force = ArcaneForceFor(map.arcane_force(), character, skills,
+                           Activity::kFarming);
   } else if (map.sacred_power() > 0) {
     force.name = "Sacred Power";
     force.abbreviation = "SAC";
@@ -42,7 +45,8 @@ MapForce BossForceFor(const BossDifficulty& difficulty,
                       const CharacterInstance& character,
                       const std::map<std::string, Skill>& skills) {
   if (difficulty.arcane_force() > 0) {
-    return ArcaneForceFor(difficulty.arcane_force(), character, skills);
+    return ArcaneForceFor(difficulty.arcane_force(), character, skills,
+                          Activity::kBossing);
   }
   return {};
 }

@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/map.pb.h"
@@ -63,6 +64,25 @@ TEST(MapForceTest, ABossWeighsArcaneForceAsAMapDoes) {
   MapForce none = BossForceFor(BossDifficulty(), character, {});
   EXPECT_EQ(none.required, 0);
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
+}
+
+// A boss is fought under the Bossing presets, so their Hyper Stat Arcane Force
+// counts there and the Farming preset's does not.
+TEST(MapForceTest, ABossReadsTheBossingPresetsForce) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(260);
+  CharacterInstance character(rng, std::move(proto));
+  character.set_autoswap_presets(true);
+  ASSERT_TRUE(character.AllocateHyperStat(
+      HYPER_STAT_FIELD_ARCANE_FORCE, AutoswapSlotFor(Activity::kBossing), 10));
+
+  BossDifficulty lucid;
+  lucid.set_arcane_force(360);
+  EXPECT_EQ(BossForceFor(lucid, character, {}).owned, 50);
+  MapData river;
+  river.set_arcane_force(30);
+  EXPECT_EQ(MapForceFor(river, character, {}).owned, 0);
 }
 
 }  // namespace

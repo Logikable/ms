@@ -128,6 +128,7 @@ cc_library(
         "//src/character:arcane_force",
         "//src/character:character_stats",
         "//src/character:sacred_power",
+        "//src/character:stat_preset",
         "//src/protos:boss_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:skill_proto_cc",
@@ -141,6 +142,7 @@ cc_test(
     deps = [
         ":map_force",
         "//src/character",
+        "//src/character:stat_preset",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:map_proto_cc",

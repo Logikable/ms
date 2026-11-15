@@ -118,7 +118,7 @@ void AddDamageLines(const CharacterInstance& character,
 void AddIncomeLines(const CharacterInstance& character,
                     const std::map<std::string, Skill>& skills,
                     const DerivedStats& derived, double item_drop_pct,
-                    std::vector<StatLine>& lines) {
+                    Activity preset, std::vector<StatLine>& lines) {
   lines.push_back(StatRule());
   // How much more a kill pays than it would with no bonus, so a potion that
   // multiplies meso and a passive that adds to it show on the same row. A 20%
@@ -128,12 +128,13 @@ void AddIncomeLines(const CharacterInstance& character,
        Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
   lines.push_back({"Item Drop Rate", Percent(item_drop_pct)});
   lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
-  lines.push_back(
-      {"Arcane Force", std::to_string(OwnedArcaneForce(character, skills))});
+  lines.push_back({"Arcane Force", std::to_string(OwnedArcaneForce(
+                                       character, skills, preset))});
   // Sacred Symbols are worn from 200, though Grandis opens at 260.
   if (character.proto().level() >= kGrandisLevel ||
-      character.sacred_power() > 0) {
-    lines.push_back({"Sacred Power", std::to_string(character.sacred_power())});
+      character.sacred_power(preset) > 0) {
+    lines.push_back(
+        {"Sacred Power", std::to_string(character.sacred_power(preset))});
   }
 }
 
@@ -179,7 +180,7 @@ std::vector<StatLine> CombatStatLines(
                               /*allies=*/{}, preset, kDropPreset)
                   .item_drop_pct
             : derived.item_drop_pct;
-    AddIncomeLines(character, skills, derived, item_drop_pct, lines);
+    AddIncomeLines(character, skills, derived, item_drop_pct, preset, lines);
   }
   return lines;
 }

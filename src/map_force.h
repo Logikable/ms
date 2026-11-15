@@ -28,12 +28,13 @@ struct MapForce {
   ForceFactors factors;
 };
 
-// What `map` requires of `character`. On a map requiring neither force,
-// required is 0 and the factors are 1.
+// What `map` requires of `character`, owned under the Farming presets. On a map
+// requiring neither force, required is 0 and the factors are 1.
 MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills);
 
-// What one difficulty of a boss requires of `character`, the same way.
+// What one difficulty of a boss requires of `character`, owned under the
+// Bossing presets.
 MapForce BossForceFor(const BossDifficulty& difficulty,
                       const CharacterInstance& character,
                       const std::map<std::string, Skill>& skills);
