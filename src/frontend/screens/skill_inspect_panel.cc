@@ -1904,6 +1904,8 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // Named in the row rather than under a heading: these are under the buff's
   // own heading, which already says they last only as long as it does.
   Append(BoostRows(buff.boost(), level, false), rows);
+  // Above the buff's own pulse, which starts once the opening is spent.
+  Append(PulseRows(buff.opening_pulse(), level), rows);
   Append(PulseRows(buff.pulse(), level), rows);
   Append(StanceRows(buff, level), rows);
   Append(MagazineRows(buff.magazine(), level), rows);

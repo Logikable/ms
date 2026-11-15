@@ -2083,6 +2083,36 @@ TEST_F(SkillInspectPanelTest, AnOpeningHeadsWhatItGrantsInstead) {
   EXPECT_EQ(LabelColor(panel.Render(), "Instead, for the First 15s"), kGold);
 }
 
+// HEXA Fury of the Wild's card: the opening's row above the pulse that waits
+// for it, each with its own count and clock.
+TEST_F(SkillInspectPanelTest, AnOpeningPulseSitsAboveTheBuffsOwn) {
+  Skill fury = IronBody();
+  fury.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = fury.mutable_buff();
+  buff->set_duration_seconds(40.0);
+  BuffPulse* flames = buff->mutable_opening_pulse();
+  flames->set_label("Phoenix Flames");
+  flames->set_cast_interval_seconds(0.5);
+  flames->set_max_pulses(8);
+  flames->set_lines(8);
+  flames->set_max_enemies(15);
+  flames->mutable_base()->set_skill_pct(6.54);
+  BuffPulse* bird = buff->mutable_pulse();
+  bird->set_label("Empowered Summon");
+  bird->set_cast_interval_seconds(3.42);
+  bird->set_lines(11);
+  bird->set_max_enemies(10);
+  bird->mutable_base()->set_skill_pct(8.44);
+
+  std::string rendered = RenderAt(fury, 1);
+  size_t opening =
+      RowIn(rendered, "Phoenix Flames", "654% x8 = 5232%, 8 times");
+  size_t own = rendered.find("Empowered Summon");
+  ASSERT_NE(opening, std::string::npos) << rendered;
+  ASSERT_NE(own, std::string::npos) << rendered;
+  EXPECT_LT(opening, own) << rendered;
+}
+
 // An attack's ignored defence applies only during that attack, while the ATT it
 // grants is permanent. Without headings the two rows would look alike. The same
 // fields on a passive are permanent, so nothing heads them.

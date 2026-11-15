@@ -2770,6 +2770,53 @@ TEST(ComputeCombatParamsTest, AnOpeningGrantsInPlaceOfTheBuffForItsSeconds) {
               1e-9);
 }
 
+// HEXA Fury of the Wild's shape: the opening and the bird both wait on the
+// buff, and the bird's timer starts once the opening's eight half-second ticks
+// are spent.
+TEST(ComputeCombatParamsTest, ABuffsOwnPulseWaitsForItsOpening) {
+  Skill fury;
+  fury.set_name("HEXA Fury of the Wild");
+  fury.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(fury, JOB_ADVANCEMENT_SWORDMAN);
+  fury.set_max_level(30);
+  fury.set_base_delay_ms(120);
+  fury.set_cooldown_seconds(120.0);
+  Buff* buff = fury.mutable_buff();
+  buff->set_duration_seconds(40.0);
+  BuffPulse* flames = buff->mutable_opening_pulse();
+  flames->set_cast_interval_seconds(0.5);
+  flames->set_max_pulses(8);
+  flames->set_lines(8);
+  flames->set_max_enemies(15);
+  flames->mutable_base()->set_skill_pct(6.54);
+  BuffPulse* bird = buff->mutable_pulse();
+  bird->set_cast_interval_seconds(3.42);
+  bird->set_lines(11);
+  bird->set_max_enemies(10);
+  bird->mutable_base()->set_skill_pct(8.44);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"fury", fury}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(fury, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.auto_attacks.size(), 2u);
+  const AttackOption& opening = params.auto_attacks[0];
+  const AttackOption& own = params.auto_attacks[1];
+  EXPECT_EQ(opening.max_enemies, 15);
+  EXPECT_EQ(opening.max_pulses, 8);
+  EXPECT_DOUBLE_EQ(opening.start_delay_seconds, 0.0);
+  EXPECT_EQ(own.max_enemies, 10);
+  EXPECT_DOUBLE_EQ(own.interval_seconds, 3.42 * factor);
+  EXPECT_DOUBLE_EQ(own.start_delay_seconds, 4.0 * factor);
+  EXPECT_EQ(opening.needs_buff, 0);
+  EXPECT_EQ(own.needs_buff, 0);
+}
+
 // GMS marks every 5th job skill notIncBuffDuration, so Buff Duration doesn't
 // apply to the V Matrix: the same book lengthens an ordinary buff but not a
 // node's.

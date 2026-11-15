@@ -902,7 +902,7 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                   const DerivedStats& derived,
                   const std::map<std::string, Skill>& skills, int attack_speed,
                   double speed_factor, const std::vector<CombatType>& types,
-                  AttackSet& set) {
+                  double start_delay, AttackSet& set) {
   double interval =
       PulseIntervalSeconds(pulse, skills, attack_speed, speed_factor);
   if (interval <= 0.0) {
@@ -928,6 +928,7 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;
+  wound.start_delay_seconds = start_delay;
   // The escalating forms of a stacking poison: one per stack, each the full
   // strike, so each rolls its own mastery and crits.
   double step = pulse.skill_pct_per_repeat() +
@@ -969,6 +970,7 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
     strikes.interval_seconds = interval;
     strikes.max_pulses = pulse.max_pulses();
     strikes.needs_buff_stance = stance;
+    strikes.start_delay_seconds = start_delay;
     set.auto_attacks.push_back(std::move(strikes));
   }
 }
@@ -1005,14 +1007,25 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
+  // The opening fires first, so the buff's own pulse starts once its ticks
+  // are spent.
+  const BuffPulse& opening = skill.buff().opening_pulse();
+  double opened = 0.0;
+  if (Pulses(opening) && opening.max_pulses() > 0) {
+    AddBuffPulse(proto, equipped, weapon_type, skill, opening, -1, level,
+                 derived, skills, attack_speed, speed_factor, types, 0.0, set);
+    opened = opening.max_pulses() *
+             PulseIntervalSeconds(opening, skills, attack_speed, speed_factor);
+  }
   AddBuffPulse(proto, equipped, weapon_type, skill, skill.buff().pulse(), -1,
-               level, derived, skills, attack_speed, speed_factor, types, set);
+               level, derived, skills, attack_speed, speed_factor, types,
+               opened, set);
   // A buff with forms has one pulse per form. All are listed, and only the form
   // the cast raised fires, which needs_buff_stance controls.
   for (int i = 0; i < skill.buff().stance_size(); ++i) {
     AddBuffPulse(proto, equipped, weapon_type, skill,
                  skill.buff().stance(i).pulse(), i, level, derived, skills,
-                 attack_speed, speed_factor, types, set);
+                 attack_speed, speed_factor, types, 0.0, set);
   }
 }
 
@@ -1847,7 +1860,7 @@ std::vector<BuffUp> AddAllyBuffs(const GameState& state, double speed_factor,
 // Whether a buff deals damage at all, through its own pulse or one of its
 // forms'.
 bool Bleeds(const Buff& buff) {
-  if (Pulses(buff.pulse())) {
+  if (Pulses(buff.pulse()) || Pulses(buff.opening_pulse())) {
     return true;
   }
   for (const Stance& stance : buff.stance()) {

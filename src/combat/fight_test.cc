@@ -3939,6 +3939,32 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
+// HEXA Fury of the Wild's shape: an opening pulse spends its ticks, and the
+// buff's own pulse waits for them. Eight ticks of 10 over four seconds here,
+// then 1000 every three seconds, the first at seven.
+TEST(CombatSimTest, AnOpeningPulseRunsBeforeTheBuffsOwnPulseStarts) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/0.5, /*damage=*/10.0);
+  AddAutoAttack(params, /*interval=*/3.0, /*damage=*/1000.0);
+  params.auto_attacks[0].name = "Fury of the Wild";
+  params.auto_attacks[0].max_pulses = 8;
+  params.auto_attacks[1].name = "Fury of the Wild";
+  params.auto_attacks[1].start_delay_seconds = 4.0;
+  GiveBuff(params, /*duration=*/40.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.auto_attacks[1].needs_buff = 0;
+  params.buffed[1].auto_attacks = params.auto_attacks;
+
+  for (int step = 0; step < 6; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.9992, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9892, 1e-9);
+}
+
 // Poison Chain's shape: a pulse that gains a step each time it fires and stays
 // at the top of its ramp. Nine ticks here of 100, 200, 300, 300...: the ramp is
 // two steps, so the third tick and every one after it lands 300.

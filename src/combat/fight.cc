@@ -2229,7 +2229,13 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   // These timers only run with something to hit: waiting on an empty map
   // doesn't give a summon a free cast.
   const std::vector<AttackOption>& casts = AutoAttacks(params);
+  std::size_t had = auto_clocks_.size();
   auto_clocks_.resize(casts.size());
+  // A timer waiting on an opening starts behind by the wait, even when its
+  // buff is already up the first time it is seen.
+  for (std::size_t i = had; i < casts.size(); ++i) {
+    auto_clocks_[i].phase = -casts[i].start_delay_seconds;
+  }
   for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
     const AttackOption& cast = casts[i];
     AutoClock& clock = auto_clocks_[i];
@@ -2238,9 +2244,12 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     }
     // The timer is paused rather than advanced, so the pulse doesn't fire the
     // instant its buff goes up and again right after. The pulse count resets
-    // too, since it's per raise.
+    // too, since it's per raise, and so does a wait for an opening.
     if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
       clock.pulses = 0;
+      if (cast.start_delay_seconds > 0.0) {
+        clock.phase = -cast.start_delay_seconds;
+      }
       continue;
     }
     // Dismissed by another skill's summon: it resumes on the same timing it

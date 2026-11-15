@@ -972,6 +972,11 @@ message Buff {
   // What the buff grants for its first seconds, in place of the levers above.
   // See BuffOpening.
   BuffOpening opening = 34;
+  // What the buff attacks with first. It fires its `max_pulses` ticks on its
+  // own interval from the raise, and `pulse` waits until they are done. It
+  // exists for HEXA Fury of the Wild: GMS's Phoenix Flames sweep for four
+  // seconds before the bird's periodic attack takes over "for the remainder".
+  BuffPulse opening_pulse = 35;
 }
 
 // A buff that starts strong and settles. It exists for HEXA Arcane Overdrive:

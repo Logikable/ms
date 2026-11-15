@@ -345,6 +345,9 @@ struct AttackOption {
   // Ticks per raise of the required buff; it then stops until the buff is
   // raised again. See BuffPulse.max_pulses.
   int max_pulses = 0;
+  // Seconds after the required buff goes up before this timer starts, while
+  // the buff's opening pulse fires. See Buff.opening_pulse.
+  double start_delay_seconds = 0.0;
   // Stronger forms this timer steps through as it repeats: the first is used on
   // its second firing, and the last is used from then on. Shared for the same
   // reason as `empowered`. See BuffPulse.skill_pct_per_repeat.
