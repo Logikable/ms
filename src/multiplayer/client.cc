@@ -299,7 +299,10 @@ Attempt MultiplayerClient::RunConnection() {
 
 bool MultiplayerClient::Open(Socket& socket) {
   SetState(ConnectionState::kConnecting, "");
-  std::optional<Socket> opened = Connect(host_, port_, kConnectTimeout);
+  // A server that doesn't answer would otherwise hold Stop(), and so the
+  // player's quit, until the timeout runs out.
+  std::optional<Socket> opened =
+      Connect(host_, port_, kConnectTimeout, [this]() { return !running_; });
   if (!opened.has_value()) {
     return false;
   }

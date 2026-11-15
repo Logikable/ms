@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -68,11 +69,13 @@ int LocalPort(const Socket& socket);
 // none, which is normal for a socket that isn't readable.
 std::optional<Socket> Accept(const Socket& listener);
 
-// Opens a connection to `host`:`port`, giving up after `timeout`. Doesn't log
-// failures: a client that can't reach the server retries, and logging each
-// attempt would repeat the same line forever.
+// Opens a connection to `host`:`port`, giving up after `timeout`, or as soon
+// as `abandon` returns true. Doesn't log failures: a client that can't reach
+// the server retries, and logging each attempt would repeat the same line
+// forever.
 std::optional<Socket> Connect(const std::string& host, int port,
-                              std::chrono::milliseconds timeout);
+                              std::chrono::milliseconds timeout,
+                              const std::function<bool()>& abandon = {});
 
 // How a read or a write ended.
 enum class IoStatus {

@@ -1,6 +1,9 @@
 #include "src/multiplayer/client.h"
 
 #include <gtest/gtest.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <functional>
@@ -171,6 +174,58 @@ TEST_F(ClientTest, KeepsTryingWhenNobodyAnswers) {
     return snapshot.state == ConnectionState::kUnavailable;
   }));
   EXPECT_FALSE(client.Snapshot().message.empty());
+}
+
+// A port whose connections hang without being accepted or refused, like a
+// server whose machine has gone away: a listener with no room left in its
+// queue drops every new handshake. Closes the listener on destruction.
+class SilentPort {
+ public:
+  SilentPort() {
+    listener_ = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in address = {};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    socklen_t length = sizeof(address);
+    bind(listener_, reinterpret_cast<sockaddr*>(&address), length);
+    listen(listener_, 0);
+    getsockname(listener_, reinterpret_cast<sockaddr*>(&address), &length);
+    port_ = ntohs(address.sin_port);
+    // Fills the queue: these connect, and are never accepted.
+    for (int i = 0; i < 4; ++i) {
+      std::optional<Socket> filler =
+          Connect("127.0.0.1", port_, milliseconds(200));
+      if (filler.has_value()) {
+        fillers_.push_back(std::move(*filler));
+      }
+    }
+  }
+  ~SilentPort() {
+    close(listener_);
+  }
+  int port() const {
+    return port_;
+  }
+
+ private:
+  int listener_ = -1;
+  int port_ = 0;
+  std::vector<Socket> fillers_;
+};
+
+TEST_F(ClientTest, StopsWithoutWaitingOutAConnectionAttempt) {
+  SilentPort silent;
+  // The precondition: an attempt here hangs rather than failing at once.
+  ASSERT_FALSE(
+      Connect("127.0.0.1", silent.port(), milliseconds(300)).has_value());
+
+  MultiplayerClient client("127.0.0.1", silent.port());
+  client.Start(Player("Dagger"), "");
+  std::this_thread::sleep_for(milliseconds(100));
+  std::chrono::steady_clock::time_point start =
+      std::chrono::steady_clock::now();
+  client.Stop();
+  EXPECT_LT(std::chrono::steady_clock::now() - start, milliseconds(500));
 }
 
 TEST_F(ClientTest, KeepsTryingWhenToldToUpdate) {

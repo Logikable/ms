@@ -1,6 +1,7 @@
 #include "src/net/socket.h"
 
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -96,16 +97,20 @@ void SetNoDelay(SocketHandle handle) {
              reinterpret_cast<const SockOptChar*>(&on), sizeof(on));
 }
 
-// The longest single poll inside Connect. The deadline is checked between
-// polls, so an interrupted poll costs at most this much.
-constexpr int kConnectPollSliceMs = 100;
+// The longest single poll inside Connect. The deadline and the caller's
+// abandon check run between polls, so giving up costs at most this much.
+constexpr int kConnectPollSliceMs = 20;
 
 // Waits for `handle` to become writable, which is how an in-progress connection
 // reports that it has completed.
-bool WaitWritable(SocketHandle handle, std::chrono::milliseconds timeout) {
+bool WaitWritable(SocketHandle handle, std::chrono::milliseconds timeout,
+                  const std::function<bool()>& abandon) {
   std::chrono::steady_clock::time_point deadline =
       std::chrono::steady_clock::now() + timeout;
   while (std::chrono::steady_clock::now() < deadline) {
+    if (abandon && abandon()) {
+      return false;
+    }
     pollfd entry = {};
     entry.fd = handle;
     entry.events = POLLOUT;
@@ -134,7 +139,8 @@ bool ConnectSucceeded(SocketHandle handle) {
 // Opens one connection to one resolved address. Returns nothing if the address
 // didn't answer; the caller tries the next one.
 std::optional<Socket> ConnectTo(const addrinfo& address,
-                                std::chrono::milliseconds timeout) {
+                                std::chrono::milliseconds timeout,
+                                const std::function<bool()>& abandon) {
   SocketHandle handle =
       socket(address.ai_family, address.ai_socktype, address.ai_protocol);
   if (handle == kInvalidSocket) {
@@ -149,7 +155,7 @@ std::optional<Socket> ConnectTo(const addrinfo& address,
     if (!IsInProgress(LastError()) && !IsWouldBlock(LastError())) {
       return std::nullopt;
     }
-    if (!WaitWritable(handle, timeout) || !ConnectSucceeded(handle)) {
+    if (!WaitWritable(handle, timeout, abandon) || !ConnectSucceeded(handle)) {
       return std::nullopt;
     }
   }
@@ -255,7 +261,8 @@ std::optional<Socket> Accept(const Socket& listener) {
 }
 
 std::optional<Socket> Connect(const std::string& host, int port,
-                              std::chrono::milliseconds timeout) {
+                              std::chrono::milliseconds timeout,
+                              const std::function<bool()>& abandon) {
   addrinfo hints = {};
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -265,8 +272,9 @@ std::optional<Socket> Connect(const std::string& host, int port,
     return std::nullopt;
   }
   std::optional<Socket> connected;
-  for (addrinfo* entry = found; entry != nullptr; entry = entry->ai_next) {
-    connected = ConnectTo(*entry, timeout);
+  for (addrinfo* entry = found; entry != nullptr && !(abandon && abandon());
+       entry = entry->ai_next) {
+    connected = ConnectTo(*entry, timeout, abandon);
     if (connected.has_value()) {
       break;
     }
