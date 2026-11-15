@@ -2268,10 +2268,13 @@ TEST(SkillDataTest, EverySupersededSkillIsHoldable) {
 }
 
 // Evil Eye Shock II starts at 139% against a maxed Evil Eye Shock's 150%. That
-// is GMS's own ladder and the skill is meant to be maxed, so it is kept.
+// is GMS's own ladder and the skill is meant to be maxed, so it is kept. HEXA
+// Blitz Shield trades a 15-second blast for a strike every 1.8 seconds, so its
+// hit is smaller by design; the Hero's falls behind the blast's rate until
+// level 5, which the user accepted as GMS's own.
 const std::set<std::string>& SupersedesBelowWhatItReplaces() {
   static const std::set<std::string>* kStems =
-      new std::set<std::string>{"evil_eye_shock_ii"};
+      new std::set<std::string>{"evil_eye_shock_ii", "hexa_blitz_shield"};
   return *kStems;
 }
 

@@ -4983,6 +4983,95 @@ const AttackOption* AnyAttack(const CombatParams& params,
   return nullptr;
 }
 
+// A `job` at the 6th job holding the shipped V skill `v_stem` at 30 and the
+// line's HEXA node `hexa_stem` at `level`, plus `extra` stems it needs.
+std::unique_ptr<GameState> NodeHolder(Job job, const std::string& v_stem,
+                                      const std::string& hexa_stem, int level,
+                                      const std::vector<std::string>& extra) {
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book = {{v_stem, skills.at(v_stem)},
+                                       {hexa_stem, skills.at(hexa_stem)}};
+  for (const std::string& stem : extra) {
+    book[stem] = skills.at(stem);
+  }
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  auto owned = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{},
+      std::map<std::string, Mob>{{"snail", boss}},
+      std::map<std::string, MapData>{{"field", TwoSnailMap()}}, book);
+  GameState& state = *owned;
+  state.current_map = "field";
+  EquipSword(state);
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(job);
+  }
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_ARCHETYPE, 0, 30));
+  EXPECT_TRUE(state.character.LearnSkill(book.at(v_stem), 30));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_ARCHETYPE, 0, level);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  EXPECT_TRUE(state.character.LearnSkill(book.at(hexa_stem), level));
+  return owned;
+}
+
+// The four lines' 3rd common nodes as shipped, each replacing its V skill.
+TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  // The blast goes; the strike runs on its own 1.8-second clock.
+  {
+    std::unique_ptr<GameState> hero =
+        NodeHolder(JOB_HERO, "blitz_shield", "hexa_blitz_shield", 30, {});
+    CombatParams params = ComputeCombatParams(*hero);
+    double factor = GameSpeedFactor(hero->character.proto().level());
+    EXPECT_EQ(FindAttack(params, "Blitz Shield"), nullptr);
+    ASSERT_EQ(params.auto_attacks.size(), 1u);
+    EXPECT_DOUBLE_EQ(params.auto_attacks[0].interval_seconds, 1.8 * factor);
+    EXPECT_EQ(params.auto_attacks[0].max_enemies, 15);
+  }
+  // 21% for 15 seconds, then 7% to 70.
+  {
+    std::unique_ptr<GameState> bishop = NodeHolder(
+        JOB_BISHOP, "arcane_overdrive", "hexa_arcane_overdrive", 30, {});
+    CombatParams params = ComputeCombatParams(*bishop);
+    double factor = GameSpeedFactor(bishop->character.proto().level());
+    ASSERT_EQ(params.buffs.size(), 2u);
+    EXPECT_EQ(params.buffs[0].name, "HEXA Arcane Overdrive");
+    EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 15.0 * factor);
+    EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds, 70.0 * factor);
+  }
+  // Phoenix Flames, then the bird four seconds in.
+  {
+    std::unique_ptr<GameState> bow_master = NodeHolder(
+        JOB_BOW_MASTER, "fury_of_the_wild", "hexa_fury_of_the_wild", 30, {});
+    CombatParams params = ComputeCombatParams(*bow_master);
+    double factor = GameSpeedFactor(bow_master->character.proto().level());
+    ASSERT_EQ(params.buffs.size(), 1u);
+    EXPECT_EQ(params.buffs[0].name, "HEXA Fury of the Wild");
+    ASSERT_EQ(params.auto_attacks.size(), 2u);
+    EXPECT_EQ(params.auto_attacks[0].max_pulses, 8);
+    EXPECT_DOUBLE_EQ(params.auto_attacks[1].start_delay_seconds, 4.0 * factor);
+  }
+  // Twenty fragments on Quad Star's beat, then the Executor.
+  {
+    std::unique_ptr<GameState> night_lord =
+        NodeHolder(JOB_NIGHT_LORD, "shadow_walker", "hexa_shadow_walker", 30,
+                   {"quad_star"});
+    CombatParams params = ComputeCombatParams(*night_lord);
+    ASSERT_EQ(params.buffs.size(), 1u);
+    EXPECT_EQ(params.buffs[0].name, "HEXA Shadow Walker");
+    ASSERT_EQ(params.auto_attacks.size(), 1u);
+    const AttackOption& fragments = params.auto_attacks[0];
+    EXPECT_EQ(fragments.max_pulses, 20);
+    EXPECT_GT(fragments.interval_seconds, 0.0);
+    ASSERT_NE(fragments.final_strike, nullptr);
+    EXPECT_EQ(fragments.final_strike->max_enemies, 15);
+  }
+}
+
 // Sol Hecate's 20% IED and boss damage at 10 and 20 reach the summon, Styx and
 // Phlegethon alike (GMS's psdSkill) and nothing else the character does.
 TEST(ComputeCombatParamsTest, SolHecatesDefenseAndBossDamageStayOnItsSkills) {

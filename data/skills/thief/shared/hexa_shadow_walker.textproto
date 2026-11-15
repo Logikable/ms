@@ -1,0 +1,58 @@
+# GMS (500001030): a Darkness Fragment lands with each direct hit (0.3s
+# cooldown, 20 a cast), and the Abyssal Executor when they run out or the buff
+# ends. The fragments follow the job's main attack, so the Executor lands with
+# the twentieth. There is no stealth here, so only the damage is left.
+name: "HEXA Shadow Walker"
+description:
+  "Your stealth abilities have been heightened to their limit. Attack is "
+  "increased while stealthed. Also summons a Shadow Companion from the abyss "
+  "to attack enemies alongside you using Darkness Fragments. When all of the "
+  "Darkness Fragments have been used, an Abyssal Executor appears to punish "
+  "all enemies. Unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_VI skill_order: 9 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_VI skill_order: 9 }
+hexa_node: HEXA_NODE_KIND_ARCHETYPE
+max_level: 30
+required_skill { skill_name: "Shadow Walker" level: 30 }
+supersedes_skill_name: "Shadow Walker"
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 20.0
+  base { final_dmg_pct: 0.14 }
+  step { from_level: 15 base { final_dmg_pct: 0.01 } }
+  step { from_level: 30 base { final_dmg_pct: 0.01 } }
+  pulse {
+    label: "Darkness Fragment"
+    paced_by_skill_name: "Quad Star"
+    max_pulses: 20
+    max_enemies: 1
+    lines: 5
+    base { skill_pct: 2.10 }
+    per_level { skill_pct: 0.10 }
+    final_strike {
+      label: "Abyssal Executor"
+      max_enemies: 15
+      lines: 7
+      base { skill_pct: 3.41 }
+      per_level { skill_pct: 0.18 }
+    }
+  }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill {
+    buff {
+      pulse {
+        paced_by_skill_name: "Cruel Stab"
+        base { skill_pct: 2.17 }
+        per_level { skill_pct: 0.12 }
+        final_strike {
+          base { skill_pct: 3.62 }
+          per_level { skill_pct: 0.21 }
+        }
+      }
+    }
+  }
+}

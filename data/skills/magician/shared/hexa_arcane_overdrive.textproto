@@ -1,0 +1,39 @@
+# GMS (500001021): Final Damage z and Magic ATT indieMadR for y = 15 seconds,
+# then u and u2 for the rest. Read as the later amount replacing the first.
+# Its logN(x) terms are the steps at 10, 20 and 30.
+name: "HEXA Arcane Overdrive"
+description:
+  "Reforges the lost secrets of the ancients to drive your magic to new "
+  "heights. However, the incomplete replication of their techniques causes "
+  "the power to dissipate after a certain period of time."
+kind: SKILL_KIND_ACTIVE
+placement {
+  job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_VI
+  skill_order: 9
+}
+placement {
+  job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
+  skill_order: 9
+}
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_VI skill_order: 9 }
+hexa_node: HEXA_NODE_KIND_ARCHETYPE
+max_level: 30
+required_skill { skill_name: "Arcane Overdrive" level: 30 }
+supersedes_skill_name: "Arcane Overdrive"
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 32.0
+  duration_seconds_per_level: 1.0
+  base { final_dmg_pct: 0.07 attack_pct: 0.02 }
+  step { from_level: 10 duration_seconds: 1.0 base { attack_pct: 0.01 } }
+  step { from_level: 20 duration_seconds: 3.0 base { attack_pct: 0.01 } }
+  step { from_level: 30 duration_seconds: 5.0 base { attack_pct: 0.01 } }
+  opening {
+    seconds: 15.0
+    base { final_dmg_pct: 0.21 attack_pct: 0.04 }
+    step { from_level: 10 base { attack_pct: 0.01 } }
+    step { from_level: 20 base { attack_pct: 0.02 } }
+    step { from_level: 30 base { attack_pct: 0.02 } }
+  }
+}
