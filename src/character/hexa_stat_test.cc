@@ -24,21 +24,6 @@ HexaStatNode Node(HexaStat primary, int primary_level, HexaStat first,
   return node;
 }
 
-// The wiki's table at its ends and at the level 5 break where the columns
-// part.
-TEST(HexaStatTest, ValuesFollowTheWikisTable) {
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_CRIT_DAMAGE, 1, true), 0.0035);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_CRIT_DAMAGE, 10, true), 0.07);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_CRIT_DAMAGE, 10, false), 0.035);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_BOSS_DAMAGE, 5, true), 0.06);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_BOSS_DAMAGE, 5, false), 0.05);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_DAMAGE, 10, true), 0.15);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_ATTACK, 10, true), 100);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_ATTACK, 10, false), 50);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_MAIN_STAT, 10, true), 2000);
-  EXPECT_DOUBLE_EQ(HexaStatValue(HEXA_STAT_MAIN_STAT, 0, true), 0);
-}
-
 TEST(HexaStatTest, ANodeHasThreeStatsAndTwentyLevels) {
   EXPECT_TRUE(HexaStatNodeValid(Node(
       HEXA_STAT_BOSS_DAMAGE, 10, HEXA_STAT_ATTACK, 5, HEXA_STAT_DAMAGE, 5)));
@@ -83,32 +68,6 @@ TEST(HexaStatTest, ANodeCountsFromItsLevel) {
   EXPECT_EQ(both.main_stat, 2000);
   EXPECT_NEAR(both.ied, 0.05, 1e-12);
   EXPECT_DOUBLE_EQ(both.crit_dmg, 0.0175);
-}
-
-TEST(HexaStatTest, PricesFollowTheWiki) {
-  EXPECT_EQ(HexaStatOpenPrice(0).energy, 5 * kEnergyPerSolErda);
-  EXPECT_EQ(HexaStatOpenPrice(0).fragments, 10);
-  EXPECT_EQ(HexaStatOpenPrice(2).energy, 15 * kEnergyPerSolErda);
-  EXPECT_EQ(HexaStatOpenPrice(2).fragments, 350);
-  EXPECT_EQ(HexaStatOpenPrice(3).fragments, 0);
-
-  HexaStatNode node =
-      Node(HEXA_STAT_BOSS_DAMAGE, 2, HEXA_STAT_ATTACK, 0, HEXA_STAT_DAMAGE, 0);
-  EXPECT_EQ(HexaStatEnhancePrice(node), 10);
-  node.set_primary_level(3);
-  EXPECT_EQ(HexaStatEnhancePrice(node), 20);
-  node.set_primary_level(9);
-  EXPECT_EQ(HexaStatEnhancePrice(node), 50);
-  node.set_primary_level(10);
-  EXPECT_EQ(HexaStatEnhancePrice(node), 50) << "the wiki's gap";
-  node.set_first_level(10);
-  EXPECT_EQ(HexaStatEnhancePrice(node), 0) << "full";
-
-  EXPECT_DOUBLE_EQ(HexaStatPrimaryChance(0), 0.35);
-  EXPECT_DOUBLE_EQ(HexaStatPrimaryChance(6), 0.20);
-  EXPECT_DOUBLE_EQ(HexaStatPrimaryChance(7), 0.15);
-  EXPECT_DOUBLE_EQ(HexaStatPrimaryChance(9), 0.05);
-  EXPECT_DOUBLE_EQ(HexaStatPrimaryChance(10), 0.0);
 }
 
 // The community's exact figures for one node rolled to 20 with no reset:

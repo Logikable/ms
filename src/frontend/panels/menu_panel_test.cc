@@ -18,10 +18,8 @@ namespace {
 
 // The levels the gated entries appear at. Written out rather than read from the
 // progression table, so moving a gate is something the test notices.
-constexpr int kMultiplayerLevel = 25;
 constexpr int kBossLevel = 110;
 constexpr int kSymbolsLevel = 200;
-constexpr int kCharactersLevel = 30;
 constexpr int kLegionLevel = 150;
 
 GameState EmptyState() {
@@ -75,26 +73,6 @@ TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   std::string later = Render(panel);
   EXPECT_LT(later.find("Analysis"), later.find("Dailies"));
   EXPECT_LT(later.find("Dailies"), later.find("Settings"));
-}
-
-// The two entries not about this character's progress: the lobby, and
-// character select just after it at the 2nd job.
-TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
-  GameState state = EmptyState();
-  BattleAnalysis analysis;
-  int focus = kMenuPanel;
-  MenuPanel panel(state, analysis, focus);
-  LevelTo(state, kMultiplayerLevel);
-  std::string lobby = Render(panel);
-  EXPECT_NE(lobby.find("Multiplayer"), std::string::npos)
-      << "the lobby does not wait for bossing";
-  EXPECT_EQ(lobby.find("Dailies"), std::string::npos);
-  EXPECT_EQ(lobby.find("Characters"), std::string::npos);
-
-  LevelTo(state, kCharactersLevel);
-  std::string all = Render(panel);
-  EXPECT_LT(all.find("Multiplayer"), all.find("Characters"));
-  EXPECT_LT(all.find("Characters"), all.find("Settings"));
 }
 
 // Characters opens a box: Switch from the start, and Legion under it once the

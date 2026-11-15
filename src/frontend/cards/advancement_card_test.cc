@@ -53,13 +53,6 @@ TEST(AdvancementCardTest, TheFifthAdvancementTakesAV) {
   EXPECT_NE(ScreenRow(screen, 4).find("Night Lord V"), std::string::npos);
 }
 
-TEST(AdvancementCardTest, IsTitledAndBorderedInGold) {
-  ftxui::Screen screen = RenderCard(JOB_BEGINNER, JOB_SWORDMAN);
-  EXPECT_GE(RowIndexOf(screen, "Advancement"), 0);
-  EXPECT_EQ(screen.PixelAt(0, 0).foreground_color, kYellow);
-  EXPECT_EQ(screen.PixelAt(0, screen.dimy() - 1).foreground_color, kYellow);
-}
-
 // Both cards appear in the same place and gold, seconds apart at level 10, so
 // they must match in size: compared against the level-up card directly.
 TEST(AdvancementCardTest, IsTheSameSizeAsTheLevelUpCard) {

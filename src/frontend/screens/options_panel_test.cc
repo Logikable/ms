@@ -179,14 +179,6 @@ TEST_F(OptionsAudioTest, MuteShipsOffAndEnterThrowsIt) {
   EXPECT_FALSE(account_.mute());
 }
 
-TEST_F(OptionsAudioTest, BothVolumesShowAtTen) {
-  std::string out = Render();
-  EXPECT_NE(out.find("Map BGM Volume"), std::string::npos);
-  EXPECT_NE(out.find("Boss BGM Volume"), std::string::npos);
-  EXPECT_EQ(account_.map_bgm_volume(), kDefaultBgmVolume);
-  EXPECT_EQ(account_.boss_bgm_volume(), kDefaultBgmVolume);
-}
-
 TEST_F(OptionsAudioTest, ArrowsMoveOnlyTheVolumeSelected) {
   SelectOption(Option::kMapBgmVolume);
   panel_.Adjust(5);

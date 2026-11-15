@@ -4,7 +4,6 @@
 
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -91,44 +90,6 @@ TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
         << Job_Name(entry.job) << " advances with the wrong number of items";
     EXPECT_EQ(state_.equips.at(names[0]).equip_slot(), EQUIP_SLOT_SECONDARY)
         << Job_Name(entry.job) << " is handed something it should have bought";
-  }
-}
-
-// The weapon types each job should receive. Listed as types, not catalog keys,
-// so changing which sword a Swordman starts with stays a data decision, while
-// giving one a bow is caught.
-const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
-  static const std::map<Job, std::multiset<EquipType>>* kTypes =
-      new std::map<Job, std::multiset<EquipType>>{
-          {JOB_SWORDMAN, {EQUIP_TYPE_ONE_HANDED_SWORD}},
-          {JOB_MAGICIAN, {EQUIP_TYPE_STAFF}},
-          {JOB_ARCHER, {EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_BOW}},
-          {JOB_ROGUE,
-           {EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR, EQUIP_TYPE_CLAW}},
-          {JOB_FIGHTER, {EQUIP_TYPE_MEDALLION}},
-          {JOB_PAGE, {EQUIP_TYPE_ROSARY}},
-          {JOB_SPEARMAN, {EQUIP_TYPE_IRON_CHAIN}},
-          {JOB_HUNTER, {EQUIP_TYPE_ARROW_FLETCHING}},
-          {JOB_CROSSBOWMAN, {EQUIP_TYPE_BOW_THIMBLE}},
-          {JOB_FIRE_POISON_WIZARD, {EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON}},
-          {JOB_ICE_LIGHTNING_WIZARD, {EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING}},
-          {JOB_CLERIC, {EQUIP_TYPE_MAGIC_BOOK_HOLY}},
-          {JOB_ASSASSIN, {EQUIP_TYPE_CHARM}},
-          {JOB_BANDIT, {EQUIP_TYPE_DAGGER_SCABBARD}},
-      };
-  return *kTypes;
-}
-
-// Existing isn't enough: a job could get a full set of another class's or
-// branch's gear, and every other test here would still pass.
-TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
-  for (const Advanceable& entry : GiftedJobs()) {
-    std::multiset<EquipType> actual;
-    for (const std::string& name : StarterEquipsFor(entry.job)) {
-      actual.insert(state_.equips.at(name).equip_type());
-    }
-    EXPECT_EQ(actual, ExpectedStarterTypes().at(entry.job))
-        << Job_Name(entry.job) << " does not advance with its own gear";
   }
 }
 

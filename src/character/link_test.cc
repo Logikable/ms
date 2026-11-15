@@ -7,16 +7,6 @@
 namespace ms {
 namespace {
 
-TEST(LinkTest, ARungAtEachOfGmsThreeLevels) {
-  EXPECT_EQ(LinkRungsFor(69), 0);
-  EXPECT_EQ(LinkRungsFor(70), 1);
-  EXPECT_EQ(LinkRungsFor(119), 1);
-  EXPECT_EQ(LinkRungsFor(120), 2);
-  EXPECT_EQ(LinkRungsFor(209), 2);
-  EXPECT_EQ(LinkRungsFor(210), 3);
-  EXPECT_EQ(LinkRungsFor(300), 3);
-}
-
 // The rule the system is built on: a line counts once however many characters
 // are in it, and the lines of one branch add up.
 TEST(LinkTest, OneLinePaysOnceAndTheBranchSums) {

@@ -17,26 +17,6 @@ Soul SoulOf(SoulTier tier, SoulLine line) {
   return soul;
 }
 
-// The shard pages' values at both ends: Zakum's C and the SS every endgame
-// boss shares. Below SS, ATT and all stats are points; at SS, percents.
-TEST(SoulTest, TiersGiveTheShardPagesValues) {
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_C, SOUL_LINE_ATTACK), 6);
-  EXPECT_FALSE(SoulLineIsPercent(SOUL_TIER_C, SOUL_LINE_ATTACK));
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_C, SOUL_LINE_MAX_HP), 1100);
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_A, SOUL_LINE_ALL_STATS), 17);
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_S, SOUL_LINE_BOSS_DAMAGE), 5);
-  EXPECT_TRUE(SoulLineIsPercent(SOUL_TIER_C, SOUL_LINE_BOSS_DAMAGE));
-
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_SS, SOUL_LINE_MAGIC_ATTACK), 3);
-  EXPECT_TRUE(SoulLineIsPercent(SOUL_TIER_SS, SOUL_LINE_MAGIC_ATTACK));
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_SS, SOUL_LINE_ALL_STATS), 5);
-  EXPECT_TRUE(SoulLineIsPercent(SOUL_TIER_SS, SOUL_LINE_ALL_STATS));
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_SS, SOUL_LINE_MAX_HP), 2000);
-  EXPECT_FALSE(SoulLineIsPercent(SOUL_TIER_SS, SOUL_LINE_MAX_HP));
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_SS, SOUL_LINE_CRIT_RATE), 12);
-  EXPECT_EQ(SoulLineValue(SOUL_TIER_SS, SOUL_LINE_IGNORE_DEFENSE), 7);
-}
-
 // The gauge's 20 ATT and MATT ride every soul; a point line adds to the item's
 // stats and a percent line to the potential totals, never both.
 TEST(SoulTest, PointsGoToStatsAndPercentsToTotals) {

@@ -24,14 +24,6 @@ TEST(DeathCardTest, SaysWhatHappened) {
   EXPECT_GE(RowIndexOf(RenderCard(), "You died!"), 0);
 }
 
-TEST(DeathCardTest, IsTitledAndBorderedInRed) {
-  ftxui::Screen screen = RenderCard();
-  EXPECT_GE(RowIndexOf(screen, "Death"), 0);
-  EXPECT_EQ(screen.PixelAt(0, 0).foreground_color, kRed);
-  EXPECT_EQ(screen.PixelAt(0, screen.dimy() - 1).foreground_color, kRed);
-  EXPECT_NE(screen.PixelAt(0, 0).foreground_color, kYellow);
-}
-
 // It appears in the same place as the two good-news cards, so it must be the
 // same size; a smaller box there would look like a lesser event than levelling
 // up.

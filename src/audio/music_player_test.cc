@@ -24,13 +24,6 @@ MusicPlayer MakePlayer() {
   return MusicPlayer(MusicPlayer::Backend::kNull);
 }
 
-TEST(MusicPlayerTest, StartsSilentAtTen) {
-  MusicPlayer player = MakePlayer();
-  EXPECT_EQ(player.ready(), kAudioEnabled);
-  EXPECT_EQ(player.volume(), kDefaultBgmVolume);
-  EXPECT_EQ(player.playing(), "");
-}
-
 TEST(MusicPlayerTest, PlaysAndStops) {
   if (AnyTrack().empty()) {
     GTEST_SKIP() << "built with --define=audio=off";

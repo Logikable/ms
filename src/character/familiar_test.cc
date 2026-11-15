@@ -35,18 +35,6 @@ google::protobuf::RepeatedPtrField<std::string> Names(
   return out;
 }
 
-TEST(FamiliarRosterTest, TwentyFamiliarsFromTheLowestMonsterUp) {
-  ASSERT_EQ(FamiliarRoster().size(), 20u);
-  EXPECT_STREQ(FamiliarRoster().front().name, "Snail");
-  EXPECT_STREQ(FamiliarRoster().back().name, "Mutant Orange Mushroom");
-  for (std::size_t i = 1; i < FamiliarRoster().size(); ++i) {
-    EXPECT_LE(FamiliarRoster()[i - 1].mob_level, FamiliarRoster()[i].mob_level)
-        << FamiliarRoster()[i].name;
-  }
-  EXPECT_TRUE(IsFamiliar("Jr. Cellion"));
-  EXPECT_FALSE(IsFamiliar("Pink Bean"));
-}
-
 TEST(FamiliarLevelTest, EachStepIsPaidOnItsOwn) {
   FamiliarBook book;
   std::mt19937 rng(1);

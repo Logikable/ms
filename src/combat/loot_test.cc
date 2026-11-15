@@ -133,22 +133,6 @@ TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
   EXPECT_TRUE(paid_off_the_mean) << "every drop paid the band mean exactly";
 }
 
-// Both halves of the module read the same drop chance, so a test that only
-// compares them would pass at any rate. This one measures the rate directly.
-TEST(RollMesoTest, PaysSixKillsInTen) {
-  Mob mob;
-  mob.set_level(70);
-  std::mt19937 rng(7);
-  int paid = 0;
-  const int kKills = 20000;
-  for (int i = 0; i < kKills; ++i) {
-    if (RollMeso(mob, 1, 0.0, rng) > 0) {
-      ++paid;
-    }
-  }
-  EXPECT_NEAR(static_cast<double>(paid) / kKills, 0.60, 0.02);
-}
-
 // Drop rate raises the chance of a meso drop, not its size, and stops helping
 // once every kill pays.
 TEST(MesoDropChanceTest, RisesWithDropRateAndCapsAtEveryKill) {

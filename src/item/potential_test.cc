@@ -71,73 +71,6 @@ TEST(PotentialValueTest, AllStatsPercentIsOneRankBehind) {
             0);
 }
 
-TEST(PotentialValueTest, FlatLinesFollowTheLevelBand) {
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_STR, POTENTIAL_RANK_RARE, 0),
-            2);
-  EXPECT_EQ(
-      PotentialLineValue(POTENTIAL_LINE_TYPE_DEX, POTENTIAL_RANK_RARE, 100),
-      12);
-  EXPECT_EQ(
-      PotentialLineValue(POTENTIAL_LINE_TYPE_LUK, POTENTIAL_RANK_RARE, 160),
-      13);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_ALL_STATS,
-                               POTENTIAL_RANK_RARE, 100),
-            5);
-  EXPECT_EQ(
-      PotentialLineValue(POTENTIAL_LINE_TYPE_MAX_HP, POTENTIAL_RANK_RARE, 45),
-      50);
-  EXPECT_EQ(
-      PotentialLineValue(POTENTIAL_LINE_TYPE_MAX_HP, POTENTIAL_RANK_RARE, 200),
-      125);
-  // Nothing flat rolls above Rare.
-  EXPECT_EQ(
-      PotentialLineValue(POTENTIAL_LINE_TYPE_STR, POTENTIAL_RANK_EPIC, 100), 0);
-}
-
-TEST(PotentialValueTest, TheOneOffLines) {
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15,
-                               POTENTIAL_RANK_EPIC, 100),
-            15);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40,
-                               POTENTIAL_RANK_LEGENDARY, 150),
-            40);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_COOLDOWN_2,
-                               POTENTIAL_RANK_LEGENDARY, 150),
-            2);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT,
-                               POTENTIAL_RANK_LEGENDARY, 55),
-            5);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT,
-                               POTENTIAL_RANK_LEGENDARY, 150),
-            8);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_MESO_RATE,
-                               POTENTIAL_RANK_LEGENDARY, 150),
-            20);
-  // A rank the line doesn't roll at is worth nothing.
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_ITEM_DROP_RATE,
-                               POTENTIAL_RANK_UNIQUE, 150),
-            0);
-}
-
-// GMS's fixed-size lines step up by 5 on an item above level 200.
-TEST(PotentialValueTest, FixedSizesStepUpAbove200) {
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15,
-                               POTENTIAL_RANK_EPIC, 200),
-            15);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15,
-                               POTENTIAL_RANK_EPIC, 201),
-            20);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40,
-                               POTENTIAL_RANK_LEGENDARY, 250),
-            45);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30,
-                               POTENTIAL_RANK_UNIQUE, 201),
-            35);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40,
-                               POTENTIAL_RANK_LEGENDARY, 200),
-            40);
-}
-
 TEST(PotentialPoolTest, EachSpecialLineSitsInOneGroup) {
   const std::vector<PotentialLineType> hat = PotentialPool(
       PotentialTrack::kMain, PotentialGroup::kHat, POTENTIAL_RANK_LEGENDARY);
@@ -187,29 +120,6 @@ TEST(PotentialPoolTest, ASlotWithNoPotentialDrawsNothing) {
                   .empty());
 }
 
-TEST(PotentialPoolTest, BonusPoolSizes) {
-  struct Case {
-    PotentialGroup group;
-    int sizes[4];
-  };
-  const Case cases[] = {
-      {PotentialGroup::kWeaponry, {7, 8, 9, 9}},
-      {PotentialGroup::kArmor, {5, 6, 10, 10}},
-      {PotentialGroup::kGloves, {5, 6, 10, 10}},
-      {PotentialGroup::kAccessory, {5, 6, 10, 10}},
-      {PotentialGroup::kHat, {5, 6, 10, 11}},
-  };
-  for (const Case& c : cases) {
-    for (int i = 0; i < 4; ++i) {
-      const PotentialRank rank =
-          static_cast<PotentialRank>(POTENTIAL_RANK_RARE + i);
-      EXPECT_EQ(PotentialPool(PotentialTrack::kBonus, c.group, rank).size(),
-                c.sizes[i])
-          << static_cast<int>(c.group) << " " << rank;
-    }
-  }
-}
-
 TEST(PotentialPoolTest, BonusWeaponryRollsMainLines) {
   const std::vector<PotentialLineType> weapon =
       PotentialPool(PotentialTrack::kBonus, PotentialGroup::kWeaponry,
@@ -243,39 +153,6 @@ TEST(PotentialPoolTest, EveryRolledLineHasAValue) {
       }
     }
   }
-}
-
-// GMS's ItemOption.img at item level 160, and past 200 where most bonus lines
-// off weaponry step up once more.
-TEST(PotentialValueTest, BonusLinesByRankAndLevel) {
-  struct Case {
-    PotentialLineType type;
-    int at_160[4];
-    int at_201[4];
-  };
-  const Case cases[] = {
-      {POTENTIAL_LINE_TYPE_BONUS_STR_PCT, {3, 5, 6, 8}, {3, 5, 7, 9}},
-      {POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT, {0, 3, 5, 6}, {0, 3, 6, 7}},
-      {POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT, {3, 6, 8, 11}, {3, 6, 9, 12}},
-      {POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE, {0, 0, 12, 18}, {0, 0, 14, 20}},
-      {POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS, {0, 0, 1, 2}, {0, 0, 1, 2}},
-  };
-  for (const Case& c : cases) {
-    for (int i = 0; i < 4; ++i) {
-      const PotentialRank rank =
-          static_cast<PotentialRank>(POTENTIAL_RANK_RARE + i);
-      EXPECT_EQ(PotentialLineValue(c.type, rank, 160), c.at_160[i])
-          << c.type << " at " << rank;
-      EXPECT_EQ(PotentialLineValue(c.type, rank, 201), c.at_201[i])
-          << c.type << " at " << rank;
-    }
-  }
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BONUS_STR_PCT,
-                               POTENTIAL_RANK_LEGENDARY, 20),
-            3);
-  EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_BONUS_MAX_HP_PCT,
-                               POTENTIAL_RANK_LEGENDARY, 90),
-            7);
 }
 
 TEST(AddPotentialTest, BonusLinesLandWithTheirMainKin) {

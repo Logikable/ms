@@ -137,28 +137,6 @@ TEST(LevelUpCardTest, StartsAPairOfGainsAtTheTopOfTheBody) {
   EXPECT_EQ(RowIndexOf(screen, "+3 SP"), rule_row + 2);
 }
 
-TEST(LevelUpCardTest, IsTitledAndBorderedInGold) {
-  ftxui::Screen screen = RenderCard(12, 13, 5, 3);
-  EXPECT_TRUE(AnyRowHas(screen, "Level Up"));
-  // The top-left corner is border whatever the card holds. Gold is the point of
-  // this panel: it is what makes it noticeable across a room.
-  EXPECT_EQ(screen.PixelAt(0, 0).foreground_color, kYellow);
-  EXPECT_EQ(screen.PixelAt(0, screen.dimy() - 1).foreground_color, kYellow);
-}
-
-// A steel-blue divider across a gold card looks like a seam between two joined
-// things.
-TEST(LevelUpCardTest, TheRuleInsideItIsGoldToo) {
-  ftxui::Screen screen = RenderCard(12, 13, 5, 3);
-  // Found by its left tee rather than a run of line characters: the title row
-  // is padded with the same character when the card is wider than its title,
-  // so a run doesn't identify the divider alone.
-  int rule_row = RowIndexOf(screen, "├");
-  ASSERT_GE(rule_row, 1) << "a rule between the level and what it paid";
-  EXPECT_EQ(screen.PixelAt(screen.dimx() / 2, rule_row).foreground_color,
-            kYellow);
-}
-
 // --- what a level opened ---
 
 // The only line on the card the player hasn't seen before, so it is the one

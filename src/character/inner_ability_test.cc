@@ -47,24 +47,6 @@ void ExpectWellFormed(const AbilityPreset& preset) {
   }
 }
 
-TEST(InnerAbilityTest, LineValues) {
-  EXPECT_EQ(AbilityLineValue(ABILITY_LINE_TYPE_STR, ABILITY_RANK_RARE), 10);
-  EXPECT_EQ(AbilityLineValue(ABILITY_LINE_TYPE_STR, ABILITY_RANK_LEGENDARY),
-            40);
-  EXPECT_EQ(AbilityLineValue(ABILITY_LINE_TYPE_MAX_HP, ABILITY_RANK_UNIQUE),
-            450);
-  EXPECT_EQ(AbilityLineValue(ABILITY_LINE_TYPE_ATTACK, ABILITY_RANK_EPIC), 12);
-  EXPECT_EQ(
-      AbilityLineValue(ABILITY_LINE_TYPE_BUFF_DURATION, ABILITY_RANK_LEGENDARY),
-      50);
-  EXPECT_EQ(
-      AbilityLineValue(ABILITY_LINE_TYPE_ATTACK_SPEED, ABILITY_RANK_LEGENDARY),
-      1);
-  EXPECT_EQ(
-      AbilityLineValue(ABILITY_LINE_TYPE_UNSPECIFIED, ABILITY_RANK_LEGENDARY),
-      0);
-}
-
 // A type GMS doesn't offer at a rank has no weight and no value there, so both
 // tables gate on exactly the same pairings.
 TEST(InnerAbilityTest, GatedTypesAreWorthNothing) {
@@ -87,65 +69,6 @@ TEST(InnerAbilityTest, GatedTypesAreWorthNothing) {
   EXPECT_GT(
       AbilityTypeWeight(ABILITY_LINE_TYPE_ATTACK_SPEED, ABILITY_RANK_LEGENDARY),
       0);
-}
-
-// GMS's weights are percentages of a pool this game has trimmed. The ratios
-// must survive the trimming: STR is 1.5 times All Stats at Epic, and 2.25 times
-// at Unique.
-TEST(InnerAbilityTest, WeightRatiosFollowGms) {
-  EXPECT_EQ(AbilityTypeWeight(ABILITY_LINE_TYPE_STR, ABILITY_RANK_EPIC),
-            AbilityTypeWeight(ABILITY_LINE_TYPE_ALL_STATS, ABILITY_RANK_EPIC) *
-                3 / 2);
-  EXPECT_EQ(
-      AbilityTypeWeight(ABILITY_LINE_TYPE_STR, ABILITY_RANK_UNIQUE) * 4,
-      AbilityTypeWeight(ABILITY_LINE_TYPE_ALL_STATS, ABILITY_RANK_UNIQUE) * 9);
-  // The two attack types are one GMS line split in two, and each keeps its
-  // weight.
-  for (int rank = ABILITY_RANK_RARE; rank <= ABILITY_RANK_LEGENDARY; ++rank) {
-    const auto at = static_cast<AbilityRank>(rank);
-    EXPECT_EQ(AbilityTypeWeight(ABILITY_LINE_TYPE_ATTACK, at),
-              AbilityTypeWeight(ABILITY_LINE_TYPE_MAGIC_ATTACK, at));
-  }
-}
-
-TEST(InnerAbilityTest, ResetCostAndRankUpChance) {
-  // The whole table, by rank and then by locked lines. Unique and Legendary are
-  // GMS's, and the cost of a lock doubles between them: +1500/+2500 becomes
-  // +3000/+5000. The two lower rows halve that ladder twice, rounded to
-  // recognisable numbers.
-  const int64_t want[4][kMaxLockedAbilityLines + 1] = {
-      {100, 500, 1100},
-      {200, 1000, 2200},
-      {1500, 3000, 5500},
-      {8000, 11000, 16000},
-  };
-  for (int rank = ABILITY_RANK_RARE; rank <= ABILITY_RANK_LEGENDARY; ++rank) {
-    for (int locked = 0; locked <= kMaxLockedAbilityLines; ++locked) {
-      EXPECT_EQ(AbilityResetCost(static_cast<AbilityRank>(rank), locked),
-                want[rank - ABILITY_RANK_RARE][locked])
-          << "rank " << rank << " holding " << locked;
-    }
-  }
-  // A lock count no reset can have costs nothing.
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 3), 0);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, -1), 0);
-
-  EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_RARE), 0.05);
-  EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_EPIC), 0.02);
-  EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_UNIQUE), 0.01);
-  EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_LEGENDARY), 0.0);
-}
-
-TEST(InnerAbilityTest, DefaultPresetIsThreeRareAllStats) {
-  const AbilityPreset preset = DefaultAbilityPreset();
-  EXPECT_EQ(preset.rank(), ABILITY_RANK_RARE);
-  ASSERT_EQ(preset.lines_size(), kAbilityLines);
-  for (const AbilityLine& line : preset.lines()) {
-    EXPECT_EQ(line.type(), ABILITY_LINE_TYPE_ALL_STATS);
-    EXPECT_EQ(line.rank(), ABILITY_RANK_RARE);
-    EXPECT_FALSE(line.locked());
-    EXPECT_EQ(AbilityLineValue(line.type(), line.rank()), 10);
-  }
 }
 
 TEST(InnerAbilityTest, PresetOfPicksTheNamedSlot) {

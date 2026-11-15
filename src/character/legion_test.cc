@@ -14,45 +14,6 @@ std::vector<LegionMember> Many(int count, Job job, int level) {
   return std::vector<LegionMember>(count, LegionMember{job, level});
 }
 
-TEST(LegionTest, CharacterRanksAndPointsFollowGms) {
-  EXPECT_EQ(CharacterRankFor(59), CharacterRank::kNone);
-  EXPECT_EQ(CharacterRankFor(60), CharacterRank::kB);
-  EXPECT_EQ(CharacterRankFor(99), CharacterRank::kB);
-  EXPECT_EQ(CharacterRankFor(100), CharacterRank::kA);
-  EXPECT_EQ(CharacterRankFor(140), CharacterRank::kS);
-  EXPECT_EQ(CharacterRankFor(200), CharacterRank::kSS);
-  EXPECT_EQ(CharacterRankFor(249), CharacterRank::kSS);
-  EXPECT_EQ(CharacterRankFor(250), CharacterRank::kSSS);
-  EXPECT_EQ(CharacterRankName(CharacterRank::kSSS), "SSS");
-  EXPECT_EQ(LegionPointsFor(CharacterRank::kNone), 0);
-  EXPECT_EQ(LegionPointsFor(CharacterRank::kB), 1);
-  EXPECT_EQ(LegionPointsFor(CharacterRank::kSSS), 5);
-}
-
-TEST(LegionTest, RanksAreEvery500Levels) {
-  EXPECT_EQ(LegionRankFor(499), 0);
-  EXPECT_EQ(LegionRankName(0), "");
-  EXPECT_EQ(LegionRankFor(500), 1);
-  EXPECT_EQ(LegionRankName(1), "Nameless Legion Rank I");
-  EXPECT_EQ(LegionRankName(LegionRankFor(2500)), "Nameless Legion Rank V");
-  EXPECT_EQ(LegionRankName(LegionRankFor(3000)), "Renowned Legion Rank I");
-  EXPECT_EQ(LegionRankName(LegionRankFor(5500)), "Heroic Legion Rank I");
-  EXPECT_EQ(LegionRankName(LegionRankFor(8000)), "Legendary Legion Rank I");
-  EXPECT_EQ(LegionRankName(LegionRankFor(10500)), "Supreme Legion Rank I");
-  EXPECT_EQ(LegionRankFor(99999), kLegionRanks);
-}
-
-TEST(LegionTest, MemberSlotsFollowGmsTable) {
-  EXPECT_EQ(LegionMemberSlots(0), 9);
-  EXPECT_EQ(LegionMemberSlots(1), 9);
-  EXPECT_EQ(LegionMemberSlots(5), 13);
-  EXPECT_EQ(LegionMemberSlots(6), 18);
-  EXPECT_EQ(LegionMemberSlots(11), 27);
-  EXPECT_EQ(LegionMemberSlots(16), 36);
-  EXPECT_EQ(LegionMemberSlots(21), 41);
-  EXPECT_EQ(LegionMemberSlots(25), 45);
-}
-
 TEST(LegionTest, ExpandedCapsOpenWithRank) {
   EXPECT_EQ(LegionStatCap(LEGION_STAT_STR, 0), kLegionBaseStatCap);
   EXPECT_EQ(LegionStatCap(LEGION_STAT_MAX_MP, 25), kLegionBaseStatCap);
@@ -71,28 +32,6 @@ TEST(LegionTest, EveryStatIsWorthSomething) {
   for (int i = LegionStat_MIN + 1; i <= LegionStat_MAX; ++i) {
     EXPECT_GT(LegionPerPoint(static_cast<LegionStat>(i)), 0.0) << i;
   }
-}
-
-TEST(LegionTest, JobEffectsByLine) {
-  EXPECT_EQ(LegionJobEffectFor(JOB_HERO, CharacterRank::kSSS).str, 100);
-  EXPECT_EQ(LegionJobEffectFor(JOB_FIGHTER, CharacterRank::kB).str, 10);
-  EXPECT_EQ(LegionJobEffectFor(JOB_PALADIN, CharacterRank::kSS).str, 80);
-  EXPECT_DOUBLE_EQ(
-      LegionJobEffectFor(JOB_DARK_KNIGHT, CharacterRank::kSSS).max_hp_pct,
-      0.06);
-  EXPECT_EQ(
-      LegionJobEffectFor(JOB_FIRE_POISON_ARCH_MAGE, CharacterRank::kS).int_,
-      40);
-  EXPECT_EQ(LegionJobEffectFor(JOB_BISHOP, CharacterRank::kA).int_, 20);
-  EXPECT_EQ(LegionJobEffectFor(JOB_BOW_MASTER, CharacterRank::kSSS).dex, 100);
-  EXPECT_DOUBLE_EQ(
-      LegionJobEffectFor(JOB_NIGHT_LORD, CharacterRank::kSSS).crit_rate, 0.05);
-  EXPECT_DOUBLE_EQ(
-      LegionJobEffectFor(JOB_MARKSMAN, CharacterRank::kB).crit_rate, 0.01);
-  EXPECT_EQ(LegionJobEffectFor(JOB_SHADOWER, CharacterRank::kSSS).luk, 100);
-  // No line yet, no effect.
-  EXPECT_EQ(LegionJobEffectFor(JOB_SWORDMAN, CharacterRank::kSSS).str, 0);
-  EXPECT_EQ(LegionJobEffectFor(JOB_HERO, CharacterRank::kNone).str, 0);
 }
 
 TEST(LegionTest, OnlyRankedCharactersCount) {

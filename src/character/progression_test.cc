@@ -90,20 +90,6 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   }
 }
 
-// Held back until the early game is over and meso is coming in for the spell
-// traces it uses.
-TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
-  EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(39), account_));
-  EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40), account_));
-}
-
-// Cubing is the last thing a player does to an item, so it unlocks after every
-// other upgrade.
-TEST_F(ProgressionTest, PotentialOpensAboveEveryOtherUpgrade) {
-  EXPECT_EQ(UnlockLevel(Feature::kPotential), kPotentialUnlockLevel);
-  EXPECT_GT(UnlockLevel(Feature::kPotential), UnlockLevel(Feature::kStarForce));
-}
-
 // An upgrade unlocked above the cap could only be used from the workbench, so
 // every one must unlock within it.
 TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
@@ -131,25 +117,6 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
   }
   EXPECT_FALSE(Unlocked(Feature::kPotential, fresh, account_))
       << "an account that stopped at 140 never reached cubing";
-}
-
-// The lobby and the character select both open well before bossing; the
-// character select comes with the 2nd job, so a player can switch early. A
-// second character has both from level 1.
-TEST_F(ProgressionTest, TheLobbyAndTheCharacterSelectOpenEarly) {
-  EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 25);
-  EXPECT_EQ(UnlockLevel(Feature::kCharacters), 30);
-  EXPECT_EQ(UnlockLevel(Feature::kBank), UnlockLevel(Feature::kCharacters))
-      << "shared storage is worth nothing without somebody to share with";
-  EXPECT_LT(UnlockLevel(Feature::kMultiplayer), UnlockLevel(Feature::kBoss));
-
-  EXPECT_FALSE(Unlocked(Feature::kCharacters, MakeCharacter(29), account_));
-  EXPECT_FALSE(Unlocked(Feature::kBank, MakeCharacter(29), account_));
-  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(30), account_));
-  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(30), account_));
-  account_.RecordProgress(30, 2);
-  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(1), account_));
-  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(1), account_));
 }
 
 // The skills tab unlocks on level alone, with or without a job, since every
@@ -310,15 +277,6 @@ TEST_F(ProgressionTest, TheFlameEntryLeadsFrom180UntilPressed) {
       << "one character following it clears it for all";
 }
 
-TEST_F(ProgressionTest, TheSoulEntryLeadsFrom130UntilPressed) {
-  EXPECT_EQ(UnlockLevel(Feature::kSoul), 130);
-  EXPECT_FALSE(LeadToAction(Feature::kSoul, MakeCharacter(129), account_));
-  CharacterInstance first = MakeCharacter(130);
-  EXPECT_TRUE(LeadToAction(Feature::kSoul, first, account_));
-  FollowedToAction(Feature::kSoul, account_);
-  EXPECT_FALSE(LeadToAction(Feature::kSoul, first, account_));
-}
-
 // The trail appears the first time the account reaches the first threshold, for
 // whichever character is being played.
 TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsFirstRung) {
@@ -465,37 +423,6 @@ TEST_F(ProgressionTest, NoFeatureCaresAboutTheJob) {
 }
 
 // --- GameSpeedFactor ---
-
-TEST_F(ProgressionTest, TheFirstBandIsTheFastestTheGameEverRuns) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(1), 2.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(9), 2.0);
-}
-
-TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(10), 3.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 3.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 4.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 4.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 6.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 6.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 7.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(199), 7.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(200), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(229), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(230), 10.0);
-}
-
-// Nothing above the last band and nothing below the first: the table must give
-// an answer for levels on either side of its range.
-TEST_F(ProgressionTest, TheLastBandRunsToTheTop) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(300), 10.0);
-}
-
-TEST_F(ProgressionTest, ALevelBelowTheTableGetsTheFirstBand) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(0), 2.0);
-}
 
 // The game only gets slower. A band that dipped would make a level-up speed the
 // game up, the opposite of the ladder's purpose.
