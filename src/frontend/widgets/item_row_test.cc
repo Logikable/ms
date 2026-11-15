@@ -120,6 +120,7 @@ TEST(FormatItemRowTest, AShortNameNeverMoves) {
 // an item shows.
 TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   EquipPrototype proto;
+  proto.set_equip_slot(EQUIP_SLOT_HAT);
   proto.set_upgrade_slots(7);
   proto.set_required_level(150);
   Equip state;
@@ -156,17 +157,32 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_BISHOP, OneEffect()).potential,
             "Junk        ");
 
-  // An upgrade the item can't take and an item with no potential both read "-",
-  // not blank.
-  proto.set_upgrade_slots(0);
-  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  // An upgrade the item could take but hasn't reads as a gap to fill.
   state.clear_main_potential();
+  state.set_scroll_successes(0);
+  state.set_stars(0);
   cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
-  EXPECT_EQ(cells.scroll, "-");
-  EXPECT_EQ(cells.stars, "-");
-  EXPECT_EQ(cells.potential, "-           ");
+  EXPECT_EQ(cells.scroll, "0/9");
+  EXPECT_EQ(cells.stars, "0★");
+  EXPECT_EQ(cells.potential, "None        ");
   EXPECT_EQ(cells.potential_rank, POTENTIAL_RANK_UNSPECIFIED);
-  EXPECT_EQ(cells.bonus_potential, "-           ");
+  EXPECT_EQ(cells.bonus_potential, "None        ");
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kFlame)]);
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kPotential)]);
+
+  // One it can't take reads a closed "×", not "None" and not blank.
+  proto.set_upgrade_slots(0);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  proto.add_unsupported_upgrades(UPGRADE_CUBE);
+  proto.add_unsupported_upgrades(UPGRADE_FLAME);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  for (ItemColumn column :
+       {ItemColumn::kScroll, ItemColumn::kStars, ItemColumn::kPotential,
+        ItemColumn::kBonusPotential, ItemColumn::kFlame}) {
+    EXPECT_EQ(cells.Get(column), "×");
+    EXPECT_TRUE(cells.closed[static_cast<int>(column)]);
+  }
 
   // The bonus potential reads the same way, from its own lines.
   state.mutable_bonus_potential()->set_rank(POTENTIAL_RANK_EPIC);
@@ -174,8 +190,10 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line->set_type(POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
   line->set_rank(POTENTIAL_RANK_EPIC);
   cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
-  EXPECT_EQ(cells.potential, "-           ");
-  EXPECT_NE(cells.bonus_potential.find("% STR"), std::string::npos);
+  EXPECT_EQ(cells.potential, "×");
+  EXPECT_NE(cells.bonus_potential.find("% STR"), std::string::npos)
+      << "what the item carries still shows";
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kBonusPotential)]);
   EXPECT_EQ(cells.bonus_potential_rank, POTENTIAL_RANK_EPIC);
 }
 

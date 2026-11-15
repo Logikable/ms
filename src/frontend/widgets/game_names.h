@@ -136,12 +136,12 @@ std::string PotentialLineShortName(PotentialLineType type);
 // one total. It lists as many as fit.
 //
 // `secondary` is the stat after the primary, shown only when the potential
-// grants nothing better. An item granting nothing reads "Junk", or "-" if it
+// grants nothing better. An item granting nothing reads "Junk", or "None" if it
 // has no potential. Values come first with no "+", since every row would carry
 // one.
 std::string PotentialCell(const Potential& potential, int item_level,
                           StatField primary, StatField secondary, int width);
-// The effects PotentialCell picks from, best first: "Junk" or "-" alone when
+// The effects PotentialCell picks from, best first: "Junk" or "None" alone when
 // there are none.
 std::vector<std::string> PotentialCellEffects(const Potential& potential,
                                               int item_level, StatField primary,
@@ -152,7 +152,8 @@ std::vector<std::string> PotentialCellEffects(const Potential& potential,
 // counts toward both its stats. A weapon ranks ATT (MATT for a magician), Boss
 // Damage, Damage, All Stats and the primary stat, and falls back to the
 // secondary stat; anything else ranks the primary, All Stats, the attack and
-// the secondary. "Junk" when none of those, and "-" for an item never flamed.
+// the secondary. "Junk" when none of those, and "None" for an item never
+// flamed.
 std::string FlameCell(const FlameLines& flame, const EquipPrototype& proto,
                       StatField primary, StatField secondary, int width);
 std::vector<std::string> FlameCellEffects(const FlameLines& flame,

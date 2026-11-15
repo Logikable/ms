@@ -1230,9 +1230,9 @@ std::vector<std::string> PotentialCellEffects(const Potential& potential,
     effects = SecondaryStatEffect(potential, item_level, secondary);
   }
   if (effects.empty()) {
-    // "Junk" for a cubed item that still grants this character nothing, and "-"
-    // for one that was never cubed.
-    effects.push_back(potential.lines().empty() ? "-" : "Junk");
+    // "Junk" for a cubed item that still grants this character nothing, and
+    // "None" for one that was never cubed.
+    effects.push_back(potential.lines().empty() ? "None" : "Junk");
   }
   return effects;
 }
@@ -1273,7 +1273,7 @@ std::vector<std::string> FlameCellEffects(const FlameLines& flame,
                                           StatField primary,
                                           StatField secondary) {
   if (flame.empty()) {
-    return {"-"};
+    return {"None"};
   }
   const EquipStats stats = FlameStats(flame, proto);
   const FlamePercents percents = FlamePercentsOf(flame, proto);

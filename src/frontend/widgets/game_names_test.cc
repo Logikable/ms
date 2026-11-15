@@ -536,7 +536,7 @@ TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
   // An item with no potential can't be junk.
   EXPECT_EQ(PotentialCell(Potential(), 150, STAT_FIELD_STR, STAT_FIELD_DEX,
                           kOneEffect),
-            "-           ");
+            "None        ");
 }
 
 // The secondary stat is worth a quarter of the primary. That is worth showing
@@ -794,7 +794,7 @@ TEST(FlameCellTest, ArmourRanksThePrimaryFirst) {
                 STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
             "Junk");
   EXPECT_EQ(Trimmed(FlameCell({}, hat, STAT_FIELD_STR, STAT_FIELD_DEX, 42)),
-            "-");
+            "None");
 }
 
 // A weapon ranks its attack and percents first, and shows the secondary only

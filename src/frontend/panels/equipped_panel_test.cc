@@ -777,7 +777,9 @@ TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
   EXPECT_EQ(panel.gear_preset(), StatPreset::kSecond);
   EXPECT_NE(rendered.find("Boss Sword"), std::string::npos);
   EXPECT_EQ(rendered.find("Farm Sword"), std::string::npos);
-  EXPECT_EQ(LineWith(rendered, "Boss Sword").find("\033[2m"), std::string::npos)
+  // Its closed upgrade cells are dim, but the name before them is not.
+  const std::string boss = LineWith(rendered, "Boss Sword");
+  EXPECT_GT(boss.find("\033[2m"), boss.find("Boss Sword"))
       << "its own, so it is drawn plainly";
   EXPECT_NE(LineWith(rendered, "Farm Hat").find("\033[2m"), std::string::npos)
       << "inherited, so it is dimmed";

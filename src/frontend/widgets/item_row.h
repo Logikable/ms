@@ -45,6 +45,8 @@ struct ItemCells {
   // cell plain.
   PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
   PotentialRank bonus_potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  // The columns whose upgrade the item can't take, drawn dim.
+  bool closed[kNumItemColumns] = {};
 
   const std::string& Get(ItemColumn column) const;
 };
@@ -62,6 +64,7 @@ struct ItemRowText {
   CellSpan span[kNumItemColumns];
   PotentialRank potential_rank = POTENTIAL_RANK_UNSPECIFIED;
   PotentialRank bonus_potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  bool closed[kNumItemColumns] = {};
 
   // The rank colouring `column`'s cell: UNSPECIFIED for all but the two
   // potentials.
@@ -78,10 +81,11 @@ struct ItemRowText {
 std::string ItemStatsCell(Job job, const EquipStats& stats);
 
 // The scroll, star force, potential and flame cells of an item, which read the
-// same wherever it is listed. An upgrade the item can't take reads "-", and so
-// does a potential with nothing this job uses. A blank would look like a column
-// that failed to draw. The potential and flame columns' widths in `columns`
-// decide how many effects each cell names.
+// same wherever it is listed. An upgrade the item can't take reads a dim "×";
+// one it can take but hasn't reads "0/7", "0★" or "None", so the gap reads as
+// one to fill. A blank would look like a column that failed to draw. The
+// potential and flame columns' widths in `columns` decide how many effects each
+// cell names.
 ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
                             Job job, const ItemColumns& columns);
 
@@ -102,7 +106,7 @@ ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
                               std::chrono::steady_clock::duration::zero());
 
 // `cursor` and `row` as one line, each potential cell in its rank's text
-// colour.
+// colour and each closed cell dim.
 // `name` decorates the cursor and the name cell.
 ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
                               ftxui::Decorator name = ftxui::nothing);

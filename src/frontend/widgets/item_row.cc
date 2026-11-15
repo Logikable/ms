@@ -14,11 +14,18 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/item/flame.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
+namespace {
+
+constexpr char kClosedCell[] = "×";
+
+}  // namespace
 
 const std::string& ItemCells::Get(ItemColumn column) const {
   static_assert(kNumItemColumns == 10, "a new column needs a cell");
@@ -74,12 +81,9 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   // The slot count is included so a row shows how far the item can still go,
   // not only how far it has come.
   int slots = TotalUpgradeSlots(proto);
-  cells.scroll = slots > 0 ? std::to_string(state.scroll_successes()) + "/" +
-                                 std::to_string(slots)
-                           : "-";
-  cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
-                    ? std::to_string(state.stars()) + "★"
-                    : "-";
+  cells.scroll =
+      std::to_string(state.scroll_successes()) + "/" + std::to_string(slots);
+  cells.stars = std::to_string(state.stars()) + "★";
   cells.potential = PotentialCell(
       state.main_potential(), proto.required_level(), PrimaryStatField(job),
       SecondaryStatField(job), columns.Width(ItemColumn::kPotential));
@@ -91,6 +95,26 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   cells.flame =
       FlameCell(state.flame(), proto, PrimaryStatField(job),
                 SecondaryStatField(job), columns.Width(ItemColumn::kFlame));
+  const bool cubes =
+      SlotTakesPotential(proto.equip_slot()) && Supports(proto, UPGRADE_CUBE);
+  const bool flames =
+      SlotTakesFlame(proto.equip_slot()) && Supports(proto, UPGRADE_FLAME);
+  // What the item already carries still shows: a closed column means nothing
+  // can be added, not that nothing is there.
+  auto close = [&cells](ItemColumn column, std::string& cell, bool empty) {
+    if (empty) {
+      cell = kClosedCell;
+      cells.closed[static_cast<int>(column)] = true;
+    }
+  };
+  close(ItemColumn::kScroll, cells.scroll, slots == 0);
+  close(ItemColumn::kStars, cells.stars,
+        !Supports(proto, UPGRADE_STAR_FORCE) && state.stars() == 0);
+  close(ItemColumn::kPotential, cells.potential,
+        !cubes && state.main_potential().lines().empty());
+  close(ItemColumn::kBonusPotential, cells.bonus_potential,
+        !cubes && state.bonus_potential().lines().empty());
+  close(ItemColumn::kFlame, cells.flame, !flames && state.flame().empty());
   return cells;
 }
 
@@ -155,6 +179,7 @@ ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
   ItemRowText row;
   row.potential_rank = cells.potential_rank;
   row.bonus_potential_rank = cells.bonus_potential_rank;
+  std::copy(std::begin(cells.closed), std::end(cells.closed), row.closed);
   for (int i = 0; i < kNumItemColumns; ++i) {
     ItemColumn column = static_cast<ItemColumn>(i);
     if (!columns.Shows(column)) {
@@ -186,17 +211,20 @@ ftxui::Element ItemRowElement(const std::string& cursor, const ItemRowText& row,
                        text.size());
   std::vector<ftxui::Element> parts = {
       ftxui::text(cursor + text.substr(0, at)) | name};
-  for (ItemColumn column :
-       {ItemColumn::kPotential, ItemColumn::kBonusPotential}) {
+  for (int i = 0; i < kNumItemColumns; ++i) {
+    ItemColumn column = static_cast<ItemColumn>(i);
     CellSpan span = row.Span(column);
-    if (span.bytes == 0) {
+    const bool potential = column == ItemColumn::kPotential ||
+                           column == ItemColumn::kBonusPotential;
+    if (span.bytes == 0 || (!potential && !row.closed[i])) {
       continue;
     }
     size_t start = std::max(at, static_cast<size_t>(span.offset));
     size_t end = std::min(start + static_cast<size_t>(span.bytes), text.size());
     parts.push_back(ftxui::text(text.substr(at, start - at)));
-    parts.push_back(ftxui::text(text.substr(start, end - start)) |
-                    PotentialCellColor(row.RankOf(column)));
+    parts.push_back(
+        ftxui::text(text.substr(start, end - start)) |
+        (row.closed[i] ? ftxui::dim : PotentialCellColor(row.RankOf(column))));
     at = end;
   }
   parts.push_back(ftxui::text(text.substr(at)));
