@@ -129,6 +129,8 @@ SkillEffect PassiveEffectAt(const Skill& skill, int level);
 
 // A buff's levers at `level`: its ladder, plus every Buff.step it has reached.
 SkillEffect BuffEffectAt(const Buff& buff, int level);
+// The same for a buff's opening window. See BuffOpening.
+SkillEffect OpeningEffectAt(const BuffOpening& opening, int level);
 
 // What a boost gives its target when the granting skill is at `level`: its
 // ladder, plus every SkillBoost.step reached.

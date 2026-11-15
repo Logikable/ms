@@ -2044,6 +2044,45 @@ TEST_F(SkillInspectPanelTest, ABuffWithFormsHeadsEachOfThem) {
   EXPECT_EQ(LabelColor(panel.Render(), "Mobile for 20s"), kGold);
 }
 
+// HEXA Arcane Overdrive's card: the buff's own 7% under its heading, and the
+// opening's 21% under one of its own that says it replaces them.
+TEST_F(SkillInspectPanelTest, AnOpeningHeadsWhatItGrantsInstead) {
+  Skill overdrive = IronBody();
+  overdrive.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = overdrive.mutable_buff();
+  buff->set_duration_seconds(70.0);
+  buff->mutable_base()->set_final_dmg_pct(0.07);
+  buff->mutable_opening()->set_seconds(15.0);
+  buff->mutable_opening()->mutable_base()->set_final_dmg_pct(0.20);
+  BuffStep* step = buff->mutable_opening()->add_step();
+  step->set_from_level(10);
+  step->mutable_base()->set_final_dmg_pct(0.01);
+
+  std::string rendered = RenderAt(overdrive, 10);
+  std::vector<std::string> lines = Lines(rendered);
+  size_t heading = 0;
+  size_t own = 0;
+  size_t opening = 0;
+  // The first of each, since the next level's block repeats the buff's rows.
+  for (size_t i = lines.size(); i-- > 0;) {
+    if (lines[i].find("Instead, for the First 15s") != std::string::npos) {
+      heading = i;
+    }
+    if (RowIn(lines[i], "Final Damage", "+7%") != std::string::npos) {
+      own = i;
+    }
+    if (RowIn(lines[i], "Final Damage", "+21%") != std::string::npos) {
+      opening = i;
+    }
+  }
+  ASSERT_GT(heading, 0u) << rendered;
+  EXPECT_LT(own, heading) << rendered;
+  EXPECT_GT(opening, heading) << rendered;
+  SkillInspectPanel panel;
+  panel.SetSkill(&overdrive, 10, 0);
+  EXPECT_EQ(LabelColor(panel.Render(), "Instead, for the First 15s"), kGold);
+}
+
 // An attack's ignored defence applies only during that attack, while the ATT it
 // grants is permanent. Without headings the two rows would look alike. The same
 // fields on a passive are permanent, so nothing heads them.

@@ -94,8 +94,9 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 int SkillMaxLevel(const Skill& skill);
 
 // How many damage tables `buff` uses in a fight: one per stage it drops, one
-// per stack it builds, and one for an ordinary buff. Use this wherever the
-// budget is counted; see kMaxBuffWindows in combat/constants.h.
+// per stack it builds, two for an opening, and one for an ordinary buff. Use
+// this wherever the budget is counted; see kMaxBuffWindows in
+// combat/constants.h.
 int BuffWindowsFor(const Buff& buff);
 
 // The job stage whose SP pool buys skills of `advancement` (1 = 1st job).

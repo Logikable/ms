@@ -323,6 +323,16 @@ SkillEffect BuffEffectAt(const Buff& buff, int level) {
   return at;
 }
 
+SkillEffect OpeningEffectAt(const BuffOpening& opening, int level) {
+  SkillEffect at = EffectAt(opening.base(), opening.per_level(), level);
+  for (const BuffStep& step : opening.step()) {
+    if (level >= step.from_level()) {
+      at = EffectAt(at, step.base(), 2);
+    }
+  }
+  return at;
+}
+
 SkillEffect BoostEffectAt(const SkillBoost& boost, int level) {
   SkillEffect at = EffectAt(boost.effect(), boost.effect_per_level(), level);
   for (const BoostStep& step : boost.step()) {

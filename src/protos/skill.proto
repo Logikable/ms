@@ -969,6 +969,24 @@ message Buff {
   // Counted per press carrying this skill's Final Attack, so it is exact only
   // for a chance of 1, which Split Shot's is.
   int32 final_attack_triggers = 33;
+  // What the buff grants for its first seconds, in place of the levers above.
+  // See BuffOpening.
+  BuffOpening opening = 34;
+}
+
+// A buff that starts strong and settles. It exists for HEXA Arcane Overdrive:
+// GMS grants 21% final damage for 15 seconds, then 7% for the rest. Unlike
+// `stages`, the two strengths are unrelated numbers, and this replaces the
+// buff's own levers instead of adding to them.
+//
+// Runs as two buff windows from one cast, as a staged buff does: this one for
+// `seconds`, the buff's own for the full duration. Not lengthened by Buff
+// Duration, like a stage interval. Read at the skill's learned level.
+message BuffOpening {
+  double seconds = 1;
+  SkillEffect base = 2;
+  SkillEffect per_level = 3;
+  repeated BuffStep step = 4;
 }
 
 // One of Skill.step.

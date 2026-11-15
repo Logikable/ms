@@ -1708,6 +1708,21 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   return rows;
 }
 
+// What a buff grants for its first seconds instead of the rows under its own
+// heading. Its own block, since every lever in it is replaced, not added.
+std::vector<Row> OpeningRows(const Buff& buff, int level) {
+  if (!buff.has_opening()) {
+    return {};
+  }
+  std::vector<Row> rows = {SectionRow(
+      "Instead, for the First " + FormatNumber(buff.opening().seconds()) + "s",
+      kGold)};
+  Append(
+      LeverRows(OpeningEffectAt(buff.opening(), level), SkillEffect(), 1, ""),
+      rows);
+  return rows;
+}
+
 // The forms a buff can take, each with a heading and a pulse. Both are shown:
 // the player never chooses between them (the fight does), so the card shows the
 // pair side by side.
@@ -1893,6 +1908,7 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   Append(StanceRows(buff, level), rows);
   Append(MagazineRows(buff.magazine(), level), rows);
   Append(AllyBuffRows(buff, level), rows);
+  Append(OpeningRows(buff, level), rows);
   return rows;
 }
 

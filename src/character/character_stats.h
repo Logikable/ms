@@ -438,6 +438,9 @@ struct BuffUp {
   // the fold. See TotalIntFor.
   int caster_int = 0;
   int party_size = 0;
+  // Whether this is the opening window of a buff with one, which grants
+  // Buff.opening instead of the buff's own levers.
+  bool opening = false;
 };
 
 // A character's Arcane Force: symbols and the Hyper Stat, plus every held skill

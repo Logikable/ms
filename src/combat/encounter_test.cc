@@ -2728,6 +2728,48 @@ TEST(ComputeCombatParamsTest, ASheddingBuffNeverOutlastsItsDuration) {
                    15.0 * (1.0 + kBaseBuffDuration) * factor);
 }
 
+// HEXA Arcane Overdrive's shape: 21% final damage for the first 15 seconds,
+// then 7% for the rest. Two windows from one cast, and while the opening is up
+// it grants in place of the buff's own levers, never on top of them.
+TEST(ComputeCombatParamsTest, AnOpeningGrantsInPlaceOfTheBuffForItsSeconds) {
+  Skill overdrive;
+  overdrive.set_name("HEXA Arcane Overdrive");
+  overdrive.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(overdrive, JOB_ADVANCEMENT_SWORDMAN);
+  overdrive.set_max_level(30);
+  overdrive.set_base_delay_ms(120);
+  overdrive.set_cooldown_seconds(120.0);
+  Buff* buff = overdrive.mutable_buff();
+  buff->set_duration_seconds(60.0);
+  buff->mutable_base()->set_final_dmg_pct(0.07);
+  buff->mutable_opening()->set_seconds(15.0);
+  buff->mutable_opening()->mutable_base()->set_final_dmg_pct(0.21);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"arcane_overdrive", overdrive}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(overdrive, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 2u);
+  // The opening isn't lengthened by Buff Duration; the buff itself is.
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 15.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds,
+                   60.0 * (1.0 + kBaseBuffDuration) * factor);
+  EXPECT_GT(params.buffs[0].cast_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(params.buffs[1].cast_seconds, 0.0);
+
+  double bare = params.attacks.front().damage_per_hit.front();
+  EXPECT_NEAR(params.Attacks(0b11).front().damage_per_hit.front() / bare, 1.21,
+              1e-9);
+  EXPECT_NEAR(params.Attacks(0b10).front().damage_per_hit.front() / bare, 1.07,
+              1e-9);
+}
+
 // GMS marks every 5th job skill notIncBuffDuration, so Buff Duration doesn't
 // apply to the V Matrix: the same book lengthens an ordinary buff but not a
 // node's.

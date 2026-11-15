@@ -878,7 +878,8 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
   if (skill.granted_by_equip()) {
     level = character.EquipmentSkillLevel(skill, gear);
   }
-  SkillEffect held = BuffEffectAt(skill.buff(), level);
+  SkillEffect held = up.opening ? OpeningEffectAt(skill.buff().opening(), level)
+                                : BuffEffectAt(skill.buff(), level);
   std::map<std::string, SkillBonus>::const_iterator boost =
       totals.skill_bonus.find(skill.name());
   if (boost != totals.skill_bonus.end()) {

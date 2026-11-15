@@ -841,6 +841,9 @@ int SkillMaxLevel(const Skill& skill) {
 }
 
 int BuffWindowsFor(const Buff& buff) {
+  if (buff.has_opening()) {
+    return 2;
+  }
   return std::max(1, buff.stages()) * std::max(1, buff.stacks());
 }
 

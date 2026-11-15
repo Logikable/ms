@@ -1641,6 +1641,12 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
         std::min(option.duration_seconds,
                  buff.stage_interval_seconds() * (stage + 1) * speed_factor);
   }
+  // The opening is the first window; the buff's own levers run the full
+  // duration behind it.
+  if (buff.has_opening() && stage == 0) {
+    option.duration_seconds = std::min(option.duration_seconds,
+                                       buff.opening().seconds() * speed_factor);
+  }
   // Same scaling as the duration above, since it's the same duration: burns add
   // seconds, not a separate effect.
   option.duration_seconds_per_dot = buff.duration_seconds_per_dot() *
@@ -1754,7 +1760,7 @@ void AddBuffs(const GameState& state,
     // Which stage this entry is. Stacking buffs' entries are identical (each is
     // gained by its own roll and lasts the full duration), so only staged buffs
     // number their copies.
-    int stage = buff.stages() > 0 ? copy : 0;
+    int stage = buff.stages() > 0 || buff.has_opening() ? copy : 0;
     BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
                                      BuffDurationFor(*skill, buff_duration_pct),
                                      speed_factor, stage);
@@ -1983,8 +1989,24 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   int own = static_cast<int>(source.buff_skills.size());
   std::vector<BuffUp> up;
   for (int i = 0; i < own; ++i) {
-    if ((mask & (1 << i)) != 0) {
-      up.push_back(BuffUp{source.buff_skills[i]});
+    if ((mask & (1 << i)) == 0) {
+      continue;
+    }
+    const Skill* skill = source.buff_skills[i];
+    if (!skill->buff().has_opening()) {
+      up.push_back(BuffUp{skill});
+      continue;
+    }
+    // An opening's windows are adjacent, opening first. While it is up it
+    // grants instead of the buff's own levers, so the later window adds
+    // nothing until it ends.
+    bool second = i > 0 && source.buff_skills[i - 1] == skill;
+    if (!second) {
+      BuffUp opening{skill};
+      opening.opening = true;
+      up.push_back(opening);
+    } else if ((mask & (1 << (i - 1))) == 0) {
+      up.push_back(BuffUp{skill});
     }
   }
   // Party buffs use the bits after the character's own, and carry the caster
