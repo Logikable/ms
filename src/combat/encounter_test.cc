@@ -4715,6 +4715,60 @@ TEST(ComputeCombatParamsTest, AnExtraStrikeReachesOnlyMultiHitSwings) {
 
 // An empowered attack lands its own secondary hit like a normal one: Empowered
 // Snipe spends the mark Snipe left on its target.
+// HEXA Hurricane's Shootout Mode: a labelled form is a mode of the attack
+// itself. It goes by its label, keeps its own animation, and takes every
+// bonus aimed at the attack, though no boost names the form.
+TEST(ComputeCombatParamsTest, AModeOfAnAttackTakesTheAttacksBoosts) {
+  Skill volley;
+  volley.set_name("Volley");
+  volley.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(volley, JOB_ADVANCEMENT_SWORDMAN);
+  volley.set_max_level(30);
+  volley.set_base_delay_ms(120);
+  volley.set_fixed_delay(true);
+  volley.mutable_base()->set_skill_pct(1.00);
+  EmpoweredForm* mode = volley.add_empowered_form();
+  mode->set_label("Rapid Mode");
+  mode->set_casts_per_trigger(2);
+  mode->set_base_delay_ms(90);
+  mode->mutable_base()->set_skill_pct(2.00);
+
+  Skill reinforce;
+  reinforce.set_name("Volley - Reinforce");
+  reinforce.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(reinforce, JOB_ADVANCEMENT_SWORDMAN);
+  reinforce.set_max_level(1);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"volley", volley}, {"volley_reinforce", reinforce}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(volley, 1));
+  ASSERT_TRUE(state.character.LearnSkill(reinforce, 1));
+
+  CombatParams plain = ComputeCombatParams(state);
+  const AttackOption* before = FindAttack(plain, "Volley");
+  ASSERT_NE(before, nullptr);
+  ASSERT_NE(before->empowered, nullptr);
+  EXPECT_EQ(before->empowered->name, "Rapid Mode");
+  EXPECT_EQ(before->empowered->credit, "Volley");
+  EXPECT_NEAR(before->empowered->swing_seconds / before->swing_seconds, 0.75,
+              1e-9);
+  double form_swing = before->empowered->damage_per_hit[0];
+
+  SkillBoost* boost = state.skills["volley_reinforce"].add_boost();
+  boost->set_skill_name("Volley");
+  boost->mutable_effect()->set_damage_pct(0.30);
+  CombatParams boosted = ComputeCombatParams(state);
+  const AttackOption* after = FindAttack(boosted, "Volley");
+  ASSERT_NE(after, nullptr);
+  ASSERT_NE(after->empowered, nullptr);
+  EXPECT_GT(after->empowered->damage_per_hit[0], form_swing)
+      << "a boost naming the attack reaches its mode";
+}
+
 TEST(ComputeCombatParamsTest, AnEmpoweredFormLandsItsOwnSecondHit) {
   Skill snipe;
   snipe.set_name("Snipe");
@@ -5014,6 +5068,52 @@ std::unique_ptr<GameState> NodeHolder(Job job, const std::string& v_stem,
   state.character.AddSolErdaFragments(price.fragments);
   EXPECT_TRUE(state.character.LearnSkill(book.at(hexa_stem), level));
   return owned;
+}
+
+// HEXA Hurricane as shipped, at 30 behind Hurricane Boost at 60: 575% a shot
+// at 120ms, and Shootout Mode's 750% every other shot at 90ms.
+TEST(ComputeCombatParamsTest, HexaHurricaneAlternatesWithShootoutMode) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book = {
+      {"hurricane_boost", skills.at("hurricane_boost")},
+      {"hexa_hurricane", skills.at("hexa_hurricane")}};
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_BOOST, 0, 60));
+  ASSERT_TRUE(state.character.LearnSkill(book.at("hurricane_boost"), 60));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_MASTERY, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("hexa_hurricane"), 30));
+
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* hurricane = FindAttack(params, "HEXA Hurricane");
+  ASSERT_NE(hurricane, nullptr);
+  ASSERT_NE(hurricane->empowered, nullptr);
+  EXPECT_EQ(hurricane->empowered_every, 2);
+  EXPECT_EQ(hurricane->empowered->name, "Shootout Mode");
+  EXPECT_NEAR(hurricane->empowered->swing_seconds / hurricane->swing_seconds,
+              90.0 / 120.0, 1e-9);
+  EXPECT_NEAR(
+      hurricane->empowered->damage_per_hit[0] / hurricane->damage_per_hit[0],
+      750.0 / 575.0, 1e-9);
 }
 
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.

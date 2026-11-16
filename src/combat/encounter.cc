@@ -1300,13 +1300,30 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     }
     Skill form =
         EmpoweredSkill(skill, upgrade, attack.name, kind, attack.max_enemies);
+    // A mode of the attack itself takes the attack's name while it is built,
+    // so it gets every bonus the attack gets.
+    const bool mode = !upgrade.label().empty();
+    if (mode) {
+      form.set_name(attack.name);
+    }
+    const bool own_delay =
+        upgrade.base_delay_ms() > 0 && attack.interval_seconds <= 0.0;
+    if (own_delay) {
+      form.set_base_delay_ms(upgrade.base_delay_ms());
+      form.set_fixed_delay(skill.fixed_delay());
+    }
     // Apply the book's bonuses filed under the form's own name.
     Skill boosted;
     const Skill& swung = Boosted(form, learned, boosts, boosted);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
         AttackFor(state.character.proto(), equipped, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor));
-    swing->swing_seconds = attack.swing_seconds;
+    if (!own_delay) {
+      swing->swing_seconds = attack.swing_seconds;
+    }
+    if (mode) {
+      swing->name = upgrade.label();
+    }
     CreditTo(attack.credit, *swing);
     // Final Attacks follow the character's attacks, and a summon pulse isn't
     // one, so a form replacing a pulse can't have them either.

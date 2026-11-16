@@ -1,0 +1,36 @@
+# GMS (3141000): 365+7x% per shot at 120ms, and Shootout Mode at 480+9x% every
+# 90ms. Each Shootout shot spends an arrowhead a normal shot earned, so the two
+# alternate one for one; the 40-to-switch and 75-max bank only moves shots
+# into a burst, worth under 1% (the user's call to leave it out).
+#
+# Keeps Hurricane's passive for Arrow Stream, so learning it never lowers
+# Arrow Stream (the user's call).
+name: "HEXA Hurricane"
+description:
+  "Launches a catastrophic swarm of arrows at tremendous speed. Targets the "
+  "enemy with the highest Max HP. Can move and use Quiver Cartridge while "
+  "using this skill."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 1 }
+hexa_node: HEXA_NODE_KIND_MASTERY
+max_level: 30
+required_skill { skill_name: "Hurricane Boost" level: 60 }
+supersedes_skill_name: "Hurricane"
+inherits_boosts: true
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 120
+fixed_delay: true
+hits_per_attack_count: 7
+base { skill_pct: 3.72 }
+per_level { skill_pct: 0.07 }
+empowered_form {
+  label: "Shootout Mode"
+  casts_per_trigger: 2
+  base_delay_ms: 90
+  base { skill_pct: 4.89 }
+  per_level { skill_pct: 0.09 }
+}
+boost {
+  skill_name: "Arrow Stream"
+  effect { skill_pct: 0.50 }
+}

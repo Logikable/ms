@@ -1038,11 +1038,29 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   return std::clamp(wanted, hold.min_pulses, hold.pulses);
 }
 
+namespace {
+
+// Whether `attack` lands as its empowered form every so many attacks, the form
+// taking the attack's place.
+bool ReplacingForm(const AttackOption& attack) {
+  return attack.empowered != nullptr && attack.empowered_every > 0 &&
+         !attack.brands_enemies;
+}
+
+}  // namespace
+
 double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
   if (WoundFull(attack)) {
     return SwingSecondsAgainst(*attack.wound_form);
   }
   if (attack.channel.pulses <= 0) {
+    // Averaged over the cycle like SwingDamage, so the rate is exact for a
+    // form with an animation of its own.
+    if (ReplacingForm(attack)) {
+      return attack.swing_seconds +
+             (attack.empowered->swing_seconds - attack.swing_seconds) /
+                 attack.empowered_every;
+    }
     return attack.swing_seconds;
   }
   int hit = Reached(attack);
@@ -1051,6 +1069,13 @@ double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
 
 double CombatSim::HeldSeconds(const AttackOption& attack) const {
   if (attack.channel.pulses <= 0) {
+    // The press under way is the aimed attack's, so its count says whether
+    // this one lands as the form, as FormToLand will decide.
+    if (ReplacingForm(attack) && !WoundFull(attack) && aimed_ >= 0 &&
+        aimed_ < static_cast<int>(attack_clocks_.size()) &&
+        attack_clocks_[aimed_].empowered_count + 1 >= attack.empowered_every) {
+      return attack.empowered->swing_seconds;
+    }
     return attack.swing_seconds;
   }
   return HoldSeconds(attack.channel, held_pulses_);

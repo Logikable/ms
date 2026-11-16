@@ -557,7 +557,9 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
     std::string how = form.casts_per_trigger() == 1
                           ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
-    rows.push_back(EffectRow("Empowers", how + EmpoweredTarget(form)));
+    // A mode of the attack names itself; there is nothing else to upgrade.
+    rows.push_back(EffectRow(form.label().empty() ? "Empowers" : form.label(),
+                             how + EmpoweredTarget(form)));
     // A mark on each enemy is different from a count on the attack: five hits
     // on one enemy, not five attacks.
     if (form.brands_each_enemy()) {
@@ -1365,7 +1367,8 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
     // A single form is "Empowered Damage" and needs nothing more; several have
     // to say which attack each belongs to, so they use the upgraded skill's
     // name.
-    std::string label = skill.empowered_form_size() > 1
+    std::string label = !form.label().empty() ? form.label() + " Damage"
+                        : skill.empowered_form_size() > 1
                             ? EmpoweredTarget(form)
                             : std::string("Empowered Damage");
     double per_hit =
@@ -1374,8 +1377,9 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
     double normal = form.base().normal_skill_pct() +
                     form.per_level().normal_skill_pct() * (level - 1);
     if (normal > 0.0) {
-      rows.push_back(EffectRow("Empowered Normal",
-                               SwingText(per_hit + normal, form.lines())));
+      rows.push_back(EffectRow(
+          form.label().empty() ? "Empowered Normal" : form.label() + " Normal",
+          SwingText(per_hit + normal, form.lines())));
     }
     // What the upgraded attack lands alongside itself, under the attack it
     // belongs to: the explosion at the end of an arrow's flight, or the mark it

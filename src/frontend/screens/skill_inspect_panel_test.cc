@@ -1100,6 +1100,25 @@ TEST_F(SkillInspectPanelTest, StatesTheBarrierAndWhoWalksIntoIt) {
   EXPECT_EQ(rendered.find("no effect"), std::string::npos);
 }
 
+// HEXA Hurricane's Shootout Mode is a mode of the attack, so its rows go by
+// its own name rather than "Empowers".
+TEST_F(SkillInspectPanelTest, NamesAModeOfTheAttackByItsLabel) {
+  Skill hurricane = MakeLuckySeven();
+  EmpoweredForm* mode = hurricane.add_empowered_form();
+  mode->set_label("Shootout Mode");
+  mode->set_casts_per_trigger(2);
+  mode->set_base_delay_ms(90);
+  mode->mutable_base()->set_skill_pct(4.89);
+
+  std::string rendered = RenderAt(hurricane, 1);
+  EXPECT_NE(RowIn(rendered, "Shootout Mode", "Every 2nd attack"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Shootout Mode Damage", "489%"), std::string::npos)
+      << rendered;
+  EXPECT_EQ(rendered.find("Empower"), std::string::npos) << rendered;
+}
+
 // Creeping Toxin upgrades its own attack, so there is no name to show, and its
 // form has its own normal-monster value beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {

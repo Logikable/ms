@@ -1320,6 +1320,15 @@ message EmpoweredForm {
   // before reaching it loses its count, while the rest of the swing hits
   // normally alongside the enemy that detonated.
   bool brands_each_enemy = 6;
+  // A second firing mode of the attack itself rather than an upgrade of it,
+  // shown under this name. Everything that boosts the attack boosts this form
+  // too. It exists for HEXA Hurricane's Shootout Mode, which takes every other
+  // shot: GMS earns each Shootout shot with a normal one.
+  string label = 9;
+  // The form's own animation, read like Skill.base_delay_ms with the granting
+  // skill's fixed_delay; 0 keeps the attack's. Only for a form on an attack
+  // the character swings.
+  int32 base_delay_ms = 10;
 }
 
 // An extra bonus that applies only with certain weapons equipped, on top of

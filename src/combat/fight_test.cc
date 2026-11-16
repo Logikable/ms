@@ -670,13 +670,14 @@ void AddKillClockedAttack(CombatParams& params, int kills, double damage,
 
 // Gives `attack` a bigger form that replaces every `every`th use, hitting
 // `reach` mobs for `damage`. With `marks`, the count runs per mob struck and
-// the form lands on top of the triggering strike.
+// the form lands on top of the triggering strike. A `swing` above 0 is the
+// form's own animation.
 void SetEmpoweredForm(AttackOption& attack, int every, double damage,
-                      int reach = 1, bool marks = false) {
+                      int reach = 1, bool marks = false, double swing = 0.0) {
   std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
   form->name = "Empowered " + attack.name;
   form->max_enemies = reach;
-  form->swing_seconds = attack.swing_seconds;
+  form->swing_seconds = swing > 0.0 ? swing : attack.swing_seconds;
   form->damage_per_hit.assign(attack.damage_per_hit.size(), damage);
   attack.empowered_every = every;
   attack.brands_enemies = marks;
@@ -2514,6 +2515,29 @@ TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.30, 1e-9)
       << "and the count starts again from the fifth";
+}
+
+// HEXA Hurricane's Shootout Mode: a form with an animation of its own takes
+// that long, so the attacks alternate a 1s swing and a 0.5s one.
+TEST(CombatSimTest, AnEmpoweredSwingTakesItsOwnTime) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/10.0,
+                   /*reach=*/1, /*marks=*/false, /*swing=*/0.5);
+
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
+  sim.Advance(params, 0.5);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.89, 1e-9)
+      << "the form lands half a second after the normal swing";
+  sim.Advance(params, 0.5);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.89, 1e-9)
+      << "the normal swing after it takes its full second";
+  sim.Advance(params, 0.5);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.88, 1e-9);
+  sim.Advance(params, 0.5);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.78, 1e-9);
 }
 
 // Creeping Toxin: the poison pool ticks, and every fourth tick detonates
