@@ -32,6 +32,15 @@ void LevelTo(GameState& state, int level) {
   }
 }
 
+// The Symbols row also waits for the 5th advancement.
+void ReachSymbols(GameState& state) {
+  LevelTo(state, kSymbolsLevel);
+  for (Job job : {JOB_SWORDMAN, JOB_SPEARMAN, JOB_BERSERKER, JOB_DARK_KNIGHT,
+                  JOB_DARK_KNIGHT}) {
+    state.character.AdvanceJob(job);
+  }
+}
+
 std::string Render(const MenuPanel& panel) {
   // Wide enough for the whole row. A narrower screen would cut off its end.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(70),
@@ -105,7 +114,7 @@ TEST(MenuPanelTest, CharactersHoldsSwitchThenLegion) {
 // blank column inside each border.
 TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   GameState state = EmptyState();
-  LevelTo(state, kSymbolsLevel);
+  ReachSymbols(state);
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
@@ -155,7 +164,7 @@ TEST(MenuPanelTest, AnArrivingEntryLeavesTheCursorWhereItWas) {
 // Dailies itself is gold while any of its rows is.
 TEST(MenuPanelTest, DailiesIsGoldUntilEveryRowHasBeenOpened) {
   GameState state = EmptyState();
-  LevelTo(state, kSymbolsLevel);
+  ReachSymbols(state);
   BattleAnalysis analysis;
   int focus = kCharPanel;  // unfocused, so nothing is inverted
   MenuPanel panel(state, analysis, focus);
@@ -439,7 +448,7 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
 // margin.
 TEST(MenuPanelTest, NeitherTheListNorABoxWeldsARowToItsBorder) {
   GameState state = EmptyState();
-  LevelTo(state, kSymbolsLevel);
+  ReachSymbols(state);
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
@@ -448,7 +457,8 @@ TEST(MenuPanelTest, NeitherTheListNorABoxWeldsARowToItsBorder) {
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderBox()).empty());
 }
 
-// Dailies arrives with Boss, the first of its rows, and Symbols joins it below.
+// Dailies arrives with Boss, the first of its rows, and Symbols joins it below
+// at the 5th advancement.
 TEST(MenuPanelTest, TheDailiesBoxGrowsAsItsRowsUnlock) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
@@ -471,6 +481,9 @@ TEST(MenuPanelTest, TheDailiesBoxGrowsAsItsRowsUnlock) {
   EXPECT_EQ(panel.selected_dailies_entry(), DailiesEntry::kBoss);
 
   LevelTo(state, kSymbolsLevel);
+  EXPECT_EQ(render().find("Symbols"), std::string::npos)
+      << "not before the 5th advancement";
+  ReachSymbols(state);
   std::string both = render();
   ASSERT_NE(both.find("Symbols"), std::string::npos);
   EXPECT_LT(both.find("Boss"), both.find("Symbols"));

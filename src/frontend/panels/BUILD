@@ -172,6 +172,7 @@ cc_library(
     deps = [
         "//src:build_config",
         "//src:game_state",
+        "//src/character:hyper_stats",
         "//src/character:progression",
         "//src/combat:battle_analysis",
         "//src/frontend:types",

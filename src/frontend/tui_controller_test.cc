@@ -3868,8 +3868,19 @@ TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
 // --- the boss screen ---
 
 // Boss sits above Symbols in the Dailies box, so Up reaches Symbols first.
+// The Dailies box's Symbols row opens at the 5th advancement.
+void ReachFifthJob(GameState& state) {
+  while (state.character.proto().level() < 200) {
+    state.character.LevelUp();
+  }
+  state.character.AdvanceJob(JOB_SPEARMAN);
+  state.character.AdvanceJob(JOB_BERSERKER);
+  state.character.AdvanceJob(JOB_DARK_KNIGHT);
+  state.character.AdvanceJob(JOB_DARK_KNIGHT);
+}
+
 TEST_F(TuiControllerTest, DailiesBoxOpensBossScreen) {
-  LevelTo(UnlockLevel(Feature::kSymbols));
+  ReachFifthJob(*state_);
   controller_->OpenMenuEntry(MenuEntry::kDailies);
   ASSERT_EQ(controller_->screen(), kMenuBox);
   controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -3889,7 +3900,7 @@ TEST_F(TuiControllerTest, DailiesBoxOpensBossScreen) {
 // To the main view instead, the box would stay open and the menu row would
 // draw no cursor.
 TEST_F(TuiControllerTest, LeavingADailiesScreenGoesBackToTheBox) {
-  LevelTo(UnlockLevel(Feature::kSymbols));
+  ReachFifthJob(*state_);
   controller_->OpenMenuEntry(MenuEntry::kDailies);
   controller_->OnEvent(ftxui::Event::ArrowUp);
   controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -4243,28 +4254,6 @@ TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
 }
 
 // --- the Symbols claim ---
-
-// Arcane Symbol dailies open at the 5th advancement.
-void ReachFifthJob(GameState& state) {
-  while (state.character.proto().level() < 200) {
-    state.character.LevelUp();
-  }
-  state.character.AdvanceJob(JOB_SPEARMAN);
-  state.character.AdvanceJob(JOB_BERSERKER);
-  state.character.AdvanceJob(JOB_DARK_KNIGHT);
-  state.character.AdvanceJob(JOB_DARK_KNIGHT);
-}
-
-// Before the 5th advancement the row says when the claim opens, rather than
-// that nothing is left.
-TEST_F(TuiControllerTest, TheClaimWaitsForTheFifthJob) {
-  state_->character.PickUp(
-      std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
-  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
-  EXPECT_EQ(controller_->screen(), kDailiesNotice);
-  EXPECT_EQ(NoticeText(controller_->notice_lines()),
-            "Symbol dailies open at the 5th job advancement.");
-}
 
 // The claim lists every symbol up to the highest one held, and Confirm puts a
 // day's worth of each into the bag.

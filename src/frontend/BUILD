@@ -76,7 +76,6 @@ cc_library(
         "//src/character:consumables",
         "//src/character:dailies",
         "//src/character:familiar",
-        "//src/character:hyper_stats",
         "//src/character:job_advancement",
         "//src/character:symbol",
         "//src/combat:boss_run",

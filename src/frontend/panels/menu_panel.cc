@@ -9,6 +9,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/build_config.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
@@ -184,7 +185,10 @@ std::vector<DailiesEntry> MenuPanel::DailiesEntries() const {
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(DailiesEntry::kBoss);
   }
-  if (Unlocked(Feature::kSymbols, state_.character, state_.account)) {
+  // The claim pays nothing before the 5th advancement, so the row waits for it
+  // though the Symbols tab opens at the level.
+  if (Unlocked(Feature::kSymbols, state_.character, state_.account) &&
+      state_.character.proto().job_stage() >= kFifthJobStage) {
     entries.push_back(DailiesEntry::kSymbols);
   }
   return entries;

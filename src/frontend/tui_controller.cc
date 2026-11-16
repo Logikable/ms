@@ -15,7 +15,6 @@
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
 #include "src/character/familiar.h"
-#include "src/character/hyper_stats.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
@@ -3717,12 +3716,6 @@ void TuiController::OpenSymbolClaim() {
   if (!DailiesAvailable(state_.character.DailiesClaimedAt(), now)) {
     OpenNotice(kDailiesNotice, {"Already claimed today."}, /*refusal=*/false,
                "Close");
-    return;
-  }
-  if (state_.character.proto().job_stage() < kFifthJobStage) {
-    OpenSentenceNotice(kDailiesNotice,
-                       "Symbol dailies open at the 5th job advancement.",
-                       /*refusal=*/false, "Close");
     return;
   }
   std::vector<const EquipPrototype*> claimable =
