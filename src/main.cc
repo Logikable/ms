@@ -59,7 +59,8 @@ ABSL_FLAG(int32_t, sf, 0,
           "need nothing left to scroll, so pass --scrolled with this to reach "
           "an item that has upgrade slots.");
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
-          "Where the multiplayer server is, as host:port. Empty plays alone, "
+          "Where the multiplayer server is, as host:port ([host]:port for "
+          "IPv6). Empty plays alone, "
           "which is what a build made without multiplayer does whatever this "
           "says. The workbench connects only to a server named here, never to "
           "the one the game ships with.");

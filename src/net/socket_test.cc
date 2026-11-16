@@ -121,6 +121,24 @@ TEST_F(SocketTest, WaitsRatherThanBlocking) {
   EXPECT_FALSE(Accept(pair.listener).has_value());
 }
 
+// The server listens once for both, so players on either can reach it.
+TEST_F(SocketTest, OneListenerTakesIpv4AndIpv6) {
+  std::optional<Socket> listener = Listen(0);
+  ASSERT_TRUE(listener.has_value());
+  int port = LocalPort(*listener);
+
+  for (const char* host : {"127.0.0.1", "::1"}) {
+    std::optional<Socket> client = Connect(host, port, kWait);
+    ASSERT_TRUE(client.has_value()) << host;
+    ASSERT_TRUE(WaitReadable(*listener)) << host;
+    std::optional<Socket> server = Accept(*listener);
+    ASSERT_TRUE(server.has_value()) << host;
+
+    ASSERT_TRUE(WriteAll(*client, "hello"));
+    EXPECT_EQ(ReadAll(*server, 5), "hello") << host;
+  }
+}
+
 TEST_F(SocketTest, RefusesAPortTwice) {
   std::optional<Socket> first = Listen(0);
   ASSERT_TRUE(first.has_value());

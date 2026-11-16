@@ -477,6 +477,7 @@ cc_library(
         "//src/item:flame",
         "//src/item:soul",
         "//src/multiplayer:party_fight",
+        "//src/multiplayer:protocol",
         "//src/multiplayer:session",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -55,6 +56,7 @@
 #include "src/frontend/widgets/text_columns.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/multiplayer/protocol.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -94,18 +96,14 @@ void HandleClosingSignals() {
 #endif
 }
 
-// The session for `server`, which is "host:port". Null for an empty string or a
-// port that isn't a number.
+// The session for `server`, in SplitServerAddress's format. Null for one it
+// can't read.
 std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
-  size_t colon = server.rfind(':');
-  if (colon == std::string::npos) {
+  std::optional<std::pair<std::string, int>> split = SplitServerAddress(server);
+  if (!split.has_value()) {
     return nullptr;
   }
-  int port = std::atoi(server.c_str() + colon + 1);
-  if (port <= 0) {
-    return nullptr;
-  }
-  return std::make_unique<MultiplayerSession>(server.substr(0, colon), port);
+  return std::make_unique<MultiplayerSession>(split->first, split->second);
 }
 
 // `text` as centred rows, one per line. A notice is nearly always one line; a

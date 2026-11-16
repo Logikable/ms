@@ -46,5 +46,40 @@ TEST(ProtocolTest, RefusesBytesThatAreNotAMessage) {
   EXPECT_EQ(Decode(oversized, got), DecodeStatus::kBroken);
 }
 
+TEST(ProtocolTest, SplitsAnIpv4Address) {
+  auto split = SplitServerAddress("1.2.3.4:21711");
+  ASSERT_TRUE(split.has_value());
+  EXPECT_EQ(split->first, "1.2.3.4");
+  EXPECT_EQ(split->second, 21711);
+}
+
+TEST(ProtocolTest, SplitsAnIpv6AddressInBrackets) {
+  auto split = SplitServerAddress("[2606:8ac0::23c3]:21711");
+  ASSERT_TRUE(split.has_value());
+  EXPECT_EQ(split->first, "2606:8ac0::23c3");
+  EXPECT_EQ(split->second, 21711);
+}
+
+TEST(ProtocolTest, RefusesAnAddressWithoutAHostOrPort) {
+  EXPECT_FALSE(SplitServerAddress("").has_value());
+  EXPECT_FALSE(SplitServerAddress("host").has_value());
+  EXPECT_FALSE(SplitServerAddress(":21711").has_value());
+  EXPECT_FALSE(SplitServerAddress("[]:21711").has_value());
+  EXPECT_FALSE(SplitServerAddress("host:0").has_value());
+  EXPECT_FALSE(SplitServerAddress("host:port").has_value());
+}
+
+TEST(ProtocolTest, JoinedAddressesSplitBack) {
+  for (const char* host : {"1.2.3.4", "example.com", "::1", kServerHost}) {
+    if (*host == '\0') {
+      continue;
+    }
+    auto split = SplitServerAddress(JoinServerAddress(host, 21711));
+    ASSERT_TRUE(split.has_value()) << host;
+    EXPECT_EQ(split->first, host);
+    EXPECT_EQ(split->second, 21711);
+  }
+}
+
 }  // namespace
 }  // namespace ms

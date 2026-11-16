@@ -205,28 +205,59 @@ void Socket::Close() {
   }
 }
 
-std::optional<Socket> Listen(int port) {
-  SocketHandle handle = socket(AF_INET, SOCK_STREAM, 0);
-  if (handle == kInvalidSocket) {
-    LOG(ERROR) << "Could not open a listening socket";
-    return std::nullopt;
+namespace {
+
+// Opens an IPv6 socket that takes IPv4 too, or a plain IPv4 one on a machine
+// without IPv6.
+SocketHandle OpenListener(int port) {
+  SocketHandle handle = socket(AF_INET6, SOCK_STREAM, 0);
+  if (handle != kInvalidSocket) {
+    int off = 0;
+    setsockopt(handle, IPPROTO_IPV6, IPV6_V6ONLY,
+               reinterpret_cast<const SockOptChar*>(&off), sizeof(off));
+    int on = 1;
+    setsockopt(handle, SOL_SOCKET, SO_REUSEADDR,
+               reinterpret_cast<const SockOptChar*>(&on), sizeof(on));
+    sockaddr_in6 address = {};
+    address.sin6_family = AF_INET6;
+    address.sin6_addr = in6addr_any;
+    address.sin6_port = htons(static_cast<uint16_t>(port));
+    if (bind(handle, reinterpret_cast<const sockaddr*>(&address),
+             sizeof(address)) == 0) {
+      return handle;
+    }
+    CloseHandle(handle);
   }
-  Socket listener(handle);
+  handle = socket(AF_INET, SOCK_STREAM, 0);
+  if (handle == kInvalidSocket) {
+    return kInvalidSocket;
+  }
   // So a restart can reuse the port instead of waiting out the last
   // connection's TIME_WAIT.
   int on = 1;
   setsockopt(handle, SOL_SOCKET, SO_REUSEADDR,
              reinterpret_cast<const SockOptChar*>(&on), sizeof(on));
-
   sockaddr_in address = {};
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = htonl(INADDR_ANY);
   address.sin_port = htons(static_cast<uint16_t>(port));
   if (bind(handle, reinterpret_cast<const sockaddr*>(&address),
            sizeof(address)) != 0) {
+    CloseHandle(handle);
+    return kInvalidSocket;
+  }
+  return handle;
+}
+
+}  // namespace
+
+std::optional<Socket> Listen(int port) {
+  SocketHandle handle = OpenListener(port);
+  if (handle == kInvalidSocket) {
     LOG(ERROR) << "Could not bind port " << port;
     return std::nullopt;
   }
+  Socket listener(handle);
   if (listen(handle, SOMAXCONN) != 0 || !SetNonBlocking(handle)) {
     LOG(ERROR) << "Could not listen on port " << port;
     return std::nullopt;
@@ -235,13 +266,16 @@ std::optional<Socket> Listen(int port) {
 }
 
 int LocalPort(const Socket& socket) {
-  sockaddr_in address = {};
+  sockaddr_storage address = {};
   SockLen length = sizeof(address);
   if (getsockname(socket.handle(), reinterpret_cast<sockaddr*>(&address),
                   &length) != 0) {
     return 0;
   }
-  return ntohs(address.sin_port);
+  if (address.ss_family == AF_INET6) {
+    return ntohs(reinterpret_cast<const sockaddr_in6&>(address).sin6_port);
+  }
+  return ntohs(reinterpret_cast<const sockaddr_in&>(address).sin_port);
 }
 
 std::optional<Socket> Accept(const Socket& listener) {
