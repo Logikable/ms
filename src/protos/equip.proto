@@ -433,6 +433,9 @@ message SacredSymbolInfo {
   // A Grand Sacred Symbol (Tallahart, Geardock): EXP, meso and drop rate
   // instead of a primary stat, and no EXP bonus at max level.
   bool grand = 5;
+  // Copies one day's claim gives (the user's numbers: 30 for Cernium, 15 for
+  // the rest).
+  int32 daily_copies = 6;
 }
 
 // One way to buy an item with tokens.

@@ -4244,9 +4244,32 @@ TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
 
 // --- the Symbols claim ---
 
+// Arcane Symbol dailies open at the 5th advancement.
+void ReachFifthJob(GameState& state) {
+  while (state.character.proto().level() < 200) {
+    state.character.LevelUp();
+  }
+  state.character.AdvanceJob(JOB_SPEARMAN);
+  state.character.AdvanceJob(JOB_BERSERKER);
+  state.character.AdvanceJob(JOB_DARK_KNIGHT);
+  state.character.AdvanceJob(JOB_DARK_KNIGHT);
+}
+
+// Before the 5th advancement the row says when the claim opens, rather than
+// that nothing is left.
+TEST_F(TuiControllerTest, TheClaimWaitsForTheFifthJob) {
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
+  controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
+  EXPECT_EQ(controller_->screen(), kDailiesNotice);
+  EXPECT_EQ(NoticeText(controller_->notice_lines()),
+            "Symbol dailies open at the 5th job advancement.");
+}
+
 // The claim lists every symbol up to the highest one held, and Confirm puts a
 // day's worth of each into the bag.
 TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
+  ReachFifthJob(*state_);
   state_->character.PickUp(std::make_unique<EquipInstance>(
       state_->equips.at("Arcane Symbol: Chu Chu Island")));
   controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
@@ -4263,6 +4286,7 @@ TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
 }
 
 TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
+  ReachFifthJob(*state_);
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
   controller_->OpenDailiesEntry(DailiesEntry::kSymbols);
@@ -4276,6 +4300,7 @@ TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
 // Once claimed, the Symbols row says so rather than asking a question whose
 // answer would be no.
 TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
+  ReachFifthJob(*state_);
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
   state_->character.RecordDailiesClaim(
@@ -4293,6 +4318,7 @@ TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
 // Claiming part would lose the rest until tomorrow, so a full bag takes none of
 // it and the claim stays available.
 TEST_F(TuiControllerTest, AFullBagRefusesTheWholeClaim) {
+  ReachFifthJob(*state_);
   state_->character.PickUp(std::make_unique<EquipInstance>(
       state_->equips.at("Arcane Symbol: Chu Chu Island")));
   while (!state_->character.inventory().full()) {

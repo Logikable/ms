@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <ctime>
 #include <map>
@@ -42,6 +43,17 @@ class DailiesTest : public testing::Test {
       proto.mutable_arcane_symbol()->set_meso_cost_base(8);
       equips_[proto.name()] = proto;
     }
+    for (EquipSlot slot :
+         {EQUIP_SLOT_SYMBOL_CERNIUM, EQUIP_SLOT_SYMBOL_ARCUS,
+          EQUIP_SLOT_SYMBOL_ODIUM, EQUIP_SLOT_SYMBOL_TALLAHART}) {
+      EquipPrototype proto;
+      proto.set_name("Symbol " + std::to_string(slot));
+      proto.set_equip_slot(slot);
+      proto.mutable_sacred_symbol()->set_meso_cost_base(13.2);
+      proto.mutable_sacred_symbol()->set_daily_copies(
+          slot == EQUIP_SLOT_SYMBOL_CERNIUM ? 30 : 15);
+      equips_[proto.name()] = proto;
+    }
     // Something that isn't a symbol, which no claim may ever give.
     EquipPrototype sword;
     sword.set_name("Sword");
@@ -49,12 +61,13 @@ class DailiesTest : public testing::Test {
     equips_["Sword"] = sword;
   }
 
-  static CharacterInstance MakeCharacter() {
+  // At the 5th advancement, which Arcane Symbol dailies need.
+  static CharacterInstance MakeCharacter(int job_stage = 5) {
     static std::mt19937 rng(1);
     Character proto;
-    proto.set_level(230);
+    proto.set_level(260);
     proto.set_job(JOB_HERO);
-    proto.set_job_stage(4);
+    proto.set_job_stage(job_stage);
     return CharacterInstance(rng, std::move(proto));
   }
 
@@ -62,11 +75,17 @@ class DailiesTest : public testing::Test {
     return equips_.at("Symbol " + std::to_string(slot));
   }
   void PutInBag(EquipSlot slot) {
-    c_.PickUp(std::make_unique<EquipInstance>(Proto(slot)));
+    PutInBag(c_, slot);
+  }
+  void PutInBag(CharacterInstance& c, EquipSlot slot) {
+    c.PickUp(std::make_unique<EquipInstance>(Proto(slot)));
   }
   std::vector<EquipSlot> Claimable() {
+    return Claimable(c_);
+  }
+  std::vector<EquipSlot> Claimable(const CharacterInstance& c) {
     std::vector<EquipSlot> slots;
-    for (const EquipPrototype* proto : ClaimableSymbols(c_, equips_)) {
+    for (const EquipPrototype* proto : ClaimableSymbols(c, equips_)) {
       slots.push_back(proto->equip_slot());
     }
     return slots;
@@ -163,6 +182,49 @@ TEST_F(DailiesTest, ABagWithoutRoomForTheLotClaimsNothing) {
   EXPECT_EQ(c_.inventory().room(), 2);
   EXPECT_TRUE(DailiesAvailable(c_.DailiesClaimedAt(), noon))
       << "nothing was taken, so the day is still there";
+}
+
+TEST_F(DailiesTest, ArcaneSymbolsWaitForTheFifthJob) {
+  CharacterInstance fourth = MakeCharacter(4);
+  PutInBag(fourth, EQUIP_SLOT_SYMBOL_LACHELEIN);
+  EXPECT_TRUE(Claimable(fourth).empty());
+}
+
+// Sacred Symbols climb their own ladder from the 6th advancement: Odium opens
+// Cernium and Arcus, and leaves the Arcane areas to their own symbols.
+TEST_F(DailiesTest, SacredSymbolsWaitForTheSixthJobAndClimbTheirOwnLadder) {
+  PutInBag(EQUIP_SLOT_SYMBOL_ODIUM);
+  EXPECT_TRUE(Claimable().empty()) << "only the 5th advancement";
+
+  CharacterInstance sixth = MakeCharacter(6);
+  PutInBag(sixth, EQUIP_SLOT_SYMBOL_ODIUM);
+  EXPECT_EQ(Claimable(sixth),
+            (std::vector<EquipSlot>{EQUIP_SLOT_SYMBOL_CERNIUM,
+                                    EQUIP_SLOT_SYMBOL_ARCUS,
+                                    EQUIP_SLOT_SYMBOL_ODIUM}));
+
+  PutInBag(sixth, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
+  PutInBag(sixth, EQUIP_SLOT_SYMBOL_TALLAHART);
+  EXPECT_EQ(
+      Claimable(sixth),
+      (std::vector<EquipSlot>{
+          EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
+          EQUIP_SLOT_SYMBOL_CERNIUM, EQUIP_SLOT_SYMBOL_ARCUS,
+          EQUIP_SLOT_SYMBOL_ODIUM, EQUIP_SLOT_SYMBOL_TALLAHART}))
+      << "Arcane first; a Grand Sacred Symbol is the top of the Sacred ladder";
+}
+
+// Each Sacred Symbol pays its own day's count, Cernium 30 and the rest 15.
+TEST_F(DailiesTest, ASacredClaimPaysEachSymbolsOwnCount) {
+  CharacterInstance sixth = MakeCharacter(6);
+  PutInBag(sixth, EQUIP_SLOT_SYMBOL_ARCUS);
+  ASSERT_TRUE(ClaimDailies(sixth, equips_, LocalTime(2026, 8, 20, 12)));
+  EXPECT_EQ(sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_CERNIUM),
+            (std::vector<int>{30}));
+  std::vector<int> arcus = sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_ARCUS);
+  std::sort(arcus.begin(), arcus.end());
+  EXPECT_EQ(arcus, (std::vector<int>{1, 15}))
+      << "the one held, and the day's 15";
 }
 
 TEST_F(DailiesTest, NothingToClaimIsNotAClaim) {

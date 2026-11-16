@@ -76,6 +76,7 @@ cc_library(
     deps = [
         ":boss_reset",
         ":character",
+        ":hyper_stats",
         ":symbol",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",

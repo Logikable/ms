@@ -15,6 +15,7 @@
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
 #include "src/character/familiar.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/character/symbol.h"
@@ -3718,11 +3719,17 @@ void TuiController::OpenSymbolClaim() {
                "Close");
     return;
   }
+  if (state_.character.proto().job_stage() < kFifthJobStage) {
+    OpenSentenceNotice(kDailiesNotice,
+                       "Symbol dailies open at the 5th job advancement.",
+                       /*refusal=*/false, "Close");
+    return;
+  }
   std::vector<const EquipPrototype*> claimable =
       ClaimableSymbols(state_.character, state_.equips);
   if (claimable.empty()) {
-    // Nothing to claim: the character has never had a symbol, or holds enough
-    // of every one to max it. It is reported
+    // Nothing to claim: the character has no symbol of a kind their
+    // advancement opens, or holds enough of every one to max it. It is reported
     // here rather than at the confirmation, where the claim's own refusal is a
     // full bag.
     OpenNotice(kDailiesNotice, {"No symbols left to claim."},
@@ -3731,7 +3738,7 @@ void TuiController::OpenSymbolClaim() {
   }
   std::vector<DailiesPanel::Reward> rewards;
   for (const EquipPrototype* proto : claimable) {
-    rewards.push_back({proto->name(), kSymbolsPerDay});
+    rewards.push_back({proto->name(), DailySymbolCopies(*proto)});
   }
   dailies_panel_.Reset(std::move(rewards));
   screen_ = kDailies;

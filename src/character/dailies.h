@@ -1,12 +1,13 @@
 /* The daily claim: what a character can collect each day, and collecting it.
  *
- * Currently that is Arcane Symbols; Sacred Symbols have no daily. Owning one
- * unlocks every area at or below it, because characters progress through the
- * areas in order: anyone who reached Lachelein passed through Vanishing Journey
- * and Chu Chu Island, whether or not they kept a symbol from either.
+ * Arcane Symbols from the 5th advancement, and Sacred Symbols (Grand ones
+ * included) from the 6th. Owning one unlocks every area of its kind at or
+ * below it, because characters progress through the areas in order: anyone who
+ * reached Lachelein passed through Vanishing Journey and Chu Chu Island,
+ * whether or not they kept a symbol from either.
  *
- * A day's symbols come packed into one item per area instead of 75 separate
- * copies, which would take 75 bag rows. Feeding the packed item to a worn
+ * A day's symbols come packed into one item per area instead of separate
+ * copies, which would take a bag row each. Feeding the packed item to a worn
  * symbol is worth the same either way; see SymbolWorth.
  *
  * Uses the boss reset time, so everything in the game resets at the same hour.
@@ -24,13 +25,18 @@
 
 namespace ms {
 
-// Copies of each symbol one day's claim gives. GMS gives 40 a day plus a
-// weekly quest of 80 done three times a week, about 74 a day.
+// Copies of each Arcane Symbol one day's claim gives. GMS gives 40 a day plus
+// a weekly quest of 80 done three times a week, about 74 a day.
 inline constexpr int kSymbolsPerDay = 75;
 
-// The symbols `character` can claim, in area order: every one at or below the
-// furthest they own, worn or in the bag, except those whose copies held
-// already reach the max level. Empty if none is left.
+// Copies of `proto` one day's claim gives: kSymbolsPerDay for an Arcane
+// Symbol, the data's daily_copies for a Sacred one.
+int DailySymbolCopies(const EquipPrototype& proto);
+
+// The symbols `character` can claim, Arcane then Sacred, each in area order:
+// every one at or below the furthest of its kind they own, worn or in the bag,
+// except those whose copies held already reach the max level. Arcane needs the
+// 5th advancement and Sacred the 6th. Empty if none is left.
 std::vector<const EquipPrototype*> ClaimableSymbols(
     const CharacterInstance& character,
     const std::map<std::string, EquipPrototype>& equips);

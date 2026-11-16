@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/character/boss_reset.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/symbol.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -17,26 +18,23 @@
 namespace ms {
 namespace {
 
-// Whether `slot` is `highest` or an area before it. The areas are unlocked in
-// order and the slot enum follows that order, so comparing slots compares
-// areas.
-bool Below(EquipSlot slot, EquipSlot highest) {
-  return slot <= highest;
-}
+using SymbolKind = bool (*)(const EquipPrototype&);
 
-// The furthest area `character` has a symbol from, worn or in the bag, or
-// unspecified if they have none.
-EquipSlot HighestSymbolOwned(const CharacterInstance& character) {
+// The furthest area of `kind` that `character` has a symbol from, worn or in
+// the bag, or unspecified if they have none. The areas are unlocked in order
+// and the slot enum follows that order, so comparing slots compares areas.
+EquipSlot HighestSymbolOwned(const CharacterInstance& character,
+                             SymbolKind kind) {
   EquipSlot highest = EQUIP_SLOT_UNSPECIFIED;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
        character.equipped()) {
-    if (IsArcaneSymbol(worn.second->prototype())) {
+    if (kind(worn.second->prototype())) {
       highest = std::max(highest, worn.first);
     }
   }
   for (int i = 0; i < character.inventory().size(); ++i) {
     const EquipInstance* item = character.inventory().equip_instance(i);
-    if (item != nullptr && IsArcaneSymbol(item->prototype())) {
+    if (item != nullptr && kind(item->prototype())) {
       highest = std::max(highest, item->prototype().equip_slot());
     }
   }
@@ -71,25 +69,38 @@ Equip PackedSymbol(const EquipPrototype& proto, int copies) {
   return state;
 }
 
+int DailySymbolCopies(const EquipPrototype& proto) {
+  return IsSacredSymbol(proto) ? proto.sacred_symbol().daily_copies()
+                               : kSymbolsPerDay;
+}
+
 std::vector<const EquipPrototype*> ClaimableSymbols(
     const CharacterInstance& character,
     const std::map<std::string, EquipPrototype>& equips) {
-  EquipSlot highest = HighestSymbolOwned(character);
+  const int stage = character.proto().job_stage();
+  std::vector<std::pair<SymbolKind, bool>> kinds = {
+      {&IsArcaneSymbol, stage >= kFifthJobStage},
+      {&IsSacredSymbol, stage >= kSixthJobStage},
+  };
   std::vector<const EquipPrototype*> claimable;
-  if (highest == EQUIP_SLOT_UNSPECIFIED) {
-    return claimable;
-  }
-  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
-    if (IsArcaneSymbol(entry.second) &&
-        Below(entry.second.equip_slot(), highest) &&
-        !HoldsEnoughToMax(character, entry.second)) {
-      claimable.push_back(&entry.second);
+  for (const auto& [kind, open] : kinds) {
+    EquipSlot highest = HighestSymbolOwned(character, kind);
+    if (!open || highest == EQUIP_SLOT_UNSPECIFIED) {
+      continue;
     }
+    std::vector<const EquipPrototype*> of_kind;
+    for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+      if (kind(entry.second) && entry.second.equip_slot() <= highest &&
+          !HoldsEnoughToMax(character, entry.second)) {
+        of_kind.push_back(&entry.second);
+      }
+    }
+    std::sort(of_kind.begin(), of_kind.end(),
+              [](const EquipPrototype* a, const EquipPrototype* b) {
+                return a->equip_slot() < b->equip_slot();
+              });
+    claimable.insert(claimable.end(), of_kind.begin(), of_kind.end());
   }
-  std::sort(claimable.begin(), claimable.end(),
-            [](const EquipPrototype* a, const EquipPrototype* b) {
-              return a->equip_slot() < b->equip_slot();
-            });
   return claimable;
 }
 
@@ -109,7 +120,7 @@ bool ClaimDailies(CharacterInstance& character,
   }
   for (const EquipPrototype* proto : claimable) {
     character.PickUp(std::make_unique<EquipInstance>(
-        *proto, PackedSymbol(*proto, kSymbolsPerDay)));
+        *proto, PackedSymbol(*proto, DailySymbolCopies(*proto))));
   }
   character.RecordDailiesClaim(now);
   return true;

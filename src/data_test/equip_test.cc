@@ -742,5 +742,21 @@ TEST(EquipDataTest, EveryStackableDescribesItself) {
   EXPECT_GT(checked, 0) << "no stackables in the catalog to check";
 }
 
+// The user's counts: a day's claim gives 30 Cernium and 15 of each other
+// Sacred Symbol, Grand ones included. A missing count would pay nothing.
+TEST(EquipDataTest, EverySacredSymbolHasItsDailyCount) {
+  int sacred = 0;
+  for (const auto& [key, proto] : LoadEquips()) {
+    if (!proto.has_sacred_symbol()) {
+      continue;
+    }
+    ++sacred;
+    EXPECT_EQ(proto.sacred_symbol().daily_copies(),
+              proto.equip_slot() == EQUIP_SLOT_SYMBOL_CERNIUM ? 30 : 15)
+        << key;
+  }
+  EXPECT_EQ(sacred, 8);
+}
+
 }  // namespace
 }  // namespace ms
