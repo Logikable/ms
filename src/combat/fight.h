@@ -376,6 +376,12 @@ class CombatSim {
   // reaches the trigger. Advances `count`, so call it exactly once per landed
   // attack.
   const AttackOption& FormToLand(int& count, const AttackOption& attack);
+  struct AttackClock;
+  // FormToLand for a swing, which may also run on a clock. Starts that clock
+  // when the form lands, so call it exactly once per landed swing.
+  const AttackOption& SwungForm(AttackClock& clock, const AttackOption& attack);
+  // Whether the next swing of `attack` with `clock` lands as its form.
+  bool FormDue(const AttackOption& attack, const AttackClock& clock) const;
   // Damage `attack` deals to the mob at `index`: its rolled damage, plus its
   // empowered form when that mob's mark count triggers. Advances the mark, so
   // call it exactly once per mob per landed attack.
@@ -682,6 +688,8 @@ class CombatSim {
     double side_cooldown_left = 0.0;
     // Attacks landed since its last empowered one.
     int empowered_count = 0;
+    // Seconds until a timed empowered form is ready again.
+    double empowered_ready_in = 0.0;
     // Uses left from the loading buff. 0 once the buff ends, which removes the
     // attack from the available list.
     int charges_left = 0;

@@ -1119,6 +1119,29 @@ TEST_F(SkillInspectPanelTest, NamesAModeOfTheAttackByItsLabel) {
   EXPECT_EQ(rendered.find("Empower"), std::string::npos) << rendered;
 }
 
+// Enhanced Arrow Stream comes on a clock, so its row gives the seconds, and its
+// own reach goes by its name too.
+TEST_F(SkillInspectPanelTest, TimesAModeOnAClock) {
+  Skill stream = MakeLuckySeven();
+  EmpoweredForm* mode = stream.add_empowered_form();
+  mode->set_label("Enhanced Arrow Stream");
+  mode->set_cooldown_seconds(6.0);
+  mode->set_max_enemies(12);
+  mode->set_lines(5);
+  mode->mutable_base()->set_skill_pct(4.76);
+
+  std::string rendered = RenderAt(stream, 1);
+  EXPECT_NE(RowIn(rendered, "Enhanced Arrow Stream", "Every 6s"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Enhanced Arrow Stream Enemies", "12"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Enhanced Arrow Stream Damage", "476%"),
+            std::string::npos)
+      << rendered;
+}
+
 // Creeping Toxin upgrades its own attack, so there is no name to show, and its
 // form has its own normal-monster value beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {

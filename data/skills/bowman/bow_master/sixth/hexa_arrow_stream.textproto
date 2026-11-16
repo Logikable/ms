@@ -1,0 +1,33 @@
+# GMS (3141002, Enhanced 3141003): one Mastery node rebuilds Arrow Stream and
+# Arrow Blaster (see HEXA Arrow Blaster's hexa_core).
+name: "HEXA Arrow Stream"
+description:
+  "Shoots a wild flurry of arrows straight ahead. Periodically enhances to an "
+  "enhanced Arrow Stream. The enhanced Arrow Stream fires even more arrows that "
+  "strike further. Permanently increases Advanced Final Attack's damage."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 2 }
+hexa_node: HEXA_NODE_KIND_MASTERY
+max_level: 30
+required_skill { skill_name: "Arrow Blaster Boost" level: 60 }
+supersedes_skill_name: "Arrow Stream"
+inherits_boosts: true
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 660
+max_enemies: 8
+lines: 5
+base { skill_pct: 4.36 }
+per_level { skill_pct: 0.06 }
+empowered_form {
+  label: "Enhanced Arrow Stream"
+  cooldown_seconds: 6.0
+  max_enemies: 12
+  lines: 5
+  base { skill_pct: 4.76 }
+  per_level { skill_pct: 0.06 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  effect { skill_pct: 1.17 }
+  effect_per_level { skill_pct: 0.09 }
+}

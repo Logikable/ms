@@ -1213,8 +1213,11 @@ TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
       EXPECT_TRUE(!form.skill_name().empty() ||
                   skill.kind() != SKILL_KIND_PASSIVE)
           << entry.first << "'s empowered form takes the place of nothing";
-      EXPECT_GT(form.casts_per_trigger(), 0)
+      EXPECT_TRUE(form.casts_per_trigger() > 0 || form.cooldown_seconds() > 0.0)
           << entry.first << "'s empowered form would never be swung";
+      EXPECT_FALSE(form.casts_per_trigger() > 0 &&
+                   form.cooldown_seconds() > 0.0)
+          << entry.first << "'s empowered form counts and times at once";
       EXPECT_GT(form.base().skill_pct(), 0.0)
           << entry.first << "'s empowered form would be swung for nothing";
       // A form that marks enemies hits exactly the enemies whose count came

@@ -37,6 +37,25 @@ double PierceMean(double gain, int hit) {
   return (std::pow(1.0 + gain, hit) - 1.0) / (gain * hit);
 }
 
+// Whether `attack` lands as its empowered form every so many attacks or
+// seconds, the form taking the attack's place.
+bool ReplacingForm(const AttackOption& attack) {
+  return attack.empowered != nullptr && !attack.brands_enemies &&
+         (attack.empowered_every > 0 ||
+          attack.empowered_cooldown_seconds > 0.0);
+}
+
+// The share of `attack`'s swings its replacing form takes. A timed form is
+// read as if the attack were swung back to back, its most frequent use.
+double FormShare(const AttackOption& attack) {
+  if (attack.empowered_every > 0) {
+    return 1.0 / attack.empowered_every;
+  }
+  return std::min(
+      1.0, attack.swing_seconds / std::max(attack.empowered_cooldown_seconds,
+                                           attack.swing_seconds));
+}
+
 }  // namespace
 
 void CombatSim::TopUp(const CombatParams& params) {
@@ -345,12 +364,11 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   double side = SideStrikeDamage(attack) + LoadedDamage(attack);
   // An empowered form lands once every N attacks, so the attack is worth the
   // average of the two. The form has no form of its own, so this recurses once.
+  if (ReplacingForm(attack)) {
+    total += (SwingDamage(*attack.empowered) - total) * FormShare(attack);
+    return total + side;
+  }
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
-    if (!attack.brands_enemies) {
-      total +=
-          (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
-      return total + side;
-    }
     // With marking, each mob hit triggers once every N hits rather than the
     // attack triggering, and takes the full form on top. Averaged over the
     // cycle as above.
@@ -659,6 +677,7 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
     AttackClock& clock = attack_clocks_[i];
     clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     clock.side_cooldown_left = std::max(0.0, clock.side_cooldown_left - dt);
+    clock.empowered_ready_in = std::max(0.0, clock.empowered_ready_in - dt);
     if (i >= options.size()) {
       continue;
     }
@@ -1038,17 +1057,6 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   return std::clamp(wanted, hold.min_pulses, hold.pulses);
 }
 
-namespace {
-
-// Whether `attack` lands as its empowered form every so many attacks, the form
-// taking the attack's place.
-bool ReplacingForm(const AttackOption& attack) {
-  return attack.empowered != nullptr && attack.empowered_every > 0 &&
-         !attack.brands_enemies;
-}
-
-}  // namespace
-
 double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
   if (WoundFull(attack)) {
     return SwingSecondsAgainst(*attack.wound_form);
@@ -1058,8 +1066,8 @@ double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
     // form with an animation of its own.
     if (ReplacingForm(attack)) {
       return attack.swing_seconds +
-             (attack.empowered->swing_seconds - attack.swing_seconds) /
-                 attack.empowered_every;
+             (attack.empowered->swing_seconds - attack.swing_seconds) *
+                 FormShare(attack);
     }
     return attack.swing_seconds;
   }
@@ -1073,7 +1081,7 @@ double CombatSim::HeldSeconds(const AttackOption& attack) const {
     // this one lands as the form, as FormToLand will decide.
     if (ReplacingForm(attack) && !WoundFull(attack) && aimed_ >= 0 &&
         aimed_ < static_cast<int>(attack_clocks_.size()) &&
-        attack_clocks_[aimed_].empowered_count + 1 >= attack.empowered_every) {
+        FormDue(attack, attack_clocks_[aimed_])) {
       return attack.empowered->swing_seconds;
     }
     return attack.swing_seconds;
@@ -1703,6 +1711,27 @@ const AttackOption& CombatSim::FormToLand(int& count,
     return attack;
   }
   count = 0;
+  return *attack.empowered;
+}
+
+bool CombatSim::FormDue(const AttackOption& attack,
+                        const AttackClock& clock) const {
+  if (attack.empowered_every > 0) {
+    return clock.empowered_count + 1 >= attack.empowered_every;
+  }
+  return clock.empowered_ready_in <= 0.0;
+}
+
+const AttackOption& CombatSim::SwungForm(AttackClock& clock,
+                                         const AttackOption& attack) {
+  if (attack.empowered_every > 0 || !ReplacingForm(attack) ||
+      WoundFull(attack)) {
+    return FormToLand(clock.empowered_count, attack);
+  }
+  if (clock.empowered_ready_in > 0.0) {
+    return attack;
+  }
+  clock.empowered_ready_in = attack.empowered_cooldown_seconds;
   return *attack.empowered;
 }
 
@@ -2513,8 +2542,7 @@ void CombatSim::LandSwing(const CombatParams& params,
     if (LayBuffs(params, swung, /*on_cast=*/true)) {
       cast = &Attacks(params)[swung];
     }
-    const AttackOption& landed =
-        FormToLand(attack_clocks_[swung].empowered_count, *cast);
+    const AttackOption& landed = SwungForm(attack_clocks_[swung], *cast);
     // A barrage of bolts strikes once per bolt, so dead mobs are cleared
     // between them and a bolt whose targets are dead hits the next ones.
     double proc_recovered =
@@ -2761,6 +2789,7 @@ void CombatSim::ResetCooldowns(const CombatParams& params) {
   for (std::size_t i = 0; i < attack_clocks_.size(); ++i) {
     attack_clocks_[i].cooldown_left = 0.0;
     attack_clocks_[i].side_cooldown_left = 0.0;
+    attack_clocks_[i].empowered_ready_in = 0.0;
     attack_clocks_[i].hold_charges = options[i].channel.max_charges;
   }
   for (BuffClock& buff : buffs_) {

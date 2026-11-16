@@ -2,7 +2,7 @@
 name: "Inhuman Speed Boost"
 description: "Boosts Inhuman Speed."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 5 }
 hexa_node: HEXA_NODE_KIND_ENHANCEMENT
 max_level: 30
 required_skill { skill_name: "Inhuman Speed" level: 30 }

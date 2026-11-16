@@ -1,0 +1,31 @@
+# GMS (3141004): only the volley and turret multipliers change, and the turret
+# stays 60s, Arrow Blaster's top. Levelled by HEXA Arrow Stream's node.
+name: "HEXA Arrow Blaster"
+description:
+  "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
+  "arrows automatically."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
+hexa_core: "HEXA Arrow Stream"
+max_level: 30
+required_skill { skill_name: "Arrow Blaster Boost" level: 60 }
+supersedes_skill_name: "Arrow Blaster"
+inherits_boosts: true
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 120
+fixed_delay: true
+max_enemies: 4
+hits_per_attack_count: 7
+base { skill_pct: 2.40 }
+per_level { skill_pct: 0.10 }
+buff {
+  duration_seconds: 60.0
+  own_cast_delay_ms: 800
+  pulse {
+    label: "Turret"
+    cast_interval_seconds: 0.21
+    max_enemies: 4
+    base { skill_pct: 2.08 }
+    per_level { skill_pct: 0.08 }
+  }
+}

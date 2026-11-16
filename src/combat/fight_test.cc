@@ -2540,6 +2540,30 @@ TEST(CombatSimTest, AnEmpoweredSwingTakesItsOwnTime) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.78, 1e-9);
 }
 
+// Enhanced Arrow Stream comes on a clock rather than a count: the first swing
+// of a fight, then the first once the clock has run out, and a fresh phase
+// finds it ready again.
+TEST(CombatSimTest, ATimedFormTakesTheFirstSwingItsClockAllows) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/0, /*damage=*/10.0);
+  params.attacks[0].empowered_cooldown_seconds = 2.5;
+
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9)
+      << "ready as the fight starts";
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.88, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.78, 1e-9)
+      << "the first swing after its 2.5 seconds";
+  sim.ResetCooldowns(params);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.68, 1e-9);
+}
+
 // Creeping Toxin: the poison pool ticks, and every fourth tick detonates
 // instead. The same swap on the other clock, counted in pulses instead of
 // attacks.

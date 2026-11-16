@@ -1329,6 +1329,10 @@ message EmpoweredForm {
   // skill's fixed_delay; 0 keeps the attack's. Only for a form on an attack
   // the character swings.
   int32 base_delay_ms = 10;
+  // A clock in place of casts_per_trigger's count: the first swing once this
+  // many seconds have passed since the form's last, ready as a fight starts.
+  // HEXA Arrow Stream's Enhanced Arrow Stream. Only for swung attacks.
+  double cooldown_seconds = 11;
 }
 
 // An extra bonus that applies only with certain weapons equipped, on top of

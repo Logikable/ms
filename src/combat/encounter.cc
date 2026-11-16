@@ -1295,7 +1295,9 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
   const std::string& target =
       upgrade.skill_name().empty() ? skill.name() : upgrade.skill_name();
   for (AttackOption& attack : into) {
-    if (attack.name != target) {
+    // A timed form has no count to run on a summon's clock.
+    if (attack.name != target ||
+        (upgrade.cooldown_seconds() > 0.0 && attack.interval_seconds > 0.0)) {
       continue;
     }
     Skill form =
@@ -1331,6 +1333,8 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
       ClearSwingRiders(*swing);
     }
     attack.empowered_every = upgrade.casts_per_trigger();
+    attack.empowered_cooldown_seconds =
+        upgrade.cooldown_seconds() * speed_factor;
     attack.brands_enemies = upgrade.brands_each_enemy();
     attack.empowered = swing;
   }
@@ -1355,7 +1359,8 @@ void AddEmpoweredForms(const GameState& state, const LearnedBook& book,
     off_clock.mirror_line_pct = 0.0;
     StripMesoDrops(off_clock);
     for (const EmpoweredForm& upgrade : skill.empowered_form()) {
-      if (upgrade.casts_per_trigger() <= 0) {
+      if (upgrade.casts_per_trigger() <= 0 &&
+          upgrade.cooldown_seconds() <= 0.0) {
         continue;
       }
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,

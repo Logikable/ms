@@ -549,17 +549,25 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
   // A skill upgrading an attack says which and how often. An empty name means
   // the skill upgrades its own attack, which has no separate name.
   for (const EmpoweredForm& form : skill.empowered_form()) {
+    const std::string name = form.label().empty() ? "Empowers" : form.label();
     if (form.casts_per_trigger() <= 0) {
+      if (form.cooldown_seconds() > 0.0) {
+        rows.push_back(EffectRow(
+            name, "Every " + FormatNumber(form.cooldown_seconds()) + "s"));
+      }
+    } else {
+      // An upgrade with no rate is unconditional; "Empowers" already says so,
+      // and the rate is what distinguishes the other case.
+      std::string how =
+          form.casts_per_trigger() == 1
+              ? ""
+              : "Every " + Ordinal(form.casts_per_trigger()) + " ";
+      // A mode of the attack names itself; there is nothing else to upgrade.
+      rows.push_back(EffectRow(name, how + EmpoweredTarget(form)));
+    }
+    if (form.casts_per_trigger() <= 0 && form.cooldown_seconds() <= 0.0) {
       continue;
     }
-    // An upgrade with no rate is unconditional; "Empowers" already says so, and
-    // the rate is what distinguishes the other case.
-    std::string how = form.casts_per_trigger() == 1
-                          ? ""
-                          : "Every " + Ordinal(form.casts_per_trigger()) + " ";
-    // A mode of the attack names itself; there is nothing else to upgrade.
-    rows.push_back(EffectRow(form.label().empty() ? "Empowers" : form.label(),
-                             how + EmpoweredTarget(form)));
     // A mark on each enemy is different from a count on the attack: five hits
     // on one enemy, not five attacks.
     if (form.brands_each_enemy()) {
@@ -568,8 +576,9 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
     // Only a form with its own reach gets the row. One that states none reaches
     // as far as what it replaces, and repeating that is noise.
     if (!form.brands_each_enemy() && form.max_enemies() > 1) {
-      rows.push_back(
-          EffectRow("Empowered Enemies", std::to_string(form.max_enemies())));
+      rows.push_back(EffectRow(form.label().empty() ? "Empowered Enemies"
+                                                    : form.label() + " Enemies",
+                               std::to_string(form.max_enemies())));
     }
   }
   return rows;
@@ -1361,7 +1370,7 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
   // skill strengthening another in two ways, so both are read together. Its
   // normal-monster value follows, as with the ordinary attack.
   for (const EmpoweredForm& form : skill.empowered_form()) {
-    if (form.casts_per_trigger() <= 0) {
+    if (form.casts_per_trigger() <= 0 && form.cooldown_seconds() <= 0.0) {
       continue;
     }
     // A single form is "Empowered Damage" and needs nothing more; several have

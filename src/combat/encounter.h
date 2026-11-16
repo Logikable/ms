@@ -241,6 +241,9 @@ struct AttackOption {
   // the form never changes.
   std::shared_ptr<const AttackOption> empowered;
   int empowered_every = 0;
+  // Or the form takes the first swing once this long has passed since its
+  // last, game-scaled like a cooldown. Never with brands_enemies.
+  double empowered_cooldown_seconds = 0.0;
   // Whether the count is per enemy rather than per attack. If set, nothing is
   // replaced: each attack marks the mob, and the empowered form lands on top of
   // the normal hit for whichever mobs reach the count.

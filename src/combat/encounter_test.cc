@@ -5116,6 +5116,75 @@ TEST(ComputeCombatParamsTest, HexaHurricaneAlternatesWithShootoutMode) {
       750.0 / 575.0, 1e-9);
 }
 
+// HEXA Arrow Stream as shipped at 30, one node behind Arrow Blaster Boost 60:
+// 610% with Enhanced Arrow Stream's 650% on a 6-second clock, HEXA Arrow
+// Blaster at the node's level, and Advanced Final Attack +378%p.
+TEST(ComputeCombatParamsTest, HexaArrowStreamRebuildsArrowBlasterToo) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book;
+  for (const char* stem :
+       {"arrow_blaster_boost", "hexa_arrow_stream", "hexa_arrow_blaster"}) {
+    book[stem] = skills.at(stem);
+  }
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_BOOST, 0, 60));
+  ASSERT_TRUE(state.character.LearnSkill(book.at("arrow_blaster_boost"), 60));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_MASTERY, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("hexa_arrow_stream"), 30));
+  EXPECT_FALSE(state.character.LearnSkill(book.at("hexa_arrow_blaster"), 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* stream = FindAttack(params, "HEXA Arrow Stream");
+  ASSERT_NE(stream, nullptr);
+  ASSERT_NE(stream->empowered, nullptr);
+  EXPECT_EQ(stream->empowered->name, "Enhanced Arrow Stream");
+  EXPECT_EQ(stream->empowered_every, 0);
+  EXPECT_DOUBLE_EQ(stream->empowered_cooldown_seconds,
+                   6.0 * GameSpeedFactor(state.character.proto().level()));
+  EXPECT_NEAR(stream->empowered->damage_per_hit[0] / stream->damage_per_hit[0],
+              650.0 / 610.0, 1e-9);
+  // Arrow Blaster Boost's extra enemy reaches both.
+  EXPECT_EQ(stream->max_enemies, 9);
+  EXPECT_EQ(stream->empowered->max_enemies, 13);
+
+  const AttackOption* blaster = FindAttack(params, "HEXA Arrow Blaster");
+  ASSERT_NE(blaster, nullptr);
+  const AttackOption* turret = nullptr;
+  for (const AttackOption& pulse : params.auto_attacks) {
+    if (pulse.credit == "HEXA Arrow Blaster") {
+      turret = &pulse;
+    }
+  }
+  ASSERT_NE(turret, nullptr);
+  EXPECT_NEAR(turret->damage_per_hit[0] / blaster->damage_per_hit[0],
+              440.0 / 530.0, 1e-9);
+
+  DerivedStats derived = DerivedStatsFor(state.character, book);
+  ASSERT_EQ(derived.skill_bonus.count("Advanced Final Attack"), 1u);
+  EXPECT_NEAR(derived.skill_bonus.at("Advanced Final Attack").skill_pct, 3.78,
+              1e-9);
+}
+
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.
 TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
   if (!kSixthJobEnabled) {
