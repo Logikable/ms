@@ -15,10 +15,16 @@
 # runs here every time.
 set -euo pipefail
 
-HOST=${MS_SERVER_HOST:-38.81.233.43}
+HOST=${MS_SERVER_HOST:-2606:8ac0:263d:e200:be24:11ff:fede:23c3}
 SSH_PORT=${MS_SERVER_SSH_PORT:-21967}
 LOGIN=${MS_SERVER_USER:-logikable}
 REMOTE=$LOGIN@$HOST
+# scp reads an IPv6 host's colons as the path separator unless bracketed.
+if [[ $HOST == *:* ]]; then
+  SCP_REMOTE="$LOGIN@[$HOST]"
+else
+  SCP_REMOTE=$REMOTE
+fi
 SSH="ssh -p $SSH_PORT $REMOTE"
 
 cd "$(dirname "$0")/.."
@@ -34,10 +40,10 @@ echo "Sending the server to $REMOTE"
 # Without lingering, the service stops when the last login session ends, so
 # the deploy's own SSH session ending would stop it.
 $SSH 'mkdir -p ~/ms ~/ms/logs ~/.config/systemd/user && loginctl enable-linger'
-scp -q -P "$SSH_PORT" "$SERVER_BIN" "$REMOTE:ms/ms_server.new"
-scp -q -P "$SSH_PORT" "$PROBE_BIN" "$REMOTE:ms/probe.new"
+scp -q -P "$SSH_PORT" "$SERVER_BIN" "$SCP_REMOTE:ms/ms_server.new"
+scp -q -P "$SSH_PORT" "$PROBE_BIN" "$SCP_REMOTE:ms/probe.new"
 scp -q -P "$SSH_PORT" server/ms-server.service \
-  "$REMOTE:.config/systemd/user/ms-server.service"
+  "$SCP_REMOTE:.config/systemd/user/ms-server.service"
 
 $SSH 'set -e
   systemctl --user daemon-reload
@@ -49,12 +55,11 @@ $SSH 'set -e
   sleep 1
   systemctl --user is-active ms-server'
 
-# Built for this machine rather than the box: the check is whether the server
-# accepts a client built from this tree, so it must be one.
-bazelisk build //server:probe
+# The probe sent above is built from this tree, so the box can ask for us; a
+# machine without IPv6 couldn't reach an IPv6 server to ask.
 echo "Asking the server whether this build can play"
-if ! bazelisk run -- //server:probe --action=check --host="$HOST" \
-    --port="${MS_SERVER_PORT:-21711}" --seconds=15; then
+if ! $SSH "~/ms/probe --action=check --host=::1 \
+    --port=${MS_SERVER_PORT:-21711} --seconds=15"; then
   echo
   echo "DEPLOY FAILED: the server will not take a client built from this tree."
   echo "The versions above have to match. Both come from kMultiplayerVersion"

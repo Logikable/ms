@@ -36,7 +36,7 @@ inline constexpr int kMultiplayerVersion = 4;
 #ifdef MS_MULTIPLAYER_OFF
 inline constexpr char kServerHost[] = "";
 #else
-inline constexpr char kServerHost[] = "38.81.233.43";
+inline constexpr char kServerHost[] = "2606:8ac0:263d:e200:be24:11ff:fede:23c3";
 #endif
 inline constexpr int kServerPort = 21711;
 
