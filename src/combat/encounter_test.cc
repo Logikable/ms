@@ -5185,6 +5185,89 @@ TEST(ComputeCombatParamsTest, HexaArrowStreamRebuildsArrowBlasterToo) {
               1e-9);
 }
 
+// HEXA Quiver Cartridge's node as shipped at 30 behind Enchanted Quiver Boost
+// 60: Magic Arrows at 442% replacing Enchanted Quiver's, HEXA Phoenix on 6+1
+// enemies, and Extra Quiver Cartridge's 50 Blood Arrows on Hurricane's beat.
+TEST(ComputeCombatParamsTest, HexaQuiverCartridgeRebuildsPhoenixAndLoadsBlood) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book;
+  for (const char* stem :
+       {"enchanted_quiver", "phoenix", "hurricane", "enchanted_quiver_boost",
+        "hexa_quiver_cartridge", "hexa_phoenix", "extra_quiver_cartridge"}) {
+    book[stem] = skills.at(stem);
+  }
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  // Phoenix (3rd job) and Enchanted Quiver (4th) held at their max, so the
+  // node is seen replacing them.
+  for (const auto& [stage, stem] : std::vector<std::pair<int, std::string>>{
+           {3, "phoenix"}, {4, "enchanted_quiver"}}) {
+    while (state.character.proto().job_stage() < stage) {
+      state.character.AdvanceJob(JOB_BOW_MASTER);
+    }
+    while (state.character.sp(stage) < 10) {
+      state.character.LevelUp();
+    }
+    ASSERT_TRUE(state.character.LearnSkill(book.at(stem), 10));
+  }
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_BOOST, 0, 60));
+  ASSERT_TRUE(
+      state.character.LearnSkill(book.at("enchanted_quiver_boost"), 60));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_MASTERY, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("hexa_quiver_cartridge"), 30));
+  EXPECT_FALSE(state.character.LearnSkill(book.at("hexa_phoenix"), 1));
+  EXPECT_FALSE(
+      state.character.LearnSkill(book.at("extra_quiver_cartridge"), 1));
+
+  DerivedStats derived = DerivedStatsFor(state.character, book);
+  ASSERT_EQ(derived.final_attacks.size(), 1u);
+  EXPECT_EQ(derived.final_attacks[0].skill_name, "HEXA Quiver Cartridge");
+  EXPECT_DOUBLE_EQ(derived.final_attacks[0].chance, 0.60);
+  EXPECT_NEAR(derived.final_attacks[0].damage_pct, 4.42, 1e-9);
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  const AttackOption* phoenix = nullptr;
+  const AttackOption* blood = nullptr;
+  for (const AttackOption& pulse : params.auto_attacks) {
+    if (pulse.credit == "HEXA Phoenix") {
+      phoenix = &pulse;
+    }
+    if (pulse.credit == "Extra Quiver Cartridge") {
+      blood = &pulse;
+    }
+    EXPECT_NE(pulse.credit, "Phoenix");
+  }
+  ASSERT_NE(phoenix, nullptr);
+  EXPECT_EQ(phoenix->max_enemies, 7);
+  EXPECT_DOUBLE_EQ(phoenix->interval_seconds, 1.71 * factor);
+  ASSERT_NE(blood, nullptr);
+  EXPECT_EQ(blood->max_pulses, 50);
+  EXPECT_EQ(blood->max_enemies, 1);
+  EXPECT_DOUBLE_EQ(
+      blood->interval_seconds,
+      SwingIntervalSeconds(120, kUnscaledAttackSpeedStage) * factor);
+}
+
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.
 TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
   if (!kSixthJobEnabled) {

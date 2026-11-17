@@ -1,0 +1,29 @@
+# GMS (3141009): every Magic Arrow loads a Blood Arrow, 50 at most, fired one
+# per landed direct attack. Hurricane fills 50 well inside the 30-second
+# cooldown, so the cap always binds and the load isn't modelled: 50 on
+# Hurricane's beat, so the buff lasts the 6 seconds they take, not GMS's 30.
+# Only the Blood Arrows are kept, since Magic is the arrowhead in use.
+name: "Extra Quiver Cartridge"
+description:
+  "Expands the Quiver Cartridge to load special arrowheads, fired when direct "
+  "skill attacks land. Unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 6 }
+hexa_core: "HEXA Quiver Cartridge"
+max_level: 30
+required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 120
+cooldown_seconds: 30.0
+buff {
+  duration_seconds: 6.0
+  pulse {
+    label: "Blood Arrow"
+    paced_by_skill_name: "Hurricane"
+    max_pulses: 50
+    max_enemies: 1
+    lines: 1
+    base { skill_pct: 14.02 }
+    per_level { skill_pct: 0.52 }
+  }
+}

@@ -1,0 +1,22 @@
+# GMS (3141005) rebuilds Quiver Cartridge, which Enchanted Quiver already
+# supersedes here, so this supersedes Enchanted Quiver and restates its 6%
+# Final Damage (GMS keeps Enchanted Quiver learned). Blood Arrows' heal is left
+# out, as there: it replaces Magic Arrows in GMS (the user's call).
+name: "HEXA Quiver Cartridge"
+description:
+  "Uses a special arrowhead. Also permanently increases Final Damage."
+kind: SKILL_KIND_PASSIVE
+final_attack_max_enemies: 1
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 4 }
+hexa_node: HEXA_NODE_KIND_MASTERY
+max_level: 30
+required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }
+supersedes_skill_name: "Enchanted Quiver"
+inherits_boosts: true
+final_attack_label: "Magic Arrow"
+base {
+  final_attack_chance: 0.60
+  final_attack_pct: 2.97
+  final_dmg_pct: 0.06
+}
+per_level { final_attack_pct: 0.05 }

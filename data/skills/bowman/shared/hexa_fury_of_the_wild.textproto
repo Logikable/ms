@@ -7,7 +7,7 @@ description:
   "Wild to the power of flames, which sweeps across the battlefield before "
   "returning to your side to attack enemies. Unaffected by attack reflection."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 12 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 15 }
 placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 9 }
 hexa_node: HEXA_NODE_KIND_ARCHETYPE
 max_level: 30

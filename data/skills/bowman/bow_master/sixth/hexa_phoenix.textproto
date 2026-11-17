@@ -1,0 +1,17 @@
+# GMS (3141012): keeps Phoenix's interval. GMS keeps Phoenix learned, so its
+# DEF passive is restated here; the stun is left out (bosses are immune).
+name: "HEXA Phoenix"
+description:
+  "Summons a Phoenix to deal Fire damage on its own. Permanently increases "
+  "DEF."
+kind: SKILL_KIND_AUTO_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 5 }
+hexa_core: "HEXA Quiver Cartridge"
+max_level: 30
+required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }
+supersedes_skill_name: "Phoenix"
+inherits_boosts: true
+max_enemies: 6
+cast_interval_seconds: 1.71
+base { skill_pct: 5.11 def_pct: 0.30 }
+per_level { skill_pct: 0.16 }

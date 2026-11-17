@@ -2325,9 +2325,11 @@ TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
           if (was <= 0.0) {
             continue;
           }
-          EXPECT_GE(now, was) << entry.first << " supersedes " << other.first
-                              << " but pays " << now << " of " << kHalf[half]
-                              << field->name() << " where it paid " << was;
+          // A ladder summed in doubles lands a hair off its stated top.
+          EXPECT_GE(now, was - 1e-9)
+              << entry.first << " supersedes " << other.first << " but pays "
+              << now << " of " << kHalf[half] << field->name()
+              << " where it paid " << was;
         }
       }
     }
