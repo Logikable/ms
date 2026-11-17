@@ -1346,6 +1346,18 @@ void WearMaxFamiliars(GameState& state, int level) {
 // resets to a Beginner between characters. `tally` is what the rest of the
 // account gives them, set before Hyper Stats are measured because a link
 // skill's crit rate changes the best allocation.
+// Every toggle the climb bought, switched on: Righteously Indignant trades the
+// Bishop's healing for Vengeance, and healing is worth far less than damage
+// here (the user's call).
+void ThrowMaxToggles(GameState& state) {
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.toggle() &&
+        !state.character.SkillToggledOn(entry.second.name())) {
+      state.character.ToggleSkill(entry.second);
+    }
+  }
+}
+
 void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
                      const LinkTally& tally,
                      std::vector<LegionMember> legion_roster) {
@@ -1368,6 +1380,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   state.character.SetUsername(UsernameFor(advancement));
   state.character.AddMeso(kMaxLeftoverMeso);
   ClimbToJob(state, advancement, level, kSpendEveryStage, equips);
+  ThrowMaxToggles(state);
   const int reached = state.character.proto().level();
   WearAll(state, MaxOutfit(state.character.proto().job(), reached), equips);
   WearMaxFarmPieces(state, reached, equips);

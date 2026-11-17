@@ -837,6 +837,26 @@ GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
                    std::move(bosses));
 }
 
+// A max character switches on every toggle it bought, as a Bishop's
+// Righteously Indignant should be.
+TEST(GameStateTest, MaxModeThrowsItsToggles) {
+  std::map<std::string, Skill> skills = EveryStageBook();
+  Skill indignant;
+  indignant.set_name("Righteously Indignant");
+  indignant.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(indignant, AdvancementForJobStage(WorkbenchJob(), 4));
+  indignant.set_max_level(1);
+  indignant.set_toggle(true);
+  skills.insert({"righteously_indignant", indignant});
+  TestOptions options;
+  options.job = AdvancementForJobStage(WorkbenchJob(), 4);
+  options.level = 200;
+  GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {}, skills,
+                  GameMode::kMax, options, std::nullopt, {}, MaxBosses());
+  ASSERT_EQ(state.character.skill_level(indignant), 1);
+  EXPECT_TRUE(state.character.SkillToggledOn("Righteously Indignant"));
+}
+
 // A max character has both allocations at once, and plays music, like the
 // workbench.
 TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
