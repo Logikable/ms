@@ -11,7 +11,7 @@ description:
   "enemy with the highest Max HP. Can move and use Quiver Cartridge while "
   "using this skill."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
 hexa_node: HEXA_NODE_KIND_MASTERY
 max_level: 30
 required_skill { skill_name: "Hurricane Boost" level: 60 }

@@ -2,7 +2,7 @@
 name: "Storm of Arrows Boost"
 description: "Boosts Storm of Arrows."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 11 }
 hexa_node: HEXA_NODE_KIND_ENHANCEMENT
 max_level: 30
 required_skill { skill_name: "Storm of Arrows" level: 30 }

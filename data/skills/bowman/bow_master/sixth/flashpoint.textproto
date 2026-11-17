@@ -1,0 +1,36 @@
+# GMS (3141503, then 3141504 within 30s): two presses of 1320ms each
+# (6thPointZero, 6thPointZero2), made one swing since nobody holds the second.
+# Fixed whatever the attack speed, though the client's frames scale (the
+# user's call for every Ascent).
+#
+# 3 uses a boss fight and no cooldown (6thCount); kept out of farming, where
+# GMS's 240s cooldown applies, since the cast outlasts a Frenzy Totem's
+# respawn. ignoreMobpdpR is 60+log10(x)*10+log20(x)*10+log30(x)*20 and bdR
+# 40+log10(x)*10+log20(x)*10: 100 and 60 at 30.
+name: "Flashpoint"
+description:
+  "Fires a storm of arrows wreathed with lethal illusions. Using the skill "
+  "again will make the arrows return to a single decisive point, dominating "
+  "the battlefield."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 2 }
+hexa_node: HEXA_NODE_KIND_ASCENT
+max_level: 30
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 2640
+fixed_delay: true
+max_enemies: 15
+lines: 10
+casts: 16
+base { skill_pct: 9.08 crit_rate: 1.0 ied_pct: 0.60 boss_pct: 0.40 }
+per_level { skill_pct: 1.52 }
+step { from_level: 10 base { ied_pct: 0.10 boss_pct: 0.10 } }
+step { from_level: 20 base { ied_pct: 0.10 boss_pct: 0.10 } }
+step { from_level: 30 base { ied_pct: 0.20 } }
+extra_hit {
+  label: "Flashpoint Explosion"
+  casts: 16
+  lines: 13
+  base { skill_pct: 9.46 }
+  per_level { skill_pct: 1.58 }
+}

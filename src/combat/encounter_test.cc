@@ -5393,6 +5393,86 @@ TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
               (1543.0 * 8) / (1425.0 * 546), 1e-9);
 }
 
+// Flashpoint as shipped at 30: both presses as one fixed 2.64s swing, priced
+// as GMS says an Ascent is: no hat, no ring, no buff, no Final Attack. Kept
+// out of farming.
+TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  Skill rage;
+  rage.set_name("Rage");
+  rage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(rage, JOB_ADVANCEMENT_ARCHER);
+  rage.set_max_level(1);
+  rage.set_cooldown_seconds(120.0);
+  rage.mutable_buff()->set_duration_seconds(60.0);
+  rage.mutable_buff()->mutable_base()->set_damage_pct(0.5);
+  std::map<std::string, Skill> book = {{"flashpoint", skills.at("flashpoint")},
+                                       {"rage", rage}};
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  GrantFirstJobSp(state, 1, JOB_ARCHER);
+  ASSERT_TRUE(state.character.LearnSkill(rage, 1));
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_ASCENT, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("flashpoint"), 30));
+  EXPECT_EQ(FindAttack(ComputeCombatParams(state), "Flashpoint"), nullptr);
+
+  BossDifficulty normal;
+  normal.set_name("Normal");
+  normal.set_time_limit_seconds(1800);
+  Spawn* snail = normal.add_phases()->add_spawns();
+  snail->set_mob("snail");
+  snail->set_count(1);
+  CombatParams bare = ComputeBossParams(state, "snail_boss", normal, 0);
+  const AttackOption* flash = FindAttack(bare, "Flashpoint");
+  ASSERT_NE(flash, nullptr);
+  EXPECT_TRUE(flash->held);
+  EXPECT_NEAR(flash->swing_seconds, 2.64, 1e-9);
+  EXPECT_DOUBLE_EQ(flash->final_attack_damage[0], 0.0);
+
+  EquipPrototype hat;
+  hat.set_name("Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_attack(500);
+  state.character.PickUp(std::make_unique<EquipInstance>(hat));
+  ASSERT_TRUE(state.character.Equip(0));
+  CombatParams hatted = ComputeBossParams(state, "snail_boss", normal, 0);
+  EXPECT_GT(hatted.attacks[0].damage_per_hit[0],
+            bare.attacks[0].damage_per_hit[0]);
+  const AttackOption* worn = FindAttack(hatted, "Flashpoint");
+  ASSERT_NE(worn, nullptr);
+  EXPECT_DOUBLE_EQ(worn->damage_per_hit[0], flash->damage_per_hit[0]);
+
+  int index = static_cast<int>(worn - hatted.attacks.data());
+  int rage_bit = -1;
+  for (int i = 0; i < static_cast<int>(hatted.buffs.size()); ++i) {
+    if (hatted.buffs[i].name == "Rage") {
+      rage_bit = i;
+    }
+  }
+  ASSERT_GE(rage_bit, 0);
+  const std::vector<AttackOption>& raged = hatted.Attacks(1 << rage_bit);
+  EXPECT_GT(raged[0].damage_per_hit[0], hatted.attacks[0].damage_per_hit[0]);
+  EXPECT_DOUBLE_EQ(raged[index].damage_per_hit[0], flash->damage_per_hit[0]);
+}
+
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.
 TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
   if (!kSixthJobEnabled) {

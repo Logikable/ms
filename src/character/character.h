@@ -19,6 +19,7 @@
 #include <random>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "src/build_config.h"
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
@@ -1003,6 +1004,10 @@ class CharacterInstance {
   // A copy of this character with `book` for familiars, for pricing a
   // familiar's lines it no longer has. Only the copy changes.
   CharacterInstance WithFamiliars(const FamiliarBook& book) const;
+  // A copy of this character with `slots` emptied in `preset`, inherited items
+  // included, for pricing a hit GMS says those slots don't reach.
+  CharacterInstance Without(absl::Span<const EquipSlot> slots,
+                            StatPreset preset) const;
 
  private:
   // Private so a character is never copied by accident; only a probe like

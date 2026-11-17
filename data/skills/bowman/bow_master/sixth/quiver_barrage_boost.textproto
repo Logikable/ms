@@ -2,7 +2,7 @@
 name: "Quiver Barrage Boost"
 description: "Boosts Quiver Barrage."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 12 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 13 }
 hexa_node: HEXA_NODE_KIND_ENHANCEMENT
 max_level: 30
 required_skill { skill_name: "Quiver Barrage" level: 30 }

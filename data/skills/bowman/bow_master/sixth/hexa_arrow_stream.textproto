@@ -6,7 +6,7 @@ description:
   "enhanced Arrow Stream. The enhanced Arrow Stream fires even more arrows that "
   "strike further. Permanently increases Advanced Final Attack's damage."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 4 }
 hexa_node: HEXA_NODE_KIND_MASTERY
 max_level: 30
 required_skill { skill_name: "Arrow Blaster Boost" level: 60 }

@@ -5,7 +5,7 @@ description:
   "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
   "arrows automatically."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 5 }
 hexa_core: "HEXA Arrow Stream"
 max_level: 30
 required_skill { skill_name: "Arrow Blaster Boost" level: 60 }

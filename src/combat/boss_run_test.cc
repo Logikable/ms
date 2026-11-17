@@ -11,7 +11,10 @@
 #include <utility>
 #include <vector>
 
+#include "src/build_config.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/honor.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/test_authority.h"
 #include "src/game_state.h"
@@ -1652,6 +1655,155 @@ TEST(BossRunTest, ASharedRunReportsItsDropRate) {
   run.Advance(*state, 0.1);
 
   EXPECT_DOUBLE_EQ(authority.reported_drop_pct_, 0.5);
+}
+
+// A 6th job Bow Master with a plain filler and an Ascent that takes
+// `ascent_share` of TwoPhaseBoss in one cast.
+std::unique_ptr<GameState> AscentHolder(double ascent_share) {
+  Skill filler;
+  filler.set_name("Volley");
+  filler.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(filler, JOB_ADVANCEMENT_ARCHER);
+  filler.set_max_level(1);
+  filler.set_base_delay_ms(600);
+  filler.set_lines(5);
+  filler.mutable_base()->set_skill_pct(1.0);
+  Skill ascent;
+  ascent.set_name("Ascent");
+  ascent.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(ascent, JOB_ADVANCEMENT_BOW_MASTER_VI);
+  ascent.set_hexa_node(HEXA_NODE_KIND_ASCENT);
+  ascent.set_max_level(1);
+  ascent.set_base_delay_ms(1000);
+  ascent.set_fixed_delay(true);
+  ascent.set_lines(100);
+  ascent.mutable_base()->set_skill_pct(1.0);
+  std::unique_ptr<GameState> state = std::make_unique<GameState>(
+      DropEquips(), std::map<std::string, Scroll>{}, DropItems(),
+      std::map<std::string, Mob>{{"arm", MakeMob("Zakum's Arm", 1, 0)},
+                                 {"body", MakeMob("Zakum", 1, 0)}},
+      std::map<std::string, MapData>{},
+      std::map<std::string, Skill>{{"volley", filler}, {"ascent", ascent}});
+  while (state->character.proto().job_stage() < kSixthJobStage) {
+    state->character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  while (state->character.sp(1) < 1) {
+    state->character.LevelUp();
+  }
+  EXPECT_TRUE(state->character.LearnSkill(filler, 1));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_ASCENT, 0, 1);
+  state->character.AddSolErdaEnergy(price.energy);
+  state->character.AddSolErdaFragments(price.fragments);
+  EXPECT_TRUE(state->character.LearnSkill(ascent, 1));
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.mutable_base_stats()->set_attack(100);
+  state->character.PickUp(std::make_unique<EquipInstance>(bow));
+  state->character.Equip(0);
+  // A low-level character, so the monsters match it.
+  for (const char* mob : {"arm", "body"}) {
+    state->mobs[mob].set_level(state->character.proto().level());
+  }
+  // Each monster gets HP enough that one Ascent is `ascent_share` of the
+  // fight's three (two arms and the body).
+  Boss boss = TwoPhaseBoss();
+  CombatParams params =
+      ComputeBossParams(*state, "zakum", boss.difficulties(0), 0);
+  double cast = 0.0;
+  for (const AttackOption& attack : params.attacks) {
+    if (attack.name == "Ascent") {
+      cast = attack.damage_per_hit[0];
+    }
+  }
+  EXPECT_GT(cast, 0.0);
+  int64_t hp = static_cast<int64_t>(cast / ascent_share / 3.0);
+  for (const char* mob : {"arm", "body"}) {
+    state->mobs[mob].set_max_hp(hp);
+  }
+  return state;
+}
+
+// Ascent casts the fight's breakdown counts.
+int64_t AscentsLanded(const BossRun& run) {
+  for (const BreakdownRow& row : run.breakdown().Rows()) {
+    if (row.skill == "Ascent") {
+      return row.casts;
+    }
+  }
+  return 0;
+}
+
+// The whole fight's HP when an Ascent was aimed, read the step before. Uses
+// back to back read as one.
+std::vector<double> AscentMarks(BossRun& run, GameState& state,
+                                const std::vector<int64_t>& phase_hp) {
+  std::vector<double> marks;
+  double total = 0.0;
+  for (int64_t hp : phase_hp) {
+    total += static_cast<double>(hp);
+  }
+  double before = 1.0;
+  bool aiming = false;
+  for (int step = 0; step < 200000 && !run.done(); ++step) {
+    run.Advance(state, 0.05);
+    bool now = run.members()[0].attack_name == "Ascent";
+    if (now && !aiming) {
+      marks.push_back(before);
+    }
+    aiming = now;
+    double left = 0.0;
+    // phase() counts from 1.
+    const int phase = run.phase() - 1;
+    for (int i = 0; i < static_cast<int>(phase_hp.size()); ++i) {
+      if (i == phase) {
+        left += run.phase_hp_fraction() * static_cast<double>(phase_hp[i]);
+      } else if (i > phase) {
+        left += static_cast<double>(phase_hp[i]);
+      }
+    }
+    before = left / total;
+  }
+  return marks;
+}
+
+// The three uses go out as the whole fight passes 75, 50 and 25%, each read
+// just under its mark, so the opening pace reads as it always has.
+TEST(BossRunTest, AscentsGoOutAtTheQuarterMarks) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  std::unique_ptr<GameState> state = AscentHolder(0.1);
+  Boss boss = TwoPhaseBoss(/*time_limit=*/100000);
+  BossRun run("zakum", boss, 0);
+  int64_t hp = state->mobs["arm"].max_hp();
+  std::vector<double> marks = AscentMarks(run, *state, {2 * hp, hp});
+  EXPECT_EQ(run.state(), BossRunState::kWon);
+  ASSERT_EQ(marks.size(), 3u);
+  for (int k = 0; k < 3; ++k) {
+    EXPECT_LT(marks[k], 0.75 - 0.25 * k);
+    EXPECT_GT(marks[k], 0.75 - 0.25 * k - 0.05);
+  }
+  EXPECT_EQ(AscentsLanded(run), 3);
+}
+
+// A phase on its own clock takes every use as it opens, and the first phase
+// spends none, though it passes two marks.
+TEST(BossRunTest, ATimedPhaseTakesEveryAscent) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  std::unique_ptr<GameState> state = AscentHolder(0.1);
+  Boss boss = TwoPhaseBoss(/*time_limit=*/100000);
+  boss.mutable_difficulties(0)->mutable_phases(1)->set_time_limit_seconds(600);
+  BossRun run("zakum", boss, 0);
+  int64_t hp = state->mobs["arm"].max_hp();
+  std::vector<double> marks = AscentMarks(run, *state, {2 * hp, hp});
+  // Back to back from the body's full third, so aimed once without a break.
+  ASSERT_EQ(marks.size(), 1u);
+  EXPECT_NEAR(marks[0], 1.0 / 3.0, 1e-9);
+  EXPECT_EQ(AscentsLanded(run), 3);
 }
 
 }  // namespace

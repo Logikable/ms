@@ -40,6 +40,15 @@ constexpr double kBaseBuffDuration = 0.10;               // Empathy
 // skills count toward the cap too.
 constexpr int kMaxBuffWindows = 15;
 
+// Uses of an Ascent skill a boss fight allows, phases included (client
+// 6thCount). The run releases them as the boss's HP falls; see BossRun.
+constexpr int kAscentUsesPerBossFight = 3;
+
+// A buff on at least this cooldown is a burst window. A released Ascent waits
+// for every one to lapse, since buffs don't raise it and the cast costs the
+// buffed seconds it replaces.
+constexpr double kBurstCooldownSeconds = 90.0;
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_CONSTANTS_H_

@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 
+#include "src/combat/constants.h"
 #include "src/combat/encounter.h"
 #include "src/protos/mob.pb.h"
 
@@ -413,10 +414,36 @@ bool CombatSim::OnOffer(const CombatParams& params, int index) const {
   if (attack.spent_by_attack >= 0) {
     return false;
   }
+  if (attack.held && !Releasing(params)) {
+    return false;
+  }
   // A hold is valued by its pulse over its pulse time regardless of length, so
   // one charge rates the same as a full set and the chooser uses it as soon as
   // a charge is ready.
   return !Recharging(index) && Loaded(params, index) && Charged(params, index);
+}
+
+bool CombatSim::Releasing(const CombatParams& params) const {
+  if (released_ <= 0) {
+    return false;
+  }
+  if (release_at_once_ || released_ > 1) {
+    return true;
+  }
+  int count = std::min(static_cast<int>(buffs_.size()),
+                       static_cast<int>(params.buffs.size()));
+  for (int i = 0; i < count; ++i) {
+    if (buffs_[i].left > 0.0 &&
+        params.buffs[i].cooldown_seconds >= kBurstCooldownSeconds) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void CombatSim::Release(int uses, bool at_once) {
+  released_ += uses;
+  release_at_once_ = release_at_once_ || at_once;
 }
 
 int CombatSim::TopAttack(const CombatParams& params,
@@ -659,6 +686,15 @@ int CombatSim::ChooseAttack(const CombatParams& params) const {
   int heal = HealToCast(params);
   if (heal >= 0) {
     return heal;
+  }
+  // A released Ascent goes first: its value is the same whenever it lands.
+  if (Releasing(params)) {
+    const std::vector<AttackOption>& options = Attacks(params);
+    for (int i = 0; i < static_cast<int>(options.size()); ++i) {
+      if (options[i].held && OnOffer(params, i)) {
+        return i;
+      }
+    }
   }
   // Below the heal and above damage: reapplying a lapsed buff is worth more
   // than one more use of the best attack.
@@ -2561,16 +2597,22 @@ void CombatSim::LandSwing(const CombatParams& params,
     RecoverHp(params, SwingRecovery(params, landed, proc_recovered));
     // The attack is over; anything it triggers runs on its own timer.
     attributing_ = -1;
-    // After the strike, so triggered skills hit what the attack left alive.
-    CreditSwing(params, cast->count_weight);
-    // Only the first strike's lines (the rest of a barrage credits its own as
-    // they land), but the whole press's weight, since thirty bolts are one key
-    // press.
-    CreditBuffs(params, cast->count_weight, landed.lines);
-    LayBuffs(params, swung, /*on_cast=*/false);
-    // After the strike too: a buff an attack rolls for boosts later attacks,
-    // never the one that earned it.
-    RaiseRolledBuffs(params, afflicted);
+    if (attack.held) {
+      // An Ascent counts toward nothing hit-triggered.
+      released_ = std::max(0, released_ - 1);
+      release_at_once_ = release_at_once_ && released_ > 0;
+    } else {
+      // After the strike, so triggered skills hit what the attack left alive.
+      CreditSwing(params, cast->count_weight);
+      // Only the first strike's lines (the rest of a barrage credits its own
+      // as they land), but the whole press's weight, since thirty bolts are
+      // one key press.
+      CreditBuffs(params, cast->count_weight, landed.lines);
+      LayBuffs(params, swung, /*on_cast=*/false);
+      // After the strike too: a buff an attack rolls for boosts later attacks,
+      // never the one that earned it.
+      RaiseRolledBuffs(params, afflicted);
+    }
   }
   SpendSwingClocks(attack, swung);
   attributing_ = -1;  // nothing left to credit to this attack

@@ -23,6 +23,7 @@
 
 #include "src/combat/arena_spots.h"
 #include "src/combat/boss_timing.h"
+#include "src/combat/constants.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -418,6 +419,11 @@ class BossRun {
   static void JumpSlot(BossSlot& slot);
   // Computes the phase's remaining HP as a fraction of its full HP.
   void ComputePhaseHp(const CombatParams& params);
+  // Lets the sim cast the fight's Ascent uses: one each time the whole fight's
+  // HP passes a quarter mark (75/50/25%), so the opening pace still reads true
+  // and every use lands before the kill. A phase on its own clock (Hard
+  // Lucid's last) takes every use left as it opens, and the marks wait for it.
+  void ReleaseAscents(const GameState& state);
   // Readies the player's cooldowns if a phase that resets them just started.
   void ResetCooldownsIfDue(const CombatParams& params);
   // Advances one phase of the fight, moving on when all its monsters are dead.
@@ -488,6 +494,8 @@ class BossRun {
   // screen returns.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
+  // Ascent uses not yet released to the sim. See ReleaseAscents.
+  int ascents_left_ = kAscentUsesPerBossFight;
   // The phase's damage table, and the phase and level it was built for. Nothing
   // that feeds it changes within a phase, and rebuilding it every frame took
   // 94% of a daily-boss sim's time. Level is tracked too, since a clear pays

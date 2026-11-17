@@ -8,7 +8,7 @@ description:
   "Expands the Quiver Cartridge to load special arrowheads, fired when direct "
   "skill attacks land. Unaffected by attack reflection."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 8 }
 hexa_core: "HEXA Quiver Cartridge"
 max_level: 30
 required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }

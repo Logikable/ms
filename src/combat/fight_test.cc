@@ -5678,4 +5678,81 @@ TEST(CombatSimTest, ABankFillsIntoTheWindowAndIsSpentInside) {
 }
 
 }  // namespace
+// A fight with a filler, an Ascent and a 120s burst buff up for `up` seconds
+// from the start. The Ascent hits far harder than anything and still waits.
+CombatParams AscentFight(const Mob& boss, double up) {
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 10.0, 1)});
+  AttackOption ascent = MakeSkill("Ascent", 10000.0, 0.0);
+  ascent.held = true;
+  params.attacks.push_back(ascent);
+  if (up > 0.0) {
+    GiveBuff(params, up, /*cooldown=*/120.0, /*factor=*/2.0);
+  }
+  return params;
+}
+
+// Steps `sim` 0.01s at a time for `seconds`, releasing `uses` at `release_at`.
+std::vector<double> AscentTimes(CombatSim& sim, const CombatParams& params,
+                                double release_at, int uses, bool at_once,
+                                double seconds) {
+  std::vector<double> times;
+  int landed = 0;
+  for (int step = 1; step * 0.01 < seconds; ++step) {
+    if (std::abs(step * 0.01 - release_at) < 0.005) {
+      sim.Release(uses, at_once);
+    }
+    sim.Advance(params, 0.01);
+    const std::vector<AttackTally>& tallies = sim.by_attack();
+    int now = tallies.size() > 1 ? tallies[1].swings : 0;
+    if (now > landed) {
+      landed = now;
+      times.push_back(step * 0.01);
+    }
+  }
+  return times;
+}
+
+// Never chosen on its rate: only a release lets it out, once a use.
+TEST(CombatSimTest, AnAscentLandsOnlyWhenReleased) {
+  Mob boss = MakeMob("Zakum", 1000000000);
+  CombatParams params = AscentFight(boss, 0.0);
+  CombatSim sim;
+  std::vector<double> times =
+      AscentTimes(sim, params, 5.0, 1, /*at_once=*/false, 20.0);
+  ASSERT_EQ(times.size(), 1u);
+  EXPECT_GE(times[0], 5.0);
+  EXPECT_LE(times[0], 7.0);
+  EXPECT_EQ(sim.released(), 0);
+}
+
+// Buffs don't raise it, so a lone release waits for the burst to lapse at 10s;
+// the last use, or a second waiting, lands at once.
+TEST(CombatSimTest, AReleasedAscentWaitsOutABurstUnlessItCannotWait) {
+  Mob boss = MakeMob("Zakum", 1000000000);
+  CombatParams params = AscentFight(boss, 10.0);
+  {
+    CombatSim sim;
+    std::vector<double> times =
+        AscentTimes(sim, params, 2.0, 1, /*at_once=*/false, 20.0);
+    ASSERT_EQ(times.size(), 1u);
+    EXPECT_GT(times[0], 10.0);
+  }
+  {
+    CombatSim sim;
+    std::vector<double> times =
+        AscentTimes(sim, params, 2.0, 1, /*at_once=*/true, 20.0);
+    ASSERT_EQ(times.size(), 1u);
+    EXPECT_LT(times[0], 5.0);
+  }
+  {
+    CombatSim sim;
+    std::vector<double> times =
+        AscentTimes(sim, params, 2.0, 2, /*at_once=*/false, 20.0);
+    ASSERT_EQ(times.size(), 2u);
+    EXPECT_LT(times[0], 5.0);
+    // The second is alone by then, so it waits.
+    EXPECT_GT(times[1], 10.0);
+  }
+}
+
 }  // namespace ms

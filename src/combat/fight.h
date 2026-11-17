@@ -67,6 +67,15 @@ class CombatSim {
   // charges. A buff already up keeps running.
   void ResetCooldowns(const CombatParams& params);
 
+  // Lets `uses` more Ascent casts out (AttackOption::held), each landing as
+  // soon as no burst buff is up (kBurstCooldownSeconds). With `at_once`, or
+  // two waiting, they land now: a use still held when the boss dies is lost.
+  void Release(int uses, bool at_once);
+  // Released uses not yet cast.
+  int released() const {
+    return released_;
+  }
+
   // Seconds until the next event that can change an attack's value: the attack
   // landing, or a buff starting or ending. A longer step still works but may
   // use the wrong buffs. Infinite when nothing will change on its own.
@@ -424,6 +433,8 @@ class CombatSim {
   // Whether the attack at `index` can be used now: a normal attack (not
   // auto-firing), off cooldown, loaded, and charged.
   bool OnOffer(const CombatParams& params, int index) const;
+  // Whether a released Ascent may land now. See Release.
+  bool Releasing(const CombatParams& params) const;
   // One attack's value per second against the current queue: damage plus the
   // statuses it leaves, divided by the time it takes. Every choice in here uses
   // this measure. Takes the attack by reference, so it can be valued under
@@ -728,6 +739,10 @@ class CombatSim {
   // The aimed attack, so landing it starts that attack's cooldown, and so the
   // fight stays committed to it while charging. -1 if nothing is aimed.
   int aimed_ = -1;
+  // See Release. Kept across encounters, so a use released as a phase ends
+  // lands in the next.
+  int released_ = 0;
+  bool release_at_once_ = false;
   // Enemies the attack is reaching, measured at the start of the step so an
   // auto-firing rain and the attack that triggered it agree on the crowd. A
   // step out of date, which is close enough.

@@ -3135,6 +3135,18 @@ CharacterInstance CharacterInstance::WithFamiliars(
   return probe;
 }
 
+CharacterInstance CharacterInstance::Without(absl::Span<const EquipSlot> slots,
+                                             StatPreset preset) const {
+  CharacterInstance probe(*this);
+  for (EquipSlot slot : slots) {
+    // An inherited item belongs to the first preset.
+    if (!probe.Unequip(slot, preset)) {
+      probe.Unequip(slot, StatPreset::kFirst);
+    }
+  }
+  return probe;
+}
+
 CharacterInstance CharacterInstance::Wearing(
     const EquipTabItem& item, StatPreset preset,
     std::optional<EquipSlot> slot_override) const {

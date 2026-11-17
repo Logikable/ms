@@ -229,6 +229,10 @@ struct AttackOption {
   int wide_hit_enemies = 0;
   // Burns this attack applies to the enemies it hits.
   std::vector<DotApplication> dots;
+  // An Ascent skill: offered only while the boss run has released a use, and
+  // its landing triggers nothing (no Final Attack, proc, burn or hit-counted
+  // skill), as GMS says. See CombatSim::Release.
+  bool held = false;
   // Fraction of max HP this option heals instead of dealing damage. It deals no
   // damage, and the fight picks it when HP is low rather than by damage; see
   // CombatSim::HealToCast.
@@ -419,6 +423,10 @@ struct BuffedSetSource {
   mutable std::shared_ptr<const DerivedBasis> derived;
   // The book's levels and boosts, which no buff changes either.
   mutable std::shared_ptr<const LearnedBook> book;
+  // Each Ascent by its index in the attack list, priced as GMS prices it:
+  // without hats, rings or any buff. Every set takes these in place of its
+  // own. See AttackOption::held.
+  std::vector<std::pair<int, AttackOption>> held_attacks;
 };
 
 // One form a buff can be raised in; the fight picks one at each cast. See

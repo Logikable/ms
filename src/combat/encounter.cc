@@ -510,6 +510,9 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                      AttackOption& attack) {
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.per_swing_final_attack_damage.assign(types.size(), 0.0);
+  if (attack.held) {
+    return;  // an Ascent triggers nothing
+  }
   // How much of each chance this attack keeps: knocking meso loose, and
   // triggering the extra hit. See SkillEffect.meso_drop_cut and
   // final_attack_chance_cut.
@@ -698,7 +701,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
   AddCastShape(skill, level, derived, offense, speed_factor, attack);
+  attack.held = skill != nullptr && skill->hexa_node() == HEXA_NODE_KIND_ASCENT;
   for (const SwingProc& proc : derived.procs) {
+    if (attack.held) {
+      break;
+    }
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
   }
   AddFreezeStacks(skill, derived, offense, types, attack);
@@ -733,7 +740,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       nullptr, 0, PassiveOffenseFor(derived, nullptr));
   follow.mirror_lines = 0;
-  AddBurns(skill, derived, offense, follow, level, types, speed_factor, attack);
+  if (!attack.held) {
+    AddBurns(skill, derived, offense, follow, level, types, speed_factor,
+             attack);
+  }
   AddFinalAttacks(skill, derived, follow, level,
                   skill != nullptr ? attack.lines : 1, types, attack);
   if (skill != nullptr && skill->has_side_strike()) {
@@ -1503,9 +1513,10 @@ void FileAutoAttack(const Skill& swung, double speed_factor,
 void AddAttacks(const GameState& state, const LearnedBook& book,
                 const DerivedStats& derived, EquipType weapon_type,
                 int attack_speed, double speed_factor,
-                const std::vector<CombatType>& types, AttackSet& set) {
+                const std::vector<CombatType>& types, AttackSet& set,
+                const CharacterInstance& wearer) {
   const Character& proto = state.character.proto();
-  const EquipStats total_stats = TotalEquipStats(state.character, derived);
+  const EquipStats total_stats = TotalEquipStats(wearer, derived);
   // A skill on its own timer isn't the character's attack: no shadow copies it
   // and it throws no meso, just as AttackFor removes its Final Attacks.
   DerivedStats off_clock = derived;
@@ -1604,14 +1615,18 @@ int DotSlotsNeeded(const CombatParams& params) {
 
 // Everything the character can attack with under one set of stats: their own,
 // or with some buffs active.
+// `wearer` is whose gear the swings are priced with: the character, unless a
+// probe has taken some of it off (see PriceAscentsBare).
 AttackSet BuildAttackSet(const GameState& state, const LearnedBook& book,
                          const DerivedStats& derived,
                          const EquipPrototype& weapon, double speed_factor,
-                         const std::vector<CombatType>& types) {
+                         const std::vector<CombatType>& types,
+                         const CharacterInstance* wearer = nullptr) {
   int attack_speed = AttackSpeedStageFor(state, weapon, derived);
   AttackSet set;
   AddAttacks(state, book, derived, weapon.equip_type(), attack_speed,
-             speed_factor, types, set);
+             speed_factor, types, set,
+             wearer != nullptr ? *wearer : state.character);
   AddMagazines(state, book, derived, weapon.equip_type(), attack_speed,
                speed_factor, types, set);
   AddEmpoweredForms(state, book, TotalEquipStats(state.character, derived),
@@ -1972,7 +1987,9 @@ double ReferenceDps(const CombatParams& params) {
   double best_swing = 0.0;
   double own_clocks = 0.0;
   for (const AttackOption& attack : params.attacks) {
-    if (attack.swing_seconds <= 0.0 || attack.damage_per_hit.empty()) {
+    // An Ascent is three presses a fight, not a rate.
+    if (attack.swing_seconds <= 0.0 || attack.damage_per_hit.empty() ||
+        attack.held) {
       continue;
     }
     best_swing =
@@ -2070,6 +2087,9 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);
   TagBuffSilencedSummons(params.buffs, source.buff_skills, set.auto_attacks);
   TagBuffSilencedCasts(params.buffs, set.triggered_attacks);
+  for (const std::pair<int, AttackOption>& held : source.held_attacks) {
+    set.attacks[held.first] = held.second;
+  }
   if (source.halve_reach) {
     HalveReach(set.attacks);
     HalveReach(set.auto_attacks);
@@ -2306,6 +2326,59 @@ double DropRollRate(const GameState& state, const DerivedStats& bossing) {
       .item_drop_pct;
 }
 
+namespace {
+
+// The bossing stats, with what only a boss fight adds: the symbol's boss damage
+// and the Arcane or Sacred Power factors.
+DerivedStats BossDerived(const GameState& state,
+                         const CharacterInstance& character,
+                         const std::string& boss_key,
+                         const BossDifficulty& difficulty) {
+  DerivedStats derived = DerivedStatsFor(character, state.skills, {},
+                                         state.party, Activity::kBossing);
+  derived.damage_pct += SymbolBossDamagePct(character, boss_key, derived.gear);
+  ForceFactors force =
+      BossForceFor(difficulty, character, state.skills).factors;
+  derived.force_damage_factor = force.damage_dealt;
+  derived.force_taken_factor = force.damage_taken;
+  return derived;
+}
+
+// GMS's Ascents ignore hats, rings and active buffs, so they're priced on the
+// character with those slots emptied, before any buff. A set the hat completes
+// loses that piece too.
+void PriceAscentsBare(const GameState& state, const std::string& boss_key,
+                      const BossDifficulty& difficulty,
+                      const EquipPrototype& weapon, CombatParams& params) {
+  if (absl::c_none_of(params.attacks,
+                      [](const AttackOption& a) { return a.held; })) {
+    return;
+  }
+  const EquipSlot kUnreached[] = {EQUIP_SLOT_HAT,    EQUIP_SLOT_RING,
+                                  EQUIP_SLOT_RING_2, EQUIP_SLOT_RING_3,
+                                  EQUIP_SLOT_RING_4, EQUIP_SLOT_CONT_RING};
+  CharacterInstance bare = state.character.Without(
+      kUnreached,
+      state.character.SlotFor(PresetKind::kEquip, Activity::kBossing));
+  DerivedStats derived = BossDerived(state, bare, boss_key, difficulty);
+  AttackSet set = BuildAttackSet(state, *params.buffed_source.book, derived,
+                                 weapon, 1.0, params.types, &bare);
+  for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+    if (!params.attacks[i].held) {
+      continue;
+    }
+    for (AttackOption& priced : set.attacks) {
+      if (priced.name == params.attacks[i].name) {
+        params.attacks[i] = priced;
+        params.buffed_source.held_attacks.emplace_back(i, std::move(priced));
+        break;
+      }
+    }
+  }
+}
+
+}  // namespace
+
 CombatParams ComputeBossParams(const GameState& state,
                                const std::string& boss_key,
                                const BossDifficulty& difficulty, int phase) {
@@ -2320,14 +2393,8 @@ CombatParams ComputeBossParams(const GameState& state,
   }
 
   // Boss fights use the bossing stat allocation.
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
-                                         state.party, Activity::kBossing);
-  derived.damage_pct +=
-      SymbolBossDamagePct(state.character, boss_key, derived.gear);
-  ForceFactors force =
-      BossForceFor(difficulty, state.character, state.skills).factors;
-  derived.force_damage_factor = force.damage_dealt;
-  derived.force_taken_factor = force.damage_taken;
+  DerivedStats derived =
+      BossDerived(state, state.character, boss_key, difficulty);
   // Boss fights run in real time at every level. Game speed stretches idle maps
   // so the player can leave them running; a watched fight needs neither that
   // nor respawns. Both intervals stay 0.
@@ -2338,6 +2405,7 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
+  PriceAscentsBare(state, boss_key, difficulty, *weapon, params);
   params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);
   // Attack the healthiest boss part first; see CombatParams::focus_healthiest.

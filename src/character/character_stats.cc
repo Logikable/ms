@@ -1542,7 +1542,8 @@ bool BarredFrom(const Skill& skill, Activity activity) {
   if (activity == Activity::kBossing) {
     return skill.farming_only();
   }
-  return skill.hexa_node() == HEXA_NODE_KIND_ORIGIN;
+  return skill.hexa_node() == HEXA_NODE_KIND_ORIGIN ||
+         skill.hexa_node() == HEXA_NODE_KIND_ASCENT;
 }
 
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill,

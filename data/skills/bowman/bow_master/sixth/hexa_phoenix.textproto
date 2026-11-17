@@ -5,7 +5,7 @@ description:
   "Summons a Phoenix to deal Fire damage on its own. Permanently increases "
   "DEF."
 kind: SKILL_KIND_AUTO_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 7 }
 hexa_core: "HEXA Quiver Cartridge"
 max_level: 30
 required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }

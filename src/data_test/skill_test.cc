@@ -1294,12 +1294,14 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     // skill gets its own: GMS paces key-down skills in the low hundreds of ms
     // (Arrow Blaster is 120), while Perfect Shot's 2.12 seconds is an aiming
     // window.
-    // An Origin's cast is a cutscene: the client's longest 6th job action
-    // runs 7980ms.
+    // An Origin's or Ascent's cast is a cutscene: the client's longest 6th
+    // job action runs 7980ms.
     if (entry.second.fixed_delay()) {
+      const HexaNodeKind node = entry.second.hexa_node();
+      const bool cutscene =
+          node == HEXA_NODE_KIND_ORIGIN || node == HEXA_NODE_KIND_ASCENT;
       EXPECT_GE(entry.second.base_delay_ms(), kTickMs) << entry.first;
-      EXPECT_LE(entry.second.base_delay_ms(),
-                entry.second.hexa_node() == HEXA_NODE_KIND_ORIGIN ? 8000 : 2500)
+      EXPECT_LE(entry.second.base_delay_ms(), cutscene ? 8000 : 2500)
           << entry.first;
       continue;
     }

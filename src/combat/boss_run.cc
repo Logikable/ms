@@ -23,6 +23,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/spawn.h"
 
 namespace ms {
 namespace {
@@ -694,6 +695,62 @@ const CombatParams& BossRun::PhaseParams(const GameState& state) {
   return params_;
 }
 
+void BossRun::ReleaseAscents(const GameState& state) {
+  if (ascents_left_ <= 0 || current_phase() == nullptr) {
+    return;
+  }
+  const BossDifficulty& fight = *difficulty();
+  if (current_phase()->time_limit_seconds() > 0) {
+    sim_.Release(ascents_left_, /*at_once=*/true);
+    ascents_left_ = 0;
+    return;
+  }
+  std::vector<double> hp;
+  bool clock_ahead = false;
+  for (int i = 0; i < fight.phases_size(); ++i) {
+    const BossPhase& phase = fight.phases(i);
+    clock_ahead = clock_ahead || (i > phase_ && phase.time_limit_seconds() > 0);
+    double full = 0.0;
+    for (const Spawn& spawn : phase.spawns()) {
+      std::map<std::string, Mob>::const_iterator mob =
+          state.mobs.find(spawn.mob());
+      if (mob != state.mobs.end()) {
+        full += SpawnCount(spawn) * mob->second.max_hp();
+      }
+    }
+    hp.push_back(full);
+  }
+  if (clock_ahead) {
+    return;
+  }
+  double total = 0.0;
+  double left = 0.0;
+  for (int i = 0; i < static_cast<int>(hp.size()); ++i) {
+    total += hp[i];
+    if (i == phase_) {
+      left += hp[i] * phase_hp_fraction_;
+    } else if (i > phase_) {
+      left += hp[i];
+    }
+  }
+  if (total <= 0.0) {
+    return;
+  }
+  // The marks split the fight evenly among the uses: 75, 50 and 25% for three.
+  const int uses = kAscentUsesPerBossFight;
+  int passed = 0;
+  for (int k = 1; k <= uses; ++k) {
+    if (left / total < 1.0 - static_cast<double>(k) / (uses + 1)) {
+      passed = k;
+    }
+  }
+  while (uses - ascents_left_ < passed) {
+    --ascents_left_;
+    // The last use can't wait for a burst to lapse: the kill may come first.
+    sim_.Release(1, /*at_once=*/ascents_left_ == 0);
+  }
+}
+
 void BossRun::ResetCooldownsIfDue(const CombatParams& params) {
   if (cooldowns_due_) {
     sim_.ResetCooldowns(params);
@@ -719,6 +776,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     SyncSlots(dt);
   }
   ComputePhaseHp(params);
+  ReleaseAscents(state);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
   hunt_targets_.assign(1, player_at_);
   // After the timer update, since walking positions follow the timer.
@@ -991,6 +1049,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   SyncSlots(dt);
   DriftSlots();
   ComputePhaseHp(params);
+  ReleaseAscents(state);
 }
 
 // The screen updates every kBossFightStep but the network every

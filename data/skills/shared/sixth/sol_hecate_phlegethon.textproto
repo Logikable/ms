@@ -14,7 +14,7 @@ kind: SKILL_KIND_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_VI skill_order: 8 }
 placement { job_advancement: JOB_ADVANCEMENT_PALADIN_VI skill_order: 8 }
 placement { job_advancement: JOB_ADVANCEMENT_HERO_VI skill_order: 8 }
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 17 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 18 }
 placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_VI skill_order: 8 }
 placement {
   job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_VI
