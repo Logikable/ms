@@ -32,13 +32,12 @@ constexpr double kBaseIgnoreElementalResistance = 0.05;  // Insight
 constexpr double kBaseIgnoreDefense = 0.10;              // Ambition
 constexpr double kBaseBuffDuration = 0.10;               // Empathy
 
-// How many timed buffs are modeled at once. Each combination of active buffs
-// needs its own damage table, so the count doubles per buff. Tables are built
-// on demand and cached, so only combinations a fight actually reaches cost
-// anything. Buffs past the cap are silently dropped, so
-// //src/data_test:skill_test rejects any job book over it. Party buffs and link
-// skills count toward the cap too.
-constexpr int kMaxBuffWindows = 15;
+// How many timed buffs are modeled at once: one bit each of an int mask, so 30
+// is as far as it goes. Tables are built per combination a fight reaches, not
+// per possible one, so the count costs nothing until buffs are raised. Buffs
+// past it are silently dropped, so //src/data_test:skill_test rejects a book
+// over it; party buffs take what the character's own leave.
+constexpr int kMaxBuffWindows = 30;
 
 // Uses of an Ascent skill a boss fight allows, phases included (client
 // 6thCount). The run releases them as the boss's HP falls; see BossRun.

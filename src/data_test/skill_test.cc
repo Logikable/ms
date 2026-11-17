@@ -513,9 +513,11 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
       if (superseded.count(entry.second.name()) > 0) {
         continue;
       }
-      // Anyone can wear the ring that grants an equipment skill.
+      // Anyone can wear the ring that grants an equipment skill, or take any
+      // link skill.
       if (entry.second.buff().duration_seconds() > 0.0 &&
-          (ReachedBy(books, entry.second) || entry.second.granted_by_equip())) {
+          (ReachedBy(books, entry.second) || entry.second.granted_by_equip() ||
+           entry.second.link_line() != JOB_UNSPECIFIED)) {
         // A buff with stages or stacks uses one window for each, so it counts
         // that many times against the limit.
         raised.insert(raised.end(), BuffWindowsFor(entry.second.buff()),
