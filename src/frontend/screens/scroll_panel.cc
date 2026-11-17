@@ -249,6 +249,10 @@ std::string ScrollPanel::PinKey(const Scroll& scroll) const {
   if (!scroll.paid_with().empty()) {
     key += ":" + scroll.paid_with();
   }
+  // Clean slates and the Innocence Scroll share no stat and the same 100%.
+  if (scroll.scroll_category() != SCROLL_CATEGORY_UNSPECIFIED) {
+    key += ":c" + std::to_string(static_cast<int>(scroll.scroll_category()));
+  }
   return key;
 }
 

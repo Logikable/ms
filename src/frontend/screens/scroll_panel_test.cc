@@ -469,6 +469,32 @@ TEST_F(ScrollPanelTest, PinnedScrollsKeepTheUsualOrderAmongThemselves) {
   EXPECT_LT(rendered.find("Scroll 30"), rendered.find("Scroll 100"));
 }
 
+// Clean slates and the Innocence Scroll raise no stat and both work at 100%,
+// so only their category tells their pins apart.
+TEST_F(ScrollPanelTest, InnocenceAndCleanSlatePinSeparately) {
+  std::map<std::string, Scroll> special;
+  Scroll& slate = special["slate"];
+  slate.set_name("Clean Slate");
+  slate.set_success_rate(100);
+  slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  Scroll& innocence = special["innocence"];
+  innocence.set_name("Innocence");
+  innocence.set_success_rate(100);
+  innocence.set_scroll_category(SCROLL_CATEGORY_INNOCENCE);
+  ScrollPanel panel(c_, special);
+  panel.SetFilter({&special["slate"], &special["innocence"]}, kSwordLevel,
+                  SCROLL_TARGET_WEAPON);
+
+  PinByName(&panel, "Innocence");
+  EXPECT_TRUE(panel.SelectedIsPinned());
+  PinByName(&panel, "Clean Slate");
+  EXPECT_TRUE(panel.SelectedIsPinned()) << "the slate's own pin";
+  PinByName(&panel, "Innocence");
+  EXPECT_FALSE(panel.SelectedIsPinned());
+  EXPECT_NE(Render(panel).find("📌"), std::string::npos)
+      << "unpinning one left the other";
+}
+
 // A pin is filed under the kind of equipment it was set on, so weapon pins
 // don't carry over to armour.
 TEST_F(ScrollPanelTest, PinsAreKeptPerKindOfEquipment) {
