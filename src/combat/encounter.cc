@@ -852,6 +852,9 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   built.set_max_enemies(pulse.max_enemies() > 0 ? pulse.max_enemies()
                                                 : skill.max_enemies());
   built.set_lines(pulse.lines());
+  // GMS's level steps cover the whole skill: Ascendant Shadow's IED and boss
+  // damage reach its flurries too.
+  *built.mutable_step() = skill.step();
   CarryElement(skill, built);
   return built;
 }

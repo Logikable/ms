@@ -5,7 +5,7 @@ description:
   "Blast nearby enemies with a gust of wind to tear them apart. Also boosts "
   "Arrow Blaster and Arrow Blaster turrets."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 9 }
 hexa_core: "HEXA Speed Mirage"
 max_level: 30
 required_skill { skill_name: "Gritty Gust Boost" level: 60 }

@@ -8,7 +8,7 @@ description:
   "enough arrow-based attacks, creates afterimages that fire enemy-seeking "
   "arrows before vanishing."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 8 }
 hexa_node: HEXA_NODE_KIND_MASTERY
 max_level: 30
 required_skill { skill_name: "Gritty Gust Boost" level: 60 }

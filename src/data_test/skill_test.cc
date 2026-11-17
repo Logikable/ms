@@ -500,8 +500,19 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
     // The V Matrix's common nodes belong to no job stage, but every character
     // who reaches the 5th job has them.
     books.insert(JOB_ADVANCEMENT_COMMON);
+    // A superseded buff never raises beside the skill replacing it, so a pair
+    // like Arrow Blaster and HEXA Arrow Blaster takes one window.
+    std::set<std::string> superseded;
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      if (ReachedBy(books, entry.second)) {
+        superseded.insert(entry.second.supersedes_skill_name());
+      }
+    }
     std::vector<std::string> raised;
     for (const std::pair<const std::string, Skill>& entry : skills) {
+      if (superseded.count(entry.second.name()) > 0) {
+        continue;
+      }
       // Anyone can wear the ring that grants an equipment skill.
       if (entry.second.buff().duration_seconds() > 0.0 &&
           (ReachedBy(books, entry.second) || entry.second.granted_by_equip())) {
@@ -1283,9 +1294,13 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     // skill gets its own: GMS paces key-down skills in the low hundreds of ms
     // (Arrow Blaster is 120), while Perfect Shot's 2.12 seconds is an aiming
     // window.
+    // An Origin's cast is a cutscene: the client's longest 6th job action
+    // runs 7980ms.
     if (entry.second.fixed_delay()) {
       EXPECT_GE(entry.second.base_delay_ms(), kTickMs) << entry.first;
-      EXPECT_LE(entry.second.base_delay_ms(), 2500) << entry.first;
+      EXPECT_LE(entry.second.base_delay_ms(),
+                entry.second.hexa_node() == HEXA_NODE_KIND_ORIGIN ? 8000 : 2500)
+          << entry.first;
       continue;
     }
     EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;

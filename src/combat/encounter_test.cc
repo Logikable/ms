@@ -5324,6 +5324,58 @@ TEST(ComputeCombatParamsTest, HexaSpeedMirageBoostsAndRebuildsGrittyGust) {
   EXPECT_EQ(gust->max_enemies, 13);
 }
 
+// Ascendant Shadow as shipped at 30: 39 flurries of 14 in a fixed 4.56s
+// cast, then 7 of 8 every 3s, ten times. The level steps' IED and boss damage
+// reach the flurries too, so the two parts keep GMS's 1543:1425 a line.
+TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book = {
+      {"ascendant_shadow", skills.at("ascendant_shadow")}};
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.set_attack_speed(ATTACK_SPEED_FASTER);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_ORIGIN, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("ascendant_shadow"), 30));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  const AttackOption* cast = FindAttack(params, "Ascendant Shadow");
+  ASSERT_NE(cast, nullptr);
+  EXPECT_NEAR(cast->swing_seconds, 4.56 * factor, 1e-9);
+  EXPECT_EQ(cast->max_enemies, 15);
+  const AttackOption* flurry = nullptr;
+  for (const AttackOption& pulse : params.auto_attacks) {
+    if (pulse.credit == "Ascendant Shadow") {
+      flurry = &pulse;
+    }
+  }
+  ASSERT_NE(flurry, nullptr);
+  EXPECT_DOUBLE_EQ(flurry->interval_seconds, 3.0 * factor);
+  EXPECT_EQ(flurry->strikes_per_pulse, 7);
+  EXPECT_EQ(flurry->max_pulses, 10);
+  // damage_per_hit is a whole strike: 546 lines against 8.
+  EXPECT_NEAR(flurry->damage_per_hit[0] / cast->damage_per_hit[0],
+              (1543.0 * 8) / (1425.0 * 546), 1e-9);
+}
+
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.
 TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
   if (!kSixthJobEnabled) {
