@@ -1,0 +1,24 @@
+# GMS (3141015) leaves Gritty Gust learned, so its Arrow Blaster points carry
+# on here though the HEXA text drops them. The slow on enemies is left out.
+name: "HEXA Gritty Gust"
+description:
+  "Blast nearby enemies with a gust of wind to tear them apart. Also boosts "
+  "Arrow Blaster and Arrow Blaster turrets."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 8 }
+hexa_core: "HEXA Speed Mirage"
+max_level: 30
+required_skill { skill_name: "Gritty Gust Boost" level: 60 }
+supersedes_skill_name: "Gritty Gust"
+inherits_boosts: true
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 660
+cooldown_seconds: 15.0
+max_enemies: 12
+lines: 12
+base { skill_pct: 3.67 }
+per_level { skill_pct: 0.07 }
+boost {
+  skill_name: "Arrow Blaster"
+  effect { skill_pct: 0.90 }
+}

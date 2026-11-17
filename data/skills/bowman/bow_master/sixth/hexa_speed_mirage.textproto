@@ -1,0 +1,19 @@
+# GMS (3141013/3141014) keeps Speed Mirage II's shape (7 strikes, 4 afterimages
+# of 4 lines) and raises each arrow to 615+21x%. Speed Mirage II is a boost on
+# Speed Mirage here, so this is one too: a replacing skill would inherit
+# Speed Mirage II's points as well as stating them.
+name: "HEXA Speed Mirage"
+description:
+  "Fire arrows fast enough to leave afterimages. After striking enemies with "
+  "enough arrow-based attacks, creates afterimages that fire enemy-seeking "
+  "arrows before vanishing."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_VI skill_order: 7 }
+hexa_node: HEXA_NODE_KIND_MASTERY
+max_level: 30
+required_skill { skill_name: "Gritty Gust Boost" level: 60 }
+boost {
+  skill_name: "Speed Mirage"
+  effect { skill_pct: 0.96 }
+  effect_per_level { skill_pct: 0.21 }
+}

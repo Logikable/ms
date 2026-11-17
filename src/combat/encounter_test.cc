@@ -5268,6 +5268,62 @@ TEST(ComputeCombatParamsTest, HexaQuiverCartridgeRebuildsPhoenixAndLoadsBlood) {
       SwingIntervalSeconds(120, kUnscaledAttackSpeedStage) * factor);
 }
 
+// HEXA Speed Mirage's node as shipped at 30 behind Gritty Gust Boost 60:
+// Speed Mirage's arrows gain 705%p, and HEXA Gritty Gust replaces Gritty Gust
+// at 570% on 12+1 enemies, still giving Arrow Blaster its 90%p.
+TEST(ComputeCombatParamsTest, HexaSpeedMirageBoostsAndRebuildsGrittyGust) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "no 6th job in this build";
+  }
+  const std::map<std::string, Skill>& skills = TestData<Skill>("skills");
+  std::map<std::string, Skill> book;
+  for (const char* stem : {"gritty_gust", "gritty_gust_boost",
+                           "hexa_speed_mirage", "hexa_gritty_gust"}) {
+    book[stem] = skills.at(stem);
+  }
+  Mob boss = MakeArmouredMob("Snail", 1000000, 60);
+  boss.set_boss(true);
+  GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
+                  book);
+  state.current_map = "field";
+  while (state.character.proto().job_stage() < kSixthJobStage) {
+    state.character.AdvanceJob(JOB_BOW_MASTER);
+  }
+  while (state.character.proto().level() <
+             book.at("gritty_gust").required_level() ||
+         state.character.hyper_sp() < 1) {
+    state.character.LevelUp();
+  }
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_type(EQUIP_TYPE_BOW);
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  bow.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(bow));
+  ASSERT_TRUE(state.character.Equip(0));
+  ASSERT_TRUE(state.character.LearnSkill(book.at("gritty_gust"), 1));
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_BOOST, 0, 60));
+  ASSERT_TRUE(state.character.LearnSkill(book.at("gritty_gust_boost"), 60));
+  const HexaPrice price = HexaNodePrice(HEXA_NODE_KIND_MASTERY, 0, 30);
+  state.character.AddSolErdaEnergy(price.energy);
+  state.character.AddSolErdaFragments(price.fragments);
+  ASSERT_TRUE(state.character.LearnSkill(book.at("hexa_speed_mirage"), 30));
+  EXPECT_FALSE(state.character.LearnSkill(book.at("hexa_gritty_gust"), 1));
+
+  DerivedStats derived = DerivedStatsFor(state.character, book);
+  ASSERT_EQ(derived.skill_bonus.count("Speed Mirage"), 1u);
+  EXPECT_NEAR(derived.skill_bonus.at("Speed Mirage").skill_pct, 7.05, 1e-9);
+  ASSERT_EQ(derived.skill_bonus.count("Arrow Blaster"), 1u);
+  EXPECT_NEAR(derived.skill_bonus.at("Arrow Blaster").skill_pct, 0.90, 1e-9);
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(FindAttack(params, "Gritty Gust"), nullptr);
+  const AttackOption* gust = FindAttack(params, "HEXA Gritty Gust");
+  ASSERT_NE(gust, nullptr);
+  EXPECT_EQ(gust->max_enemies, 13);
+}
+
 // The four lines' 3rd common nodes as shipped, each replacing its V skill.
 TEST(ComputeCombatParamsTest, EachLinesThirdCommonNodeReplacesItsVSkill) {
   if (!kSixthJobEnabled) {
