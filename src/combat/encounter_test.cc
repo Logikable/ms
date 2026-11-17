@@ -5259,7 +5259,7 @@ TEST(ComputeCombatParamsTest, HexaQuiverCartridgeRebuildsPhoenixAndLoadsBlood) {
   }
   ASSERT_NE(phoenix, nullptr);
   EXPECT_EQ(phoenix->max_enemies, 7);
-  EXPECT_DOUBLE_EQ(phoenix->interval_seconds, 1.71 * factor);
+  EXPECT_DOUBLE_EQ(phoenix->interval_seconds, 3.0 * factor);
   ASSERT_NE(blood, nullptr);
   EXPECT_EQ(blood->max_pulses, 50);
   EXPECT_EQ(blood->max_enemies, 1);

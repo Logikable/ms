@@ -1,4 +1,4 @@
-# The Korean DPM calculator uses delay=1710 for both this and Phoenix.
+# Phoenix's 3 seconds: the same summon on the same clock.
 # Skill.freeze_seconds has no ladder, so it holds GMS's max, 3.
 name: "Frostprey"
 description:
@@ -9,6 +9,6 @@ placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 2 }
 max_level: 10
 max_enemies: 4
 freeze_seconds: 3.0
-cast_interval_seconds: 1.71
+cast_interval_seconds: 3.0
 base { skill_pct: 2.28 def_pct: 0.03 }
 per_level { skill_pct: 0.18 def_pct: 0.03 }

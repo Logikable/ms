@@ -2,9 +2,8 @@
 # `summon` node, and the 6th job skill says "while Fury of the Wild is
 # summoned".
 #
-# 3.42 seconds is twice the birds' 1.71, as its 2310ms animation is twice
-# their 1170ms. `attackAfter` is not the period: both birds state 450 against
-# a real 1710.
+# 3 seconds is the bird's own clock: a 2026 KMS battle analysis counts HEXA
+# Fury of the Wild's 12 empowered strikes in the 36 seconds after its sweep.
 name: "Fury of the Wild"
 description:
   "Fills your summoned bird with an older, wilder power, and for a while it "
@@ -21,7 +20,7 @@ buff {
   duration_seconds: 40.0
   pulse {
     label: "Empowered Summon"
-    cast_interval_seconds: 3.42
+    cast_interval_seconds: 3.0
     max_enemies: 10
     lines: 7
     base { skill_pct: 4.65 }

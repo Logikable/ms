@@ -1,6 +1,6 @@
 # GMS (500001024): the opening sweeps 8 lines over 4 seconds, read as one
-# attack every 0.5s. The bird's interval stays the 3.42s Fury of the Wild
-# measures; GMS's 120s cooldown no longer shortens with level.
+# attack every 0.5s. The bird keeps Fury of the Wild's 3 seconds; GMS's 120s
+# cooldown no longer shortens with level.
 name: "HEXA Fury of the Wild"
 description:
   "Temporarily enhances Phoenix with mysterious power. Attunes Fury of the "
@@ -28,7 +28,7 @@ buff {
   }
   pulse {
     label: "Empowered Summon"
-    cast_interval_seconds: 3.42
+    cast_interval_seconds: 3.0
     max_enemies: 10
     lines: 11
     base { skill_pct: 8.44 }

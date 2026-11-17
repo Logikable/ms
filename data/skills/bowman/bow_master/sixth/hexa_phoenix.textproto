@@ -12,6 +12,6 @@ required_skill { skill_name: "Enchanted Quiver Boost" level: 60 }
 supersedes_skill_name: "Phoenix"
 inherits_boosts: true
 max_enemies: 6
-cast_interval_seconds: 1.71
+cast_interval_seconds: 3.0
 base { skill_pct: 5.11 def_pct: 0.30 }
 per_level { skill_pct: 0.16 }

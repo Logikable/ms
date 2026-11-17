@@ -1,5 +1,6 @@
-# 1.71 seconds isn't on the wiki: it is the delay the Korean DPM calculator
-# uses for the summon.
+# 3 seconds is the client's attackDelay 3000, and a 2026 KMS battle analysis
+# counts a HEXA Phoenix hit about every 3.1s. The 1710ms its animation sums to
+# (and the Korean DPM calculator uses) is how long a strike plays.
 name: "Phoenix"
 description:
   "Summons a Phoenix to deal Fire damage on its own. Permanently increases "
@@ -8,6 +9,6 @@ kind: SKILL_KIND_AUTO_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 3 }
 max_level: 10
 max_enemies: 4
-cast_interval_seconds: 1.71
+cast_interval_seconds: 3.0
 base { skill_pct: 2.28 def_pct: 0.03 }
 per_level { skill_pct: 0.18 def_pct: 0.03 }
