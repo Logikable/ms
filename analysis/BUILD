@@ -593,6 +593,7 @@ sim_binary(
         ":sim_world",
         "//src:game_state",
         "//src/character",
+        "//src/character:hexa_matrix",
         "//src/combat:boss_run",
         "//src/combat:damage_breakdown",
         "//src/protos:boss_proto_cc",
