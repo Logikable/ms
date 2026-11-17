@@ -1,7 +1,7 @@
-# GMS never prints the afterimage's rate and the client doesn't hold it (no
-# `summon` node on 400031020 or 400031021), so one attack a second is the user's
-# own observation. `subTime 180` is not the rate; reading it that way once made
-# the afterimage fire five times too fast.
+# subTime 180 is the afterimage's tick, and the passive afterimage's 1s life
+# holds five: a KMS battle analysis (5:41 from burst, 835 volleys; 1:55, 284)
+# matches this and not the one-a-second rate once watched. GMS's 3s ramp is
+# dropped: a Bow Master never stops attacking, so the window is the buff.
 #
 # One enemy per volley: GMS states no mobCount, and the reach rule only lowers a
 # stated cap, it doesn't create one.
@@ -21,7 +21,7 @@ buff {
   duration_seconds: 30.0
   pulse {
     label: "Afterimage"
-    cast_interval_seconds: 1.0
+    cast_interval_seconds: 0.18
     max_enemies: 1
     lines: 3
     base { skill_pct: 4.16 }
@@ -31,6 +31,7 @@ buff {
 auto_mode {
   label: "Passive Afterimage"
   attacks_per_cast: 10
+  casts: 5
   max_enemies: 1
   lines: 3
   silent_while_buff_stands: true
