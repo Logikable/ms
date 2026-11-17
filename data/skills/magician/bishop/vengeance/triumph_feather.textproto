@@ -1,5 +1,7 @@
 # GMS triggers the feathers by hitting an enemy on their own three-second
 # cooldown; a Bishop always has something to hit, so here they fall on it.
+# Four feathers (bulletCount 4) seek enemies, so all four land on a lone boss;
+# KMS battle analyses count four uses of 4 hits a trigger.
 name: "Triumph Feather"
 description:
   "Harness the power of the Angel of Victory. Angel feathers appear and seek "
@@ -12,6 +14,7 @@ replaces_skill_name: "Dispel"
 toggle_skill_name: "Righteously Indignant"
 max_enemies: 4
 lines: 4
+scatter { hits: 4 }
 cast_interval_seconds: 3.0
 base { skill_pct: 1.76 }
 per_level { skill_pct: 0.06 }
