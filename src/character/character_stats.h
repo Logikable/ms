@@ -337,6 +337,11 @@ double MesoBonus(const DerivedStats& derived);
 // weapon type, which is most of them.
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 
+// Whether `skill` is barred from this activity: a farming-only skill from boss
+// fights (GMS bars Erda Fountain from boss maps), and an Origin from farming,
+// as its cast outlasts a Frenzy Totem's respawn (the user's call).
+bool BarredFrom(const Skill& skill, Activity activity);
+
 // Whether the character has the gear `skill` needs: the weapon type it names,
 // and a secondary if it asks for one. An unmet skill stays learned; its effect
 // stops until the right gear is back on.

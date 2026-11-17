@@ -679,8 +679,11 @@ std::vector<Row> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.kills_per_cast()) + " Defeats"));
   }
-  if (skill.farming_only()) {
+  if (BarredFrom(skill, Activity::kBossing)) {
     rows.push_back(EffectRow("Boss Fights", "Can't be used"));
+  }
+  if (BarredFrom(skill, Activity::kFarming)) {
+    rows.push_back(EffectRow("Farming", "Can't be used"));
   }
   Append(EmpoweredRows(skill), rows);
   // How long the player uses other attacks afterwards, which is the cost of a

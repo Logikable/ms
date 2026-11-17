@@ -5355,12 +5355,29 @@ TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
   state.character.AddSolErdaFragments(price.fragments);
   ASSERT_TRUE(state.character.LearnSkill(book.at("ascendant_shadow"), 30));
 
-  CombatParams params = ComputeCombatParams(state);
-  double factor = GameSpeedFactor(state.character.proto().level());
+  // Never cast while farming, flurries included.
+  CombatParams farming = ComputeCombatParams(state);
+  EXPECT_EQ(FindAttack(farming, "Ascendant Shadow"), nullptr);
+  for (const BuffOption& buff : farming.buffs) {
+    EXPECT_NE(buff.name, "Ascendant Shadow");
+  }
+  for (const AttackOption& pulse : farming.auto_attacks) {
+    EXPECT_NE(pulse.credit, "Ascendant Shadow");
+  }
+
+  BossDifficulty normal;
+  normal.set_name("Normal");
+  normal.set_time_limit_seconds(1800);
+  Spawn* snail = normal.add_phases()->add_spawns();
+  snail->set_mob("snail");
+  snail->set_count(1);
+  CombatParams params = ComputeBossParams(state, "snail_boss", normal, 0);
+  ASSERT_TRUE(params.active);
+  // Boss fights run in real time.
+  double factor = 1.0;
   const AttackOption* cast = FindAttack(params, "Ascendant Shadow");
   ASSERT_NE(cast, nullptr);
   EXPECT_NEAR(cast->swing_seconds, 4.56 * factor, 1e-9);
-  EXPECT_EQ(cast->max_enemies, 15);
   const AttackOption* flurry = nullptr;
   for (const AttackOption& pulse : params.auto_attacks) {
     if (pulse.credit == "Ascendant Shadow") {

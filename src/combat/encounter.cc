@@ -801,7 +801,7 @@ bool Available(const GameState& state, const Skill& skill,
   if (!state.character.HoldsSkillFrom(skill, activity)) {
     return false;
   }
-  if (skill.farming_only() && activity == Activity::kBossing) {
+  if (BarredFrom(skill, activity)) {
     return false;
   }
   // Skip skills the current weapon can't use. The basic attack is always

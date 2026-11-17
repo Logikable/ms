@@ -1538,6 +1538,13 @@ std::set<std::string> DormantSkillNames(
   return names;
 }
 
+bool BarredFrom(const Skill& skill, Activity activity) {
+  if (activity == Activity::kBossing) {
+    return skill.farming_only();
+  }
+  return skill.hexa_node() == HEXA_NODE_KIND_ORIGIN;
+}
+
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill,
                   Activity activity) {
   const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
@@ -1561,7 +1568,7 @@ std::vector<const Skill*> BuffSkillsFor(
     if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill, activity) ||
         !SkillGearMet(character, skill, activity) ||
         character.skill_level(skill, activity) <= 0 ||
-        dormant.count(skill.name()) > 0) {
+        dormant.count(skill.name()) > 0 || BarredFrom(skill, activity)) {
       continue;
     }
     buffs.push_back(&skill);
