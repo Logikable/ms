@@ -2346,7 +2346,9 @@ DerivedStats BossDerived(const GameState& state,
 
 // GMS's Ascents ignore hats, rings and active buffs, so they're priced on the
 // character with those slots emptied, before any buff. A set the hat completes
-// loses that piece too.
+// loses that piece too. Passive final damage goes as well, GMS's "conditional
+// passives" read broadly: it brings Flashpoint's hit against Hurricane's from
+// 1.97x KMS's battle analysis to 1.22x (the user's call).
 void PriceAscentsBare(const GameState& state, const std::string& boss_key,
                       const BossDifficulty& difficulty,
                       const EquipPrototype& weapon, CombatParams& params) {
@@ -2361,6 +2363,7 @@ void PriceAscentsBare(const GameState& state, const std::string& boss_key,
       kUnreached,
       state.character.SlotFor(PresetKind::kEquip, Activity::kBossing));
   DerivedStats derived = BossDerived(state, bare, boss_key, difficulty);
+  derived.final_dmg_pct = 0.0;
   AttackSet set = BuildAttackSet(state, *params.buffed_source.book, derived,
                                  weapon, 1.0, params.types, &bare);
   for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {

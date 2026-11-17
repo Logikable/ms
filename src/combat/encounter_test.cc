@@ -5394,9 +5394,9 @@ TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
 }
 
 // Flashpoint as shipped at 30: both presses as one fixed 2.64s swing, priced
-// as GMS says an Ascent is: no hat, no ring, no buff, no Final Attack. Kept
-// out of farming.
-TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
+// as GMS says an Ascent is: no hat, no ring, no buff, no passive final damage,
+// no Final Attack. Kept out of farming.
+TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsBuffsAndPassiveFd) {
   if (!kSixthJobEnabled) {
     GTEST_SKIP() << "no 6th job in this build";
   }
@@ -5409,8 +5409,15 @@ TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
   rage.set_cooldown_seconds(120.0);
   rage.mutable_buff()->set_duration_seconds(60.0);
   rage.mutable_buff()->mutable_base()->set_damage_pct(0.5);
+  Skill focus;
+  focus.set_name("Focus");
+  focus.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(focus, JOB_ADVANCEMENT_ARCHER);
+  focus.set_max_level(1);
+  focus.mutable_base()->set_final_dmg_pct(0.5);
   std::map<std::string, Skill> book = {{"flashpoint", skills.at("flashpoint")},
-                                       {"rage", rage}};
+                                       {"rage", rage},
+                                       {"focus", focus}};
   Mob boss = MakeArmouredMob("Snail", 1000000, 60);
   boss.set_boss(true);
   GameState state({}, {}, {}, {{"snail", boss}}, {{"field", TwoSnailMap()}},
@@ -5419,7 +5426,7 @@ TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
   while (state.character.proto().job_stage() < kSixthJobStage) {
     state.character.AdvanceJob(JOB_BOW_MASTER);
   }
-  GrantFirstJobSp(state, 1, JOB_ARCHER);
+  GrantFirstJobSp(state, 2, JOB_ARCHER);
   ASSERT_TRUE(state.character.LearnSkill(rage, 1));
   EquipPrototype bow;
   bow.set_name("Bow");
@@ -5440,8 +5447,17 @@ TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
   Spawn* snail = normal.add_phases()->add_spawns();
   snail->set_mob("snail");
   snail->set_count(1);
+  CombatParams before = ComputeBossParams(state, "snail_boss", normal, 0);
+  // Passive final damage doesn't reach it either.
+  ASSERT_TRUE(state.character.LearnSkill(focus, 1));
   CombatParams bare = ComputeBossParams(state, "snail_boss", normal, 0);
+  EXPECT_GT(bare.attacks[0].damage_per_hit[0],
+            before.attacks[0].damage_per_hit[0]);
+  ASSERT_NE(FindAttack(before, "Flashpoint"), nullptr);
   const AttackOption* flash = FindAttack(bare, "Flashpoint");
+  ASSERT_NE(flash, nullptr);
+  EXPECT_DOUBLE_EQ(flash->damage_per_hit[0],
+                   FindAttack(before, "Flashpoint")->damage_per_hit[0]);
   ASSERT_NE(flash, nullptr);
   EXPECT_TRUE(flash->held);
   EXPECT_NEAR(flash->swing_seconds, 2.64, 1e-9);
