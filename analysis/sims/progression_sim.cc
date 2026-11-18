@@ -2884,18 +2884,9 @@ int OwnPieces(const CharacterInstance& character, StatPreset preset) {
 }
 
 // Every stat --stats_out writes for one run. Times are in days of playtime.
-RunStats StatsOf(const Catalogs& catalogs, const Session& run,
-                 const Climb& climb) {
-  RunStats stats;
-  const CharacterInstance& character = run.state.character;
-  for (int i = 0; i < kNumMilestones; ++i) {
-    if (climb.milestones[i].seconds >= 0.0) {
-      stats.Add(absl::StrCat("level_day/", kMilestones[i]),
-                climb.milestones[i].seconds / kDaySeconds);
-    }
-  }
-  stats.Add("level", character.proto().level());
-
+void AddSpendStats(RunStats& stats, const Climb& climb) {
+  const Ledger& ledger = climb.ledger;
+  const GearSpend& gear = ledger.gear;
   stats.Add("meso/earned", static_cast<double>(climb.endgame_earned_total));
   stats.Add("meso/held", static_cast<double>(climb.meso_held));
   for (int day : {1, 3, 7, 14, 30, 60, 90, 120}) {
@@ -2904,8 +2895,6 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
                 static_cast<double>(climb.earned_by_day[day - 1]));
     }
   }
-  const Ledger& ledger = climb.ledger;
-  const GearSpend& gear = ledger.gear;
   stats.Add("meso/etc_sales", static_cast<double>(ledger.etc_sales));
   stats.Add("meso/boss_clears", static_cast<double>(ledger.boss_clears));
   stats.Add("meso/alts_kept", static_cast<double>(ledger.alt_meso));
@@ -2920,7 +2909,11 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
   stats.Add("spent/buff_rent", static_cast<double>(ledger.buffs.drained));
   stats.Add("spent/buff_unlocks", static_cast<double>(ledger.buffs.bought));
   stats.Add("spent/familiars", static_cast<double>(ledger.familiars.meso));
+}
 
+void AddUpgradeStats(RunStats& stats, const Climb& climb) {
+  const Ledger& ledger = climb.ledger;
+  const GearSpend& gear = ledger.gear;
   const char* const cube_names[] = {"red", "black", "green", "white"};
   for (std::size_t i = 0; i < std::size(kCubes); ++i) {
     const char* name = cube_names[static_cast<int>(kCubes[i].type)];
@@ -2951,12 +2944,9 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
   stats.Add("souls", gear.souls);
   stats.Add("familiars/levels", ledger.familiars.levels);
   stats.Add("familiars/cubes", ledger.familiars.cubes);
+}
 
-  stats.Add("honor/spent", static_cast<double>(climb.ability_honor_spent));
-  stats.Add("honor/held", static_cast<double>(character.honor()));
-  stats.Add("v_points/spent", static_cast<double>(ledger.v_points_spent));
-  stats.Add("v_points/held", static_cast<double>(character.v_points()));
-
+void AddAltStats(RunStats& stats, const Climb& climb) {
   double alt_seconds = 0.0;
   std::map<Job, int> alt_levels;
   for (const AltBought& alt : climb.alts) {
@@ -2973,14 +2963,9 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
   stats.Add("alts/levels", levels);
   stats.Add("alts/link_rungs", rungs);
   stats.Add("alts/farming_days", alt_seconds / kDaySeconds);
+}
 
-  stats.Add("gear/farm_own_pieces", OwnPieces(character, kFarmGear));
-  stats.Add("gear/drop_own_pieces", OwnPieces(character, kDropGear));
-  stats.Add("gear/farm_splits", gear.farm_splits);
-  stats.Add("gear/farm_meso", climb.farm_meso);
-  stats.Add("gear/farm_drop", climb.farm_drop);
-  stats.Add("gear/boss_drop", climb.loot_drop);
-
+void AddHyperStats(RunStats& stats, const CharacterInstance& character) {
   for (int field = HyperStatField_MIN; field <= HyperStatField_MAX; ++field) {
     if (!HyperStatField_IsValid(field) ||
         field == HYPER_STAT_FIELD_UNSPECIFIED) {
@@ -2997,7 +2982,10 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
                          static_cast<HyperStatField>(field)));
     }
   }
+}
 
+void AddWhereStats(RunStats& stats, const Climb& climb,
+                   const Catalogs& catalogs) {
   for (const auto& [name, at] : climb.buff_bought_at) {
     stats.Add(absl::StrCat("buff_bought_day/", name), at / kDaySeconds);
   }
@@ -3022,6 +3010,39 @@ RunStats StatsOf(const Catalogs& catalogs, const Session& run,
                 log.first_clear_seconds / kDaySeconds);
     }
   }
+}
+
+RunStats StatsOf(const Catalogs& catalogs, const Session& run,
+                 const Climb& climb) {
+  RunStats stats;
+  const CharacterInstance& character = run.state.character;
+  for (int i = 0; i < kNumMilestones; ++i) {
+    if (climb.milestones[i].seconds >= 0.0) {
+      stats.Add(absl::StrCat("level_day/", kMilestones[i]),
+                climb.milestones[i].seconds / kDaySeconds);
+    }
+  }
+  stats.Add("level", character.proto().level());
+
+  AddSpendStats(stats, climb);
+  AddUpgradeStats(stats, climb);
+
+  stats.Add("honor/spent", static_cast<double>(climb.ability_honor_spent));
+  stats.Add("honor/held", static_cast<double>(character.honor()));
+  stats.Add("v_points/spent", static_cast<double>(climb.ledger.v_points_spent));
+  stats.Add("v_points/held", static_cast<double>(character.v_points()));
+
+  AddAltStats(stats, climb);
+
+  stats.Add("gear/farm_own_pieces", OwnPieces(character, kFarmGear));
+  stats.Add("gear/drop_own_pieces", OwnPieces(character, kDropGear));
+  stats.Add("gear/farm_splits", climb.ledger.gear.farm_splits);
+  stats.Add("gear/farm_meso", climb.farm_meso);
+  stats.Add("gear/farm_drop", climb.farm_drop);
+  stats.Add("gear/boss_drop", climb.loot_drop);
+
+  AddHyperStats(stats, character);
+  AddWhereStats(stats, climb, catalogs);
   return stats;
 }
 
