@@ -881,6 +881,10 @@ constexpr int kTestHeldScrolls = 90;
 // Enough V Points to fill the whole matrix twice: the workbench is for looking
 // at nodes, not farming the sixty days one costs.
 constexpr int64_t kTestVPoints = 5000;
+// The most the VI page's footer has room for: enough for most of a matrix's
+// first levels, not all 1,672 Sol Erda and 48,011 Fragments of it.
+constexpr int64_t kTestSolErdaEnergy = 99'990;
+constexpr int64_t kTestSolErdaFragments = 9'999;
 
 // Enough Familiar EXP to take about four familiars to Legendary.
 constexpr int64_t kTestFamiliarExp = 1'000'000;
@@ -1008,6 +1012,8 @@ void FillPurse(GameState& state) {
     }
   }
   state.character.AddVPoints(kTestVPoints);
+  state.character.AddSolErdaEnergy(kTestSolErdaEnergy);
+  state.character.AddSolErdaFragments(kTestSolErdaFragments);
   state.character.AddFamiliarExp(kTestFamiliarExp);
 
   // Some of every currency, so the shop's token shelves can be used without
