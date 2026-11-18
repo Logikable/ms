@@ -218,7 +218,7 @@ TEST_F(DailiesTest, SacredSymbolsArePaidByTheirSharesFromTheSixthJob) {
       << "Arcane first; owning Odium doesn't open Odium or Arcus";
 }
 
-// A share pays that part of the day's count, rounded; one that rounds to
+// A share pays that part of the day's count, rounded down; one that rounds to
 // nothing leaves the area out.
 TEST_F(DailiesTest, ASacredClaimPaysItsShareOfEachCount) {
   CharacterInstance sixth = MakeCharacter(6);
@@ -229,13 +229,15 @@ TEST_F(DailiesTest, ASacredClaimPaysItsShareOfEachCount) {
   std::vector<DailyReward> rewards = ClaimableSymbols(sixth, equips_, shares);
   ASSERT_EQ(rewards.size(), 2u);
   EXPECT_EQ(rewards[0].copies, 24);
-  EXPECT_EQ(rewards[1].copies, 8) << "7.5 rounds up";
+  EXPECT_EQ(rewards[1].copies, 7) << "7.5 rounds down";
+  EXPECT_EQ(SacredCopies(15, 0.7999999999999999), 12)
+      << "a share a hair under a whole copy is that copy";
 
   ASSERT_TRUE(ClaimDailies(sixth, equips_, LocalTime(2026, 8, 20, 12), shares));
   EXPECT_EQ(sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_CERNIUM),
             (std::vector<int>{24}));
   EXPECT_EQ(sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_ARCUS),
-            (std::vector<int>{8}));
+            (std::vector<int>{7}));
 }
 
 TEST_F(DailiesTest, NothingToClaimIsNotAClaim) {

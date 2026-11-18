@@ -19,6 +19,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "analysis/sim_world.h"
+#include "src/character/dailies.h"
 #include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/combat/clear_time.h"
@@ -36,8 +37,7 @@ namespace ms {
 namespace {
 
 int Copies(const SacredArea& area, double share) {
-  return static_cast<int>(
-      std::lround(area.symbol->sacred_symbol().daily_copies() * share));
+  return SacredCopies(area.symbol->sacred_symbol().daily_copies(), share);
 }
 
 void Report(const GameState& state, const std::string& who) {

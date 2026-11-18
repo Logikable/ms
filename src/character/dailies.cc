@@ -70,6 +70,12 @@ Equip PackedSymbol(const EquipPrototype& proto, int copies) {
   return state;
 }
 
+int SacredCopies(int daily_copies, double share) {
+  // The epsilon keeps a share that lands on a whole copy, such as 0.8 of 15,
+  // from flooring to one less through rounding error.
+  return static_cast<int>(std::floor(daily_copies * share + 1e-9));
+}
+
 int DailySymbolCopies(const EquipPrototype& proto) {
   return IsSacredSymbol(proto) ? proto.sacred_symbol().daily_copies()
                                : kSymbolsPerDay;
@@ -106,7 +112,7 @@ std::vector<DailyReward> ClaimableSymbols(
         auto share = sacred_shares.find(proto.name());
         copies = share == sacred_shares.end()
                      ? 0
-                     : static_cast<int>(std::lround(copies * share->second));
+                     : SacredCopies(copies, share->second);
       } else if (highest == EQUIP_SLOT_UNSPECIFIED ||
                  proto.equip_slot() > highest) {
         copies = 0;

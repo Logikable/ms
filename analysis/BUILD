@@ -975,6 +975,7 @@ sim_binary(
         "//src:game_state",
         "//src:sacred_dailies",
         "//src:save",
+        "//src/character:dailies",
         "//src/character:link",
         "//src/character:progression",
         "//src/combat:clear_time",

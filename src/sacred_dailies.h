@@ -5,7 +5,7 @@
  * Each area is measured by fighting its map with the map refilling the moment
  * it empties (ClearTimes) and comparing a clear with the three respawn
  * intervals: as fast as the Frenzy Totem's pays the whole day, the Wild
- * Totem's 80%, the bare map's half, linear between, and slower nothing. The
+ * Totem's 80%, the bare map's nothing, linear between. The
  * areas are measured in order, and the first that pays nothing ends the run,
  * since every later area is harder.
  */

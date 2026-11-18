@@ -26,15 +26,15 @@ std::unique_ptr<GameState> RealState() {
 }
 
 // The three respawn intervals at 10x game speed, 21.6s, 37.8s and 75.6s, pay
-// 100%, 80% and 50%, linear between and nothing past the last.
+// 100%, 80% and nothing, linear between.
 TEST(SacredShareTest, TheRespawnIntervalsAreTheTiers) {
   EXPECT_DOUBLE_EQ(SacredShare(10.0, 10.0), 1.0);
   EXPECT_NEAR(SacredShare(21.6, 10.0), 1.0, 1e-9);
   EXPECT_NEAR(SacredShare(29.7, 10.0), 0.9, 1e-9);
   EXPECT_NEAR(SacredShare(37.8, 10.0), 0.8, 1e-9);
-  EXPECT_NEAR(SacredShare(56.7, 10.0), 0.65, 1e-9);
-  EXPECT_NEAR(SacredShare(75.6, 10.0), 0.5, 1e-9);
-  EXPECT_EQ(SacredShare(75.7, 10.0), 0.0);
+  EXPECT_NEAR(SacredShare(56.7, 10.0), 0.4, 1e-9);
+  EXPECT_NEAR(SacredShare(75.6, 10.0), 0.0, 1e-9);
+  EXPECT_EQ(SacredShare(80.0, 10.0), 0.0);
   EXPECT_NEAR(SacredShare(3.78, 1.0), 0.8, 1e-9) << "scales with game speed";
 }
 

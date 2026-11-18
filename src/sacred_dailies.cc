@@ -72,7 +72,7 @@ double SacredShare(double clear_seconds, double speed_factor) {
     return 1.0 - 0.2 * (clear_seconds - frenzy) / (wild - frenzy);
   }
   if (clear_seconds <= bare) {
-    return 0.8 - 0.3 * (clear_seconds - wild) / (bare - wild);
+    return 0.8 * (bare - clear_seconds) / (bare - wild);
   }
   return 0.0;
 }

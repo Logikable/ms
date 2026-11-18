@@ -41,12 +41,15 @@ struct DailyReward {
 // Symbol, the data's daily_copies for a Sacred one.
 int DailySymbolCopies(const EquipPrototype& proto);
 
+// The copies a `share` of `daily_copies` pays, rounded down.
+int SacredCopies(int daily_copies, double share);
+
 // What `character` can claim, Arcane then Sacred, each in area order, leaving
 // out symbols whose copies held already reach the max level. Arcane needs the
 // 5th advancement and pays every area at or below the furthest symbol owned,
 // worn or in the bag. Sacred needs the 6th and pays each area named in
 // `sacred_shares` (symbol name to the share of its copies earned; see
-// //src:sacred_dailies), rounded, whether or not a symbol of it is owned.
+// //src:sacred_dailies), rounded down, whether or not a symbol of it is owned.
 // Empty if none is left.
 std::vector<DailyReward> ClaimableSymbols(
     const CharacterInstance& character,
