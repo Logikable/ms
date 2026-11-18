@@ -22,6 +22,11 @@ int WidthOf(const ftxui::Element& element) {
   return element->requirement().min_x;
 }
 
+int HeightOf(const ftxui::Element& element) {
+  element->ComputeRequirement();
+  return element->requirement().min_y;
+}
+
 }  // namespace
 
 void SkillInspectScreen::SetSkills(std::vector<InspectedTab> tabs) {
@@ -103,49 +108,74 @@ ftxui::Element SkillInspectScreen::Render() const {
   const bool split = Split();
   std::vector<InspectedSkill> bundle;
   std::vector<InspectedSkill> every_boosted;
-  std::vector<TabSpec> own_tabs;
   for (const InspectedTab& tab : tabs_) {
     bundle.push_back(tab.skill);
     every_boosted.insert(every_boosted.end(), tab.boosted.begin(),
                          tab.boosted.end());
-    own_tabs.push_back({tab.skill.skill->name()});
   }
-  const InspectedSkill& own = tabs_[own_tab_].skill;
-  own_.SetSkill(own.skill, own.learned, own.bonus);
-  own_.SetMaxRows(rows_);
+  const int budget = split ? columns_ / 2 : columns_;
+  const int left_width = bundle.size() > 1 ? WidestCard(bundle, budget) : 0;
+  auto lay_left = [&](SkillInspectPanel& card, int tab) {
+    const InspectedSkill& skill = tabs_[tab].skill;
+    card.SetSkill(skill.skill, skill.learned, skill.bonus);
+    card.SetMaxRows(rows_);
+    if (bundle.size() > 1) {
+      card.SetWidthBounds(left_width, left_width);
+      std::vector<TabSpec> names;
+      for (const InspectedTab& each : tabs_) {
+        names.push_back({each.skill.skill->name()});
+      }
+      card.SetTabs(std::move(names), tab);
+    } else {
+      card.SetWidthBounds(0, budget);
+      card.SetTabs({}, 0);
+    }
+  };
+  lay_left(own_, own_tab_);
   // Alone, the card has the keys only for its tabs.
   own_.SetFocused(split ? !boosted_focused_ : tabs_.size() > 1);
-  if (bundle.size() > 1) {
-    const int width = WidestCard(bundle, split ? columns_ / 2 : columns_);
-    own_.SetWidthBounds(width, width);
-    own_.SetTabs(std::move(own_tabs), own_tab_);
-  } else {
-    own_.SetWidthBounds(0, split ? columns_ / 2 : columns_);
-    own_.SetTabs({}, 0);
-  }
   ftxui::Element left = own_.Render();
-  if (!split) {
-    return left;
-  }
+  const int right_width =
+      split ? WidestCard(every_boosted, columns_ - WidthOf(left)) : 0;
+  auto lay_right = [&](SkillInspectPanel& card, int own_tab, int tab) {
+    const std::vector<InspectedSkill>& boosted = tabs_[own_tab].boosted;
+    card.SetSkill(boosted[tab].skill, boosted[tab].learned, boosted[tab].bonus);
+    card.SetMaxRows(rows_);
+    card.SetWidthBounds(right_width, right_width);
+    std::vector<TabSpec> names;
+    for (const InspectedSkill& each : boosted) {
+      names.push_back({each.skill->name()});
+    }
+    card.SetTabs(std::move(names), tab);
+  };
 
-  const int width = WidestCard(every_boosted, columns_ - WidthOf(left));
+  // Held to the tallest card any tab on either side shows, so turning a tab
+  // never moves an edge.
+  int height = 0;
+  SkillInspectPanel measure;
+  for (int i = 0; i < static_cast<int>(tabs_.size()); ++i) {
+    lay_left(measure, i);
+    height = std::max(height, HeightOf(measure.Render()));
+    for (int j = 0; split && j < static_cast<int>(tabs_[i].boosted.size());
+         ++j) {
+      lay_right(measure, i, j);
+      height = std::max(height, HeightOf(measure.Render()));
+    }
+  }
+  if (!split) {
+    return left | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
+  }
+  ftxui::Element right;
   if (boosted().empty()) {
-    return ftxui::hbox(
-        {std::move(left),
-         ThemedWindow(" Skill ", EmptyState("boosts no other skill")) |
-             ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width)});
+    right = ThemedWindow(" Skill ", EmptyState("empty")) |
+            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, right_width);
+  } else {
+    lay_right(other_, own_tab_, tab_);
+    other_.SetFocused(boosted_focused_);
+    right = other_.Render();
   }
-  std::vector<TabSpec> tabs;
-  for (const InspectedSkill& boosted : boosted()) {
-    tabs.push_back({boosted.skill->name()});
-  }
-  const InspectedSkill& shown = boosted()[tab_];
-  other_.SetSkill(shown.skill, shown.learned, shown.bonus);
-  other_.SetMaxRows(rows_);
-  other_.SetWidthBounds(width, width);
-  other_.SetTabs(std::move(tabs), tab_);
-  other_.SetFocused(boosted_focused_);
-  return ftxui::hbox({std::move(left), other_.Render()});
+  return ftxui::hbox({std::move(left), std::move(right)}) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
 }
 
 }  // namespace ms

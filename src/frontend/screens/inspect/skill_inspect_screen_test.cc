@@ -30,7 +30,11 @@ class SkillInspectScreenTest : public PanelTest {
       : node_(Named("Alpha Boost", "Strengthens two attacks.")),
         alpha_(Named("Alpha", "The first attack.")),
         beta_(Named("Beta", "The second attack.")),
-        rider_(Named("Gamma", "Rides on the boost.")) {
+        rider_(Named("Gamma",
+                     "Rides on the boost. It takes far more words to say so "
+                     "than either attack does, which makes its card the "
+                     "tallest of the screen by several rows of prose, so "
+                     "every other tab has to grow to match it.")) {
     node_.set_kind(SKILL_KIND_PASSIVE);
     node_.set_max_level(60);
     for (const char* name : {"Alpha", "Beta"}) {
@@ -85,6 +89,13 @@ class SkillInspectScreenTest : public PanelTest {
       }
     }
     return -1;
+  }
+
+  // The rows the screen asks for, which is what centring it goes by.
+  int RowsAsked() const {
+    ftxui::Element element = screen_.Render();
+    element->ComputeRequirement();
+    return element->requirement().min_y;
   }
 
   Skill node_;
@@ -155,13 +166,14 @@ TEST_F(SkillInspectScreenTest, OnlyTheFocusedCardScrolls) {
 }
 
 // A bundled skill is a tab of the left card, and the right card follows it: a
-// tab boosting nothing keeps the card open, in the same place, to say so.
+// tab boosting nothing keeps the card open, empty. Every edge holds still.
 TEST_F(SkillInspectScreenTest, TheRightCardFollowsTheBundlesTab) {
   screen_.SetSkills({{{&node_, 10, 0}, {{&alpha_, 5, 0}, {&beta_, 0, 0}}},
                      {{&rider_, 10, 0}, {}},
                      {{&beta_, 0, 0}, {{&alpha_, 5, 0}}}});
   const int column = RightCardColumn();
   const int end = RightCardEnd();
+  const int rows = RowsAsked();
   EXPECT_NE(Rendered().find(" Gamma "), std::string::npos) << "a left tab";
   screen_.OnEvent(ftxui::Event::Tab);
   screen_.OnEvent(ftxui::Event::ArrowRight);
@@ -173,16 +185,18 @@ TEST_F(SkillInspectScreenTest, TheRightCardFollowsTheBundlesTab) {
   EXPECT_EQ(screen_.tab(), 0) << "the right card starts over";
   std::string rendered = Rendered();
   EXPECT_NE(rendered.find("Rides on the boost."), std::string::npos);
-  EXPECT_NE(rendered.find("(boosts no other skill)"), std::string::npos);
+  EXPECT_NE(rendered.find("(empty)"), std::string::npos);
   EXPECT_EQ(rendered.find("The first attack."), std::string::npos);
   EXPECT_EQ(RightCardColumn(), column);
   EXPECT_EQ(RightCardEnd(), end);
+  EXPECT_EQ(RowsAsked(), rows);
 
   screen_.OnEvent(ftxui::Event::ArrowRight);
   rendered = Rendered();
   EXPECT_NE(rendered.find("The second attack."), std::string::npos);
   EXPECT_NE(rendered.find("The first attack."), std::string::npos);
   EXPECT_EQ(RightCardColumn(), column);
+  EXPECT_EQ(RowsAsked(), rows);
 
   screen_.SetSize(90, 30);
   ASSERT_FALSE(screen_.Split());
