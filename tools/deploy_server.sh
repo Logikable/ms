@@ -15,7 +15,7 @@
 # runs here every time.
 set -euo pipefail
 
-HOST=${MS_SERVER_HOST:-2606:8ac0:263d:e200:be24:11ff:fede:23c3}
+HOST=${MS_SERVER_HOST:-38.81.229.97}
 SSH_PORT=${MS_SERVER_SSH_PORT:-21967}
 LOGIN=${MS_SERVER_USER:-logikable}
 REMOTE=$LOGIN@$HOST
@@ -55,8 +55,7 @@ $SSH 'set -e
   sleep 1
   systemctl --user is-active ms-server'
 
-# The probe sent above is built from this tree, so the box can ask for us; a
-# machine without IPv6 couldn't reach an IPv6 server to ask.
+# The probe sent above is built from this tree, so the box can ask for us.
 echo "Asking the server whether this build can play"
 if ! $SSH "~/ms/probe --action=check --host=::1 \
     --port=${MS_SERVER_PORT:-21711} --seconds=15"; then
