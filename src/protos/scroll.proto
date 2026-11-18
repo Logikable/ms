@@ -78,8 +78,9 @@ message Scroll {
   // sells neither for traces, so there is no price band to use.
   //
   // Every other scroll leaves this unset; its price comes from the level of the
-  // item it is used on, through TraceCost in src/item/upgrade/spell_trace_cost.h. A
-  // data test rejects a value here, because it would be ignored.
+  // item it is used on, through TraceCost in
+  // src/item/upgrade/spell_trace_cost.h. A data test rejects a value here,
+  // because it would be ignored.
   int32 trace_cost = 8;
   ScrollTarget target = 9;
   // The name of the Etc item one use spends, for a scroll that drops instead

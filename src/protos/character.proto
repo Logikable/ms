@@ -456,7 +456,8 @@ message Character {
   int32 noblesse_sp_spent = 30;
 
   // This character's familiars and the EXP their kills have banked for them,
-  // and the ones summoned, as three presets. See //src/character/account:familiar.
+  // and the ones summoned, as three presets. See
+  // //src/character/account:familiar.
   FamiliarBook familiars = 32;
   SummonedFamiliars summoned_familiars = 31;
 

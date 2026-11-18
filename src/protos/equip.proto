@@ -534,7 +534,8 @@ message Equip {
   // A second potential with pools of its own, unset until the first bonus cube
   // is used; see PotentialTrack.
   Potential bonus_potential = 11;
-  // Four distinct lines once flamed, empty before; see src/item/upgrade/flame.h.
+  // Four distinct lines once flamed, empty before; see
+  // src/item/upgrade/flame.h.
   repeated FlameLine flame = 12;
   // Unset until 10 of a boss's soul shards are applied; weapons only.
   Soul soul = 13;

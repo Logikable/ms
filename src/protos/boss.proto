@@ -20,7 +20,8 @@ message BossPhase {
   // Every place the player can stand; the first is where they start. An arrow
   // key moves to the nearest spot strictly in that direction, so the layout of
   // the list decides where each arrow leads. See NextPlayerSpot in
-  // src/combat/boss/boss_run.h. Only the first entry's position in the list matters.
+  // src/combat/boss/boss_run.h. Only the first entry's position in the list
+  // matters.
   repeated ArenaSpot player_spots = 2;
   // How many cells wide the arena is. Leftover room is spread across the gaps,
   // so this sets the margins as well as the spacing: a part in the last cell

@@ -97,8 +97,8 @@ message CharacterSave {
 
 // The frozen version 1 save format. Nothing writes it, and only the upgrade in
 // //src/save/save_migration.h reads it. It exists so that an old one-character
-// save can still be parsed after SaveGame changed. Its field numbers are the ones
-// version 1 wrote and must never change.
+// save can still be parsed after SaveGame changed. Its field numbers are the
+// ones version 1 wrote and must never change.
 message SaveGameV1 {
   int32 format_version = 1;
   Character character = 2;
