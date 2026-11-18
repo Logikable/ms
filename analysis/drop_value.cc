@@ -9,7 +9,7 @@
 #include "analysis/sim_gear.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/combat/damage.h"
 #include "src/combat/loot.h"
 #include "src/game_state.h"

@@ -12,7 +12,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"

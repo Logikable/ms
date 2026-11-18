@@ -14,9 +14,9 @@
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "src/character/force/sacred_power.h"
+#include "src/character/force/symbol.h"
 #include "src/character/max_character.h"
-#include "src/character/sacred_power.h"
-#include "src/character/symbol.h"
 #include "src/combat/arena_spots.h"
 #include "src/combat/loot.h"
 #include "src/frontend/screens/boss/boss_fight_panel.h"

@@ -8,9 +8,9 @@
 #include <string>
 
 #include "analysis/sim_gear.h"
+#include "src/character/force/symbol.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
-#include "src/character/symbol.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/potential.h"

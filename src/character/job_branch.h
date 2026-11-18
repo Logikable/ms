@@ -28,7 +28,7 @@ JobBranch BranchOf(Job job);
 // instead of branching, so the 2nd job determines the rest.
 //
 // JOB_UNSPECIFIED for a character who hasn't taken a 2nd advancement yet. Link
-// skills are counted per line; see //src/character:link.
+// skills are counted per line; see //src/character/account:link.
 Job LineOf(Job job);
 
 }  // namespace ms

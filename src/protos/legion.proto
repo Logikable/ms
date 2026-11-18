@@ -27,7 +27,7 @@ enum LegionStat {
 // One allocation of Legion points.
 message LegionPreset {
   // Points in each stat, keyed by LegionStat. What was spent stays as spent
-  // when the Legion's points or caps fall; see //src/character:legion for what
+  // when the Legion's points or caps fall; see //src/character/account:legion for what
   // is read back.
   map<int32, int32> points = 1;
 }

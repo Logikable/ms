@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/testing/panel_test_base.h"

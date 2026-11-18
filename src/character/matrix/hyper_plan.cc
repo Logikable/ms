@@ -1,0 +1,115 @@
+#include "src/character/matrix/hyper_plan.h"
+
+#include "src/character/character.h"
+#include "src/character/matrix/hyper_stats.h"
+#include "src/character/stat_preset.h"
+#include "src/protos/character.pb.h"
+
+namespace ms {
+namespace {
+
+// Every stat points can be spent on: every field in the enum except the
+// placeholder. Iterated as ints because the enum has a gap.
+bool IsHyperStatField(int field) {
+  return field != HYPER_STAT_FIELD_UNSPECIFIED && HyperStatField_IsValid(field);
+}
+
+// Sets `field` alone to `level` and returns what the character is worth.
+double RateWith(CharacterInstance& character, StatPreset preset,
+                HyperStatField field, int level, const HyperRate& rate) {
+  character.ResetHyperStats(preset);
+  if (level > 0 && !character.AllocateHyperStat(field, preset, level)) {
+    return 0.0;  // the pool cannot reach it yet
+  }
+  return rate(character);
+}
+
+// Whether the highest level of `field` the pool reaches is worth exactly
+// `bare`. With level 1 worth the same, the stat does nothing for this rate,
+// and the levels between needn't be measured.
+bool NothingAtTheTop(CharacterInstance& character, StatPreset preset,
+                     HyperStatField field, double bare, const HyperRate& rate) {
+  for (int level = character.max_hyper_stat_level(); level > 1; --level) {
+    double paid = RateWith(character, preset, field, level, rate);
+    if (paid > 0.0) {
+      return paid == bare;
+    }
+  }
+  return true;
+}
+
+}  // namespace
+
+HyperWorth MeasureHyperWorth(CharacterInstance& character, StatPreset preset,
+                             const HyperRate& rate) {
+  HyperWorth worth;
+  double bare =
+      RateWith(character, preset, HYPER_STAT_FIELD_UNSPECIFIED, 0, rate);
+  int ceiling = character.max_hyper_stat_level();
+  for (int field = 0; field < HyperStatField_ARRAYSIZE; ++field) {
+    if (!IsHyperStatField(field) ||
+        !HyperStatUnlocked(static_cast<HyperStatField>(field),
+                           character.proto().level())) {
+      continue;
+    }
+    const HyperStatField named = static_cast<HyperStatField>(field);
+    const double first = RateWith(character, preset, named, 1, rate);
+    if (first == bare &&
+        NothingAtTheTop(character, preset, named, bare, rate)) {
+      continue;
+    }
+    for (int level = 1; level <= ceiling; ++level) {
+      double paid =
+          level == 1 ? first : RateWith(character, preset, named, level, rate);
+      if (paid <= 0.0) {
+        break;  // out of reach, and every level above it is too
+      }
+      worth.rate[field][level] = paid - bare;
+    }
+  }
+  character.ResetHyperStats(preset);
+  return worth;
+}
+
+int SpendHyperStats(CharacterInstance& character, StatPreset preset,
+                    const HyperWorth& worth) {
+  character.ResetHyperStats(preset);
+  int spent = 0;
+  while (true) {
+    // The next level of each stat, priced by what it adds over the level below.
+    // Compared by cross-multiplying instead of dividing, so two values that
+    // differ only by rounding are still ordered correctly.
+    HyperStatField best = HYPER_STAT_FIELD_UNSPECIFIED;
+    double best_gain = 0.0;
+    int best_cost = 0;
+    for (int field = 0; field < HyperStatField_ARRAYSIZE; ++field) {
+      if (!IsHyperStatField(field)) {
+        continue;
+      }
+      HyperStatField named = static_cast<HyperStatField>(field);
+      int at = character.hyper_stat_level(named, preset);
+      if (at >= character.max_hyper_stat_level()) {
+        continue;
+      }
+      double gain = worth.rate[field][at + 1] - worth.rate[field][at];
+      int cost = HyperStatLevelCost(at + 1);
+      if (gain <= 0.0 || cost <= 0 ||
+          cost > character.hyper_stat_points_left(preset)) {
+        continue;
+      }
+      if (best == HYPER_STAT_FIELD_UNSPECIFIED ||
+          gain * best_cost > best_gain * cost) {
+        best = named;
+        best_gain = gain;
+        best_cost = cost;
+      }
+    }
+    if (best == HYPER_STAT_FIELD_UNSPECIFIED ||
+        !character.AllocateHyperStat(best, preset, 1)) {
+      return spent;
+    }
+    spent += best_cost;
+  }
+}
+
+}  // namespace ms

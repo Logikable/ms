@@ -1,7 +1,7 @@
 #include "analysis/hyper_plan.h"
 
 #include "src/character/character.h"
-#include "src/character/hyper_plan.h"
+#include "src/character/matrix/hyper_plan.h"
 #include "src/character/stat_preset.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"

@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "src/character/familiar.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/account/familiar.h"
+#include "src/character/account/legion.h"
 #include "src/character/inner_ability.h"
-#include "src/character/legion.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"

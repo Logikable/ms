@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "src/character/account/familiar.h"
 #include "src/character/character_stats.h"
-#include "src/character/familiar.h"
 #include "src/character/skill_placement.h"
 #include "src/character/stat_preset.h"
 #include "src/game_state.h"

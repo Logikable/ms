@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/legion.h"
+#include "src/character/account/legion.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"

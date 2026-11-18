@@ -10,8 +10,8 @@
 #include <map>
 #include <string>
 
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
+#include "src/character/force/arcane_force.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/skill.pb.h"

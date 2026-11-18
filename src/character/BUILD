@@ -30,19 +30,19 @@ cc_library(
         ":consumables",
         ":equip_presets",
         ":exp_table",
-        ":familiar",
-        ":guild",
-        ":hexa_matrix",
-        ":hexa_stat",
-        ":hyper_stats",
         ":inner_ability",
         ":job_branch",
-        ":legion",
-        ":link",
         ":skill_placement",
-        ":symbol",
-        ":v_matrix",
         "//src:build_config",
+        "//src/character/account:familiar",
+        "//src/character/account:guild",
+        "//src/character/account:legion",
+        "//src/character/account:link",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
+        "//src/character/matrix:hyper_stats",
+        "//src/character/matrix:v_matrix",
         "//src/item",
         "//src/item:currency",
         "//src/item:equip_instance",
@@ -76,8 +76,8 @@ cc_library(
     deps = [
         ":boss_reset",
         ":character",
-        ":hyper_stats",
-        ":symbol",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hyper_stats",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -91,7 +91,7 @@ cc_test(
     deps = [
         ":character",
         ":dailies",
-        ":symbol",
+        "//src/character/force:symbol",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -122,117 +122,10 @@ cc_test(
 )
 
 cc_library(
-    name = "arcane_force",
-    srcs = ["arcane_force.cc"],
-    hdrs = ["arcane_force.h"],
-)
-
-cc_library(
-    name = "symbol",
-    srcs = ["symbol.cc"],
-    hdrs = ["symbol.h"],
-    deps = [
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "symbol_test",
-    size = "small",
-    srcs = ["symbol_test.cc"],
-    deps = [
-        ":symbol",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "sacred_power",
-    srcs = ["sacred_power.cc"],
-    hdrs = ["sacred_power.h"],
-    deps = [":arcane_force"],
-)
-
-cc_library(
-    name = "familiar",
-    srcs = ["familiar.cc"],
-    hdrs = ["familiar.h"],
-    deps = [
-        ":stat_preset",
-        "//src/combat:damage",
-        "//src/item:potential",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:familiar_proto_cc",
-        "@abseil-cpp//absl/types:span",
-        "@protobuf",
-    ],
-)
-
-cc_test(
-    name = "familiar_test",
-    size = "small",
-    srcs = ["familiar_test.cc"],
-    deps = [
-        ":familiar",
-        ":stat_preset",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:familiar_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "honor",
     srcs = ["honor.cc"],
     hdrs = ["honor.h"],
     deps = [":inner_ability"],
-)
-
-cc_library(
-    name = "v_matrix",
-    srcs = ["v_matrix.cc"],
-    hdrs = ["v_matrix.h"],
-    deps = ["//src/protos:skill_proto_cc"],
-)
-
-cc_library(
-    name = "hexa_matrix",
-    srcs = ["hexa_matrix.cc"],
-    hdrs = ["hexa_matrix.h"],
-    deps = [
-        ":sol_erda",
-        "//src/protos:skill_proto_cc",
-    ],
-)
-
-cc_library(
-    name = "sol_erda",
-    srcs = ["sol_erda.cc"],
-    hdrs = ["sol_erda.h"],
-)
-
-cc_test(
-    name = "sol_erda_test",
-    size = "small",
-    srcs = ["sol_erda_test.cc"],
-    deps = [
-        ":sol_erda",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "v_matrix_test",
-    size = "small",
-    srcs = ["v_matrix_test.cc"],
-    deps = [
-        ":v_matrix",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
 )
 
 cc_test(
@@ -293,57 +186,11 @@ cc_test(
 )
 
 cc_library(
-    name = "hexa_stat",
-    srcs = ["hexa_stat.cc"],
-    hdrs = ["hexa_stat.h"],
-    deps = [
-        ":hyper_stats",
-        ":sol_erda",
-        "//src/combat:damage",
-        "//src/protos:character_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "hexa_stat_test",
-    size = "small",
-    srcs = ["hexa_stat_test.cc"],
-    deps = [
-        ":hexa_stat",
-        ":hyper_stats",
-        ":sol_erda",
-        "//src/protos:character_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "hyper_stats",
-    srcs = ["hyper_stats.cc"],
-    hdrs = ["hyper_stats.h"],
-    deps = [
-        ":stat_preset",
-        "//src/protos:character_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "hyper_stats_test",
-    size = "small",
-    srcs = ["hyper_stats_test.cc"],
-    deps = [
-        ":hyper_stats",
-        "//src/protos:character_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "job_name",
     srcs = ["job_name.cc"],
     hdrs = ["job_name.h"],
     deps = [
-        ":hyper_stats",
+        "//src/character/matrix:hyper_stats",
         "//src/protos:character_proto_cc",
     ],
 )
@@ -372,99 +219,6 @@ cc_test(
     srcs = ["job_branch_test.cc"],
     deps = [
         ":job_branch",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "guild",
-    srcs = ["guild.cc"],
-    hdrs = ["guild.h"],
-    deps = [
-        "//src/protos:account_proto_cc",
-        "//src/protos:boss_proto_cc",
-        "@protobuf",
-    ],
-)
-
-cc_test(
-    name = "guild_test",
-    size = "small",
-    srcs = ["guild_test.cc"],
-    deps = [
-        ":guild",
-        "//src/protos:account_proto_cc",
-        "//src/protos:boss_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "link",
-    srcs = ["link.cc"],
-    hdrs = ["link.h"],
-    deps = [
-        ":job_branch",
-        ":stat_preset",
-        "//src/protos:character_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "link_test",
-    size = "small",
-    srcs = ["link_test.cc"],
-    deps = [
-        ":link",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "legion",
-    srcs = ["legion.cc"],
-    hdrs = ["legion.h"],
-    deps = [
-        ":job_branch",
-        ":stat_preset",
-        "//src/protos:character_proto_cc",
-        "//src/protos:legion_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "legion_test",
-    size = "small",
-    srcs = ["legion_test.cc"],
-    deps = [
-        ":legion",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "legion_plan",
-    srcs = ["legion_plan.cc"],
-    hdrs = ["legion_plan.h"],
-    deps = [
-        ":character",
-        ":legion",
-        ":stat_preset",
-        "//src/protos:legion_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "legion_plan_test",
-    size = "small",
-    srcs = ["legion_plan_test.cc"],
-    deps = [
-        ":character",
-        ":character_stats",
-        ":legion",
-        ":legion_plan",
-        "//src/protos:character_proto_cc",
-        "//src/protos:legion_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -499,13 +253,13 @@ cc_library(
     deps = [
         ":character",
         ":consumables",
-        ":familiar",
-        ":hexa_stat",
-        ":hyper_stats",
         ":inner_ability",
-        ":legion",
         ":skill_placement",
-        ":symbol",
+        "//src/character/account:familiar",
+        "//src/character/account:legion",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hexa_stat",
+        "//src/character/matrix:hyper_stats",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_stats",
@@ -526,13 +280,13 @@ cc_library(
         ":character",
         ":consumables",
         ":exp_table",
-        ":familiar",
-        ":guild",
-        ":hyper_stats",
-        ":legion",
-        ":link",
-        ":sacred_power",
         "//src:account",
+        "//src/character/account:familiar",
+        "//src/character/account:guild",
+        "//src/character/account:legion",
+        "//src/character/account:link",
+        "//src/character/force:sacred_power",
+        "//src/character/matrix:hyper_stats",
         "//src/item:flame",
         "//src/item:potential",
         "//src/item:soul",
@@ -548,9 +302,9 @@ cc_test(
     deps = [
         ":character",
         ":exp_table",
-        ":link",
         ":progression",
         "//src:account",
+        "//src/character/account:link",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
         "@googletest//:gtest_main",
@@ -585,13 +339,13 @@ cc_test(
         ":character",
         ":equip_presets",
         ":exp_table",
-        ":familiar",
-        ":hexa_matrix",
-        ":hexa_stat",
         ":inner_ability",
-        ":sol_erda",
-        ":symbol",
-        ":v_matrix",
+        "//src/character/account:familiar",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
+        "//src/character/matrix:sol_erda",
+        "//src/character/matrix:v_matrix",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:flame",
@@ -619,13 +373,13 @@ cc_test(
         ":character",
         ":character_stats",
         ":consumables",
-        ":familiar",
-        ":guild",
-        ":hyper_stats",
         ":inner_ability",
-        ":legion",
-        ":symbol",
-        ":v_matrix",
+        "//src/character/account:familiar",
+        "//src/character/account:guild",
+        "//src/character/account:legion",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hyper_stats",
+        "//src/character/matrix:v_matrix",
         "//src/combat:damage",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
@@ -657,54 +411,6 @@ cc_test(
 )
 
 cc_library(
-    name = "hyper_plan",
-    srcs = ["hyper_plan.cc"],
-    hdrs = ["hyper_plan.h"],
-    deps = [
-        ":character",
-        ":hyper_stats",
-        ":stat_preset",
-        "//src/protos:character_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "hyper_plan_test",
-    srcs = ["hyper_plan_test.cc"],
-    deps = [
-        ":character",
-        ":hyper_plan",
-        ":stat_preset",
-        "//src/protos:character_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "noblesse_plan",
-    srcs = ["noblesse_plan.cc"],
-    hdrs = ["noblesse_plan.h"],
-    deps = [
-        ":character",
-        "//src/protos:skill_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "noblesse_plan_test",
-    size = "small",
-    srcs = ["noblesse_plan_test.cc"],
-    deps = [
-        ":character",
-        ":noblesse_plan",
-        ":skill_placement",
-        "//src/protos:character_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "set_pieces",
     srcs = ["set_pieces.cc"],
     hdrs = ["set_pieces.h"],
@@ -722,15 +428,15 @@ cc_library(
     deps = [
         ":character",
         ":character_stats",
-        ":familiar",
-        ":hyper_plan",
-        ":hyper_stats",
         ":inner_ability",
         ":job_branch",
-        ":legion_plan",
-        ":noblesse_plan",
         ":set_pieces",
         ":stat_preset",
+        "//src/character/account:familiar",
+        "//src/character/account:legion_plan",
+        "//src/character/account:noblesse_plan",
+        "//src/character/matrix:hyper_plan",
+        "//src/character/matrix:hyper_stats",
         "//src/combat:damage",
         "//src/item",
         "//src/item:flame",
@@ -750,10 +456,10 @@ cc_test(
     srcs = ["max_character_test.cc"],
     deps = [
         ":character",
-        ":familiar",
-        ":hyper_stats",
         ":inner_ability",
         ":max_character",
+        "//src/character/account:familiar",
+        "//src/character/matrix:hyper_stats",
         "//src/item:flame",
         "//src/item:potential",
         "//src/protos:character_proto_cc",

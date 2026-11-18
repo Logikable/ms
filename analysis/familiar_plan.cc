@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
 #include "src/character/stat_preset.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"

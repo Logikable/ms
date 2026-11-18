@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"

@@ -23,7 +23,7 @@
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
 #include "src/character/character.h"
-#include "src/character/hexa_matrix.h"
+#include "src/character/matrix/hexa_matrix.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/game_state.h"

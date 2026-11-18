@@ -8,7 +8,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/character/link.h"
+#include "src/character/account/link.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/protos/character.pb.h"

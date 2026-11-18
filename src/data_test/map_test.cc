@@ -8,8 +8,8 @@
 #include <string>
 #include <utility>
 
-#include "src/character/sacred_power.h"
-#include "src/character/symbol.h"
+#include "src/character/force/sacred_power.h"
+#include "src/character/force/symbol.h"
 #include "src/frontend/screens/inspect/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
 #include "src/protos/equip.pb.h"

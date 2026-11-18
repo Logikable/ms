@@ -7,7 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/character/legion.h"
+#include "src/character/account/legion.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/game_state.h"

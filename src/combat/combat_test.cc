@@ -6,13 +6,13 @@
 #include <memory>
 #include <vector>
 
+#include "src/character/account/familiar.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
-#include "src/character/familiar.h"
 #include "src/character/honor.h"
+#include "src/character/matrix/sol_erda.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/character/skill_placement.h"
-#include "src/character/sol_erda.h"
-#include "src/character/v_matrix.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"

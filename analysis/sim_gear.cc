@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/force/symbol.h"
 #include "src/character/progression.h"
-#include "src/character/symbol.h"
 #include "src/combat/encounter.h"
 #include "src/combat/measure.h"
 #include "src/game_state.h"

@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
 #include "src/frontend/widgets/text_columns.h"
 
 namespace ms {

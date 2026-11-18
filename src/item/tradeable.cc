@@ -1,6 +1,6 @@
 #include "src/item/tradeable.h"
 
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/item/currency.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

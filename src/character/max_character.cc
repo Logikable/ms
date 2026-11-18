@@ -6,15 +6,15 @@
 #include <string>
 #include <vector>
 
+#include "src/character/account/familiar.h"
+#include "src/character/account/legion_plan.h"
+#include "src/character/account/noblesse_plan.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
-#include "src/character/familiar.h"
-#include "src/character/hyper_plan.h"
-#include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
-#include "src/character/legion_plan.h"
-#include "src/character/noblesse_plan.h"
+#include "src/character/matrix/hyper_plan.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/set_pieces.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/damage.h"

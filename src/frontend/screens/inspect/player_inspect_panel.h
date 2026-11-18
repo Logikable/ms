@@ -27,7 +27,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/screens/inspect/all_stats_panel.h"

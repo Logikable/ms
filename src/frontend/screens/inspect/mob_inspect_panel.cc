@@ -9,9 +9,9 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/arcane_force.h"
+#include "src/character/force/arcane_force.h"
 #include "src/character/honor.h"
-#include "src/character/v_matrix.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/combat/loot.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"

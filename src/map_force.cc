@@ -1,9 +1,9 @@
 #include "src/map_force.h"
 
-#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
-#include "src/character/sacred_power.h"
+#include "src/character/force/arcane_force.h"
+#include "src/character/force/sacred_power.h"
 #include "src/character/stat_preset.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"

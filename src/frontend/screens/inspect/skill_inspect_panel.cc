@@ -11,9 +11,9 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
+#include "src/character/account/familiar.h"
 #include "src/character/character_stats.h"
-#include "src/character/familiar.h"
-#include "src/character/v_matrix.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"

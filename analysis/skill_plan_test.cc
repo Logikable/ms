@@ -6,8 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "src/character/matrix/v_matrix.h"
 #include "src/character/skill_placement.h"
-#include "src/character/v_matrix.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"

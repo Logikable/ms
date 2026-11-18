@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/sol_erda.h"
+#include "src/character/matrix/sol_erda.h"
 #include "src/frontend/widgets/text_columns.h"
 
 namespace ms {

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"

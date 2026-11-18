@@ -21,15 +21,15 @@
 
 #include "absl/types/span.h"
 #include "src/build_config.h"
+#include "src/character/account/familiar.h"
+#include "src/character/account/guild.h"
+#include "src/character/account/legion.h"
+#include "src/character/account/link.h"
 #include "src/character/consumables.h"
 #include "src/character/equip_presets.h"
-#include "src/character/familiar.h"
-#include "src/character/guild.h"
-#include "src/character/hexa_matrix.h"
-#include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
-#include "src/character/legion.h"
-#include "src/character/link.h"
+#include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
@@ -543,7 +543,7 @@ class CharacterInstance {
     return std::max(account_max_level_, character_.level());
   }
   // The Noblesse SP the account's solo clears have earned, copied here for the
-  // same reason. See //src/character:guild.
+  // same reason. See //src/character/account:guild.
   void set_noblesse_sp_earned(int sp) {
     noblesse_sp_earned_ = sp;
   }
@@ -581,7 +581,7 @@ class CharacterInstance {
   }
   LegionSummary legion_summary() const;
   // This character's familiars and their EXP pool. See
-  // //src/character:familiar.
+  // //src/character/account:familiar.
   const FamiliarBook& familiars() const {
     return character_.familiars();
   }

@@ -74,7 +74,7 @@ message PlayerInfo {
   // limitation). It sits beside the sheet for the same reason as
   // autoswap_presets: it is the account's progress, not this character's, and
   // their link skills can't be worked out from the sheet alone. See
-  // //src/character:link.
+  // //src/character/account:link.
   map<int32, int32> link_lines = 9;
 
   // The account's achievements, for the Inspect screen. Beside the sheet for

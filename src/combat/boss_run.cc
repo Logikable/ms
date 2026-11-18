@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "src/build_config.h"
-#include "src/character/guild.h"
+#include "src/character/account/guild.h"
 #include "src/character/honor.h"
 #include "src/combat/combat.h"
 #include "src/combat/drop.h"

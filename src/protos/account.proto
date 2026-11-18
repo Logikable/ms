@@ -45,7 +45,7 @@ message Account {
 
   // Every boss difficulty a character on the account has beaten alone, Practice
   // aside. They pay the Noblesse SP every character spends; see
-  // //src/character:guild.
+  // //src/character/account:guild.
   repeated SoloClear solo_clears = 9;
 
   // Familiars, briefly the account's before they became each character's.

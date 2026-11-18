@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"

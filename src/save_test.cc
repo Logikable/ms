@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "src/character/character.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"

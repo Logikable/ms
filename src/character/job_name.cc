@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

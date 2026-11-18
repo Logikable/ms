@@ -11,14 +11,14 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/account/familiar.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
-#include "src/character/familiar.h"
+#include "src/character/force/symbol.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
-#include "src/character/symbol.h"
 #include "src/combat/damage.h"
 #include "src/combat/encounter.h"
 #include "src/frontend/panels/equipped_panel.h"

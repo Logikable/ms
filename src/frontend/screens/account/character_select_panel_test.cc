@@ -10,7 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/testing/screen_text.h"

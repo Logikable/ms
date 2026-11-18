@@ -15,9 +15,9 @@
 
 #include "absl/strings/str_join.h"
 #include "src/character/character.h"
-#include "src/character/hexa_matrix.h"
 #include "src/character/job_branch.h"
-#include "src/character/v_matrix.h"
+#include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/panel_widths.h"

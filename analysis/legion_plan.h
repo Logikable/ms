@@ -1,9 +1,9 @@
 /* Chooses what a simulated account spends its Legion points on.
  *
- * Max mode's allocator (//src/character:legion_plan) re-measures every point,
- * which a measured fight makes too slow here. Instead each stat is measured
- * once, filled alone as far as it goes, and the points then go to the best
- * per-point worth first, each stat to its cap. Crit rate past the cap and
+ * Max mode's allocator (//src/character/account:legion_plan) re-measures every
+ * point, which a measured fight makes too slow here. Instead each stat is
+ * measured once, filled alone as far as it goes, and the points then go to the
+ * best per-point worth first, each stat to its cap. Crit rate past the cap and
  * Ignore Defense piling up are averaged over the fill rather than followed.
  */
 #ifndef MS_ANALYSIS_LEGION_PLAN_H_

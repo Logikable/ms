@@ -117,7 +117,7 @@ cc_library(
         "//src:game_state",
         "//src/character",
         "//src/character:boss_reset",
-        "//src/character:link",
+        "//src/character/account:link",
         "//src/protos:multiplayer_proto_cc",
         "@protobuf",
     ],

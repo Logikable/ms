@@ -15,7 +15,7 @@
 
 #include "absl/types/span.h"
 #include "src/character/character.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/combat/damage.h"
 #include "src/item/potential.h"
 #include "src/protos/equip.pb.h"

@@ -11,8 +11,8 @@
 
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
-#include "src/character/hyper_stats.h"
-#include "src/character/sacred_power.h"
+#include "src/character/force/sacred_power.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"

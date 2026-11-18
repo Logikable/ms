@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "src/character/character.h"
-#include "src/character/symbol.h"
+#include "src/character/force/symbol.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

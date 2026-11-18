@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "ftxui/screen/color.hpp"
-#include "src/character/hyper_stats.h"
-#include "src/character/legion.h"
+#include "src/character/account/legion.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/stat_preset.h"
 #include "src/item/flame.h"
 #include "src/item/potential.h"

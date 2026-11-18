@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/account/familiar.h"
 #include "src/character/character.h"
-#include "src/character/familiar.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"

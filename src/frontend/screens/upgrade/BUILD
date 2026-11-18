@@ -7,7 +7,7 @@ cc_library(
     srcs = ["familiar_cube_panel.cc"],
     hdrs = ["familiar_cube_panel.h"],
     deps = [
-        "//src/character:familiar",
+        "//src/character/account:familiar",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
@@ -27,7 +27,7 @@ cc_test(
     srcs = ["familiar_cube_panel_test.cc"],
     deps = [
         ":familiar_cube_panel",
-        "//src/character:familiar",
+        "//src/character/account:familiar",
         "//src/frontend/testing:panel_test_base",
         "//src/frontend/widgets:reroll_prompt",
         "@ftxui//:component",

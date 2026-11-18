@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/hexa_matrix.h"
+#include "src/character/matrix/hexa_matrix.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/map_level.h"

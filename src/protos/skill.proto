@@ -1710,7 +1710,7 @@ message Skill {
   // that line's first job (JOB_SWORDMAN for warriors). Another skill nobody
   // buys: its level comes from the account's characters of that line, three
   // levels each, with one line counting once however many characters are in it.
-  // See //src/character:link.
+  // See //src/character/account:link.
   //
   // Such a skill costs no SP and gets no granted levels. Any character can have
   // it, whatever their job; that is the point. So it is listed under

@@ -1,16 +1,17 @@
 /* Chooses what a simulated character spends Hyper Stat points on.
  *
- * The allocator itself is //src/character:hyper_plan, shared with --mode=max.
- * Only the rate differs. The game rates a character by combat power, which is
- * cheap enough for seeding. Here the rate is the damage the character actually
- * deals in a measured fight, which is more accurate but slower.
+ * The allocator itself is //src/character/matrix:hyper_plan, shared with
+ * --mode=max. Only the rate differs. The game rates a character by combat
+ * power, which is cheap enough for seeding. Here the rate is the damage the
+ * character actually deals in a measured fight, which is more accurate but
+ * slower.
  */
 #ifndef MS_ANALYSIS_HYPER_PLAN_H_
 #define MS_ANALYSIS_HYPER_PLAN_H_
 
 #include <functional>
 
-#include "src/character/hyper_plan.h"
+#include "src/character/matrix/hyper_plan.h"
 #include "src/character/stat_preset.h"
 #include "src/game_state.h"
 

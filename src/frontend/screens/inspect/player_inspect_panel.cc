@@ -5,7 +5,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
-#include "src/character/link.h"
+#include "src/character/account/link.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/widgets/exp_bar.h"
 #include "src/frontend/widgets/keys.h"

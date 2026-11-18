@@ -26,7 +26,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/marquee.h"

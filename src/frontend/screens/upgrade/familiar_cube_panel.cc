@@ -8,7 +8,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"

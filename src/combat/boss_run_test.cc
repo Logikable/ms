@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "src/build_config.h"
-#include "src/character/hexa_matrix.h"
 #include "src/character/honor.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/test_authority.h"
 #include "src/game_state.h"

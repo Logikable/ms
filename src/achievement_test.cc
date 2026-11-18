@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
 #include "src/game_state.h"
 #include "src/protos/achievement.pb.h"
 #include "src/protos/boss.pb.h"

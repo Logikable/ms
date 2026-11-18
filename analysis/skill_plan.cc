@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/character/v_matrix.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 

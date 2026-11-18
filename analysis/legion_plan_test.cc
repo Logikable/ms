@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "src/character/account/legion.h"
 #include "src/character/character_stats.h"
-#include "src/character/legion.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/legion.pb.h"

@@ -8,9 +8,9 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
+#include "src/character/force/symbol.h"
 #include "src/character/progression.h"
-#include "src/character/symbol.h"
 #include "src/frontend/screens/upgrade/scroll_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"

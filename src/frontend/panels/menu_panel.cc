@@ -9,7 +9,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/build_config.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"

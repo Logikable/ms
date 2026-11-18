@@ -15,7 +15,7 @@
 #include <map>
 #include <vector>
 
-#include "src/character/link.h"
+#include "src/character/account/link.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

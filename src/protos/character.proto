@@ -456,7 +456,7 @@ message Character {
   int32 noblesse_sp_spent = 30;
 
   // This character's familiars and the EXP their kills have banked for them,
-  // and the ones summoned, as three presets. See //src/character:familiar.
+  // and the ones summoned, as three presets. See //src/character/account:familiar.
   FamiliarBook familiars = 32;
   SummonedFamiliars summoned_familiars = 31;
 
@@ -531,7 +531,7 @@ message Character {
 
   // The link skills this character uses, as three presets. Per character on
   // purpose: the account shares what it has unlocked, and each character picks
-  // what to bring. See //src/character:link.
+  // what to bring. See //src/character/account:link.
   LinkSkills link_skills = 28;
 
   // Every boss this character has ever cleared, by file stem, at any
@@ -539,7 +539,7 @@ message Character {
   // Skill.unlock_boss reads. A Practice run doesn't count.
   repeated string bosses_defeated = 29;
 
-  // The HEXA Stat nodes; see //src/character:hexa_stat.
+  // The HEXA Stat nodes; see //src/character/matrix:hexa_stat.
   HexaStats hexa_stats = 33;
 
   // Tabs opened and gold trails walked. Since format version 2 the account

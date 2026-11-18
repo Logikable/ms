@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/account/link.h"
 #include "src/character/character_stats.h"
 #include "src/character/job_branch.h"
-#include "src/character/link.h"
 #include "src/character/stat_preset.h"
 #include "src/frontend/screens/inspect/skill_inspect_panel.h"
 #include "src/frontend/types.h"

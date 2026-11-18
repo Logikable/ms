@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "src/character/character_stats.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/force/sacred_power.h"
 #include "src/character/job_branch.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/progression.h"
-#include "src/character/sacred_power.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"

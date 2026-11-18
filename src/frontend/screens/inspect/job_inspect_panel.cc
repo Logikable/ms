@@ -9,8 +9,8 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
-#include "src/character/hyper_stats.h"
 #include "src/character/job_name.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"

@@ -15,7 +15,7 @@
 #include "ftxui/component/event.hpp"
 #include "server/test_server.h"
 #include "src/character/equip_presets.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"

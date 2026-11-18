@@ -9,14 +9,14 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/account/familiar.h"
+#include "src/character/account/guild.h"
+#include "src/character/account/legion.h"
 #include "src/character/consumables.h"
-#include "src/character/familiar.h"
-#include "src/character/guild.h"
+#include "src/character/force/symbol.h"
 #include "src/character/inner_ability.h"
-#include "src/character/legion.h"
+#include "src/character/matrix/v_matrix.h"
 #include "src/character/skill_placement.h"
-#include "src/character/symbol.h"
-#include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

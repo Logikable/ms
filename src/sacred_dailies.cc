@@ -10,9 +10,9 @@
 #include <vector>
 
 #include "src/character/consumables.h"
-#include "src/character/hyper_stats.h"
+#include "src/character/force/symbol.h"
+#include "src/character/matrix/hyper_stats.h"
 #include "src/character/progression.h"
-#include "src/character/symbol.h"
 #include "src/combat/clear_time.h"
 #include "src/combat/constants.h"
 #include "src/combat/encounter.h"

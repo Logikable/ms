@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/character/familiar.h"
+#include "src/character/account/familiar.h"
 #include "src/frontend/screens/inspect/inspect_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
