@@ -32,7 +32,7 @@
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 ABSL_FLAG(std::string, save, "", "The save to read. Use a copy.");
 ABSL_FLAG(std::string, boss, "lucid", "Boss key, as data/bosses names it.");

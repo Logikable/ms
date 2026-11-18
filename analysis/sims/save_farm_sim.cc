@@ -23,7 +23,7 @@
 #include "src/combat/fight.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 ABSL_FLAG(std::string, save, "", "The save to read. Use a copy.");
 ABSL_FLAG(std::string, maps, "",

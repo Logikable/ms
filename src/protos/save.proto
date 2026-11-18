@@ -39,7 +39,7 @@ message SaveGame {
   // so that build refuses a newer save instead of misreading it. Every message
   // reachable from here has fixed field numbers: renumbering one silently
   // misreads every existing save. Older versions are upgraded on load; see
-  // //src/save_migration.h.
+  // //src/save/save_migration.h.
   int32 format_version = 1;
 
   // Shared by every character on the save.
@@ -96,8 +96,8 @@ message CharacterSave {
 }
 
 // The frozen version 1 save format. Nothing writes it, and only the upgrade in
-// //src/save_migration.h reads it. It exists so that an old one-character save
-// can still be parsed after SaveGame changed. Its field numbers are the ones
+// //src/save/save_migration.h reads it. It exists so that an old one-character
+// save can still be parsed after SaveGame changed. Its field numbers are the ones
 // version 1 wrote and must never change.
 message SaveGameV1 {
   int32 format_version = 1;

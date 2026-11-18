@@ -32,8 +32,8 @@
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
-#include "src/save.h"
-#include "src/save_lock.h"
+#include "src/save/save.h"
+#include "src/save/save_lock.h"
 
 ABSL_FLAG(std::string, mode, "play",
           "Which state to start in: 'play' for a new character on Maple "

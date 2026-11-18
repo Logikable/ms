@@ -26,7 +26,7 @@
 #include "src/game_state.h"
 #include "src/protos/multiplayer.pb.h"
 #include "src/sacred_dailies.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 ABSL_FLAG(std::string, save, "",
           "A save to read, its played character. Use a copy.");

@@ -43,7 +43,7 @@
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 ABSL_FLAG(std::string, save, "", "The save to read. Use a copy.");
 ABSL_FLAG(int, trials, 3, "Attempts at each fight, each on its own seed.");

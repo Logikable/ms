@@ -60,7 +60,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 namespace ms {
 namespace {

@@ -17,7 +17,7 @@
 #include "src/combat/constants.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
-#include "src/save.h"
+#include "src/save/save.h"
 
 namespace ms {
 namespace {
