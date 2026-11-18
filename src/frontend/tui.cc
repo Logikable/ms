@@ -1349,10 +1349,7 @@ ftxui::Element Tui::RenderScreen() {
     case kJobInspect:
       return RenderJobInspect();
     case kSkillInspect:
-      skill_inspect_screen_.SetSkills({&controller_.skill_inspect_skill(),
-                                       controller_.skill_inspect_level(),
-                                       controller_.skill_inspect_bonus()},
-                                      controller_.skill_inspect_boosted());
+      skill_inspect_screen_.SetSkills(controller_.skill_inspect_tabs());
       skill_inspect_screen_.SetSize(ftxui::Terminal::Size().dimx,
                                     ftxui::Terminal::Size().dimy);
       return Centred(skill_inspect_screen_.Render());

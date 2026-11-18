@@ -1,12 +1,14 @@
-/* SkillInspectScreen is the screen a skill's card opens on. A skill that boosts
- * others (a V boost node, a Hyper Skill that reinforces an attack) shows the
- * card of each skill it boosts beside its own, as tabs named after them, so
- * the player reads what is boosted next to the boost.
+/* SkillInspectScreen is the screen a skill's card opens on. The left card is
+ * the skill and whatever comes bundled with it (a HEXA node's riders), as tabs.
+ * The right card is each skill the left tab boosts (a V boost node, a Hyper
+ * Skill that reinforces an attack), as tabs named after them, so the player
+ * reads what is boosted next to the boost. It follows the left tab, and stays
+ * open saying so when that tab boosts nothing while another does.
  *
- * Both cards can scroll, and the right one's tabs take Left and Right, so the
- * keys go only to the focused card and Tab or Shift-Tab moves between them. A
- * terminal too narrow for two cards shows the skill's own card alone, as a
- * skill that boosts nothing always does.
+ * Both cards scroll, and tabs take Left and Right, so the keys go only to the
+ * focused card and Tab or Shift-Tab moves between them. A terminal too narrow
+ * for two cards shows the left card alone, as a bundle that boosts nothing
+ * always does.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_SCREEN_H_
 #define MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_SCREEN_H_
@@ -27,23 +29,33 @@ struct InspectedSkill {
   int bonus = 0;
 };
 
+// One tab of the left card: its skill and the skills it boosts.
+struct InspectedTab {
+  InspectedSkill skill;
+  std::vector<InspectedSkill> boosted;
+};
+
 class SkillInspectScreen {
  public:
   // Read live every frame, since the levels can change behind the card.
-  void SetSkills(InspectedSkill skill, std::vector<InspectedSkill> boosted);
+  // The skill first, then what is bundled with it.
+  void SetSkills(std::vector<InspectedTab> tabs);
   // The terminal's size, which decides whether the two cards fit.
   void SetSize(int columns, int rows) {
     columns_ = columns;
     rows_ = rows;
   }
-  // Focus on the skill's own card, the first tab, both cards at the top: a
-  // card the player has just opened.
+  // Focus on the left card, the first tabs, both cards at the top: a card the
+  // player has just opened.
   void Reset();
   // The arrows and Tab. Returns false for any other key.
   bool OnEvent(const ftxui::Event& event);
 
   // True while the boosted skills are shown beside the card.
   bool Split() const;
+  int own_tab() const {
+    return own_tab_;
+  }
   int tab() const {
     return tab_;
   }
@@ -54,12 +66,15 @@ class SkillInspectScreen {
   ftxui::Element Render() const;
 
  private:
-  // The width every tab's card is held to, so switching tabs doesn't move the
-  // card's edges: the widest of them within `budget` columns.
-  int BoostedWidth(int budget) const;
+  // The width a card is held to, so switching tabs doesn't move its edges: the
+  // widest of `skills` within `budget` columns.
+  static int WidestCard(const std::vector<InspectedSkill>& skills, int budget);
+  const std::vector<InspectedSkill>& boosted() const {
+    return tabs_[own_tab_].boosted;
+  }
 
-  InspectedSkill skill_;
-  std::vector<InspectedSkill> boosted_;
+  std::vector<InspectedTab> tabs_;
+  int own_tab_ = 0;
   int columns_ = 0;
   int rows_ = 0;
   int tab_ = 0;

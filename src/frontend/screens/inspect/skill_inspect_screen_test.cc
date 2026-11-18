@@ -29,7 +29,8 @@ class SkillInspectScreenTest : public PanelTest {
   SkillInspectScreenTest()
       : node_(Named("Alpha Boost", "Strengthens two attacks.")),
         alpha_(Named("Alpha", "The first attack.")),
-        beta_(Named("Beta", "The second attack.")) {
+        beta_(Named("Beta", "The second attack.")),
+        rider_(Named("Gamma", "Rides on the boost.")) {
     node_.set_kind(SKILL_KIND_PASSIVE);
     node_.set_max_level(60);
     for (const char* name : {"Alpha", "Beta"}) {
@@ -37,7 +38,7 @@ class SkillInspectScreenTest : public PanelTest {
       boost->set_skill_name(name);
       boost->mutable_effect()->set_final_dmg_pct(0.02);
     }
-    screen_.SetSkills({&node_, 10, 0}, {{&alpha_, 5, 0}, {&beta_, 0, 0}});
+    screen_.SetSkills({{{&node_, 10, 0}, {{&alpha_, 5, 0}, {&beta_, 0, 0}}}});
     screen_.SetSize(120, 30);
   }
 
@@ -89,6 +90,7 @@ class SkillInspectScreenTest : public PanelTest {
   Skill node_;
   Skill alpha_;
   Skill beta_;
+  Skill rider_;
   SkillInspectScreen screen_;
 };
 
@@ -150,6 +152,43 @@ TEST_F(SkillInspectScreenTest, OnlyTheFocusedCardScrolls) {
   screen_.OnEvent(ftxui::Event::Tab);
   screen_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_NE(Lines(0, split), left);
+}
+
+// A bundled skill is a tab of the left card, and the right card follows it: a
+// tab boosting nothing keeps the card open, in the same place, to say so.
+TEST_F(SkillInspectScreenTest, TheRightCardFollowsTheBundlesTab) {
+  screen_.SetSkills({{{&node_, 10, 0}, {{&alpha_, 5, 0}, {&beta_, 0, 0}}},
+                     {{&rider_, 10, 0}, {}},
+                     {{&beta_, 0, 0}, {{&alpha_, 5, 0}}}});
+  const int column = RightCardColumn();
+  const int end = RightCardEnd();
+  EXPECT_NE(Rendered().find(" Gamma "), std::string::npos) << "a left tab";
+  screen_.OnEvent(ftxui::Event::Tab);
+  screen_.OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(screen_.tab(), 1);
+
+  screen_.OnEvent(ftxui::Event::TabReverse);
+  screen_.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(screen_.own_tab(), 1);
+  EXPECT_EQ(screen_.tab(), 0) << "the right card starts over";
+  std::string rendered = Rendered();
+  EXPECT_NE(rendered.find("Rides on the boost."), std::string::npos);
+  EXPECT_NE(rendered.find("(boosts no other skill)"), std::string::npos);
+  EXPECT_EQ(rendered.find("The first attack."), std::string::npos);
+  EXPECT_EQ(RightCardColumn(), column);
+  EXPECT_EQ(RightCardEnd(), end);
+
+  screen_.OnEvent(ftxui::Event::ArrowRight);
+  rendered = Rendered();
+  EXPECT_NE(rendered.find("The second attack."), std::string::npos);
+  EXPECT_NE(rendered.find("The first attack."), std::string::npos);
+  EXPECT_EQ(RightCardColumn(), column);
+
+  screen_.SetSize(90, 30);
+  ASSERT_FALSE(screen_.Split());
+  screen_.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(screen_.own_tab(), 0) << "alone, the card still turns its tabs";
+  EXPECT_NE(Rendered().find("Strengthens two attacks."), std::string::npos);
 }
 
 TEST(BoostedSkillNamesTest, EachSkillOnceInOrderNeverItself) {

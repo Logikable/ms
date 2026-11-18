@@ -226,17 +226,17 @@ int TuiController::skill_inspect_bonus() const {
   return BonusSkillLevels(card_character(), state_.skills);
 }
 
-std::vector<InspectedSkill> TuiController::skill_inspect_boosted() const {
+std::vector<InspectedSkill> TuiController::BoostedBy(const Skill& skill) const {
   const CharacterInstance& character = card_character();
   const int bonus = skill_inspect_bonus();
   std::vector<InspectedSkill> boosted;
-  for (const std::string& name : BoostedSkillNames(skill_inspect_)) {
+  for (const std::string& name : BoostedSkillNames(skill)) {
     const Skill* found = nullptr;
-    for (const auto& [key, skill] : state_.skills) {
-      if (skill.name() == name &&
-          (found == nullptr || character.HasBookFor(skill))) {
-        found = &skill;
-        if (character.HasBookFor(skill)) {
+    for (const auto& [key, candidate] : state_.skills) {
+      if (candidate.name() == name &&
+          (found == nullptr || character.HasBookFor(candidate))) {
+        found = &candidate;
+        if (character.HasBookFor(candidate)) {
           break;
         }
       }
@@ -245,18 +245,28 @@ std::vector<InspectedSkill> TuiController::skill_inspect_boosted() const {
       boosted.push_back({found, character.skill_level(*found), bonus});
     }
   }
-  // A HEXA node's riders have no row of their own, so its card is where they
-  // are read, in book order.
+  return boosted;
+}
+
+std::vector<InspectedTab> TuiController::skill_inspect_tabs() const {
+  const CharacterInstance& character = card_character();
+  const int bonus = skill_inspect_bonus();
+  std::vector<InspectedTab> tabs;
+  tabs.push_back({{&skill_inspect_, skill_inspect_level(), bonus},
+                  BoostedBy(skill_inspect_)});
+  // A HEXA node's riders have no row of their own, so they are read on its
+  // card, in book order.
   if (skill_inspect_.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
     const JobAdvancement book =
         AdvancementForJobStage(character.proto().job(), kSixthJobStage);
     for (const Skill* rider : SkillsForAdvancement(state_.skills, book)) {
       if (rider->hexa_core() == skill_inspect_.name()) {
-        boosted.push_back({rider, character.skill_level(*rider), bonus});
+        tabs.push_back(
+            {{rider, character.skill_level(*rider), bonus}, BoostedBy(*rider)});
       }
     }
   }
-  return boosted;
+  return tabs;
 }
 
 void TuiController::OpenAllStats() {

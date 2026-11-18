@@ -406,9 +406,9 @@ class TuiController {
   }
   int skill_inspect_level() const;
   int skill_inspect_bonus() const;
-  // The skills the card's skill boosts, each at the card character's level. A
-  // name several jobs use resolves to the one in that character's books.
-  std::vector<InspectedSkill> skill_inspect_boosted() const;
+  // The card's skill and what is bundled with it (a HEXA node's riders), each
+  // with the skills it boosts, at the card character's levels.
+  std::vector<InspectedTab> skill_inspect_tabs() const;
 
   // What the pending advancement's dialog draws. The stage is the one above the
   // character's current stage, since the advancement is into it.
@@ -1028,6 +1028,9 @@ class TuiController {
   // Spends what a confirmed buy dialog agreed to, on whichever shelf it was
   // opened over.
   void BuyWhatTheDialogAgreedTo();
+  // The skills `skill` boosts. A name several jobs use resolves to the one in
+  // the card character's books.
+  std::vector<InspectedSkill> BoostedBy(const Skill& skill) const;
 
   GameState& state_;
   // Kept so focus arriving here can clear the Advance tab's gold; otherwise the

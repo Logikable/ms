@@ -936,7 +936,7 @@ TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
-  skill_inspect_screen_.SetSkills({&skill, 3, 0}, {});
+  skill_inspect_screen_.SetSkills({{{&skill, 3, 0}, {}}});
   // Small enough that there is room to scroll.
   skill_inspect_screen_.SetSize(60, 6);
 
@@ -965,7 +965,9 @@ TEST_F(TuiControllerTest, ABoostCardFindsTheSkillItBoosts) {
   node.add_boost()->set_skill_name("Slash Blast");
 
   controller_->OpenSkillInspect(node);
-  std::vector<InspectedSkill> boosted = controller_->skill_inspect_boosted();
+  std::vector<InspectedTab> tabs = controller_->skill_inspect_tabs();
+  ASSERT_EQ(tabs.size(), 1u);
+  const std::vector<InspectedSkill>& boosted = tabs[0].boosted;
   ASSERT_EQ(boosted.size(), 1u);
   EXPECT_EQ(boosted[0].skill, &state_->skills["slash_blast"]);
   EXPECT_EQ(boosted[0].learned, 3);
@@ -974,7 +976,7 @@ TEST_F(TuiControllerTest, ABoostCardFindsTheSkillItBoosts) {
 }
 
 // A HEXA node's riders have no row on the VI page, so the node's card carries
-// them as tabs, in book order, at the node's level.
+// them as tabs, in book order, each with what it boosts.
 TEST_F(TuiControllerTest, AHexaNodeCardCarriesTheSkillsRidingOnIt) {
   for (Job job : {JOB_SWORDMAN, JOB_SPEARMAN, JOB_BERSERKER, JOB_DARK_KNIGHT,
                   JOB_DARK_KNIGHT, JOB_DARK_KNIGHT}) {
@@ -991,16 +993,21 @@ TEST_F(TuiControllerTest, AHexaNodeCardCarriesTheSkillsRidingOnIt) {
     Skill rider;
     rider.set_name(name);
     rider.set_hexa_core("HEXA Spear");
+    rider.add_boost()->set_skill_name("HEXA Spear");
     rider.add_placement()->set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_VI);
     rider.mutable_placement(0)->set_skill_order(order);
     state_->skills[key] = rider;
   }
 
   controller_->OpenSkillInspect(node);
-  std::vector<InspectedSkill> riders = controller_->skill_inspect_boosted();
-  ASSERT_EQ(riders.size(), 2u);
-  EXPECT_EQ(riders[0].skill->name(), "First Rider");
-  EXPECT_EQ(riders[1].skill->name(), "Second Rider");
+  std::vector<InspectedTab> tabs = controller_->skill_inspect_tabs();
+  ASSERT_EQ(tabs.size(), 3u);
+  EXPECT_EQ(tabs[0].skill.skill->name(), "HEXA Spear");
+  EXPECT_TRUE(tabs[0].boosted.empty());
+  EXPECT_EQ(tabs[1].skill.skill->name(), "First Rider");
+  EXPECT_EQ(tabs[2].skill.skill->name(), "Second Rider");
+  ASSERT_EQ(tabs[1].boosted.size(), 1u);
+  EXPECT_EQ(tabs[1].boosted[0].skill, &state_->skills["hexa_spear"]);
 }
 
 // --- Job advancement ---
