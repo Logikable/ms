@@ -1,5 +1,5 @@
 # Off GMS's numbers: GMS gives it 2.1x its neighbours' HP for 1.3x the EXP, so
-# both are set to what the neighbours imply. See //analysis:mob_curve_sim.
+# both are set to what the neighbours imply. See //analysis/sims:mob_curve_sim.
 name: "Onyx Stonegar"
 level: 40
 attack: 213
