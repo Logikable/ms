@@ -331,21 +331,14 @@ TEST_F(SkillInspectPanelTest, SaysWhatCountSetsASkillOff) {
             std::string::npos);
 }
 
-// A skill barred from boss fights says so, since nothing else on the page
-// would.
-TEST_F(SkillInspectPanelTest, SaysAFarmingOnlySkillSitsOutBossFights) {
-  Skill fountain = MakeLuckySeven();
-  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
-  EXPECT_EQ(RenderAt(fountain, 1).find("Boss Fights"), std::string::npos);
-  fountain.set_farming_only(true);
-  EXPECT_NE(RowIn(RenderAt(fountain, 1), "Boss Fights", "Can't be used"),
-            std::string::npos);
-}
-
-TEST_F(SkillInspectPanelTest, NeverSaysAnOriginSitsOutFarming) {
+TEST_F(SkillInspectPanelTest, NeverSaysWhereASkillSitsOut) {
   Skill origin = MakeLuckySeven();
   origin.set_hexa_node(HEXA_NODE_KIND_ORIGIN);
   EXPECT_EQ(RenderAt(origin, 1).find("Farming"), std::string::npos);
+  Skill fountain = MakeLuckySeven();
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  fountain.set_farming_only(true);
+  EXPECT_EQ(RenderAt(fountain, 1).find("Boss Fights"), std::string::npos);
 }
 
 // A passive that affects one other skill names it, since nothing on that

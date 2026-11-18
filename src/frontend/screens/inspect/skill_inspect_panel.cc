@@ -679,9 +679,6 @@ std::vector<Row> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.kills_per_cast()) + " Defeats"));
   }
-  if (BarredFrom(skill, Activity::kBossing)) {
-    rows.push_back(EffectRow("Boss Fights", "Can't be used"));
-  }
   Append(EmpoweredRows(skill), rows);
   // How long the player uses other attacks afterwards, which is the cost of a
   // skill this strong. A cooldown that shortens with level isn't invariant and
