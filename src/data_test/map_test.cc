@@ -10,7 +10,7 @@
 
 #include "src/character/sacred_power.h"
 #include "src/character/symbol.h"
-#include "src/frontend/screens/mob_inspect_panel.h"
+#include "src/frontend/screens/inspect/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

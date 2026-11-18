@@ -35,7 +35,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/panel_widths.h"
-#include "src/frontend/screens/scroll_panel.h"
+#include "src/frontend/screens/upgrade/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/item_columns.h"

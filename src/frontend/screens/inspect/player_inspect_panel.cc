@@ -1,0 +1,162 @@
+#include "src/frontend/screens/inspect/player_inspect_panel.h"
+
+#include <memory>
+#include <utility>
+
+#include "ftxui/dom/elements.hpp"
+#include "google/protobuf/util/message_differencer.h"
+#include "src/character/link.h"
+#include "src/frontend/main_layout.h"
+#include "src/frontend/widgets/exp_bar.h"
+#include "src/frontend/widgets/keys.h"
+
+namespace ms {
+
+PlayerInspectPanel::PlayerInspectPanel(GameState& state)
+    : state_(state),
+      character_(state.rng, Character()),
+      // No account: this is someone else's sheet, so the Farm/Boss row is gated
+      // on the level on the sheet.
+      stats_(character_, /*account=*/nullptr, state.account, state.skills) {
+  BuildPanels();
+}
+
+void PlayerInspectPanel::UseActions(PlayerInspectActions actions) {
+  actions_ = std::move(actions);
+  BuildPanels();
+}
+
+void PlayerInspectPanel::BuildPanels() {
+  char_panel_ = std::make_unique<CharacterPanel>(character_, state_.account,
+                                                 focus_, state_.skills);
+  char_panel_->SetReadOnly(true);
+  equip_panel_ =
+      std::make_unique<EquippedPanel>(character_, state_.account, focus_);
+  equip_panel_->SetReadOnly(true);
+
+  CharacterPanelActions char_actions;
+  char_actions.menu = actions_.skill;
+  char_actions.hyper_inspect = actions_.hyper_stat;
+  char_actions.stat_inspect = actions_.stat;
+  char_actions.all_stats = actions_.all_stats;
+  char_component_ = char_panel_->MakeComponent(std::move(char_actions));
+
+  equip_component_ = equip_panel_->MakeComponent(
+      [this]() {
+        if (actions_.item) {
+          actions_.item();
+        }
+      },
+      [this]() { expanded_ = !expanded_; });
+}
+
+void PlayerInspectPanel::SetPlayer(const PlayerInfo& player) {
+  if (google::protobuf::util::MessageDifferencer::Equals(player, shown_)) {
+    return;
+  }
+  bool same_member = player.account_id() == shown_.account_id();
+  shown_ = player;
+  character_.RestoreFrom(player.sheet(), state_.equips, state_.items);
+  character_.set_autoswap_presets(player.autoswap_presets());
+  LinkTally tally;
+  for (const std::pair<const int, int>& line : player.link_lines()) {
+    tally.Record(static_cast<Job>(line.first), line.second);
+  }
+  character_.set_link_tally(std::move(tally));
+  character_.UseEquipSets(state_.equip_sets);
+  if (!same_member) {
+    Reset();
+    return;
+  }
+  // The same member changed something, such as removing a hat or a whole set.
+  // The panels keep the cursor where it was and clamp it to what is left.
+}
+
+void PlayerInspectPanel::Reset() {
+  expanded_ = false;
+  // On the Equipped list, which is what the reader came for, the same panel the
+  // main view opens focused.
+  focus_ = kEquipPanel;
+  stats_.SetPreset(Activity::kFarming);
+  BuildPanels();
+}
+
+Activity PlayerInspectPanel::preset() const {
+  return char_panel_->SelectedActivity();
+}
+
+const EquipInstance* PlayerInspectPanel::selected_item() const {
+  EquipSlot slot = selected_slot();
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return nullptr;
+  }
+  return character_.WornAt(equip_panel_->gear_preset(), slot);
+}
+
+EquipSlot PlayerInspectPanel::selected_slot() const {
+  return equip_panel_->selected_slot();
+}
+
+std::string PlayerInspectPanel::selected_familiar() const {
+  return equip_panel_->selected_familiar();
+}
+
+bool PlayerInspectPanel::OnEvent(const ftxui::Event& event) {
+  if (IsSwitchPanel(event)) {
+    // Nothing to move to while one panel fills the screen, as on the main view.
+    if (!expanded_) {
+      focus_ = focus_ == kCharPanel ? kEquipPanel : kCharPanel;
+    }
+    return true;
+  }
+  // The components are driven directly rather than through a container: two
+  // detached components both report Focused(), so only the one with the cursor
+  // gets the key.
+  if (expanded_ || focus_ == kEquipPanel) {
+    return equip_component_->OnEvent(event);
+  }
+  return char_component_->OnEvent(event);
+}
+
+void PlayerInspectPanel::SyncAllStats() {
+  stats_.SetPreset(preset());
+}
+
+ftxui::Element PlayerInspectPanel::RenderAllStats() const {
+  return stats_.Render() |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
+}
+
+bool PlayerInspectPanel::OnAllStatsEvent(const ftxui::Event& event) {
+  return stats_.OnEvent(event);
+}
+
+ftxui::Element PlayerInspectPanel::Render(int rows, int columns) {
+  equip_panel_->SetExpanded(expanded_);
+  if (expanded_) {
+    equip_panel_->SetWidth(columns);
+    return equip_component_->Render();
+  }
+  // The main screen's own column split, so a member's panels are where the
+  // reader's are. The right column is always there, since this screen is only
+  // the two panels.
+  MainWidths widths = ComputeMainWidths(columns, /*has_right_column=*/true);
+  char_panel_->SetWidth(widths.left);
+  // One row goes to the exp bar. Nothing else shares the column, so the
+  // Character panel keeps every extra stat a tall terminal has room for.
+  char_panel_->SetMaxRows(rows - 1);
+  equip_panel_->SetWidth(widths.right);
+  return ftxui::vbox({
+      ftxui::hbox({
+          // Above a filler: an hbox gives its children the whole row, which
+          // would stretch the Character panel's bottom border to the bottom of
+          // the screen. The Equipped list grows into its column on its own.
+          ftxui::vbox({char_component_->Render(), ftxui::filler()}) |
+              ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left),
+          equip_component_->Render() | ftxui::flex,
+      }) | ftxui::flex,
+      ExpBar(character_.proto()),
+  });
+}
+
+}  // namespace ms

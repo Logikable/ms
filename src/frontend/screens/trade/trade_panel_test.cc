@@ -1,0 +1,566 @@
+#include "src/frontend/screens/trade/trade_panel.h"
+
+#include <gtest/gtest.h>
+
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/panel_test_base.h"
+#include "src/frontend/testing/screen_text.h"
+#include "src/item/equip_instance.h"
+#include "src/item/item.h"
+#include "src/protos/item.pb.h"
+#include "src/protos/multiplayer.pb.h"
+
+namespace ms {
+namespace {
+
+TradeState Trade(const std::string& partner, bool joined) {
+  TradeState trade;
+  trade.set_id("t1");
+  trade.set_partner_account_id("two");
+  trade.set_partner_name(partner);
+  trade.set_partner_joined(joined);
+  return trade;
+}
+
+ItemPrototype Stack(const std::string& name, ItemKind kind) {
+  ItemPrototype proto;
+  proto.set_name(name);
+  proto.set_kind(kind);
+  return proto;
+}
+
+class TradePanelTest : public PanelTest {
+ protected:
+  void SetUp() override {
+    PanelTest::SetUp();
+    c_.SetUsername("Dagger");
+    c_.AddMeso(1234567);
+    c_.AddItem(Stack(kSpellTraceName, ITEM_KIND_SPELL_TRACE), 900);
+    c_.AddItem(Stack("Chaos Scroll", ITEM_KIND_UNSPECIFIED), 12);
+    c_.AddItem(Stack("Zakum's", ITEM_KIND_SOUL_SHARD), 4);
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+    panel_.SetTrade(Trade("Wand", /*joined=*/true));
+    panel_.Reset();
+  }
+
+  std::vector<std::string> Rows() {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                                 ftxui::Dimension::Fixed(40));
+    ftxui::Render(screen, ftxui::center(panel_.Render()));
+    return ScreenRows(screen);
+  }
+
+  std::string Text() {
+    std::string whole;
+    for (const std::string& row : Rows()) {
+      whole += row;
+      whole += "\n";
+    }
+    return whole;
+  }
+
+  // The bag row under the cursor, as a position in the character's own list.
+  int BagIndex() {
+    return panel_.cursor().index;
+  }
+
+  // Where a stack is in the character's own list, which isn't the order it
+  // arrived in: 900 traces fill five stacks before the next item starts one.
+  int StackIndex(const std::string& name) {
+    for (int i = 0; i < static_cast<int>(c_.stackables().size()); ++i) {
+      if (c_.stackables()[i].name() == name) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  // Presses Tab until the bag has the cursor.
+  void ToBag() {
+    while (panel_.zone() != TradeZone::kBag) {
+      panel_.NextZone(1);
+    }
+  }
+
+  TradePanel panel_{c_, account_};
+};
+
+TEST_F(TradePanelTest, DrawsBothOffersAndTheBag) {
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_meso(120);
+  panel_.SetTrade(trade);
+  panel_.PutUpCurrency(TradeCurrency::kMeso, 5000);
+  panel_.PutUpCurrency(TradeCurrency::kSpellTraces, 30);
+
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Dagger"), std::string::npos);
+  EXPECT_NE(screen.find("Wand"), std::string::npos);
+  EXPECT_NE(screen.find("Inventory"), std::string::npos);
+  EXPECT_NE(screen.find("Accept"), std::string::npos);
+  EXPECT_NE(screen.find("5,000"), std::string::npos);
+  EXPECT_NE(screen.find("120"), std::string::npos);
+
+  // The two currencies share one line on each side, meso first.
+  std::vector<std::string> rows = Rows();
+  int line = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("5,000") != std::string::npos) {
+      line = i;
+    }
+  }
+  ASSERT_GE(line, 0);
+  EXPECT_LT(rows[line].find("5,000"), rows[line].find("30"));
+  EXPECT_NE(rows[line].find("120"), std::string::npos)
+      << "both sides draw their currencies on the same row";
+}
+
+TEST_F(TradePanelTest, TheirWindowHasNoNameUntilTheyJoin) {
+  panel_.SetTrade(Trade("Wand", /*joined=*/false));
+  EXPECT_EQ(Text().find("Wand"), std::string::npos);
+
+  panel_.SetTrade(Trade("Wand", /*joined=*/true));
+  EXPECT_NE(Text().find("Wand"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, TheirSideIsMirrored) {
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_meso(120);
+  trade.mutable_theirs()->set_spell_traces(77);
+  trade.set_theirs_accepted(true);
+  panel_.SetTrade(trade);
+
+  std::vector<std::string> rows = Rows();
+  int line = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("120") != std::string::npos) {
+      line = i;
+    }
+  }
+  ASSERT_GE(line, 0);
+  // Their mark comes first in their half, then their traces, then their meso;
+  // the name sits above the meso rather than above the mark.
+  EXPECT_LT(rows[line].find("✓"), rows[line].find("77"));
+  EXPECT_LT(rows[line].find("77"), rows[line].find("120"));
+  std::string title;
+  for (const std::string& row : rows) {
+    if (row.find("Wand") != std::string::npos) {
+      title = row;
+    }
+  }
+  ASSERT_FALSE(title.empty());
+  EXPECT_GT(title.find("Wand"), title.size() / 2);
+  // Padded with the border's own line rather than blanks, so the space before
+  // the name reads as part of the border.
+  EXPECT_NE(title.find("─ Wand "), std::string::npos) << title;
+}
+
+TEST_F(TradePanelTest, FocusLightsTheNameAndNotThePaddingBeforeIt) {
+  panel_.NextZone(1);
+  ASSERT_EQ(panel_.zone(), TradeZone::kTheirs);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, ftxui::center(panel_.Render()));
+  std::string styled = screen.ToString();
+
+  EXPECT_NE(styled.find("\033[7m Wand "), std::string::npos)
+      << "the name is the chip";
+  EXPECT_EQ(styled.find("\033[7m─"), std::string::npos)
+      << "the border run before it is not";
+}
+
+// Left and Right walk the currencies. Accept sits centred under the offer, the
+// last stop of a vertical ring through the window.
+TEST_F(TradePanelTest, AcceptIsTheFootOfTheWindow) {
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso);
+  EXPECT_EQ(panel_.held(TradeCurrency::kMeso), 1234567);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kSpellTraces);
+  EXPECT_EQ(panel_.held(TradeCurrency::kSpellTraces), 900);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso) << "a ring of two";
+
+  // With nothing offered, Down goes straight to Accept, and Left and Right
+  // stay there.
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency) << "wraps";
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept) << "both ways";
+
+  // With two items up, the ring runs through them.
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  panel_.PutUpEquip(1);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
+  EXPECT_EQ(panel_.cursor().index, 1);
+  panel_.MoveRow(-1);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+  panel_.MoveRow(1);
+  panel_.MoveRow(1);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+
+  // Centred, on a row of its own below a divider.
+  std::vector<std::string> rows = Rows();
+  int line = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("[Accept]") != std::string::npos) {
+      line = i;
+    }
+  }
+  ASSERT_GT(line, 0);
+  EXPECT_NE(rows[line - 1].find("├"), std::string::npos);
+  EXPECT_EQ(rows[line].find("Sword"), std::string::npos);
+  EXPECT_EQ(rows[line].find("🪙"), std::string::npos);
+  std::string left = rows[line].substr(0, rows[line].find("[Accept]"));
+  int border = static_cast<int>(left.rfind("│"));
+  int gap_before = static_cast<int>(left.size()) - border - 3;
+  std::string right = rows[line].substr(rows[line].find("[Accept]") + 8);
+  int gap_after = static_cast<int>(right.find("│"));
+  EXPECT_LE(std::abs(gap_before - gap_after), 1) << rows[line];
+}
+
+// From the 5th job, V Points take a third cell on the top row, mirrored on
+// their side.
+TEST_F(TradePanelTest, VPointsJoinTheTopRow) {
+  UnlockEverything();
+  c_.AddVPoints(5000);
+  panel_.MoveCursor(2);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kVPoints);
+  EXPECT_EQ(panel_.held(TradeCurrency::kVPoints), 5000);
+  panel_.MoveCursor(1);
+  EXPECT_EQ(panel_.cursor().currency, TradeCurrency::kMeso)
+      << "a ring of three";
+
+  panel_.PutUpCurrency(TradeCurrency::kVPoints, 1200);
+  EXPECT_EQ(panel_.offered(TradeCurrency::kVPoints), 1200);
+  EXPECT_EQ(panel_.own().ToWire(c_).v_points(), 1200);
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_meso(120);
+  trade.mutable_theirs()->set_v_points(77);
+  panel_.SetTrade(trade);
+
+  std::vector<std::string> rows = Rows();
+  int line = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("1,200 VP") != std::string::npos) {
+      line = i;
+    }
+  }
+  ASSERT_GE(line, 0);
+  const std::string& row = rows[line];
+  EXPECT_LT(row.find("🪙"), row.find("1,200 VP")) << "meso first";
+  EXPECT_LT(row.find("1,200 VP"), row.find("77 VP"));
+  EXPECT_LT(row.find("77 VP"), row.find("120")) << "theirs mirrored";
+  EXPECT_NE(Text().find("3,800 VP"), std::string::npos)
+      << "the bag shows what is left";
+}
+
+// Below it, the cell appears only to show what they offered.
+TEST_F(TradePanelTest, VPointsWaitForTheFifthJob) {
+  EXPECT_EQ(Text().find("VP"), std::string::npos);
+
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->set_v_points(77);
+  panel_.SetTrade(trade);
+  EXPECT_NE(Text().find("77 VP"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, TabWalksTheThreeWindows) {
+  EXPECT_EQ(panel_.zone(), TradeZone::kMine);
+  panel_.NextZone(1);
+  EXPECT_EQ(panel_.zone(), TradeZone::kTheirs);
+  panel_.NextZone(1);
+  EXPECT_EQ(panel_.zone(), TradeZone::kBag);
+  panel_.NextZone(1);
+  EXPECT_EQ(panel_.zone(), TradeZone::kMine);
+  panel_.NextZone(-1);
+  EXPECT_EQ(panel_.zone(), TradeZone::kBag);
+}
+
+// The Etc tab lists only drops: the currencies are in the purse, which the
+// trade screen doesn't show, and the spell trace is offered on its own line at
+// the top of the offer.
+TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
+  ToBag();
+  EXPECT_FALSE(panel_.on_etc_tab());
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kBag);
+  EXPECT_EQ(BagIndex(), 0);  // the sword
+
+  panel_.MoveCursor(1);
+  ASSERT_TRUE(panel_.on_etc_tab());
+  EXPECT_EQ(BagIndex(), StackIndex("Chaos Scroll"));
+  panel_.MoveRow(1);
+  EXPECT_EQ(BagIndex(), StackIndex("Chaos Scroll"));
+
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Chaos Scroll"), std::string::npos);
+  EXPECT_EQ(screen.find("Zakum's"), std::string::npos);
+}
+
+// A symbol is bound to the character who levelled it: the Equip tab doesn't
+// list it, and a row naming it anyway offers nothing.
+TEST_F(TradePanelTest, ASymbolCannotBeOffered) {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  c_.PickUp(std::make_unique<EquipInstance>(symbol));
+
+  ToBag();
+  EXPECT_EQ(BagIndex(), 0) << "the sword";
+  panel_.MoveRow(1);
+  EXPECT_EQ(BagIndex(), 0) << "and nothing under it";
+  EXPECT_EQ(Text().find("Arcane"), std::string::npos);
+
+  panel_.PutUpEquip(1);
+  EXPECT_EQ(panel_.own().items(), 0);
+}
+
+TEST_F(TradePanelTest, TheBagShowsWhatIsLeft) {
+  ToBag();
+  panel_.PutUpEquip(0);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kNothing)
+      << "the one equip is on the table, so the tab has nothing to stand on";
+
+  panel_.MoveCursor(1);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
+  EXPECT_EQ(panel_.stack_left(StackIndex("Chaos Scroll")), 7);
+
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Sword"), std::string::npos) << "on the table";
+  EXPECT_NE(screen.find("7"), std::string::npos) << "the rest of the stack";
+
+  // The header shows what is left of the currencies.
+  panel_.PutUpCurrency(TradeCurrency::kMeso, 1000000);
+  EXPECT_NE(Text().find("234,567"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, TheTableTakesAsMuchAsThePlayerHas) {
+  constexpr int kMany = 20;
+  for (int i = 0; i < kMany; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  for (int i = 0; i < kMany; ++i) {
+    panel_.PutUpEquip(i);
+  }
+  EXPECT_EQ(panel_.own().items(), kMany) << "the window scrolls instead";
+
+  // Offering the same item twice is still one item on the table, and a stack
+  // already offered is changed rather than added to.
+  panel_.PutUpEquip(0);
+  EXPECT_EQ(panel_.own().items(), kMany);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 9);
+  EXPECT_EQ(panel_.own().items(), kMany + 1);
+  EXPECT_EQ(panel_.stack_offered(StackIndex("Chaos Scroll")), 9);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 0);
+  EXPECT_EQ(panel_.own().items(), kMany);
+}
+
+TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
+  panel_.PutUpEquip(0);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
+
+  // Down from the top row moves into the offer.
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
+  EXPECT_EQ(panel_.cursor().index, 0);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().index, 1);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().index, 1);
+
+  panel_.TakeBack(1);
+  EXPECT_EQ(panel_.own().items(), 1);
+  EXPECT_EQ(panel_.stack_left(StackIndex("Chaos Scroll")), 12);
+
+  // Up from the first row moves back to the currencies.
+  panel_.MoveRow(-1);
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+}
+
+// The bag is the game's standard bag: the same tab row with its rule below, and
+// the same column header with its own rule. The offer windows follow it.
+TEST_F(TradePanelTest, EveryHeaderHasItsRule) {
+  // One offered and one left in the bag, so both lists have a header.
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  std::vector<std::string> rows = Rows();
+  int tabs = -1;
+  int columns = -1;
+  int offer = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("Equip") != std::string::npos &&
+        rows[i].find("Etc") != std::string::npos) {
+      tabs = i;
+    }
+    if (rows[i].find("Equip Slot") != std::string::npos) {
+      columns = i;
+    }
+    if (rows[i].find("Quantity") != std::string::npos && offer < 0) {
+      offer = i;
+    }
+  }
+  ASSERT_GE(tabs, 0);
+  ASSERT_GE(columns, 0);
+  ASSERT_GE(offer, 0);
+  EXPECT_NE(rows[tabs + 1].find("├"), std::string::npos) << rows[tabs + 1];
+  EXPECT_NE(rows[columns + 1].find("├"), std::string::npos)
+      << rows[columns + 1];
+  EXPECT_NE(rows[offer + 1].find("├"), std::string::npos) << rows[offer + 1];
+}
+
+// The same caret as the rest of the game, with its own column between the caret
+// and the name, and only in the window with the cursor.
+TEST_F(TradePanelTest, OnlyTheFocusedWindowDrawsTheCaret) {
+  panel_.PutUpEquip(0);
+  panel_.MoveRow(1);
+  ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
+  EXPECT_NE(Text().find("> Sword"), std::string::npos);
+
+  ToBag();
+  EXPECT_EQ(Text().find("> Sword"), std::string::npos)
+      << "the offer keeps its row, not its caret";
+}
+
+// Wherever the cursor is, the menu opens beside it, which is why the row is
+// read from the render: all three lists scroll, and a position in the data
+// stops matching the screen row as soon as one does.
+TEST_F(TradePanelTest, TheMenuOpensBesideTheRowTheCursorIsOn) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
+  panel_.SetTrade(trade);
+
+  for (int zone = 0; zone < 3; ++zone) {
+    if (zone == 0) {
+      panel_.MoveRow(1);  // down into your own offer
+    }
+    ASSERT_NE(panel_.cursor().kind, TradeCursor::Kind::kNothing) << zone;
+    panel_.OpenMenu();
+    ASSERT_TRUE(panel_.menu_open()) << zone;
+    std::vector<std::string> rows = Rows();
+    int caret = -1;
+    int menu = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+      if (rows[i].find("> ") != std::string::npos && caret < 0) {
+        caret = i;
+      }
+      if (rows[i].find("Inspect") != std::string::npos) {
+        menu = i;
+      }
+    }
+    ASSERT_GE(caret, 0) << zone;
+    ASSERT_GE(menu, 0) << zone;
+    EXPECT_LE(std::abs(menu - caret), 1)
+        << "zone " << zone << ": the menu opened " << menu
+        << " and the cursor is on " << caret;
+    panel_.CloseMenu();
+    panel_.NextZone(1);
+  }
+}
+
+TEST_F(TradePanelTest, TheirRowsAreWalkedAndRead) {
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
+  TradeStack* stack = trade.mutable_theirs()->add_stacks();
+  stack->set_name("Chaos Scroll");
+  stack->set_count(3);
+  panel_.SetTrade(trade);
+  panel_.NextZone(1);
+
+  EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kTheirs);
+  EXPECT_EQ(panel_.cursor().index, 0);
+  panel_.MoveRow(1);
+  EXPECT_EQ(panel_.cursor().index, 1);
+
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Fafnir Mace"), std::string::npos);
+  EXPECT_NE(screen.find("Chaos Scroll"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, EachWindowsMenuOffersWhatItCanDo) {
+  // The bag offers items.
+  ToBag();
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_NE(screen.find("Offer"), std::string::npos);
+  EXPECT_EQ(screen.find("Remove"), std::string::npos);
+  panel_.CloseMenu();
+
+  // Your own side takes them back.
+  panel_.PutUpEquip(0);
+  panel_.NextZone(1);
+  ASSERT_EQ(panel_.zone(), TradeZone::kMine);
+  panel_.MoveRow(1);
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  screen = Text();
+  EXPECT_NE(screen.find("Remove"), std::string::npos);
+  EXPECT_EQ(screen.find("Offer"), std::string::npos);
+  panel_.CloseMenu();
+
+  // Theirs can only be inspected.
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
+  panel_.SetTrade(trade);
+  panel_.NextZone(1);
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  screen = Text();
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_EQ(screen.find("Offer"), std::string::npos);
+  EXPECT_EQ(screen.find("Remove"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, NoMenuOnACurrencyOrTheButton) {
+  panel_.OpenMenu();
+  EXPECT_FALSE(panel_.menu_open()) << "a currency is its own action";
+
+  panel_.MoveRow(1);
+  ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.OpenMenu();
+  EXPECT_FALSE(panel_.menu_open());
+}
+
+TEST_F(TradePanelTest, TheWireCarriesTheWholeItem) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(1);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
+  panel_.PutUpCurrency(TradeCurrency::kMeso, 700);
+
+  TradeOffer offer = panel_.own().ToWire(c_);
+  EXPECT_EQ(offer.meso(), 700);
+  ASSERT_EQ(offer.equips_size(), 1);
+  EXPECT_EQ(offer.equips(0).equip_name(), "Sword");
+  ASSERT_EQ(offer.stacks_size(), 1);
+  EXPECT_EQ(offer.stacks(0).name(), "Chaos Scroll");
+  EXPECT_EQ(offer.stacks(0).count(), 5);
+}
+
+// Two offer tables and the bag below them, each fitted to its own rows. A full
+// purse is the widest thing any of them shows.
+TEST_F(TradePanelTest, NoWindowWeldsARowToItsRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
+}  // namespace
+}  // namespace ms

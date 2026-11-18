@@ -1,0 +1,1128 @@
+#include "src/frontend/screens/inspect/inspect_panel.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "ftxui/dom/elements.hpp"
+#include "src/character/symbol.h"
+#include "src/combat/damage.h"
+#include "src/frontend/widgets/chrome.h"
+#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/scroll_card.h"
+#include "src/frontend/widgets/text_columns.h"
+#include "src/item/flame.h"
+#include "src/item/item.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
+#include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
+
+namespace ms {
+namespace {
+
+// The Equipped card's title. Two code paths draw that card (one slot, or a bar
+// of them), and they must use the same name.
+constexpr char kEquippedTitle[] = " Equipped ";
+
+// The width of the stackable body. Fixed rather than fitted, so every
+// description reads at the same width and the window doesn't resize as the
+// cursor moves between items. The equip body sets its own width from its
+// columns.
+constexpr int kStackableWidth = 44;
+// Inside the borders and a blank column on each side.
+constexpr int kStackableTextWidth = kStackableWidth - 4;
+
+// kEquipCardWidth less the borders and the bar's column.
+constexpr int kEquipContentWidth = kEquipCardWidth - 3;
+// The room for an item's name between its centring gutters.
+constexpr int kNameWidth = kEquipContentWidth - 2;
+
+// The width of the set card's rows. It is the same whatever the set holds, for
+// the same reason as the stackable body: the card sits beside the item, and a
+// card that resized would shift the item panel across the screen. The borders
+// and the scroll bar's column add three more.
+constexpr int kSetContentWidth = 45;
+constexpr int kSetSlotWidth = 11;
+constexpr int kSetTierWidth = 15;
+// What is left of a piece row after its gutter, its slot and the right gutter.
+constexpr int kSetNameWidth = kSetContentWidth - 1 - kSetSlotWidth - 1;
+// The borders and the bar's column: what the card needs beyond its rows. This
+// is its full width and also the narrowest it is worth drawing at, since a set
+// card with less room cuts the tier values off every line, which is the half of
+// each row a reader wants.
+constexpr int kSetCardChrome = 3;
+constexpr int kSetCardWidth = kSetContentWidth + kSetCardChrome;
+constexpr int kSetCardMinWidth = 36 + kSetCardChrome;
+
+// Stars per row when the bar is split. Fifteen because that is where GMS
+// switches between the two star force systems, and because a 30-star bar then
+// reads as two even rows.
+constexpr int kStarsPerRow = 15;
+
+// The job categories, in the order every screen lists them.
+struct JobCategoryEntry {
+  const char* name;
+  EquipJobCategory category;
+};
+
+const JobCategoryEntry kJobCategories[] = {
+    {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
+    {"Warrior", EQUIP_JOB_CATEGORY_WARRIOR},
+    {"Bowman", EQUIP_JOB_CATEGORY_BOWMAN},
+    {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
+    {"Thief", EQUIP_JOB_CATEGORY_THIEF},
+    {"Pirate", EQUIP_JOB_CATEGORY_PIRATE},
+};
+
+constexpr int kJobCategoryCount =
+    static_cast<int>(sizeof(kJobCategories) / sizeof(kJobCategories[0]));
+
+// One row of a symbol's card, for the two values that aren't stats. Spaced like
+// the stat rows below, so the whole block reads as one column.
+ftxui::Element SymbolRow(const std::string& label, const std::string& value) {
+  return ftxui::text(" " + label + "  " + value + " ");
+}
+
+void Append(std::vector<CardRow>& rows, const std::vector<CardRow>& more) {
+  rows.insert(rows.end(), more.begin(), more.end());
+}
+
+void Append(std::vector<ftxui::Element>& cards,
+            const std::vector<ftxui::Element>& more) {
+  cards.insert(cards.end(), more.begin(), more.end());
+}
+
+// The width a built card asks for.
+int Columns(const ftxui::Element& card) {
+  card->ComputeRequirement();
+  return card->requirement().min_x;
+}
+
+// A fraction as a percentage, with whole numbers left whole: set bonuses are
+// round, and "+20.00%" says nothing "+20%" doesn't.
+std::string SetPercent(double fraction) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.1f", std::round(fraction * 1000.0) / 10.0);
+  std::string s = buf;
+  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
+    s.resize(s.size() - 2);
+  }
+  return s + "%";
+}
+
+// Two stats a set shows as one row when both halves are equal. They almost
+// always come together (a set that grants attack grants magic attack with it),
+// and two rows with the same number are two rows the player has to compare.
+template <typename T>
+struct LeverPair {
+  const char* together;
+  const char* first;
+  const char* second;
+  T (SkillEffect::*a)() const;
+  T (SkillEffect::*b)() const;
+};
+
+const LeverPair<double> kFlatPairs[] = {
+    {"Max HP & MP", "Max HP", "Max MP", &SkillEffect::max_hp,
+     &SkillEffect::max_mp},
+    {"Attack Power & Magic ATT", "Attack Power", "Magic ATT",
+     &SkillEffect::attack, &SkillEffect::magic_attack},
+};
+
+const LeverPair<double> kPercentPairs[] = {
+    {"Max HP & MP", "Max HP", "Max MP", &SkillEffect::max_hp_pct,
+     &SkillEffect::max_mp_pct},
+};
+
+// The stats a set shows individually, in display order.
+struct FlatLever {
+  const char* label;
+  double (SkillEffect::*fn)() const;
+};
+
+const FlatLever kFlatLevers[] = {
+    {"DEF", &SkillEffect::def},
+};
+
+struct PercentLever {
+  const char* label;
+  double (SkillEffect::*fn)() const;
+};
+
+const PercentLever kPercentLevers[] = {
+    {"ATT", &SkillEffect::attack_pct},
+    {"Damage", &SkillEffect::damage_pct},
+    {"Boss Damage", &SkillEffect::boss_pct},
+    {"Ignore DEF", &SkillEffect::ied_pct},
+    {"Critical Rate", &SkillEffect::crit_rate},
+    {"Critical Damage", &SkillEffect::crit_dmg},
+    {"Meso Drop Rate", &SkillEffect::meso_pct},
+    {"Item Drop Rate", &SkillEffect::item_drop_pct},
+    {"Additional EXP", &SkillEffect::exp_pct},
+};
+
+struct StatValue {
+  const char* label;
+  int value;
+};
+
+// The four primary stats, which a set grants in equal amounts or not at all.
+void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
+  if (e.str() != 0 && e.str() == e.dex() && e.dex() == e.int_() &&
+      e.int_() == e.luk()) {
+    lines.push_back("All Stats +" + std::to_string(WholeValue(e.str())));
+    return;
+  }
+  const StatValue kStats[] = {{"STR", WholeValue(e.str())},
+                              {"DEX", WholeValue(e.dex())},
+                              {"INT", WholeValue(e.int_())},
+                              {"LUK", WholeValue(e.luk())}};
+  for (const StatValue& stat : kStats) {
+    if (stat.value != 0) {
+      lines.push_back(std::string(stat.label) + " +" +
+                      std::to_string(stat.value));
+    }
+  }
+}
+
+// A flat stat's own value, so both kinds of pair share one shape. A set bonus
+// states whole numbers, but every SkillEffect number is a double (see
+// WholeValue).
+std::string SetWhole(double value) {
+  return std::to_string(WholeValue(value));
+}
+
+// Adds a pair as one row when both halves are equal, and as a row each when
+// they aren't, since a set may grant one side more than the other.
+template <typename T, typename Format>
+void AppendPairLines(const LeverPair<T>& pair, const SkillEffect& e,
+                     Format format, std::vector<std::string>& lines) {
+  T a = (e.*pair.a)();
+  T b = (e.*pair.b)();
+  if (a != T() && a == b) {
+    lines.push_back(std::string(pair.together) + " +" + format(a));
+    return;
+  }
+  if (a != T()) {
+    lines.push_back(std::string(pair.first) + " +" + format(a));
+  }
+  if (b != T()) {
+    lines.push_back(std::string(pair.second) + " +" + format(b));
+  }
+}
+
+// What one tier of a set grants, one line per stat. A stat with no line here
+// would be a bonus the player gets but is never told about, which the set data
+// test checks for.
+std::vector<std::string> EffectLines(const SkillEffect& e) {
+  std::vector<std::string> lines;
+  AppendStatLines(e, lines);
+  for (const FlatLever& lever : kFlatLevers) {
+    int value = WholeValue((e.*lever.fn)());
+    if (value != 0) {
+      lines.push_back(std::string(lever.label) + " +" + std::to_string(value));
+    }
+  }
+  for (const LeverPair<double>& pair : kPercentPairs) {
+    AppendPairLines(pair, e, SetPercent, lines);
+  }
+  for (const LeverPair<double>& pair : kFlatPairs) {
+    AppendPairLines(pair, e, SetWhole, lines);
+  }
+  for (const PercentLever& lever : kPercentLevers) {
+    double value = (e.*lever.fn)();
+    if (value != 0.0) {
+      lines.push_back(std::string(lever.label) + " +" + SetPercent(value));
+    }
+  }
+  return lines;
+}
+
+}  // namespace
+
+void InspectPanel::SetItem(const EquipTabItem* item) {
+  // The screens call this every render, so only a new item restarts the clock.
+  if (item != item_) {
+    shown_since_ = std::chrono::steady_clock::now();
+  }
+  item_ = item;
+  stackable_ = nullptr;
+  compare_ = {};
+  delta_.reset();
+}
+
+void InspectPanel::SetItem(const ItemPrototype* item) {
+  stackable_ = item;
+  item_ = nullptr;
+  compare_ = {};
+  delta_.reset();
+}
+
+void InspectPanel::SetComparison(const EquipTabItem* equipped) {
+  compare_ = {{equipped}, 0};
+}
+
+void InspectPanel::SetComparison(ComparisonSlots slots) {
+  compare_ = std::move(slots);
+}
+
+const EquipTabItem* InspectPanel::Compared() const {
+  if (compare_.active < 0 ||
+      compare_.active >= static_cast<int>(compare_.worn.size())) {
+    return nullptr;
+  }
+  return compare_.worn[compare_.active];
+}
+
+bool InspectPanel::HasComparisonCard() const {
+  return compare_.worn.size() > 1 || Compared() != nullptr;
+}
+
+void InspectPanel::SetCombatPowerDelta(std::optional<int> delta) {
+  delta_ = delta;
+}
+
+void InspectPanel::UseCharacter(const CharacterInstance& character) {
+  character_ = &character;
+}
+
+void InspectPanel::UseGearPreset(StatPreset preset) {
+  gear_ = preset;
+}
+
+void InspectPanel::UseSkills(const std::map<std::string, Skill>& skills) {
+  skills_ = &skills;
+}
+
+void InspectPanel::SetMaxRows(int rows) {
+  item_card_.SetMaxRows(rows);
+  set_card_.SetMaxRows(rows);
+  compare_card_.SetMaxRows(rows);
+}
+
+void InspectPanel::SetMaxColumns(int columns) {
+  max_columns_ = columns;
+}
+
+void InspectPanel::ScrollBy(int delta) {
+  FocusedCard().ScrollBy(delta);
+}
+
+void InspectPanel::ScrollXBy(int delta) {
+  FocusedCard().ScrollXBy(delta);
+}
+
+const ScrollCard& InspectPanel::FocusedCard() const {
+  switch (focus_) {
+    case kSetCard:
+      return set_card_;
+    case kEquippedCard:
+      return compare_card_;
+    case kItemCard:
+      break;
+  }
+  return item_card_;
+}
+
+ScrollCard& InspectPanel::FocusedCard() {
+  return const_cast<ScrollCard&>(std::as_const(*this).FocusedCard());
+}
+
+std::vector<InspectPanel::Card> InspectPanel::DrawnCards() const {
+  std::vector<Card> cards;
+  if (HasComparisonCard()) {
+    cards.push_back(kEquippedCard);
+  }
+  cards.push_back(kItemCard);
+  if (set_drawn_) {
+    cards.push_back(kSetCard);
+  }
+  return cards;
+}
+
+bool InspectPanel::SwapCard(int step) {
+  std::vector<Card> cards = DrawnCards();
+  int count = static_cast<int>(cards.size());
+  if (count < 2) {
+    return false;
+  }
+  int at = 0;
+  for (int i = 0; i < count; ++i) {
+    if (cards[i] == focus_) {
+      at = i;
+    }
+  }
+  // Stepped by count + step so a backwards move never gives the modulo a
+  // negative, and both directions use one path.
+  focus_ = cards[(at + count + step % count) % count];
+  return true;
+}
+
+void InspectPanel::Reset() {
+  item_card_.Reset();
+  set_card_.Reset();
+  compare_card_.Reset();
+  focus_ = kItemCard;
+  shown_since_ = std::chrono::steady_clock::now();
+}
+
+bool InspectPanel::HasSetCard() const {
+  return SetOfItem() != nullptr;
+}
+
+ftxui::Element InspectPanel::RenderItemOnly(bool focused,
+                                            const std::string& title,
+                                            bool stats_in_head) const {
+  return RenderCard(item_card_, item_, title, focused, stats_in_head);
+}
+
+ftxui::Element InspectPanel::RenderComparison(bool focused) const {
+  const EquipTabItem* worn = Compared();
+  // Every item except a ring or a pendant has one slot: whatever is worn there,
+  // framed like any other card and with nothing to choose between.
+  if (compare_.worn.size() < 2) {
+    return RenderCard(compare_card_, worn, kEquippedTitle, focused);
+  }
+  std::vector<TabSpec> specs;
+  for (int i = 1; i <= static_cast<int>(compare_.worn.size()); ++i) {
+    specs.push_back({std::to_string(i)});
+  }
+  // No width limit: four chips never come near a card's width, so the bar can't
+  // scroll. The blank column inside the right border is added by hand, because
+  // a chip has its own background and would otherwise touch the border on a
+  // card where the bar is the widest row.
+  CardRows rows;
+  rows.head.push_back(
+      TextRow(ftxui::hbox({TabBar(specs, compare_.active, focused, /*width=*/0),
+                           ftxui::text(" ")})));
+  if (worn == nullptr) {
+    rows.body.push_back(TextRow(CenteredRow("(empty)")));
+    return compare_card_.Render(kEquippedTitle, std::move(rows),
+                                kEquipContentWidth, focused);
+  }
+  // The bar sits above the card's own heading, with no rule under it, so the
+  // chips and the item they name read as one.
+  CardRows body = EquipRows(*worn);
+  Append(rows.head, body.head);
+  rows.body = std::move(body.body);
+  rows.foot = std::move(body.foot);
+  return compare_card_.Render(kEquippedTitle, std::move(rows),
+                              kEquipContentWidth, focused);
+}
+
+ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
+                                        const EquipTabItem* item,
+                                        const std::string& title, bool focused,
+                                        bool stats_in_head) const {
+  // The stackable body is a few wrapped lines, never more than a terminal
+  // holds, so it needs no scrolling window. Only the inspected item is ever
+  // stackable: nothing stackable is worn, so nothing is compared against one.
+  if (item == item_ && stackable_ != nullptr) {
+    return ThemedWindow(title, RenderStackable(), focused) |
+           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
+  }
+  if (item == nullptr) {
+    return ThemedWindow(title, EmptyState("no item"), focused) |
+           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kEquipCardWidth);
+  }
+  CardRows rows = IsSymbol(item->prototype()) ? SymbolRows(*item)
+                                              : EquipRows(*item, stats_in_head);
+  return card.Render(title, std::move(rows), kEquipContentWidth, focused);
+}
+
+CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
+  int level = SymbolLevel(item.equip_state());
+  std::vector<CardRow> head = HeadRows(item);
+  std::vector<CardRow> stats = SymbolStatRows(item, level);
+  std::vector<CardRow> jobs = JobRows(item, kEquipContentWidth);
+
+  CardRows rows;
+  // The growth bar replaces the star bar, and the name, required level and jobs
+  // form the same heading an equip has. Nothing here scrolls, since a symbol
+  // has four rows and a terminal always has room for four.
+  rows.head = {
+      TextRow(CenteredRow(SymbolBar(SymbolMaxLevel(item.prototype()), level)))};
+  Append(rows.head, head);
+  Append(rows.head, jobs);
+  rows.head.push_back(RuleRow(ThemedSeparator()));
+  rows.body = std::move(stats);
+  return rows;
+}
+
+// The symbol's progress and what it is worth, spaced like the equip card's
+// stats. A rule separates them, since growth progress isn't a stat. The stat it
+// grants is the wearer's primary stat, so a card with no wearer shows only the
+// force instead of guessing a job.
+std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
+                                                  int level) const {
+  const EquipPrototype& proto = item.prototype();
+  int needed = SymbolExpToNextLevel(proto, level);
+  std::vector<CardRow> rows = {
+      TextRow(SymbolRow("Growth Level", std::to_string(level))),
+      TextRow(SymbolRow(
+          "EXP", needed == 0 ? "MAX"
+                             : std::to_string(item.equip_state().symbol_exp()) +
+                                   " / " + std::to_string(needed))),
+      RuleRow(ThemedSeparator()),
+  };
+  if (IsGrandSacredSymbol(proto)) {
+    auto percent = [](double pct) {
+      return "+" + std::to_string(std::lround(pct * 100)) + "%";
+    };
+    rows.push_back(
+        TextRow(StatLine("Sacred Power", SymbolForce(proto, level), 0)));
+    rows.push_back(TextRow(
+        SymbolRow("EXP Obtained", percent(GrandSymbolExpPct(proto, level)))));
+    rows.push_back(TextRow(SymbolRow(
+        "Mesos Obtained", percent(GrandSymbolMesoPct(proto, level)))));
+    rows.push_back(TextRow(SymbolRow(
+        "Item Drop Rate", percent(GrandSymbolDropPct(proto, level)))));
+    Append(rows,
+           MaxLevelBonusRows(proto, SymbolMaxed(proto, item.equip_state())));
+    return rows;
+  }
+  if (character_ != nullptr) {
+    StatField primary = PrimaryStatField(character_->proto().job());
+    const DisplayStat* stat = DisplayStatFor(primary);
+    if (stat != nullptr) {
+      rows.push_back(TextRow(
+          StatLine(stat->label,
+                   stat->GetFrom(SymbolStatsFor(proto, primary, level)), 0)));
+    }
+  }
+  if (!IsSacredSymbol(proto)) {
+    rows.push_back(
+        TextRow(StatLine("Arcane Force", SymbolForce(proto, level), 0)));
+    return rows;
+  }
+  rows.push_back(
+      TextRow(StatLine("Sacred Power", SymbolForce(proto, level), 0)));
+  Append(rows,
+         MaxLevelBonusRows(proto, SymbolMaxed(proto, item.equip_state())));
+  return rows;
+}
+
+// A Sacred Symbol's reward for reaching the top, shown from level 1 so the
+// player knows what the climb pays. Dim until it is earned.
+std::vector<CardRow> InspectPanel::MaxLevelBonusRows(
+    const EquipPrototype& proto, bool maxed) {
+  ftxui::Decorator earned = ftxui::nothing;
+  if (!maxed) {
+    earned = ftxui::dim;
+  }
+  std::vector<CardRow> rows = {
+      RuleRow(ThemedSeparator()),
+      TextRow(SymbolRow("Max Level Bonus", "") | earned),
+  };
+  // A Grand Sacred Symbol's EXP climbs with its level instead.
+  if (!IsGrandSacredSymbol(proto)) {
+    rows.push_back(TextRow(
+        SymbolRow(" EXP Obtained",
+                  "+" +
+                      std::to_string(static_cast<int>(kSacredMaxExpPct * 100)) +
+                      "%") |
+        earned));
+  }
+  rows.push_back(TextRow(
+      SymbolRow(
+          " Damage vs " + proto.sacred_symbol().boss_name(),
+          "+" +
+              std::to_string(static_cast<int>(kSacredMaxBossDamagePct * 100)) +
+              "%") |
+      earned));
+  return rows;
+}
+
+ftxui::Element InspectPanel::Render() const {
+  const EquipSet* set = SetOfItem();
+  set_drawn_ = false;
+  // A card highlights its title only when there is a second card to tell it
+  // apart from. With one card, the arrows have nowhere else to go.
+  if (set == nullptr && !HasComparisonCard()) {
+    return RenderItemOnly();
+  }
+  std::vector<ftxui::Element> cards;
+  if (HasComparisonCard()) {
+    cards.push_back(RenderComparison(focus_ == kEquippedCard));
+  }
+  cards.push_back(RenderItemOnly(focus_ == kItemCard));
+  if (set != nullptr) {
+    int used = 0;
+    for (const ftxui::Element& card : cards) {
+      used += Columns(card);
+    }
+    // No limit means every card at its own width, which suits tests and
+    // terminals with plenty of room.
+    Append(cards, SetCardIn(*set, max_columns_ > 0 ? max_columns_ - used
+                                                   : kSetCardWidth));
+  }
+  // The focus may be on a card the width has since removed. Moving it loses
+  // nothing, since the item card is where the screen opens anyway.
+  if (focus_ == kSetCard && !set_drawn_) {
+    focus_ = kItemCard;
+  }
+  return ftxui::hbox(std::move(cards));
+}
+
+// Squeezed into what the other cards leave, and left out once that is too
+// little for its rows to read: a set card showing two words of every line says
+// less than the columns it takes from the cards beside it.
+std::vector<ftxui::Element> InspectPanel::SetCardIn(const EquipSet& set,
+                                                    int room) const {
+  if (room < kSetCardMinWidth) {
+    return {};
+  }
+  set_drawn_ = true;
+  int view = room >= kSetCardWidth ? 0 : room - kSetCardChrome;
+  return {set_card_.Render(" Set Effect ", SetRows(set), kSetContentWidth,
+                           focus_ == kSetCard, view)};
+}
+
+const EquipSet* InspectPanel::SetOfItem() const {
+  if (item_ == nullptr || character_ == nullptr) {
+    return nullptr;
+  }
+  // By display name, as the character counts worn pieces. A trace of a set
+  // piece counts as that piece, since it is the same item waiting to be
+  // recovered. An item the set names by family matches its family instead.
+  const std::string& name = item_->prototype().name();
+  const std::string& family = item_->prototype().set_family();
+  for (const std::pair<const std::string, EquipSet>& entry :
+       character_->equip_sets()) {
+    for (const EquipSetMember& member : entry.second.members()) {
+      for (const std::string& fills : member.items().name()) {
+        if (fills == name) {
+          return &entry.second;
+        }
+      }
+      if (!family.empty() && member.family() == family) {
+        return &entry.second;
+      }
+    }
+  }
+  return nullptr;
+}
+
+// One row of a set's piece list: what fills the slot, and whether it is worn.
+struct SetFill {
+  std::string text;
+  bool worn;
+};
+
+std::vector<CardRow> InspectPanel::MemberRows(
+    const EquipSetMember& member) const {
+  std::vector<SetFill> fills;
+  for (const std::string& name : member.items().name()) {
+    fills.push_back({name, character_->IsWearing(name, gear_)});
+  }
+  // A family shows what fills it once something does, and asks for one while it
+  // is empty, since a weapon depends on the class and the set can't name it
+  // directly. It goes under whatever the slot names explicitly, since the named
+  // pieces are the ones a player can look up.
+  if (member.has_family()) {
+    std::string on = character_->WornOfFamily(member.family(), gear_);
+    fills.push_back(
+        {on.empty() ? "Choose 1 " + member.family() : on, !on.empty()});
+  }
+  bool filled = false;
+  for (const SetFill& fill : fills) {
+    filled = filled || fill.worn;
+  }
+
+  // A slot that any of several alternates can fill lists them all, with the
+  // later ones under the slot they share, like a tier's later lines.
+  std::vector<CardRow> rows;
+  std::string slot = FormatSlot(member.slot());
+  // No row is selected on this card, so a name too long for it scrolls for as
+  // long as the item is shown.
+  std::chrono::steady_clock::duration shown =
+      std::chrono::steady_clock::now() - shown_since_;
+  for (const SetFill& fill : fills) {
+    ftxui::Element label = ftxui::text(" " + PadRight(slot, kSetSlotWidth));
+    ftxui::Element name =
+        ftxui::text(ScrollingWindow(fill.text, kSetNameWidth, shown));
+    // Dimmed unless the character is wearing it now, the same question the
+    // tiers below ask one piece at a time. The slot asks a narrower one,
+    // whether it is filled at all, so it stays lit whichever alternate fills
+    // it.
+    if (!filled) {
+      label = label | ftxui::dim;
+    }
+    if (!fill.worn) {
+      name = name | ftxui::dim;
+    }
+    rows.push_back(TextRow(ftxui::hbox({std::move(label), std::move(name)})));
+    slot.clear();
+  }
+  return rows;
+}
+
+CardRows InspectPanel::SetRows(const EquipSet& set) const {
+  int worn = character_->PiecesWornOf(set, gear_);
+  // The set's name and pieces are kept at the top: the tiers below show what
+  // those pieces would give, so the tiers scroll and the pieces stay beside
+  // them.
+  CardRows card;
+  std::vector<CardRow>& rows = card.head;
+  rows.push_back(TextRow(CenteredRow(FormatEquipSet(set.name()))));
+  rows.push_back(RuleRow(ThemedSeparator()));
+  for (const EquipSetMember& member : set.members()) {
+    Append(rows, MemberRows(member));
+  }
+  rows.push_back(RuleRow(ThemedSeparator()));
+  for (const EquipSetTier& tier : set.tiers()) {
+    std::string label = std::to_string(tier.pieces()) + " Set Effect";
+    for (const std::string& line : EffectLines(tier.effect())) {
+      ftxui::Element row =
+          ftxui::text(" " + PadRight(label, kSetTierWidth) + line);
+      // Dimmed until enough pieces are worn: the card shows what the set would
+      // give, and the stats page shows what the character has. This is dim's
+      // softer meaning, "not active" rather than "refused" (colors.h). Nothing
+      // on this card is refused, so the two meanings don't clash here.
+      if (worn < tier.pieces()) {
+        row = row | ftxui::dim;
+      }
+      card.body.push_back(TextRow(std::move(row)));
+      // Only a tier's first line is labelled; the rest go under it.
+      label.clear();
+    }
+  }
+  return card;
+}
+
+// A stack has no stats, stars or slots. Its name and what it is for are all
+// there is to say.
+ftxui::Element InspectPanel::RenderStackable() const {
+  ftxui::Element description;
+  if (stackable_->description().empty()) {
+    description = CenteredRow(EmptyState("no description", /*gutter=*/0));
+  } else {
+    // Wrapped here rather than by ftxui::paragraph, which can hand a line the
+    // column meant for the right gutter and set its last letter on the border.
+    std::vector<ftxui::Element> lines;
+    for (const std::string& line :
+         WrapBalanced(stackable_->description(), kStackableTextWidth)) {
+      lines.push_back(ftxui::text(" " + line + " "));
+    }
+    description = ftxui::vbox(std::move(lines));
+  }
+  std::vector<ftxui::Element> rows = {
+      CenteredRow(stackable_->name()),
+      ThemedSeparator(),
+      std::move(description),
+  };
+  // A ring box's level is the one thing left to chance, so its odds are shown.
+  if (stackable_->has_ring_box()) {
+    rows.push_back(ThemedSeparator());
+    for (const RingBox::LevelChance& chance : stackable_->ring_box().levels()) {
+      rows.push_back(ftxui::text(" Lv. " + std::to_string(chance.level()) +
+                                 "  " + DropChance(chance.chance()) + " "));
+    }
+  }
+  return ftxui::vbox(std::move(rows));
+}
+
+// The rows above the job categories: the item's name, its required level, and
+// what wearing it would do to the player's combat power.
+std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
+  int level = item.prototype().required_level();
+  std::vector<CardRow> delta = DeltaRows(item);
+  std::vector<CardRow> rows = {
+      // A name too long for the card scrolls within it rather than widen it.
+      TextRow(CenteredRow(ScrollingWindow(
+          item.name(), std::min(TextColumns(item.name()), kNameWidth),
+          std::chrono::steady_clock::now() - shown_since_))),
+      RuleRow(ThemedSeparator()),
+  };
+  // The label goes above the number instead of beside it: "Combat Power Δ" is
+  // wider than anything else on the card, and on the level's row it would set
+  // the width of the whole panel.
+  if (delta.size() == 2) {
+    rows.push_back(std::move(delta[0]));
+  }
+  // A trailing space on each text row keeps one blank column before the right
+  // border.
+  ftxui::Element req =
+      ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) + " ");
+  if (delta.empty()) {
+    rows.push_back(TextRow(std::move(req)));
+    return rows;
+  }
+  rows.push_back(TextRow(ftxui::hbox({
+      std::move(req),
+      ftxui::filler(),
+      std::move(delta[1].element),
+  })));
+  return rows;
+}
+
+std::vector<CardRow> InspectPanel::DeltaRows(const EquipTabItem& item) const {
+  if (&item != item_ || !delta_.has_value()) {
+    return {};
+  }
+  return {
+      TextRow(
+          ftxui::hbox({ftxui::filler(), ftxui::text("Combat Power \u0394 ")})),
+      TextRow(ftxui::hbox({CombatPowerDeltaValue(*delta_), ftxui::text(" ")})),
+  };
+}
+
+// What the item grants: its type, its speed and its stats. This is the
+// scrolling part of the card, since it is the part that outgrows a short
+// terminal.
+std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
+  const EquipPrototype& proto = item.prototype();
+  const Equip& item_state = item.equip_state();
+
+  std::vector<CardRow> rows;
+  if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
+    rows.push_back(TextRow(
+        ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " ")));
+  }
+  if (proto.attack_speed() != ATTACK_SPEED_UNSPECIFIED) {
+    rows.push_back(TextRow(ftxui::text(
+        " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " ")));
+  }
+
+  const EquipStats& base = proto.base_stats();
+  const EquipStats& scroll = item_state.scroll_stats();
+  EquipStats sf = item.StarForceStatGains();
+  EquipStats flame = item.FlameStatGains();
+  bool any_stat = false;
+  for (const DisplayStat& stat : kDisplayStats) {
+    ftxui::Element row =
+        StatLine(stat.label, stat.GetFrom(base), stat.GetFrom(scroll),
+                 stat.GetFrom(sf), stat.GetFrom(flame));
+    if (row == nullptr) {
+      continue;
+    }
+    rows.push_back(TextRow(std::move(row)));
+    any_stat = true;
+  }
+  // Below the flat stats, since a percentage is read against the totals the
+  // rows above build. Only the prototype grants these.
+  for (const DisplayStat& stat : kDisplayPercentStats) {
+    int value = stat.GetFrom(base);
+    if (value == 0) {
+      continue;
+    }
+    rows.push_back(TextRow(ftxui::text(" " + std::string(stat.label) + "  +" +
+                                       std::to_string(value) + "% ")));
+    any_stat = true;
+  }
+  // Last, the three percents a flame can add to, with what the item has of its
+  // own beside it: "All Stats  +6% (0% +6%)".
+  const FlamePercents percents = FlamePercentsOf(item_state.flame(), proto);
+  const struct {
+    const char* label;
+    int base;
+    int flame;
+  } flame_percents[] = {
+      {"All Stats", 0, percents.all_stat},
+      {"Damage", 0, percents.damage},
+      {"Boss Damage", base.boss_damage(), flame.boss_damage()},
+  };
+  for (const auto& stat : flame_percents) {
+    ftxui::Element row =
+        StatLine(stat.label, stat.base, 0, 0, stat.flame, /*unit=*/"%");
+    if (row != nullptr) {
+      rows.push_back(TextRow(std::move(row)));
+      any_stat = true;
+    }
+  }
+  if (!any_stat) {
+    rows.push_back(TextRow(EmptyState("no stats")));
+  }
+  return rows;
+}
+
+// The item's upgrade history, kept at the bottom of the card, since it belongs
+// with the item rather than at the end of a list the reader has to scroll.
+// Empty for an item that takes no scrolls.
+std::vector<CardRow> InspectPanel::SlotRows(const EquipTabItem& item) const {
+  const EquipPrototype& proto = item.prototype();
+  const Equip& item_state = item.equip_state();
+  int slots = TotalUpgradeSlots(proto);
+  if (slots <= 0) {
+    return {};
+  }
+  int pass = item_state.scroll_successes();
+  int left = item_state.remaining_upgrade_slots();
+  int restore = slots - pass - left;
+  std::string scroll_label =
+      pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
+  std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
+  return {
+      RuleRow(ThemedSeparator()),
+      TextRow(ftxui::text(" " + std::to_string(pass) + scroll_label)),
+      TextRow(ftxui::text(" (" + std::to_string(left) + " Left, " +
+                          std::to_string(restore) + restore_label)),
+  };
+}
+
+namespace {
+
+// One potential's rows: the rank named once at the top, then each line with a
+// dot showing whether it rolled at that rank. A line one rank lower has the
+// lower rank's colour.
+void AppendPotentialRows(const Potential& potential, const std::string& title,
+                         int item_level, std::vector<CardRow>& rows) {
+  rows.push_back(TextRow(ftxui::text(" " + PotentialRankName(potential.rank()) +
+                                     " " + title + " ") |
+                         ftxui::color(RarityColor(potential.rank()))));
+  for (const PotentialLine& line : potential.lines()) {
+    rows.push_back(TextRow(ftxui::hbox({
+        ftxui::text(" ◼") | ftxui::color(RarityColor(line.rank())),
+        ftxui::text("  " + PotentialLineName(line.type()) + "  " +
+                    PotentialLineValueText(line, item_level) + " "),
+    })));
+  }
+}
+
+}  // namespace
+
+std::vector<CardRow> InspectPanel::PotentialRows(
+    const EquipTabItem& item) const {
+  const Potential& main = item.potential();
+  const Potential& bonus = item.bonus_potential();
+  const Soul& soul = item.equip_state().soul();
+  const bool has_main = main.rank() != POTENTIAL_RANK_UNSPECIFIED;
+  const bool has_bonus = bonus.rank() != POTENTIAL_RANK_UNSPECIFIED;
+  const bool has_soul = soul.line() != SOUL_LINE_UNSPECIFIED;
+  if (!has_main && !has_bonus && !has_soul) {
+    return {};
+  }
+  const int level = item.prototype().required_level();
+  std::vector<CardRow> rows = {RuleRow(ThemedSeparator())};
+  if (has_main) {
+    AppendPotentialRows(main, "Potential", level, rows);
+  }
+  if (has_bonus) {
+    AppendPotentialRows(bonus, "Bonus Potential", level, rows);
+  }
+  if (has_soul) {
+    rows.push_back(TextRow(ftxui::hbox({
+        ftxui::text(" ◈") | ftxui::color(kSoul),
+        ftxui::text("  Soul: " + soul.boss() + " "),
+    })));
+    rows.push_back(TextRow(
+        ftxui::text("    " + SoulEffectText(soul, item.prototype()) + " ")));
+  }
+  return rows;
+}
+
+std::vector<CardRow> InspectPanel::EquipmentSkillRows(
+    const EquipTabItem& item) const {
+  const EquipmentSkill& granted = item.prototype().equipment_skill();
+  if (skills_ == nullptr || granted.skill().empty()) {
+    return {};
+  }
+  const Skill* skill = nullptr;
+  for (const std::pair<const std::string, Skill>& entry : *skills_) {
+    if (entry.second.name() == granted.skill()) {
+      skill = &entry.second;
+    }
+  }
+  if (skill == nullptr) {
+    return {};
+  }
+  std::vector<CardRow> rows = {
+      RuleRow(ThemedSeparator()),
+      TextRow(ftxui::text(" " + skill->name() + " Lv. " +
+                          std::to_string(granted.level()) + " ") |
+              ftxui::color(kGold)),
+  };
+  // A buff says how long it lasts and how often; a passive is simply worn.
+  SkillEffect effect =
+      EffectAt(skill->base(), skill->per_level(), granted.level());
+  std::string timing;
+  if (skill->has_buff()) {
+    effect = BuffEffectAt(skill->buff(), granted.level());
+    timing = std::to_string(
+                 WholeValue(BuffSecondsAt(skill->buff(), granted.level()))) +
+             "s, every " +
+             std::to_string(WholeValue(CooldownAt(*skill, granted.level()))) +
+             "s";
+  }
+  for (const std::string& line : EffectLines(effect)) {
+    rows.push_back(TextRow(ftxui::text("   " + line + " ")));
+  }
+  if (!timing.empty()) {
+    rows.push_back(TextRow(ftxui::text("   " + timing + " ")));
+  }
+  return rows;
+}
+
+CardRows InspectPanel::EquipRows(const EquipTabItem& item,
+                                 bool stats_in_head) const {
+  std::vector<CardRow> head = HeadRows(item);
+  std::vector<CardRow> stats = StatRows(item);
+  std::vector<CardRow> slots = SlotRows(item);
+  Append(slots, EquipmentSkillRows(item));
+  Append(slots, PotentialRows(item));
+  // The two rows that can be split are measured against the card's width.
+  const int fixed = kEquipContentWidth;
+  std::vector<CardRow> jobs = JobRows(item, fixed);
+  CardRows rows;
+  // The item's name stays on screen, and so does its upgrade history; the stats
+  // between them scroll.
+  rows.head = StarRows(item, std::max(fixed, NaturalWidth(jobs)));
+  Append(rows.head, head);
+  Append(rows.head, jobs);
+  rows.head.push_back(RuleRow(ThemedSeparator()));
+  if (stats_in_head) {
+    Append(rows.head, stats);
+    // The potentials open with their own rule, which belongs in the body so
+    // the bar stands on it; a second one here would draw two in a row.
+    if (!slots.empty() && !slots.front().separator) {
+      rows.head.push_back(RuleRow(ThemedSeparator()));
+    }
+    rows.body = std::move(slots);
+    return rows;
+  }
+  rows.body = std::move(stats);
+  rows.foot = std::move(slots);
+  return rows;
+}
+
+// The six job categories, on one row or split over two. Split whenever the
+// one-row form would widen the panel: the categories are the same six on every
+// item, so a card for a narrow item shouldn't be 55 columns wide just to list
+// them.
+std::vector<CardRow> InspectPanel::JobRows(const EquipTabItem& item,
+                                           int fixed) const {
+  const EquipPrototype& proto = item.prototype();
+  ftxui::Element one_row = JobRow(proto, 0, kJobCategoryCount);
+  if (NaturalWidth({one_row}) <= fixed) {
+    return {TextRow(one_row)};
+  }
+  int half = kJobCategoryCount / 2;
+  return {TextRow(CenteredRow(JobRow(proto, 0, half))),
+          TextRow(CenteredRow(JobRow(proto, half, kJobCategoryCount - half)))};
+}
+
+// The star bar, on one row or split over two. An item that can't take star
+// force gets no bar at all, since a row of empty stars would suggest a bar
+// waiting to be filled.
+std::vector<CardRow> InspectPanel::StarRows(const EquipTabItem& item,
+                                            int fixed) const {
+  const EquipPrototype& proto = item.prototype();
+  if (!Supports(proto, UPGRADE_STAR_FORCE)) {
+    return {};
+  }
+  int stars = item.stars();
+  int max_stars = item.max_stars();
+  ftxui::Element one_row = CenteredRow(StarBar(stars, 0, max_stars));
+  if (max_stars <= kStarsPerRow || NaturalWidth({one_row}) <= fixed) {
+    return {TextRow(one_row)};
+  }
+  // A row of fifteen with the rest centred below it, so a 30-star bar reads as
+  // two rows rather than one long line.
+  return {TextRow(CenteredRow(StarBar(stars, 0, kStarsPerRow))),
+          TextRow(CenteredRow(
+              StarBar(stars, kStarsPerRow, max_stars - kStarsPerRow)))};
+}
+
+ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
+  const ftxui::Color kFilled = kYellow;
+  const ftxui::Color kEmpty = kGray;
+  std::vector<ftxui::Element> parts;
+  for (int i = from; i < from + count; ++i) {
+    // Grouped in fives from the start of each row, so a split bar's second row
+    // groups like its first rather than continuing the first's remainder.
+    if (i > from && (i - from) % 5 == 0) {
+      parts.push_back(ftxui::text(" "));
+    }
+    bool filled = i < stars;
+    parts.push_back(ftxui::text(filled ? "★" : "☆") |
+                    ftxui::color(filled ? kFilled : kEmpty));
+  }
+  return ftxui::hbox(std::move(parts));
+}
+
+// The growth bar a symbol has instead of stars: one pip per level, grouped in
+// fives like the star bar. Purple rather than gold, since a symbol takes no
+// star force and the two bars mustn't be confused.
+ftxui::Element InspectPanel::SymbolBar(int max_level, int level) {
+  std::vector<ftxui::Element> parts;
+  for (int i = 0; i < max_level; ++i) {
+    if (i > 0 && i % 5 == 0) {
+      parts.push_back(ftxui::text(" "));
+    }
+    bool filled = i < level;
+    parts.push_back(ftxui::text(filled ? "◆" : "◇") |
+                    ftxui::color(filled ? kPurple : kGray));
+  }
+  return ftxui::hbox(std::move(parts));
+}
+
+ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
+                                      int scroll, int sf, int flame,
+                                      const std::string& unit) {
+  if (base == 0 && scroll == 0 && sf == 0 && flame == 0) {
+    return nullptr;
+  }
+  auto number = [&](int value) { return std::to_string(value) + unit; };
+  int total = base + scroll + sf + flame;
+  // Base only: no breakdown needed, plain text.
+  if (scroll == 0 && sf == 0 && flame == 0) {
+    return ftxui::text(" " + label + "  +" + number(total) + " ");
+  }
+  // Breakdown: base in the default colour, then each source in its own: scrolls
+  // purple, star force gold, flame teal.
+  std::vector<ftxui::Element> parts;
+  parts.push_back(ftxui::text(" " + label + "  +" + number(total) + " ("));
+  parts.push_back(ftxui::text(number(base)));
+  for (const auto& [value, colour] :
+       {std::pair{scroll, kPurple}, {sf, kGold}, {flame, kTeal}}) {
+    if (value > 0) {
+      parts.push_back(ftxui::text(" +" + number(value)) | ftxui::color(colour));
+    }
+  }
+  parts.push_back(ftxui::text(") "));
+  return ftxui::hbox(std::move(parts));
+}
+
+std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
+  // The stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
+  int stage = static_cast<int>(speed);
+  std::string name = AttackSpeedName(speed);
+  if (name.empty()) {
+    return "";
+  }
+  return "Stage " + std::to_string(stage) + " (" + name + ")";
+}
+
+ftxui::Element InspectPanel::JobRow(const EquipPrototype& proto, int from,
+                                    int count) {
+  std::set<EquipJobCategory> cats;
+  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
+    cats.insert(static_cast<EquipJobCategory>(proto.equip_job_categories(i)));
+  }
+  bool universal = cats.empty() || cats.count(EQUIP_JOB_CATEGORY_UNIVERSAL);
+
+  std::vector<ftxui::Element> elems;
+  elems.push_back(ftxui::text(" "));
+  for (int i = from; i < from + count; ++i) {
+    if (i > from) {
+      elems.push_back(ftxui::text(" / "));
+    }
+    ftxui::Element name = ftxui::text(kJobCategories[i].name);
+    if (!universal && !cats.count(kJobCategories[i].category)) {
+      name = name | ftxui::dim;
+    }
+    elems.push_back(name);
+  }
+  elems.push_back(ftxui::text(" "));
+  return ftxui::hbox(std::move(elems));
+}
+
+}  // namespace ms
