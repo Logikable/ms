@@ -1827,10 +1827,16 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
     return;  // nothing more is coming; see CombatParams::respawn_seconds
   }
   respawn_phase_ += dt;
-  if (respawn_phase_ < respawn_interval_) {
+  if (params.respawn_on_clear) {
+    if (!queue_.empty()) {
+      return;
+    }
+    respawn_phase_ = 0.0;
+  } else if (respawn_phase_ < respawn_interval_) {
     return;
+  } else {
+    respawn_phase_ -= respawn_interval_;
   }
-  respawn_phase_ -= respawn_interval_;
   // The next wait uses the current params: a totem placed mid-cycle shortens
   // the next respawn, not the one in progress.
   respawn_interval_ = params.respawn_seconds;

@@ -8,6 +8,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -125,7 +126,7 @@ std::string SavePathFor(const std::string& argv0) {
   return (directory / kSaveFileName).string();
 }
 
-bool SaveGameToFile(const GameState& state, const std::string& path) {
+std::string SaveGameToBytes(const GameState& state) {
   SaveGame save;
   save.set_format_version(kSaveFormatVersion);
   WriteCharacters(state, save);
@@ -133,10 +134,17 @@ bool SaveGameToFile(const GameState& state, const std::string& path) {
   // Stamped here instead of copied from the state: this field means when the
   // file was written, and only the write knows that.
   save.set_last_seen_unix_seconds(static_cast<int64_t>(std::time(nullptr)));
-
   std::string bytes;
   if (!save.SerializeToString(&bytes)) {
     LOG(ERROR) << "Could not serialize the save";
+    return "";
+  }
+  return bytes;
+}
+
+bool SaveGameToFile(const GameState& state, const std::string& path) {
+  std::string bytes = SaveGameToBytes(state);
+  if (bytes.empty()) {
     return false;
   }
 
@@ -182,34 +190,53 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
     return {LoadStatus::kUnreadable,
             "The save file could not be read: " + path};
   }
+  LoadResult result = LoadGameFromBytes(state, bytes);
+  if (!result.message.empty()) {
+    result.message += ": " + path;
+  }
+  return result;
+}
 
+LoadResult LoadGameFromBytes(GameState& state, const std::string& bytes) {
   SaveGame save;
   // ParseFromString rejects a truncated or non-proto file. It doesn't catch
   // every corruption, since proto has no checksum, but it catches what a
   // half-write or a wrong file actually look like.
   if (!save.ParseFromString(bytes)) {
     return {LoadStatus::kUnreadable,
-            "The save file is damaged and cannot be read: " + path};
+            "The save file is damaged and cannot be read"};
   }
   if (save.format_version() > kSaveFormatVersion) {
-    return {
-        LoadStatus::kFromTheFuture,
-        "The save file was written by a newer version of the game: " + path};
+    return {LoadStatus::kFromTheFuture,
+            "The save file was written by a newer version of the game"};
   }
   if (!UpgradeSave(save.format_version(), bytes, state.items, state.equips,
                    save)) {
     return {LoadStatus::kUnreadable,
-            "The save file is damaged and cannot be read: " + path};
+            "The save file is damaged and cannot be read"};
   }
   if (save.characters().empty()) {
-    return {LoadStatus::kUnreadable,
-            "The save file holds no characters: " + path};
+    return {LoadStatus::kUnreadable, "The save file holds no characters"};
   }
 
   LoadAccount(save, state);
   LoadCharacters(save, state);
   state.last_seen_unix_seconds = save.last_seen_unix_seconds();
   return {LoadStatus::kLoaded, ""};
+}
+
+std::unique_ptr<GameState> RestoreCopy(const GameState& state,
+                                       const std::string& bytes) {
+  auto copy = std::make_unique<GameState>(
+      state.equips, state.scrolls, state.items, state.mobs, state.maps,
+      state.skills, GameMode::kPlay, TestOptions(), /*seed=*/1u,
+      state.equip_sets, state.bosses);
+  if (LoadGameFromBytes(*copy, bytes).status != LoadStatus::kLoaded) {
+    return nullptr;
+  }
+  // The load opens on the offline character; the copy is of who is played.
+  PlayCharacter(*copy, state.played_slot);
+  return copy;
 }
 
 SavePolicy::SavePolicy(std::string path,

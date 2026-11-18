@@ -387,6 +387,28 @@ cc_library(
 )
 
 cc_library(
+    name = "clear_time",
+    srcs = ["clear_time.cc"],
+    hdrs = ["clear_time.h"],
+    deps = [
+        ":encounter",
+        ":fight",
+    ],
+)
+
+cc_test(
+    name = "clear_time_test",
+    size = "small",
+    srcs = ["clear_time_test.cc"],
+    deps = [
+        ":clear_time",
+        ":encounter",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "measure",
     srcs = ["measure.cc"],
     hdrs = ["measure.h"],

@@ -1,6 +1,7 @@
 #include "src/frontend/tui_controller.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <map>
@@ -488,6 +489,12 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
   // The box opens with the cursor still on the entry below it, which the
   // player presses Up to leave.
   menu_panel_.OpenBox(entry);
+  // The claim is a keypress away, so the measurement it pays by starts now.
+  if (entry == MenuEntry::kDailies &&
+      DailiesAvailable(state_.character.DailiesClaimedAt(),
+                       static_cast<int64_t>(std::time(nullptr)))) {
+    sacred_worker_.Start(state_, std::chrono::steady_clock::now());
+  }
   screen_ = kMenuBox;
 }
 
@@ -3718,8 +3725,10 @@ void TuiController::OpenSymbolClaim() {
                "Close");
     return;
   }
-  std::vector<const EquipPrototype*> claimable =
-      ClaimableSymbols(state_.character, state_.equips);
+  sacred_shares_ =
+      sacred_worker_.Shares(state_, std::chrono::steady_clock::now());
+  std::vector<DailyReward> claimable =
+      ClaimableSymbols(state_.character, state_.equips, sacred_shares_);
   if (claimable.empty()) {
     // Nothing to claim: the character has no symbol of a kind their
     // advancement opens, or holds enough of every one to max it. It is reported
@@ -3730,8 +3739,8 @@ void TuiController::OpenSymbolClaim() {
     return;
   }
   std::vector<DailiesPanel::Reward> rewards;
-  for (const EquipPrototype* proto : claimable) {
-    rewards.push_back({proto->name(), DailySymbolCopies(*proto)});
+  for (const DailyReward& reward : claimable) {
+    rewards.push_back({reward.proto->name(), reward.copies});
   }
   dailies_panel_.Reset(std::move(rewards));
   screen_ = kDailies;
@@ -3744,7 +3753,7 @@ bool TuiController::OnDailiesEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed &&
       !ClaimDailies(state_.character, state_.equips,
-                    static_cast<int64_t>(std::time(nullptr)))) {
+                    static_cast<int64_t>(std::time(nullptr)), sacred_shares_)) {
     // The only way an offered claim fails is a full bag. Taking only part would
     // lose the rest until tomorrow.
     OpenNotice(kDailiesNotice, {"Not enough room in your bag."},

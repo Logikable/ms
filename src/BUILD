@@ -474,3 +474,45 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "sacred_dailies",
+    srcs = ["sacred_dailies.cc"],
+    hdrs = ["sacred_dailies.h"],
+    deps = [
+        ":game_state",
+        ":save",
+        "//src/character:consumables",
+        "//src/character:hyper_stats",
+        "//src/character:progression",
+        "//src/character:symbol",
+        "//src/combat:clear_time",
+        "//src/combat:constants",
+        "//src/combat:encounter",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "sacred_dailies_test",
+    size = "small",
+    srcs = ["sacred_dailies_test.cc"],
+    data = [
+        "//data/bosses:all",
+        "//data/equip:all",
+        "//data/items:all",
+        "//data/maps:all",
+        "//data/mobs:all",
+        "//data/scrolls:all",
+        "//data/sets:all",
+        "//data/skills:all",
+    ],
+    deps = [
+        ":game_state",
+        ":roster",
+        ":sacred_dailies",
+        ":save",
+        "//src/testing:data_files",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -8,6 +8,7 @@
 #ifndef MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -77,6 +78,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/roster.h"
+#include "src/sacred_dailies.h"
 
 namespace ms {
 
@@ -1141,6 +1143,11 @@ class TuiController {
   ItemMenu buff_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt buff_buy_prompt_;
   DailiesPanel dailies_panel_;
+  // Measures the Sacred Symbol dailies while the player is still on the way
+  // to the claim; see OpenMenuEntry.
+  SacredDailiesWorker sacred_worker_;
+  // The shares the open claim offered, so the claim pays what it showed.
+  std::map<std::string, double> sacred_shares_;
   CharacterSelectPanel character_select_panel_;
   LegionPanel legion_panel_;
   AchievementsPanel achievements_panel_;

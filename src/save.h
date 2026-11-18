@@ -15,6 +15,7 @@
 #define MS_SRC_SAVE_H_
 
 #include <chrono>
+#include <memory>
 #include <string>
 
 #include "src/game_state.h"
@@ -62,6 +63,19 @@ bool SaveGameToFile(const GameState& state, const std::string& path);
 // are kept untouched so the next write preserves them. Leaves `state` unchanged
 // unless the status is kLoaded.
 LoadResult LoadGameFromFile(GameState& state, const std::string& path);
+
+// The save `SaveGameToFile` would write, as bytes.
+std::string SaveGameToBytes(const GameState& state);
+
+// Reads a save from `bytes` as LoadGameFromFile reads one from a file.
+LoadResult LoadGameFromBytes(GameState& state, const std::string& bytes);
+
+// A separate game holding `state`'s catalogs and a copy of its account, with
+// the same character in play, for a measurement run on another thread while
+// `state` plays on. `bytes` is SaveGameToBytes(state), taken on the thread
+// that owns `state`; the catalogs are only read, and no one writes them.
+std::unique_ptr<GameState> RestoreCopy(const GameState& state,
+                                       const std::string& bytes);
 
 // How long a session goes between automatic saves. Short enough that closing
 // the window loses almost nothing, and long enough that a few-kilobyte write

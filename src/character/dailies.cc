@@ -1,6 +1,7 @@
 #include "src/character/dailies.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -74,30 +75,49 @@ int DailySymbolCopies(const EquipPrototype& proto) {
                                : kSymbolsPerDay;
 }
 
-std::vector<const EquipPrototype*> ClaimableSymbols(
+std::vector<DailyReward> ClaimableSymbols(
     const CharacterInstance& character,
-    const std::map<std::string, EquipPrototype>& equips) {
+    const std::map<std::string, EquipPrototype>& equips,
+    const std::map<std::string, double>& sacred_shares) {
   const int stage = character.proto().job_stage();
-  std::vector<std::pair<SymbolKind, bool>> kinds = {
-      {&IsArcaneSymbol, stage >= kFifthJobStage},
-      {&IsSacredSymbol, stage >= kSixthJobStage},
+  std::vector<DailyReward> claimable;
+  struct Kind {
+    SymbolKind is;
+    bool open;
+    bool sacred;
   };
-  std::vector<const EquipPrototype*> claimable;
-  for (const auto& [kind, open] : kinds) {
-    EquipSlot highest = HighestSymbolOwned(character, kind);
-    if (!open || highest == EQUIP_SLOT_UNSPECIFIED) {
+  for (const Kind& kind :
+       {Kind{&IsArcaneSymbol, stage >= kFifthJobStage, false},
+        Kind{&IsSacredSymbol, stage >= kSixthJobStage, true}}) {
+    if (!kind.open) {
       continue;
     }
-    std::vector<const EquipPrototype*> of_kind;
+    bool sacred = kind.sacred;
+    EquipSlot highest = sacred ? EQUIP_SLOT_UNSPECIFIED
+                               : HighestSymbolOwned(character, kind.is);
+    std::vector<DailyReward> of_kind;
     for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
-      if (kind(entry.second) && entry.second.equip_slot() <= highest &&
-          !HoldsEnoughToMax(character, entry.second)) {
-        of_kind.push_back(&entry.second);
+      const EquipPrototype& proto = entry.second;
+      if (!kind.is(proto) || HoldsEnoughToMax(character, proto)) {
+        continue;
+      }
+      int copies = DailySymbolCopies(proto);
+      if (sacred) {
+        auto share = sacred_shares.find(proto.name());
+        copies = share == sacred_shares.end()
+                     ? 0
+                     : static_cast<int>(std::lround(copies * share->second));
+      } else if (highest == EQUIP_SLOT_UNSPECIFIED ||
+                 proto.equip_slot() > highest) {
+        copies = 0;
+      }
+      if (copies > 0) {
+        of_kind.push_back({&proto, copies});
       }
     }
     std::sort(of_kind.begin(), of_kind.end(),
-              [](const EquipPrototype* a, const EquipPrototype* b) {
-                return a->equip_slot() < b->equip_slot();
+              [](const DailyReward& a, const DailyReward& b) {
+                return a.proto->equip_slot() < b.proto->equip_slot();
               });
     claimable.insert(claimable.end(), of_kind.begin(), of_kind.end());
   }
@@ -110,17 +130,18 @@ bool DailiesAvailable(int64_t claimed, int64_t now) {
 
 bool ClaimDailies(CharacterInstance& character,
                   const std::map<std::string, EquipPrototype>& equips,
-                  int64_t now) {
-  std::vector<const EquipPrototype*> claimable =
-      ClaimableSymbols(character, equips);
+                  int64_t now,
+                  const std::map<std::string, double>& sacred_shares) {
+  std::vector<DailyReward> claimable =
+      ClaimableSymbols(character, equips, sacred_shares);
   if (claimable.empty() ||
       !DailiesAvailable(character.DailiesClaimedAt(), now) ||
       character.inventory().room() < static_cast<int>(claimable.size())) {
     return false;
   }
-  for (const EquipPrototype* proto : claimable) {
+  for (const DailyReward& reward : claimable) {
     character.PickUp(std::make_unique<EquipInstance>(
-        *proto, PackedSymbol(*proto, DailySymbolCopies(*proto))));
+        *reward.proto, PackedSymbol(*reward.proto, reward.copies)));
   }
   character.RecordDailiesClaim(now);
   return true;

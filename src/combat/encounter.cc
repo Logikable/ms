@@ -2273,10 +2273,14 @@ std::string BossEncounterKey(const std::string& boss,
 }
 
 CombatParams ComputeCombatParams(const GameState& state) {
+  return ComputeCombatParams(state, state.current_map);
+}
+
+CombatParams ComputeCombatParams(const GameState& state,
+                                 const std::string& map) {
   CombatParams params;
-  params.encounter = state.current_map;
-  std::map<std::string, MapData>::const_iterator map_it =
-      state.maps.find(state.current_map);
+  params.encounter = map;
+  std::map<std::string, MapData>::const_iterator map_it = state.maps.find(map);
   const EquipPrototype* weapon = EquippedWeapon(state, Activity::kFarming);
   if (map_it == state.maps.end() || weapon == nullptr) {
     return params;

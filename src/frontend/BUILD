@@ -71,6 +71,7 @@ cc_library(
         ":types",
         "//src:game_state",
         "//src:roster",
+        "//src:sacred_dailies",
         "//src/character",
         "//src/character:character_stats",
         "//src/character:consumables",

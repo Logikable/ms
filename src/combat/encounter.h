@@ -571,6 +571,9 @@ struct CombatParams {
   // Whether the fight is measured rather than played: monsters never die, every
   // roll is average, and it runs indefinitely. See MeasureFight.
   bool measuring = false;
+  // Whether the map refills the moment it is emptied instead of on its timer,
+  // so a clear's length is the character's alone. See ClearTimes.
+  bool respawn_on_clear = false;
   std::vector<CombatType> types;  // in map order
   // Every available attack, basic attack first. Never empty while active.
   std::vector<AttackOption> attacks;
@@ -636,6 +639,10 @@ const EquipPrototype* EquippedWeapon(const GameState& state,
 // Reads `state`'s map and character into a CombatParams. `active` is false if
 // there's no map, weapon or loaded mobs.
 CombatParams ComputeCombatParams(const GameState& state);
+
+// The same on `map` instead of the character's own.
+CombatParams ComputeCombatParams(const GameState& state,
+                                 const std::string& map);
 
 // The same for one phase of a boss difficulty. Nothing respawns or hits back,
 // and the fight runs in real time rather than stretched by game speed, since

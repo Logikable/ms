@@ -83,12 +83,17 @@ class DailiesTest : public testing::Test {
   std::vector<EquipSlot> Claimable() {
     return Claimable(c_);
   }
-  std::vector<EquipSlot> Claimable(const CharacterInstance& c) {
+  std::vector<EquipSlot> Claimable(
+      const CharacterInstance& c,
+      const std::map<std::string, double>& shares = {}) {
     std::vector<EquipSlot> slots;
-    for (const EquipPrototype* proto : ClaimableSymbols(c, equips_)) {
-      slots.push_back(proto->equip_slot());
+    for (const DailyReward& reward : ClaimableSymbols(c, equips_, shares)) {
+      slots.push_back(reward.proto->equip_slot());
     }
     return slots;
+  }
+  std::string Name(EquipSlot slot) {
+    return Proto(slot).name();
   }
 
   std::mt19937 rng_;
@@ -190,41 +195,47 @@ TEST_F(DailiesTest, ArcaneSymbolsWaitForTheFifthJob) {
   EXPECT_TRUE(Claimable(fourth).empty());
 }
 
-// Sacred Symbols climb their own ladder from the 6th advancement: Odium opens
-// Cernium and Arcus, and leaves the Arcane areas to their own symbols.
-TEST_F(DailiesTest, SacredSymbolsWaitForTheSixthJobAndClimbTheirOwnLadder) {
-  PutInBag(EQUIP_SLOT_SYMBOL_ODIUM);
-  EXPECT_TRUE(Claimable().empty()) << "only the 5th advancement";
+// Sacred Symbols wait for the 6th advancement and are paid by the measured
+// shares alone: no symbol need be owned, and owning one opens nothing.
+TEST_F(DailiesTest, SacredSymbolsArePaidByTheirSharesFromTheSixthJob) {
+  std::map<std::string, double> shares = {
+      {Name(EQUIP_SLOT_SYMBOL_CERNIUM), 1.0},
+      {Name(EQUIP_SLOT_SYMBOL_TALLAHART), 0.5}};
+  EXPECT_TRUE(Claimable(c_, shares).empty()) << "only the 5th advancement";
 
   CharacterInstance sixth = MakeCharacter(6);
-  PutInBag(sixth, EQUIP_SLOT_SYMBOL_ODIUM);
-  EXPECT_EQ(Claimable(sixth),
+  EXPECT_EQ(Claimable(sixth, shares),
             (std::vector<EquipSlot>{EQUIP_SLOT_SYMBOL_CERNIUM,
-                                    EQUIP_SLOT_SYMBOL_ARCUS,
-                                    EQUIP_SLOT_SYMBOL_ODIUM}));
+                                    EQUIP_SLOT_SYMBOL_TALLAHART}));
 
+  PutInBag(sixth, EQUIP_SLOT_SYMBOL_ODIUM);
   PutInBag(sixth, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
-  PutInBag(sixth, EQUIP_SLOT_SYMBOL_TALLAHART);
   EXPECT_EQ(
-      Claimable(sixth),
+      Claimable(sixth, shares),
       (std::vector<EquipSlot>{
           EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
-          EQUIP_SLOT_SYMBOL_CERNIUM, EQUIP_SLOT_SYMBOL_ARCUS,
-          EQUIP_SLOT_SYMBOL_ODIUM, EQUIP_SLOT_SYMBOL_TALLAHART}))
-      << "Arcane first; a Grand Sacred Symbol is the top of the Sacred ladder";
+          EQUIP_SLOT_SYMBOL_CERNIUM, EQUIP_SLOT_SYMBOL_TALLAHART}))
+      << "Arcane first; owning Odium doesn't open Odium or Arcus";
 }
 
-// Each Sacred Symbol pays its own day's count, Cernium 30 and the rest 15.
-TEST_F(DailiesTest, ASacredClaimPaysEachSymbolsOwnCount) {
+// A share pays that part of the day's count, rounded; one that rounds to
+// nothing leaves the area out.
+TEST_F(DailiesTest, ASacredClaimPaysItsShareOfEachCount) {
   CharacterInstance sixth = MakeCharacter(6);
-  PutInBag(sixth, EQUIP_SLOT_SYMBOL_ARCUS);
-  ASSERT_TRUE(ClaimDailies(sixth, equips_, LocalTime(2026, 8, 20, 12)));
+  std::map<std::string, double> shares = {
+      {Name(EQUIP_SLOT_SYMBOL_CERNIUM), 0.8},
+      {Name(EQUIP_SLOT_SYMBOL_ARCUS), 0.5},
+      {Name(EQUIP_SLOT_SYMBOL_ODIUM), 0.01}};
+  std::vector<DailyReward> rewards = ClaimableSymbols(sixth, equips_, shares);
+  ASSERT_EQ(rewards.size(), 2u);
+  EXPECT_EQ(rewards[0].copies, 24);
+  EXPECT_EQ(rewards[1].copies, 8) << "7.5 rounds up";
+
+  ASSERT_TRUE(ClaimDailies(sixth, equips_, LocalTime(2026, 8, 20, 12), shares));
   EXPECT_EQ(sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_CERNIUM),
-            (std::vector<int>{30}));
-  std::vector<int> arcus = sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_ARCUS);
-  std::sort(arcus.begin(), arcus.end());
-  EXPECT_EQ(arcus, (std::vector<int>{1, 15}))
-      << "the one held, and the day's 15";
+            (std::vector<int>{24}));
+  EXPECT_EQ(sixth.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_ARCUS),
+            (std::vector<int>{8}));
 }
 
 TEST_F(DailiesTest, NothingToClaimIsNotAClaim) {
