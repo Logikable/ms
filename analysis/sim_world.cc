@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/hexa_matrix.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/map_level.h"
@@ -64,6 +65,29 @@ std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
     maps.push_back(entry.second);
   }
   return maps;
+}
+
+void LearnHexaTo(GameState& state, int target) {
+  CharacterInstance& character = state.character;
+  for (bool grew = true; grew;) {
+    grew = false;
+    for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      const Skill& skill = entry.second;
+      if (skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED) {
+        continue;
+      }
+      const int have = character.skill_level(skill);
+      const int to = std::min(
+          {target, skill.max_level(), MaxHexaNodeLevel(skill.hexa_node())});
+      if (have >= to) {
+        continue;
+      }
+      const HexaPrice price = HexaNodePrice(skill.hexa_node(), have, to);
+      character.AddSolErdaEnergy(price.energy);
+      character.AddSolErdaFragments(price.fragments);
+      grew = character.LearnSkill(skill, to - have) || grew;
+    }
+  }
 }
 
 }  // namespace ms

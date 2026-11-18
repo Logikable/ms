@@ -59,31 +59,6 @@ void PrintBreakdown(Job branch, const DamageBreakdown& breakdown) {
   }
 }
 
-// Every HEXA node the character reaches, up to `target`, paid for as it goes.
-// Repeated until nothing more is bought, since a node can need another first.
-void LearnHexa(GameState& state, int target) {
-  CharacterInstance& character = state.character;
-  for (bool grew = true; grew;) {
-    grew = false;
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      const Skill& skill = entry.second;
-      if (skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED) {
-        continue;
-      }
-      const int have = character.skill_level(skill);
-      const int to = std::min(
-          {target, skill.max_level(), MaxHexaNodeLevel(skill.hexa_node())});
-      if (have >= to) {
-        continue;
-      }
-      const HexaPrice price = HexaNodePrice(skill.hexa_node(), have, to);
-      character.AddSolErdaEnergy(price.energy);
-      character.AddSolErdaFragments(price.fragments);
-      grew = character.LearnSkill(skill, to - have) || grew;
-    }
-  }
-}
-
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::map<std::string, Boss>::const_iterator boss =
@@ -107,7 +82,7 @@ void Run() {
                     level, kSeed);
     state.bosses = catalogs.bosses;
     if (absl::GetFlag(FLAGS_hexa) > 0) {
-      LearnHexa(state, absl::GetFlag(FLAGS_hexa));
+      LearnHexaTo(state, absl::GetFlag(FLAGS_hexa));
     }
     BossOptions practice_only;
     practice_only.set_practice(true);

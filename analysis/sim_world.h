@@ -50,6 +50,11 @@ GameState NewState(const Catalogs& catalogs, unsigned int seed);
 GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
                       int level, unsigned int seed);
 
+// Buys every HEXA node the character reaches up to level `target`, handing it
+// the Sol Erda and Fragments as it goes. Repeated until nothing more is
+// bought, since a node can need another first.
+void LearnHexaTo(GameState& state, int target);
+
 // Returns the maps that have mobs on them, in the order a player meets them: by
 // weighted mob level, then by key so maps of the same level keep a stable
 // order.

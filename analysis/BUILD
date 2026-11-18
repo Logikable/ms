@@ -585,6 +585,23 @@ sim_binary(
 )
 
 sim_binary(
+    name = "finisher_sim",
+    srcs = ["finisher_sim.cc"],
+    deps = [
+        ":parallel",
+        ":sim_boss",
+        ":sim_jobs",
+        ":sim_world",
+        "//src:game_state",
+        "//src/character",
+        "//src/character:job_name",
+        "//src/protos:boss_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+sim_binary(
     name = "breakdown_sim",
     srcs = ["breakdown_sim.cc"],
     deps = [
@@ -769,6 +786,7 @@ cc_library(
         "//src:map_level",
         "//src:proto_loader",
         "//src/character",
+        "//src/character:hexa_matrix",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
