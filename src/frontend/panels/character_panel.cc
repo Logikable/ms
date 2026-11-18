@@ -142,9 +142,6 @@ constexpr char kBeginnerPageMark[] = "\u25cf";
 // getting its own), so the H page always follows stage four.
 constexpr int kHyperJobStage = 4;
 
-// The width the SP counter takes at the end of the page bar: " 999 SP ".
-constexpr int kSpCol = 8;
-
 // The four AP stats, in display order. The index is stat_sel_.
 struct AllocStat {
   const char* label;
@@ -846,9 +843,10 @@ ftxui::Element CharacterPanel::AttackRow(const StatLine& line, int index,
 }
 
 std::string CharacterPanel::PoolText() const {
-  // V Points buy a node's next level rather than one level per point, so the
-  // pool is shown in full, and what it buys is on each row.
-  if (IsVPage(SelectedSkillPage()) || IsVIPage(SelectedSkillPage())) {
+  if (IsVPage(SelectedSkillPage())) {
+    return FormatVPoints(character_.v_points());
+  }
+  if (IsVIPage(SelectedSkillPage())) {
     return "";
   }
   if (IsHyperPage(SelectedSkillPage())) {
@@ -885,16 +883,7 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
       specs.push_back({kStageNumerals[page]});
     }
   }
-  // The points counter shares the row, so the bar gets what is left.
-  std::string pool = PoolText();
-  const int bar_width =
-      pool.empty() ? ContentWidth()
-                   : ContentWidth() - std::max<int>(kSpCol, pool.size() + 1);
-  std::vector<ftxui::Element> row;
-  row.push_back(TabBar(specs, SelectedSkillPage(), bar_focused, bar_width));
-  row.push_back(ftxui::filler());
-  row.push_back(ftxui::text(pool + " "));
-  return ftxui::hbox(std::move(row));
+  return TabBar(specs, SelectedSkillPage(), bar_focused, ContentWidth());
 }
 
 CharacterPanel::LevelColumn CharacterPanel::MeasureLevelColumn(
@@ -1047,8 +1036,8 @@ bool CharacterPanel::IsVIPage(int page) const {
 
 bool CharacterPanel::ShowsSkillFooter() const {
   const int page = SelectedSkillPage();
-  return ActiveTab() == kTabSkills && (IsVPage(page) || IsVIPage(page)) &&
-         !SkillsForPage(page).empty();
+  return ActiveTab() == kTabSkills && SkillRowCount() > 0 &&
+         (IsVIPage(page) || !PoolText().empty());
 }
 
 bool CharacterPanel::ShowsVReset() const {
@@ -1326,17 +1315,19 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
 }
 
 ftxui::Element CharacterPanel::RenderSkillFooter(bool reset_focused) const {
-  std::string balance;
   if (IsVIPage(SelectedSkillPage())) {
     // Widths reserved for 99.99 and 9999, so the marks don't shift as the
     // balances grow.
-    balance = PadLeft(FormatSolErda(character_.sol_erda_energy()), 8) + "  " +
-              PadLeft(FormatFragments(character_.sol_erda_fragments()), 7);
-  } else {
-    balance = FormatVPoints(character_.v_points());
+    return ftxui::hbox({
+        ftxui::filler(),
+        ftxui::text(
+            PadLeft(FormatSolErda(character_.sol_erda_energy()), 8) + "  " +
+            PadLeft(FormatFragments(character_.sol_erda_fragments()), 7)),
+        ftxui::filler(),
+    });
   }
   ftxui::Element right =
-      ftxui::hbox({ftxui::filler(), ftxui::text(balance + " ")});
+      ftxui::hbox({ftxui::filler(), ftxui::text(PoolText() + " ")});
   if (!ShowsVReset()) {
     return right;
   }

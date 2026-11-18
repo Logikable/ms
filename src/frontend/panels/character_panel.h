@@ -448,8 +448,8 @@ class CharacterPanel {
   // selection in the middle.
   int FirstHyperRow(int visible) const;
   // The Skills tab: the page bar (the beginner circle, I/II/..., then H for
-  // Hyper Skills and V for the matrix) with that page's points right-aligned,
-  // its skill rows, and on the V page a rule and [Reset].
+  // Hyper Skills, V and VI for the matrices), its skill rows, and a rule and
+  // the footer under them.
   ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused,
                                  bool reset_focused) const;
   // Whether the current page has a [Reset] at the bottom. Only the V page does,
@@ -497,14 +497,15 @@ class CharacterPanel {
   std::vector<const Skill*> HexaNodes() const;
   // Whether page `page` is the VI page, which is always last.
   bool IsVIPage(int page) const;
-  // Whether the page ends in a rule and a footer row: the V page's [Reset]
-  // and V Points, or the VI page's Sol Erda and Fragments.
+  // Whether the page ends in a rule and a footer row: the points left, beside
+  // the V page's [Reset], or the VI page's Sol Erda and Fragments.
   bool ShowsSkillFooter() const;
   ftxui::Element RenderSkillFooter(bool reset_focused) const;
   // The advancement whose own nodes the V page lists beside the common ones.
   JobAdvancement VAdvancement() const;
-  // The points counter on the page bar, in the units the page spends. Empty
-  // on the V and VI pages, whose balances are in the footer.
+  // The points left on the page, in the units it spends, for the footer's
+  // right end. Empty on a page with nothing to buy, and on the VI page, whose
+  // two balances the footer centres.
   std::string PoolText() const;
 
   // The skills on page `page`, in listing order. Empty if none.

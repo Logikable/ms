@@ -1723,8 +1723,9 @@ TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
   ftxui::Component comp = OnSkillRows(panel);
   int natural = PanelHeight(panel.Render());
-  EXPECT_EQ(natural, 20) << "nine rows of chrome and eleven skills";
-  for (int budget = 10; budget <= natural + 2; ++budget) {
+  EXPECT_EQ(natural, 22)
+      << "nine rows of chrome, eleven skills, and the SP under a rule";
+  for (int budget = 12; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
         << "at a budget of " << budget;
@@ -1757,7 +1758,7 @@ TEST_F(CharacterPanelTest, TheVPageKeepsItsResetAtEveryBudget) {
 TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
-  panel.SetMaxRows(13);  // room for four skills
+  panel.SetMaxRows(15);  // room for four skills
   ftxui::Component comp = OnSkillRows(panel);
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Skill 01"), std::string::npos);
@@ -1779,7 +1780,7 @@ TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
 TEST_F(CharacterPanelTest, TheSkillWindowCentresTheCursor) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
-  panel.SetMaxRows(14);  // room for five skills
+  panel.SetMaxRows(16);  // room for five skills
   ftxui::Component comp = OnSkillRows(panel);
   for (int i = 0; i < 5; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
@@ -3265,9 +3266,9 @@ TEST_F(CharacterPanelTest, TheVIPageListsItsNodesInFourBlocks) {
   EXPECT_EQ(rendered.find("Rider Spear"), std::string::npos) << rendered;
 }
 
-// Both balances sit bottom-right, Sol Erda to the hundredth, and the VI page
-// has no [Reset]: GMS never refunds a HEXA level.
-TEST_F(CharacterPanelTest, TheVIPageEndsInBothBalances) {
+// Both balances are centred at the bottom, Sol Erda to the hundredth, and the
+// VI page has no [Reset]: GMS never refunds a HEXA level.
+TEST_F(CharacterPanelTest, TheVIPageCentresBothBalances) {
   CharacterInstance c = MakeSixthJob(rng_);
   CharacterPanel panel(c, account_, panel_focus_, HexaCatalog());
   std::string rendered = RenderComponentText(OpenLastSkillPage(panel));
@@ -3281,8 +3282,28 @@ TEST_F(CharacterPanelTest, TheVIPageEndsInBothBalances) {
   }
   EXPECT_NE(footer.find("12.43"), std::string::npos) << rendered;
   EXPECT_LT(footer.find("🔆"), footer.find("12.43")) << rendered;
-  EXPECT_NE(footer.find("🔹  340 │"), std::string::npos) << rendered;
+  EXPECT_NE(footer.find("340"), std::string::npos) << rendered;
+  EXPECT_EQ(footer.find("340 │"), std::string::npos) << "centred: " << rendered;
   EXPECT_EQ(rendered.find("[Reset]"), std::string::npos) << rendered;
+}
+
+// A book's SP is in the same corner as the V Points, off the page bar.
+TEST_F(CharacterPanelTest, ABooksSpIsInTheBottomRightCorner) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
+  panel.SetMaxRows(18);  // inside the 20-row test screen
+  std::vector<std::string> lines =
+      SplitLines(RenderComponentText(OnSkillRows(panel)));
+  int found = 0;
+  for (std::size_t i = 0; i < lines.size(); ++i) {
+    if (lines[i].find("SP") == std::string::npos) {
+      continue;
+    }
+    ++found;
+    EXPECT_NE(lines[i].find("3 SP │"), std::string::npos) << lines[i];
+    EXPECT_EQ(lines[i - 1].rfind("├", 0), 0u) << "under its rule";
+  }
+  EXPECT_EQ(found, 1);
 }
 
 // The V Points left the page bar for the footer, beside the [Reset].
