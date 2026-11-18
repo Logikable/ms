@@ -112,9 +112,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"deadly_fin", "vanishing_shadow"};
     // The 3rd jobs, at level 100: the best gear meso alone can buy, since the
     // Frozen tier below costs tokens. Each takes the better of its line's two
-    // weapons on //analysis:bench_sim and keeps its 2nd job secondary, since a
-    // 3rd job opens no new slot. The Crusader's axe beats the same-tier sword
-    // only because Weapon Mastery gives axes a bonus.
+    // weapons on //analysis/sims:bench_sim and keeps its 2nd job secondary,
+    // since a 3rd job opens no new slot. The Crusader's axe beats the same-tier
+    // sword only because Weapon Mastery gives axes a bonus.
     case JOB_BERSERKER:
       return {"pinaka", "berserk_chain"};
     // The 4th job, at the level cap, so its gear is the Frozen tier bought with

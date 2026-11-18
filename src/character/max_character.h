@@ -6,8 +6,8 @@
  * job: the point of the mode is to measure fights against a known character,
  * not to find each job's optimum.
  *
- * Everything here is what //analysis:progression_sim's sweep had on reaching
- * each level -- the gear, stars, potentials, symbols, boss clears,
+ * Everything here is what //analysis/sims:progression_sim's sweep had on
+ * reaching each level -- the gear, stars, potentials, symbols, boss clears,
  * alts, V Matrix and Inner Ability -- read toward its better half (the fifth
  * of ten branches from the top), so a max character is a rich player, not an
  * impossible one. A level between two of its checkpoints takes the one below.
@@ -42,7 +42,7 @@ struct MaxGear {
   // cap it sits apart from the rest of the band.
   int weapon_stars = 0;
   // The level whose potentials every item wears: 200, 230 or 260, where
-  // //analysis:progression_sim's sweep recorded them. 0 before any cubing.
+  // //analysis/sims:progression_sim's sweep recorded them. 0 before any cubing.
   int potential_level = 0;
 };
 

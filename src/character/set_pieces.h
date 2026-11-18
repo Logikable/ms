@@ -1,6 +1,6 @@
 /* Each job's own piece of the boss sets that come in per-class versions, as
  * catalog keys. Both workbench modes dress from these: kTest wears every tier
- * its level opens, kMax what //analysis:progression_sim wore (see
+ * its level opens, kMax what //analysis/sims:progression_sim wore (see
  * max_character.h). A job below its 4th advancement has no set weapon, so the
  * weapon lookups return "" for it.
  */

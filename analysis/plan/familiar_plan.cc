@@ -1,0 +1,528 @@
+#include "analysis/plan/familiar_plan.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <functional>
+#include <limits>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "src/character/account/familiar.h"
+#include "src/character/stat_preset.h"
+#include "src/game_state.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/familiar.pb.h"
+
+namespace ms {
+namespace {
+
+typedef std::map<FamiliarLineType, double> Worths;
+
+// A main's line worths at its rank and the rank below, which its two lines
+// roll from.
+struct RankWorths {
+  Worths at;
+  Worths below;
+};
+
+// Rolls sampled to value a Legendary familiar, as cube_plan's kCubeSamples.
+constexpr int kRollSamples = 64;
+
+// Cubes one look may buy on one familiar, so a rule that never stops can't
+// hang a run.
+constexpr int kMaxCubesPerLook = 2000;
+
+std::vector<std::string> Mains() {
+  const auto& names = StarterFamiliars().names();
+  return std::vector<std::string>(names.begin(), names.end());
+}
+
+bool IsMain(const std::string& name) {
+  for (const std::string& main : Mains()) {
+    if (main == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// The familiar the Drop preset summons in its last row in place of the third
+// main, levelled and cubed for the boss drop line alone: only the Drop preset
+// feeds the boss drop roll, so its damage is worth nothing there.
+std::string DropFamiliar() {
+  return FamiliarRoster()[kMaxSummonedFamiliars].name;
+}
+constexpr int kDropRow = kMaxSummonedFamiliars - 1;
+
+// Whether `name` is one the Drop preset summons, so its drop line counts.
+bool InDropPreset(const std::string& name) {
+  if (name == DropFamiliar()) {
+    return true;
+  }
+  const std::vector<std::string> mains = Mains();
+  for (int row = 0; row < kDropRow; ++row) {
+    if (mains[row] == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Familiar& EntryFor(FamiliarBook& book, const std::string& name) {
+  for (Familiar& familiar : *book.mutable_familiars()) {
+    if (familiar.name() == name) {
+      return familiar;
+    }
+  }
+  Familiar& added = *book.add_familiars();
+  added.set_name(name);
+  return added;
+}
+
+// The character's damage with `book` in place of their own, which is put
+// back after.
+double PowerWith(GameState& state, const FamiliarBook& book,
+                 const std::function<double(GameState&)>& power) {
+  const FamiliarBook held = state.character.familiars();
+  state.character.set_familiars(book);
+  const double measured = power(state);
+  state.character.set_familiars(held);
+  return measured;
+}
+
+bool HoldsDrop(const Familiar& familiar) {
+  for (const FamiliarLine& line : familiar.lines()) {
+    if (line.type() == FAMILIAR_LINE_TYPE_BOSS_DROP_RATE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Whether `name`'s boss drop line would count: it is in the Drop preset, and
+// no other familiar there holds the line already, since only one counts.
+bool DropCounts(const FamiliarBook& book, const std::string& name) {
+  if (!InDropPreset(name)) {
+    return false;
+  }
+  std::vector<std::string> summoned = Mains();
+  summoned[kDropRow] = DropFamiliar();
+  for (const std::string& other : summoned) {
+    const Familiar* familiar = FindFamiliar(book, other);
+    if (other != name && familiar != nullptr && HoldsDrop(*familiar)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// What each line of `rank` adds on `name` alone, over the same familiar with
+// no lines, with the other mains as they are.
+Worths LineWorths(GameState& state, const FamiliarBook& book,
+                  const std::string& name, PotentialRank rank,
+                  const std::function<double(GameState&)>& power,
+                  const FamiliarPrices& prices) {
+  Worths worths;
+  if (rank == POTENTIAL_RANK_UNSPECIFIED) {
+    return worths;
+  }
+  FamiliarBook probe = book;
+  Familiar& familiar = EntryFor(probe, name);
+  familiar.set_level(std::max(familiar.level(), 1));
+  familiar.clear_lines();
+  const double bare = PowerWith(state, probe, power);
+  const bool drop_counts = DropCounts(book, name);
+  for (FamiliarLineType type : FamiliarPool(rank)) {
+    if (type == FAMILIAR_LINE_TYPE_BOSS_DROP_RATE) {
+      worths[type] = drop_counts ? prices.drop_line_power : 0.0;
+      continue;
+    }
+    familiar.clear_lines();
+    FamiliarLine& line = *familiar.add_lines();
+    line.set_type(type);
+    line.set_rank(rank);
+    worths[type] = PowerWith(state, probe, power) - bare;
+  }
+  return worths;
+}
+
+double MeanOf(const Worths& worths) {
+  if (worths.empty()) {
+    return 0.0;
+  }
+  double sum = 0.0;
+  for (const std::pair<const FamiliarLineType, double>& entry : worths) {
+    sum += entry.second;
+  }
+  return sum / static_cast<double>(worths.size());
+}
+
+RankWorths WorthsAt(GameState& state, const FamiliarBook& book,
+                    const std::string& name, int level,
+                    const std::function<double(GameState&)>& power,
+                    const FamiliarPrices& prices) {
+  RankWorths worths;
+  worths.at = LineWorths(state, book, name, FamiliarRank(level), power, prices);
+  if (level > 1) {
+    worths.below =
+        LineWorths(state, book, name, FamiliarRank(level - 1), power, prices);
+  } else {
+    worths.below = worths.at;
+  }
+  return worths;
+}
+
+// A fresh roll's mean worth, under RollFamiliarLines's odds.
+double MeanRoll(const RankWorths& worths, int level) {
+  double second = MeanOf(worths.at);
+  if (level > 1) {
+    second = kFamiliarPrimeChance * MeanOf(worths.at) +
+             (1.0 - kFamiliarPrimeChance) * MeanOf(worths.below);
+  }
+  return MeanOf(worths.at) + second;
+}
+
+double CubePrice(const FamiliarPrices& prices) {
+  return prices.power_per_meso * static_cast<double>(kFamiliarCubeMeso);
+}
+
+// Fresh Legendary rolls on `name`, kRollSamples of them, each measured with
+// both lines in place over the familiar with none. Measured together, as the
+// held lines are, so two boss lines past the cap count once on both sides of
+// the rule.
+std::vector<double> SampledRolls(GameState& state, const FamiliarBook& book,
+                                 const std::string& name,
+                                 const std::function<double(GameState&)>& power,
+                                 const FamiliarPrices& prices) {
+  FamiliarBook probe = book;
+  Familiar& familiar = EntryFor(probe, name);
+  familiar.set_level(kFamiliarMaxLevel);
+  familiar.clear_lines();
+  const double without = PowerWith(state, probe, power);
+  const bool drop_counts = DropCounts(book, name);
+  std::vector<double> worths;
+  for (int i = 0; i < kRollSamples; ++i) {
+    familiar.clear_lines();
+    for (FamiliarLine& line :
+         RollFamiliarLines(POTENTIAL_RANK_LEGENDARY, state.rng)) {
+      *familiar.add_lines() = std::move(line);
+    }
+    double worth = PowerWith(state, probe, power) - without;
+    if (drop_counts && HoldsDrop(familiar)) {
+      worth += prices.drop_line_power;
+    }
+    worths.push_back(worth);
+  }
+  return worths;
+}
+
+double CubeReserve(const std::vector<double>& rolls,
+                   const FamiliarPrices& prices) {
+  const std::vector<double> odds(rolls.size(),
+                                 1.0 / static_cast<double>(rolls.size()));
+  return FamiliarReserve(rolls, odds, CubePrice(prices));
+}
+
+// Fresh Legendary rolls on the drop familiar, each worth the drop line or
+// nothing.
+std::vector<double> DropRolls(GameState& state, const FamiliarBook& book,
+                              const FamiliarPrices& prices) {
+  const bool counts = DropCounts(book, DropFamiliar());
+  std::vector<double> worths;
+  for (int i = 0; i < kRollSamples; ++i) {
+    Familiar rolled;
+    for (FamiliarLine& line :
+         RollFamiliarLines(POTENTIAL_RANK_LEGENDARY, state.rng)) {
+      *rolled.add_lines() = std::move(line);
+    }
+    worths.push_back(counts && HoldsDrop(rolled) ? prices.drop_line_power
+                                                 : 0.0);
+  }
+  return worths;
+}
+
+// What the drop familiar holds now: the line, if it counts.
+double DropHeld(const FamiliarBook& book, const FamiliarPrices& prices) {
+  const Familiar* familiar = FindFamiliar(book, DropFamiliar());
+  return familiar != nullptr && HoldsDrop(*familiar) &&
+                 DropCounts(book, DropFamiliar())
+             ? prices.drop_line_power
+             : 0.0;
+}
+
+// The best rate a step on the drop familiar starts: the run to Legendary, then
+// cubes to the reservation value. The line rolls only at Legendary, so a lower
+// level is worth nothing alone.
+double DropRate(GameState& state, const FamiliarBook& book,
+                const FamiliarPrices& prices, int64_t* step_cost) {
+  const int level = FamiliarLevel(book, DropFamiliar());
+  *step_cost = 0;
+  if (level >= kFamiliarMaxLevel || prices.drop_line_power <= 0.0) {
+    return 0.0;
+  }
+  *step_cost = FamiliarLevelCost(level + 1);
+  int64_t run_cost = 0;
+  for (int next = level + 1; next <= kFamiliarMaxLevel; ++next) {
+    run_cost += FamiliarLevelCost(next);
+  }
+  const std::vector<double> rolls = DropRolls(state, book, prices);
+  const double reserve = CubeReserve(rolls, prices);
+  double expected = 0.0;
+  for (double roll : rolls) {
+    expected += std::max(roll, reserve);
+  }
+  expected /= static_cast<double>(rolls.size());
+  return (expected - DropHeld(book, prices)) / static_cast<double>(run_cost);
+}
+
+// What reaching `level` on `name` is worth. Below Legendary the next level
+// rerolls, so it is the mean roll; at Legendary the cubes follow, so it is a
+// roll kept or cubed up to the reservation value, E[max(X, r)].
+double ReachedWorth(GameState& state, const FamiliarBook& book,
+                    const std::string& name, int level,
+                    const std::function<double(GameState&)>& power,
+                    const FamiliarPrices& prices) {
+  if (level < kFamiliarMaxLevel) {
+    return MeanRoll(WorthsAt(state, book, name, level, power, prices), level);
+  }
+  const std::vector<double> rolls =
+      SampledRolls(state, book, name, power, prices);
+  const double reserve = CubeReserve(rolls, prices);
+  double expected = 0.0;
+  for (double roll : rolls) {
+    expected += std::max(roll, reserve);
+  }
+  return expected / static_cast<double>(rolls.size());
+}
+
+double WorthOf(const RankWorths& worths, const Familiar& familiar) {
+  const PotentialRank top = FamiliarRank(familiar.level());
+  double sum = 0.0;
+  for (const FamiliarLine& line : familiar.lines()) {
+    const Worths& table = line.rank() == top ? worths.at : worths.below;
+    std::map<FamiliarLineType, double>::const_iterator it =
+        table.find(line.type());
+    if (it != table.end()) {
+      sum += it->second;
+    }
+  }
+  return sum;
+}
+
+// The cheapest steps on familiars other than the mains that lift Familiar
+// Bond one level, in order, and their EXP. Empty when no level is left.
+std::vector<std::string> BondSteps(const FamiliarBook& book, int64_t* cost) {
+  *cost = 0;
+  std::vector<std::string> steps;
+  std::map<std::string, int> levels;
+  for (const FamiliarSpecies& species : FamiliarRoster()) {
+    levels[species.name] = FamiliarLevel(book, species.name);
+  }
+  int total = TotalFamiliarLevels(book);
+  const int now = FamiliarSkillLevel(total);
+  while (FamiliarSkillLevel(total) == now) {
+    std::string cheapest;
+    int64_t best = std::numeric_limits<int64_t>::max();
+    for (const FamiliarSpecies& species : FamiliarRoster()) {
+      const int level = levels[species.name];
+      if (IsMain(species.name) || level >= kFamiliarMaxLevel) {
+        continue;
+      }
+      if (FamiliarLevelCost(level + 1) < best) {
+        best = FamiliarLevelCost(level + 1);
+        cheapest = species.name;
+      }
+    }
+    if (cheapest.empty()) {
+      return {};
+    }
+    steps.push_back(cheapest);
+    *cost += best;
+    ++levels[cheapest];
+    ++total;
+  }
+  return steps;
+}
+
+// Spends the pool a step at a time on the better of a main's next level and
+// Familiar Bond's, per EXP.
+int SpendExp(GameState& state, const std::function<double(GameState&)>& power,
+             const FamiliarPrices& prices) {
+  int levels = 0;
+  for (;;) {
+    const FamiliarBook& book = state.character.familiars();
+    std::string main;
+    int main_level = kFamiliarMaxLevel;
+    for (const std::string& name : Mains()) {
+      if (FamiliarLevel(book, name) < main_level) {
+        main_level = FamiliarLevel(book, name);
+        main = name;
+      }
+    }
+    double main_rate = 0.0;
+    int64_t main_cost = 0;
+    if (!main.empty()) {
+      main_cost = FamiliarLevelCost(main_level + 1);
+      double held = 0.0;
+      const Familiar* familiar = FindFamiliar(book, main);
+      if (familiar != nullptr && main_level > 0) {
+        held = WorthOf(WorthsAt(state, book, main, main_level, power, prices),
+                       *familiar);
+      }
+      // A step is priced as the first of the best run it starts, the way a
+      // star is: Rare and Epic lines are worth little, but they lead to
+      // Unique and Legendary.
+      int64_t run_cost = 0;
+      for (int level = main_level + 1; level <= kFamiliarMaxLevel; ++level) {
+        run_cost += FamiliarLevelCost(level);
+        main_rate = std::max(
+            main_rate,
+            (ReachedWorth(state, book, main, level, power, prices) - held) /
+                static_cast<double>(run_cost));
+      }
+    }
+    int64_t bond_cost = 0;
+    const std::vector<std::string> steps = BondSteps(book, &bond_cost);
+    double bond_rate = 0.0;
+    if (!steps.empty()) {
+      // Priced as the first level of the best run it starts, as a main's
+      // step is: a level worth nothing alone (crit rate past the cap) still
+      // leads to the next.
+      const double now = PowerWith(state, book, power);
+      FamiliarBook lifted = book;
+      std::vector<std::string> next = steps;
+      int64_t next_cost = bond_cost;
+      int64_t run_cost = 0;
+      while (!next.empty()) {
+        for (const std::string& name : next) {
+          Familiar& familiar = EntryFor(lifted, name);
+          familiar.set_level(familiar.level() + 1);
+        }
+        run_cost += next_cost;
+        bond_rate =
+            std::max(bond_rate, (PowerWith(state, lifted, power) - now) /
+                                    static_cast<double>(run_cost));
+        next = BondSteps(lifted, &next_cost);
+      }
+    }
+    int64_t drop_cost = 0;
+    const double drop_rate = DropRate(state, book, prices, &drop_cost);
+    if (main_rate <= 0.0 && bond_rate <= 0.0 && drop_rate <= 0.0) {
+      break;
+    }
+    if (drop_rate > main_rate && drop_rate > bond_rate) {
+      if (book.exp() < drop_cost ||
+          !state.character.LevelUpFamiliar(DropFamiliar())) {
+        break;
+      }
+      ++levels;
+      continue;
+    }
+    if (main_rate >= bond_rate) {
+      if (book.exp() < main_cost || !state.character.LevelUpFamiliar(main)) {
+        break;
+      }
+      ++levels;
+      continue;
+    }
+    if (book.exp() < bond_cost) {
+      break;
+    }
+    for (const std::string& name : steps) {
+      state.character.LevelUpFamiliar(name);
+      ++levels;
+    }
+  }
+  return levels;
+}
+
+// Cubes each Legendary main under the stopping rule.
+int SpendCubes(GameState& state, const std::function<double(GameState&)>& power,
+               const FamiliarPrices& prices) {
+  int cubes = 0;
+  for (const std::string& main : Mains()) {
+    if (FamiliarLevel(state.character.familiars(), main) != kFamiliarMaxLevel) {
+      continue;
+    }
+    const double reserve = CubeReserve(
+        SampledRolls(state, state.character.familiars(), main, power, prices),
+        prices);
+    // The held lines are measured together rather than summed, so two boss
+    // lines past the cap count once.
+    FamiliarBook bare = state.character.familiars();
+    EntryFor(bare, main).clear_lines();
+    const double without = PowerWith(state, bare, power);
+    for (int rolled = 0; rolled < kMaxCubesPerLook; ++rolled) {
+      const FamiliarBook& book = state.character.familiars();
+      double held = PowerWith(state, book, power) - without;
+      if (DropCounts(book, main) && HoldsDrop(*FindFamiliar(book, main))) {
+        held += prices.drop_line_power;
+      }
+      if (held >= reserve || !state.character.CubeFamiliar(main)) {
+        break;
+      }
+      ++cubes;
+    }
+  }
+  if (FamiliarLevel(state.character.familiars(), DropFamiliar()) ==
+      kFamiliarMaxLevel) {
+    const double reserve = CubeReserve(
+        DropRolls(state, state.character.familiars(), prices), prices);
+    for (int rolled = 0; rolled < kMaxCubesPerLook; ++rolled) {
+      if (DropHeld(state.character.familiars(), prices) >= reserve ||
+          !state.character.CubeFamiliar(DropFamiliar())) {
+        break;
+      }
+      ++cubes;
+    }
+  }
+  return cubes;
+}
+
+}  // namespace
+
+double FamiliarReserve(const std::vector<double>& values,
+                       const std::vector<double>& odds, double price) {
+  if (values.empty()) {
+    return 0.0;
+  }
+  double low = *std::min_element(values.begin(), values.end());
+  double high = *std::max_element(values.begin(), values.end());
+  if (price <= 0.0) {
+    return high;
+  }
+  // E[max(X, r)] - price - r falls as r rises, so bisect for its root.
+  for (int i = 0; i < 100; ++i) {
+    const double r = (low + high) / 2.0;
+    double expected = 0.0;
+    for (std::size_t j = 0; j < values.size(); ++j) {
+      expected += odds[j] * std::max(values[j], r);
+    }
+    if (expected - price - r > 0.0) {
+      low = r;
+    } else {
+      high = r;
+    }
+  }
+  return low;
+}
+
+FamiliarSpend SpendFamiliars(GameState& state,
+                             const std::function<double(GameState&)>& power,
+                             const FamiliarPrices& prices) {
+  FamiliarSpend spend;
+  // The sims play the account's first character, whose tab opens here; the
+  // pool has been filling since level 1.
+  if (state.character.proto().level() < kFamiliarsLevel) {
+    return spend;
+  }
+  state.character.SwitchFamiliar(kDropPreset, kDropRow, DropFamiliar());
+  spend.levels = SpendExp(state, power, prices);
+  const int64_t before = state.character.meso();
+  spend.cubes = SpendCubes(state, power, prices);
+  spend.meso = before - state.character.meso();
+  return spend;
+}
+
+}  // namespace ms

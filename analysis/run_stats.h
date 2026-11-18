@@ -1,7 +1,7 @@
 /* One run's numbers by name, and what a set of them says across jobs and
- * seeds. progression_sim --stats_out writes the rows; //analysis:stats_report
- * reads them back and picks out the jobs far from the rest and the stats that
- * swing from seed to seed.
+ * seeds. progression_sim --stats_out writes the rows;
+ * //analysis/sims:stats_report reads them back and picks out the jobs far from
+ * the rest and the stats that swing from seed to seed.
  *
  * The file is tab-separated: branch, seed, stat, value, one stat a line. A
  * stat a run never wrote reads as 0, since most are counts (cubes of a kind,

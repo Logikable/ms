@@ -32,11 +32,11 @@ namespace ms {
 
 namespace {
 
-// The stars //analysis:progression_sim's sweep of 2026-10-04 wore on arriving
-// at each level: the fifth of ten branches from the top over every starred
-// piece. A fresh tier arrives at 10 whatever came before it; 230 re-read
-// 2026-10-26. 260 is read at the run's end instead, the user's call: a capped
-// character stars the new tier to 17 within days.
+// The stars //analysis/sims:progression_sim's sweep of 2026-10-04 wore on
+// arriving at each level: the fifth of ten branches from the top over every
+// starred piece. A fresh tier arrives at 10 whatever came before it; 230
+// re-read 2026-10-26. 260 is read at the run's end instead, the user's call: a
+// capped character stars the new tier to 17 within days.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -470,8 +470,8 @@ constexpr Share B = Share::kBoss;
 constexpr Share I = Share::kIed;
 constexpr Share C = Share::kCritDamage;
 
-// What //analysis:progression_sim's sweeps wore on arriving at each level, the
-// fifth of ten branches from the top: a max character spent well, not
+// What //analysis/sims:progression_sim's sweeps wore on arriving at each level,
+// the fifth of ten branches from the top: a max character spent well, not
 // luckily. Re-read 2026-10-26, once a wear-it-now cube run had to be covered
 // whole: the climb now cubes the weapon, secondary and emblem Rare by 200 and
 // leaves the rest uncubed, saves cubing until 230 is well behind, and spends
@@ -569,9 +569,9 @@ struct FlameRecipeLine {
   int tier;
 };
 
-// What //analysis:progression_sim's sweep of 2026-10-26 wore on arriving at
-// each level, at the upper quartile of each kind's tier total: the weapon 22,
-// 25 and 26, armour 20, 21 and 25, accessories 19, 20 and 22. The climb
+// What //analysis/sims:progression_sim's sweep of 2026-10-26 wore on arriving
+// at each level, at the upper quartile of each kind's tier total: the weapon
+// 22, 25 and 26, armour 20, 21 and 25, accessories 19, 20 and 22. The climb
 // flames from 200, and Black flames take some lines to tier 7.
 struct FlameBand {
   int level;
@@ -1073,7 +1073,7 @@ AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level) {
   // One Legendary line and two Epic ones, which is what resetting realistically
   // lands on: only the top line has the ability's rank, and the two below roll
   // Epic far more often than Unique. Critical rate on top is what
-  // //analysis:ability_plan finds best for bosses.
+  // //analysis/plan:ability_plan finds best for bosses.
   //
   // Attack Speed is the line GMS players chase, and it's deliberately left out:
   // the Extreme Green Potion already gives boss fights an extra stage past the
