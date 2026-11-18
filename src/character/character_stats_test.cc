@@ -1724,8 +1724,8 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
       << "the skill handing out the levels does not take them";
 }
 
-// GMS's Combat Orders doesn't raise beginner, hyper or 5th job skills. All
-// three here have room to rise, so none is held back by a cap instead.
+// GMS's Combat Orders doesn't raise beginner, hyper, 5th or 6th job skills.
+// All of them here have room to rise, so none is held back by a cap instead.
 TEST_F(DerivedStatsTest, GrantedLevelsSkipTheBeginnersPageHypersAndVNodes) {
   Skill hyper = IronBody();
   hyper.set_hyper(true);
@@ -1738,9 +1738,15 @@ TEST_F(DerivedStatsTest, GrantedLevelsSkipTheBeginnersPageHypersAndVNodes) {
   PlaceIn(beginner, JOB_ADVANCEMENT_BEGINNER);
   Skill link = IronBody();
   link.set_link_line(JOB_ROGUE);
+  Skill hexa = IronBody();
+  hexa.set_hexa_node(HEXA_NODE_KIND_ORIGIN);
+  Skill rider = IronBody();
+  rider.set_hexa_core("HEXA Quiver Cartridge");
 
   EXPECT_EQ(LevelWithBonus(hyper, 5, 2), 5) << "a hyper skill";
   EXPECT_EQ(LevelWithBonus(node, 5, 2), 5) << "a V Matrix node";
+  EXPECT_EQ(LevelWithBonus(hexa, 5, 2), 5) << "a HEXA node";
+  EXPECT_EQ(LevelWithBonus(rider, 5, 2), 5) << "a skill riding on one";
   EXPECT_EQ(LevelWithBonus(fairy, 5, 2), 5) << "a skill nobody buys";
   EXPECT_EQ(LevelWithBonus(beginner, 5, 2), 5) << "the beginner's book";
   EXPECT_EQ(LevelWithBonus(link, 5, 2), 5) << "what the account climbed";

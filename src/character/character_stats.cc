@@ -73,12 +73,13 @@ bool GrantsSkillLevels(const Skill& skill) {
 }
 
 // Whether granted levels apply to this skill. GMS's Combat Orders lists the
-// exceptions: hyper and 5th job skills, and everything on the beginner's page,
-// which includes the book itself and the link skills.
+// exceptions: hyper, 5th and 6th job skills, and everything on the beginner's
+// page, which includes the book itself and the link skills.
 bool TakesGrantedLevels(const Skill& skill) {
   return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
-         skill.account_levels_per_level() == 0 && !skill.granted_by_equip() &&
-         skill.link_line() == JOB_UNSPECIFIED &&
+         skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED &&
+         skill.hexa_core().empty() && skill.account_levels_per_level() == 0 &&
+         !skill.granted_by_equip() && skill.link_line() == JOB_UNSPECIFIED &&
          !ListedIn(skill, JOB_ADVANCEMENT_BEGINNER);
 }
 
