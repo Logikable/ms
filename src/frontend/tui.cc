@@ -418,6 +418,20 @@ ftxui::Element Tui::SkillLearnDialog() {
         PriceBlock(FormatVPoints(held), FormatVPoints(cost), cost <= held));
     rows.push_back(ThemedSeparator());
   }
+  if (skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+    const CharacterInstance& character = state_.character;
+    const HexaPrice cost =
+        character.HexaNodePriceFor(skill, controller_.sp_selector().value());
+    auto both = [](int64_t energy, int64_t fragments) {
+      return FormatSolErda(energy) + "  " + FormatFragments(fragments);
+    };
+    rows.push_back(PriceBlock(
+        both(character.sol_erda_energy(), character.sol_erda_fragments()),
+        both(cost.energy, cost.fragments),
+        cost.energy <= character.sol_erda_energy() &&
+            cost.fragments <= character.sol_erda_fragments()));
+    rows.push_back(ThemedSeparator());
+  }
   rows.push_back(controller_.sp_selector().Render());
   return ThemedWindow(" Learn Skill ", ftxui::vbox(std::move(rows)));
 }

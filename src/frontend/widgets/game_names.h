@@ -204,6 +204,15 @@ std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
 // break.
 std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes);
 
+// The HEXA nodes `advancement` lists, in book order: Origin and Ascent, the
+// Masteries, the Enhancements, then the common nodes. A skill that only rides
+// on a node's level (hexa_core) is left to that node's Inspect card.
+std::vector<const Skill*> HexaNodesFor(
+    const std::map<std::string, Skill>& catalog, JobAdvancement advancement);
+
+// VNodeSectionBreaks for HexaNodesFor's list.
+std::vector<int> HexaNodeSectionBreaks(const std::vector<const Skill*>& nodes);
+
 // The same for the beginner's page, whose blocks are Blessing of the Fairy, the
 // worn rings' skills, then the guild's.
 std::vector<int> BeginnerSectionBreaks(const std::vector<const Skill*>& skills);

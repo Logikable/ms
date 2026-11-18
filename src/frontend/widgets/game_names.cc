@@ -130,6 +130,22 @@ int VNodeRank(VNodeKind kind) {
   }
 }
 
+// The VI page's four blocks: the 6th job's own attacks, Masteries,
+// Enhancements, then the nodes every job or its line shares.
+int HexaNodeRank(HexaNodeKind kind) {
+  switch (kind) {
+    case HEXA_NODE_KIND_ORIGIN:
+    case HEXA_NODE_KIND_ASCENT:
+      return 0;
+    case HEXA_NODE_KIND_MASTERY:
+      return 1;
+    case HEXA_NODE_KIND_ENHANCEMENT:
+      return 2;
+    default:
+      return 3;
+  }
+}
+
 // The Vengeance forms whose toggle is on, keyed by the skill each replaces. A
 // form that is toggled off is left off the page.
 std::map<std::string, const Skill*> FormsShowing(
@@ -217,6 +233,28 @@ std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes) {
   std::vector<int> breaks;
   for (int i = 1; i < static_cast<int>(nodes.size()); ++i) {
     if (VNodeRank(nodes[i]->v_node()) != VNodeRank(nodes[i - 1]->v_node())) {
+      breaks.push_back(i);
+    }
+  }
+  return breaks;
+}
+
+std::vector<const Skill*> HexaNodesFor(
+    const std::map<std::string, Skill>& catalog, JobAdvancement advancement) {
+  std::vector<const Skill*> nodes;
+  for (const Skill* skill : SkillsForAdvancement(catalog, advancement)) {
+    if (skill->hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+      nodes.push_back(skill);
+    }
+  }
+  return nodes;
+}
+
+std::vector<int> HexaNodeSectionBreaks(const std::vector<const Skill*>& nodes) {
+  std::vector<int> breaks;
+  for (int i = 1; i < static_cast<int>(nodes.size()); ++i) {
+    if (HexaNodeRank(nodes[i]->hexa_node()) !=
+        HexaNodeRank(nodes[i - 1]->hexa_node())) {
       breaks.push_back(i);
     }
   }

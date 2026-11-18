@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/sol_erda.h"
 #include "src/frontend/widgets/text_columns.h"
 
 namespace ms {
@@ -177,6 +178,17 @@ std::string FormatSpellTraces(int64_t traces) {
 
 std::string FormatVPoints(int64_t points) {
   return FormatWithCommas(points) + " VP";
+}
+
+std::string FormatSolErda(int64_t energy) {
+  const int64_t hundredths = energy / (kEnergyPerSolErda / 100);
+  const int64_t cents = hundredths % 100;
+  return "🔆 " + FormatWithCommas(hundredths / 100) + "." +
+         (cents < 10 ? "0" : "") + std::to_string(cents);
+}
+
+std::string FormatFragments(int64_t fragments) {
+  return "🔹 " + std::to_string(fragments);
 }
 
 void AppendStat(std::string& out, int val, const std::string& label) {

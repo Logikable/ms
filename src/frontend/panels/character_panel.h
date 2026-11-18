@@ -488,11 +488,23 @@ class CharacterPanel {
   // The V page's nodes, leaving out any a boss this character hasn't beaten
   // unlocks.
   std::vector<const Skill*> VNodes() const;
-  // Whether page `page` is the V page, which is always last.
+  // Whether page `page` is the V page: last, or before the VI page.
   bool IsVPage(int page) const;
+  // Whether the VI page is shown: once the character has taken the 6th
+  // advancement and its book has a node.
+  bool HasVIPage() const;
+  // The VI page's HEXA nodes.
+  std::vector<const Skill*> HexaNodes() const;
+  // Whether page `page` is the VI page, which is always last.
+  bool IsVIPage(int page) const;
+  // Whether the page ends in a rule and a footer row: the V page's [Reset]
+  // and V Points, or the VI page's Sol Erda and Fragments.
+  bool ShowsSkillFooter() const;
+  ftxui::Element RenderSkillFooter(bool reset_focused) const;
   // The advancement whose own nodes the V page lists beside the common ones.
   JobAdvancement VAdvancement() const;
-  // The points counter on the page bar, in the units the page spends.
+  // The points counter on the page bar, in the units the page spends. Empty
+  // on the V and VI pages, whose balances are in the footer.
   std::string PoolText() const;
 
   // The skills on page `page`, in listing order. Empty if none.

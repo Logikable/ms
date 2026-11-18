@@ -661,7 +661,7 @@ int CharacterPanel::StatsTabFixedRows() const {
 }
 
 int CharacterPanel::SkillsTabFixedRows() const {
-  return kSkillsTabFixedRows + (ShowsVReset() ? 2 : 0);
+  return kSkillsTabFixedRows + (ShowsSkillFooter() ? 2 : 0);
 }
 
 Activity CharacterPanel::SelectedActivity() const {
@@ -848,8 +848,8 @@ ftxui::Element CharacterPanel::AttackRow(const StatLine& line, int index,
 std::string CharacterPanel::PoolText() const {
   // V Points buy a node's next level rather than one level per point, so the
   // pool is shown in full, and what it buys is on each row.
-  if (IsVPage(SelectedSkillPage())) {
-    return FormatVPoints(character_.v_points());
+  if (IsVPage(SelectedSkillPage()) || IsVIPage(SelectedSkillPage())) {
+    return "";
   }
   if (IsHyperPage(SelectedSkillPage())) {
     return std::to_string(character_.hyper_sp()) + " SP";
@@ -870,6 +870,8 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   for (int page = 0; page < SkillPages(); ++page) {
     if (IsVPage(page)) {
       specs.push_back({"V"});
+    } else if (IsVIPage(page)) {
+      specs.push_back({"VI"});
     } else if (IsHyperPage(page)) {
       specs.push_back({"H"});
     } else if (IsBeginnerPage(page)) {
@@ -885,16 +887,11 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   }
   // The points counter shares the row, so the bar gets what is left.
   std::string pool = PoolText();
-  // A narrow panel has room for "999 VP" beside every page and no more, so a
-  // bigger pool is shown as that rather than scrolling the pages away.
-  if (IsVPage(SelectedSkillPage()) && character_.v_points() > 999 &&
-      TabBarWidth(specs) + static_cast<int>(pool.size()) + 1 > ContentWidth()) {
-    pool = FormatVPoints(999);
-  }
+  const int bar_width =
+      pool.empty() ? ContentWidth()
+                   : ContentWidth() - std::max<int>(kSpCol, pool.size() + 1);
   std::vector<ftxui::Element> row;
-  row.push_back(
-      TabBar(specs, SelectedSkillPage(), bar_focused,
-             ContentWidth() - std::max<int>(kSpCol, pool.size() + 1)));
+  row.push_back(TabBar(specs, SelectedSkillPage(), bar_focused, bar_width));
   row.push_back(ftxui::filler());
   row.push_back(ftxui::text(pool + " "));
   return ftxui::hbox(std::move(row));
@@ -973,6 +970,16 @@ bool CharacterPanel::HasVPage() const {
   return character_.v_matrix_unlocked() && !VNodes().empty();
 }
 
+std::vector<const Skill*> CharacterPanel::HexaNodes() const {
+  return HexaNodesFor(skills_, AdvancementForJobStage(character_.proto().job(),
+                                                      kSixthJobStage));
+}
+
+bool CharacterPanel::HasVIPage() const {
+  return character_.proto().job_stage() >= kSixthJobStage &&
+         !HexaNodes().empty();
+}
+
 bool CharacterPanel::ShowsSkillPlus() const {
   return !read_only_ &&
          (!IsBeginnerPage(SelectedSkillPage()) || ShowsSkillMinus());
@@ -1023,7 +1030,7 @@ int CharacterPanel::SkillPages() const {
   // The beginner page is page 0 for every character, since they start with that
   // book and always keep it.
   return 1 + NumberedSkillPages() + (HasHyperPage() ? 1 : 0) +
-         (HasVPage() ? 1 : 0);
+         (HasVPage() ? 1 : 0) + (HasVIPage() ? 1 : 0);
 }
 
 bool CharacterPanel::IsHyperPage(int page) const {
@@ -1031,7 +1038,17 @@ bool CharacterPanel::IsHyperPage(int page) const {
 }
 
 bool CharacterPanel::IsVPage(int page) const {
-  return HasVPage() && page == SkillPages() - 1;
+  return HasVPage() && page == SkillPages() - 1 - (HasVIPage() ? 1 : 0);
+}
+
+bool CharacterPanel::IsVIPage(int page) const {
+  return HasVIPage() && page == SkillPages() - 1;
+}
+
+bool CharacterPanel::ShowsSkillFooter() const {
+  const int page = SelectedSkillPage();
+  return ActiveTab() == kTabSkills && (IsVPage(page) || IsVIPage(page)) &&
+         !SkillsForPage(page).empty();
 }
 
 bool CharacterPanel::ShowsVReset() const {
@@ -1064,6 +1081,9 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
                                    character_.proto().active_skill().end());
   if (IsVPage(page)) {
     return VNodes();
+  }
+  if (IsVIPage(page)) {
+    return HexaNodes();
   }
   if (IsHyperPage(page)) {
     return SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true,
@@ -1202,6 +1222,8 @@ std::vector<int> CharacterPanel::SkillLines(
   std::vector<int> breaks;
   if (IsVPage(page)) {
     breaks = VNodeSectionBreaks(skills);
+  } else if (IsVIPage(page)) {
+    breaks = HexaNodeSectionBreaks(skills);
   } else if (IsBeginnerPage(page)) {
     breaks = BeginnerSectionBreaks(skills);
   }
@@ -1293,16 +1315,38 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
         std::move(cells[i]) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
     }));
   }
-  // The way back to an unspent matrix, under its own rule rather than among the
-  // nodes it undoes, exactly like the Hyper tab's bottom rows. Both always draw
-  // whatever the budget; the nodes are what a short terminal cuts.
-  if (ShowsVReset()) {
+  // Under its own rule rather than among the nodes, exactly like the Hyper
+  // tab's bottom rows. Both always draw whatever the budget; the nodes are what
+  // a short terminal cuts.
+  if (ShowsSkillFooter()) {
     rows.push_back(PanelSeparator(highlighted_));
-    rows.push_back(CenteredCell(
-        "[Reset]", reset_focused ? ftxui::inverted : ftxui::nothing,
-        ContentWidth()));
+    rows.push_back(RenderSkillFooter(reset_focused));
   }
   return ftxui::vbox(std::move(rows));
+}
+
+ftxui::Element CharacterPanel::RenderSkillFooter(bool reset_focused) const {
+  std::string balance;
+  if (IsVIPage(SelectedSkillPage())) {
+    // Widths reserved for 99.99 and 9999, so the marks don't shift as the
+    // balances grow.
+    balance = PadLeft(FormatSolErda(character_.sol_erda_energy()), 8) + "  " +
+              PadLeft(FormatFragments(character_.sol_erda_fragments()), 7);
+  } else {
+    balance = FormatVPoints(character_.v_points());
+  }
+  ftxui::Element right =
+      ftxui::hbox({ftxui::filler(), ftxui::text(balance + " ")});
+  if (!ShowsVReset()) {
+    return right;
+  }
+  return ftxui::dbox({
+      ftxui::hbox({ftxui::filler(),
+                   ftxui::text("[Reset]") |
+                       (reset_focused ? ftxui::inverted : ftxui::nothing),
+                   ftxui::filler()}),
+      std::move(right),
+  });
 }
 
 bool CharacterPanel::CanRaiseHyperStat(HyperStatField field) const {

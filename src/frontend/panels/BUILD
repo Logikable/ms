@@ -40,6 +40,7 @@ cc_test(
         ":character_panel",
         "//src/character:consumables",
         "//src/character:guild",
+        "//src/character:hexa_matrix",
         "//src/character:link",
         "//src/character:progression",
         "//src/character:v_matrix",

@@ -83,6 +83,13 @@ std::string FormatSpellTraces(int64_t traces);
 // A V Points balance or price: "5,000 VP".
 std::string FormatVPoints(int64_t points);
 
+// A Sol Erda balance or price from its energy, to the hundredth every source
+// pays in: "🔆 12.43".
+std::string FormatSolErda(int64_t energy);
+
+// A Fragments balance or price: "🔹 340".
+std::string FormatFragments(int64_t fragments);
+
 // Appends "+val label" to out (with a "  " separator if out isn't empty). Does
 // nothing if val <= 0.
 void AppendStat(std::string& out, int val, const std::string& label);

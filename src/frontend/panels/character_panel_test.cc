@@ -18,6 +18,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
 #include "src/character/guild.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
@@ -3150,7 +3151,6 @@ TEST_F(CharacterPanelTest, NoTabWeldsARowToTheRightBorder) {
   }
 }
 
-}  // namespace
 // The matrix is the only book that refunds its points, so the V page is the
 // only page ending in a [Reset], under its own rule like the Hyper tab's, and
 // it is the last stop in the ring.
@@ -3177,6 +3177,129 @@ TEST_F(CharacterPanelTest, TheVPageEndsInAReset) {
   }
   page->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(reset);
+}
+
+}  // namespace
+
+// --- the VI page ---
+
+// The V catalog plus a Dark Knight VI book: an Origin, a Mastery with a skill
+// riding on it, an Enhancement and a common node, one per block.
+std::map<std::string, Skill> HexaCatalog() {
+  std::map<std::string, Skill> catalog = NodeCatalog();
+  int order = 0;
+  auto add = [&](const std::string& key, const std::string& name,
+                 HexaNodeKind kind) -> Skill& {
+    Skill& skill = catalog[key];
+    skill.set_name(name);
+    skill.set_kind(SKILL_KIND_ATTACK);
+    skill.add_placement()->set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_VI);
+    skill.mutable_placement(0)->set_skill_order(++order);
+    skill.set_hexa_node(kind);
+    skill.set_max_level(kHexaNodeMaxLevel);
+    return skill;
+  };
+  add("dark_origin", "Dead Space", HEXA_NODE_KIND_ORIGIN);
+  add("hexa_spear", "HEXA Spear", HEXA_NODE_KIND_MASTERY);
+  add("hexa_rider", "Rider Spear", HEXA_NODE_KIND_UNSPECIFIED)
+      .set_hexa_core("HEXA Spear");
+  add("spear_boost", "Spear Boost", HEXA_NODE_KIND_ENHANCEMENT);
+  add("sol_janus", "Sol Janus", HEXA_NODE_KIND_COMMON);
+  return catalog;
+}
+
+std::vector<std::string> SplitLines(const std::string& text) {
+  std::vector<std::string> lines;
+  std::size_t start = 0;
+  for (std::size_t end; (end = text.find('\n', start)) != std::string::npos;
+       start = end + 1) {
+    lines.push_back(text.substr(start, end - start));
+  }
+  lines.push_back(text.substr(start));
+  return lines;
+}
+
+CharacterInstance MakeSixthJob(std::mt19937& rng) {
+  CharacterInstance c = MakeFifthJob(rng, /*v_points=*/11);
+  c.AdvanceJob(JOB_DARK_KNIGHT);  // the 6th
+  c.AddSolErdaEnergy(12'430);
+  c.AddSolErdaFragments(340);
+  return c;
+}
+
+// The page bar to the last page, the VI page once the 6th job is taken.
+ftxui::Component OpenLastSkillPage(CharacterPanel& panel) {
+  ftxui::Component page = panel.MakeComponent(CharacterPanelActions());
+  page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  for (int i = 0; i < 8; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);
+  }
+  return page;
+}
+
+// The VI page lists the nodes in their four blocks, a rule between each, and
+// leaves a skill riding on a node to that node's card.
+TEST_F(CharacterPanelTest, TheVIPageListsItsNodesInFourBlocks) {
+  CharacterInstance c = MakeSixthJob(rng_);
+  CharacterPanel panel(c, account_, panel_focus_, HexaCatalog());
+  std::string rendered = RenderComponentText(OpenLastSkillPage(panel));
+  EXPECT_NE(rendered.find("V  VI"), std::string::npos) << rendered;
+  std::vector<std::string> lines = SplitLines(rendered);
+  std::vector<std::string> body;
+  for (const std::string& line : lines) {
+    for (const char* name :
+         {"Dead Space", "HEXA Spear", "Spear Boost", "Sol Janus", "├"}) {
+      if (line.find(name) != std::string::npos) {
+        body.push_back(name);
+        break;
+      }
+    }
+  }
+  // The rules under the outer tab bar and page bar come first, and the
+  // footer's last.
+  EXPECT_EQ(body, std::vector<std::string>({"├", "├", "Dead Space", "├",
+                                            "HEXA Spear", "├", "Spear Boost",
+                                            "├", "Sol Janus", "├"}))
+      << rendered;
+  EXPECT_EQ(rendered.find("Rider Spear"), std::string::npos) << rendered;
+}
+
+// Both balances sit bottom-right, Sol Erda to the hundredth, and the VI page
+// has no [Reset]: GMS never refunds a HEXA level.
+TEST_F(CharacterPanelTest, TheVIPageEndsInBothBalances) {
+  CharacterInstance c = MakeSixthJob(rng_);
+  CharacterPanel panel(c, account_, panel_focus_, HexaCatalog());
+  std::string rendered = RenderComponentText(OpenLastSkillPage(panel));
+  std::vector<std::string> lines = SplitLines(rendered);
+  // The row under the last rule.
+  std::string footer;
+  for (std::size_t i = 1; i < lines.size(); ++i) {
+    if (lines[i - 1].rfind("├", 0) == 0) {
+      footer = lines[i];
+    }
+  }
+  EXPECT_NE(footer.find("12.43"), std::string::npos) << rendered;
+  EXPECT_LT(footer.find("🔆"), footer.find("12.43")) << rendered;
+  EXPECT_NE(footer.find("🔹  340 │"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("[Reset]"), std::string::npos) << rendered;
+}
+
+// The V Points left the page bar for the footer, beside the [Reset].
+TEST_F(CharacterPanelTest, TheVPagesPointsShareTheResetRow) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  std::string rendered = RenderComponentText(OpenLastSkillPage(panel));
+  std::vector<std::string> lines = SplitLines(rendered);
+  int found = 0;
+  for (const std::string& line : lines) {
+    if (line.find("VP") != std::string::npos) {
+      ++found;
+      EXPECT_NE(line.find("[Reset]"), std::string::npos) << rendered;
+      EXPECT_NE(line.find("11 VP │"), std::string::npos) << rendered;
+    }
+  }
+  EXPECT_EQ(found, 1) << rendered;
 }
 
 }  // namespace ms

@@ -245,6 +245,17 @@ std::vector<InspectedSkill> TuiController::skill_inspect_boosted() const {
       boosted.push_back({found, character.skill_level(*found), bonus});
     }
   }
+  // A HEXA node's riders have no row of their own, so its card is where they
+  // are read, in book order.
+  if (skill_inspect_.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+    const JobAdvancement book =
+        AdvancementForJobStage(character.proto().job(), kSixthJobStage);
+    for (const Skill* rider : SkillsForAdvancement(state_.skills, book)) {
+      if (rider->hexa_core() == skill_inspect_.name()) {
+        boosted.push_back({rider, character.skill_level(*rider), bonus});
+      }
+    }
+  }
   return boosted;
 }
 

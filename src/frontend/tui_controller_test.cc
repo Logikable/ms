@@ -8,6 +8,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <tuple>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -970,6 +971,36 @@ TEST_F(TuiControllerTest, ABoostCardFindsTheSkillItBoosts) {
   EXPECT_EQ(boosted[0].learned, 3);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(controller_->screen(), kSkillInspect);
+}
+
+// A HEXA node's riders have no row on the VI page, so the node's card carries
+// them as tabs, in book order, at the node's level.
+TEST_F(TuiControllerTest, AHexaNodeCardCarriesTheSkillsRidingOnIt) {
+  for (Job job : {JOB_SWORDMAN, JOB_SPEARMAN, JOB_BERSERKER, JOB_DARK_KNIGHT,
+                  JOB_DARK_KNIGHT, JOB_DARK_KNIGHT}) {
+    state_->character.AdvanceJob(job);
+  }
+  Skill node;
+  node.set_name("HEXA Spear");
+  node.set_hexa_node(HEXA_NODE_KIND_MASTERY);
+  PlaceIn(node, JOB_ADVANCEMENT_DARK_KNIGHT_VI);
+  state_->skills["hexa_spear"] = node;
+  for (const auto& [key, name, order] :
+       std::vector<std::tuple<std::string, std::string, int>>{
+           {"a_second", "Second Rider", 3}, {"z_first", "First Rider", 2}}) {
+    Skill rider;
+    rider.set_name(name);
+    rider.set_hexa_core("HEXA Spear");
+    rider.add_placement()->set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_VI);
+    rider.mutable_placement(0)->set_skill_order(order);
+    state_->skills[key] = rider;
+  }
+
+  controller_->OpenSkillInspect(node);
+  std::vector<InspectedSkill> riders = controller_->skill_inspect_boosted();
+  ASSERT_EQ(riders.size(), 2u);
+  EXPECT_EQ(riders[0].skill->name(), "First Rider");
+  EXPECT_EQ(riders[1].skill->name(), "Second Rider");
 }
 
 // --- Job advancement ---

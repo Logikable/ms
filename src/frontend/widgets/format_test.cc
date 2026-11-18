@@ -132,6 +132,17 @@ TEST(FormatClockTest, CountsInMinutesAndSeconds) {
   EXPECT_EQ(FormatClock(-5.0), "0:00");
 }
 
+// --- FormatSolErda ---
+
+// Energy is thousandths of a Sol Erda and every source pays tens, so the
+// hundredth is exact.
+TEST(FormatSolErdaTest, ShowsTheHundredth) {
+  EXPECT_EQ(FormatSolErda(12'430), "🔆 12.43");
+  EXPECT_EQ(FormatSolErda(50), "🔆 0.05");
+  EXPECT_EQ(FormatSolErda(1'672'000), "🔆 1,672.00");
+  EXPECT_EQ(FormatFragments(9999), "🔹 9999");
+}
+
 // --- FormatMeso ---
 
 TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {

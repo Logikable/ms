@@ -79,7 +79,10 @@ cc_library(
     name = "format",
     srcs = ["format.cc"],
     hdrs = ["format.h"],
-    deps = [":text_columns"],
+    deps = [
+        ":text_columns",
+        "//src/character:sol_erda",
+    ],
 )
 
 cc_test(
