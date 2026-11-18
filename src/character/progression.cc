@@ -16,9 +16,9 @@
 #include "src/character/exp_table.h"
 #include "src/character/force/sacred_power.h"
 #include "src/character/matrix/hyper_stats.h"
-#include "src/item/flame.h"
-#include "src/item/potential.h"
-#include "src/item/soul.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
+#include "src/item/upgrade/soul.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

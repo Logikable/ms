@@ -9,7 +9,7 @@
 #include "src/frontend/widgets/text/colors.h"
 #include "src/frontend/widgets/text/format.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

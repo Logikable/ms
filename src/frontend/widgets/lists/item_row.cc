@@ -14,9 +14,9 @@
 #include "src/frontend/widgets/text/format.h"
 #include "src/frontend/widgets/text/game_names.h"
 #include "src/frontend/widgets/text/marquee.h"
-#include "src/item/flame.h"
 #include "src/item/item.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

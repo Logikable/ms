@@ -12,10 +12,10 @@
 #include <memory>
 #include <random>
 
-#include "src/item/flame.h"
 #include "src/item/item.h"
-#include "src/item/potential.h"
-#include "src/item/soul.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
+#include "src/item/upgrade/soul.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

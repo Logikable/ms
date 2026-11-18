@@ -1,4 +1,4 @@
-#include "src/item/star_force_cost.h"
+#include "src/item/upgrade/star_force_cost.h"
 
 #include <cmath>
 #include <cstdint>

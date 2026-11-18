@@ -19,7 +19,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/prompts/reroll_prompt.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 
 namespace ms {
 

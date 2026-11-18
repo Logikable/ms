@@ -1,4 +1,4 @@
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 
 #include <map>
 #include <random>

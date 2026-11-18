@@ -24,7 +24,7 @@
 #include "absl/types/span.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/stat_preset.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/familiar.pb.h"
 

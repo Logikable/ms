@@ -15,7 +15,7 @@
 #include <random>
 #include <string>
 
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

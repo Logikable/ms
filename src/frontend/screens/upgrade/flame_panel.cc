@@ -17,7 +17,7 @@
 #include "src/frontend/widgets/text/keys.h"
 #include "src/frontend/widgets/text/text_columns.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

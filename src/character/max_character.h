@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "src/character/character.h"
-#include "src/item/flame.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

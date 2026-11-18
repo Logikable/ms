@@ -28,7 +28,7 @@
 #include "src/character/job_advancement.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 #include "src/protos/equip.pb.h"
 
 ABSL_FLAG(int, level, 260, "Level of the max characters rolled on.");

@@ -14,7 +14,7 @@
 #include "src/combat/damage.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

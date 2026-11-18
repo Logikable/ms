@@ -18,7 +18,7 @@
 
 #include "src/account.h"
 #include "src/character/character.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 
 namespace ms {
 

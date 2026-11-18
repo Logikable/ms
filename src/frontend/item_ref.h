@@ -13,9 +13,9 @@
 #include "src/character/character.h"
 #include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
 #include "src/item/item.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

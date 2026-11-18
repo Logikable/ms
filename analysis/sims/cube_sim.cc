@@ -18,7 +18,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/equip.pb.h"
 
 ABSL_FLAG(int, item_level, 140, "Equipment level of the item being cubed.");

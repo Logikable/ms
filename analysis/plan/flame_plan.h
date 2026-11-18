@@ -18,7 +18,7 @@
 #include "analysis/plan/cube_plan.h"
 #include "analysis/yardstick.h"
 #include "src/game_state.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

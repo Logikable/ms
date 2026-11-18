@@ -19,7 +19,7 @@
 #include "src/frontend/widgets/text/marquee.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
-#include "src/item/spell_trace_cost.h"
+#include "src/item/upgrade/spell_trace_cost.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

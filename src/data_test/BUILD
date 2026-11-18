@@ -123,7 +123,7 @@ cc_test(
         "//data/scrolls:all",
     ],
     deps = [
-        "//src/item:spell_trace_cost",
+        "//src/item/upgrade:spell_trace_cost",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
@@ -260,7 +260,7 @@ cc_test(
         "//src/frontend/widgets/text:format",
         "//src/item:currency",
         "//src/item:equip_instance",
-        "//src/item:soul",
+        "//src/item/upgrade:soul",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:keybinds_proto_cc",

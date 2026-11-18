@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "src/item/equip_instance.h"
-#include "src/item/star_force_cost.h"
+#include "src/item/upgrade/star_force_cost.h"
 
 namespace ms {
 namespace {

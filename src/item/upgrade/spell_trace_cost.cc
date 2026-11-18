@@ -1,4 +1,4 @@
-#include "src/item/spell_trace_cost.h"
+#include "src/item/upgrade/spell_trace_cost.h"
 
 #include "absl/log/log.h"
 #include "src/protos/scroll.pb.h"

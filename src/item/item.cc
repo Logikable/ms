@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "src/item/equip_stats.h"
-#include "src/item/flame.h"
-#include "src/item/soul.h"
+#include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/soul.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

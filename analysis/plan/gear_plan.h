@@ -26,7 +26,7 @@
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

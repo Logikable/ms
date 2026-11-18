@@ -1,4 +1,4 @@
-#include "src/item/soul.h"
+#include "src/item/upgrade/soul.h"
 
 #include <algorithm>
 #include <map>

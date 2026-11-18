@@ -39,7 +39,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/prompts/reroll_prompt.h"
 #include "src/item/equip_instance.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 
 namespace ms {
 

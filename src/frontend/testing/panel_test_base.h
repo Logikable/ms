@@ -16,7 +16,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 

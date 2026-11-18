@@ -266,7 +266,7 @@ cc_library(
     hdrs = ["star_force_curve.h"],
     deps = [
         "//src/item:equip_instance",
-        "//src/item:star_force_cost",
+        "//src/item/upgrade:star_force_cost",
     ],
 )
 
@@ -289,10 +289,10 @@ cc_library(
         "//src/frontend/widgets/text:game_names",
         "//src/item",
         "//src/item:equip_instance",
-        "//src/item:flame",
-        "//src/item:potential",
         "//src/item:slot_order",
-        "//src/item:star_force_cost",
+        "//src/item/upgrade:flame",
+        "//src/item/upgrade:potential",
+        "//src/item/upgrade:star_force_cost",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@abseil-cpp//absl/log:check",

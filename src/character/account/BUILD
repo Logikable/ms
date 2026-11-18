@@ -9,7 +9,7 @@ cc_library(
     deps = [
         "//src/character:stat_preset",
         "//src/combat:damage",
-        "//src/item:potential",
+        "//src/item/upgrade:potential",
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
         "@abseil-cpp//absl/types:span",

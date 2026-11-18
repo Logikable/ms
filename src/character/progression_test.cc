@@ -8,7 +8,7 @@
 #include "src/character/account/link.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

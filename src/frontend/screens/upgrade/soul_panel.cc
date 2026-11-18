@@ -19,7 +19,7 @@
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
-#include "src/item/soul.h"
+#include "src/item/upgrade/soul.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

@@ -11,7 +11,7 @@
 #include "src/character/skill_placement.h"
 #include "src/frontend/widgets/text/colors.h"
 #include "src/frontend/widgets/text/text_columns.h"
-#include "src/item/potential.h"
+#include "src/item/upgrade/potential.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

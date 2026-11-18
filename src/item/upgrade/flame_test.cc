@@ -1,4 +1,4 @@
-#include "src/item/flame.h"
+#include "src/item/upgrade/flame.h"
 
 #include <map>
 #include <random>

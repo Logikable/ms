@@ -16,7 +16,7 @@
 #include "src/frontend/widgets/text/game_names.h"
 #include "src/frontend/widgets/text/keys.h"
 #include "src/item/equip_instance.h"
-#include "src/item/star_force_cost.h"
+#include "src/item/upgrade/star_force_cost.h"
 
 namespace ms {
 namespace {

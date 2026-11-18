@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-#include "src/item/spell_trace_cost.h"
+#include "src/item/upgrade/spell_trace_cost.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
