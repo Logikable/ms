@@ -12,7 +12,7 @@
 #include "src/build_config.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"

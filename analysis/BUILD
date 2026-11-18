@@ -286,7 +286,7 @@ cc_library(
     hdrs = ["reference_data.h"],
     deps = [
         "//src/character:inner_ability",
-        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets/text:game_names",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:flame",

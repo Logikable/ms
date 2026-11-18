@@ -8,7 +8,7 @@
 #include "src/character/account/link.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/widgets/exp_bar.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/keys.h"
 
 namespace ms {
 

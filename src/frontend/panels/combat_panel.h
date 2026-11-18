@@ -17,7 +17,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/fight.h"
 #include "src/frontend/panel_widths.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/game_state.h"
 
 namespace ms {

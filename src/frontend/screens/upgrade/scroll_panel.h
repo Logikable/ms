@@ -34,9 +34,9 @@
 #include "ftxui/dom/node.hpp"
 #include "src/character/character.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/confirm_prompt.h"
-#include "src/frontend/widgets/item_menu.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/lists/item_menu.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

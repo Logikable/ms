@@ -15,10 +15,10 @@
 #include "src/frontend/screens/inspect/skill_inspect_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/game_names.h"
+#include "src/frontend/widgets/text/keys.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

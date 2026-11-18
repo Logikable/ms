@@ -11,7 +11,7 @@
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/achievement.h"
 #include "src/frontend/testing/panel_test_base.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/protos/achievement.pb.h"
 
 namespace ms {

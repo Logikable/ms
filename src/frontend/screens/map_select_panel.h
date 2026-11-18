@@ -28,7 +28,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/lists/item_menu.h"
 #include "src/game_state.h"
 
 namespace ms {

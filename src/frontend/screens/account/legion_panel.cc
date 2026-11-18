@@ -11,9 +11,9 @@
 #include "src/character/stat_preset.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/game_names.h"
+#include "src/frontend/widgets/text/keys.h"
 #include "src/protos/save.pb.h"
 
 namespace ms {

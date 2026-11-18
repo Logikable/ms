@@ -8,8 +8,8 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/format.h"
 
 namespace ms {
 namespace {

@@ -28,7 +28,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
 #include "src/character/stat_preset.h"
-#include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/lists/item_menu.h"
 #include "src/game_state.h"
 #include "src/roster.h"
 

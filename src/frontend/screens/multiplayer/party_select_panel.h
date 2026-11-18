@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/lists/item_menu.h"
 #include "src/multiplayer/client.h"
 
 namespace ms {

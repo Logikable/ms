@@ -10,12 +10,12 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/account/familiar.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/confirm_prompt.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/reroll_prompt.h"
-#include "src/frontend/widgets/text_columns.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
+#include "src/frontend/widgets/prompts/reroll_prompt.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/game_names.h"
+#include "src/frontend/widgets/text/text_columns.h"
 
 namespace ms {
 namespace {

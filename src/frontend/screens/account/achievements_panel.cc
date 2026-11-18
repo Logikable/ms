@@ -15,10 +15,10 @@
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/achievement.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/keys.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/achievement.pb.h"
 
 namespace ms {

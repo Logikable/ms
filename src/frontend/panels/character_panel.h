@@ -29,9 +29,9 @@
 #include "src/character/matrix/hyper_stats.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/marquee.h"
-#include "src/frontend/widgets/stat_rows.h"
-#include "src/frontend/widgets/text_field.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
+#include "src/frontend/widgets/text/marquee.h"
+#include "src/frontend/widgets/text/text_field.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 

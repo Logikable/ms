@@ -9,10 +9,10 @@
 #include "src/character/account/familiar.h"
 #include "src/frontend/screens/inspect/inspect_panel.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/scroll_card.h"
+#include "src/frontend/widgets/lists/scroll_card.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/game_names.h"
 
 namespace ms {
 namespace {

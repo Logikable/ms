@@ -1,0 +1,71 @@
+/* The rows of an Equipped list: what is worn, in slot order, already formatted
+ * as text.
+ *
+ * Two screens draw this list: the main screen's Equipped panel and the Party
+ * Inspect screen, which shows a party member's. Neither builds the rows itself,
+ * so what a worn item's row shows is decided in one place.
+ */
+#ifndef MS_SRC_FRONTEND_WIDGETS_EQUIPPED_LIST_H_
+#define MS_SRC_FRONTEND_WIDGETS_EQUIPPED_LIST_H_
+
+#include <chrono>
+#include <string>
+#include <vector>
+
+#include "src/account.h"
+#include "src/character/character.h"
+#include "src/frontend/widgets/lists/item_columns.h"
+#include "src/frontend/widgets/lists/item_row.h"
+#include "src/protos/equip.pb.h"
+
+namespace ms {
+
+// The two symbol lists the Symbols tab switches between.
+enum class SymbolKind { kArcane, kSacred, kGrandSacred };
+
+// The column header above a symbol list, which names its kind's force. The
+// Equipped list's own header is ItemListHeader, over the columns its panel
+// fitted.
+std::string SymbolHeader(SymbolKind kind);
+
+// One worn item as a row.
+struct EquippedRow {
+  // The row and its cells, not including the cursor column.
+  ItemRowText text;
+  EquipSlot slot;
+  // Whether the item is worn but has no effect, which a list shows dimmed
+  // rather than hidden.
+  bool inactive = false;
+  // Whether this preset is wearing the first preset's item rather than its own.
+  // Also dimmed: the row shows what the character has on, and the dimming says
+  // this preset has no item of its own in that slot.
+  bool inherited = false;
+};
+
+// The rows for the gear `character` is wearing. Symbols are left out,
+// since they have their own slots; see SymbolRows.
+//
+// Only the row at `selected` scrolls a name that is too long, with `elapsed` as
+// how long it has been selected; pass -1 and zero for a list with no scrolling.
+// `columns` is what the panel fitted into its width.
+std::vector<EquippedRow> EquippedRows(
+    const CharacterInstance& character, int selected,
+    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,
+    StatPreset preset = StatPreset::kFirst);
+
+// The columns the list of what `character` wears in `preset` may show (see
+// ItemListOptionsFor).
+ItemListOptions EquippedListOptions(const CharacterInstance& character,
+                                    const AccountInstance& account,
+                                    StatPreset preset = StatPreset::kFirst);
+
+// The rows for the symbols of `kind` that `character` is wearing, in the order
+// their areas unlock. Empty until the first is equipped, which is all the list
+// shows before then.
+std::vector<EquippedRow> SymbolRows(
+    const CharacterInstance& character, SymbolKind kind, int selected,
+    std::chrono::steady_clock::duration elapsed);
+
+}  // namespace ms
+
+#endif  // MS_SRC_FRONTEND_WIDGETS_EQUIPPED_LIST_H_

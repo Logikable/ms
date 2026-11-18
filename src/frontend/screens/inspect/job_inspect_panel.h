@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 

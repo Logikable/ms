@@ -9,8 +9,8 @@
 #include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/keys.h"
 
 namespace ms {
 namespace {

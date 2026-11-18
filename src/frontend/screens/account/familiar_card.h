@@ -12,7 +12,7 @@
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/scroll_card.h"
+#include "src/frontend/widgets/lists/scroll_card.h"
 #include "src/protos/familiar.pb.h"
 
 namespace ms {

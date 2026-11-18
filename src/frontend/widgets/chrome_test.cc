@@ -16,11 +16,11 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/item_row.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/lists/item_row.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/game_names.h"
+#include "src/frontend/widgets/text/keys.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

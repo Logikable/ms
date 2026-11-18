@@ -7,7 +7,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/exp_table.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

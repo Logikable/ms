@@ -7,7 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/character/account/familiar.h"
 #include "src/frontend/testing/panel_test_base.h"
-#include "src/frontend/widgets/reroll_prompt.h"
+#include "src/frontend/widgets/prompts/reroll_prompt.h"
 
 namespace ms {
 namespace {

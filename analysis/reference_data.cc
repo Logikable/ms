@@ -16,7 +16,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "src/character/inner_ability.h"
-#include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/text/game_names.h"
 #include "src/item/equip_instance.h"
 #include "src/item/flame.h"
 #include "src/item/item.h"

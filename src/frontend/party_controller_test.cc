@@ -32,7 +32,7 @@
 #include "src/frontend/screens/trade/trade_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"

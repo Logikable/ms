@@ -8,7 +8,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
 
 namespace ms {
 namespace {

@@ -13,8 +13,8 @@
 #include "src/combat/damage_breakdown.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/keys.h"
 
 namespace ms {
 namespace {

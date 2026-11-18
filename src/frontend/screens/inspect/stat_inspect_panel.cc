@@ -8,8 +8,8 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
+#include "src/frontend/widgets/text/format.h"
 
 namespace ms {
 namespace {

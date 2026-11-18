@@ -10,7 +10,7 @@
 #include "src/character/matrix/v_matrix.h"
 #include "src/character/skill_placement.h"
 #include "src/frontend/testing/panel_test_base.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/testing/data_files.h"

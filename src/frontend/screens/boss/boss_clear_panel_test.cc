@@ -10,7 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 
 namespace ms {
 namespace {

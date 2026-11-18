@@ -11,7 +11,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/item/equip_instance.h"
 
 namespace ms {

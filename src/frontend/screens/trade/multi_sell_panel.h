@@ -20,9 +20,9 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
-#include "src/frontend/widgets/confirm_prompt.h"
-#include "src/frontend/widgets/inventory_list.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/lists/inventory_list.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
+#include "src/frontend/widgets/text/marquee.h"
 
 namespace ms {
 

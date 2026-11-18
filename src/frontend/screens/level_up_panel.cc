@@ -6,7 +6,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
 
 namespace ms {
 

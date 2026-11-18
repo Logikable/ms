@@ -3,58 +3,14 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "colors",
-    hdrs = ["colors.h"],
-    deps = [
-        "@ftxui//:dom",
-    ],
-)
-
-cc_library(
-    name = "text_columns",
-    srcs = ["text_columns.cc"],
-    hdrs = ["text_columns.h"],
-    deps = ["@ftxui//:screen"],
-)
-
-cc_test(
-    name = "text_columns_test",
-    size = "small",
-    srcs = ["text_columns_test.cc"],
-    deps = [
-        ":format",
-        ":text_columns",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "marquee",
-    srcs = ["marquee.cc"],
-    hdrs = ["marquee.h"],
-    deps = [":text_columns"],
-)
-
-cc_test(
-    name = "marquee_test",
-    size = "small",
-    srcs = ["marquee_test.cc"],
-    deps = [
-        ":marquee",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "exp_bar",
     srcs = ["exp_bar.cc"],
     hdrs = ["exp_bar.h"],
     deps = [
         ":chrome",
-        ":colors",
-        ":format",
         "//src/character:exp_table",
+        "//src/frontend/widgets/text:colors",
+        "//src/frontend/widgets/text:format",
         "//src/protos:character_proto_cc",
         "@ftxui//:dom",
     ],
@@ -65,151 +21,10 @@ cc_test(
     size = "small",
     srcs = ["exp_bar_test.cc"],
     deps = [
-        ":colors",
         ":exp_bar",
         "//src/character:exp_table",
+        "//src/frontend/widgets/text:colors",
         "//src/protos:character_proto_cc",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "format",
-    srcs = ["format.cc"],
-    hdrs = ["format.h"],
-    deps = [
-        ":text_columns",
-        "//src/character/matrix:sol_erda",
-    ],
-)
-
-cc_test(
-    name = "format_test",
-    size = "small",
-    srcs = ["format_test.cc"],
-    deps = [
-        ":format",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "game_names",
-    srcs = ["game_names.cc"],
-    hdrs = ["game_names.h"],
-    deps = [
-        ":colors",
-        ":format",
-        "//src/character:inner_ability",
-        "//src/character:skill_placement",
-        "//src/character:stat_preset",
-        "//src/character/account:familiar",
-        "//src/character/account:legion",
-        "//src/character/matrix:hyper_stats",
-        "//src/item",
-        "//src/item:flame",
-        "//src/item:potential",
-        "//src/item:soul",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:equip_set_proto_cc",
-        "//src/protos:familiar_proto_cc",
-        "//src/protos:legion_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@ftxui//:screen",
-    ],
-)
-
-cc_test(
-    name = "game_names_test",
-    size = "small",
-    srcs = ["game_names_test.cc"],
-    deps = [
-        ":colors",
-        ":game_names",
-        ":text_columns",
-        "//src/item:potential",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "item_columns",
-    srcs = ["item_columns.cc"],
-    hdrs = ["item_columns.h"],
-    deps = [":format"],
-)
-
-cc_test(
-    name = "item_columns_test",
-    size = "small",
-    srcs = ["item_columns_test.cc"],
-    deps = [
-        ":item_columns",
-        ":text_columns",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "item_row",
-    srcs = ["item_row.cc"],
-    hdrs = ["item_row.h"],
-    deps = [
-        ":chrome",
-        ":format",
-        ":game_names",
-        ":item_columns",
-        ":marquee",
-        "//src:account",
-        "//src/character",
-        "//src/character:progression",
-        "//src/item",
-        "//src/item:flame",
-        "//src/item:potential",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "item_row_test",
-    size = "small",
-    srcs = ["item_row_test.cc"],
-    deps = [
-        ":chrome",
-        ":item_columns",
-        ":item_row",
-        ":marquee",
-        ":text_columns",
-        "//src/protos:equip_proto_cc",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "keys",
-    srcs = ["keys.cc"],
-    hdrs = ["keys.h"],
-    deps = [
-        "@ftxui//:component",
-    ],
-)
-
-cc_test(
-    name = "keys_test",
-    size = "small",
-    srcs = ["keys_test.cc"],
-    deps = [
-        ":keys",
-        "//src/frontend/testing:screen_text",
-        "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -238,10 +53,10 @@ cc_library(
     hdrs = ["chrome.h"],
     deps = [
         ":buff_dots",
-        ":colors",
-        ":format",
-        ":game_names",
-        ":marquee",
+        "//src/frontend/widgets/text:colors",
+        "//src/frontend/widgets/text:format",
+        "//src/frontend/widgets/text:game_names",
+        "//src/frontend/widgets/text:marquee",
         "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -252,316 +67,19 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "scroll_card",
-    srcs = ["scroll_card.cc"],
-    hdrs = ["scroll_card.h"],
-    deps = [
-        ":chrome",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "scroll_card_test",
-    size = "small",
-    srcs = ["scroll_card_test.cc"],
-    deps = [
-        ":scroll_card",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "inventory_list",
-    srcs = ["inventory_list.cc"],
-    hdrs = ["inventory_list.h"],
-    deps = [
-        ":chrome",
-        ":colors",
-        ":format",
-        ":game_names",
-        ":item_columns",
-        ":item_row",
-        ":marquee",
-        "//src:account",
-        "//src/character",
-        "//src/character:progression",
-        "//src/item",
-        "//src/item:currency",
-        "//src/item:equip_instance",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "inventory_list_test",
-    size = "small",
-    srcs = ["inventory_list_test.cc"],
-    deps = [
-        ":colors",
-        ":inventory_list",
-        ":item_row",
-        "//src/frontend:panel_widths",
-        "//src/frontend/testing:panel_test_base",
-        "//src/item:equip_instance",
-        "@ftxui//:dom",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "familiar_list",
-    srcs = ["familiar_list.cc"],
-    hdrs = ["familiar_list.h"],
-    deps = [
-        ":format",
-        ":game_names",
-        ":item_row",
-        ":text_columns",
-        "//src/character",
-        "//src/character/account:familiar",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:familiar_proto_cc",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "familiar_list_test",
-    size = "small",
-    srcs = ["familiar_list_test.cc"],
-    deps = [
-        ":familiar_list",
-        ":text_columns",
-        "//src/character/account:familiar",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "equipped_list",
-    srcs = ["equipped_list.cc"],
-    hdrs = ["equipped_list.h"],
-    deps = [
-        ":format",
-        ":game_names",
-        ":item_row",
-        ":marquee",
-        "//src:account",
-        "//src/character",
-        "//src/character/force:symbol",
-        "//src/item:equip_instance",
-        "//src/item:slot_order",
-        "//src/protos:equip_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "equipped_list_test",
-    size = "small",
-    srcs = ["equipped_list_test.cc"],
-    deps = [
-        ":equipped_list",
-        ":item_row",
-        ":text_columns",
-        "//src/frontend:panel_widths",
-        "//src/frontend/testing:panel_test_base",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "stat_rows",
-    srcs = ["stat_rows.cc"],
-    hdrs = ["stat_rows.h"],
-    deps = [
-        ":format",
-        ":game_names",
-        "//src:account",
-        "//src/character",
-        "//src/character:character_stats",
-        "//src/character:job_branch",
-        "//src/character:progression",
-        "//src/character:stat_preset",
-        "//src/character/force:sacred_power",
-        "//src/character/matrix:hyper_stats",
-        "//src/combat:constants",
-        "//src/combat:damage",
-        "//src/item:equip_instance",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:skill_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "stat_rows_test",
-    size = "small",
-    srcs = ["stat_rows_test.cc"],
-    deps = [
-        ":stat_rows",
-        "//src/character:character_stats",
-        "//src/character:consumables",
-        "//src/character/force:sacred_power",
-        "//src/testing:prototypes",
-        "@googletest//:gtest_main",
-    ],
-)
-
 cc_test(
     name = "chrome_test",
     size = "small",
     srcs = ["chrome_test.cc"],
     deps = [
         ":chrome",
-        ":colors",
-        ":format",
-        ":game_names",
-        ":item_row",
-        ":keys",
         "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets/lists:item_row",
+        "//src/frontend/widgets/text:colors",
+        "//src/frontend/widgets/text:format",
+        "//src/frontend/widgets/text:game_names",
+        "//src/frontend/widgets/text:keys",
         "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "reroll_prompt",
-    srcs = ["reroll_prompt.cc"],
-    hdrs = ["reroll_prompt.h"],
-    deps = [
-        ":chrome",
-        ":confirm_prompt",
-        ":keys",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_library(
-    name = "confirm_prompt",
-    srcs = ["confirm_prompt.cc"],
-    hdrs = ["confirm_prompt.h"],
-    deps = [
-        ":chrome",
-        ":keys",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_library(
-    name = "text_field",
-    srcs = ["text_field.cc"],
-    hdrs = ["text_field.h"],
-    deps = [
-        ":keys",
-        "@ftxui//:component",
-    ],
-)
-
-cc_test(
-    name = "text_field_test",
-    size = "small",
-    srcs = ["text_field_test.cc"],
-    deps = [
-        ":text_field",
-        "@ftxui//:component",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "confirm_prompt_test",
-    size = "small",
-    srcs = ["confirm_prompt_test.cc"],
-    deps = [
-        ":confirm_prompt",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "continue_prompt",
-    srcs = ["continue_prompt.cc"],
-    hdrs = ["continue_prompt.h"],
-    deps = [
-        ":chrome",
-        ":keys",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "continue_prompt_test",
-    size = "small",
-    srcs = ["continue_prompt_test.cc"],
-    deps = [
-        ":continue_prompt",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "amount_selector",
-    srcs = ["amount_selector.cc"],
-    hdrs = ["amount_selector.h"],
-    deps = [
-        ":chrome",
-        ":confirm_prompt",
-        ":keys",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "amount_selector_test",
-    size = "small",
-    srcs = ["amount_selector_test.cc"],
-    deps = [
-        ":amount_selector",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "item_menu",
-    srcs = ["item_menu.cc"],
-    hdrs = ["item_menu.h"],
-    deps = [
-        ":chrome",
-        ":keys",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "item_menu_test",
-    size = "small",
-    srcs = ["item_menu_test.cc"],
-    deps = [
-        ":colors",
-        ":item_menu",
-        "//src/frontend/testing:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

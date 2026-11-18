@@ -15,7 +15,7 @@
 #include "src/character/force/symbol.h"
 #include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"

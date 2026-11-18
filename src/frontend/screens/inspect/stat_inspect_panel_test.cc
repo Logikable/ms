@@ -6,7 +6,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/testing/panel_test_base.h"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
 
 namespace ms {
 namespace {

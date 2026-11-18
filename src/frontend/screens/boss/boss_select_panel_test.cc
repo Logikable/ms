@@ -14,7 +14,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/inner_ability.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"

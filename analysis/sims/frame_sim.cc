@@ -27,7 +27,7 @@
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/game_state.h"
 
 ABSL_FLAG(int, reps, 2000, "how many times to run each measurement");

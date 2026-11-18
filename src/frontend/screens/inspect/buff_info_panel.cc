@@ -8,8 +8,8 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/consumables.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/text_columns.h"
+#include "src/frontend/widgets/text/format.h"
+#include "src/frontend/widgets/text/text_columns.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

@@ -24,8 +24,8 @@
 #include "ftxui/screen/box.hpp"
 #include "src/character/character.h"
 #include "src/character/stat_preset.h"
-#include "src/frontend/widgets/item_menu.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/lists/item_menu.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

@@ -30,7 +30,7 @@
 #include "src/character/character.h"
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/stat_preset.h"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

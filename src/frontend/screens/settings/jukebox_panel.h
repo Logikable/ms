@@ -25,7 +25,7 @@
 #include "ftxui/screen/box.hpp"
 #include "src/account.h"
 #include "src/audio/music_director.h"
-#include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/lists/item_menu.h"
 #include "src/game_state.h"
 
 namespace ms {

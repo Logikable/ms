@@ -16,7 +16,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
 #include "src/item/equip_instance.h"
 
 namespace ms {

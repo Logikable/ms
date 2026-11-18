@@ -12,8 +12,8 @@
 #include "src/character/job_name.h"
 #include "src/character/progression.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
+#include "src/frontend/widgets/text/format.h"
 
 namespace ms {
 namespace {

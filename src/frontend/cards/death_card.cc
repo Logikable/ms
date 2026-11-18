@@ -2,7 +2,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text/colors.h"
 
 namespace ms {
 

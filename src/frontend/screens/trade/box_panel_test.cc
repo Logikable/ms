@@ -12,7 +12,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
 #include "src/frontend/testing/screen_text.h"
-#include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/prompts/confirm_prompt.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

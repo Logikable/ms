@@ -1,0 +1,227 @@
+#include "src/frontend/widgets/lists/item_row.h"
+
+#include <gtest/gtest.h>
+
+#include <string>
+
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/chrome.h"
+#include "src/frontend/widgets/lists/item_columns.h"
+#include "src/frontend/widgets/text/marquee.h"
+#include "src/frontend/widgets/text/text_columns.h"
+#include "src/protos/equip.pb.h"
+
+namespace ms {
+namespace {
+
+// Potential columns with room for one effect each, as a panel at its narrowest
+// gives them.
+ItemColumns OneEffect() {
+  ItemColumns columns;
+  columns.shown[static_cast<int>(ItemColumn::kPotential)] = true;
+  columns.shown[static_cast<int>(ItemColumn::kBonusPotential)] = true;
+  columns.potential_width = kItemPotentialWidth;
+  columns.bonus_potential_width = kItemPotentialWidth;
+  return columns;
+}
+
+ItemColumns EveryColumn() {
+  return FitItemColumns(200,
+                        {/*bag=*/true, /*scrolling=*/true, /*star_force=*/true,
+                         /*potential=*/true, /*bonus_potential=*/true});
+}
+
+ItemCells SwordCells() {
+  ItemCells cells;
+  cells.name = "Sword";
+  cells.slot = "Weapon";
+  cells.level = "Lv120";
+  cells.job = "Warrior";
+  cells.stats = "+7 ATT";
+  cells.scroll = "+3/7";
+  cells.stars = "12★";
+  cells.potential = "+12% ATT";
+  cells.bonus_potential = "9% STR";
+  return cells;
+}
+
+TEST(FormatItemRowTest, WritesEveryCellItIsGiven) {
+  ItemRowText row = FormatItemRow(EveryColumn(), SwordCells());
+  for (const char* cell : {"Sword", "Weapon", "Lv120", "Warrior", "+7 ATT",
+                           "+3/7", "12★", "+12% ATT", "9% STR"}) {
+    EXPECT_NE(row.text.find(cell), std::string::npos) << cell;
+  }
+}
+
+// A column the list doesn't draw takes no room and has no span, and the cells
+// after it close up.
+TEST(FormatItemRowTest, LeavesOutAColumnTheListDoesNotDraw) {
+  ItemColumns worn = FitItemColumns(
+      200, {/*bag=*/false, /*scrolling=*/true, /*star_force=*/true,
+            /*potential=*/true});
+  ItemRowText row = FormatItemRow(worn, SwordCells());
+  EXPECT_EQ(row.text.find("Lv120"), std::string::npos);
+  EXPECT_EQ(row.text.find("Warrior"), std::string::npos);
+  EXPECT_EQ(row.Span(ItemColumn::kLevel).bytes, 0);
+  EXPECT_EQ(row.Span(ItemColumn::kJob).bytes, 0);
+  EXPECT_NE(row.text.find("+7 ATT"), std::string::npos);
+}
+
+// The spans are contiguous and cover the whole row, so a caller can write it
+// out cell by cell without losing a column.
+TEST(FormatItemRowTest, SpansCoverTheRowEndToEnd) {
+  ItemColumns columns = EveryColumn();
+  ItemRowText row = FormatItemRow(columns, SwordCells());
+  std::string rebuilt;
+  for (int i = 0; i < kNumItemColumns; ++i) {
+    CellSpan span = row.Span(static_cast<ItemColumn>(i));
+    if (span.bytes == 0) {
+      continue;
+    }
+    EXPECT_EQ(span.offset, static_cast<int>(rebuilt.size()));
+    rebuilt += row.text.substr(span.offset, span.bytes);
+  }
+  EXPECT_EQ(rebuilt, row.text);
+  // The row is exactly the width the columns were fitted to, minus the cursor
+  // and the gutter the panel adds.
+  EXPECT_EQ(TextColumns(row.text) + kItemListCursor + kItemListGutter,
+            columns.TotalWidth());
+}
+
+// An item name wider than its column is cut, and scrolls once its row has been
+// selected long enough. Skill names get the same treatment through the same
+// ScrollingWindow.
+TEST(FormatItemRowTest, ALongNameIsCutAndThenSlides) {
+  ItemColumns columns = EveryColumn();
+  ItemCells cells = SwordCells();
+  cells.name = "Fafnir Mistilteinn Trace Of Old Iron Age";  // 39 columns
+  ItemRowText still = FormatItemRow(columns, cells);
+  EXPECT_EQ(still.text.substr(0, kItemNameMax),
+            "Fafnir Mistilteinn Trace Of Old Iron A");
+
+  ItemRowText slid =
+      FormatItemRow(columns, cells, kMarqueePause + kMarqueeStep);
+  EXPECT_EQ(slid.text.substr(0, kItemNameMax),
+            "fnir Mistilteinn Trace Of Old Iron Age");
+  // The columns after the name don't move with it.
+  EXPECT_EQ(still.text.substr(kItemNameMax), slid.text.substr(kItemNameMax));
+}
+
+// A name that fits is padded to the column and never moves, so a list of them
+// doesn't shift under the cursor.
+TEST(FormatItemRowTest, AShortNameNeverMoves) {
+  ItemColumns columns = EveryColumn();
+  EXPECT_EQ(FormatItemRow(columns, SwordCells()).text,
+            FormatItemRow(columns, SwordCells(), kMarqueePause * 10).text);
+}
+
+// The upgrade cells come from the item, so no two lists can disagree about what
+// an item shows.
+TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
+  EquipPrototype proto;
+  proto.set_equip_slot(EQUIP_SLOT_HAT);
+  proto.set_upgrade_slots(7);
+  proto.set_required_level(150);
+  Equip state;
+  state.set_scroll_successes(3);
+  state.set_remaining_upgrade_slots(2);
+  state.set_stars(12);
+  PotentialLine* line = state.mutable_main_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  // A second line granting something else, which doesn't change the first
+  // line's total.
+  line = state.mutable_main_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+
+  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  EXPECT_EQ(cells.scroll, "3/9");
+  EXPECT_EQ(cells.stars, "12★");
+  EXPECT_EQ(cells.potential, "12% ATT     ");
+
+  // The job decides which lines the potential cell shows. A bishop's damage
+  // doesn't use weapon attack, so the same item falls through to the rate.
+  cells = EquipUpgradeCells(proto, state, JOB_BISHOP, OneEffect());
+  EXPECT_EQ(cells.potential, "20% Meso    ");
+
+  // The job's secondary stat also reaches the cell: a hero uses DEX after STR,
+  // and a bishop gets nothing from the same item.
+  state.clear_main_potential();
+  line = state.mutable_main_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_DEX_PCT);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_HERO, OneEffect()).potential,
+            "12% DEX     ");
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_BISHOP, OneEffect()).potential,
+            "Junk        ");
+
+  // An upgrade the item could take but hasn't reads as a gap to fill.
+  state.clear_main_potential();
+  state.set_scroll_successes(0);
+  state.set_stars(0);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  EXPECT_EQ(cells.scroll, "0/9");
+  EXPECT_EQ(cells.stars, "0★");
+  EXPECT_EQ(cells.potential, "None        ");
+  EXPECT_EQ(cells.potential_rank, POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_EQ(cells.bonus_potential, "None        ");
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kFlame)]);
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kPotential)]);
+
+  // One it can't take reads a closed "×", not "None" and not blank.
+  proto.set_upgrade_slots(0);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  proto.add_unsupported_upgrades(UPGRADE_CUBE);
+  proto.add_unsupported_upgrades(UPGRADE_FLAME);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  for (ItemColumn column :
+       {ItemColumn::kScroll, ItemColumn::kStars, ItemColumn::kPotential,
+        ItemColumn::kBonusPotential, ItemColumn::kFlame}) {
+    EXPECT_EQ(cells.Get(column), "×");
+    EXPECT_TRUE(cells.closed[static_cast<int>(column)]);
+  }
+
+  // The bonus potential reads the same way, from its own lines.
+  state.mutable_bonus_potential()->set_rank(POTENTIAL_RANK_EPIC);
+  line = state.mutable_bonus_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
+  line->set_rank(POTENTIAL_RANK_EPIC);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, OneEffect());
+  EXPECT_EQ(cells.potential, "×");
+  EXPECT_NE(cells.bonus_potential.find("% STR"), std::string::npos)
+      << "what the item carries still shows";
+  EXPECT_FALSE(cells.closed[static_cast<int>(ItemColumn::kBonusPotential)]);
+  EXPECT_EQ(cells.bonus_potential_rank, POTENTIAL_RANK_EPIC);
+}
+
+// The potential cell's text takes its rank's colour; the rest of the row and
+// every background stay as they were.
+TEST(ItemRowElementTest, ColoursThePotentialText) {
+  ItemCells cells = SwordCells();
+  cells.potential_rank = POTENTIAL_RANK_LEGENDARY;
+  cells.bonus_potential_rank = POTENTIAL_RANK_EPIC;
+  ItemRowText row = FormatItemRow(EveryColumn(), cells);
+  ftxui::Screen screen(200, 1);
+  ftxui::Render(screen, ItemRowElement("> ", row));
+  int potential = 2 + static_cast<int>(row.text.find("+12% ATT"));
+  int bonus = 2 + static_cast<int>(row.text.find("9% STR"));
+  EXPECT_EQ(screen.PixelAt(potential, 0).foreground_color,
+            RarityColor(POTENTIAL_RANK_LEGENDARY));
+  EXPECT_EQ(screen.PixelAt(bonus, 0).foreground_color,
+            RarityColor(POTENTIAL_RANK_EPIC));
+  EXPECT_EQ(screen.PixelAt(potential, 0).background_color, ftxui::Color());
+  EXPECT_EQ(screen.PixelAt(2, 0).foreground_color, ftxui::Color());
+  EXPECT_EQ(screen.ToString().find("> Sword"), 0u);
+
+  cells.potential_rank = POTENTIAL_RANK_UNSPECIFIED;
+  screen = ftxui::Screen(200, 1);
+  ftxui::Render(screen,
+                ItemRowElement("> ", FormatItemRow(EveryColumn(), cells)));
+  EXPECT_EQ(screen.PixelAt(potential, 0).foreground_color, ftxui::Color());
+}
+
+}  // namespace
+}  // namespace ms

@@ -13,8 +13,8 @@
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/colors.h"
+#include "src/frontend/widgets/text/keys.h"
 
 namespace ms {
 namespace {

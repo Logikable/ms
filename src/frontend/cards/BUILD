@@ -8,7 +8,7 @@ cc_library(
     hdrs = ["level_up_card.h"],
     deps = [
         "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:format",
+        "//src/frontend/widgets/text:format",
         "@ftxui//:dom",
     ],
 )
@@ -35,8 +35,8 @@ cc_library(
         "//src/combat",
         "//src/combat:offline",
         "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:colors",
-        "//src/frontend/widgets:format",
+        "//src/frontend/widgets/text:colors",
+        "//src/frontend/widgets/text:format",
         "@ftxui//:dom",
     ],
 )

@@ -21,7 +21,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/amount_selector.h"
+#include "src/frontend/widgets/prompts/amount_selector.h"
 
 namespace ms {
 

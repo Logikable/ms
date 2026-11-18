@@ -8,7 +8,7 @@
 #define MS_SRC_FRONTEND_SCREENS_STAT_INSPECT_PANEL_H_
 
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/lists/stat_rows.h"
 
 namespace ms {
 

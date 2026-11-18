@@ -20,7 +20,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text/marquee.h"
 #include "src/protos/achievement.pb.h"
 
 namespace ms {

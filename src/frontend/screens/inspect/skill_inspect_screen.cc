@@ -8,7 +8,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/screens/inspect/skill_inspect_panel.h"
 #include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/text/keys.h"
 
 namespace ms {
 namespace {

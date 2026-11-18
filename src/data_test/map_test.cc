@@ -11,7 +11,7 @@
 #include "src/character/force/sacred_power.h"
 #include "src/character/force/symbol.h"
 #include "src/frontend/screens/inspect/mob_inspect_panel.h"
-#include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/text/format.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"

@@ -37,11 +37,11 @@
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/screens/upgrade/scroll_panel.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/equipped_list.h"
-#include "src/frontend/widgets/item_columns.h"
-#include "src/frontend/widgets/item_menu.h"
-#include "src/frontend/widgets/marquee.h"
-#include "src/frontend/widgets/text_field.h"
+#include "src/frontend/widgets/lists/equipped_list.h"
+#include "src/frontend/widgets/lists/item_columns.h"
+#include "src/frontend/widgets/lists/item_menu.h"
+#include "src/frontend/widgets/text/marquee.h"
+#include "src/frontend/widgets/text/text_field.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

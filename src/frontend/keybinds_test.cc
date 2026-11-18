@@ -8,7 +8,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
-#include "src/frontend/widgets/text_field.h"
+#include "src/frontend/widgets/text/text_field.h"
 #include "src/protos/keybinds.pb.h"
 
 namespace ms {
