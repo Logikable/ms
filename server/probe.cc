@@ -7,6 +7,8 @@
 
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 
@@ -25,8 +27,8 @@ ABSL_FLAG(int, level, 140, "The level to arrive at.");
 ABSL_FLAG(std::string, account, "", "An account id to come back as.");
 ABSL_FLAG(std::string, token, "", "The token that proves that account.");
 ABSL_FLAG(std::string, action, "watch",
-          "What to do once connected: check, watch, create, join, leave, "
-          "ready, unready, kick, promote or start.");
+          "What to do once connected: check, sheets, watch, create, join, "
+          "leave, ready, unready, kick, promote or start.");
 ABSL_FLAG(std::string, boss, "zakum", "Which boss --action=start names.");
 ABSL_FLAG(int, difficulty, 0, "Which difficulty of it.");
 ABSL_FLAG(std::string, mode, "shared",
@@ -35,6 +37,9 @@ ABSL_FLAG(std::string, party, "", "Which party --action=join names.");
 ABSL_FLAG(std::string, target, "",
           "Whose account --action=kick or --action=promote names.");
 ABSL_FLAG(int, seconds, 10, "How long to watch for. 0 watches forever.");
+ABSL_FLAG(std::string, out, "",
+          "Where --action=sheets writes each online player's PlayerInfo, one "
+          "file per player named for them.");
 
 namespace {
 
@@ -164,6 +169,60 @@ int CheckServer(ms::MultiplayerClient& client, int seconds) {
   return 1;
 }
 
+// Waits up to `seconds` for `done` to hold on a snapshot. Returns the last one.
+template <typename Done>
+ms::MultiplayerSnapshot WaitFor(ms::MultiplayerClient& client, int seconds,
+                                Done done) {
+  std::chrono::steady_clock::time_point deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(seconds);
+  ms::MultiplayerSnapshot snapshot = client.Snapshot();
+  while (!done(snapshot) && std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    snapshot = client.Snapshot();
+  }
+  return snapshot;
+}
+
+// Writes every other online player's full sheet to `dir`, as the Inspect
+// screen would fetch it, for sims to read. Returns 0 if all were written.
+int SaveSheets(ms::MultiplayerClient& client, int seconds,
+               const std::string& dir) {
+  ms::MultiplayerSnapshot snapshot =
+      WaitFor(client, seconds, [](const ms::MultiplayerSnapshot& s) {
+        return s.state == ms::ConnectionState::kConnected &&
+               s.online.players_size() > 0;
+      });
+  if (snapshot.state != ms::ConnectionState::kConnected) {
+    std::printf("not connected (state %s)\n", StateName(snapshot.state));
+    return 1;
+  }
+  std::filesystem::create_directories(dir);
+  int failed = 0;
+  for (const ms::PlayerInfo& listed : snapshot.online.players()) {
+    if (listed.account_id() == snapshot.account_id) {
+      continue;
+    }
+    client.WatchPlayer(listed.account_id());
+    ms::MultiplayerSnapshot seen =
+        WaitFor(client, seconds, [&](const ms::MultiplayerSnapshot& s) {
+          return s.watched.account_id() == listed.account_id() &&
+                 s.watched.has_sheet();
+        });
+    if (seen.watched.account_id() != listed.account_id()) {
+      std::printf("no sheet for %s\n", listed.name().c_str());
+      ++failed;
+      continue;
+    }
+    std::string path = dir + "/" + listed.name() + ".pb";
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out << seen.watched.SerializeAsString();
+    std::printf("%s (Lv%d) -> %s\n", listed.name().c_str(), listed.level(),
+                path.c_str());
+  }
+  client.WatchPlayer("");
+  return failed == 0 ? 0 : 1;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -182,6 +241,10 @@ int main(int argc, char** argv) {
   std::string action = absl::GetFlag(FLAGS_action);
   if (action == "check") {
     return CheckServer(client, absl::GetFlag(FLAGS_seconds));
+  }
+  if (action == "sheets") {
+    return SaveSheets(client, absl::GetFlag(FLAGS_seconds),
+                      absl::GetFlag(FLAGS_out));
   }
 
   // The request is queued now and sent once the server accepts the client.

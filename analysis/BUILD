@@ -966,3 +966,20 @@ sim_binary(
         "@abseil-cpp//absl/strings",
     ],
 )
+
+sim_binary(
+    name = "sacred_clear_sim",
+    srcs = ["sacred_clear_sim.cc"],
+    deps = [
+        ":sim_world",
+        "//src:game_state",
+        "//src:sacred_dailies",
+        "//src:save",
+        "//src/character:link",
+        "//src/character:progression",
+        "//src/combat:clear_time",
+        "//src/protos:multiplayer_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
