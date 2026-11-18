@@ -7,7 +7,7 @@ cc_library(
     srcs = ["boss_fight_panel.cc"],
     hdrs = ["boss_fight_panel.h"],
     deps = [
-        "//src/combat:boss_run",
+        "//src/combat/boss:boss_run",
         "//src/frontend:placement",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:colors",
@@ -26,8 +26,8 @@ cc_test(
     deps = [
         ":boss_fight_panel",
         "//src:game_state",
-        "//src/combat:boss_run",
         "//src/combat:test_authority",
+        "//src/combat/boss:boss_run",
         "//src/frontend/testing:screen_text",
         "//src/frontend/widgets/text:colors",
         "//src/frontend/widgets/text:format",
@@ -83,7 +83,7 @@ cc_library(
     srcs = ["boss_clear_panel.cc"],
     hdrs = ["boss_clear_panel.h"],
     deps = [
-        "//src/combat:boss_run",
+        "//src/combat/boss:boss_run",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:colors",
         "//src/frontend/widgets/text:format",
@@ -97,7 +97,7 @@ cc_test(
     srcs = ["boss_clear_panel_test.cc"],
     deps = [
         ":boss_clear_panel",
-        "//src/combat:boss_run",
+        "//src/combat/boss:boss_run",
         "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:colors",

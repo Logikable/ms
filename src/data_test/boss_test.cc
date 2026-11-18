@@ -17,7 +17,7 @@
 #include "src/character/force/sacred_power.h"
 #include "src/character/force/symbol.h"
 #include "src/character/max_character.h"
-#include "src/combat/arena_spots.h"
+#include "src/combat/boss/arena_spots.h"
 #include "src/combat/loot.h"
 #include "src/frontend/screens/boss/boss_fight_panel.h"
 #include "src/frontend/screens/boss/boss_select_panel.h"

@@ -177,7 +177,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src:spawn",
-        "//src/combat:boss_run",
+        "//src/combat/boss:boss_run",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
     ],

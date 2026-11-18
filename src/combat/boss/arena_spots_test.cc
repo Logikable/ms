@@ -1,4 +1,4 @@
-#include "src/combat/arena_spots.h"
+#include "src/combat/boss/arena_spots.h"
 
 #include <vector>
 

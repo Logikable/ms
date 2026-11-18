@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/text/colors.h"
 #include "src/frontend/widgets/text/format.h"

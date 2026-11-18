@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"

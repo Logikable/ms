@@ -9,7 +9,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src/character:progression",
-        "//src/combat:battle_analysis",
+        "//src/combat/boss:battle_analysis",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:format",
         "@ftxui//:dom",
@@ -23,7 +23,7 @@ cc_test(
     deps = [
         ":analysis_panel",
         "//src:game_state",
-        "//src/combat:battle_analysis",
+        "//src/combat/boss:battle_analysis",
         "//src/frontend/testing:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",

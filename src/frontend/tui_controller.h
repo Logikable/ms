@@ -15,8 +15,8 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
-#include "src/combat/battle_analysis.h"
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/battle_analysis.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/keybinds.h"

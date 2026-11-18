@@ -1,4 +1,4 @@
-#include "src/combat/battle_analysis.h"
+#include "src/combat/boss/battle_analysis.h"
 
 #include <gtest/gtest.h>
 

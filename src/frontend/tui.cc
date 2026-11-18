@@ -27,7 +27,7 @@
 #include "src/character/honor.h"
 #include "src/character/job_name.h"
 #include "src/character/progression.h"
-#include "src/combat/boss_timing.h"
+#include "src/combat/boss/boss_timing.h"
 #include "src/combat/combat.h"
 #include "src/frontend/cards/offline_card.h"
 #include "src/frontend/keybinds.h"

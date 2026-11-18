@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -61,22 +61,6 @@ cc_test(
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "battle_analysis",
-    srcs = ["battle_analysis.cc"],
-    hdrs = ["battle_analysis.h"],
-)
-
-cc_test(
-    name = "battle_analysis_test",
-    size = "small",
-    srcs = ["battle_analysis_test.cc"],
-    deps = [
-        ":battle_analysis",
         "@googletest//:gtest_main",
     ],
 )
@@ -177,12 +161,6 @@ cc_test(
 )
 
 cc_library(
-    name = "boss_timing",
-    hdrs = ["boss_timing.h"],
-    deps = [":constants"],
-)
-
-cc_library(
     name = "fight_authority",
     hdrs = ["fight_authority.h"],
     deps = [
@@ -199,86 +177,6 @@ cc_library(
     testonly = True,
     hdrs = ["test_authority.h"],
     deps = [":fight_authority"],
-)
-
-cc_library(
-    name = "arena_spots",
-    srcs = ["arena_spots.cc"],
-    hdrs = ["arena_spots.h"],
-    deps = [
-        "//src/protos:boss_proto_cc",
-        "//src/protos:mob_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "arena_spots_test",
-    size = "small",
-    srcs = ["arena_spots_test.cc"],
-    deps = [
-        ":arena_spots",
-        "//src/protos:boss_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "boss_run",
-    srcs = ["boss_run.cc"],
-    hdrs = ["boss_run.h"],
-    deps = [
-        ":arena_spots",
-        ":boss_timing",
-        ":combat",
-        ":constants",
-        ":damage_breakdown",
-        ":drop",
-        ":encounter",
-        ":fight",
-        ":fight_authority",
-        ":loot",
-        "//src:build_config",
-        "//src:game_state",
-        "//src:spawn",
-        "//src/character",
-        "//src/character:honor",
-        "//src/character/account:guild",
-        "//src/character/matrix:v_matrix",
-        "//src/protos:boss_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:multiplayer_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "boss_run_test",
-    size = "small",
-    srcs = ["boss_run_test.cc"],
-    deps = [
-        ":boss_run",
-        ":damage_breakdown",
-        ":encounter",
-        ":test_authority",
-        "//src:build_config",
-        "//src:game_state",
-        "//src/character",
-        "//src/character:honor",
-        "//src/character:skill_placement",
-        "//src/character/matrix:hexa_matrix",
-        "//src/character/matrix:hyper_stats",
-        "//src/character/matrix:v_matrix",
-        "//src/item:equip_instance",
-        "//src/protos:boss_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "//src/testing:prototypes",
-        "@googletest//:gtest_main",
-    ],
 )
 
 cc_library(

@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/frontend/placement.h"
 
 namespace ms {

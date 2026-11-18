@@ -20,7 +20,7 @@
 #include "server/trade.h"
 #include "src/character/character.h"
 #include "src/character/job_name.h"
-#include "src/combat/boss_timing.h"
+#include "src/combat/boss/boss_timing.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/multiplayer.pb.h"

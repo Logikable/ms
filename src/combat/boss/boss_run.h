@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-#include "src/combat/arena_spots.h"
-#include "src/combat/boss_timing.h"
+#include "src/combat/boss/arena_spots.h"
+#include "src/combat/boss/boss_timing.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"

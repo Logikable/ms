@@ -8,7 +8,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/text/colors.h"
 

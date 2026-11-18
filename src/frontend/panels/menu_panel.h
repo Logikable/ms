@@ -22,7 +22,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/combat/battle_analysis.h"
+#include "src/combat/boss/battle_analysis.h"
 #include "src/game_state.h"
 
 namespace ms {

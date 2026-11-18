@@ -6,7 +6,7 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/combat/battle_analysis.h"
+#include "src/combat/boss/battle_analysis.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/game_state.h"
 

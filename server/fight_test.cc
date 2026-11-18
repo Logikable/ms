@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 
-#include "src/combat/boss_timing.h"
+#include "src/combat/boss/boss_timing.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/multiplayer.pb.h"

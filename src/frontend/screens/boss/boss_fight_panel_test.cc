@@ -16,7 +16,7 @@
 #include "ftxui/screen/box.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/skill_placement.h"
-#include "src/combat/boss_run.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/combat/test_authority.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/text/colors.h"

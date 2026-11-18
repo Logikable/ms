@@ -22,7 +22,7 @@
 #include "ftxui/component/screen_interactive.hpp"
 #include "src/audio/music_director.h"
 #include "src/audio/music_player.h"
-#include "src/combat/battle_analysis.h"
+#include "src/combat/boss/battle_analysis.h"
 #include "src/combat/fight.h"
 #include "src/combat/offline.h"
 #include "src/frontend/celebration.h"

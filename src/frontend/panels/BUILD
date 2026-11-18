@@ -175,7 +175,7 @@ cc_library(
         "//src:game_state",
         "//src/character:progression",
         "//src/character/matrix:hyper_stats",
-        "//src/combat:battle_analysis",
+        "//src/combat/boss:battle_analysis",
         "//src/frontend:types",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:colors",
@@ -192,7 +192,7 @@ cc_test(
     deps = [
         ":menu_panel",
         "//src:game_state",
-        "//src/combat:battle_analysis",
+        "//src/combat/boss:battle_analysis",
         "//src/frontend:types",
         "//src/frontend/testing:screen_text",
         "@ftxui//:dom",

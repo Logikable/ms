@@ -9,7 +9,7 @@
 #include <thread>
 
 #include "server/test_server.h"
-#include "src/combat/boss_timing.h"
+#include "src/combat/boss/boss_timing.h"
 #include "src/combat/fight_authority.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
