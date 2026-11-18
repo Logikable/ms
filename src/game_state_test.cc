@@ -201,7 +201,7 @@ TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
   }
 }
 
-// --- --scrolled and --sf ---
+// --- Scrolled and starred gear ---
 
 // The workbench's level 30 warrior weapon, with slots to scroll and room for
 // stars. Keyed as WorkbenchGearFor names it, or nothing is worn at all.
@@ -299,7 +299,7 @@ TEST(GameStateTest, ScrolledTakesAHeldScrollOnlyOnceItDrops) {
   EXPECT_EQ(attack_with({{"mob", mob}}), 90);
 }
 
-// --sf sets exactly the stars given, capped by the item: a level 30 weapon
+// Stars are set exactly as given, capped by the item: a level 30 weapon
 // takes five however many are requested.
 TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
   GearSetup equips;
@@ -312,8 +312,8 @@ TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
             EquipTabItem::MaxStarsForLevel(30));
 }
 
-// Stars need no slots left to scroll, the upgrade screen's own rule, so --sf on
-// an item with unspent slots leaves it unstarred.
+// Stars need no slots left to scroll, the upgrade screen's own rule, so stars
+// on an item with unspent slots leaves it unstarred.
 TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
   GearSetup equips;
   equips.stars = 3;

@@ -50,14 +50,6 @@ ABSL_FLAG(int32_t, level, 0,
           "--mode=test or --mode=max: the level to arrive at, instead of the "
           "top of the job's own band. Never below the level the job is taken "
           "at, and never above the highest level the game has.");
-ABSL_FLAG(bool, scrolled, false,
-          "Workbench only (--mode=test): pass every upgrade slot of the "
-          "character's gear, with the best trace it takes.");
-ABSL_FLAG(int32_t, sf, 0,
-          "Workbench only (--mode=test): stars on every piece of the "
-          "character's gear, held to each item's own cap for its level. Stars "
-          "need nothing left to scroll, so pass --scrolled with this to reach "
-          "an item that has upgrade slots.");
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
           "Where the multiplayer server is, as host:port ([host]:port for "
           "IPv6). Empty plays alone, "
@@ -68,11 +60,6 @@ ABSL_FLAG(bool, bgm, true,
           "Play the map and boss music. --nobgm opens the null sound device "
           "instead of the machine's, which is what to pass when the game is "
           "being driven rather than played.");
-ABSL_FLAG(std::string, skills, "zero",
-          "Workbench only (--mode=test): what to do with the book the "
-          "character's job is standing in. 'zero' leaves it unbought with the "
-          "SP in the pool, 'max' buys the whole of it. The books behind it "
-          "are bought either way.");
 
 namespace {
 
@@ -110,14 +97,6 @@ std::vector<std::string> JobFlagNames() {
   return names;
 }
 
-// Dies if a workbench flag is passed to a real game, so a tester who meant
-// --mode=test finds out instead of playing on without it.
-void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
-  if (mode != ms::GameMode::kTest) {
-    LOG(FATAL) << flag << " is for the workbench; pass --mode=test with it";
-  }
-}
-
 // The two flags seeded modes share. --mode=max decides gear and skills itself
 // (what a level has paid for is the whole point of the mode), so those flags
 // stay workbench-only.
@@ -125,31 +104,6 @@ void RefuseInPlay(const char* flag, ms::GameMode mode) {
   if (mode == ms::GameMode::kPlay) {
     LOG(FATAL) << flag << " is for --mode=test or --mode=max";
   }
-}
-
-ms::GearSetup ParseEquips(ms::GameMode mode) {
-  ms::GearSetup equips;
-  equips.scrolled = absl::GetFlag(FLAGS_scrolled);
-  equips.stars = absl::GetFlag(FLAGS_sf);
-  if (equips.scrolled || equips.stars != 0) {
-    RefuseOutsideTheWorkbench("--scrolled/--sf", mode);
-  }
-  if (equips.stars < 0) {
-    LOG(FATAL) << "--sf is a number of stars; " << equips.stars
-               << " is not one";
-  }
-  return equips;
-}
-
-ms::TestSkills ParseSkills(const std::string& skills, ms::GameMode mode) {
-  if (skills == "zero") {
-    return ms::TestSkills::kZero;
-  }
-  RefuseOutsideTheWorkbench("--skills", mode);
-  if (skills == "max") {
-    return ms::TestSkills::kMax;
-  }
-  LOG(FATAL) << "Unknown --skills '" << skills << "'; expected zero or max";
 }
 
 // The level the workbench reaches. 0 lets the job decide, meaning the top of
@@ -204,8 +158,6 @@ int main(int argc, char** argv) {
   ms::TestOptions test;
   test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
   test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
-  test.equips = ParseEquips(mode);
-  test.skills = ParseSkills(absl::GetFlag(FLAGS_skills), mode);
 
   // The data is compiled in, so there's nothing to find on disk and nothing
   // next to the executable to lose.

@@ -45,11 +45,10 @@ enum class GameMode {
   kMax,
 };
 
-// The upgrade state of a seeded character's gear. The workbench sets it from
-// --scrolled and --sf; kMax sets it from the level's band. Every
-// piece is treated alike: the question is what a character at this stage hits
-// for, not what one lucky item does. All unset means gear as it drops, with
-// slots unspent.
+// The upgrade state of a seeded character's gear. kMax sets it from the level's
+// band. Every piece is treated alike: the question is what a character at this
+// stage hits for, not what one lucky item does. All unset means gear as it
+// drops, with slots unspent.
 struct GearSetup {
   // Every upgrade slot passed, with the trace for the job's main stat.
   bool scrolled = false;
@@ -69,7 +68,7 @@ struct GearSetup {
   bool dropped_weapon_scrolls = true;
 };
 
-// What the workbench does with its current job's book, as --skills says.
+// What the workbench does with its current job's book.
 // Earlier books are bought either way, since they aren't why the tester chose
 // the job.
 enum class TestSkills {

@@ -333,8 +333,8 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
     built.set_remaining_upgrade_slots(0);
   }
   // Stars only go on an item with no slots left to scroll, the same rule as the
-  // upgrade screen, so --sf without --scrolled leaves an item with slots
-  // unstarred.
+  // upgrade screen, so stars without scrolling leave an item with
+  // slots unstarred.
   const int wanted =
       proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON && equips.weapon_stars > 0
           ? equips.weapon_stars
@@ -1050,9 +1050,9 @@ void SeedTest(GameState& state, const TestOptions& test) {
       state.character.Equip(0);
     }
   }
-  // Only the current job's book follows --skills. The earlier books are bought
-  // either way: they aren't why the tester chose the job, and leaving them
-  // unbought would add two allocation screens before the one they want.
+  // Only the current job's book follows TestSkills. The earlier books are
+  // bought either way: they aren't why the tester chose the job, and leaving
+  // them unbought would add two allocation screens before the one they want.
   JobAdvancement advancement = chose_job ? test.job : kTestAdvancement;
   // Named after its job, so several workbenches in a party can be told apart
   // without typing names.
