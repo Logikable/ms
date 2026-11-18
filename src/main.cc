@@ -144,23 +144,10 @@ ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
              << absl::StrJoin(JobFlagNames(), ", ");
 }
 
-}  // namespace
-
-int main(int argc, char** argv) {
-  // A player opening the game from a file manager gets a console window that
-  // closes as soon as this returns. Name it, and keep it open at the end for
-  // whatever is still on it.
-  ms::NameConsoleWindow();
-  ms::ConsoleHold hold;
-
-  absl::ParseCommandLine(argc, argv);
-  ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
-  ms::TestOptions test;
-  test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
-  test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
-
-  // The data is compiled in, so there's nothing to find on disk and nothing
-  // next to the executable to lose.
+// The data is compiled in, so there's nothing to find on disk and nothing next
+// to the executable to lose.
+std::unique_ptr<ms::GameState> NewGameState(ms::GameMode mode,
+                                            const ms::TestOptions& test) {
   std::map<std::string, ms::EquipPrototype> equips =
       ms::LoadTextProtoMap<ms::EquipPrototype>(ms::EmbeddedEquips());
   std::map<std::string, ms::Scroll> scrolls =
@@ -178,9 +165,55 @@ int main(int argc, char** argv) {
   std::map<std::string, ms::Boss> bosses =
       ms::LoadTextProtoMap<ms::Boss>(ms::EmbeddedBosses());
 
-  ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
-                      std::move(mobs), std::move(maps), std::move(skills), mode,
-                      test, std::nullopt, std::move(sets), std::move(bosses));
+  return std::make_unique<ms::GameState>(
+      std::move(equips), std::move(scrolls), std::move(items), std::move(mobs),
+      std::move(maps), std::move(skills), mode, test, std::nullopt,
+      std::move(sets), std::move(bosses));
+}
+
+// Loads the save and pays out the absence, or says why the game won't start.
+bool LoadSave(ms::GameState& state, const std::string& save_path,
+              ms::OfflineReport& offline) {
+  ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
+  if (load.status == ms::LoadStatus::kUnreadable ||
+      load.status == ms::LoadStatus::kFromTheFuture) {
+    // Refused instead of starting over. An unreadable save might still be
+    // recoverable, and starting a new game would overwrite it within thirty
+    // seconds. Naming the file and the way out keeps this from being a dead
+    // end.
+    std::fprintf(stderr,
+                 "%s\n\nThe game will not start until that file is dealt "
+                 "with. Move it somewhere safe to begin a new character, or "
+                 "put back a copy that works.\n",
+                 load.message.c_str());
+    return false;
+  }
+  // Before the TUI is built, so the first frame shows the character after the
+  // absence has paid out, and level-up cards don't show for levels the
+  // welcome-back card is about to report.
+  offline = ms::ApplyOfflineProgress(
+      state, ms::AbsenceSeconds(state.last_seen_unix_seconds,
+                                static_cast<std::int64_t>(std::time(nullptr))));
+  return true;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+  // A player opening the game from a file manager gets a console window that
+  // closes as soon as this returns. Name it, and keep it open at the end for
+  // whatever is still on it.
+  ms::NameConsoleWindow();
+  ms::ConsoleHold hold;
+
+  absl::ParseCommandLine(argc, argv);
+  ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
+  ms::TestOptions test;
+  test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
+  test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
+
+  std::unique_ptr<ms::GameState> owned = NewGameState(mode, test);
+  ms::GameState& state = *owned;
 
   // The workbench neither reads nor writes a save: it starts from the same
   // state every run, and must never overwrite a real character.
@@ -197,27 +230,9 @@ int main(int argc, char** argv) {
                    "the game from a second folder with a new save.\n");
       return 1;
     }
-    ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
-    if (load.status == ms::LoadStatus::kUnreadable ||
-        load.status == ms::LoadStatus::kFromTheFuture) {
-      // Refused instead of starting over. An unreadable save might still be
-      // recoverable, and starting a new game would overwrite it within thirty
-      // seconds. Naming the file and the way out keeps this from being a dead
-      // end.
-      std::fprintf(stderr,
-                   "%s\n\nThe game will not start until that file is dealt "
-                   "with. Move it somewhere safe to begin a new character, or "
-                   "put back a copy that works.\n",
-                   load.message.c_str());
+    if (!LoadSave(state, save_path, offline)) {
       return 1;
     }
-    // Before the TUI is built, so the first frame shows the character after the
-    // absence has paid out, and level-up cards don't show for levels the
-    // welcome-back card is about to report.
-    offline = ms::ApplyOfflineProgress(
-        state,
-        ms::AbsenceSeconds(state.last_seen_unix_seconds,
-                           static_cast<std::int64_t>(std::time(nullptr))));
   }
 
   // The workbench connects only to a server it was explicitly given. It should

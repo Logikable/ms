@@ -2102,6 +2102,37 @@ double NextDutyEdge(const BuffOption& buff, double duty_phase) {
 
 }  // namespace
 
+void CombatSim::RaiseBuff(const CombatParams& params, int i) {
+  const BuffOption& buff = params.buffs[i];
+  BuffClock& clock = buffs_[i];
+  // Chosen once and never revisited: a sword planted for two minutes stays
+  // planted however the fight goes.
+  clock.stance = StanceToRaise(params, buff);
+  clock.left = clock.stance < 0 ? BuffWindowSeconds(buff)
+                                : buff.stances[clock.stance].duration_seconds;
+  clock.cooldown_left = buff.cooldown_seconds;
+  clock.charge_left = buff.charge_lines;
+  clock.triggers_left = buff.final_attack_triggers;
+  clock.blocks_left = buff.shield_hits;
+  clock.duty_phase = 0.0;
+  // Refill the charges fully; leftover charges from the last raise don't
+  // carry over.
+  if (buff.magazine_attack >= 0 &&
+      buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
+    attack_clocks_[buff.magazine_attack].charges_left =
+        Attacks(params)[buff.magazine_attack].charges;
+  }
+  // Raising it costs its cast time, taken from the attack being charged: a
+  // buff is cast instead of attacking, not alongside it. The charge bar
+  // draws the cast over the resulting debt.
+  if (buff.cast_seconds > 0.0) {
+    owed_casts_.push_back({buff.name, buff.cast_seconds, buff.cast_seconds});
+  }
+  attack_phase_ -= buff.cast_seconds;
+  player_hp_ = std::min(static_cast<double>(params.max_player_hp),
+                        player_hp_ + buff.heal_fraction * params.max_player_hp);
+}
+
 void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
   // Start each buff at its full charge requirement, or a hit-charged buff would
@@ -2149,35 +2180,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
         clock.left <= 0.0 && ready && !queue_.empty() &&
         buff.duration_seconds > 0.0 && ShieldWanted(params, buff) &&
         !phase_ending()) {
-      // Chosen once and never revisited: a sword planted for two minutes stays
-      // planted however the fight goes.
-      clock.stance = StanceToRaise(params, buff);
-      clock.left = clock.stance < 0
-                       ? BuffWindowSeconds(buff)
-                       : buff.stances[clock.stance].duration_seconds;
-      clock.cooldown_left = buff.cooldown_seconds;
-      clock.charge_left = buff.charge_lines;
-      clock.triggers_left = buff.final_attack_triggers;
-      clock.blocks_left = buff.shield_hits;
-      clock.duty_phase = 0.0;
-      // Refill the charges fully; leftover charges from the last raise don't
-      // carry over.
-      if (buff.magazine_attack >= 0 &&
-          buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
-        attack_clocks_[buff.magazine_attack].charges_left =
-            Attacks(params)[buff.magazine_attack].charges;
-      }
-      // Raising it costs its cast time, taken from the attack being charged: a
-      // buff is cast instead of attacking, not alongside it. The charge bar
-      // draws the cast over the resulting debt.
-      if (buff.cast_seconds > 0.0) {
-        owed_casts_.push_back(
-            {buff.name, buff.cast_seconds, buff.cast_seconds});
-      }
-      attack_phase_ -= buff.cast_seconds;
-      player_hp_ =
-          std::min(static_cast<double>(params.max_player_hp),
-                   player_hp_ + buff.heal_fraction * params.max_player_hp);
+      RaiseBuff(params, i);
     }
     if (clock.left > 0.0) {
       buff_mask_ |= 1 << i;
@@ -2409,6 +2412,74 @@ void CombatSim::RecoverHp(const CombatParams& params, double share) {
                         player_hp_ + share * params.max_player_hp);
 }
 
+bool CombatSim::AutoCastHeld(const CombatParams& params, int i) {
+  const AttackOption& cast = AutoAttacks(params)[i];
+  AutoClock& clock = auto_clocks_[i];
+  // The timer is paused rather than advanced, so the pulse doesn't fire the
+  // instant its buff goes up and again right after. The pulse count resets
+  // too, since it's per raise, and so does a wait for an opening.
+  if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
+    clock.pulses = 0;
+    if (cast.start_delay_seconds > 0.0) {
+      clock.phase = -cast.start_delay_seconds;
+    }
+    return true;
+  }
+  // Dismissed by another skill's summon: it resumes on the same timing it
+  // left with.
+  if (cast.silenced_by_buff >= 0 &&
+      (buff_mask_ & (1 << cast.silenced_by_buff)) != 0) {
+    return true;
+  }
+  // Only the raised form pulses; the other waits.
+  if (cast.needs_buff_stance >= 0 &&
+      buffs_[cast.needs_buff].stance != cast.needs_buff_stance) {
+    clock.pulses = 0;
+    return true;
+  }
+  // Once it has used its pulses for this raise, it stops until the next, so a
+  // longer buff duration doesn't add pulses.
+  if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
+    return true;
+  }
+  return false;
+}
+
+bool CombatSim::PulseAutoCast(const CombatParams& params, int i) {
+  const AttackOption& cast = AutoAttacks(params)[i];
+  AutoClock& clock = auto_clocks_[i];
+  const AttackOption& landed =
+      RepeatForm(FormToLand(clock.empowered_count, cast), clock.pulses);
+  // Every strike lands in full: three sword strikes 60ms apart happen at
+  // one moment here, each hitting its own enemies.
+  for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
+    Strike(landed, {DamageOrigin::kOwnClock, i});
+    // Per strike, like the damage: Darkness Aura heals for every attack the
+    // aura makes.
+    RecoverHp(params, landed.hp_recover_pct);
+  }
+  // Elquines freezes what it hits. It never spends stacks; ClearSwingRiders
+  // ensures that.
+  CreditFreeze(params, landed);
+  if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
+    // The poison explodes as it ends: one more explosion at the strongest
+    // form, landing with the last tick.
+    if (cast.final_repeat_strike) {
+      Strike(RepeatForm(cast, cast.max_pulses), {DamageOrigin::kOwnClock, i});
+    }
+    // The scroll bursts as it ends, landing with the last tick for the same
+    // reason.
+    if (cast.final_strike != nullptr) {
+      for (int strike = 0; strike < cast.final_strike->strikes_per_pulse;
+           ++strike) {
+        Strike(*cast.final_strike, {DamageOrigin::kOwnClock, i});
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   // These timers only run with something to hit: waiting on an empty map
   // doesn't give a summon a free cast.
@@ -2426,31 +2497,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     if (queue_.empty() || cast.interval_seconds <= 0.0) {
       continue;
     }
-    // The timer is paused rather than advanced, so the pulse doesn't fire the
-    // instant its buff goes up and again right after. The pulse count resets
-    // too, since it's per raise, and so does a wait for an opening.
-    if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
-      clock.pulses = 0;
-      if (cast.start_delay_seconds > 0.0) {
-        clock.phase = -cast.start_delay_seconds;
-      }
-      continue;
-    }
-    // Dismissed by another skill's summon: it resumes on the same timing it
-    // left with.
-    if (cast.silenced_by_buff >= 0 &&
-        (buff_mask_ & (1 << cast.silenced_by_buff)) != 0) {
-      continue;
-    }
-    // Only the raised form pulses; the other waits.
-    if (cast.needs_buff_stance >= 0 &&
-        buffs_[cast.needs_buff].stance != cast.needs_buff_stance) {
-      clock.pulses = 0;
-      continue;
-    }
-    // Once it has used its pulses for this raise, it stops until the next, so a
-    // longer buff duration doesn't add pulses.
-    if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
+    if (AutoCastHeld(params, i)) {
       continue;
     }
     clock.phase += dt;
@@ -2458,34 +2505,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     while (clock.phase >= cast.interval_seconds) {
       clock.phase -= cast.interval_seconds;
       ++clock.pulses;
-      const AttackOption& landed =
-          RepeatForm(FormToLand(clock.empowered_count, cast), clock.pulses);
-      // Every strike lands in full: three sword strikes 60ms apart happen at
-      // one moment here, each hitting its own enemies.
-      for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
-        Strike(landed, {DamageOrigin::kOwnClock, i});
-        // Per strike, like the damage: Darkness Aura heals for every attack the
-        // aura makes.
-        RecoverHp(params, landed.hp_recover_pct);
-      }
-      // Elquines freezes what it hits. It never spends stacks; ClearSwingRiders
-      // ensures that.
-      CreditFreeze(params, landed);
-      if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
-        // The poison explodes as it ends: one more explosion at the strongest
-        // form, landing with the last tick.
-        if (cast.final_repeat_strike) {
-          Strike(RepeatForm(cast, cast.max_pulses),
-                 {DamageOrigin::kOwnClock, i});
-        }
-        // The scroll bursts as it ends, landing with the last tick for the same
-        // reason.
-        if (cast.final_strike != nullptr) {
-          for (int strike = 0; strike < cast.final_strike->strikes_per_pulse;
-               ++strike) {
-            Strike(*cast.final_strike, {DamageOrigin::kOwnClock, i});
-          }
-        }
+      if (PulseAutoCast(params, i)) {
         break;
       }
     }

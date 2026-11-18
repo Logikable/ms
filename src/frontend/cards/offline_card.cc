@@ -48,6 +48,93 @@ std::string FormatAbsence(double seconds) {
   return std::to_string(whole % 60) + "s";
 }
 
+namespace {
+
+// Levels first: gaining one is the news, and everything below is what the climb
+// was made of.
+std::vector<ftxui::Element> GrowthRows(const OfflineReport& report,
+                                       bool show_familiars) {
+  std::vector<ftxui::Element> growth;
+  if (report.end_level > report.start_level) {
+    growth.push_back(CenteredRow("Level " + std::to_string(report.start_level) +
+                                 " -> " + std::to_string(report.end_level)));
+  }
+  if (report.rewards.exp > 0) {
+    growth.push_back(
+        CenteredRow(FormatWithCommas(report.rewards.exp) + " EXP"));
+  }
+  if (report.rewards.familiar_exp > 0 && show_familiars) {
+    growth.push_back(CenteredRow(FormatWithCommas(report.rewards.familiar_exp) +
+                                 " Familiar EXP"));
+  }
+  return growth;
+}
+
+std::vector<ftxui::Element> PurseRows(const OfflineReport& report,
+                                      bool show_honor) {
+  std::vector<ftxui::Element> purse;
+  // Meso is shown before potions are paid for, with what they took beside it,
+  // so the drop rate's work isn't hidden in a net figure.
+  if (report.rewards.meso > 0 || report.rewards.consumable_cost > 0) {
+    std::string meso = FormatMeso(report.rewards.meso);
+    if (report.rewards.consumable_cost > 0) {
+      meso += " (-" + FormatWithCommas(report.rewards.consumable_cost) +
+              " potions)";
+    }
+    purse.push_back(CenteredRow(meso));
+  }
+  if (report.rewards.honor > 0 && show_honor) {
+    purse.push_back(
+        CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
+  }
+  // No explanation for this one: only 5th jobs get V Points, so anyone who has
+  // some already knows what they are.
+  if (report.rewards.v_points > 0) {
+    purse.push_back(
+        CenteredRow(FormatWithCommas(report.rewards.v_points) + " V Points"));
+  }
+  return purse;
+}
+
+// The fight, the character's growth, the currencies, the loot, then why
+// farming stopped: each group under its own divider, and an empty one draws
+// none.
+void AppendFarmed(const OfflineReport& report, bool show_honor,
+                  bool show_familiars, std::vector<ftxui::Element>& rows) {
+  std::vector<std::vector<ftxui::Element>> groups;
+  groups.push_back({CenteredRow(FormatWithCommas(report.kills) + " kills on " +
+                                report.map_name)});
+  groups.push_back(GrowthRows(report, show_familiars));
+  groups.push_back(PurseRows(report, show_honor));
+  std::vector<ftxui::Element>& loot = groups.emplace_back();
+  for (const RewardItem& item : report.rewards.items) {
+    loot.push_back(ItemRow(item));
+  }
+  if (report.died) {
+    // The only line that is a reason rather than a reward: farming stopped
+    // here, and the player is now somewhere else.
+    groups.push_back({CenteredRow(
+        ftxui::text("Defeated after " + FormatAbsence(report.seconds) +
+                    " and sent back to Maple Island.") |
+        ftxui::color(kRed))});
+  }
+  bool first = true;
+  for (std::vector<ftxui::Element>& group : groups) {
+    if (group.empty()) {
+      continue;
+    }
+    if (!first) {
+      rows.push_back(AccentSeparator(kTheme));
+    }
+    first = false;
+    for (ftxui::Element& row : group) {
+      rows.push_back(std::move(row));
+    }
+  }
+}
+
+}  // namespace
+
 ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
                            bool show_honor, bool show_familiars) {
   std::vector<ftxui::Element> rows;
@@ -58,76 +145,7 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
     // player who logged off somewhere quiet.
     rows.push_back(CenteredRow("You were not fighting anywhere."));
   } else {
-    // The fight, the character's growth, the currencies, the loot, then why
-    // farming stopped: each group under its own divider, and an empty one
-    // draws none.
-    std::vector<std::vector<ftxui::Element>> groups(5);
-    std::vector<ftxui::Element>& fight = groups[0];
-    std::vector<ftxui::Element>& growth = groups[1];
-    std::vector<ftxui::Element>& purse = groups[2];
-    std::vector<ftxui::Element>& loot = groups[3];
-    std::vector<ftxui::Element>& end = groups[4];
-    fight.push_back(CenteredRow(FormatWithCommas(report.kills) + " kills on " +
-                                report.map_name));
-    // Levels first: gaining one is the news, and everything below is what the
-    // climb was made of.
-    if (report.end_level > report.start_level) {
-      growth.push_back(CenteredRow("Level " +
-                                   std::to_string(report.start_level) + " -> " +
-                                   std::to_string(report.end_level)));
-    }
-    if (report.rewards.exp > 0) {
-      growth.push_back(
-          CenteredRow(FormatWithCommas(report.rewards.exp) + " EXP"));
-    }
-    if (report.rewards.familiar_exp > 0 && show_familiars) {
-      growth.push_back(CenteredRow(
-          FormatWithCommas(report.rewards.familiar_exp) + " Familiar EXP"));
-    }
-    // Meso is shown before potions are paid for, with what they took beside
-    // it, so the drop rate's work isn't hidden in a net figure.
-    if (report.rewards.meso > 0 || report.rewards.consumable_cost > 0) {
-      std::string meso = FormatMeso(report.rewards.meso);
-      if (report.rewards.consumable_cost > 0) {
-        meso += " (-" + FormatWithCommas(report.rewards.consumable_cost) +
-                " potions)";
-      }
-      purse.push_back(CenteredRow(meso));
-    }
-    if (report.rewards.honor > 0 && show_honor) {
-      purse.push_back(
-          CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
-    }
-    // No explanation for this one: only 5th jobs get V Points, so anyone who
-    // has some already knows what they are.
-    if (report.rewards.v_points > 0) {
-      purse.push_back(
-          CenteredRow(FormatWithCommas(report.rewards.v_points) + " V Points"));
-    }
-    for (const RewardItem& item : report.rewards.items) {
-      loot.push_back(ItemRow(item));
-    }
-    if (report.died) {
-      // The only line that is a reason rather than a reward: farming stopped
-      // here, and the player is now somewhere else.
-      end.push_back(CenteredRow(ftxui::text("Defeated after " +
-                                            FormatAbsence(report.seconds) +
-                                            " and sent back to Maple Island.") |
-                                ftxui::color(kRed)));
-    }
-    bool first = true;
-    for (std::vector<ftxui::Element>& group : groups) {
-      if (group.empty()) {
-        continue;
-      }
-      if (!first) {
-        rows.push_back(AccentSeparator(kTheme));
-      }
-      first = false;
-      for (ftxui::Element& row : group) {
-        rows.push_back(std::move(row));
-      }
-    }
+    AppendFarmed(report, show_honor, show_familiars, rows);
   }
   rows.push_back(AccentSeparator(kTheme));
   rows.push_back(CenteredRow(std::move(prompt)));

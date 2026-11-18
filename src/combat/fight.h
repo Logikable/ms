@@ -507,6 +507,8 @@ class CombatSim {
   // Counts buff timers down, raises buffs that are ready, and computes the
   // mask. Runs before attacks, so a buff raised now applies to this attack.
   void RunBuffs(const CombatParams& params, double dt);
+  // Puts buff `i` up now: its form, timers, charges and cast time.
+  void RaiseBuff(const CombatParams& params, int i);
   // The form of `buff` worth the most over the rest of this fight, or -1 for
   // single-form buffs. See SecondsLeft.
   int StanceToRaise(const CombatParams& params, const BuffOption& buff) const;
@@ -534,6 +536,11 @@ class CombatSim {
   // Fires auto-firing skills before the attack is aimed, so it targets whatever
   // they leave alive.
   void RunAutoCasts(const CombatParams& params, double dt);
+  // Whether auto cast `i`'s timer stands still this step, resetting what a
+  // pause resets.
+  bool AutoCastHeld(const CombatParams& params, int i);
+  // Lands one pulse of auto cast `i`; true when it was the raise's last.
+  bool PulseAutoCast(const CombatParams& params, int i);
   // Heals `share` of max HP, capped at full.
   void RecoverHp(const CombatParams& params, double share);
   // Credits a landed attack to skills triggered by attacks, and fires any that

@@ -288,6 +288,27 @@ std::map<Achievement, int64_t> AchievementTargets(const GameState& state) {
   };
 }
 
+namespace {
+
+// The most stars on any item, marking the one-item achievements on the way.
+int ScanItems(const std::vector<const Equip*>& items,
+              AchievementStanding& standing) {
+  int stars = 0;
+  for (const Equip* item : items) {
+    stars = std::max(stars, item->stars());
+    if (IsTriplePrime(item->main_potential()) ||
+        IsTriplePrime(item->bonus_potential())) {
+      standing.met.insert(ACHIEVEMENT_TRIPLE_PRIME);
+    }
+    if (IsPerfectFlame(*item)) {
+      standing.met.insert(ACHIEVEMENT_PERFECT_FLAME);
+    }
+  }
+  return stars;
+}
+
+}  // namespace
+
 AchievementStanding StandingOf(const GameState& state,
                                int64_t now_unix_seconds) {
   std::vector<Character> characters;
@@ -325,17 +346,7 @@ AchievementStanding StandingOf(const GameState& state,
     legion.push_back({character.job(), character.level()});
   }
 
-  int stars = 0;
-  for (const Equip* item : items) {
-    stars = std::max(stars, item->stars());
-    if (IsTriplePrime(item->main_potential()) ||
-        IsTriplePrime(item->bonus_potential())) {
-      standing.met.insert(ACHIEVEMENT_TRIPLE_PRIME);
-    }
-    if (IsPerfectFlame(*item)) {
-      standing.met.insert(ACHIEVEMENT_PERFECT_FLAME);
-    }
-  }
+  const int stars = ScanItems(items, standing);
 
   // Zero only in a state no save or new game makes, which has no age.
   const int64_t created = account.created_unix_seconds();
