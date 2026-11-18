@@ -5755,4 +5755,90 @@ TEST(CombatSimTest, AReleasedAscentWaitsOutABurstUnlessItCannotWait) {
   }
 }
 
+// --- Finishing a boss phase ---
+
+// A boss phase that Strike and Nova would each end with the next swing, Nova
+// on a two-minute cooldown and far the stronger.
+CombatParams FinishFight(const Mob& boss, double respawn,
+                         double nova_swing = 0.5) {
+  CombatParams params = MakeParams(0.5, respawn, {MakeType(&boss, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  AttackOption strike = MakeSkill("Strike", 150.0, 0.0);
+  strike.swing_seconds = 0.5;
+  params.attacks.push_back(strike);
+  AttackOption nova = MakeSkill("Nova", 1000.0, 120.0);
+  nova.swing_seconds = nova_swing;
+  params.attacks.push_back(nova);
+  return params;
+}
+
+std::string FirstAimed(const CombatParams& params) {
+  CombatSim sim;
+  sim.Advance(params, 0.1);
+  return sim.view().attack_name;
+}
+
+TEST(CombatSimTest, AFinishingSwingSparesTheLongCooldown) {
+  Mob boss = MakeMob("Zakum", 100);
+  EXPECT_EQ(FirstAimed(FinishFight(boss, 0.0)), "Strike");
+}
+
+// Within kFinishSlack of the soonest end the cheaper swing still wins; past
+// it, the faster one does.
+TEST(CombatSimTest, AFinisherTradesOnlyALittleTimeForACooldown) {
+  Mob boss = MakeMob("Zakum", 100);
+  EXPECT_EQ(FirstAimed(FinishFight(boss, 0.0, /*nova_swing=*/0.46)), "Strike");
+  EXPECT_EQ(FirstAimed(FinishFight(boss, 0.0, /*nova_swing=*/0.4)), "Nova");
+}
+
+TEST(CombatSimTest, AMapIsNotFinishedLikeABoss) {
+  Mob snail = MakeMob("Snail", 100);
+  EXPECT_EQ(FirstAimed(FinishFight(snail, 10.0)), "Nova");
+}
+
+TEST(CombatSimTest, APhaseFarFromItsEndIsFoughtForRate) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  EXPECT_EQ(FirstAimed(FinishFight(boss, 0.0)), "Nova");
+}
+
+// Past kFinishHorizonSeconds a buff first is the faster way to the end.
+TEST(CombatSimTest, AFinisherTooSlowToLandSoonIsNotOne) {
+  Mob boss = MakeMob("Zakum", 100);
+  CombatParams params = FinishFight(boss, 0.0, /*nova_swing=*/0.5);
+  params.attacks[1].swing_seconds = 2.0;
+  params.attacks[2].swing_seconds = 2.0;
+  params.attacks[0].damage_per_hit = {1.0};
+  EXPECT_EQ(FirstAimed(params), "Nova");
+}
+
+// A phase about to die gains nothing from a buff, and a buff raised into it
+// loses its cooldown.
+TEST(CombatSimTest, ADyingPhaseRaisesNoBuff) {
+  Mob dying = MakeMob("Zakum", 100);
+  CombatParams params = FinishFight(dying, 0.0);
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/2.0);
+  CombatSim sim;
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.view().buff_count, 0);
+
+  Mob standing = MakeMob("Zakum", 1000000);
+  CombatParams long_fight = FinishFight(standing, 0.0);
+  GiveBuff(long_fight, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/2.0);
+  CombatSim fresh;
+  fresh.Advance(long_fight, 0.1);
+  EXPECT_EQ(fresh.view().buff_count, 1);
+}
+
+TEST(CombatSimTest, AFinisherGoesBeforeAReleasedAscent) {
+  Mob boss = MakeMob("Zakum", 100);
+  CombatParams params = FinishFight(boss, 0.0);
+  AttackOption ascent = MakeSkill("Ascent", 10000.0, 0.0);
+  ascent.held = true;
+  params.attacks.push_back(ascent);
+  CombatSim sim;
+  sim.Release(1, /*at_once=*/true);
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.view().attack_name, "Strike");
+}
+
 }  // namespace ms

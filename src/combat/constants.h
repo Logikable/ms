@@ -48,6 +48,14 @@ constexpr int kAscentUsesPerBossFight = 3;
 // buffed seconds it replaces.
 constexpr double kBurstCooldownSeconds = 90.0;
 
+// A boss phase one swing can end within this many seconds is finished rather
+// than buffed for: past it, raising buffs first ends it sooner. See
+// CombatSim::Finisher.
+constexpr double kFinishHorizonSeconds = 1.0;
+// How much later than the soonest a finishing swing may end the phase and
+// still be chosen for a shorter cooldown, as a share of the soonest.
+constexpr double kFinishSlack = 0.10;
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_CONSTANTS_H_

@@ -472,6 +472,12 @@ class CombatSim {
   // lose their edge on a sparse map. A big attack ready just before a buff
   // window is saved for it.
   int BestAttack(const CombatParams& params) const;
+  // On a boss whose phase one swing on offer could end within
+  // kFinishHorizonSeconds, the attack that ends it soonest, preferring a
+  // shorter cooldown when one ends it nearly as soon (kFinishSlack); -1
+  // otherwise. Taking it beats raising buffs and releasing an Ascent: a dying
+  // phase gains nothing from either.
+  int Finisher(const CombatParams& params) const;
   // The attack to use this step: the one already being charged, or a new pick.
   // An attack mid-animation finishes first, except the basic attack, since
   // waiting on it would delay the skill it filled in for.

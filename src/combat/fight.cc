@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <optional>
 
 #include "src/combat/constants.h"
 #include "src/combat/encounter.h"
@@ -675,6 +676,75 @@ int CombatSim::HealToCast(const CombatParams& params) const {
   return -1;
 }
 
+int CombatSim::Finisher(const CombatParams& params) const {
+  if (params.respawn_seconds > 0.0 || params.measuring || measuring_ ||
+      queue_.empty()) {
+    return -1;
+  }
+  double standing = 0.0;
+  for (const QueuedMob& mob : queue_) {
+    standing += mob.hp;
+  }
+  struct Try {
+    int index;
+    double damage;
+    double seconds;
+    double cooldown;
+  };
+  std::vector<Try> tries;
+  double biggest = 0.0;
+  double filler_rate = 0.0;
+  double any_rate = 0.0;
+  const std::vector<AttackOption>& options = Attacks(params);
+  for (int i = 0; i < static_cast<int>(options.size()); ++i) {
+    if (!OnOffer(params, i)) {
+      continue;
+    }
+    const AttackOption& attack = options[i];
+    const double seconds = SwingSecondsAgainst(attack);
+    if (seconds <= 0.0) {
+      continue;
+    }
+    const double damage = SwingDamage(attack) * StateBoost(attack, FrontMob());
+    tries.push_back({i, damage, seconds, attack.cooldown_seconds});
+    biggest = std::max(biggest, damage);
+    any_rate = std::max(any_rate, damage / seconds);
+    if (attack.cooldown_seconds <= 0.0) {
+      filler_rate = std::max(filler_rate, damage / seconds);
+    }
+  }
+  if (biggest < standing || any_rate <= 0.0) {
+    return -1;
+  }
+  if (filler_rate <= 0.0) {
+    filler_rate = any_rate;
+  }
+  // Each try's time to end the phase: its own swing, then the rest at the best
+  // rate that spends no cooldown.
+  double soonest = std::numeric_limits<double>::infinity();
+  std::vector<double> ends(tries.size());
+  for (std::size_t k = 0; k < tries.size(); ++k) {
+    ends[k] = tries[k].seconds +
+              std::max(0.0, standing - tries[k].damage) / filler_rate;
+    soonest = std::min(soonest, ends[k]);
+  }
+  if (soonest > kFinishHorizonSeconds) {
+    return -1;
+  }
+  const double slack = soonest * kFinishSlack;
+  int best = -1;
+  for (std::size_t k = 0; k < tries.size(); ++k) {
+    if (ends[k] > soonest + slack) {
+      continue;
+    }
+    if (best < 0 || tries[k].cooldown < tries[best].cooldown ||
+        (tries[k].cooldown == tries[best].cooldown && ends[k] < ends[best])) {
+      best = static_cast<int>(k);
+    }
+  }
+  return tries[best].index;
+}
+
 int CombatSim::ChooseAttack(const CombatParams& params) const {
   // Index 0 is the basic attack, which is never committed to; see fight.h.
   if (aimed_ > 0 && aimed_ < static_cast<int>(Attacks(params).size()) &&
@@ -686,6 +756,10 @@ int CombatSim::ChooseAttack(const CombatParams& params) const {
   int heal = HealToCast(params);
   if (heal >= 0) {
     return heal;
+  }
+  int finisher = Finisher(params);
+  if (finisher >= 0) {
+    return finisher;
   }
   // A released Ascent goes first: its value is the same whenever it lands.
   if (Releasing(params)) {
@@ -2042,6 +2116,19 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   // leave a gap in its group: active windows are always first, which keeps it
   // to one damage table per count rather than one per arrangement.
   CompactRolledWindows(params);
+  // Asked only when a buff is about to go up, since it walks the attacks, and
+  // under last step's levers: the ones being built here are partial.
+  std::optional<bool> finishing;
+  const int last_levers = lever_mask_;
+  auto phase_ending = [&]() {
+    if (!finishing.has_value()) {
+      const int building = lever_mask_;
+      lever_mask_ = last_levers;
+      finishing = Finisher(params) >= 0;
+      lever_mask_ = building;
+    }
+    return *finishing;
+  };
   buff_mask_ = 0;
   lever_mask_ = 0;
   for (int i = 0; i < count; ++i) {
@@ -2060,7 +2147,8 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
                                        : clock.cooldown_left <= 0.0;
     if (buff.laid_by_attack < 0 && buff.raise_chance <= 0.0 &&
         clock.left <= 0.0 && ready && !queue_.empty() &&
-        buff.duration_seconds > 0.0 && ShieldWanted(params, buff)) {
+        buff.duration_seconds > 0.0 && ShieldWanted(params, buff) &&
+        !phase_ending()) {
       // Chosen once and never revisited: a sword planted for two minutes stays
       // planted however the fight goes.
       clock.stance = StanceToRaise(params, buff);
