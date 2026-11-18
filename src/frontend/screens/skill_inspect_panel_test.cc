@@ -342,12 +342,10 @@ TEST_F(SkillInspectPanelTest, SaysAFarmingOnlySkillSitsOutBossFights) {
             std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, SaysAnOriginSitsOutFarming) {
+TEST_F(SkillInspectPanelTest, NeverSaysAnOriginSitsOutFarming) {
   Skill origin = MakeLuckySeven();
-  EXPECT_EQ(RenderAt(origin, 1).find("Farming"), std::string::npos);
   origin.set_hexa_node(HEXA_NODE_KIND_ORIGIN);
-  EXPECT_NE(RowIn(RenderAt(origin, 1), "Farming", "Can't be used"),
-            std::string::npos);
+  EXPECT_EQ(RenderAt(origin, 1).find("Farming"), std::string::npos);
 }
 
 // A passive that affects one other skill names it, since nothing on that
