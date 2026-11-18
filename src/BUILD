@@ -448,6 +448,7 @@ cc_test(
         "//src/character",
         "//src/character:consumables",
         "//src/character:exp_table",
+        "//src/character:hexa_matrix",
         "//src/character:honor",
         "//src/character:hyper_stats",
         "//src/character:legion",

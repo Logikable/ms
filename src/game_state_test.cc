@@ -13,6 +13,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/hexa_matrix.h"
 #include "src/character/honor.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/legion.h"
@@ -97,6 +98,14 @@ std::map<std::string, Skill> EveryStageBook() {
   common.set_v_node(V_NODE_KIND_COMMON);
   common.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   book.insert({"common_lift", common});
+  // And the 6th's is the HEXA Matrix.
+  Skill hexa;
+  hexa.set_name("Sixth Surge");
+  hexa.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(hexa, AdvancementForJobStage(WorkbenchJob(), kSixthJobStage));
+  hexa.set_hexa_node(HEXA_NODE_KIND_MASTERY);
+  hexa.set_max_level(kHexaNodeMaxLevel);
+  book.insert({"sixth_surge", hexa});
   return book;
 }
 
@@ -172,17 +181,22 @@ TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }
   // The 5th job's book is the matrix, so every node (including common ones) is
-  // left unbought and the points stay in the pool.
-  bool fifth = top >= kFifthJobStage;
+  // left unbought and the points stay in the pool. A 6th job's is the HEXA
+  // Matrix, and the V Matrix below it is bought like any lower book.
+  bool sixth = top >= kSixthJobStage;
+  bool fifth = top == kFifthJobStage;
   if (fifth) {
     EXPECT_GT(state.character.v_points(), 0);
-  } else {
+  } else if (!sixth) {
     EXPECT_GT(state.character.sp(top), 0);
   }
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int stage = StageForAdvancement(BookOf(skill));
-    bool held = fifth ? skill.v_node() == V_NODE_KIND_UNSPECIFIED : stage < top;
+    bool held = skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED &&
+                (sixth   ? true
+                 : fifth ? skill.v_node() == V_NODE_KIND_UNSPECIFIED
+                         : stage < top);
     int expected = held ? skill.max_level() : 0;
     EXPECT_EQ(state.character.skill_level(skill), expected)
         << entry.first << " at stage " << stage;
@@ -194,9 +208,13 @@ TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
   for (int stage = 1; stage <= 4; ++stage) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }
+  // Below the 6th job there is no HEXA book to buy from.
+  const bool sixth = state.character.proto().job_stage() >= kSixthJobStage;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const bool reached =
+        sixth || entry.second.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED;
     EXPECT_EQ(state.character.skill_level(entry.second),
-              entry.second.max_level())
+              reached ? entry.second.max_level() : 0)
         << entry.first << " is left part-bought";
   }
 }

@@ -636,10 +636,13 @@ void WearStarterSymbol(GameState& state) {
 // Whether levelling up leaves `skill` for the tester to buy. The book of the
 // character's current job is theirs to spend, and for a 5th job that book is
 // the whole V Matrix, including common nodes, since they use the same points
-// and belong to no stage.
+// and belong to no stage. A 6th job's is the HEXA Matrix, the same way.
 bool LeaveUnbought(const Skill& skill, int unspent_stage) {
   if (unspent_stage == kSpendEveryStage) {
     return false;
+  }
+  if (unspent_stage >= kSixthJobStage) {
+    return skill.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED;
   }
   if (unspent_stage >= kFifthJobStage) {
     return skill.v_node() != V_NODE_KIND_UNSPECIFIED;
