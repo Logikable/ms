@@ -1431,6 +1431,30 @@ TEST(CombatSimTest, APulseGrowsWithTheSwingsCrowdRatherThanItsOwn) {
   EXPECT_NEAR(landed[1], 70.0 + 4 * 130.0, 1e-6);
 }
 
+// Solar Crest's Flame Emblem: a tick that reaches one enemy lands its lone
+// form, and one that reaches two lands its own on both.
+TEST(CombatSimTest, APulseOnALoneEnemyLandsItsLoneForm) {
+  Mob snail = MakeMob("Snail", 1000000000);
+  double landed[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params =
+        MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, run == 0 ? 1 : 2)});
+    AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
+    params.auto_attacks[0].max_enemies = 2;
+    AttackOption lone = params.auto_attacks[0];
+    lone.damage_per_hit = {30.0};
+    params.auto_attacks[0].lone_target =
+        std::make_shared<const AttackOption>(lone);
+    CombatSim sim;
+    for (int step = 0; step < 4; ++step) {
+      sim.Advance(params, 1.0);
+      landed[run] += sim.view().damage_this_step;
+    }
+  }
+  EXPECT_NEAR(landed[0], 4 * 30.0, 1e-6);
+  EXPECT_NEAR(landed[1], 4 * 2 * 10.0, 1e-6);
+}
+
 // Darkness Aura: an own-clock pulse that heals as it lands. It heals per strike
 // of the tick, not per tick, and never past full HP.
 TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {

@@ -200,6 +200,9 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
 }
 
 double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
+  if (attack.lone_target != nullptr && hit == 1) {
+    return StrikeDamage(*attack.lone_target, hit);
+  }
   double total = 0.0;
   // Only as many pulses as the fight intends to hold: a full hold would count
   // pulses that hit nothing.
@@ -817,6 +820,9 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
 
 double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                          int pulses) {
+  if (attack.lone_target != nullptr && Reached(attack) == 1) {
+    return Strike(*attack.lone_target, source, pulses);
+  }
   striking_ = source;
   // One strike hits the front mobs at once, each taking its own type's damage;
   // overkill is wasted.

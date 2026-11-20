@@ -3636,6 +3636,46 @@ TEST(ComputeCombatParamsTest, APulseThatGrowsWithTheCrowdCarriesOneMoreLine) {
   EXPECT_EQ(ComputeCombatParams(state).auto_attacks[0].extra_line, nullptr);
 }
 
+// Solar Crest's shape: the emblem carries a lone form at its own damage, on the
+// same level ladder as the pulse.
+TEST(ComputeCombatParamsTest, APulseWithALoneFormCarriesItAtItsOwnDamage) {
+  Skill crest;
+  crest.set_name("Solar Crest");
+  crest.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(crest, JOB_ADVANCEMENT_SWORDMAN);
+  crest.set_max_level(30);
+  crest.set_cooldown_seconds(230.0);
+  Buff* buff = crest.mutable_buff();
+  buff->set_duration_seconds(51.0);
+  BuffPulse* emblem = buff->mutable_pulse();
+  emblem->set_label("Flame Emblem");
+  emblem->set_cast_interval_seconds(2.1);
+  emblem->set_max_enemies(2);
+  emblem->set_lines(6);
+  emblem->mutable_base()->set_skill_pct(2.0);
+  emblem->set_lone_skill_pct(3.0);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"solar_crest", crest}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(crest, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  const AttackOption& pulse = params.auto_attacks[0];
+  ASSERT_NE(pulse.lone_target, nullptr);
+  ASSERT_FALSE(pulse.damage_per_hit.empty());
+  EXPECT_NEAR(pulse.lone_target->damage_per_hit[0],
+              pulse.damage_per_hit[0] * 1.5, 1e-6);
+  EXPECT_EQ(pulse.lone_target->lines, 6);
+
+  emblem->clear_lone_skill_pct();
+  state.skills["solar_crest"] = crest;
+  EXPECT_EQ(ComputeCombatParams(state).auto_attacks[0].lone_target, nullptr);
+}
+
 // Poison Chain's shape: the pulse has one stronger form per stack of poison,
 // each the whole strike again at its own damage. The step grows with level,
 // like every other number here.

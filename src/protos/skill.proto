@@ -656,6 +656,13 @@ message BuffPulse {
   // It keeps the pulse's levers and states only what is its own: one turret,
   // whose boss damage GMS states once. Unset for a pulse that just stops.
   SwingHit final_strike = 17;
+  // Skill damage in place of the pulse's own when a tick reaches only one
+  // enemy, on the same base + per_level * (L - 1) ladder. It exists for Solar
+  // Crest's Flame Emblem: GMS deals more "if striking a single enemy", so a
+  // lone boss takes it and a two-part one takes the shared number. 0 keeps the
+  // pulse's own.
+  double lone_skill_pct = 18;
+  double lone_skill_pct_per_level = 19;
 }
 
 // A shield that blocks whole hits instead of reducing each one, and lasts until

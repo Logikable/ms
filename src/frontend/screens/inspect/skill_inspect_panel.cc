@@ -1593,6 +1593,14 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
         "Per Stack", "+" + FormatPercent(step) + ", up to " +
                          FormatPercent(per_hit + step * pulse.max_repeats())));
   }
+  // What a tick deals instead when it reaches only one enemy.
+  if (pulse.lone_skill_pct() > 0.0) {
+    const double lone =
+        pulse.lone_skill_pct() + pulse.lone_skill_pct_per_level() * (level - 1);
+    rows.push_back(
+        EffectRow("On One Enemy",
+                  SwingText(lone, pulse.lines(), std::max(1, pulse.casts()))));
+  }
   // The strikes a tick lands whatever the number of enemies. Shown as the
   // total, since that is what a lone boss takes, and a crowd only spreads it.
   if (pulse.fixed_strikes().hits() > 0) {

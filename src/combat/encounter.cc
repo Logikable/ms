@@ -954,6 +954,12 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
         std::make_shared<const AttackOption>(own_clock(stronger)));
   }
   wound.final_repeat_strike = pulse.final_repeat_strike();
+  if (pulse.lone_skill_pct() > 0.0) {
+    Skill lone = bleed;
+    lone.mutable_base()->set_skill_pct(pulse.lone_skill_pct());
+    lone.mutable_per_level()->set_skill_pct(pulse.lone_skill_pct_per_level());
+    wound.lone_target = std::make_shared<const AttackOption>(own_clock(lone));
+  }
   // One extra line of the rain, built as a single-line strike so the fight can
   // land as many as the attack earned, each rolling separately.
   if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {

@@ -260,6 +260,9 @@ struct AttackOption {
   // Extra lines rather than a multiplier, since each rolls its own mastery and
   // crit.
   std::shared_ptr<const AttackOption> extra_line;
+  // This attack as it lands when it reaches only one enemy, or null when it
+  // lands the same however many it reaches.
+  std::shared_ptr<const AttackOption> lone_target;
   int lines_per_extra_enemy = 0;
   int max_extra_lines = 0;
   // Chances to deal extra damage to one enemy. Removed from anything on its own

@@ -1907,6 +1907,29 @@ TEST_F(SkillInspectPanelTest, ARainStatesWhatACrowdAndAnAlliedSkillAreWorth) {
       << rendered;
 }
 
+// Solar Crest's emblem states what it deals to a lone enemy under its own row.
+TEST_F(SkillInspectPanelTest, AnEmblemStatesWhatItDealsToOneEnemy) {
+  Skill crest = IronBody();
+  crest.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = crest.mutable_buff();
+  buff->set_duration_seconds(51.0);
+  BuffPulse* emblem = buff->mutable_pulse();
+  emblem->set_label("Flame Emblem");
+  emblem->set_cast_interval_seconds(2.1);
+  emblem->set_max_enemies(2);
+  emblem->set_lines(6);
+  emblem->mutable_base()->set_skill_pct(2.08);
+  emblem->mutable_per_level()->set_skill_pct(0.08);
+  emblem->set_lone_skill_pct(2.86);
+  emblem->set_lone_skill_pct_per_level(0.11);
+
+  std::string rendered = RenderAt(crest, 2);
+  EXPECT_NE(RowIn(rendered, "Flame Emblem", "216% x6"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "On One Enemy", "297% x6"), std::string::npos)
+      << rendered;
+}
+
 // Poison Chain's two values: the count mentions the extra explosion, and the
 // ramp is shown as the damage it builds up to rather than the step alone, since
 // the top is what a boss takes for most of a cast.
