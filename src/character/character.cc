@@ -1049,11 +1049,15 @@ void CharacterInstance::ToggleScrollPin(const std::string& key) {
   pinned->erase(it);
 }
 
+int CharacterInstance::level_cap() const {
+  return uncapped_ ? kMaxLevel : LevelCap(character_.job());
+}
+
 void CharacterInstance::AddExp(int64_t amount,
                                const std::vector<int>& other_levels) {
   // At the cap, EXP is thrown away rather than stored, so a character who kept
   // fighting there doesn't get a windfall when the cap is raised.
-  const int cap = LevelCap(character_.job());
+  const int cap = level_cap();
   if (character_.level() >= cap) {
     return;
   }

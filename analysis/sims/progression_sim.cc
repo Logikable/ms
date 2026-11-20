@@ -137,6 +137,9 @@
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
+ABSL_FLAG(bool, uncapped, false,
+          "Lift every job's level cap, as max mode does, and climb to the end "
+          "of the EXP table: where a fight falls is then read as a level.");
 ABSL_FLAG(double, step, 0.5,
           "Seconds the fight is advanced by per tick. Comfortably finer than a "
           "swing (0.66s) or a mob hit (1.5s), which is all the resolution the "
@@ -3078,6 +3081,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
                 absl::GetFlag(FLAGS_measure_seconds)};
   run.rng.seed(seed);
   run.saves = &saves;
+  if (absl::GetFlag(FLAGS_uncapped)) {
+    state.uncapped = true;
+    state.MirrorAccount();
+    run.stop_level = kMaxLevel;
+  }
   run.key = ClimbKey(branch, seed);
   run.seed = seed;
   run.ladders = ladders;

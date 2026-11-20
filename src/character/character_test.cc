@@ -527,6 +527,16 @@ TEST_F(AddExpTest, StopsAtTheLevelCapAndZeroesExp) {
   EXPECT_EQ(c.proto().exp(), 0);
 }
 
+// Max mode's characters level past their job's cap, to the end of the table.
+TEST_F(AddExpTest, AnUncappedCharacterLevelsPastTheCap) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap);
+  ASSERT_EQ(c.level_cap(), kTrialLevelCap);
+  c.set_uncapped(true);
+  EXPECT_EQ(c.level_cap(), kMaxLevel);
+  c.AddExp(ExpToNextLevel(kTrialLevelCap));
+  EXPECT_EQ(c.proto().level(), kTrialLevelCap + 1);
+}
+
 // The cap limits what combat pays, not what a level is. The debug item grants a
 // level through LevelUp, which still goes past the cap.
 TEST_F(AddExpTest, LevelUpItselfIsNotCapped) {

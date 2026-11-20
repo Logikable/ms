@@ -16,7 +16,7 @@ namespace {
 std::string Draw(const Character& character) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(1));
-  ftxui::Element bar = ExpBar(character);
+  ftxui::Element bar = ExpBar(character, LevelCap(character.job()));
   ftxui::Render(screen, bar);
   return screen.ToString();
 }
@@ -25,7 +25,7 @@ std::string Draw(const Character& character) {
 int Filled(const Character& character) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(1));
-  ftxui::Element bar = ExpBar(character);
+  ftxui::Element bar = ExpBar(character, LevelCap(character.job()));
   ftxui::Render(screen, bar);
   int filled = 0;
   for (int x = 0; x < screen.dimx(); ++x) {

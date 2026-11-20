@@ -167,6 +167,9 @@ struct GameState {
   // What every character on the account shares: bindings, unlocks, and what the
   // player has been shown. See //src/account.h.
   AccountInstance account;
+  // Whether every character levels to kMaxLevel whatever their job's cap. Max
+  // mode sets it, so a character can be measured past the content's cap.
+  bool uncapped = false;
 
   // Which save slot the played character came from, and the characters in the
   // other slots. Kept so saving preserves them: nothing in a session reads a

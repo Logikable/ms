@@ -1497,10 +1497,10 @@ ftxui::Element Tui::RenderMain() {
   } else if (controller_.PanelVisible(kMenuPanel)) {
     corner = menu_component_->Render();
   }
-  ftxui::Element layout =
-      MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
-                 std::move(equipped), std::move(inventory), std::move(corner),
-                 ExpBar(state_.character.proto()));
+  ftxui::Element layout = MainLayout(
+      widths, char_panel_.Render(), combat_component_->Render(),
+      std::move(equipped), std::move(inventory), std::move(corner),
+      ExpBar(state_.character.proto(), state_.character.level_cap()));
   // Drawn as an overlay so a menu opened near the bottom of a panel hangs over
   // the edge instead of being cut off at the terminal's edge.
   ftxui::Element menu = OpenMenu(widths);

@@ -155,7 +155,7 @@ ftxui::Element PlayerInspectPanel::Render(int rows, int columns) {
               ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left),
           equip_component_->Render() | ftxui::flex,
       }) | ftxui::flex,
-      ExpBar(character_.proto()),
+      ExpBar(character_.proto(), character_.level_cap()),
   });
 }
 

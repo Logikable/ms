@@ -1504,6 +1504,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
                                     ? options.job
                                     : kTestAdvancement;
   const int level = LevelForJob(chosen, options.level);
+  state.character.set_uncapped(true);
   // --job names the line, not where to stop in it: a max character at a level
   // has taken every advancement that level allows.
   const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
@@ -1557,6 +1558,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   // Before seeding: a max character's allocations are measured by playing the
   // fight, and the fight reads this setting.
   account.SetAutoswapPresets(test.autoswap_presets);
+  uncapped = mode == GameMode::kMax;
   MirrorAccount();
   if (mode == GameMode::kTest) {
     SeedTest(*this, test);
@@ -1588,6 +1590,7 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
                                   const std::vector<CharacterSave>& roster,
                                   int theirs) const {
   into.set_autoswap_presets(account.autoswap_presets());
+  into.set_uncapped(uncapped);
   into.set_account_max_level(account.max_level());
   into.set_noblesse_sp_earned(NoblesseSpEarned(account.solo_clears(), bosses));
   // Only the others: a character provides their own line's link skill

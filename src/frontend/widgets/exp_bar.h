@@ -14,7 +14,8 @@ namespace ms {
 
 // A one-row bar for `character`. At the level cap it reads MAX and is full:
 // there is no next level, and an empty bar would look like EXP had been lost.
-ftxui::Element ExpBar(const Character& character);
+// `cap` is the level the bar reads MAX at.
+ftxui::Element ExpBar(const Character& character, int cap);
 
 }  // namespace ms
 

@@ -1131,6 +1131,16 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   }
 }
 
+// Max mode measures past the content's cap, so every job levels on to 300
+// there, and the alts the roster builds with it.
+TEST(GameStateTest, MaxModeLiftsEveryJobsCap) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  EXPECT_EQ(state.character.level_cap(), kMaxLevel);
+  EXPECT_TRUE(state.uncapped);
+  EXPECT_EQ(MakeTestModeState().character.level_cap(),
+            LevelCap(WorkbenchJob()));
+}
+
 // Every pool is spent: AP into the job's main stat, SP into its book, and both
 // Hyper Stat allocations down to leftovers.
 TEST(GameStateTest, MaxModeSpendsEveryPool) {

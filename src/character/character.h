@@ -532,6 +532,12 @@ class CharacterInstance {
   void set_autoswap_presets(bool on) {
     autoswap_presets_ = on;
   }
+  // The level AddExp stops at: the job's LevelCap, or kMaxLevel for any job
+  // once uncapped, as max mode's characters are.
+  int level_cap() const;
+  void set_uncapped(bool on) {
+    uncapped_ = on;
+  }
   // The highest level any character on the account has reached, copied here for
   // the same reason, since Blessing of the Fairy is read wherever stats are. It
   // is never below this character's own level: the account's record is only
@@ -1022,6 +1028,7 @@ class CharacterInstance {
   // Copy of the account setting; see autoswap_presets(). Off is the default, so
   // a character with no account keeps whichever preset is selected.
   bool autoswap_presets_ = false;
+  bool uncapped_ = false;
   // Copy of the account's record; see account_max_level().
   int account_max_level_ = 0;
   // Copy of the account's Noblesse SP; see noblesse_sp_earned().
