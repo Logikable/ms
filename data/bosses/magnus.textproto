@@ -1,4 +1,5 @@
 name: "Magnus"
+page: 1
 difficulties {
   name: "Normal"
   phases {

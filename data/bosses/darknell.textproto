@@ -1,4 +1,5 @@
 name: "Darknell"
+page: 2
 difficulties {
   # GMS's own level (265) is kept, past the level cap.
   name: "Normal"

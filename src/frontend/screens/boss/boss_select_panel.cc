@@ -133,7 +133,8 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 
 }  // namespace
 
-BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
+BossSelectPanel::BossSelectPanel(const GameState& state)
+    : state_(state), pages_(kBossPages) {
   // The level the fight unlocks at, on its easiest difficulty. The unlock level
   // says where a fight belongs in a character's progress; HP is a poor guide,
   // since one boss has in one body what another spreads over six parts. A fight
@@ -152,11 +153,15 @@ BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
   std::sort(sorted.begin(), sorted.end());
   for (const std::tuple<int, int64_t, std::string, std::string>& entry :
        sorted) {
-    bosses_.push_back(std::get<3>(entry));
+    const std::string& key = std::get<3>(entry);
+    const int page = std::clamp(state_.bosses.at(key).page(), 1, kBossPages);
+    pages_[page - 1].push_back(key);
   }
 }
 
 void BossSelectPanel::Reset() {
+  page_ = 0;
+  on_tabs_ = false;
   selected_ = 0;
   column_ = 0;
   focus_ = BossPanel::kList;
@@ -185,14 +190,22 @@ void BossSelectPanel::MoveCursor(int delta) {
   if (focus_ != BossPanel::kList) {
     return;
   }
-  selected_ = StepCursor(selected_, delta, static_cast<int>(bosses_.size()));
+  // The tab row is one more stop on the ring, before the first fight.
+  const int count = static_cast<int>(Shown().size());
+  const int at = StepCursor(on_tabs_ ? 0 : selected_ + 1, delta, count + 1);
+  on_tabs_ = at == 0;
+  if (!on_tabs_) {
+    selected_ = at - 1;
+  }
   scroll_ = 0;
 }
 
 int BossSelectPanel::Columns() const {
   int columns = 0;
-  for (const std::string& key : bosses_) {
-    columns = std::max(columns, state_.bosses.at(key).difficulties_size());
+  for (const std::vector<std::string>& page : pages_) {
+    for (const std::string& key : page) {
+      columns = std::max(columns, state_.bosses.at(key).difficulties_size());
+    }
   }
   return columns;
 }
@@ -205,8 +218,15 @@ void BossSelectPanel::ChangeDifficulty(int delta) {
   if (focus_ != BossPanel::kList) {
     return;
   }
-  column_ = std::clamp(column_ + delta, 0, std::max(0, Columns() - 1));
   scroll_ = 0;
+  if (on_tabs_) {
+    // No wrapping, as for the difficulties. The card shows the new page's
+    // first fight.
+    page_ = std::clamp(page_ + delta, 0, kBossPages - 1);
+    selected_ = 0;
+    return;
+  }
+  column_ = std::clamp(column_ + delta, 0, std::max(0, Columns() - 1));
 }
 
 void BossSelectPanel::ScrollInfo(int delta) {
@@ -223,24 +243,24 @@ void BossSelectPanel::ScrollInfo(int delta) {
 }
 
 int BossSelectPanel::DifficultyAt(int boss) const {
-  int count = state_.bosses.at(bosses_[boss]).difficulties_size();
+  int count = state_.bosses.at(Shown()[boss]).difficulties_size();
   return std::clamp(column_, 0, std::max(0, count - 1));
 }
 
 const std::string& BossSelectPanel::selected_boss() const {
   static const std::string kNone;
-  return bosses_.empty() ? kNone : bosses_[selected_];
+  return Shown().empty() ? kNone : Shown()[selected_];
 }
 
 int BossSelectPanel::selected_difficulty() const {
-  return bosses_.empty() ? 0 : DifficultyAt(selected_);
+  return Shown().empty() ? 0 : DifficultyAt(selected_);
 }
 
 const BossDifficulty* BossSelectPanel::selected() const {
-  if (bosses_.empty()) {
+  if (Shown().empty()) {
     return nullptr;
   }
-  const Boss& boss = state_.bosses.at(bosses_[selected_]);
+  const Boss& boss = state_.bosses.at(Shown()[selected_]);
   int at = DifficultyAt(selected_);
   if (at < 0 || at >= boss.difficulties_size()) {
     return nullptr;
@@ -253,7 +273,7 @@ std::string BossSelectPanel::selected_title() const {
   if (difficulty == nullptr) {
     return "";
   }
-  return difficulty->name() + " " + state_.bosses.at(bosses_[selected_]).name();
+  return difficulty->name() + " " + state_.bosses.at(Shown()[selected_]).name();
 }
 
 bool BossSelectPanel::selected_available() const {
@@ -262,7 +282,7 @@ bool BossSelectPanel::selected_available() const {
   }
   // Checked on the boss rather than the difficulty: beating him at any
   // difficulty counts, and every difficulty waits for the reset.
-  const std::string& key = bosses_[selected_];
+  const std::string& key = Shown()[selected_];
   return BossAvailable(key, state_.bosses.at(key),
                        state_.character.proto().boss_clears(),
                        static_cast<int64_t>(std::time(nullptr)));
@@ -293,7 +313,7 @@ ResetPeriod BossSelectPanel::selected_reset() const {
 }
 
 ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
-  const Boss& fight = state_.bosses.at(bosses_[boss]);
+  const Boss& fight = state_.bosses.at(Shown()[boss]);
   if (at >= fight.difficulties_size()) {
     return ftxui::text(std::string(kDifficultyWidth, ' '));
   }
@@ -308,7 +328,7 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   // reached the level for, or one that isn't built. It is still listed and
   // readable, and Enter on it says what it needs. Each cell is checked
   // separately, so Normal can be open while Chaos next to it isn't.
-  if (boss == selected_ && at == DifficultyAt(boss)) {
+  if (!on_tabs_ && boss == selected_ && at == DifficultyAt(boss)) {
     name = std::move(name) | ftxui::inverted;
   } else if (!Unlocked(difficulty) || difficulty.coming_soon()) {
     name = std::move(name) | ftxui::dim;
@@ -321,18 +341,25 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
 ftxui::Element BossSelectPanel::RenderBossList(
     std::chrono::steady_clock::time_point now) const {
   int columns = Columns();
+  const int width = 1 + kBossNameWidth + columns * kDifficultyWidth + 1;
+  std::vector<TabSpec> tabs;
+  for (int i = 1; i <= kBossPages; ++i) {
+    tabs.push_back({std::to_string(i)});
+  }
   std::vector<ftxui::Element> rows;
+  rows.push_back(
+      TabBar(tabs, page_, focus_ == BossPanel::kList && on_tabs_, width));
   rows.push_back(
       ftxui::text(" " + PadRight("Name", kBossNameWidth) +
                   PadRight("Difficulty", columns * kDifficultyWidth) + " "));
   rows.push_back(ThemedSeparator());
-  if (bosses_.empty()) {
+  if (Shown().empty()) {
     rows.push_back(EmptyState("empty"));
   }
-  for (int i = 0; i < static_cast<int>(bosses_.size()); ++i) {
+  for (int i = 0; i < static_cast<int>(Shown().size()); ++i) {
     std::vector<ftxui::Element> cells;
     cells.push_back(ftxui::text(
-        " " + ScrollingWindow(state_.bosses.at(bosses_[i]).name(),
+        " " + ScrollingWindow(state_.bosses.at(Shown()[i]).name(),
                               kBossNameWidth, now.time_since_epoch())));
     for (int at = 0; at < columns; ++at) {
       cells.push_back(RenderDifficultyCell(i, at));

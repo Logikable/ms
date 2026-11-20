@@ -1,4 +1,5 @@
 name: "Gloom"
+page: 2
 difficulties {
   # GMS's own level (255) is kept, fifteen over the gate.
   name: "Normal"

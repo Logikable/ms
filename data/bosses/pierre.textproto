@@ -1,4 +1,5 @@
 name: "Pierre"
+page: 1
 difficulties {
   # No Normal: GMS fights Root Abyss only on Chaos.
   name: "Chaos"

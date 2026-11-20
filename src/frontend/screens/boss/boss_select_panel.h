@@ -13,6 +13,10 @@
  * Practice), which the player toggles with Enter and the server applies to the
  * whole party.
  *
+ * The grid is in pages, a tab each, and the tab row sits over the fights. Up
+ * from the first fight (or Down from the last) lands on it, where Left and
+ * Right change the page.
+ *
  * Tab moves between the three windows. On the grid, Up and Down move between
  * fights and Left and Right between difficulties. The column belongs to the
  * grid rather than to a fight, so moving down from Chaos lands on the next
@@ -50,10 +54,12 @@ inline constexpr int kDetailWidth = 44;
 // fitted, so moving through the list (where one fight has more drops than the
 // next) doesn't move anything on the screen.
 inline constexpr int kBossPanelHeight = 25;
-// The number of fights the grid has room for: its rows minus the header and the
-// rule under it. A catalog with more loses its end, so the data is tested
-// against this.
-inline constexpr int kBossListCapacity = kBossPanelHeight - 2 - 2;
+// The grid's pages; Boss.page names one.
+inline constexpr int kBossPages = 3;
+// The number of fights a page has room for: its rows minus the tab row, the
+// header and the rule under it. A page with more loses its end, so the data is
+// tested against this.
+inline constexpr int kBossListCapacity = kBossPanelHeight - 2 - 3;
 
 // Which window the arrows control. Tab moves around the ring.
 enum class BossPanel { kList, kFight, kOptions };
@@ -89,6 +95,14 @@ class BossSelectPanel {
 
   BossPanel focus() const {
     return focus_;
+  }
+  // The page shown, from 0, and whether the grid's cursor is on its tab row,
+  // where Enter starts nothing.
+  int page() const {
+    return page_;
+  }
+  bool on_tabs() const {
+    return on_tabs_;
   }
   // The option under the cursor, as an index into the row.
   int selected_option() const {
@@ -175,8 +189,12 @@ class BossSelectPanel {
   void RenderDropRow(std::vector<ftxui::Element>& rows, const MobDrop& drop,
                      std::chrono::steady_clock::time_point now) const;
 
+  // The fights on the page shown, in display order.
+  const std::vector<std::string>& Shown() const {
+    return pages_[page_];
+  }
   // The number of grid columns: as many as the fight with the most
-  // difficulties.
+  // difficulties, on any page, so the grid keeps its width.
   int Columns() const;
   // The difficulty `boss` is on: the grid's column, pulled back to the fight's
   // own last one when it has fewer.
@@ -186,10 +204,14 @@ class BossSelectPanel {
   bool Unlocked(const BossDifficulty& difficulty) const;
 
   const GameState& state_;
-  // Boss keys in display order: by the easiest difficulty's unlock level, then
-  // its HP, then name. The unlock level comes first because that is the order
-  // a player meets them in.
-  std::vector<std::string> bosses_;
+  // Boss keys by page, each in display order: by the easiest difficulty's
+  // unlock level, then its HP, then name. The unlock level comes first because
+  // that is the order a player meets them in.
+  std::vector<std::vector<std::string>> pages_;
+  int page_ = 0;
+  // Whether the cursor is on the tab row rather than a fight. selected_ is
+  // kept, so the card goes on showing the fight the cursor left.
+  bool on_tabs_ = false;
   // The column the cursor is in, kept across the whole grid so moving up and
   // down stays on the difficulty the player chose.
   int column_ = 0;

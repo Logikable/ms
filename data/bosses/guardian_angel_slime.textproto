@@ -1,4 +1,5 @@
 name: "Guardian Angel Slime"
+page: 2
 difficulties {
   name: "Normal"
   phases {

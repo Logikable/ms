@@ -1,4 +1,5 @@
 name: "Will"
+page: 2
 difficulties {
   # GMS's own level (250) is kept, twenty over the gate.
   name: "Normal"

@@ -367,6 +367,7 @@ TEST(BossSelectPanelTest, PhaseHpAndLevelReadOffTheMobs) {
   EXPECT_EQ(BossLevel(state, normal), 110);
 }
 
+// The cursor wraps through the tab row, which sits before the first fight.
 TEST(BossSelectPanelTest, TheListSortsByLevelAndTheCursorWraps) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
@@ -375,9 +376,65 @@ TEST(BossSelectPanelTest, TheListSortsByLevelAndTheCursorWraps) {
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_boss(), "zakum");
   panel.MoveCursor(1);
+  EXPECT_TRUE(panel.on_tabs());
+  panel.MoveCursor(1);
+  EXPECT_FALSE(panel.on_tabs());
   EXPECT_EQ(panel.selected_boss(), "balrog");
   panel.MoveCursor(-1);
+  EXPECT_TRUE(panel.on_tabs());
+  panel.MoveCursor(-1);
   EXPECT_EQ(panel.selected_boss(), "zakum");
+}
+
+// Each boss is listed on its own page only. Left and Right on the tab row turn
+// the page, stopping at both ends, and the card shows the page's first fight.
+TEST(BossSelectPanelTest, TheTabRowTurnsThePage) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  state.bosses["zakum"].set_page(2);
+  BossSelectPanel panel(state);
+  EXPECT_EQ(panel.selected_boss(), "balrog");
+  EXPECT_EQ(RowOf(RenderRows(panel), "Zakum"), -1);
+  panel.ChangeDifficulty(1);  // a fight's row moves the column, not the page
+  EXPECT_EQ(panel.page(), 0);
+
+  panel.MoveCursor(-1);
+  ASSERT_TRUE(panel.on_tabs());
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.page(), 1);
+  EXPECT_EQ(panel.selected_boss(), "zakum");
+  EXPECT_EQ(RowOf(RenderRows(panel), "Balrog"), -1);
+  EXPECT_NE(RowOf(RenderRows(panel), "Normal Zakum"), -1);  // the card
+
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.page(), 2);
+  EXPECT_EQ(panel.selected(), nullptr);  // nothing on page 3
+  panel.MoveCursor(1);
+  EXPECT_TRUE(panel.on_tabs()) << "an empty page has nowhere to go";
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.page(), 2);
+
+  panel.Reset();
+  EXPECT_EQ(panel.page(), 0);
+  EXPECT_FALSE(panel.on_tabs());
+}
+
+// The tab row costs the grid a row: a full page still fits the panel.
+TEST(BossSelectPanelTest, AFullPageFitsUnderTheTabRow) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  for (int i = 1; i < kBossListCapacity; ++i) {
+    Boss boss = Zakum();
+    boss.set_name("Zakum " + std::to_string(i));
+    state.bosses["zakum_" + std::to_string(i)] = boss;
+  }
+  BossSelectPanel panel(state);
+  const std::vector<std::string> rows = RenderRows(panel);
+  const int last =
+      RowOf(rows, "Zakum " + std::to_string(kBossListCapacity - 1));
+  ASSERT_NE(last, -1);
+  EXPECT_LT(last, kBossPanelHeight - 1) << "the last fight sits on the border";
+  EXPECT_LT(RowOf(rows, " 1 "), RowOf(rows, "Name"));
 }
 
 // The column belongs to the grid, not to a fight: moving down in the second
@@ -427,7 +484,7 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   ftxui::Render(screen, panel.Render());
   std::string out = screen.ToString();
   EXPECT_EQ(out.find(">"), std::string::npos) << "no caret";
-  std::string balrog = ScreenRow(screen, 3);
+  std::string balrog = ScreenRow(screen, 4);
   EXPECT_NE(balrog.find("Easy"), std::string::npos);
   EXPECT_NE(balrog.find("Normal"), std::string::npos)
       << "both columns stand there, whichever is chosen";
@@ -441,11 +498,11 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   EXPECT_EQ(out.find("\033[7mEasy"), std::string::npos);
   EXPECT_NE(out.find("\033[7mNormal"), std::string::npos)
       << "Right lights the next column instead of replacing the name";
-  std::string header = ScreenRow(screen, 1);
+  std::string header = ScreenRow(screen, 2);
   EXPECT_NE(header.find("│ Name"), std::string::npos)
       << "a column of clearance";
   EXPECT_NE(header.find(" │"), std::string::npos) << "on both sides";
-  EXPECT_NE(ScreenRow(screen, 3).find(" │"), std::string::npos)
+  EXPECT_NE(ScreenRow(screen, 4).find(" │"), std::string::npos)
       << "the detail panel too";
 }
 
@@ -741,7 +798,7 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   state.bosses["zakum"].set_name("Zakum The Everlasting Flame");
   BossSelectPanel panel(state);
   // The grid's first fight; the card beside it has room for the whole name.
-  constexpr int kFirstFight = 3;
+  constexpr int kFirstFight = 4;
   std::string row = RenderRows(panel)[kFirstFight];
   EXPECT_NE(row.find("Zakum The Everlasting"), std::string::npos);
   EXPECT_EQ(row.find("Flame"), std::string::npos);

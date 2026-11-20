@@ -1,4 +1,5 @@
 name: "Lotus"
+page: 2
 difficulties {
   # No Easy, since GMS has none.
   name: "Normal"

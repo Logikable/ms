@@ -3605,7 +3605,9 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
       ToggleBossOption(boss_select_panel_.selected_option());
       return true;
     }
-    if (boss_select_panel_.selected() == nullptr) {
+    if (boss_select_panel_.selected() == nullptr ||
+        (boss_select_panel_.focus() == BossPanel::kList &&
+         boss_select_panel_.on_tabs())) {
       return true;
     }
     boss_prompt_title_ = boss_select_panel_.selected_title();

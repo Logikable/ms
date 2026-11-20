@@ -1,4 +1,5 @@
 name: "Papulatus"
+page: 1
 difficulties {
   # No Normal: GMS's Easy and Normal are at 115 and 155, below what a character
   # already clears by the time this unlocks.

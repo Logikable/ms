@@ -676,6 +676,22 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
                          "only one that jumps";
 }
 
+// Every boss names a page, and every page fits the grid. Page 2 keeps its last
+// row for the Black Mage, who isn't built yet.
+TEST_F(BossDataTest, EveryPageFitsTheGrid) {
+  std::map<int, int> fights;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    EXPECT_GE(entry.second.page(), 1) << entry.first << " names no page";
+    EXPECT_LE(entry.second.page(), kBossPages) << entry.first;
+    ++fights[entry.second.page()];
+  }
+  for (const std::pair<const int, int>& page : fights) {
+    EXPECT_LE(page.second, kBossListCapacity) << "page " << page.first;
+  }
+  EXPECT_LE(fights[2], kBossListCapacity - 1)
+      << "the Black Mage's row is taken";
+}
+
 // The fewest rows the fight card's details may be left: enough for the level,
 // the unlock level and two phases' HP before the reader has to scroll.
 constexpr int kMinDetailRows = 4;
@@ -684,8 +700,6 @@ constexpr int kMinDetailRows = 4;
 // at a glance, so the shipped names must fit their columns.
 TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
   std::map<std::string, Boss> bosses = LoadBosses();
-  EXPECT_LE(static_cast<int>(bosses.size()), kBossListCapacity)
-      << "the grid has no room for the whole catalog";
   for (const std::pair<const std::string, Boss>& entry : bosses) {
     EXPECT_LT(static_cast<int>(entry.second.name().size()), kBossNameWidth)
         << entry.second.name() << " slides under the Name column";

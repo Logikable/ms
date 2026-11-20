@@ -1,4 +1,5 @@
 name: "Princess No"
+page: 1
 difficulties {
   name: "Normal"
   # GMS hangs the Eight Trigrams above her, so the floor isn't the only place to

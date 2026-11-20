@@ -104,4 +104,6 @@ message BossDifficulty {
 message Boss {
   string name = 1;
   repeated BossDifficulty difficulties = 2;
+  // The boss screen's page that lists it, from 1; 0 is the first page too.
+  int32 page = 3;
 }
