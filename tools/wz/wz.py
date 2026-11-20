@@ -107,15 +107,31 @@ class Reader:
 class Wz:
     """One `<Dir>_NNN.wz` file: a complete PKG1 container with its own header."""
 
-    def __init__(self, path, version=271):
+    def __init__(self, path, version=None):
         self.d = open(path, 'rb').read()
         assert self.d[:4] == b'PKG1', path
         self.fsize, self.fstart = struct.unpack_from('<QI', self.d, 4)
-        self.version = version
-        self.vhash = version_hash(version)
         self.encver = struct.unpack_from('<H', self.d, self.fstart)[0]
-        self.entries = {}                           # path -> (kind, size, offset)
-        self._dir('', self.fstart + 2)
+        # The header doesn't say which version wrote it, and a wrong version
+        # decodes every offset to garbage, so try each until every img fits
+        # inside the file and opens as a property list. A pack of one img can
+        # pass by chance, so the nearest versions to the last known go first.
+        known = 272
+        guesses = sorted(range(200, 400), key=lambda v: (abs(v - known), -v))
+        for v in [version] if version else guesses:
+            self.version = v
+            self.vhash = version_hash(v)
+            self.entries = {}                       # path -> (kind, size, offset)
+            try:
+                self._dir('', self.fstart + 2)
+            except (IndexError, struct.error, UnicodeDecodeError):
+                continue
+            if self.entries and all(
+                    self.fstart <= o and o + size <= len(self.d) and
+                    (kind != 4 or self.d[o] == 0x73)
+                    for kind, size, o in self.entries.values()):
+                return
+        raise ValueError('no client version decodes %s' % path)
 
     def decode_offset(self, pos):
         off = (pos - self.fstart) ^ 0xFFFFFFFF
