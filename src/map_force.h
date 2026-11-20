@@ -33,8 +33,8 @@ struct MapForce {
 MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills);
 
-// What one difficulty of a boss requires of `character`, owned under the
-// Bossing presets.
+// What one difficulty of a boss requires of `character`; Arcane Force is owned
+// under the Bossing presets.
 MapForce BossForceFor(const BossDifficulty& difficulty,
                       const CharacterInstance& character,
                       const std::map<std::string, Skill>& skills);

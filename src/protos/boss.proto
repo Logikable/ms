@@ -93,6 +93,9 @@ message BossDifficulty {
   // for Hard Damien, 120 for Hard Verus Hilla. Paid only with the sixth_job
   // switch on.
   int64 sol_erda_energy = 11;
+  // The Sacred Power the fight requires, as a Grandis map requires it. A
+  // difficulty sets this or arcane_force, not both.
+  int32 sacred_power = 12;
 }
 
 // A boss and every difficulty it can be fought at, loaded from data/bosses at

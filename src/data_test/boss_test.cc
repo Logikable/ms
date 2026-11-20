@@ -160,6 +160,9 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
           << entry.first << " " << difficulty.name();
       EXPECT_NE(difficulty.reset(), RESET_PERIOD_UNSPECIFIED)
           << entry.first << " " << difficulty.name();
+      EXPECT_FALSE(difficulty.arcane_force() > 0 &&
+                   difficulty.sacred_power() > 0)
+          << entry.first << " " << difficulty.name() << " asks for both forces";
     }
   }
 }

@@ -388,11 +388,11 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   } else {
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
-  if (difficulty.arcane_force() > 0) {
-    // Red like the unlock level, though falling short only costs damage.
-    MapForce force = BossForceFor(difficulty, state_.character, state_.skills);
+  // Red like the unlock level, though falling short only costs damage.
+  MapForce force = BossForceFor(difficulty, state_.character, state_.skills);
+  if (force.required > 0) {
     rows.push_back(
-        RedUnless(DetailRow("Arcane Force", std::to_string(force.required)),
+        RedUnless(DetailRow(force.name, std::to_string(force.required)),
                   force.owned >= force.required));
   }
   RenderPhaseHp(rows, difficulty);

@@ -11,6 +11,16 @@
 namespace ms {
 namespace {
 
+MapForce SacredPowerFor(int required, const CharacterInstance& character) {
+  MapForce force;
+  force.name = "Sacred Power";
+  force.abbreviation = "SAC";
+  force.required = required;
+  force.owned = character.sacred_power();
+  force.factors = SacredFactorsFor(force.owned, force.required);
+  return force;
+}
+
 MapForce ArcaneForceFor(int required, const CharacterInstance& character,
                         const std::map<std::string, Skill>& skills,
                         Activity activity) {
@@ -32,11 +42,7 @@ MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
     force = ArcaneForceFor(map.arcane_force(), character, skills,
                            Activity::kFarming);
   } else if (map.sacred_power() > 0) {
-    force.name = "Sacred Power";
-    force.abbreviation = "SAC";
-    force.required = map.sacred_power();
-    force.owned = character.sacred_power();
-    force.factors = SacredFactorsFor(force.owned, force.required);
+    force = SacredPowerFor(map.sacred_power(), character);
   }
   return force;
 }
@@ -47,6 +53,9 @@ MapForce BossForceFor(const BossDifficulty& difficulty,
   if (difficulty.arcane_force() > 0) {
     return ArcaneForceFor(difficulty.arcane_force(), character, skills,
                           Activity::kBossing);
+  }
+  if (difficulty.sacred_power() > 0) {
+    return SacredPowerFor(difficulty.sacred_power(), character);
   }
   return {};
 }

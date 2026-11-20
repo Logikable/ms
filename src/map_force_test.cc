@@ -66,6 +66,24 @@ TEST(MapForceTest, ABossWeighsArcaneForceAsAMapDoes) {
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
 }
 
+TEST(MapForceTest, ABossWeighsSacredPowerAsAMapDoes) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(260);
+  CharacterInstance character(rng, std::move(proto));
+
+  BossDifficulty seren;
+  seren.set_sacred_power(200);
+  MapForce force = BossForceFor(seren, character, {});
+  MapData grandis;
+  grandis.set_sacred_power(200);
+  MapForce map = MapForceFor(grandis, character, {});
+  EXPECT_EQ(force.name, "Sacred Power");
+  EXPECT_EQ(force.required, 200);
+  EXPECT_DOUBLE_EQ(force.factors.damage_dealt, map.factors.damage_dealt);
+  EXPECT_LT(force.factors.damage_dealt, 1.0);
+}
+
 // A boss is fought under the Bossing presets, so their Hyper Stat Arcane Force
 // counts there and the Farming preset's does not.
 TEST(MapForceTest, ABossReadsTheBossingPresetsForce) {
