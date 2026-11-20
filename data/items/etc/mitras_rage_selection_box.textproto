@@ -1,0 +1,11 @@
+name: "Mitra's Rage Selection Box"
+sell_price: 0
+description: "Open the box to select one of the Mitra's Rage emblems."
+pick_box {
+  equips: [
+    "Mitra's Rage: Warrior",
+    "Mitra's Rage: Magician",
+    "Mitra's Rage: Bowman",
+    "Mitra's Rage: Thief"
+  ]
+}

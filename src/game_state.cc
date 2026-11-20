@@ -495,6 +495,10 @@ constexpr int kGloomAndDarknellLevel = 240;
 // from 140) and the Source of Suffering (worn from 160).
 constexpr int kVerusHillaLevel = 250;
 
+// The level Seren opens at, whose Hard difficulty drops Mitra's Rage, worn from
+// 200.
+constexpr int kSerenLevel = 260;
+
 // The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
 // AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
 // workbench never wears the Mark.
@@ -516,6 +520,22 @@ std::vector<std::string> HardLucidAndWillGear(Job job) {
       return {"dreamy_belt", "cursed_yellow_spellbook"};
     default:
       return {"dreamy_belt"};
+  }
+}
+
+// The branch's Mitra's Rage, or none for a beginner.
+std::string MitrasRage(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return "mitras_rage_warrior";
+    case JobBranch::kMagician:
+      return "mitras_rage_magician";
+    case JobBranch::kArcher:
+      return "mitras_rage_bowman";
+    case JobBranch::kRogue:
+      return "mitras_rage_thief";
+    default:
+      return "";
   }
 }
 
@@ -806,6 +826,14 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
     if (pendant != state.equips.end()) {
       MakeRoomFor(state, pendant->second);
       WearAll(state, {"source_of_suffering"}, equips);
+    }
+  }
+  if (level >= kSerenLevel) {
+    std::map<std::string, EquipPrototype>::const_iterator emblem =
+        state.equips.find(MitrasRage(job));
+    if (emblem != state.equips.end()) {
+      MakeRoomFor(state, emblem->second);
+      WearAll(state, {emblem->first}, equips);
     }
   }
 }
@@ -1664,6 +1692,9 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.name() == "Daybreak Pendant" ||
       proto.name() == "Source of Suffering") {
     return kVerusHillaLevel;
+  }
+  if (proto.set_family() == "Mitra's Rage") {
+    return kSerenLevel;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {

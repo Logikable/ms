@@ -289,6 +289,27 @@ TEST_F(WorkbenchGearTest, TheTotemsAreWornFrom200) {
   }
 }
 
+// Mitra's Rage takes the emblem slot from 260, where Seren opens: the branch's
+// own, in place of the shop's Gold Maple Leaf Emblem.
+TEST_F(WorkbenchGearTest, MitrasRageIsWornFrom260) {
+  GameState below = Workbench(JOB_ADVANCEMENT_BISHOP, 250);
+  ASSERT_EQ(below.character.equipped().count(EQUIP_SLOT_EMBLEM), 1u);
+  EXPECT_EQ(
+      below.character.equipped().at(EQUIP_SLOT_EMBLEM)->prototype().name(),
+      "Gold Maple Leaf Emblem");
+  for (const auto& [advancement, emblem] :
+       std::vector<std::pair<JobAdvancement, std::string>>{
+           {JOB_ADVANCEMENT_HERO, "Mitra's Rage: Warrior"},
+           {JOB_ADVANCEMENT_BISHOP, "Mitra's Rage: Magician"},
+           {JOB_ADVANCEMENT_BOW_MASTER, "Mitra's Rage: Bowman"},
+           {JOB_ADVANCEMENT_SHADOWER, "Mitra's Rage: Thief"}}) {
+    GameState at = Workbench(advancement, 260);
+    ASSERT_EQ(at.character.equipped().count(EQUIP_SLOT_EMBLEM), 1u) << emblem;
+    EXPECT_EQ(at.character.equipped().at(EQUIP_SLOT_EMBLEM)->prototype().name(),
+              emblem);
+  }
+}
+
 // A Hero advances at 100 but their Frozen axe requires 120, so in between they
 // hold the tier below. --mode=max measures a boss at every level where one
 // opens.
