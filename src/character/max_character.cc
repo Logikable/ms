@@ -261,6 +261,9 @@ constexpr Clear kClears[] = {
     {"lucid", "Hard", 260},
     {"verus_hilla", "Hard", 260},
     {"will", "Hard", 260},
+    // 8/10 after 40-77 days at the cap (sweep 2026-11-19).
+    {"seren", "Normal", 260},
+    {"seren", "Hard", kNeverCleared},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

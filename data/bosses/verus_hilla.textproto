@@ -38,11 +38,11 @@ difficulties {
     item: "verus_hillas_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, and she is the
-  # pendant's only source.
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
+  # Seren.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.2
+    per_kill: 0.1
   }
   # GMS never published the odds. The boxes pay one piece for every three the
   # coins buy across the tier, shared with fights that drop no coin; Normal
@@ -98,10 +98,11 @@ difficulties {
     item: "verus_hillas_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, x2 for Hard.
+  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, x2 for Hard,
+  # split with Seren.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.4
+    per_kill: 0.2
   }
   # GMS never published the odds. The boxes pay one piece for every three the
   # coins buy across the tier, shared with fights that drop no coin.

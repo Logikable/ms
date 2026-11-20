@@ -64,8 +64,8 @@ class BossDataTest : public testing::Test {
 // The bosses the Sacred Symbols name that aren't in the game yet. Building one
 // takes it off this list, and its file must use the stem named here.
 const std::set<std::string> kUnbuiltSymbolBosses = {
-    "seren",        "kalos", "first_adversary", "kaling",
-    "malefic_star", "limbo", "baldrix",         "jupiter",
+    "kalos", "first_adversary", "kaling",  "malefic_star",
+    "limbo", "baldrix",         "jupiter",
 };
 
 // The lowest level any of `boss`'s built difficulties opens at. It marks a
@@ -193,14 +193,29 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
-  // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell and Verus Hilla,
-  // which are the same case and are fought for their drops.
-  EXPECT_EQ(unpaid,
-            std::vector<std::string>(
-                {"crimson_queen", "darknell", "darknell", "gloom", "gloom",
-                 "guardian_angel_slime", "guardian_angel_slime", "lotus",
-                 "lotus", "lucid", "lucid", "pierre", "vellum", "verus_hilla",
-                 "verus_hilla", "von_bon", "will", "will", "zakum"}));
+  // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla and
+  // Seren, which are the same case and are fought for their drops.
+  EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen",
+                                              "darknell",
+                                              "darknell",
+                                              "gloom",
+                                              "gloom",
+                                              "guardian_angel_slime",
+                                              "guardian_angel_slime",
+                                              "lotus",
+                                              "lotus",
+                                              "lucid",
+                                              "lucid",
+                                              "pierre",
+                                              "seren",
+                                              "seren",
+                                              "vellum",
+                                              "verus_hilla",
+                                              "verus_hilla",
+                                              "von_bon",
+                                              "will",
+                                              "will",
+                                              "zakum"}));
 }
 
 // A shell (none today) can't be entered, so a timer, gate or
@@ -347,11 +362,11 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 34) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+  EXPECT_EQ(fights, 36) << "Arkarium, Cygnus, Princess No, Papulatus, the "
                            "four of Root Abyss, and both difficulties of "
                            "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
                            "Damien, the Guardian Angel Slime, Lucid, Will, "
-                           "Gloom, Darknell and Verus Hilla";
+                           "Gloom, Darknell, Verus Hilla and Seren";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -466,8 +481,12 @@ struct TierDrop {
   int price = 0;
   double currency_fights = 1;
   double box_fights = 1;
-  // kFixed only.
+  // kFixed only. `rate` is for a boss of `tier`; with `per_boss_tier` a boss
+  // of another tier takes it in proportion to its days per set, and with
+  // `per_difficulty` it doubles a step as a currency does.
   double rate = 0.0;
+  bool per_boss_tier = false;
+  bool per_difficulty = false;
 };
 
 // The two levers, and each tier's currency rate at Normal.
@@ -516,7 +535,18 @@ const std::map<std::string, TierDrop>& TierDrops() {
     (*drops)["arcane_umbra_armor_box"] = {3, DropKind::kBox, 1, 2, 5};
     (*drops)["arcane_umbra_weapon_box"] = {3, DropKind::kBox, 3, 2, 5};
     // The user's rates (2026-10-04, memory boss_ring_boxes.md).
-    (*drops)["black_jade_boss_ring_box"] = {3, DropKind::kFixed, 0, 1, 1, 0.02};
+    (*drops)["black_jade_boss_ring_box"] = {
+        3, DropKind::kFixed, 0, 1, 1, 0.02, /*per_boss_tier=*/true};
+    // The user's rate (2026-11-18): 1% for a tier 4 boss, doubled for Hard.
+    (*drops)["white_jade_boss_ring_box"] = {4,
+                                            DropKind::kFixed,
+                                            0,
+                                            1,
+                                            1,
+                                            0.01,
+                                            /*per_boss_tier=*/true,
+                                            /*per_difficulty=*/true};
+    (*drops)["mitras_rage_selection_box"] = {3, DropKind::kAccessory};
     for (const char* key : {"premium_scroll_for_accessory",
                             "premium_scroll_for_pet", "scroll_for_accessory"}) {
       (*drops)[key] = {3, DropKind::kFixed, 0, 1, 1, 0.5};
@@ -558,6 +588,11 @@ TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
     }
   }
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    // An equip, or a box of them, takes its own set's tier; anything else
+    // takes the boss's. Grandis bosses are tier 4 and Arcane River's tier 3.
+    const int boss_tier = LowestUnlockLevel(entry.second) >= kGrandisLevel ? 4
+                          : LowestUnlockLevel(entry.second) >= 200         ? 3
+                                                                           : 0;
     // The easiest difficulty a boss has counts as Normal.
     const int base = DifficultyRank(entry.second.difficulties(0).name()) - 1;
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
@@ -589,6 +624,13 @@ TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
             break;
           case DropKind::kFixed:
             want = tier.rate;
+            if (tier.per_boss_tier) {
+              ASSERT_GT(boss_tier, 0) << "a boss tier below Arcane River";
+              want *= kDaysPerSet[tier.tier - 1] / kDaysPerSet[boss_tier - 1];
+            }
+            if (tier.per_difficulty) {
+              want *= steps;
+            }
             break;
         }
         EXPECT_NEAR(drop.per_kill() * DropRolls(drop), want, 0.005);
