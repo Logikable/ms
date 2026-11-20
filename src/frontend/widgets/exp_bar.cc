@@ -35,7 +35,7 @@ int ExpPctDecimals(int level) {
 }  // namespace
 
 ftxui::Element ExpBar(const Character& character) {
-  if (character.level() >= kTrialLevelCap) {
+  if (character.level() >= LevelCap(character.job())) {
     return ProgressBar(1.0f, kTheme, "MAX");
   }
   int64_t exp = character.exp();

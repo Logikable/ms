@@ -140,6 +140,7 @@ cc_test(
     data = ["//data/skills:all"],
     deps = [
         "//src/character",
+        "//src/character:exp_table",
         "//src/character:job_branch",
         "//src/character/matrix:hexa_matrix",
         "//src/character/matrix:v_matrix",

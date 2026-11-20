@@ -714,9 +714,9 @@ int LevelForJob(JobAdvancement advancement, int level) {
     return level;
   }
   int stage = StageForAdvancement(advancement);
-  return stage >= kLastJobStage
-             ? kTrialLevelCap
-             : std::min(NextAdvancementLevel(stage), kTrialLevelCap);
+  int cap = LevelCap(JobForAdvancement(advancement));
+  return stage >= kLastJobStage ? cap
+                                : std::min(NextAdvancementLevel(stage), cap);
 }
 
 // The highest advancement `level` unlocks in the same line: --job names the

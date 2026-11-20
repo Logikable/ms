@@ -1053,11 +1053,12 @@ void CharacterInstance::AddExp(int64_t amount,
                                const std::vector<int>& other_levels) {
   // At the cap, EXP is thrown away rather than stored, so a character who kept
   // fighting there doesn't get a windfall when the cap is raised.
-  if (character_.level() >= kTrialLevelCap) {
+  const int cap = LevelCap(character_.job());
+  if (character_.level() >= cap) {
     return;
   }
   character_.set_exp(character_.exp() + amount);
-  while (character_.level() < kTrialLevelCap) {
+  while (character_.level() < cap) {
     int64_t threshold = ExpToNextLevel(character_.level());
     if (character_.exp() < threshold) {
       break;
@@ -1065,13 +1066,13 @@ void CharacterInstance::AddExp(int64_t amount,
     // One threshold gives however many levels Burning grants. The leftover EXP
     // carries over to the new level.
     character_.set_exp(character_.exp() - threshold);
-    int arrived = std::min(LevelAfterBurning(character_.level(), other_levels),
-                           kTrialLevelCap);
+    int arrived =
+        std::min(LevelAfterBurning(character_.level(), other_levels), cap);
     while (character_.level() < arrived) {
       LevelUp();
     }
   }
-  if (character_.level() >= kTrialLevelCap) {
+  if (character_.level() >= cap) {
     character_.set_exp(0);
   }
 }

@@ -179,7 +179,7 @@ class CharacterInstance {
   CharacterInstance(CharacterInstance&&) = default;
 
   // Grants 5 AP, and 3 SP to the job stage the new level belongs to. It ignores
-  // kTrialLevelCap, which only limits what can be earned.
+  // the level cap, which only limits what can be earned.
   void LevelUp();
   // When this character last cleared `boss` at `difficulty`, or 0 for never.
   // boss_reset.h decides whether the clear has expired.
@@ -207,7 +207,7 @@ class CharacterInstance {
   // Pins it if unpinned, unpins it if pinned.
   void ToggleScrollPin(const std::string& key);
   // Adds `amount` to the character's EXP and levels up as many times as the new
-  // total allows. Does nothing once kTrialLevelCap is reached.
+  // total allows. Does nothing once the job's LevelCap is reached.
   //
   // `other_levels` is the rest of the account's characters, which Burning
   // reads; see LevelAfterBurning. With it empty there is no Burning, so a

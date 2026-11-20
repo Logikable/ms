@@ -336,4 +336,12 @@ int64_t ExpToNextLevel(int level) {
   return kTable[level];
 }
 
+bool SixthJobWritten(Job job) {
+  return job == JOB_BOW_MASTER;
+}
+
+int LevelCap(Job job) {
+  return kSixthJobEnabled && SixthJobWritten(job) ? kMaxLevel : kTrialLevelCap;
+}
+
 }  // namespace ms

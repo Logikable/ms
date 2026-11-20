@@ -15,6 +15,7 @@
 
 #include "absl/strings/str_join.h"
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/character/job_branch.h"
 #include "src/character/matrix/hexa_matrix.h"
 #include "src/character/matrix/v_matrix.h"
@@ -671,6 +672,41 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   }
   EXPECT_GT(commons, 0) << "the common folder stopped being read";
   EXPECT_GT(archetypes, 0) << "the line's shared folders stopped being read";
+}
+
+// A job's own HEXA nodes, as GMS gives every job: one Origin, one Ascent, four
+// Masteries and four Enhancements. LevelCap opens 261-300 to a job only once
+// all ten are written, and SixthJobWritten must say which jobs those are.
+TEST(SkillDataTest, SixthJobWrittenMatchesTheHexaBooks) {
+  const std::map<HexaNodeKind, int> full = {{HEXA_NODE_KIND_ORIGIN, 1},
+                                            {HEXA_NODE_KIND_ASCENT, 1},
+                                            {HEXA_NODE_KIND_MASTERY, 4},
+                                            {HEXA_NODE_KIND_ENHANCEMENT, 4}};
+  const std::map<std::string, Skill> skills = LoadSkills();
+  int written = 0;
+  for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+    const JobAdvancement book = AdvancementForJobStage(job, kSixthJobStage);
+    if (book == JOB_ADVANCEMENT_UNSPECIFIED) {
+      continue;
+    }
+    std::map<HexaNodeKind, int> held;
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      for (const SkillPlacement& placement : entry.second.placement()) {
+        if (placement.job_advancement() == book &&
+            full.count(entry.second.hexa_node()) > 0) {
+          ++held[entry.second.hexa_node()];
+        }
+      }
+    }
+    for (const std::pair<const HexaNodeKind, int>& kind : held) {
+      EXPECT_LE(kind.second, full.at(kind.first))
+          << JobAdvancement_Name(book) << " has too many "
+          << HexaNodeKind_Name(kind.first);
+    }
+    EXPECT_EQ(held == full, SixthJobWritten(job)) << JobAdvancement_Name(book);
+    written += held == full ? 1 : 0;
+  }
+  EXPECT_GT(written, 0) << "no 6th job book was read";
 }
 
 // A HEXA node goes to its kind's level, in a 6th job's book, and a skill its

@@ -78,12 +78,13 @@ enum class TestSkills {
   kMax,
 };
 
-// Where the workbench character starts when --job isn't given: the top of the
-// Hero line as far as it's written, with everything this game gives out. It
-// moves up as the line grows, since a workbench with an advancement still
-// pending would have to be finished before the tester could look at anything.
+// Where the workbench character starts when --job isn't given: the top of a
+// line as far as it's written, with everything this game gives out. It moves up
+// as the lines grow, since a workbench with an advancement still pending would
+// have to be finished before the tester could look at anything. With the 6th
+// job on it's the Bow Master, the one job whose 6th job reaches level 300.
 inline constexpr JobAdvancement kTestAdvancement =
-    kSixthJobEnabled ? JOB_ADVANCEMENT_HERO_VI : JOB_ADVANCEMENT_HERO_V;
+    kSixthJobEnabled ? JOB_ADVANCEMENT_BOW_MASTER_VI : JOB_ADVANCEMENT_HERO_V;
 
 // The workbench settings, one per flag; kPlay ignores them. `job` is the
 // advancement to start at the top of, and `level` the level to reach (0 lets

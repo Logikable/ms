@@ -68,11 +68,11 @@ Job WorkbenchJob() {
 // One skill for each advancement the workbench character passes through, so
 // seeding has a book to spend SP on. The levels are real, so what a stage's
 // points buy is realistic too.
-std::map<std::string, Skill> EveryStageBook() {
+std::map<std::string, Skill> EveryStageBook(Job job = WorkbenchJob()) {
   const int kSpByStage[] = {0, 60, 90, 120, 200};
   std::map<std::string, Skill> book;
   for (int stage = 1; stage <= 4; ++stage) {
-    JobAdvancement advancement = AdvancementForJobStage(WorkbenchJob(), stage);
+    JobAdvancement advancement = AdvancementForJobStage(job, stage);
     if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
     }
@@ -88,7 +88,7 @@ std::map<std::string, Skill> EveryStageBook() {
   Skill node;
   node.set_name("Fifth Surge");
   node.set_kind(SKILL_KIND_ATTACK);
-  PlaceIn(node, AdvancementForJobStage(WorkbenchJob(), kFifthJobStage));
+  PlaceIn(node, AdvancementForJobStage(job, kFifthJobStage));
   node.set_v_node(V_NODE_KIND_JOB);
   node.set_max_level(MaxVNodeLevel(V_NODE_KIND_JOB));
   book.insert({"fifth_surge", node});
@@ -102,7 +102,7 @@ std::map<std::string, Skill> EveryStageBook() {
   Skill hexa;
   hexa.set_name("Sixth Surge");
   hexa.set_kind(SKILL_KIND_ATTACK);
-  PlaceIn(hexa, AdvancementForJobStage(WorkbenchJob(), kSixthJobStage));
+  PlaceIn(hexa, AdvancementForJobStage(job, kSixthJobStage));
   hexa.set_hexa_node(HEXA_NODE_KIND_MASTERY);
   hexa.set_max_level(kHexaNodeMaxLevel);
   book.insert({"sixth_surge", hexa});
@@ -121,15 +121,15 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
 // levelling one at a time is worth watching.
 TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   GameState test = MakeTestModeState();
-  // The cap: the 4th job is the last one written, so there's no band above it
-  // and the workbench stops where the EXP table ends.
+  // The top of the line, at the level its job stops gaining EXP.
   int stage = test.character.proto().job_stage();
   EXPECT_EQ(stage, kLastJobStage);
-  EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
-  // Some warrior branch, not a specific one; see WorkbenchJob. Walked down the
-  // job tree from the 1st job, so a workbench somewhere the choices can't lead
-  // fails here.
-  std::vector<Job> reached = {JOB_SWORDMAN};
+  const Job job = test.character.proto().job();
+  EXPECT_EQ(test.character.proto().level(), LevelCap(job));
+  // Walked down the job tree from the line's 1st job, so a workbench somewhere
+  // the choices can't lead fails here.
+  std::vector<Job> reached = {
+      JobForAdvancement(AdvancementForJobStage(job, 1))};
   for (int i = 2; i <= stage; ++i) {
     std::vector<Job> next;
     for (Job job : reached) {
@@ -851,8 +851,8 @@ GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
   options.job = job;
   options.level = level;
   return GameState(MaxCatalog(), MaxTraces(), {}, std::move(mobs), {},
-                   EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
-                   std::move(bosses));
+                   EveryStageBook(JobForAdvancement(job)), GameMode::kMax,
+                   options, std::nullopt, {}, std::move(bosses));
 }
 
 // A max character switches on every toggle it bought, as a Bishop's
