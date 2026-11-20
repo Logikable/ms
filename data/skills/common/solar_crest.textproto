@@ -1,0 +1,142 @@
+# The first clear of Seren opens it, at either difficulty; GMS asks a level 260
+# quest and a Nodestone. There is no HP cost, as for True Arachnid Reflection.
+#
+# Mitra's Fire hits up to 15 enemies, then the Flame Emblem burns up to two
+# every 2.1s for 51s, harder when only one is in reach: a lone boss takes the
+# On One Enemy number, a two-part one the shared number on both.
+name: "Solar Crest"
+description:
+  "Mitra's power manifests the searing heat of the sun as a blazing inferno. "
+  "The flame emblem is unaffected by attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 4 }
+v_node: V_NODE_KIND_COMMON
+unlock_boss: "seren"
+max_level: 30
+# masonym's frames, 720 + 60.
+base_delay_ms: 780
+cooldown_seconds: 230.0
+max_enemies: 15
+lines: 12
+base { skill_pct: 7.8 }
+per_level { skill_pct: 0.3 }
+buff {
+  duration_seconds: 51.0
+  pulse {
+    label: "Flame Emblem"
+    cast_interval_seconds: 2.1
+    lines: 6
+    max_enemies: 2
+    base { skill_pct: 2.08 }
+    per_level { skill_pct: 0.08 }
+    lone_skill_pct: 2.86
+    lone_skill_pct_per_level: 0.11
+  }
+}
+# v272's per-job damage, from the client's attackInfo (400001059). The Hero,
+# Fire/Poison and Bishop keep the shared numbers.
+line_overrides {
+  line: JOB_PAGE
+  skill {
+    base { skill_pct: 13.25 }
+    per_level { skill_pct: 0.51 }
+    buff {
+      pulse {
+        base { skill_pct: 3.42 }
+        per_level { skill_pct: 0.14 }
+        lone_skill_pct: 4.77
+        lone_skill_pct_per_level: 0.19
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_SPEARMAN
+  skill {
+    base { skill_pct: 10.79 }
+    per_level { skill_pct: 0.42 }
+    buff {
+      pulse {
+        base { skill_pct: 2.94 }
+        per_level { skill_pct: 0.11 }
+        lone_skill_pct: 4.07
+        lone_skill_pct_per_level: 0.15
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ICE_LIGHTNING_WIZARD
+  skill {
+    base { skill_pct: 9.34 }
+    per_level { skill_pct: 0.35 }
+    buff {
+      pulse {
+        base { skill_pct: 2.59 }
+        per_level { skill_pct: 0.09 }
+        lone_skill_pct: 3.38
+        lone_skill_pct_per_level: 0.13
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_HUNTER
+  skill {
+    base { skill_pct: 15.44 }
+    per_level { skill_pct: 0.59 }
+    buff {
+      pulse {
+        base { skill_pct: 4.12 }
+        per_level { skill_pct: 0.16 }
+        lone_skill_pct: 5.67
+        lone_skill_pct_per_level: 0.22
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_CROSSBOWMAN
+  skill {
+    base { skill_pct: 14.12 }
+    per_level { skill_pct: 0.54 }
+    buff {
+      pulse {
+        base { skill_pct: 3.76 }
+        per_level { skill_pct: 0.14 }
+        lone_skill_pct: 5.18
+        lone_skill_pct_per_level: 0.2
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_ASSASSIN
+  skill {
+    base { skill_pct: 15.96 }
+    per_level { skill_pct: 0.61 }
+    buff {
+      pulse {
+        base { skill_pct: 4.33 }
+        per_level { skill_pct: 0.16 }
+        lone_skill_pct: 5.96
+        lone_skill_pct_per_level: 0.22
+      }
+    }
+  }
+}
+line_overrides {
+  line: JOB_BANDIT
+  skill {
+    base { skill_pct: 16.34 }
+    per_level { skill_pct: 0.62 }
+    buff {
+      pulse {
+        base { skill_pct: 4.22 }
+        per_level { skill_pct: 0.17 }
+        lone_skill_pct: 5.91
+        lone_skill_pct_per_level: 0.23
+      }
+    }
+  }
+}
