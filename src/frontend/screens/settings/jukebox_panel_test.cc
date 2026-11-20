@@ -198,7 +198,9 @@ TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
     if (pixel.character == "│") {
       break;
     }
-    if (pixel.character == " " || pixel.character == "┃") {
+    // The scroll bar's thumb, whole or half a cell.
+    if (pixel.character == " " || pixel.character == "┃" ||
+        pixel.character == "╹" || pixel.character == "╻") {
       continue;
     }
     EXPECT_EQ(pixel.foreground_color, kTheme) << "column " << x;

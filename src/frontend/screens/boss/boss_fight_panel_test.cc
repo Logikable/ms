@@ -404,6 +404,33 @@ TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   EXPECT_EQ(FightHeading(run), "Normal Zakum - Left");
 }
 
+// A phase with forms names the form after the phase, and the heading and the
+// monster's own bar take its colour.
+TEST(BossFightPanelTest, AFormIsNamedAndColoursTheBars) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = Zakum();
+  PhaseForm* dusk =
+      boss.mutable_difficulties(0)->mutable_phases(0)->add_forms();
+  dusk->set_name("Dusk");
+  dusk->set_seconds(130);
+  dusk->set_hp_bar(HP_BAR_COLOR_ORANGE);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(FightHeading(run), "Normal Zakum - P1 Dusk - 100%");
+
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(30));
+  ftxui::Render(screen, BossFightPanel(run, false));
+  EXPECT_EQ(screen.PixelAt(0, 0).background_color, kHpOrange);
+  bool mob_bar = false;
+  for (int y = 1; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      mob_bar = mob_bar || screen.PixelAt(x, y).background_color == kHpOrange;
+    }
+  }
+  EXPECT_TRUE(mob_bar) << "the arm's bar keeps its own red";
+}
+
 // Practice comes first in the heading: the end holds the phase and the percent,
 // which change, and what the run is worth shouldn't have to be found among
 // them.

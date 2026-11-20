@@ -167,10 +167,37 @@ void BossRun::StandSelf() {
                  sim_.view().attack_fraction, sim_.view().buff_count};
 }
 
+const PhaseForm* BossRun::current_form() const {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr || phase->forms().empty()) {
+    return nullptr;
+  }
+  int cycle = 0;
+  for (const PhaseForm& form : phase->forms()) {
+    cycle += std::max(0, form.seconds());
+  }
+  if (cycle <= 0) {
+    return &phase->forms(0);
+  }
+  double into =
+      std::fmod(std::max(0.0, elapsed_seconds_ - phase_began_), cycle);
+  for (const PhaseForm& form : phase->forms()) {
+    into -= std::max(0, form.seconds());
+    if (into < 0.0) {
+      return &form;
+    }
+  }
+  return &phase->forms(phase->forms_size() - 1);
+}
+
 std::string_view BossRun::bgm() const {
   const BossDifficulty* chosen = difficulty();
   if (chosen == nullptr) {
     return {};
+  }
+  const PhaseForm* form = current_form();
+  if (form != nullptr && !form->bgm().empty()) {
+    return form->bgm();
   }
   // Walk back from the current phase to the nearest one that sets a track. That
   // lets one track cover a whole fight.
@@ -920,6 +947,7 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
 void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.phase != phase_) {
     phase_ = shared.phase;
+    phase_began_ = elapsed_seconds_;
     // The server cut the clock as the phase began; this player's last reading
     // is the nearest thing to what it cut from.
     if (current_phase() != nullptr) {
@@ -1149,6 +1177,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
     // player time on their timer.
     dt = -countdown_left_;
     countdown_left_ = 0.0;
+    phase_began_ = elapsed_seconds_ - dt;
     state_ = BossRunState::kFighting;
   }
   switch (state_) {
@@ -1165,6 +1194,8 @@ void BossRun::RunAlone(GameState& state, double dt) {
         return;
       }
       ++phase_;
+      // Less what the step ran past the hold, which the phase has already had.
+      phase_began_ = elapsed_seconds_ + hold_left_;
       slots_.clear();
       // Mob IDs are only valid within the encounter that assigned them, and the
       // new phase is a different arena anyway.

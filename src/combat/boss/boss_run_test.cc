@@ -830,6 +830,41 @@ TEST(BossRunTest, APhasePlaysTheLastTrackNamedAtOrAboveIt) {
   EXPECT_EQ(own.bgm(), "body");
 }
 
+// Seren's forms: each holds for its seconds from the phase's start, then the
+// next, looping back to the first; each plays its own track, and a form naming
+// none keeps the phase's.
+TEST(BossRunTest, APhaseCyclesItsFormsOnItsOwnClock) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_bgm("phase");
+  PhaseForm* noon = phase->add_forms();
+  noon->set_name("Noon");
+  noon->set_seconds(10);
+  noon->set_hp_bar(HP_BAR_COLOR_GOLD);
+  noon->set_bgm("noon");
+  PhaseForm* dusk = phase->add_forms();
+  dusk->set_name("Dusk");
+  dusk->set_seconds(5);
+  dusk->set_hp_bar(HP_BAR_COLOR_ORANGE);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_NE(run.current_form(), nullptr);
+  EXPECT_EQ(run.current_form()->name(), "Noon");
+  EXPECT_EQ(run.bgm(), "noon");
+  for (int i = 0; i < 21; ++i) {  // 10.5s into the phase
+    run.Advance(*state, 0.5);
+  }
+  EXPECT_EQ(run.current_form()->name(), "Dusk");
+  EXPECT_EQ(run.bgm(), "phase");
+  for (int i = 0; i < 10; ++i) {  // 15.5s: round to Noon again
+    run.Advance(*state, 0.5);
+  }
+  EXPECT_EQ(run.current_form()->name(), "Noon");
+
+  EXPECT_EQ(BossRun("zakum", TwoPhaseBoss(), 0).current_form(), nullptr);
+}
+
 // Running out of time is the only way the player can lose.
 TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);

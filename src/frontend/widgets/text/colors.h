@@ -75,6 +75,12 @@ inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 inline const ftxui::Color kHpPink = ftxui::Color::RGB(185, 70, 128);
 inline const ftxui::Color kHpYellow = ftxui::Color::RGB(185, 177, 70);
 inline const ftxui::Color kHpGreen = ftxui::Color::RGB(93, 185, 70);
+// Seren's forms, from her clock's decals (#FFC331, #ED5433, #335480, #997FF3)
+// muted the same way.
+inline const ftxui::Color kHpGold = ftxui::Color::RGB(185, 151, 70);
+inline const ftxui::Color kHpOrange = ftxui::Color::RGB(185, 90, 70);
+inline const ftxui::Color kHpBlue = ftxui::Color::RGB(70, 119, 185);
+inline const ftxui::Color kHpViolet = ftxui::Color::RGB(96, 70, 185);
 
 // A party member's damage numbers and charge bar, normal and critical. Half as
 // bright as the player's, so a fight with three people still reads as the

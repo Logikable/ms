@@ -69,6 +69,8 @@ int IndexOfMode(JukeboxMode mode) {
 // plays every phase is labelled with just the boss's name.
 std::map<std::string, std::string> BossPlaces(const Boss& boss) {
   std::map<std::string, std::set<int>> phases;
+  // A form's track plays only in that form, so it is named for it.
+  std::map<std::string, std::string> forms;
   int longest = 0;
   for (const BossDifficulty& difficulty : boss.difficulties()) {
     std::string playing;
@@ -81,6 +83,12 @@ std::map<std::string, std::string> BossPlaces(const Boss& boss) {
       if (!playing.empty()) {
         phases[playing].insert(number);
       }
+      for (const PhaseForm& form : phase.forms()) {
+        if (!form.bgm().empty()) {
+          forms[form.bgm()] =
+              boss.name() + " P" + std::to_string(number) + " " + form.name();
+        }
+      }
     }
     longest = std::max(longest, number);
   }
@@ -92,6 +100,9 @@ std::map<std::string, std::string> BossPlaces(const Boss& boss) {
     }
     places[track] = boss.name() +
                     (static_cast<int>(numbers.size()) == longest ? "" : label);
+  }
+  for (const auto& [track, place] : forms) {
+    places[track] = place;
   }
   return places;
 }

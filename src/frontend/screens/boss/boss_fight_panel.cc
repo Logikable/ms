@@ -62,7 +62,9 @@ int MobBarRows(const std::vector<BossSlot>& slots) {
 // the player's attack name. The percent goes in the title, since the name won't
 // fit there and a number reads well as a badge on the frame.
 // A giant's name sits in the middle of its `inside` rows.
-ftxui::Element MobBar(const BossSlot& slot, int rows, int inside) {
+// `form` recolours the bar, as Seren's forms do; null keeps the slot's own.
+ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
+                      const PhaseForm* form) {
   int width = slot.giant ? kGiantPanelWidth : kBossPanelWidth;
   std::vector<std::string> lines;
   if (slot.giant) {
@@ -73,7 +75,10 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside) {
   } else {
     lines = BarLines(slot.name, rows);
   }
-  HpShade shade = ShadeHp(slot.hp_fraction, slot.hp_bars);
+  HpShade shade =
+      form != nullptr
+          ? ShadeHp(slot.hp_fraction, std::vector<HpBarColor>{form->hp_bar()})
+          : ShadeHp(slot.hp_fraction, slot.hp_bars);
   ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines);
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
@@ -570,9 +575,9 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
     }
     panel_of_slot[slot.id] = panels.size();
     int span = slot.giant ? 2 : 1;
-    panels.push_back(
-        MobBar(slot, MobBarRows(slots), span * rows - kPanelBorder) |
-        ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, span * rows));
+    panels.push_back(MobBar(slot, MobBarRows(slots), span * rows - kPanelBorder,
+                            run.current_form()) |
+                     ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, span * rows));
     cells.push_back({slot.x, slot.y, span});
   }
   // The monster bars come first, and the arena relies on that: the column over
@@ -660,6 +665,9 @@ std::string FightHeading(const BossRun& run) {
       // one-room boss adds nothing.
       std::string phase =
           run.phase_count() > 1 ? " - P" + std::to_string(run.phase()) : "";
+      if (run.current_form() != nullptr) {
+        phase += (phase.empty() ? " - " : " ") + run.current_form()->name();
+      }
       return practice + run.title() + phase + " - " +
              std::to_string(Percent(run.phase_hp_fraction())) + "%";
     }
@@ -686,7 +694,9 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   // arena.
   // A phase of one monster split into bars splits the heading the same way.
   std::vector<HpBarColor> bars;
-  if (run.slots().size() == 1) {
+  if (run.current_form() != nullptr) {
+    bars = {run.current_form()->hp_bar()};
+  } else if (run.slots().size() == 1) {
     bars = run.slots()[0].hp_bars;
   }
   HpShade shade = ShadeHp(run.phase_hp_fraction(), bars);

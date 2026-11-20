@@ -150,6 +150,12 @@ enum HpBarColor {
   HP_BAR_COLOR_PINK = 2;
   HP_BAR_COLOR_YELLOW = 3;
   HP_BAR_COLOR_GREEN = 4;
+  // Seren's four forms, after the decals on her clock
+  // (UI/UIWindow7.img/SerenSecondUI/Decal).
+  HP_BAR_COLOR_GOLD = 5;
+  HP_BAR_COLOR_ORANGE = 6;
+  HP_BAR_COLOR_BLUE = 7;
+  HP_BAR_COLOR_VIOLET = 8;
 }
 
 // The definition of a monster type, loaded from data/mobs at startup and shared

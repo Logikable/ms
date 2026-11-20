@@ -315,6 +315,9 @@ class BossRun {
   double elapsed_seconds() const {
     return elapsed_seconds_;
   }
+  // The form the current phase is in, by the seconds since it began, or null
+  // for a phase without forms.
+  const PhaseForm* current_form() const;
   // Every bar in the current phase, in spawn order.
   const std::vector<BossSlot>& slots() const {
     return slots_;
@@ -490,6 +493,8 @@ class BossRun {
   std::vector<PlayerBreakdown> shared_breakdowns_;
   std::string self_account_;
   double elapsed_seconds_ = 0.0;
+  // elapsed_seconds_ when the current phase began, which its forms count from.
+  double phase_began_ = 0.0;
   // Seconds left in the current pause: between phases, or at the end before the
   // screen returns.
   double hold_left_ = 0.0;

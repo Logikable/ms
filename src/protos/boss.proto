@@ -43,6 +43,20 @@ message BossPhase {
   // Readies every skill on a cooldown as the phase starts. GMS's Hard Lucid
   // does this for her last phase.
   bool reset_cooldowns = 8;
+  // Forms the boss takes in turn on the phase's own clock, from the first,
+  // looping until the phase ends. Each recolours the HP bar and changes the
+  // music; nothing about the fight changes.
+  repeated PhaseForm forms = 9;
+}
+
+// One of a phase's forms: GMS's Seren cycles Noon, Dusk, Midnight and Dawn.
+message PhaseForm {
+  // Shown in the fight's heading after the phase.
+  string name = 1;
+  int32 seconds = 2;
+  HpBarColor hp_bar = 3;
+  // As BossPhase.bgm; empty keeps the phase's.
+  string bgm = 4;
 }
 
 // Extra places to stand that open every `interval_ms` of fight time, measured

@@ -56,6 +56,14 @@ TEST(BgmTest, EveryBossOpensOnATrackInTheBuild) {
       EXPECT_FALSE(difficulty.phases(0).bgm().empty())
           << stem << " " << difficulty.name() << " opens on no music";
       for (const BossPhase& phase : difficulty.phases()) {
+        for (const PhaseForm& form : phase.forms()) {
+          EXPECT_GT(form.seconds(), 0) << stem << " " << form.name();
+          EXPECT_NE(form.hp_bar(), HP_BAR_COLOR_UNSPECIFIED)
+              << stem << " " << form.name();
+          EXPECT_TRUE(form.bgm().empty() || tracks.count(form.bgm()) > 0)
+              << stem
+              << " names a track this build has not got: " << form.bgm();
+        }
         if (phase.bgm().empty()) {
           continue;
         }

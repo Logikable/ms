@@ -259,7 +259,7 @@ class ClearUnderNode : public ftxui::Node {
 }  // namespace
 
 ftxui::Color HpBarFill(HpBarColor color) {
-  static_assert(HpBarColor_ARRAYSIZE == 5,
+  static_assert(HpBarColor_ARRAYSIZE == 9,
                 "a new HP bar colour needs a colour to draw it in");
   switch (color) {
     case HP_BAR_COLOR_PINK:
@@ -268,6 +268,14 @@ ftxui::Color HpBarFill(HpBarColor color) {
       return kHpYellow;
     case HP_BAR_COLOR_GREEN:
       return kHpGreen;
+    case HP_BAR_COLOR_GOLD:
+      return kHpGold;
+    case HP_BAR_COLOR_ORANGE:
+      return kHpOrange;
+    case HP_BAR_COLOR_BLUE:
+      return kHpBlue;
+    case HP_BAR_COLOR_VIOLET:
+      return kHpViolet;
     default:
       return kRed;
   }
