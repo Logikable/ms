@@ -169,6 +169,36 @@ constexpr OutfitBand kOutfits[] = {
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
+    // Hard Seren falls to the fifth of ten branches at 275 (the uncapped
+    // sweep of 2026-11-19), and Mitra's Rage takes the emblem slot.
+    {275,
+     {Set(kAU, EQUIP_SLOT_HAT),
+      Set(kAU, EQUIP_SLOT_TOP),
+      Set(kAU, EQUIP_SLOT_BOTTOM),
+      Set(kAU, EQUIP_SLOT_CAPE),
+      Set(kAU, EQUIP_SLOT_GLOVES),
+      Set(kAU, EQUIP_SLOT_SHOES),
+      Set(kAU, EQUIP_SLOT_SHOULDER),
+      Set(kAU, EQUIP_SLOT_PRIMARY_WEAPON),
+      Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
+      Set(SetFamily::kMitrasRage, EQUIP_SLOT_EMBLEM),
+      Item("master_adventurer"),
+      Item("guardian_angel_ring"),
+      Item("meister_ring"),
+      Item("silver_blossom_ring"),
+      Item("kannas_treasure"),
+      Item("berserked"),
+      Item("magic_eyepatch"),
+      Item("estella_earrings"),
+      Item("horntail_necklace"),
+      Item("dominator_pendant"),
+      Item("pink_holy_cup"),
+      Item("black_heart"),
+      Item("crystal_ventus_badge"),
+      Item("golden_clover_belt"),
+      Item("bronze_incense_burner_totem"),
+      Item("horseback_riding_doll_totem"),
+      Item("jade_kettle_totem")}},
 };
 
 // What the farming preset wore in place of the bossing preset's piece, re-read
@@ -255,15 +285,15 @@ constexpr Clear kClears[] = {
     {"darknell", "Normal", 249},
     {"guardian_angel_slime", "Chaos", 256},
     {"verus_hilla", "Normal", 256},
-    // Cleared by the fifth branch only after days or weeks at the cap.
-    {"darknell", "Hard", 260},
-    {"gloom", "Chaos", 260},
-    {"lucid", "Hard", 260},
-    {"verus_hilla", "Hard", 260},
+    // Past 260 from the uncapped sweep of 2026-11-19 (--uncapped
+    // --total_days=365), the fifth of ten branches.
     {"will", "Hard", 260},
-    // 8/10 after 40-77 days at the cap (sweep 2026-11-19).
-    {"seren", "Normal", 260},
-    {"seren", "Hard", kNeverCleared},
+    {"gloom", "Chaos", 261},
+    {"darknell", "Hard", 262},
+    {"verus_hilla", "Hard", 262},
+    {"lucid", "Hard", 265},
+    {"seren", "Normal", 265},
+    {"seren", "Hard", 275},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

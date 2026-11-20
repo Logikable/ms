@@ -523,22 +523,6 @@ std::vector<std::string> HardLucidAndWillGear(Job job) {
   }
 }
 
-// The branch's Mitra's Rage, or none for a beginner.
-std::string MitrasRage(Job job) {
-  switch (BranchOf(job)) {
-    case JobBranch::kWarrior:
-      return "mitras_rage_warrior";
-    case JobBranch::kMagician:
-      return "mitras_rage_magician";
-    case JobBranch::kArcher:
-      return "mitras_rage_bowman";
-    case JobBranch::kRogue:
-      return "mitras_rage_thief";
-    default:
-      return "";
-  }
-}
-
 std::vector<std::string> AbsoLabGear(Job job) {
   std::vector<std::string> names = AbsoLabArmour(job);
   std::string weapon = AbsoLabWeapon(job);

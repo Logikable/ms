@@ -49,8 +49,12 @@ enum class SetFamily {
   kPrincessNo,  // the secondary
   kAbsoLab,
   kArcaneUmbra,
-  kCygnus,  // the shoulder
+  kCygnus,      // the shoulder
+  kMitrasRage,  // the emblem
 };
+
+// The branch's Mitra's Rage, or "" for a beginner.
+std::string MitrasRage(Job job);
 
 // `job`'s piece of `family` in `slot`, or "" for a slot the family has none
 // in.

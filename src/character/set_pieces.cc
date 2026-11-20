@@ -219,6 +219,21 @@ std::string ArmourPiece(const std::vector<std::string>& armour,
 
 }  // namespace
 
+std::string MitrasRage(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return "mitras_rage_warrior";
+    case JobBranch::kMagician:
+      return "mitras_rage_magician";
+    case JobBranch::kArcher:
+      return "mitras_rage_bowman";
+    case JobBranch::kRogue:
+      return "mitras_rage_thief";
+    default:
+      return "";
+  }
+}
+
 std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
   switch (family) {
     case SetFamily::kRootAbyss:
@@ -240,6 +255,8 @@ std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
                  : ArmourPiece(ArcaneUmbraArmour(job), slot);
     case SetFamily::kCygnus:
       return slot == EQUIP_SLOT_SHOULDER ? CygnusShoulder(job) : "";
+    case SetFamily::kMitrasRage:
+      return slot == EQUIP_SLOT_EMBLEM ? MitrasRage(job) : "";
   }
   return "";
 }

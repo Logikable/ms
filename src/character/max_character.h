@@ -15,7 +15,6 @@
 #ifndef MS_SRC_CHARACTER_MAX_CHARACTER_H_
 #define MS_SRC_CHARACTER_MAX_CHARACTER_H_
 
-#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -132,12 +131,8 @@ void WearMaxSoul(CharacterInstance& character,
                  const std::map<std::string, Mob>& mobs,
                  const std::map<std::string, ItemPrototype>& items);
 
-// What MaxClearLevel says of a fight the sweep never beat.
-inline constexpr int kNeverCleared = std::numeric_limits<int>::max();
-
 // The level by which a max character has first beaten `boss` on `difficulty`
-// alone: kNeverCleared for a fight the sweep never beat, and 0 for one it
-// wasn't asked about.
+// alone, or 0 for a fight they haven't.
 int MaxClearLevel(const std::string& boss, const std::string& difficulty);
 
 // The alts a max account of `level` has levelled for their link skills: each

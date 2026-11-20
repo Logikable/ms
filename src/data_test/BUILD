@@ -99,6 +99,7 @@ cc_test(
         "//src/character",
         "//src/character:exp_table",
         "//src/character:max_character",
+        "//src/character:set_pieces",
         "//src/character/matrix:v_matrix",
         "//src/item",
         "//src/item:equip_instance",
