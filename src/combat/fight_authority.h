@@ -78,6 +78,8 @@ struct SharedFight {
   std::vector<double> hp_fractions;
   // Each slot's shields this phase, as a share of its max HP. See FightState.
   std::vector<double> shields;
+  // What is left of each slot's shield; see FightState.
+  std::vector<double> shields_left;
   // How many times the server has placed everyone; see FightState.
   int placements = 0;
   std::vector<SharedPlayer> players;

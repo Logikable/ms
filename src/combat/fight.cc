@@ -1406,8 +1406,10 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
   // Measured monsters never die: measurement wants the damage rate, and an
   // empty map would measure the respawn timer instead.
   if (!measuring_) {
+    const double soaked = std::min(mob.shield, damage);
+    mob.shield -= soaked;
     double floor = std::min(mob.hp, mob.hp_floor);
-    mob.hp -= damage;
+    mob.hp -= damage - soaked;
     if (mob.hp_floor > 0.0) {
       mob.hp = std::max(mob.hp, floor);
     }
@@ -1431,16 +1433,22 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
 }
 
 void CombatSim::ClampRoster(const CombatParams& params,
-                            const std::map<int, double>& hp_by_id) {
+                            const std::map<int, double>& hp_by_id,
+                            const std::map<int, double>& shield_by_id) {
   for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
     for (QueuedMob& mob : *mobs) {
-      std::map<int, double>::const_iterator said = hp_by_id.find(mob.id);
-      if (said == hp_by_id.end() ||
-          mob.type >= static_cast<int>(params.types.size())) {
+      if (mob.type >= static_cast<int>(params.types.size())) {
         continue;
       }
-      mob.hp =
-          std::min(mob.hp, said->second * params.types[mob.type].mob->max_hp());
+      const double max_hp = params.types[mob.type].mob->max_hp();
+      std::map<int, double>::const_iterator said = hp_by_id.find(mob.id);
+      if (said != hp_by_id.end()) {
+        mob.hp = std::min(mob.hp, said->second * max_hp);
+      }
+      said = shield_by_id.find(mob.id);
+      if (said != shield_by_id.end()) {
+        mob.shield = std::min(mob.shield, said->second * max_hp);
+      }
     }
   }
   Reap();
@@ -1487,11 +1495,11 @@ void CombatSim::SetMobRules(const CombatParams& params,
   PublishRoster(params);
 }
 
-bool CombatSim::AddHp(const CombatParams& params, int id, double hp_fraction) {
+bool CombatSim::AddShield(const CombatParams& params, int id, double fraction) {
   for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
     for (QueuedMob& mob : *mobs) {
       if (mob.id == id) {
-        mob.hp += hp_fraction * mob.max_hp;
+        mob.shield += fraction * mob.max_hp;
         PublishRoster(params);
         return true;
       }
@@ -1523,7 +1531,7 @@ void CombatSim::Revive(const CombatParams& params, int id, int type,
 
 void CombatSim::PutWastedLast() {
   std::stable_partition(queue_.begin(), queue_.end(), [](const QueuedMob& m) {
-    return m.damage_taken > 0.0 && m.hp > m.hp_floor;
+    return m.damage_taken > 0.0 && (m.hp > m.hp_floor || m.shield > 0.0);
   });
 }
 
@@ -2936,7 +2944,10 @@ void CombatSim::PublishRoster(const CombatParams& params) {
       double frac = mob.max_hp() > 0
                         ? std::clamp(queued.hp / mob.max_hp(), 0.0, 1.0)
                         : 0.0;
-      view_.roster.push_back({queued.id, queued.type, mob.name(), frac});
+      double shield =
+          mob.max_hp() > 0 ? std::max(0.0, queued.shield / mob.max_hp()) : 0.0;
+      view_.roster.push_back(
+          {queued.id, queued.type, mob.name(), frac, shield});
     }
   }
 }

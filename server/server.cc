@@ -345,6 +345,9 @@ void Server::PublishFight(PartyFight& fight) {
   for (double shield : fight.shields()) {
     state->add_shields(shield);
   }
+  for (double left : fight.shields_left()) {
+    state->add_shields_left(left);
+  }
   state->set_placements(fight.placements());
   for (const FightPlayer& player : fight.players()) {
     FightPlayerState* drawn = state->add_players();

@@ -763,6 +763,7 @@ void BossRun::SyncSlots(double dt) {
                      [&slot](const MobStatus& m) { return m.id == slot.id; });
     if (it != roster.end()) {
       slot.hp_fraction = it->hp_fraction;
+      slot.shield_fraction = it->shield_fraction;
       // A monster can come back: see TakeShields.
       slot.alive = true;
       slot.visible = true;
@@ -773,6 +774,7 @@ void BossRun::SyncSlots(double dt) {
       // Just died: the empty bar stays up briefly before the slot goes dark.
       slot.alive = false;
       slot.hp_fraction = 0.0;
+      slot.shield_fraction = 0.0;
       slot.dead_for = 0.0;
     }
     slot.dead_for += dt;
@@ -833,10 +835,13 @@ void BossRun::TakeShields(const CombatParams& params,
     }
     shields_taken_[slot] = shared.shields[slot];
     // Reaped here first means the shield beat the killing blow to the server.
-    if (!sim_.AddHp(params, mob_of_slot_[slot], owed) &&
+    if (!sim_.AddShield(params, mob_of_slot_[slot], owed) &&
         slot < shared.hp_fractions.size() && shared.hp_fractions[slot] > 0.0) {
       sim_.Revive(params, mob_of_slot_[slot], slot_types_[slot],
                   shared.hp_fractions[slot]);
+      if (slot < shared.shields_left.size()) {
+        sim_.AddShield(params, mob_of_slot_[slot], shared.shields_left[slot]);
+      }
     }
   }
 }
@@ -854,7 +859,7 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
         ShieldsBetween(*phase, slot_spawns_, alive, shields_until_, now);
     for (std::size_t slot = 0; slot < gained.size(); ++slot) {
       if (gained[slot] > 0.0) {
-        sim_.AddHp(params, mob_of_slot_[slot], gained[slot]);
+        sim_.AddShield(params, mob_of_slot_[slot], gained[slot]);
       }
     }
   }
@@ -875,10 +880,13 @@ void BossRun::ComputePhaseHp(const CombatParams& params) {
     full += static_cast<double>(type.simultaneous) * type.mob->max_hp();
   }
   double left = 0.0;
+  double shielded = 0.0;
   for (const MobStatus& mob : sim_.view().roster) {
     left += mob.hp_fraction * params.types[mob.type].mob->max_hp();
+    shielded += mob.shield_fraction * params.types[mob.type].mob->max_hp();
   }
   phase_hp_fraction_ = full > 0.0 ? std::clamp(left / full, 0.0, 1.0) : 0.0;
+  phase_shield_fraction_ = full > 0.0 ? shielded / full : 0.0;
 }
 
 const CombatParams& BossRun::PhaseParams(const GameState& state) {
@@ -1253,7 +1261,13 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
        ++slot) {
     said[mob_of_slot_[slot]] = shared.hp_fractions[slot];
   }
-  sim_.ClampRoster(params, said);
+  std::map<int, double> shields;
+  for (std::size_t slot = 0;
+       slot < shared.shields_left.size() && slot < mob_of_slot_.size();
+       ++slot) {
+    shields[mob_of_slot_[slot]] = shared.shields_left[slot];
+  }
+  sim_.ClampRoster(params, said, shields);
   TakeShields(params, shared);
   SyncSlots(dt);
   DriftSlots();

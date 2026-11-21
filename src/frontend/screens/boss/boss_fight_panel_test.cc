@@ -572,6 +572,49 @@ TEST(BossFightPanelTest, ARoomShowsOnlyItsOwnMonsters) {
   EXPECT_EQ(named, 2);
 }
 
+// The body shields the arm: the heading and the arm's bar both draw the
+// shield past their HP, and nothing does without it.
+TEST(BossFightPanelTest, AShieldShowsOnTheHeadingAndOnItsBar) {
+  auto shield_rows = [](bool shielded) {
+    std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+    Boss boss = OneArmBoss();
+    BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+    Spawn* body = phase->add_spawns();
+    body->set_mob("body");
+    ArenaSpot* at = body->add_spots();
+    at->set_x(1);
+    at->set_y(1);
+    phase->set_arena_width(2);
+    if (shielded) {
+      SpawnShield* shield = body->mutable_shield();
+      shield->set_interval_ms(1000);
+      shield->set_percent(1);
+      shield->add_mobs("arm");
+    }
+    BossRun run("zakum", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    for (int i = 0; i < 40; ++i) {
+      run.Advance(*state, 0.03);
+    }
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                                 ftxui::Dimension::Fixed(30));
+    ftxui::Render(screen, BossFightPanel(run, false));
+    std::set<int> rows;
+    for (int y = 0; y < 30; ++y) {
+      for (int x = 0; x < 120; ++x) {
+        if (screen.PixelAt(x, y).background_color == kHpShield) {
+          rows.insert(y);
+        }
+      }
+    }
+    return rows;
+  };
+  EXPECT_TRUE(shield_rows(false).empty());
+  std::set<int> rows = shield_rows(true);
+  EXPECT_EQ(rows.count(0), 1u);
+  EXPECT_GT(rows.size(), 1u);
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

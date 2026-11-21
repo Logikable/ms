@@ -274,6 +274,9 @@ message FightState {
   // (BossPhase.placement). A client takes its spot from the server when this
   // changes, and keeps its own otherwise.
   int32 placements = 12;
+  // What is left of each slot's shield, as a share of its max HP. A client's
+  // own shields are only ever lowered to these.
+  repeated double shields_left = 13;
 }
 
 // One item a clear gave this player.

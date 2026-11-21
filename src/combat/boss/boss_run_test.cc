@@ -1585,11 +1585,14 @@ TEST(BossRunTest, AFollowedRunBringsBackAMonsterAShieldSaved) {
   ASSERT_FALSE(run.slots()[0].alive);
 
   authority.fight_.hp_fractions[0] = 0.3;
-  authority.fight_.shields = {0.3, 0.0};
+  authority.fight_.shields = {0.05, 0.0};
+  authority.fight_.shields_left = {0.05, 0.0};
   run.Advance(*state, 0.1);
   EXPECT_TRUE(run.slots()[0].alive);
   EXPECT_TRUE(run.slots()[0].visible);
   EXPECT_NEAR(run.slots()[0].hp_fraction, 0.3, 0.01);
+  EXPECT_GT(run.slots()[0].shield_fraction, 0.0);
+  EXPECT_GT(run.phase_shield_fraction(), 0.0);
 }
 
 // A player keeps the spot they walked to, unless the server has placed the

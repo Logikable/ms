@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -45,8 +46,9 @@ class ProgressBarNode : public ftxui::Node {
                   std::vector<std::string> labels, ftxui::Color label_on_fill,
                   ftxui::Color label_off_fill, int buff_count,
                   ftxui::Color empty = kBarEmpty,
-                  std::vector<double> dividers = {})
+                  std::vector<double> dividers = {}, float shield = 0.0f)
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
+        shield_(std::max(0.0f, shield)),
         fill_(fill),
         empty_(empty),
         labels_(std::move(labels)),
@@ -67,6 +69,15 @@ class ProgressBarNode : public ftxui::Node {
   void Render(ftxui::Screen& screen) override {
     const int width = box_.x_max - box_.x_min + 1;
     const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
+    // At least a cell, so a 1% shield on a narrow bar still shows, and over
+    // the fill's end where there's no room past it, as on a full bar.
+    const int shield_width =
+        shield_ > 0.0f ? std::min(width, std::max(1, static_cast<int>(std::ceil(
+                                                         shield_ * width))))
+                       : 0;
+    const int shield_start =
+        std::max(box_.x_min, std::min(fill_end, box_.x_max + 1 - shield_width));
+    const int shield_end = shield_start + shield_width;
     const std::vector<std::vector<std::string>> dots =
         BuffDots(width, labels_, buff_count_);
     for (int row = 0; row < static_cast<int>(labels_.size()); ++row) {
@@ -74,20 +85,23 @@ class ProgressBarNode : public ftxui::Node {
       if (y > box_.y_max) {
         return;
       }
-      RenderRow(screen, y, width, fill_end, labels_[row], dots[row]);
+      RenderRow(screen, y, width, fill_end, shield_start, shield_end,
+                labels_[row], dots[row]);
     }
   }
 
  private:
   void RenderRow(ftxui::Screen& screen, int y, int width, int fill_end,
-                 const std::string& label,
+                 int shield_start, int shield_end, const std::string& label,
                  const std::vector<std::string>& dots) {
     for (int x = box_.x_min; x <= box_.x_max; ++x) {
       ftxui::Pixel& px = screen.PixelAt(x, y);
       const std::string& dot = dots[x - box_.x_min];
       px.character = dot.empty() ? " " : dot;
-      px.background_color = x < fill_end ? fill_ : empty_;
-      px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
+      const bool shield = x >= shield_start && x < shield_end;
+      px.background_color = shield ? kHpShield : x < fill_end ? fill_ : empty_;
+      px.foreground_color =
+          x < std::max(fill_end, shield_end) ? label_on_fill_ : label_off_fill_;
     }
     const int label_len = static_cast<int>(label.size());
     const int label_x = box_.x_min + (width - label_len) / 2;
@@ -98,7 +112,8 @@ class ProgressBarNode : public ftxui::Node {
       }
       ftxui::Pixel& px = screen.PixelAt(x, y);
       px.character = std::string(1, label[i]);
-      px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
+      px.foreground_color =
+          x < std::max(fill_end, shield_end) ? label_on_fill_ : label_off_fill_;
     }
     // Only on blank cells: labels come padded, and a letter wins a shared
     // cell.
@@ -119,6 +134,8 @@ class ProgressBarNode : public ftxui::Node {
   ftxui::Color label_off_fill_;
   int buff_count_;
   std::vector<double> dividers_;
+  // Past the fill, as a fraction of the width; see ProgressBar.
+  float shield_ = 0.0f;
 };
 
 // Lays out its child at the child's own size from the top-left of the parent's
@@ -373,10 +390,10 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
                            const std::vector<std::string>& labels,
-                           std::vector<double> dividers) {
+                           std::vector<double> dividers, float shield) {
   return std::make_shared<ProgressBarNode>(
       frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, 0, empty,
-      std::move(dividers));
+      std::move(dividers), shield);
 }
 
 ftxui::Element Floating(ftxui::Element element) {

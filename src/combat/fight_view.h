@@ -22,6 +22,8 @@ struct MobStatus {
   int type = 0;  // index into CombatParams::types
   std::string name;
   double hp_fraction = 0.0;
+  // A shield over its HP, as a fraction of max HP, soaking hits first.
+  double shield_fraction = 0.0;
 };
 
 // One HP bar in the combat panel: all mobs of one type within reach, merged

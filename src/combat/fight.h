@@ -37,20 +37,22 @@ class CombatSim {
   // capped, so a stall loses progress instead of paying out a burst.
   void Advance(const CombatParams& params, double elapsed_seconds);
 
-  // Lowers the HP of the monsters in `hp_by_id` to the given fractions and
-  // removes any that died, parked ones included. Only lowers HP, and leaves
-  // unlisted monsters alone: a local copy of a shared fight may be ahead of the
-  // server, but never behind.
+  // Lowers the HP of the monsters in `hp_by_id` to the given fractions, and
+  // their shields to those in `shield_by_id`, and removes any that died,
+  // parked ones included. Only lowers, and leaves unlisted monsters alone: a
+  // local copy of a shared fight may be ahead of the server, but never behind.
   void ClampRoster(const CombatParams& params,
-                   const std::map<int, double>& hp_by_id);
+                   const std::map<int, double>& hp_by_id,
+                   const std::map<int, double>& shield_by_id = {});
 
   // Applies `by_id` to the monsters it lists; the rest get the default rule.
   // Kept until the next call, and dropped with the encounter.
   void SetMobRules(const CombatParams& params,
                    const std::map<int, MobRule>& by_id);
-  // Adds `hp_fraction` of max HP to the monster `id`, which may take it past
-  // max: a shield. Returns false if it isn't standing.
-  bool AddHp(const CombatParams& params, int id, double hp_fraction);
+  // Shields monster `id` with `fraction` of its max HP, on top of any shield
+  // it has: hits take the shield before its HP. Returns false if it isn't
+  // standing.
+  bool AddShield(const CombatParams& params, int id, double fraction);
   // Brings back monster `id` of type `type` at `hp_fraction`, for a party fight
   // whose server says a monster this client reaped still stands: a shield
   // landed before the killing blow reached it. Does nothing if it stands.
@@ -178,6 +180,8 @@ class CombatSim {
     // The angel's mark on it, and the bonus for the line that consumes it.
     double marked_left_seconds = 0.0;
     double mark_lift_pct = 0.0;
+    // Soaks hits before `hp`, in HP. See AddShield.
+    double shield = 0.0;
     // From its MobRule. The floor is in HP, not a fraction.
     double damage_taken = 1.0;
     double hp_floor = 0.0;

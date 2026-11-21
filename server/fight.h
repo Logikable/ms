@@ -116,9 +116,13 @@ class PartyFight {
   const std::vector<double>& hp_fractions() const {
     return hp_fractions_;
   }
-  // Each slot's shields this phase, as a share of its max HP.
+  // Each slot's shields given this phase, as a share of its max HP.
   const std::vector<double>& shields() const {
     return shields_;
+  }
+  // What is left of each slot's shield, as a share of its max HP.
+  const std::vector<double>& shields_left() const {
+    return shields_left_;
   }
   // How many times everyone has been placed in the phase's zones.
   int placements() const {
@@ -210,6 +214,9 @@ class PartyFight {
   // The phase's spawn behind each slot, which its rules are read from.
   std::vector<int> spawn_of_slot_;
   std::vector<double> shields_;
+  // In HP, soaking hits before hp_.
+  std::vector<double> shield_hp_;
+  std::vector<double> shields_left_;
   double shields_until_ = 0.0;
   std::vector<bool> zones_alive_;
   int placements_ = 0;

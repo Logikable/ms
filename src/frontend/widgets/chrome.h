@@ -54,10 +54,13 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 
 // The same bar with its empty part in `empty` instead of the usual dark
 // ground: the next of a boss's HP bars, showing through. `dividers` draws a
-// mark at each of those fractions of the width, under the label.
+// mark at each of those fractions of the width, under the label. `shield`, a
+// fraction of the width, is drawn in kHpShield just past the fill, at least a
+// cell wide when there is any, and over the fill's end when it doesn't fit.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
                            const std::vector<std::string>& labels,
-                           std::vector<double> dividers = {});
+                           std::vector<double> dividers = {},
+                           float shield = 0.0f);
 
 // Takes `element` out of the layout: it takes no space and draws at its own
 // size from the parent box's top-left. Put it last in a dbox, or the dbox

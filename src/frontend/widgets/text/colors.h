@@ -89,6 +89,8 @@ inline const ftxui::Color kHpViolet = ftxui::Color::RGB(96, 70, 185);
 inline const ftxui::Color kHpAmber = ftxui::Color::RGB(185, 139, 70);
 inline const ftxui::Color kHpTeal = ftxui::Color::RGB(70, 185, 185);
 inline const ftxui::Color kHpPurple = ftxui::Color::RGB(134, 70, 185);
+// GMS's white HP shield, a step under white so a label still reads on it.
+inline const ftxui::Color kHpShield = ftxui::Color::RGB(215, 215, 215);
 
 // A party member's damage numbers and charge bar, normal and critical. Half as
 // bright as the player's, so a fight with three people still reads as the

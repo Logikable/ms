@@ -201,6 +201,8 @@ struct BossSlot {
   double next_jump_at = 0.0;
   double land_at = 0.0;
   double hp_fraction = 0.0;
+  // Its shield, as a fraction of its max HP, drawn past its HP.
+  double shield_fraction = 0.0;
   bool alive = true;
   // False once a dead bar's display time runs out. The slot stays in the list
   // as an empty gap.
@@ -302,6 +304,10 @@ class BossRun {
   // monster in the phase counts, so eight arms at half HP reads 50%.
   double phase_hp_fraction() const {
     return phase_hp_fraction_;
+  }
+  // The phase's shields on the same scale, drawn past its HP.
+  double phase_shield_fraction() const {
+    return phase_shield_fraction_;
   }
   // Seconds left on the fight's timer. Starts when the countdown ends and stops
   // when the fight does.
@@ -524,6 +530,7 @@ class BossRun {
   // screen returns.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
+  double phase_shield_fraction_ = 0.0;
   // Ascent uses not yet released to the sim. See ReleaseAscents.
   int ascents_left_ = kAscentUsesPerBossFight;
   // The phase's damage table, and the phase and level it was built for. Nothing

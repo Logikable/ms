@@ -574,7 +574,7 @@ TEST(FightRulesTest, AnInvulnerableMonsterTakesNoHit) {
   EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.9);
 }
 
-TEST(FightRulesTest, AShieldRaisesHpPastMaxAndIsSentOn) {
+TEST(FightRulesTest, AShieldSoaksHitsAndIsSentOn) {
   Boss boss = Rooms();
   SpawnShield* shield = boss.mutable_difficulties(0)
                             ->mutable_phases(0)
@@ -587,9 +587,13 @@ TEST(FightRulesTest, AShieldRaisesHpPastMaxAndIsSentOn) {
   PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
   fight.Advance(kBossCountdownSeconds);
   fight.Advance(5.5);
-  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 1.1);
   EXPECT_DOUBLE_EQ(fight.shields()[0], 0.1);
+  EXPECT_DOUBLE_EQ(fight.shields_left()[0], 0.1);
   EXPECT_DOUBLE_EQ(fight.shields()[2], 0.0);
+  fight.Hit("one", 0, 15);
+  EXPECT_DOUBLE_EQ(fight.shields_left()[0], 0.0);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.95);
+  EXPECT_DOUBLE_EQ(fight.shields()[0], 0.1);
 }
 
 }  // namespace

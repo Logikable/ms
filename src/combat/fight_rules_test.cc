@@ -136,17 +136,35 @@ TEST(FightRulesTest, AOneTargetAttackPassesOverAMonsterAtItsFloor) {
   EXPECT_DOUBLE_EQ(HpByName(sim)[back], 0.9);
 }
 
-TEST(FightRulesTest, AShieldCanTakeHpPastMax) {
+// The shield soaks the first hits and shows in the roster until it breaks; it
+// holds even at a floor, which only HP has.
+TEST(FightRulesTest, AShieldSoaksHitsBeforeHp) {
   Mob a = MakeMob("A", 1000);
-  CombatParams params = MakeParams({&a}, 500.0, /*reach=*/1);
+  CombatParams params = MakeParams({&a}, 200.0, /*reach=*/1);
   CombatSim sim;
   sim.Advance(params, 0.0);
-  EXPECT_TRUE(sim.AddHp(params, IdOf(sim, "A"), 0.25));
-  EXPECT_FALSE(sim.AddHp(params, 12345, 0.25));
+  EXPECT_TRUE(sim.AddShield(params, IdOf(sim, "A"), 0.25));
+  EXPECT_FALSE(sim.AddShield(params, 12345, 0.25));
+  EXPECT_DOUBLE_EQ(sim.view().roster.front().shield_fraction, 0.25);
   sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(HpByName(sim)["A"], 1.0);
+  EXPECT_DOUBLE_EQ(sim.view().roster.front().shield_fraction, 0.05);
   sim.Advance(params, 1.0);
-  // 1250 HP outlasts two 500 hits.
-  EXPECT_DOUBLE_EQ(HpByName(sim)["A"], 0.25);
+  EXPECT_DOUBLE_EQ(HpByName(sim)["A"], 0.85);
+  EXPECT_DOUBLE_EQ(sim.view().roster.front().shield_fraction, 0.0);
+}
+
+TEST(FightRulesTest, ClampingLowersAShieldToTheServers) {
+  Mob a = MakeMob("A", 1000);
+  CombatParams params = MakeParams({&a}, 100.0, /*reach=*/1);
+  CombatSim sim;
+  sim.Advance(params, 0.0);
+  const int id = IdOf(sim, "A");
+  sim.AddShield(params, id, 0.3);
+  sim.ClampRoster(params, {}, {{id, 0.1}});
+  EXPECT_DOUBLE_EQ(sim.view().roster.front().shield_fraction, 0.1);
+  sim.ClampRoster(params, {}, {{id, 0.5}});
+  EXPECT_DOUBLE_EQ(sim.view().roster.front().shield_fraction, 0.1);
 }
 
 TEST(FightRulesTest, ClampingReachesAParkedMonster) {

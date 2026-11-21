@@ -103,6 +103,8 @@ void PartyFight::EnterPhase(int phase) {
   }
   hp_fractions_.assign(hp_.size(), 1.0);
   shields_.assign(hp_.size(), 0.0);
+  shield_hp_.assign(hp_.size(), 0.0);
+  shields_left_.assign(hp_.size(), 0.0);
   shields_until_ = FightSeconds();
   zones_alive_.clear();
   // Give each player their own spot, in party order. This assumes each phase
@@ -175,8 +177,9 @@ void PartyFight::RunRules() {
       continue;
     }
     shields_[slot] += gained[slot];
-    hp_[slot] += gained[slot] * max_hp_[slot];
-    hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+    shield_hp_[slot] += gained[slot] * max_hp_[slot];
+    shields_left_[slot] =
+        max_hp_[slot] > 0.0 ? shield_hp_[slot] / max_hp_[slot] : 0.0;
   }
   if (current->placement() != ZONE_PLACEMENT_UNSPECIFIED &&
       ZonesAlive(*current, spawn_of_slot_, alive) != zones_alive_) {
@@ -296,7 +299,11 @@ void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
         hp_[slot],
         HpFloor(*current, spawn_of_slot_, SlotsAlive(), slot) * max_hp_[slot]);
   }
-  hp_[slot] = std::max(floor, hp_[slot] - damage);
+  const double soaked = std::min(shield_hp_[slot], damage);
+  shield_hp_[slot] -= soaked;
+  shields_left_[slot] =
+      max_hp_[slot] > 0.0 ? shield_hp_[slot] / max_hp_[slot] : 0.0;
+  hp_[slot] = std::max(floor, hp_[slot] - (damage - soaked));
   hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
 }
 

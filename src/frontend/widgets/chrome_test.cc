@@ -196,6 +196,29 @@ TEST(ProgressBarTest, DividersMarkTheirFractionsUnderTheLabel) {
   EXPECT_EQ(screen.PixelAt(4, 0).character, " ");
 }
 
+// A shield sits just past the HP, a cell at least, and over the end of a full
+// bar.
+TEST(ProgressBarTest, AShieldFollowsTheFillOrCoversItsEnd) {
+  auto shielded = [](float frac, float shield) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
+                                                 ftxui::Dimension::Fixed(1));
+    ftxui::Render(screen,
+                  ProgressBar(frac, kGreen, kBarEmpty,
+                              std::vector<std::string>{""}, {}, shield));
+    std::vector<int> cells;
+    for (int x = 0; x < 20; ++x) {
+      if (screen.PixelAt(x, 0).background_color == kHpShield) {
+        cells.push_back(x);
+      }
+    }
+    return cells;
+  };
+  EXPECT_EQ(shielded(0.5f, 0.1f), (std::vector<int>{10, 11}));
+  EXPECT_EQ(shielded(0.5f, 0.01f), (std::vector<int>{10}));
+  EXPECT_EQ(shielded(1.0f, 0.1f), (std::vector<int>{18, 19}));
+  EXPECT_TRUE(shielded(0.5f, 0.0f).empty());
+}
+
 // --- ResultWindow ---
 
 // Renders a result window wide enough not to wrap and returns its rows, so the

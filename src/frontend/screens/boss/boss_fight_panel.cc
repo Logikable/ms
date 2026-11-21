@@ -63,6 +63,12 @@ int MobBarRows(const std::vector<BossSlot>& slots) {
 // fit there and a number reads well as a badge on the frame.
 // A giant's name sits in the middle of its `inside` rows.
 // `form` recolours the bar, as Seren's forms do; null keeps the slot's own.
+// A shield's share of the bar it is drawn on: of a split bar, of one of its
+// parts.
+float ShieldWidth(double shield, const std::vector<HpBarColor>& bars) {
+  return static_cast<float>(shield * std::max<std::size_t>(1, bars.size()));
+}
+
 ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
                       const PhaseForm* form) {
   int width = slot.giant ? kGiantPanelWidth : kBossPanelWidth;
@@ -75,16 +81,16 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
   } else {
     lines = BarLines(slot.name, rows);
   }
-  HpShade shade =
-      form != nullptr
-          ? ShadeHp(slot.hp_fraction, std::vector<HpBarColor>{form->hp_bar()})
-          : ShadeHp(slot.hp_fraction, slot.hp_bars);
+  const std::vector<HpBarColor> bars =
+      form != nullptr ? std::vector<HpBarColor>{form->hp_bar()} : slot.hp_bars;
+  HpShade shade = ShadeHp(slot.hp_fraction, bars);
   std::vector<double> dividers;
   for (int percent : slot.hp_dividers) {
     dividers.push_back(percent / 100.0);
   }
-  ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines,
-                                   std::move(dividers));
+  ftxui::Element bar =
+      ProgressBar(shade.frac, shade.fill, shade.empty, lines,
+                  std::move(dividers), ShieldWidth(slot.shield_fraction, bars));
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
@@ -715,7 +721,8 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   }
   HpShade shade = ShadeHp(run.phase_hp_fraction(), bars);
   return ftxui::vbox({
-      ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)}),
+      ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)}, {},
+                  ShieldWidth(run.phase_shield_fraction(), bars)),
       Arena(run, buff_dots) | ftxui::flex,
   });
 }
