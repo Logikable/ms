@@ -923,7 +923,7 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
       {"gloom", {5}},          {"darknell", {5}},
       {"verus_hilla", {5}},    {"seren", {5, 5}},
-      {"kalos", {9, 10}},      {"kaling", {25, 12, 9}}};
+      {"kalos", {9, 10}},      {"kaling", {25, 12, 6}}};
   // A difficulty with a phase its Normal lacks.
   const std::map<std::string, std::vector<int>> kOwnShape = {
       {"lucid Hard", {5, 5, 5}}};

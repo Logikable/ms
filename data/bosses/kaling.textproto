@@ -127,7 +127,6 @@ difficulties {
     # quarter until another Peril falls.
     bgm: "RuinationOfFourSeasons"
     placement: ZONE_PLACEMENT_PAIRS
-    crowding { players: 3 damage_pct: 50 }
     spawns {
       mob: "easy_frenzied_kaling"
       spots { x: 4 y: 1 }
@@ -153,22 +152,17 @@ difficulties {
       spots { x: 1 y: 3 }
       hp_bars: HP_BAR_COLOR_AMBER
     }
-    # Two floor spots and a ledge in each zone: nine on one row would not
-    # fit the screen. Each ledge is straight over a floor spot, so Down
-    # never ties.
+    # Two spots to a zone, so a Peril never has more than a pair on it.
     player_spots { x: 3 y: 5 }
     player_spots { x: 5 y: 5 }
-    player_spots { x: 5 y: 4 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 8 y: 4 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 2 y: 5 }
-    player_spots { x: 2 y: 4 }
     # Taowu's zone, then Hundun's, then Qiongqi's.
-    zones { spots: [3, 4, 5] }
-    zones { spots: [0, 1, 2] }
-    zones { spots: [6, 7, 8] }
+    zones { spots: [2, 3] }
+    zones { spots: [0, 1] }
+    zones { spots: [4, 5] }
     arena_width: 9
     arena_height: 6
   }
@@ -340,7 +334,6 @@ difficulties {
     # quarter until another Peril falls.
     bgm: "RuinationOfFourSeasons"
     placement: ZONE_PLACEMENT_PAIRS
-    crowding { players: 3 damage_pct: 50 }
     spawns {
       mob: "frenzied_kaling"
       spots { x: 4 y: 1 }
@@ -366,22 +359,17 @@ difficulties {
       spots { x: 1 y: 3 }
       hp_bars: HP_BAR_COLOR_AMBER
     }
-    # Two floor spots and a ledge in each zone: nine on one row would not
-    # fit the screen. Each ledge is straight over a floor spot, so Down
-    # never ties.
+    # Two spots to a zone, so a Peril never has more than a pair on it.
     player_spots { x: 3 y: 5 }
     player_spots { x: 5 y: 5 }
-    player_spots { x: 5 y: 4 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 8 y: 4 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 2 y: 5 }
-    player_spots { x: 2 y: 4 }
     # Taowu's zone, then Hundun's, then Qiongqi's.
-    zones { spots: [3, 4, 5] }
-    zones { spots: [0, 1, 2] }
-    zones { spots: [6, 7, 8] }
+    zones { spots: [2, 3] }
+    zones { spots: [0, 1] }
+    zones { spots: [4, 5] }
     arena_width: 9
     arena_height: 6
   }
