@@ -173,6 +173,8 @@ struct BossSlot {
   bool giant = false;
   // The bars its HP is drawn as, the first emptied first; empty for one.
   std::vector<HpBarColor> hp_bars;
+  // Percents of its HP marked across its bar.
+  std::vector<int> hp_dividers;
   // How many moves of its walk it has made; each new move follows from these.
   // Stored so each move costs one move's work instead of replaying thousands.
   int steps_taken = 0;

@@ -79,7 +79,12 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
       form != nullptr
           ? ShadeHp(slot.hp_fraction, std::vector<HpBarColor>{form->hp_bar()})
           : ShadeHp(slot.hp_fraction, slot.hp_bars);
-  ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines);
+  std::vector<double> dividers;
+  for (int percent : slot.hp_dividers) {
+    dividers.push_back(percent / 100.0);
+  }
+  ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines,
+                                   std::move(dividers));
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);

@@ -179,6 +179,23 @@ TEST(ProgressBarTest, DrawsALineOfLabelPerRow) {
   EXPECT_EQ(screen.PixelAt(9, 1).background_color, kBarEmpty);
 }
 
+// Kaling's quarters: a mark at each divider, and the label still wins a cell
+// it shares with one.
+TEST(ProgressBarTest, DividersMarkTheirFractionsUnderTheLabel) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen,
+                ProgressBar(0.6f, kGreen, kBarEmpty,
+                            std::vector<std::string>{"AB"}, {0.25, 0.5, 0.75}));
+  EXPECT_EQ(screen.PixelAt(5, 0).character, "│");
+  EXPECT_EQ(screen.PixelAt(5, 0).background_color, kGreen);
+  EXPECT_EQ(screen.PixelAt(15, 0).character, "│");
+  EXPECT_EQ(screen.PixelAt(15, 0).background_color, kBarEmpty);
+  // "AB" sits on columns 9 and 10, over the half-way mark.
+  EXPECT_EQ(screen.PixelAt(10, 0).character, "B");
+  EXPECT_EQ(screen.PixelAt(4, 0).character, " ");
+}
+
 // --- ResultWindow ---
 
 // Renders a result window wide enough not to wrap and returns its rows, so the

@@ -776,6 +776,8 @@ void AddTypes(const GameState& state,
     type.spots.assign(spawn.spots().begin(), spawn.spots().end());
     type.walk = spawn.walk();
     type.giant = spawn.giant();
+    type.hp_dividers.assign(spawn.hp_dividers().begin(),
+                            spawn.hp_dividers().end());
     for (int bar : spawn.hp_bars()) {
       type.hp_bars.push_back(static_cast<HpBarColor>(bar));
     }

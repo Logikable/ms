@@ -84,6 +84,11 @@ inline const ftxui::Color kHpGold = ftxui::Color::RGB(185, 151, 70);
 inline const ftxui::Color kHpOrange = ftxui::Color::RGB(185, 90, 70);
 inline const ftxui::Color kHpBlue = ftxui::Color::RGB(70, 119, 185);
 inline const ftxui::Color kHpViolet = ftxui::Color::RGB(96, 70, 185);
+// Kaling's Perils, from their HP badges (#FF9900, #009999, #BB66FF) muted the
+// same way.
+inline const ftxui::Color kHpAmber = ftxui::Color::RGB(185, 139, 70);
+inline const ftxui::Color kHpTeal = ftxui::Color::RGB(70, 185, 185);
+inline const ftxui::Color kHpPurple = ftxui::Color::RGB(134, 70, 185);
 
 // A party member's damage numbers and charge bar, normal and critical. Half as
 // bright as the player's, so a fight with three people still reads as the

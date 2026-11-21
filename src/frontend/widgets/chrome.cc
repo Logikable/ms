@@ -44,14 +44,16 @@ class ProgressBarNode : public ftxui::Node {
   ProgressBarNode(float frac, ftxui::Color fill,
                   std::vector<std::string> labels, ftxui::Color label_on_fill,
                   ftxui::Color label_off_fill, int buff_count,
-                  ftxui::Color empty = kBarEmpty)
+                  ftxui::Color empty = kBarEmpty,
+                  std::vector<double> dividers = {})
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
         fill_(fill),
         empty_(empty),
         labels_(std::move(labels)),
         label_on_fill_(label_on_fill),
         label_off_fill_(label_off_fill),
-        buff_count_(buff_count) {
+        buff_count_(buff_count),
+        dividers_(std::move(dividers)) {
     if (labels_.empty()) {
       labels_.push_back("");
     }
@@ -87,7 +89,6 @@ class ProgressBarNode : public ftxui::Node {
       px.background_color = x < fill_end ? fill_ : empty_;
       px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
     }
-
     const int label_len = static_cast<int>(label.size());
     const int label_x = box_.x_min + (width - label_len) / 2;
     for (int i = 0; i < label_len; ++i) {
@@ -99,6 +100,15 @@ class ProgressBarNode : public ftxui::Node {
       px.character = std::string(1, label[i]);
       px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
     }
+    // Only on blank cells: labels come padded, and a letter wins a shared
+    // cell.
+    for (double divider : dividers_) {
+      const int x = box_.x_min + static_cast<int>(std::lround(divider * width));
+      if (x > box_.x_min && x < box_.x_max &&
+          screen.PixelAt(x, y).character == " ") {
+        screen.PixelAt(x, y).character = "│";
+      }
+    }
   }
 
   float frac_;
@@ -108,6 +118,7 @@ class ProgressBarNode : public ftxui::Node {
   ftxui::Color label_on_fill_;
   ftxui::Color label_off_fill_;
   int buff_count_;
+  std::vector<double> dividers_;
 };
 
 // Lays out its child at the child's own size from the top-left of the parent's
@@ -259,7 +270,7 @@ class ClearUnderNode : public ftxui::Node {
 }  // namespace
 
 ftxui::Color HpBarFill(HpBarColor color) {
-  static_assert(HpBarColor_ARRAYSIZE == 9,
+  static_assert(HpBarColor_ARRAYSIZE == 12,
                 "a new HP bar colour needs a colour to draw it in");
   switch (color) {
     case HP_BAR_COLOR_PINK:
@@ -276,6 +287,12 @@ ftxui::Color HpBarFill(HpBarColor color) {
       return kHpBlue;
     case HP_BAR_COLOR_VIOLET:
       return kHpViolet;
+    case HP_BAR_COLOR_AMBER:
+      return kHpAmber;
+    case HP_BAR_COLOR_TEAL:
+      return kHpTeal;
+    case HP_BAR_COLOR_PURPLE:
+      return kHpPurple;
     default:
       return kRed;
   }
@@ -355,9 +372,11 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
-                           const std::vector<std::string>& labels) {
+                           const std::vector<std::string>& labels,
+                           std::vector<double> dividers) {
   return std::make_shared<ProgressBarNode>(
-      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, 0, empty);
+      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, 0, empty,
+      std::move(dividers));
 }
 
 ftxui::Element Floating(ftxui::Element element) {

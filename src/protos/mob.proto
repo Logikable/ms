@@ -139,6 +139,9 @@ message Spawn {
   // Its HP drawn as this many bars of equal HP, the first emptied first, each
   // in its own colour. Empty means one bar in the usual red.
   repeated HpBarColor hp_bars = 6;
+  // Marks across its bar at these percents of its HP, as GMS draws Kaling's
+  // quarters.
+  repeated int32 hp_dividers = 7;
 }
 
 // The colours of a boss split over several HP bars, after the hues of GMS's
@@ -156,6 +159,11 @@ enum HpBarColor {
   HP_BAR_COLOR_ORANGE = 6;
   HP_BAR_COLOR_BLUE = 7;
   HP_BAR_COLOR_VIOLET = 8;
+  // Kaling's three Perils in her last phase, after their HP badges
+  // (UI/UIWindow7.img/MobHPRatioInfo).
+  HP_BAR_COLOR_AMBER = 9;
+  HP_BAR_COLOR_TEAL = 10;
+  HP_BAR_COLOR_PURPLE = 11;
 }
 
 // The definition of a monster type, loaded from data/mobs at startup and shared

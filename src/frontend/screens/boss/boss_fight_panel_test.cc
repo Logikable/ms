@@ -506,6 +506,34 @@ TEST(BossFightPanelTest, TheHeadingDrawsTheBarBeingEmptied) {
   EXPECT_EQ(screen.PixelAt(119, 0).background_color, kHpYellow);
 }
 
+// A spawn's dividers reach its bar, and the bar draws them.
+TEST(BossFightPanelTest, ASpawnsDividersAreDrawnOnItsBar) {
+  // Frames draw the same glyph, so count against the same fight without. At
+  // 85% the mark clears the arm's name.
+  auto marks = [](bool divided) {
+    std::unique_ptr<GameState> state = MakeState(1000, 1);
+    Boss boss = OneArmBoss();
+    if (divided) {
+      boss.mutable_difficulties(0)
+          ->mutable_phases(0)
+          ->mutable_spawns(0)
+          ->add_hp_dividers(85);
+    }
+    BossRun run("zakum", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    run.Advance(*state, 0.03);
+    EXPECT_EQ(run.slots().at(0).hp_dividers.size(), divided ? 1u : 0u);
+    std::string out = Render(run);
+    int count = 0;
+    for (std::size_t at = out.find("│"); at != std::string::npos;
+         at = out.find("│", at + 1)) {
+      ++count;
+    }
+    return count;
+  };
+  EXPECT_GT(marks(true), marks(false));
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

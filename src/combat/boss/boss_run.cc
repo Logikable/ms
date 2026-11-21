@@ -463,6 +463,7 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.walk = params.types[mob.type].walk;
     bar.giant = params.types[mob.type].giant;
     bar.hp_bars = params.types[mob.type].hp_bars;
+    bar.hp_dividers = params.types[mob.type].hp_dividers;
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
