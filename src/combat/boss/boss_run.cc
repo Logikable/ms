@@ -542,12 +542,18 @@ void BossRun::FillSlots(const CombatParams& params) {
 }
 
 void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
-  if (slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER) {
+  if (slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER ||
+      slot.walk.range() == ArenaWalk::RANGE_OVER_PLAYER) {
     std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
-    if (hunted && MayEnter(phase, hunted->x(), hunted->y() - 1,
-                           BoundsOf(phase, slot.zone))) {
+    if (!hunted) {
+      return;
+    }
+    const int y = slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER
+                      ? hunted->y() - 1
+                      : slot.y;
+    if (MayEnter(phase, hunted->x(), y, BoundsOf(phase, slot.zone))) {
       slot.x = hunted->x();
-      slot.y = hunted->y() - 1;
+      slot.y = y;
     }
     return;
   }

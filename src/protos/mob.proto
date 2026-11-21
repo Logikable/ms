@@ -52,6 +52,9 @@ message ArenaWalk {
     // The cell directly above a player, picked as a fall picks one, reached
     // instantly. Verus Hilla teleports to whoever she hunts.
     RANGE_ABOVE_PLAYER = 4;
+    // The cell in its own row over a player's column, picked and reached as
+    // above. Kaling's last phase keeps her on the top row, over her Perils.
+    RANGE_OVER_PLAYER = 5;
   }
   Range range = 2;
   // An occasional rush across the arena, replacing one ordinary step. Unset

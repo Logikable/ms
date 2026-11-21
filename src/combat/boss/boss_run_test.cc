@@ -405,6 +405,25 @@ TEST(BossRunTest, ATeleportLandsOverThePlayerOnEachBeat) {
   EXPECT_EQ(run.slots()[0].y, 4);
 }
 
+// Kaling's last phase: she keeps her row and takes the hunted player's column.
+TEST(BossRunTest, AnOverPlayerWalkKeepsItsRow) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(false, false, 0, 0);
+  Spawn* spawn =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
+  spawn->mutable_spots(0)->set_y(0);
+  ArenaWalk* walk = spawn->mutable_walk();
+  walk->Clear();
+  walk->set_interval_ms(5000);
+  walk->set_range(ArenaWalk::RANGE_OVER_PLAYER);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  run.Advance(*state, 5.1);
+  ASSERT_EQ(run.slots().size(), 1u);
+  EXPECT_EQ(run.slots()[0].x, 6);
+  EXPECT_EQ(run.slots()[0].y, 0);
+}
+
 // Given both, the specials take turns at random and the waits vary.
 TEST(BossRunTest, SpecialsPickBetweenTheDashAndTheFall) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
