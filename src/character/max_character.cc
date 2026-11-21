@@ -327,7 +327,7 @@ constexpr Clear kClears[] = {
     {"seren", "Hard", 275},
     // The uncapped sweep of 2026-11-20. No branch beat Normal Kalos in 365
     // days, so it has no entry and max mode never clears it.
-    {"kalos", "Easy", 273},
+    {"kalos", "Easy", 269},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what
