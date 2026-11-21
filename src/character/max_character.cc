@@ -324,8 +324,8 @@ constexpr Clear kClears[] = {
     {"verus_hilla", "Hard", 262},
     {"lucid", "Hard", 265},
     // The uncapped sweep of 2026-11-20, after v272's Seren and Kalos cuts. No
-    // branch beat Normal Kalos in 365 days, so it has no entry and max mode
-    // never clears it.
+    // branch beat Normal Kalos in 365 days, nor either Kaling in the sweep of
+    // 2026-11-21, so they have no entry and max mode never clears them.
     {"seren", "Normal", 263},
     {"seren", "Hard", 271},
     {"kalos", "Easy", 266},
