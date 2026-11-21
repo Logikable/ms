@@ -19,12 +19,14 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/combat/boss/boss_run.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/screens/account/character_select_panel.h"
 #include "src/frontend/screens/account/link_skill_panel.h"
 #include "src/frontend/screens/boss/boss_analysis_panel.h"
+#include "src/frontend/screens/boss/boss_fight_panel.h"
 #include "src/frontend/screens/boss/boss_select_panel.h"
 #include "src/frontend/screens/inspect/all_stats_panel.h"
 #include "src/frontend/screens/inspect/buff_info_panel.h"
@@ -501,6 +503,27 @@ TEST_F(ScreenFitTest, EveryBox) {
 
 // A table naming everything that can deal damage: every attack, and the label
 // of every Final Attack and magazine, which get rows of their own.
+// Every phase's arena on the fight screen, the player and the monsters on
+// each row side by side. A phase is reached by dropping the ones before it.
+TEST_F(ScreenFitTest, BossFight) {
+  GameState state({}, {}, {}, state_.mobs, {});
+  for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
+    for (int d = 0; d < entry.second.difficulties_size(); ++d) {
+      const BossDifficulty& difficulty = entry.second.difficulties(d);
+      for (int phase = 0; phase < difficulty.phases_size(); ++phase) {
+        Boss boss = entry.second;
+        boss.mutable_difficulties(d)->mutable_phases()->DeleteSubrange(0,
+                                                                       phase);
+        BossRun run(entry.first, boss, d);
+        run.Advance(state, kBossCountdownSeconds + 1.0);
+        ExpectFits(BossFightPanel(run, /*focused=*/true),
+                   difficulty.name() + " " + entry.first + " P" +
+                       std::to_string(phase + 1));
+      }
+    }
+  }
+}
+
 TEST_F(ScreenFitTest, BossAnalysis) {
   std::set<std::string> names;
   for (const std::pair<const std::string, Skill>& entry : state_.skills) {
