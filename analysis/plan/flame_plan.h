@@ -48,7 +48,8 @@ std::vector<double> FlameGains(const GameState& state, const CubeBasis& basis,
                                std::mt19937& rng, double* standing = nullptr);
 
 // The run of `flame` on what boss fights wear in `slot`, with each roll costing
-// `power_per_meso` times its price; empty when no roll pays.
+// `power_per_meso` times its price; empty when no roll pays. Solved on every
+// roll's exact chance, or with `samples` above zero, on that many draws.
 FlameProgram BestFlameProgram(const GameState& state, const CubeBasis& basis,
                               EquipSlot slot, FlameType flame,
                               double power_per_meso, std::mt19937& rng,

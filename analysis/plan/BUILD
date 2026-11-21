@@ -114,10 +114,27 @@ cc_test(
 )
 
 cc_library(
+    name = "gain_distribution",
+    srcs = ["gain_distribution.cc"],
+    hdrs = ["gain_distribution.h"],
+)
+
+cc_test(
+    name = "gain_distribution_test",
+    size = "small",
+    srcs = ["gain_distribution_test.cc"],
+    deps = [
+        ":gain_distribution",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "cube_plan",
     srcs = ["cube_plan.cc"],
     hdrs = ["cube_plan.h"],
     deps = [
+        ":gain_distribution",
         "//analysis:sim_boss",
         "//analysis:sim_gear",
         "//analysis:yardstick",
@@ -140,6 +157,7 @@ cc_library(
     hdrs = ["flame_plan.h"],
     deps = [
         ":cube_plan",
+        ":gain_distribution",
         "//analysis:yardstick",
         "//src:game_state",
         "//src/character:character_stats",

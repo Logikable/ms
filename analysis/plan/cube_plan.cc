@@ -1,6 +1,7 @@
 #include "analysis/plan/cube_plan.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <string>
@@ -8,6 +9,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "analysis/plan/gain_distribution.h"
 #include "analysis/sim_boss.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
@@ -233,32 +235,24 @@ double GainOf(const GameState& state, const CubeBasis& basis,
 
 namespace {
 
-// The gains of one rank's sampled rolls, sorted, and the chance a roll at that
-// rank ranks up instead.
+// The gains of one rank's rolls, and the chance a roll at that rank ranks up
+// instead.
 struct RankDraws {
   PotentialRank rank = POTENTIAL_RANK_UNSPECIFIED;
   double rank_up = 0.0;
-  std::vector<double> gains;
+  GainDistribution gains;
 };
-
-double MeanMax(const std::vector<double>& gains, double floor) {
-  double total = 0.0;
-  for (double gain : gains) {
-    total += std::max(gain, floor);
-  }
-  return total / gains.size();
-}
 
 // The r with (1 - q) E[max(X, r)] + q carried - toll = r, where `carried` is
 // what a rank-up is worth. Bisected: the left side minus r falls as r rises.
 double ReserveFor(const RankDraws& draws, double carried, double toll) {
   const double q = draws.rank_up;
   auto excess = [&](double r) {
-    const double stay = draws.gains.empty() ? 0.0 : MeanMax(draws.gains, r);
+    const double stay = draws.gains.empty() ? 0.0 : draws.gains.MeanMax(r);
     return (1.0 - q) * stay + q * carried - toll - r;
   };
-  const double low_gain = draws.gains.empty() ? carried : draws.gains.front();
-  const double high_gain = draws.gains.empty() ? carried : draws.gains.back();
+  const double low_gain = draws.gains.empty() ? carried : draws.gains.low();
+  const double high_gain = draws.gains.empty() ? carried : draws.gains.high();
   double lo = std::min(low_gain, carried) - toll - 1.0;
   double hi = std::max(high_gain, carried);
   for (int step = 0; step < 100 && lo < hi; ++step) {
@@ -272,57 +266,132 @@ double ReserveFor(const RankDraws& draws, double carried, double toll) {
   return q == 0.0 ? std::min(hi, high_gain) : hi;
 }
 
-// Where a rank's draws fall against its reservation value: the share that
+// Where a rank's rolls fall against its reservation value: the chance it
 // rolls on, and the mean gain of the ones the rule stops on, times their
-// share.
+// chance.
 struct Split {
   double below = 0.0;
   double stopped = 0.0;
 };
 
 Split SplitAt(const RankDraws& draws, double reserve) {
-  Split split;
-  for (double gain : draws.gains) {
-    if (gain < reserve) {
-      split.below += 1.0;
-    } else {
-      split.stopped += gain;
-    }
+  if (draws.gains.empty()) {
+    return {};
   }
-  if (!draws.gains.empty()) {
-    split.below /= draws.gains.size();
-    split.stopped /= draws.gains.size();
-  }
-  return split;
+  return {draws.gains.Below(reserve), draws.gains.Stopped(reserve)};
 }
 
-// Samples every rank from the piece's own up. A piece with no potential
-// starts on a pseudo-rank that always "ranks up" to Rare, as its first cube
-// always gives a Rare potential.
-std::vector<RankDraws> SampleRanks(const GameState& state,
-                                   const CubeBasis& basis,
-                                   const CubePricing& pricing,
-                                   PotentialRank held, double share,
-                                   const CubeIncome& income, int samples,
-                                   std::mt19937& rng) {
+// One line a roll's position could draw, and its chance there.
+struct LineDraw {
+  // Index into the roll's distinct lines, or -1 for a line worth nothing.
+  int line = -1;
+  double chance = 0.0;
+};
+
+// Every roll at `rank` counted with its exact chance. Each position draws its
+// line evenly from its rank's pool, the 2nd and 3rd prime at the cube's odds.
+// A line worth nothing on its own is worth nothing beside any other, so all of
+// them are one outcome; the rest are kept apart, and each set of three is
+// valued once whatever order it came in.
+void CountRolls(const GameState& state, const CubeBasis& basis,
+                const CubePricing& pricing, PotentialRank rank,
+                const CubeIncome& income, GainDistribution& gains) {
+  std::vector<PotentialLine> lines;
+  std::map<std::pair<int, int>, int> index;  // (type, rank) -> lines
+  std::vector<double> alone_cache;
+  auto alone = [&](const PotentialLine& line) {
+    Potential one;
+    *one.add_lines() = line;
+    return GainOf(state, basis, pricing, one, income) -
+           GainOf(state, basis, pricing, Potential(), income);
+  };
+  std::vector<std::vector<LineDraw>> positions(kPotentialLines);
+  std::map<std::pair<int, int>, bool> dead;
+  for (int i = 0; i < kPotentialLines; ++i) {
+    const double prime = PotentialPrimeChance(pricing.cube, i);
+    std::map<int, double> chances;  // line index -> chance
+    for (const auto& [line_rank, share] :
+         {std::pair<PotentialRank, double>{rank, prime},
+          {PreviousPotentialRank(rank), 1.0 - prime}}) {
+      if (share <= 0.0) {
+        continue;
+      }
+      const std::vector<PotentialLineType> pool =
+          PotentialPool(CubeOf(pricing.cube).track, pricing.group, line_rank);
+      for (PotentialLineType type : pool) {
+        const std::pair<int, int> key{type, line_rank};
+        if (dead.find(key) == dead.end()) {
+          PotentialLine line;
+          line.set_type(type);
+          line.set_rank(line_rank);
+          dead[key] = alone(line) == 0.0;
+          if (!dead[key]) {
+            index[key] = static_cast<int>(lines.size());
+            lines.push_back(line);
+          }
+        }
+        const int at = dead[key] ? -1 : index[key];
+        chances[at] += share / pool.size();
+      }
+    }
+    for (const auto& [at, chance] : chances) {
+      positions[i].push_back({at, chance});
+    }
+  }
+  // Sets of three, as sorted indices, and their summed chance.
+  std::map<std::array<int, 3>, double> sets;
+  for (const LineDraw& a : positions[0]) {
+    for (const LineDraw& b : positions[1]) {
+      for (const LineDraw& c : positions[2]) {
+        std::array<int, 3> set{a.line, b.line, c.line};
+        std::sort(set.begin(), set.end());
+        sets[set] += a.chance * b.chance * c.chance;
+      }
+    }
+  }
+  for (const auto& [set, chance] : sets) {
+    Potential roll;
+    roll.set_rank(rank);
+    for (int at : set) {
+      if (at >= 0) {
+        *roll.add_lines() = lines[at];
+      }
+    }
+    gains.Add(GainOf(state, basis, pricing, roll, income), chance);
+  }
+}
+
+// Every rank from the piece's own up, counted exactly, or with `samples` above
+// zero, drawn that many times. A piece with no potential starts on a
+// pseudo-rank that always "ranks up" to Rare, as its first cube does.
+std::vector<RankDraws> RanksFrom(const GameState& state, const CubeBasis& basis,
+                                 const CubePricing& pricing, PotentialRank held,
+                                 double share, const CubeIncome& income,
+                                 int samples, std::mt19937& rng) {
   std::vector<RankDraws> ranks;
   if (held == POTENTIAL_RANK_UNSPECIFIED) {
-    ranks.push_back({held, 1.0, {}});
+    RankDraws first;
+    first.rank = held;
+    first.rank_up = 1.0;
+    ranks.push_back(std::move(first));
     held = POTENTIAL_RANK_RARE;
   }
   for (int rank = held; rank <= POTENTIAL_RANK_LEGENDARY; ++rank) {
     RankDraws draws;
     draws.rank = static_cast<PotentialRank>(rank);
     draws.rank_up = PotentialRankUpChance(pricing.cube, draws.rank);
-    draws.gains.reserve(samples);
-    for (int i = 0; i < samples; ++i) {
-      draws.gains.push_back(
-          share *
-          GainOf(state, basis, pricing,
-                 RollPotential(pricing.cube, pricing.group, draws.rank, rng),
-                 income));
+    if (samples > 0) {
+      for (int i = 0; i < samples; ++i) {
+        draws.gains.Add(
+            GainOf(state, basis, pricing,
+                   RollPotential(pricing.cube, pricing.group, draws.rank, rng),
+                   income));
+      }
+    } else {
+      CountRolls(state, basis, pricing, draws.rank, income, draws.gains);
     }
-    std::sort(draws.gains.begin(), draws.gains.end());
+    draws.gains.Finish();
+    draws.gains.Scale(share);
     ranks.push_back(std::move(draws));
   }
   return ranks;
@@ -352,7 +421,7 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
       pricing.bossed && Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
-  const std::vector<RankDraws> ranks = SampleRanks(
+  const std::vector<RankDraws> ranks = RanksFrom(
       state, basis, pricing, held, program.share, income, samples, rng);
   const double toll = income.power_per_meso * shelf.cost;
 
@@ -373,7 +442,7 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                          q * (above.stopped + above.below * above_gain)) /
                         (1.0 - stay);
     program.reserve[draws.rank] = reserve;
-    carried = draws.gains.empty() ? 0.0 : MeanMax(draws.gains, reserve);
+    carried = draws.gains.empty() ? 0.0 : draws.gains.MeanMax(reserve);
     above_cubes = cubes;
     above_gain = gain;
     above = here;

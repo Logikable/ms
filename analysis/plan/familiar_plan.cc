@@ -26,7 +26,8 @@ struct RankWorths {
   Worths below;
 };
 
-// Rolls sampled to value a Legendary familiar, as cube_plan's kCubeSamples.
+// Rolls sampled to value a Legendary familiar. Few price a run short of what it
+// takes, as they once did cube runs (see kCubeSamples).
 constexpr int kRollSamples = 64;
 
 // Cubes one look may buy on one familiar, so a rule that never stops can't

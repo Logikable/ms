@@ -388,6 +388,30 @@ TEST_F(CubePlanTest, DearerMesoStopsSooner) {
                    .worth());
 }
 
+// Counting every roll's chance prices a run as a great many draws would: the
+// exact program and one solved on 20,000 draws agree on its length and gain.
+TEST_F(CubePlanTest, CountedRollsPriceARunAsManyDrawsWould) {
+  Wearing(Rolled(POTENTIAL_RANK_RARE, POTENTIAL_LINE_TYPE_STR));
+  std::mt19937 rng(1234);
+  for (CubeType cube : {CubeType::kRed, CubeType::kBlack}) {
+    income_.power_per_meso = 0.0;
+    const CubeProgram free = BestCubeProgram(
+        *state_, basis_, kBossGear, EQUIP_SLOT_HAT, cube, income_, rng);
+    ASSERT_TRUE(free.worth());
+    // A roll's price a fiftieth of the best run's gain: the rule stops well
+    // inside what draws see, rather than waiting for the rarest roll.
+    income_.power_per_meso = free.gain / (50.0 * CubeOf(cube).cost);
+    const CubeProgram exact = BestCubeProgram(
+        *state_, basis_, kBossGear, EQUIP_SLOT_HAT, cube, income_, rng);
+    const CubeProgram drawn =
+        BestCubeProgram(*state_, basis_, kBossGear, EQUIP_SLOT_HAT, cube,
+                        income_, rng, /*samples=*/20000);
+    ASSERT_TRUE(exact.worth());
+    EXPECT_NEAR(exact.cubes, drawn.cubes, 0.1 * drawn.cubes);
+    EXPECT_NEAR(exact.gain, drawn.gain, 0.05 * drawn.gain);
+  }
+}
+
 // Lines no roll can beat are worth no roll, however cheap the meso.
 TEST_F(CubePlanTest, TheBestLinesAreNotCubed) {
   Potential best;

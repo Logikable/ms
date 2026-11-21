@@ -35,9 +35,10 @@
 
 namespace ms {
 
-// Draws used to value one cube. Enough that a good line isn't missed through a
-// slot's worth of bad luck, few enough to keep a look cheap.
-inline constexpr int kCubeSamples = 64;
+// Rolls drawn to value a cube or a flame run; 0 counts every roll with its
+// exact chance instead. 64 draws once priced a run near the best of them, an
+// emblem's 38B Red Cube run at 768M, and the shopper bought cubes over stars.
+inline constexpr int kCubeSamples = 0;
 
 // Weight given to an item the shopper may replace later. The user's call:
 // cubing gear you'll outgrow is still worth something, since it carries you to
@@ -107,8 +108,8 @@ struct CubeProgram {
 
 // The run of `cube` on what `gear` wears in `slot`; empty when the piece is
 // already worth its reservation value, so no roll pays. Each rank's rule is
-// solved from `samples` rolls; with few, the reservation value lands near the
-// best of them and the run is priced as far shorter than it is.
+// solved on every roll's exact chance, or with `samples` above zero, on that
+// many draws; few draws price the run far shorter than it is.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             StatPreset gear, EquipSlot slot, CubeType cube,
                             const CubeIncome& income, std::mt19937& rng,

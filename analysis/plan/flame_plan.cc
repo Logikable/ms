@@ -1,10 +1,13 @@
 #include "analysis/plan/flame_plan.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <functional>
 #include <vector>
 
 #include "analysis/plan/cube_plan.h"
+#include "analysis/plan/gain_distribution.h"
 #include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/item/equip_instance.h"
@@ -14,8 +17,6 @@
 
 namespace ms {
 namespace {
-
-// Draws used to value one flame, as for a cube.
 
 int FoldAttack(int flat, double pct) {
   return static_cast<int>(std::floor(flat * (1.0 + pct) + 1e-9));
@@ -92,27 +93,95 @@ FlamePricing PricingFor(const GameState& state, const CubeBasis& basis,
   return pricing;
 }
 
-double MeanMax(const std::vector<double>& gains, double floor) {
-  double total = 0.0;
-  for (double gain : gains) {
-    total += std::max(gain, floor);
-  }
-  return total / gains.size();
-}
-
-// The r with E[max(X, r)] - toll = r, bisected, and never above the best draw:
+// The r with E[max(X, r)] - toll = r, bisected, and never above the best roll:
 // the rule must stop on some roll it can draw.
-double ReserveFor(const std::vector<double>& gains, double toll) {
-  double lo = gains.front() - toll - 1.0;
-  double hi = gains.back();
+double ReserveFor(const GainDistribution& gains, double toll) {
+  double lo = gains.low() - toll - 1.0;
+  double hi = gains.high();
   for (int step = 0; step < 100 && lo < hi; ++step) {
     const double mid = lo + (hi - lo) / 2;
     if (mid <= lo || mid >= hi) {
       break;
     }
-    (MeanMax(gains, mid) - toll - mid > 0.0 ? lo : hi) = mid;
+    (gains.MeanMax(mid) - toll - mid > 0.0 ? lo : hi) = mid;
   }
-  return std::min(hi, gains.back());
+  return std::min(hi, gains.high());
+}
+
+// n choose k, as a double: the counts here pass no int's range.
+double Choose(int n, int k) {
+  if (k < 0 || k > n) {
+    return 0.0;
+  }
+  double ways = 1.0;
+  for (int i = 0; i < k; ++i) {
+    ways = ways * (n - i) / (i + 1);
+  }
+  return ways;
+}
+
+// Every roll of `flame` counted with its exact chance: kFlameLines distinct
+// lines from the pool, each at an even tier. A roll is valued as the sum of its
+// lines each valued alone, since four lines on one piece are small beside the
+// character and barely move each other's worth; a line worth nothing at every
+// tier is one of a crowd of dead lines. A reroll matching the worn lines is
+// drawn again in GMS, a chance too small to count.
+void CountFlames(const FlamePricing& pricing, FlameType flame,
+                 GainDistribution& gains) {
+  const Flame& shelf = FlameOf(flame);
+  const std::vector<FlameStat> pool = FlamePool(*pricing.proto);
+  const double bare = pricing.PowerWith(FlameLines());
+  // Each live line's worth at each tier, over the bare piece.
+  std::vector<std::array<double, kFlameTiers>> live;
+  for (FlameStat stat : pool) {
+    std::array<double, kFlameTiers> worth{};
+    bool any = false;
+    for (int t = 0; t < kFlameTiers; ++t) {
+      FlameLines one;
+      FlameLine* line = one.Add();
+      line->set_stat(stat);
+      line->set_tier(shelf.min_tier + t);
+      worth[t] = pricing.PowerWith(one) - bare;
+      any = any || worth[t] != 0.0;
+    }
+    if (any) {
+      live.push_back(worth);
+    }
+  }
+  const int n = static_cast<int>(pool.size());
+  const int dead = n - static_cast<int>(live.size());
+  const int lines = std::min(kFlameLines, n);
+  const double rolls = Choose(n, lines);
+  const double start = bare - pricing.standing;
+  // Every set of live lines a roll could hold, with the rest dead: each such
+  // set is as likely as the ways to fill the rest from the dead lines.
+  std::vector<int> chosen;
+  std::function<void(int)> pick = [&](int next) {
+    const int fill = lines - static_cast<int>(chosen.size());
+    const double chance = Choose(dead, fill) / rolls;
+    if (chance > 0.0) {
+      // The chosen lines' tiers, every combination equally likely.
+      const int combos = static_cast<int>(
+          std::pow(kFlameTiers, static_cast<double>(chosen.size())));
+      for (int combo = 0; combo < combos; ++combo) {
+        double gain = start;
+        for (int c = 0, rest = combo; c < static_cast<int>(chosen.size());
+             ++c, rest /= kFlameTiers) {
+          gain += live[chosen[c]][rest % kFlameTiers];
+        }
+        gains.Add(gain, chance / combos);
+      }
+    }
+    if (static_cast<int>(chosen.size()) == lines) {
+      return;
+    }
+    for (int i = next; i < static_cast<int>(live.size()); ++i) {
+      chosen.push_back(i);
+      pick(i + 1);
+      chosen.pop_back();
+    }
+  };
+  pick(0);
 }
 
 const EquipInstance* Flammable(const GameState& state, EquipSlot slot) {
@@ -149,37 +218,36 @@ FlameProgram BestFlameProgram(const GameState& state, const CubeBasis& basis,
                               double power_per_meso, std::mt19937& rng,
                               int samples) {
   FlameProgram program;
-  std::vector<double> gains =
-      FlameGains(state, basis, slot, flame, samples, rng);
+  const EquipInstance* item = Flammable(state, slot);
+  if (item == nullptr) {
+    return program;
+  }
+  GainDistribution gains;
+  if (samples > 0) {
+    for (double gain : FlameGains(state, basis, slot, flame, samples, rng)) {
+      gains.Add(gain);
+    }
+  } else {
+    CountFlames(PricingFor(state, basis, *item), flame, gains);
+  }
   if (gains.empty()) {
     return program;
   }
+  gains.Finish();
   program.share =
       Replaceable(state, slot)
           ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
           : 1.0;
-  for (double& gain : gains) {
-    gain *= program.share;
-  }
+  gains.Scale(program.share);
   const int64_t price = FlameOf(flame).cost;
   program.reserve = ReserveFor(gains, power_per_meso * price);
   // The piece's own lines are the zero every gain is measured from.
   if (program.reserve <= 0.0) {
     return program;
   }
-  double below = 0.0;
-  double stopped = 0.0;
-  for (double gain : gains) {
-    if (gain < program.reserve) {
-      below += 1.0;
-    } else {
-      stopped += gain;
-    }
-  }
-  below /= gains.size();
-  stopped /= gains.size();
+  const double below = gains.Below(program.reserve);
   program.flames = 1.0 / (1.0 - below);
-  program.gain = stopped / (1.0 - below);
+  program.gain = gains.Stopped(program.reserve) / (1.0 - below);
   program.cost = static_cast<int64_t>(std::llround(program.flames * price));
   return program;
 }

@@ -122,6 +122,24 @@ TEST_F(FlamePlanTest, RunStopsWithTheMeso) {
   }
 }
 
+// Counted rolls, each valued as the sum of its lines alone, price a run as
+// 20,000 draws valued whole would.
+TEST_F(FlamePlanTest, CountedRollsPriceARunAsManyDrawsWould) {
+  for (FlameType flame : {FlameType::kBurning, FlameType::kBlack}) {
+    const FlameProgram free = Program(flame, 0.0);
+    ASSERT_TRUE(free.worth());
+    // A roll's price a fiftieth of the best run's gain, as for cubes.
+    const double toll = free.gain / (50.0 * FlameOf(flame).cost);
+    std::mt19937 rng(1234);
+    const FlameProgram exact = Program(flame, toll);
+    const FlameProgram drawn = BestFlameProgram(
+        *state_, basis_, EQUIP_SLOT_HAT, flame, toll, rng, /*samples=*/20000);
+    ASSERT_TRUE(exact.worth()) << FlameName(flame);
+    EXPECT_NEAR(exact.flames, drawn.flames, 0.1 * drawn.flames);
+    EXPECT_NEAR(exact.gain, drawn.gain, 0.05 * drawn.gain);
+  }
+}
+
 // The lines are valued as the character uses them: a STR warrior gains from
 // STR and not from LUK, and Black keeps the better of the two.
 TEST_F(FlamePlanTest, BlackKeepsOnlyARollWorthMore) {
