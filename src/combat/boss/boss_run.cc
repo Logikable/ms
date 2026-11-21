@@ -498,6 +498,7 @@ void BossRun::FillSlots(const CombatParams& params) {
   mob_of_slot_.assign(counted, 0);
   slot_spawns_.assign(counted, -1);
   slot_types_.assign(counted, -1);
+  shields_taken_.assign(counted, 0.0);
   shields_until_ = FightSeconds();
   for (const MobStatus& mob : sim_.view().roster) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
@@ -756,6 +757,10 @@ void BossRun::SyncSlots(double dt) {
                      [&slot](const MobStatus& m) { return m.id == slot.id; });
     if (it != roster.end()) {
       slot.hp_fraction = it->hp_fraction;
+      // A monster can come back: see TakeShields.
+      slot.alive = true;
+      slot.visible = true;
+      slot.dead_for = 0.0;
       continue;
     }
     if (slot.alive) {
@@ -809,6 +814,24 @@ void BossRun::PlaceSelf() {
   const int spot = FreeSpotInZone(*phase, zone, TakenSpots());
   if (spot >= 0) {
     player_at_ = spot;
+  }
+}
+
+void BossRun::TakeShields(const CombatParams& params,
+                          const SharedFight& shared) {
+  for (std::size_t slot = 0;
+       slot < shared.shields.size() && slot < shields_taken_.size(); ++slot) {
+    double owed = shared.shields[slot] - shields_taken_[slot];
+    if (owed <= 0.0) {
+      continue;
+    }
+    shields_taken_[slot] = shared.shields[slot];
+    // Reaped here first means the shield beat the killing blow to the server.
+    if (!sim_.AddHp(params, mob_of_slot_[slot], owed) &&
+        slot < shared.hp_fractions.size() && shared.hp_fractions[slot] > 0.0) {
+      sim_.Revive(params, mob_of_slot_[slot], slot_types_[slot],
+                  shared.hp_fractions[slot]);
+    }
   }
 }
 
@@ -1158,10 +1181,12 @@ void BossRun::TakeShared(const SharedFight& shared) {
   // the server. Use the server's position only in a new phase, or if another
   // player turns out to be on the same spot.
   const std::vector<int> taken = TakenSpots();
-  if (player_at_ < 0 ||
+  // A new placement moves this player too: the server sent them somewhere.
+  if (player_at_ < 0 || shared.placements != placements_seen_ ||
       std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
     player_at_ = stood;
   }
+  placements_seen_ = shared.placements;
   DropShared(shared);
 }
 
@@ -1223,6 +1248,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     said[mob_of_slot_[slot]] = shared.hp_fractions[slot];
   }
   sim_.ClampRoster(params, said);
+  TakeShields(params, shared);
   SyncSlots(dt);
   DriftSlots();
   ComputePhaseHp(params);
@@ -1242,7 +1268,8 @@ void BossRun::ReportToParty(double dt) {
   report_due_ += kReportSeconds;
   authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
                       sim_.view().attack_fraction, item_drop_pct_,
-                      sim_.view().buff_count, breakdown_.Rows()});
+                      sim_.view().buff_count, breakdown_.Rows(),
+                      placements_seen_});
   landed_.clear();
 }
 

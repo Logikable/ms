@@ -78,6 +78,8 @@ cc_library(
         "//src/combat:loot",
         "//src/combat/boss:arena_spots",
         "//src/combat/boss:boss_timing",
+        "//src/combat/boss:phase_rules",
+        "//src/combat/boss:placement",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:multiplayer_proto_cc",

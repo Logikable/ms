@@ -94,6 +94,8 @@ void PartyFightAuthority::TakeState(const FightState& state,
   fight_.countdown_left = state.countdown_left();
   fight_.hp_fractions.assign(state.hp_fractions().begin(),
                              state.hp_fractions().end());
+  fight_.shields.assign(state.shields().begin(), state.shields().end());
+  fight_.placements = state.placements();
   // Everyone who started the fight is here, whether or not they left, and a
   // clear's rewards are split by that count. FightEnded repeats the number at
   // the end.
@@ -160,6 +162,7 @@ void PartyFightAuthority::Report(const FightReport& report) {
   FightUpdate update;
   update.set_phase(report.phase);
   update.set_spot(report.spot);
+  update.set_placements(report.placements);
   update.set_attack_name(report.attack_name);
   update.set_attack_fraction(report.attack_fraction);
   update.set_buff_count(report.buff_count);

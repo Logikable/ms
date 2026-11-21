@@ -438,6 +438,9 @@ class BossRun {
   // monster takes and holds at, and in a solo run the shields due since the
   // last step. Does nothing for a phase without rules.
   void ApplyPhaseRules(const CombatParams& params);
+  // Adds the shields the server gave since the last step, bringing back a
+  // monster this client reaped that the server says a shield saved.
+  void TakeShields(const CombatParams& params, const SharedFight& shared);
   // Whether each slot's monster still stands, by the sim's roster.
   std::vector<bool> SlotsAlive() const;
   // Where everyone present stands, this player first.
@@ -552,6 +555,10 @@ class BossRun {
   std::vector<int> slot_types_;
   // The fight time shields have been given through.
   double shields_until_ = 0.0;
+  // A party fight's shields this client has added, per slot, and the server's
+  // placement count it has followed.
+  std::vector<double> shields_taken_;
+  int placements_seen_ = 0;
   // Which zones had a monster standing when the player was last placed; empty
   // until the phase's first placement.
   std::vector<bool> zones_alive_;

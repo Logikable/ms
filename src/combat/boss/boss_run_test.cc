@@ -1553,6 +1553,44 @@ TEST(BossRunTest, FollowedFallAimsAtServerSpots) {
   EXPECT_EQ(run.slots()[0].y, 0);
 }
 
+// The server's shield saved an arm this client had already reaped: it comes
+// back, bar and all, at the server's HP.
+TEST(BossRunTest, AFollowedRunBringsBackAMonsterAShieldSaved) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = TwoPhaseBoss();
+  TestAuthority authority(2);
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.1);
+  authority.fight_.hp_fractions[0] = 0.0;
+  run.Advance(*state, 0.1);
+  ASSERT_FALSE(run.slots()[0].alive);
+
+  authority.fight_.hp_fractions[0] = 0.3;
+  authority.fight_.shields = {0.3, 0.0};
+  run.Advance(*state, 0.1);
+  EXPECT_TRUE(run.slots()[0].alive);
+  EXPECT_TRUE(run.slots()[0].visible);
+  EXPECT_NEAR(run.slots()[0].hp_fraction, 0.3, 0.01);
+}
+
+// A player keeps the spot they walked to, unless the server has placed the
+// party again since.
+TEST(BossRunTest, AFollowedRunTakesTheServersPlacement) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = ZonedBoss();
+  TestAuthority authority(2);
+  authority.fight_.players[1].present = false;
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.1);
+  ASSERT_EQ(run.player_spot().x(), 0);
+  authority.fight_.players[0].spot = 1;
+  run.Advance(*state, 0.1);
+  EXPECT_EQ(run.player_spot().x(), 0);
+  authority.fight_.placements = 1;
+  run.Advance(*state, 0.1);
+  EXPECT_EQ(run.player_spot().x(), 4);
+}
+
 TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();

@@ -219,6 +219,9 @@ message FightUpdate {
   // one. Sent together with the lines it counts, so the totals everyone sees at
   // the end match what was subtracted from the roster.
   repeated FightBreakdownRow breakdown = 8;
+  // FightState.placements as this client last saw it. A report sent before it
+  // saw the latest placement would undo it, so its spot is ignored.
+  int32 placements = 9;
 }
 
 // One player as the rest of the party sees them during a fight.
@@ -264,6 +267,13 @@ message FightState {
   // from each client's own setting, so toggling one mid-fight can't change what
   // this fight pays.
   BossOptions options = 10;
+  // The share of its max HP each slot has gained from shields this phase, so
+  // far. A client adds what it hasn't yet.
+  repeated double shields = 11;
+  // Counts each time the server has placed everyone in the phase's zones
+  // (BossPhase.placement). A client takes its spot from the server when this
+  // changes, and keeps its own otherwise.
+  int32 placements = 12;
 }
 
 // One item a clear gave this player.

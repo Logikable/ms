@@ -116,6 +116,14 @@ class PartyFight {
   const std::vector<double>& hp_fractions() const {
     return hp_fractions_;
   }
+  // Each slot's shields this phase, as a share of its max HP.
+  const std::vector<double>& shields() const {
+    return shields_;
+  }
+  // How many times everyone has been placed in the phase's zones.
+  int placements() const {
+    return placements_;
+  }
   const std::vector<FightPlayer>& players() const {
     return players_;
   }
@@ -168,6 +176,14 @@ class PartyFight {
   void DropFromClosedSpots();
   // Returns whether any mob has HP left.
   bool AnyoneAlive() const;
+  // Whether each slot's mob still stands.
+  std::vector<bool> SlotsAlive() const;
+  // Gives the shields due since the last call, and places everyone again if
+  // a zone has just emptied.
+  void RunRules();
+  // Sends every present player to the zone the phase's placement gives them.
+  // `fresh` as the phase starts, when nobody has a zone yet.
+  void PlaceAll(bool fresh);
 
   std::string id_;
   std::string boss_key_;
@@ -191,6 +207,12 @@ class PartyFight {
   std::vector<double> max_hp_;
   std::mt19937 rng_{std::random_device{}()};
   std::vector<double> hp_fractions_;
+  // The phase's spawn behind each slot, which its rules are read from.
+  std::vector<int> spawn_of_slot_;
+  std::vector<double> shields_;
+  double shields_until_ = 0.0;
+  std::vector<bool> zones_alive_;
+  int placements_ = 0;
   std::vector<FightPlayer> players_;
 };
 

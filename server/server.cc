@@ -342,6 +342,10 @@ void Server::PublishFight(PartyFight& fight) {
   for (double hp : fight.hp_fractions()) {
     state->add_hp_fractions(hp);
   }
+  for (double shield : fight.shields()) {
+    state->add_shields(shield);
+  }
+  state->set_placements(fight.placements());
   for (const FightPlayer& player : fight.players()) {
     FightPlayerState* drawn = state->add_players();
     drawn->set_account_id(player.account_id);

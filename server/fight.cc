@@ -9,6 +9,8 @@
 
 #include "src/combat/boss/arena_spots.h"
 #include "src/combat/boss/boss_timing.h"
+#include "src/combat/boss/phase_rules.h"
+#include "src/combat/boss/placement.h"
 #include "src/combat/loot.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
@@ -79,6 +81,7 @@ void PartyFight::EnterPhase(int phase) {
   phase_ = phase;
   hp_.clear();
   max_hp_.clear();
+  spawn_of_slot_.clear();
   const BossPhase* current = current_phase();
   if (current == nullptr) {
     return;
@@ -86,7 +89,8 @@ void PartyFight::EnterPhase(int phase) {
   clock_cut_ += CutToPhaseClock(*current, seconds_left_);
   // Build the mob list the same way clients do, so slot numbers mean the same
   // mob on both ends.
-  for (const Spawn& spawn : current->spawns()) {
+  for (int index = 0; index < current->spawns_size(); ++index) {
+    const Spawn& spawn = current->spawns(index);
     std::map<std::string, Mob>::const_iterator it = mobs_->find(spawn.mob());
     if (it == mobs_->end()) {
       continue;
@@ -94,15 +98,89 @@ void PartyFight::EnterPhase(int phase) {
     for (int i = 0; i < SpawnCount(spawn); ++i) {
       max_hp_.push_back(it->second.max_hp());
       hp_.push_back(it->second.max_hp());
+      spawn_of_slot_.push_back(index);
     }
   }
   hp_fractions_.assign(hp_.size(), 1.0);
+  shields_.assign(hp_.size(), 0.0);
+  shields_until_ = FightSeconds();
+  zones_alive_.clear();
   // Give each player their own spot, in party order. This assumes each phase
   // has at least as many spots as the party has members.
   int spots = current->player_spots_size();
   for (int i = 0; i < static_cast<int>(players_.size()); ++i) {
     players_[i].spot = spots > 0 ? std::min(i, spots - 1) : -1;
     players_[i].lines.clear();
+  }
+  PlaceAll(/*fresh=*/true);
+}
+
+std::vector<bool> PartyFight::SlotsAlive() const {
+  std::vector<bool> alive;
+  for (double hp : hp_) {
+    alive.push_back(hp > 0.0);
+  }
+  return alive;
+}
+
+void PartyFight::PlaceAll(bool fresh) {
+  const BossPhase* current = current_phase();
+  if (current == nullptr ||
+      current->placement() == ZONE_PLACEMENT_UNSPECIFIED) {
+    return;
+  }
+  zones_alive_ = ZonesAlive(*current, spawn_of_slot_, SlotsAlive());
+  std::vector<FightPlayer*> present;
+  std::vector<int> zones;
+  for (FightPlayer& player : players_) {
+    if (player.present) {
+      present.push_back(&player);
+      zones.push_back(fresh ? 0 : ZoneOfSpot(*current, player.spot));
+    }
+  }
+  std::vector<int> placed =
+      PlacePlayers(current->placement(), zones_alive_, zones, rng_);
+  // Who stays keeps their spot, so those moving pick around them.
+  std::vector<int> taken;
+  for (std::size_t i = 0; i < present.size(); ++i) {
+    if (!fresh && placed[i] == zones[i]) {
+      taken.push_back(present[i]->spot);
+    }
+  }
+  for (std::size_t i = 0; i < present.size(); ++i) {
+    if (!fresh && placed[i] == zones[i]) {
+      continue;
+    }
+    int spot = FreeSpotInZone(*current, placed[i], taken);
+    if (spot >= 0) {
+      present[i]->spot = spot;
+    }
+    taken.push_back(present[i]->spot);
+  }
+  ++placements_;
+}
+
+void PartyFight::RunRules() {
+  const BossPhase* current = current_phase();
+  if (current == nullptr || !HasSlotRules(*current)) {
+    return;
+  }
+  const double now = FightSeconds();
+  std::vector<bool> alive = SlotsAlive();
+  std::vector<double> gained =
+      ShieldsBetween(*current, spawn_of_slot_, alive, shields_until_, now);
+  shields_until_ = now;
+  for (std::size_t slot = 0; slot < gained.size(); ++slot) {
+    if (gained[slot] <= 0.0) {
+      continue;
+    }
+    shields_[slot] += gained[slot];
+    hp_[slot] += gained[slot] * max_hp_[slot];
+    hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+  }
+  if (current->placement() != ZONE_PLACEMENT_UNSPECIFIED &&
+      ZonesAlive(*current, spawn_of_slot_, alive) != zones_alive_) {
+    PlaceAll(/*fresh=*/false);
   }
 }
 
@@ -205,7 +283,20 @@ void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
   if (player == nullptr || !player->present) {
     return;
   }
-  hp_[slot] = std::max(0.0, hp_[slot] - damage);
+  // A client scales its own damage by its zone and crowd (SlotRules), so its
+  // lines arrive as dealt; what the server alone can judge is applied here.
+  const BossPhase* current = current_phase();
+  double floor = 0.0;
+  if (current != nullptr && HasSlotRules(*current)) {
+    const Spawn& spawn = current->spawns(spawn_of_slot_[slot]);
+    if (Invulnerable(spawn, FightSeconds())) {
+      return;
+    }
+    floor = std::min(
+        hp_[slot],
+        HpFloor(*current, spawn_of_slot_, SlotsAlive(), slot) * max_hp_[slot]);
+  }
+  hp_[slot] = std::max(floor, hp_[slot] - damage);
   hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
 }
 
@@ -225,7 +316,9 @@ void PartyFight::Report(const std::string& account_id,
     player->breakdown.assign(update.breakdown().begin(),
                              update.breakdown().end());
   }
-  MoveTo(account_id, update.spot());
+  if (update.placements() == placements_) {
+    MoveTo(account_id, update.spot());
+  }
   if (update.phase() != phase_) {
     // This report's slots refer to the previous phase's mobs, so its damage
     // would hit the wrong ones.
@@ -314,6 +407,7 @@ void PartyFight::DropFromClosedSpots() {
 
 void PartyFight::RunPhase(double dt) {
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
+  RunRules();
   DropFromClosedSpots();
   if (AnyoneAlive()) {
     if (seconds_left_ <= 0.0) {

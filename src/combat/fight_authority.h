@@ -76,6 +76,10 @@ struct SharedFight {
   double countdown_left = 0.0;
   // Each monster's remaining HP fraction, one per slot.
   std::vector<double> hp_fractions;
+  // Each slot's shields this phase, as a share of its max HP. See FightState.
+  std::vector<double> shields;
+  // How many times the server has placed everyone; see FightState.
+  int placements = 0;
   std::vector<SharedPlayer> players;
   // Which entry in `players` is the local player. -1 until the server says.
   int self = -1;
@@ -108,6 +112,8 @@ struct FightReport {
   int buff_count = 0;
   // This player's total damage this fight, by skill.
   std::vector<BreakdownRow> breakdown;
+  // SharedFight::placements as last seen; see FightUpdate.
+  int placements = 0;
 };
 
 class FightAuthority {

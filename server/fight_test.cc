@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/combat/boss/boss_timing.h"
 #include "src/protos/boss.pb.h"
@@ -464,6 +465,131 @@ TEST(FightDropsTest, EquipsSkipPlayersWhoVoidThem) {
   Clear(voided);
   ASSERT_EQ(voided.state(), PartyFightState::kWon);
   EXPECT_EQ(TotalAwards(voided), 1);
+}
+
+// One phase in three rooms of two spots each: an arm alone in each of the
+// first two, and the body, holding at half while an arm stands, in the third.
+Boss Rooms() {
+  Boss boss;
+  boss.set_name("Kaling");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(600);
+  BossPhase* phase = normal->add_phases();
+  phase->set_placement(ZONE_PLACEMENT_SPREAD);
+  for (int room = 0; room < 3; ++room) {
+    Spawn* spawn = phase->add_spawns();
+    spawn->set_mob(room < 2 ? "arm" : "body");
+    spawn->set_zone(room + 1);
+    spawn->add_spots()->set_x(3 * room + 1);
+    PhaseZone* zone = phase->add_zones();
+    zone->mutable_room()->set_x(3 * room);
+    zone->mutable_room()->set_width(3);
+    for (int x : {0, 2}) {
+      zone->add_spots(phase->player_spots_size());
+      phase->add_player_spots()->set_x(3 * room + x);
+    }
+  }
+  phase->mutable_spawns(2)->add_hp_steps(50);
+  return boss;
+}
+
+// Players per zone, by where they stand.
+std::vector<int> ZoneCounts(const PartyFight& fight, const Boss& boss) {
+  const BossPhase& phase = boss.difficulties(0).phases(0);
+  std::vector<int> counts(phase.zones_size() + 1, 0);
+  for (const FightPlayer& player : fight.players()) {
+    int zone = 0;
+    for (int z = 0; z < phase.zones_size(); ++z) {
+      for (int spot : phase.zones(z).spots()) {
+        zone = spot == player.spot ? z + 1 : zone;
+      }
+    }
+    ++counts[zone];
+  }
+  return counts;
+}
+
+TEST(FightRulesTest, ThePartyIsPlacedAndPlacedAgainWhenARoomEmpties) {
+  Boss boss = Rooms();
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(3));
+  EXPECT_EQ(ZoneCounts(fight, boss), (std::vector<int>{0, 2, 1, 0}));
+  EXPECT_EQ(fight.placements(), 1);
+  fight.Advance(kBossCountdownSeconds);
+  fight.Hit("one", 0, 1000);
+  fight.Advance(0.1);
+  EXPECT_EQ(fight.placements(), 2);
+  EXPECT_EQ(ZoneCounts(fight, boss), (std::vector<int>{0, 0, 2, 1}));
+}
+
+// A report sent before its client saw the new placement would walk its
+// player back; the server keeps them where it put them.
+TEST(FightRulesTest, AStaleReportDoesNotUndoAPlacement) {
+  Boss boss = Rooms();
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  const int placed = fight.players()[0].spot;
+  FightUpdate stale;
+  stale.set_spot(placed + 1);
+  fight.Report("one", stale);
+  EXPECT_EQ(fight.players()[0].spot, placed);
+  FightUpdate seen;
+  seen.set_spot(placed + 1);
+  seen.set_placements(fight.placements());
+  fight.Report("one", seen);
+  EXPECT_EQ(fight.players()[0].spot, placed + 1);
+}
+
+TEST(FightRulesTest, AStepHoldsUntilTheOthersFall) {
+  Boss boss = Rooms();
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Hit("one", 2, 400);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[2], 0.5);
+  fight.Hit("one", 0, 100);
+  fight.Hit("one", 1, 100);
+  fight.Hit("one", 2, 400);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[2], 0.0);
+}
+
+TEST(FightRulesTest, AnInvulnerableMonsterTakesNoHit) {
+  Boss boss = Rooms();
+  SpawnWindow* hiding = boss.mutable_difficulties(0)
+                            ->mutable_phases(0)
+                            ->mutable_spawns(0)
+                            ->mutable_invulnerable();
+  hiding->set_interval_ms(10000);
+  hiding->set_open_ms(2000);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Advance(10.5);
+  fight.Hit("one", 0, 10);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 1.0);
+  fight.Advance(2.0);
+  fight.Hit("one", 0, 10);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.9);
+}
+
+TEST(FightRulesTest, AShieldRaisesHpPastMaxAndIsSentOn) {
+  Boss boss = Rooms();
+  SpawnShield* shield = boss.mutable_difficulties(0)
+                            ->mutable_phases(0)
+                            ->mutable_spawns(2)
+                            ->mutable_shield();
+  shield->set_interval_ms(5000);
+  shield->set_percent(10);
+  shield->add_mobs("arm");
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Advance(5.5);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 1.1);
+  EXPECT_DOUBLE_EQ(fight.shields()[0], 0.1);
+  EXPECT_DOUBLE_EQ(fight.shields()[2], 0.0);
 }
 
 }  // namespace
