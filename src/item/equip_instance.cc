@@ -71,6 +71,20 @@ StarForceRate Caught(const StarForceRate& rate) {
   return {success, destroy};
 }
 
+// GMS's Sunny Sunday cut, below 21★ only, held always on here (the user's
+// call, 2026-11-21): destruction 30% less likely, the difference a fail.
+constexpr int kEventBoomBelow = 21;
+constexpr int kEventBoomPercent = 70;
+
+// An attempt's rates from `stars`, as every attempt gets them.
+StarForceRate RatesFrom(int stars) {
+  StarForceRate rate = Caught(kRates[stars]);
+  if (stars < kEventBoomBelow) {
+    rate.destroy = (rate.destroy * kEventBoomPercent + 50) / 100;
+  }
+  return rate;
+}
+
 }  // namespace
 
 ScrollTier TierForLevel(int required_level) {
@@ -225,7 +239,7 @@ StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
   if (s >= max_stars()) {
     return kStarForceFail;
   }
-  StarForceRate rate = Caught(kRates[s]);
+  StarForceRate rate = RatesFrom(s);
   std::uniform_int_distribution<int> dist(1, 10000);
   int roll = dist(rng);
   if (roll <= rate.success) {
@@ -242,7 +256,7 @@ StarForceRate EquipInstance::RateAt(int stars) {
   if (stars < 0 || stars >= kMaxStarForce) {
     return {0, 0};
   }
-  return Caught(kRates[stars]);
+  return RatesFrom(stars);
 }
 
 int EquipInstance::RecoveryStars(int original_stars) {

@@ -15,6 +15,10 @@ constexpr int64_t kStarForceBaseCost = 1000;
 // GMS rounds every price to the hundred.
 constexpr int64_t kRounding = 100;
 
+// GMS's Sunny Sunday 30% off, held always on here (the user's call,
+// 2026-11-21).
+constexpr double kEventPriceShare = 0.7;
+
 // Below this, the cost grows as a plain multiple of the star count. From here,
 // GMS switches to (stars + 1) ^ 2.7 over a divisor that changes almost every
 // star; the exponent is what makes the last few unaffordable.
@@ -55,7 +59,8 @@ int64_t StarForceCost(int required_level, int stars) {
   } else {
     raw = level_cubed * std::pow(stars + 1.0, 2.7) / Divisor(stars);
   }
-  return RoundToHundred(kStarForceBaseCost + std::llround(raw));
+  return RoundToHundred((kStarForceBaseCost + std::llround(raw)) *
+                        kEventPriceShare);
 }
 
 }  // namespace ms

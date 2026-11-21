@@ -111,8 +111,8 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   EXPECT_NE(Render(panel).find("12.64%"), std::string::npos);
 }
 
-// At 15 stars destruction is possible, and the three rates are 31.5%, 66.44%
-// and 2.06%: names aligned left in their column, numbers aligned right in
+// At 15 stars destruction is possible, and the three rates are 31.5%, 67.06%
+// and 1.44%: names aligned left in their column, numbers aligned right in
 // theirs.
 TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
@@ -120,8 +120,8 @@ TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Success   31.5%"), std::string::npos);
-  EXPECT_NE(rendered.find("Fail     66.44%"), std::string::npos);
-  EXPECT_NE(rendered.find("Destroy   2.06%"), std::string::npos);
+  EXPECT_NE(rendered.find("Fail     67.06%"), std::string::npos);
+  EXPECT_NE(rendered.find("Destroy   1.44%"), std::string::npos);
 }
 
 // A staff's next star adds +3 to each stat and +25 to HP and MP, giving two
@@ -162,13 +162,13 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
 }
 
 // The attempt's cost, in its own section between the odds and the button, the
-// last thing read before pressing. A level 150 item's first star costs 136,000.
+// last thing read before pressing. A level 150 item's first star costs 95,200.
 TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
-  size_t price = rendered.find("136,000");
+  size_t price = rendered.find("95,200");
   ASSERT_NE(price, std::string::npos) << rendered;
   EXPECT_LT(rendered.find("Success"), price) << "the price is above the odds";
   EXPECT_LT(price, rendered.find("Enhance")) << "the price is below the button";
@@ -243,12 +243,12 @@ TEST_F(StarForcePanelTest, CancelIsReportedAndOpensNoPrompt) {
 // that does anything, instead of being led through a confirmation for an
 // attempt that could never happen.
 TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
-  // A level 150 item's first star costs 136,000.
+  // A level 150 item's first star costs 95,200.
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
-  panel.SetItem(&item, 135999);
-  EXPECT_EQ(PixelOf(panel, "136,000").foreground_color, kRed);
-  EXPECT_NE(PixelOf(panel, "135,999").foreground_color, kRed)
+  panel.SetItem(&item, 95199);
+  EXPECT_EQ(PixelOf(panel, "95,200").foreground_color, kRed);
+  EXPECT_NE(PixelOf(panel, "95,199").foreground_color, kRed)
       << "the purse is a fact, not a refusal";
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").dim);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);
@@ -261,10 +261,10 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
   EXPECT_FALSE(panel.IsConfirming());
 
   // With a purse that covers it, the screen is back to normal. Not exactly
-  // 136,000, since two rows showing the same number could let the check match
+  // 95,200, since two rows showing the same number could let the check match
   // the purse.
   panel.SetItem(&item, 500'000);
-  EXPECT_NE(PixelOf(panel, "136,000").foreground_color, kRed);
+  EXPECT_NE(PixelOf(panel, "95,200").foreground_color, kRed);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").dim);
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
 }

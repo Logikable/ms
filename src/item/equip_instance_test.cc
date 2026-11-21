@@ -222,13 +222,18 @@ TEST_F(EquipInstanceTest, RefusingScrollsBeatsRemainingSlots) {
   EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 7);
 }
 
-TEST_F(EquipInstanceTest, RateAtFoldsInTheStarCatch) {
+// The catch on every attempt, and the event's 30% off destruction below 21★.
+TEST_F(EquipInstanceTest, RateAtFoldsInTheStarCatchAndTheBoomEvent) {
   StarForceRate r = EquipInstance::RateAt(0);
   EXPECT_EQ(r.success, 9975);  // 95% x1.05
   EXPECT_EQ(r.destroy, 0);
   r = EquipInstance::RateAt(15);
   EXPECT_EQ(r.success, 3150);  // 30% x1.05
-  EXPECT_EQ(r.destroy, 206);   // 2.1% x 68.5/70
+  EXPECT_EQ(r.destroy, 144);   // 2.1% x 68.5/70 x0.7
+  r = EquipInstance::RateAt(20);
+  EXPECT_EQ(r.destroy, 720);  // 10.5% x 68.5/70 x0.7
+  r = EquipInstance::RateAt(21);
+  EXPECT_EQ(r.destroy, 1264);  // 12.75% x 84.25/85, no event
   r = EquipInstance::RateAt(-1);
   EXPECT_EQ(r.success, 0);
   EXPECT_EQ(r.destroy, 0);
