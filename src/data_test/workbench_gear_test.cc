@@ -51,12 +51,13 @@ std::vector<JobAdvancement> EveryAdvancement() {
   return all;
 }
 
-// The level where the three token tiers can first be owned. That is where the
+// The level where the four token tiers can first be owned. That is where the
 // bosses that pay for them open, not where the gear can be worn; see
 // OwnedFromLevel in game_state.h.
 constexpr int kRootAbyssOpens = 200;
 constexpr int kAbsoLabOpens = 210;
 constexpr int kArcaneUmbraOpens = 230;
+constexpr int kEternalOpens = 265;
 
 // Every piece of the set has "Frozen" in its name, as the player sees. The
 // armour has no set_family; only the two pieces the token shelf sells do, where
@@ -200,8 +201,9 @@ void ExpectFrozenSet(const CharacterInstance& character,
 }
 
 // Each token tier waits for its fight: Chaos Root Abyss at 200, Damien and
-// Lotus at 210, Lucid and Will at 230. So a 5th job at the cap wears Arcane
-// Umbra, a 4th at 200 Root Abyss, and a 3rd none of them.
+// Lotus at 210, Lucid and Will at 230, Kalos at 265. So a 6th job past 265
+// wears Eternal, a 5th job at the cap Arcane Umbra, a 4th at 200 Root Abyss,
+// and a 3rd none of them. Eternal has no weapon, so Arcane Umbra's stays.
 void ExpectTokenTier(const CharacterInstance& character,
                      JobAdvancement advancement) {
   if (StageForAdvancement(advancement) < 3) {
@@ -216,7 +218,9 @@ void ExpectTokenTier(const CharacterInstance& character,
         << EquipSlot_Name(slot) << " is empty";
     int tier = worn->second->prototype().required_level();
     SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second->name()));
-    if (level >= kArcaneUmbraOpens) {
+    if (level >= kEternalOpens && slot != EQUIP_SLOT_PRIMARY_WEAPON) {
+      EXPECT_EQ(tier, 250);
+    } else if (level >= kArcaneUmbraOpens) {
       EXPECT_EQ(tier, 200);
     } else if (level >= kAbsoLabOpens) {
       EXPECT_EQ(tier, 160);

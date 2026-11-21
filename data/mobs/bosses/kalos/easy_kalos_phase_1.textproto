@@ -1,0 +1,8 @@
+# GMS's figure, from the wiki.
+name: "Kalos the Guardian"
+level: 270
+attack: 22000
+max_hp: 63100000000000
+exp: 0
+pdr: 330
+boss: true

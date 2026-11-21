@@ -499,6 +499,10 @@ constexpr int kVerusHillaLevel = 250;
 // 200.
 constexpr int kSerenLevel = 260;
 
+// The level Kalos opens at, whose Residual Determination buys four Eternal
+// pieces, worn from 250.
+constexpr int kKalosLevel = 265;
+
 // The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
 // AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
 // workbench never wears the Mark.
@@ -811,6 +815,9 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
       MakeRoomFor(state, pendant->second);
       WearAll(state, {"source_of_suffering"}, equips);
     }
+  }
+  if (level >= kKalosLevel) {
+    WearAll(state, EternalArmour(job), equips);
   }
   if (level >= kSerenLevel) {
     std::map<std::string, EquipPrototype>::const_iterator emblem =
@@ -1642,6 +1649,9 @@ int TokenLevel(const std::string& token) {
   if (token == "phantasma_coin" || token == "arachno_coin") {
     return kLucidAndWillLevel;
   }
+  if (token == "kalos_residual_determination") {
+    return kKalosLevel;
+  }
   // The four Chaos Root Abyss Pieces, the only tokens named this way, and
   // Princess No's fragment, from a fight opening at the same level. The Frozen
   // and Cygnus tokens come from fights open well below the gear they buy, so
@@ -1662,6 +1672,10 @@ int OwnedFromLevel(const EquipPrototype& proto) {
       level = std::min(level, TokenLevel(price.token_item()));
     }
     return std::max(level, proto.required_level());
+  }
+  // The Eternal shoes, gloves and cape come from bosses not built yet.
+  if (proto.name().rfind("Eternal ", 0) == 0) {
+    return kNeverOwned;
   }
   // Gear a fight drops directly instead of through a token, from a fight that
   // opens above the level it's worn at.

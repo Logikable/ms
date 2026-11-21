@@ -282,7 +282,7 @@ ftxui::Color HpBarFill(HpBarColor color) {
 }
 
 ftxui::Color MarkColor(CurrencyColor color) {
-  static_assert(CurrencyColor_ARRAYSIZE == 7,
+  static_assert(CurrencyColor_ARRAYSIZE == 8,
                 "a new currency colour needs a colour to draw its mark in");
   switch (color) {
     case CURRENCY_COLOR_THEME:
@@ -297,6 +297,8 @@ ftxui::Color MarkColor(CurrencyColor color) {
       return kGreen;
     case CURRENCY_COLOR_PINK:
       return kPink;
+    case CURRENCY_COLOR_CRIMSON:
+      return kCrimson;
     default:
       return kTheme;
   }

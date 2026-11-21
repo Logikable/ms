@@ -17,6 +17,9 @@ enum CurrencyColor {
   CURRENCY_COLOR_GOLD = 4;
   CURRENCY_COLOR_GREEN = 5;
   CURRENCY_COLOR_PINK = 6;
+  // Kalos's Residual Determination, after his red eye. Bluer than the red a
+  // refused price is drawn in, so the mark never reads as one.
+  CURRENCY_COLOR_CRIMSON = 7;
 }
 
 // What a stackable item is for, when nothing else about it says so. Setting one

@@ -235,8 +235,9 @@ std::vector<const Scroll*> RatesOf(const GameState& state, const Scroll& chosen,
 }
 
 // Whether `proto` is the last tier its slot reaches: nothing the character
-// could wear there is owned from a later level. A grind costs a slot many
-// scrolls, which a piece replaced at the next tier throws away.
+// could wear there is owned from a later level they can still reach. A grind
+// costs a slot many scrolls, which a piece replaced at the next tier throws
+// away.
 bool LastTier(const GameState& state, const EquipPrototype& proto) {
   const EquipSlot slot = BaseSlot(proto.equip_slot());
   const int owned = OwnedFromLevel(proto);
@@ -246,7 +247,8 @@ bool LastTier(const GameState& state, const EquipPrototype& proto) {
     if (BaseSlot(other.equip_slot()) == slot &&
         (slot != EQUIP_SLOT_PRIMARY_WEAPON ||
          other.equip_type() == proto.equip_type()) &&
-        state.character.MeetsJob(other) && OwnedFromLevel(other) > owned) {
+        state.character.MeetsJob(other) && OwnedFromLevel(other) > owned &&
+        OwnedFromLevel(other) <= state.character.level_cap()) {
       return false;
     }
   }

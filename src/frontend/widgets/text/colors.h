@@ -63,6 +63,9 @@ inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
 // The mark for a Root Abyss bottom's price. Warm where kPurple is cool, so the
 // two are never confused on the token shelf.
 inline const ftxui::Color kPink = ftxui::Color::RGB(235, 130, 175);
+// The mark for an Eternal piece's price. Pinker and brighter than kRed, which
+// marks a price the player can't pay.
+inline const ftxui::Color kCrimson = ftxui::Color::RGB(225, 45, 95);
 // A weapon's soul mark, after the violet glow of GMS's Magnificent soul icon.
 inline const ftxui::Color kSoul = ftxui::Color::RGB(215, 100, 255);
 inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);

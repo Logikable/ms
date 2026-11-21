@@ -1,0 +1,177 @@
+name: "Kalos the Guardian"
+page: 3
+difficulties {
+  name: "Easy"
+  phases {
+    # Karote Summit (client map 410006020): the floor, a long platform over
+    # columns 1-7 and a short one over 3-5.
+    bgm: "OccupiedFortress"
+    spawns {
+      mob: "easy_kalos_phase_1"
+      spots { x: 4 y: 0 }
+      # GMS's Kalos blinks to whoever he hunts; 4s is the user's beat.
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 3 y: 3 }
+    player_spots { x: 5 y: 3 }
+    player_spots { x: 7 y: 3 }
+    player_spots { x: 4 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Battleworn Summit (client map 410006060): the floor, three platforms
+    # and two above them, made symmetric where GMS's sit up to 80px right.
+    bgm: "FuryOfTheWatcher"
+    spawns {
+      mob: "easy_kalos_phase_2"
+      spots { x: 4 y: 2 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 7 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 900
+  unlock_level: 265
+  sacred_power: 200
+  # Five Intense Power Crystals at GMS's price (187,500,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 133950000
+  sol_erda_energy: 200
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "kalos_the_guardians_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
+  # twice that at Normal, as two rolls.
+  drops {
+    item: "kalos_residual_determination"
+    per_kill: 0.1
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.01
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}
+difficulties {
+  name: "Normal"
+  phases {
+    # Karote Summit (client map 410006020): the floor, a long platform over
+    # columns 1-7 and a short one over 3-5.
+    bgm: "OccupiedFortress"
+    spawns {
+      mob: "kalos_phase_1"
+      spots { x: 4 y: 0 }
+      # GMS's Kalos blinks to whoever he hunts; 4s is the user's beat.
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 3 y: 3 }
+    player_spots { x: 5 y: 3 }
+    player_spots { x: 7 y: 3 }
+    player_spots { x: 4 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Battleworn Summit (client map 410006060): the floor, three platforms
+    # and two above them, made symmetric where GMS's sit up to 80px right.
+    bgm: "FuryOfTheWatcher"
+    sacred_power: 300
+    spawns {
+      mob: "kalos_phase_2"
+      spots { x: 4 y: 2 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 7 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 900
+  unlock_level: 265
+  # GMS asks 250 of phase 1 and 300 of phase 2.
+  sacred_power: 250
+  # Five Intense Power Crystals at GMS's price (260,000,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 185700000
+  sol_erda_energy: 250
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "kalos_the_guardians_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
+  # twice that at Normal, as two rolls.
+  drops {
+    item: "kalos_residual_determination"
+    per_kill: 0.1
+    rolls: 2
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.02
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}

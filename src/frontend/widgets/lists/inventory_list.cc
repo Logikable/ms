@@ -49,11 +49,11 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
 }
 
 // The Token tab's four columns. The name widths are the longest names in the
-// game ("Frozen Secondary Token" and "Guardian Angel Slime") plus two, so a
-// name never runs into its count; screen_fit_test fails on a longer one. The
-// mark cell holds one glyph and a space.
+// game ("Kalos's Residual Determination" and "Guardian Angel Slime") plus two,
+// so a name never runs into its count; screen_fit_test fails on a longer one.
+// The mark cell holds one glyph and a space.
 constexpr int kCurrencyMarkWidth = 2;
-constexpr int kTokenNameWidth = 24;
+constexpr int kTokenNameWidth = 32;
 constexpr int kShardNameWidth = 22;
 // "Tier" and its gap; the widest tier is SS.
 constexpr int kShardTierWidth = 6;

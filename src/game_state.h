@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <limits>
 #include <map>
 #include <optional>
 #include <random>
@@ -260,7 +261,9 @@ void GrantLevelRewards(GameState& state, int from_level, int to_level);
 // AbsoLab is worn at 160 and paid for by bosses opening at 210; Arcane Umbra is
 // worn at 200 and paid for at 230. Gear a boss drops directly waits for that
 // boss the same way, and the totems wait for the income that buys them, at 200.
-// Everything else can be owned as soon as it can be worn.
+// Everything else can be owned as soon as it can be worn. Gear with no source
+// yet is kNeverOwned.
+constexpr int kNeverOwned = std::numeric_limits<int>::max();
 int OwnedFromLevel(const EquipPrototype& proto);
 
 }  // namespace ms

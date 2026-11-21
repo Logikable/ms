@@ -335,6 +335,14 @@ std::string FormatEquipSet(EquipSetName set) {
       return "Pitched Boss Set";
     case EQUIP_SET_NAME_ANTIQUE_TOTEM:
       return "Antique Totem Set";
+    case EQUIP_SET_NAME_ETERNAL_WARRIOR:
+      return "Eternal Set (Warrior)";
+    case EQUIP_SET_NAME_ETERNAL_BOWMAN:
+      return "Eternal Set (Bowman)";
+    case EQUIP_SET_NAME_ETERNAL_MAGICIAN:
+      return "Eternal Set (Magician)";
+    case EQUIP_SET_NAME_ETERNAL_THIEF:
+      return "Eternal Set (Thief)";
     default:
       return "";
   }

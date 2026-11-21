@@ -1,0 +1,7 @@
+name: "Kalos's Residual Determination"
+kind: ITEM_KIND_TOKEN
+description:
+  "A manifestation of Kalos the Guardian's residual determination. The shop "
+  "trades eight for an Eternal hat, top, bottom or shoulder."
+currency_mark: "⬟"
+currency_color: CURRENCY_COLOR_CRIMSON

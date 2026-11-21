@@ -443,9 +443,11 @@ TEST(EquipDataTest, EveryWeaponHasABowOfItsLevel) {
 TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
   // The level each token's shoulder is worn at. This also confirms which tiers
   // exist, so a new one can't appear unnoticed.
-  const std::map<std::string, int> kTiers = {{"cygnus_shoulder_token", 140},
-                                             {"absolab_coin", 160},
-                                             {"arachno_coin", 200}};
+  const std::map<std::string, int> kTiers = {
+      {"cygnus_shoulder_token", 140},
+      {"absolab_coin", 160},
+      {"arachno_coin", 200},
+      {"kalos_residual_determination", 250}};
   // Token -> branch -> the one shoulder for that branch it buys.
   std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;
   for (const std::pair<const std::string, EquipPrototype>& entry :

@@ -23,10 +23,10 @@ difficulties {
   }
   phases {
     bgm: "SolarDeity-NoonOfJustice"
+    sacred_power: 200
     # GMS's clock: 120s Noon, 130s Dusk, 40s Midnight and 130s Dawn, from Noon
     # (namu.wiki). GMS shrinks Midnight as players are cursed; nothing here
     # curses.
-    sacred_power: 200
     forms { name: "Noon" seconds: 120 hp_bar: HP_BAR_COLOR_GOLD bgm: "SolarDeity-NoonOfJustice" }
     forms { name: "Dusk" seconds: 130 hp_bar: HP_BAR_COLOR_ORANGE bgm: "SolarDeity-TwilightOfFlame" }
     forms { name: "Midnight" seconds: 40 hp_bar: HP_BAR_COLOR_BLUE bgm: "SolarDeity-MidnightOfSilence" }
@@ -111,10 +111,10 @@ difficulties {
   }
   phases {
     bgm: "SolarDeity-NoonOfJustice"
+    sacred_power: 200
     # GMS's clock: 120s Noon, 130s Dusk, 40s Midnight and 130s Dawn, from Noon
     # (namu.wiki). GMS shrinks Midnight as players are cursed; nothing here
     # curses.
-    sacred_power: 200
     forms { name: "Noon" seconds: 120 hp_bar: HP_BAR_COLOR_GOLD bgm: "SolarDeity-NoonOfJustice" }
     forms { name: "Dusk" seconds: 130 hp_bar: HP_BAR_COLOR_ORANGE bgm: "SolarDeity-TwilightOfFlame" }
     forms { name: "Midnight" seconds: 40 hp_bar: HP_BAR_COLOR_BLUE bgm: "SolarDeity-MidnightOfSilence" }

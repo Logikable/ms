@@ -64,8 +64,7 @@ class BossDataTest : public testing::Test {
 // The bosses the Sacred Symbols name that aren't in the game yet. Building one
 // takes it off this list, and its file must use the stem named here.
 const std::set<std::string> kUnbuiltSymbolBosses = {
-    "kalos", "first_adversary", "kaling",  "malefic_star",
-    "limbo", "baldrix",         "jupiter",
+    "first_adversary", "kaling", "malefic_star", "limbo", "baldrix", "jupiter",
 };
 
 // The lowest level any of `boss`'s built difficulties opens at. It marks a
@@ -199,8 +198,8 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
-  // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla and
-  // Seren, which are the same case and are fought for their drops.
+  // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla,
+  // Seren and Kalos, which are the same case and are fought for their drops.
   EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen",
                                               "darknell",
                                               "darknell",
@@ -208,6 +207,8 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                                               "gloom",
                                               "guardian_angel_slime",
                                               "guardian_angel_slime",
+                                              "kalos",
+                                              "kalos",
                                               "lotus",
                                               "lotus",
                                               "lucid",
@@ -368,11 +369,11 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 36) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+  EXPECT_EQ(fights, 38) << "Arkarium, Cygnus, Princess No, Papulatus, the "
                            "four of Root Abyss, and both difficulties of "
                            "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
                            "Damien, the Guardian Angel Slime, Lucid, Will, "
-                           "Gloom, Darknell, Verus Hilla and Seren";
+                           "Gloom, Darknell, Verus Hilla, Seren and Kalos";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -527,6 +528,7 @@ const std::map<std::string, TierDrop>& TierDrops() {
                             "estella_earrings", "daybreak_pendant"}) {
       (*drops)[key] = {2, DropKind::kAccessory};
     }
+    (*drops)["kalos_residual_determination"] = {4, DropKind::kCurrency};
     for (const char* key : {"phantasma_coin", "arachno_coin"}) {
       (*drops)[key] = {3, DropKind::kCurrency};
     }

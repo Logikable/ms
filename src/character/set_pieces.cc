@@ -184,6 +184,25 @@ std::vector<std::string> ArcaneUmbraArmour(Job job) {
   return names;
 }
 
+std::vector<std::string> EternalArmour(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return {"eternal_knight_helm", "eternal_knight_armor",
+              "eternal_knight_pants", "eternal_knight_shoulder"};
+    case JobBranch::kArcher:
+      return {"eternal_archer_hat", "eternal_archer_hood",
+              "eternal_archer_pants", "eternal_archer_shoulder"};
+    case JobBranch::kMagician:
+      return {"eternal_mage_hat", "eternal_mage_robe", "eternal_mage_pants",
+              "eternal_mage_shoulder"};
+    case JobBranch::kRogue:
+      return {"eternal_thief_bandana", "eternal_thief_shirt",
+              "eternal_thief_pants", "eternal_thief_shoulder"};
+    default:
+      return {};
+  }
+}
+
 std::string CygnusShoulder(Job job) {
   switch (BranchOf(job)) {
     case JobBranch::kWarrior:

@@ -294,6 +294,8 @@ constexpr Clear kClears[] = {
     {"lucid", "Hard", 265},
     {"seren", "Normal", 265},
     {"seren", "Hard", 275},
+    {"kalos", "Easy", 270},
+    {"kalos", "Normal", 280},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

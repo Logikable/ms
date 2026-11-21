@@ -39,6 +39,10 @@ std::vector<std::string> ArcaneUmbraArmour(Job job);
 // The Arcane Umbra weapon, on the same line choice as AbsoLab's.
 std::string ArcaneUmbraWeapon(Job job);
 
+// The four Eternal pieces Kalos's Residual Determination buys: hat, top,
+// bottom and shoulder. The shoes, gloves and cape have no source yet.
+std::vector<std::string> EternalArmour(Job job);
+
 // The branch's Cygnus shoulder, sold on the shop's Equips shelf.
 std::string CygnusShoulder(Job job);
 
