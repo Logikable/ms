@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/boss_reset.h"
 #include "src/character/honor.h"
@@ -115,20 +116,52 @@ int BossLevel(const GameState& state, const BossDifficulty& difficulty) {
 
 namespace {
 
-// The highest defence of anything in the fight. It is one number showing what
-// Ignore DEF is worth here, which is why the player reads the row.
-int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
+// The highest defence of anything in one phase. It is one number showing what
+// Ignore DEF is worth there, which is why the player reads the row.
+int PhasePdr(const GameState& state, const BossPhase& phase) {
   int pdr = 0;
-  for (const BossPhase& phase : difficulty.phases()) {
-    for (const Spawn& spawn : phase.spawns()) {
-      std::map<std::string, Mob>::const_iterator it =
-          state.mobs.find(spawn.mob());
-      if (it != state.mobs.end()) {
-        pdr = std::max(pdr, it->second.pdr());
-      }
+  for (const Spawn& spawn : phase.spawns()) {
+    std::map<std::string, Mob>::const_iterator it =
+        state.mobs.find(spawn.mob());
+    if (it != state.mobs.end()) {
+      pdr = std::max(pdr, it->second.pdr());
     }
   }
   return pdr;
+}
+
+struct PhaseValue {
+  std::string text;
+  bool red = false;
+};
+
+// One value per phase on one row, "150 / 200", each red on its own. Phases
+// that all agree show the one number.
+ftxui::Element PhaseValuesRow(const std::string& label,
+                              std::vector<PhaseValue> values) {
+  if (absl::c_all_of(values, [&](const PhaseValue& v) {
+        return v.text == values.front().text;
+      })) {
+    bool red =
+        absl::c_any_of(values, [](const PhaseValue& v) { return v.red; });
+    values = {{values.front().text, red}};
+  }
+  std::string joined;
+  for (const PhaseValue& value : values) {
+    joined += (joined.empty() ? "" : " / ") + value.text;
+  }
+  const int pad = std::max(0, kValueWidth - static_cast<int>(joined.size()));
+  std::vector<ftxui::Element> parts = {
+      ftxui::text(" " + PadRight(label, kLabelWidth) + std::string(pad, ' '))};
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    if (i > 0) {
+      parts.push_back(ftxui::text(" / "));
+    }
+    ftxui::Element value = ftxui::text(values[i].text);
+    parts.push_back(values[i].red ? value | ftxui::color(kRed) : value);
+  }
+  parts.push_back(ftxui::text(" "));
+  return ftxui::hbox(std::move(parts));
 }
 
 }  // namespace
@@ -416,15 +449,29 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
   // Red like the unlock level, though falling short only costs damage.
-  MapForce force = BossForceFor(difficulty, state_.character, state_.skills);
-  if (force.required > 0) {
-    rows.push_back(
-        RedUnless(DetailRow(force.name, std::to_string(force.required)),
-                  force.owned >= force.required));
+  std::vector<PhaseValue> forces;
+  std::string force_name;
+  for (int i = 0; i < std::max(1, difficulty.phases_size()); ++i) {
+    MapForce force =
+        BossForceFor(difficulty, i, state_.character, state_.skills);
+    if (force.required > 0) {
+      force_name = force.name;
+      forces.push_back(
+          {std::to_string(force.required), force.owned < force.required});
+    }
+  }
+  if (!forces.empty()) {
+    rows.push_back(PhaseValuesRow(force_name, std::move(forces)));
   }
   RenderPhaseHp(rows, difficulty);
-  rows.push_back(
-      DetailRow("PDR", std::to_string(BossPdr(state_, difficulty)) + "%"));
+  std::vector<PhaseValue> pdrs;
+  for (const BossPhase& phase : difficulty.phases()) {
+    pdrs.push_back({std::to_string(PhasePdr(state_, phase)) + "%"});
+  }
+  if (pdrs.empty()) {
+    pdrs.push_back({"0%"});
+  }
+  rows.push_back(PhaseValuesRow("PDR", std::move(pdrs)));
   std::string clock = Clock(difficulty.time_limit_seconds());
   // A phase with a clock of its own, which the fight is lost on.
   for (int i = 0; i < difficulty.phases_size(); ++i) {

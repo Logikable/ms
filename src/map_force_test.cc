@@ -56,12 +56,12 @@ TEST(MapForceTest, ABossWeighsArcaneForceAsAMapDoes) {
 
   BossDifficulty lucid;
   lucid.set_arcane_force(360);
-  MapForce force = BossForceFor(lucid, character, {});
+  MapForce force = BossForceFor(lucid, 0, character, {});
   EXPECT_EQ(force.name, "Arcane Force");
   EXPECT_EQ(force.required, 360);
   EXPECT_DOUBLE_EQ(force.factors.damage_dealt, 0.10);
 
-  MapForce none = BossForceFor(BossDifficulty(), character, {});
+  MapForce none = BossForceFor(BossDifficulty(), 0, character, {});
   EXPECT_EQ(none.required, 0);
   EXPECT_DOUBLE_EQ(none.factors.damage_dealt, 1.0);
 }
@@ -74,7 +74,7 @@ TEST(MapForceTest, ABossWeighsSacredPowerAsAMapDoes) {
 
   BossDifficulty seren;
   seren.set_sacred_power(200);
-  MapForce force = BossForceFor(seren, character, {});
+  MapForce force = BossForceFor(seren, 0, character, {});
   MapData grandis;
   grandis.set_sacred_power(200);
   MapForce map = MapForceFor(grandis, character, {});
@@ -82,6 +82,24 @@ TEST(MapForceTest, ABossWeighsSacredPowerAsAMapDoes) {
   EXPECT_EQ(force.required, 200);
   EXPECT_DOUBLE_EQ(force.factors.damage_dealt, map.factors.damage_dealt);
   EXPECT_LT(force.factors.damage_dealt, 1.0);
+}
+
+// A phase naming its own Sacred Power asks that of the player; one naming none
+// asks the difficulty's.
+TEST(MapForceTest, APhaseCanAskForItsOwnSacredPower) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(260);
+  CharacterInstance character(rng, std::move(proto));
+
+  BossDifficulty seren;
+  seren.set_sacred_power(150);
+  seren.add_phases();
+  seren.add_phases()->set_sacred_power(200);
+  EXPECT_EQ(PhaseSacredPower(seren, 0), 150);
+  EXPECT_EQ(PhaseSacredPower(seren, 1), 200);
+  EXPECT_EQ(BossForceFor(seren, 0, character, {}).required, 150);
+  EXPECT_EQ(BossForceFor(seren, 1, character, {}).required, 200);
 }
 
 // A boss is fought under the Bossing presets, so their Hyper Stat Arcane Force
@@ -97,7 +115,7 @@ TEST(MapForceTest, ABossReadsTheBossingPresetsForce) {
 
   BossDifficulty lucid;
   lucid.set_arcane_force(360);
-  EXPECT_EQ(BossForceFor(lucid, character, {}).owned, 50);
+  EXPECT_EQ(BossForceFor(lucid, 0, character, {}).owned, 50);
   MapData river;
   river.set_arcane_force(30);
   EXPECT_EQ(MapForceFor(river, character, {}).owned, 0);

@@ -47,6 +47,9 @@ message BossPhase {
   // looping until the phase ends. Each recolours the HP bar and changes the
   // music; nothing about the fight changes.
   repeated PhaseForm forms = 9;
+  // This phase's Sacred Power, in place of the difficulty's. GMS's Seren and
+  // Normal Kalos ask more of their second phase. 0 keeps the difficulty's.
+  int32 sacred_power = 10;
 }
 
 // One of a phase's forms: GMS's Seren cycles Noon, Dusk, Midnight and Dawn.

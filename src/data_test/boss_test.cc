@@ -163,6 +163,12 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
       EXPECT_FALSE(difficulty.arcane_force() > 0 &&
                    difficulty.sacred_power() > 0)
           << entry.first << " " << difficulty.name() << " asks for both forces";
+      // A phase's own Sacred Power only raises or lowers the difficulty's.
+      for (const BossPhase& phase : difficulty.phases()) {
+        EXPECT_TRUE(phase.sacred_power() == 0 || difficulty.sacred_power() > 0)
+            << entry.first << " " << difficulty.name()
+            << " has a phase asking Sacred Power of a fight that asks none";
+      }
     }
   }
 }

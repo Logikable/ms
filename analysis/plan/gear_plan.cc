@@ -526,8 +526,18 @@ std::optional<GearShopper::Candidate> GearShopper::ForceRunOffer(
   if (boss == state.bosses.end()) {
     return std::nullopt;
   }
-  const MapForce force = BossForceFor(boss->second.difficulties(fight.second),
-                                      state.character, state.skills);
+  // Symbols are bought for the phase asking the most, the one a short
+  // character is held back by longest.
+  const BossDifficulty& difficulty = boss->second.difficulties(fight.second);
+  int hardest = 0;
+  for (int i = 1; i < difficulty.phases_size(); ++i) {
+    if (PhaseSacredPower(difficulty, i) >
+        PhaseSacredPower(difficulty, hardest)) {
+      hardest = i;
+    }
+  }
+  const MapForce force =
+      BossForceFor(difficulty, hardest, state.character, state.skills);
   if (force.required <= 0) {
     return std::nullopt;
   }

@@ -2343,12 +2343,12 @@ namespace {
 DerivedStats BossDerived(const GameState& state,
                          const CharacterInstance& character,
                          const std::string& boss_key,
-                         const BossDifficulty& difficulty) {
+                         const BossDifficulty& difficulty, int phase) {
   DerivedStats derived = DerivedStatsFor(character, state.skills, {},
                                          state.party, Activity::kBossing);
   derived.damage_pct += SymbolBossDamagePct(character, boss_key, derived.gear);
   ForceFactors force =
-      BossForceFor(difficulty, character, state.skills).factors;
+      BossForceFor(difficulty, phase, character, state.skills).factors;
   derived.force_damage_factor = force.damage_dealt;
   derived.force_taken_factor = force.damage_taken;
   return derived;
@@ -2360,7 +2360,7 @@ DerivedStats BossDerived(const GameState& state,
 // passives" read broadly: it brings Flashpoint's hit against Hurricane's from
 // 1.97x KMS's battle analysis to 1.22x (the user's call).
 void PriceAscentsBare(const GameState& state, const std::string& boss_key,
-                      const BossDifficulty& difficulty,
+                      const BossDifficulty& difficulty, int phase,
                       const EquipPrototype& weapon, CombatParams& params) {
   if (absl::c_none_of(params.attacks,
                       [](const AttackOption& a) { return a.held; })) {
@@ -2372,7 +2372,7 @@ void PriceAscentsBare(const GameState& state, const std::string& boss_key,
   CharacterInstance bare = state.character.Without(
       kUnreached,
       state.character.SlotFor(PresetKind::kEquip, Activity::kBossing));
-  DerivedStats derived = BossDerived(state, bare, boss_key, difficulty);
+  DerivedStats derived = BossDerived(state, bare, boss_key, difficulty, phase);
   derived.final_dmg_pct = 0.0;
   AttackSet set = BuildAttackSet(state, *params.buffed_source.book, derived,
                                  weapon, 1.0, params.types, &bare);
@@ -2407,7 +2407,7 @@ CombatParams ComputeBossParams(const GameState& state,
 
   // Boss fights use the bossing stat allocation.
   DerivedStats derived =
-      BossDerived(state, state.character, boss_key, difficulty);
+      BossDerived(state, state.character, boss_key, difficulty, phase);
   // Boss fights run in real time at every level. Game speed stretches idle maps
   // so the player can leave them running; a watched fight needs neither that
   // nor respawns. Both intervals stay 0.
@@ -2418,7 +2418,7 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
-  PriceAscentsBare(state, boss_key, difficulty, *weapon, params);
+  PriceAscentsBare(state, boss_key, difficulty, phase, *weapon, params);
   params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);
   // Attack the healthiest boss part first; see CombatParams::focus_healthiest.

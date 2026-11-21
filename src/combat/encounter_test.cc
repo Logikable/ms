@@ -6294,6 +6294,30 @@ TEST(ComputeBossParamsTest, ArcaneForceScalesTheDamageDealt) {
   EXPECT_NEAR(starved, full * 0.30, 1e-9 * full);
 }
 
+// A phase asking its own Sacred Power is fought under it, and the phase that
+// names none under the difficulty's: 10 short deals 90%, 30 short 70%.
+TEST(ComputeBossParamsTest, EachPhaseIsFoughtUnderItsOwnSacredPower) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)}},
+                  {});
+  EquipSword(state);
+  BossDifficulty free = NormalTwoPhase();
+  BossDifficulty asking = NormalTwoPhase();
+  asking.set_sacred_power(10);
+  asking.mutable_phases(1)->set_sacred_power(30);
+  for (int phase : {0, 1}) {
+    double full = ComputeBossParams(state, "zakum", free, phase)
+                      .attacks[0]
+                      .damage_per_hit[0];
+    double cut = ComputeBossParams(state, "zakum", asking, phase)
+                     .attacks[0]
+                     .damage_per_hit[0];
+    EXPECT_NEAR(cut, full * (phase == 0 ? 0.90 : 0.70), 1e-9 * full)
+        << "phase " << phase + 1;
+  }
+}
+
 // The activity decides which Hyper Stat allocation applies: a boss fight uses
 // the bossing one, a map the farming one.
 TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {

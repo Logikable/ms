@@ -33,9 +33,13 @@ struct MapForce {
 MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills);
 
-// What one difficulty of a boss requires of `character`; Arcane Force is owned
-// under the Bossing presets.
-MapForce BossForceFor(const BossDifficulty& difficulty,
+// The Sacred Power one phase of a fight asks for: the phase's own if it sets
+// one, else the difficulty's.
+int PhaseSacredPower(const BossDifficulty& difficulty, int phase);
+
+// What one phase of a boss difficulty requires of `character`; Arcane Force is
+// owned under the Bossing presets.
+MapForce BossForceFor(const BossDifficulty& difficulty, int phase,
                       const CharacterInstance& character,
                       const std::map<std::string, Skill>& skills);
 

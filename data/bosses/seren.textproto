@@ -26,6 +26,7 @@ difficulties {
     # GMS's clock: 120s Noon, 130s Dusk, 40s Midnight and 130s Dawn, from Noon
     # (namu.wiki). GMS shrinks Midnight as players are cursed; nothing here
     # curses.
+    sacred_power: 200
     forms { name: "Noon" seconds: 120 hp_bar: HP_BAR_COLOR_GOLD bgm: "SolarDeity-NoonOfJustice" }
     forms { name: "Dusk" seconds: 130 hp_bar: HP_BAR_COLOR_ORANGE bgm: "SolarDeity-TwilightOfFlame" }
     forms { name: "Midnight" seconds: 40 hp_bar: HP_BAR_COLOR_BLUE bgm: "SolarDeity-MidnightOfSilence" }
@@ -50,7 +51,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 260
-  sacred_power: 200
+  # GMS asks 150 of phase 1 and 200 of phase 2, at every difficulty.
+  sacred_power: 150
   # Five Intense Power Crystals at GMS's price (177,804,375), divided by seven
   # and rounded to the nearest 50k.
   meso: 127000000
@@ -112,6 +114,7 @@ difficulties {
     # GMS's clock: 120s Noon, 130s Dusk, 40s Midnight and 130s Dawn, from Noon
     # (namu.wiki). GMS shrinks Midnight as players are cursed; nothing here
     # curses.
+    sacred_power: 200
     forms { name: "Noon" seconds: 120 hp_bar: HP_BAR_COLOR_GOLD bgm: "SolarDeity-NoonOfJustice" }
     forms { name: "Dusk" seconds: 130 hp_bar: HP_BAR_COLOR_ORANGE bgm: "SolarDeity-TwilightOfFlame" }
     forms { name: "Midnight" seconds: 40 hp_bar: HP_BAR_COLOR_BLUE bgm: "SolarDeity-MidnightOfSilence" }
@@ -136,7 +139,8 @@ difficulties {
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 260
-  sacred_power: 200
+  # GMS asks 150 of phase 1 and 200 of phase 2, at every difficulty.
+  sacred_power: 150
   # Five Intense Power Crystals at GMS's price (219,312,000), divided by seven
   # and rounded to the nearest 50k.
   meso: 156650000

@@ -47,15 +47,24 @@ MapForce MapForceFor(const MapData& map, const CharacterInstance& character,
   return force;
 }
 
-MapForce BossForceFor(const BossDifficulty& difficulty,
+int PhaseSacredPower(const BossDifficulty& difficulty, int phase) {
+  if (phase >= 0 && phase < difficulty.phases_size() &&
+      difficulty.phases(phase).sacred_power() > 0) {
+    return difficulty.phases(phase).sacred_power();
+  }
+  return difficulty.sacred_power();
+}
+
+MapForce BossForceFor(const BossDifficulty& difficulty, int phase,
                       const CharacterInstance& character,
                       const std::map<std::string, Skill>& skills) {
   if (difficulty.arcane_force() > 0) {
     return ArcaneForceFor(difficulty.arcane_force(), character, skills,
                           Activity::kBossing);
   }
-  if (difficulty.sacred_power() > 0) {
-    return SacredPowerFor(difficulty.sacred_power(), character);
+  const int sacred = PhaseSacredPower(difficulty, phase);
+  if (sacred > 0) {
+    return SacredPowerFor(sacred, character);
   }
   return {};
 }

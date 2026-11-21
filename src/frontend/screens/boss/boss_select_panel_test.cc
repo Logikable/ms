@@ -615,7 +615,31 @@ TEST(BossSelectPanelTest, ArcaneForceIsRedWhileShortButNeverLocks) {
   EXPECT_NE(out.find("Arcane Force"), std::string::npos);
   EXPECT_NE(out.find("360"), std::string::npos);
   EXPECT_NE(out.find("Available"), std::string::npos);
-  EXPECT_EQ(RowColor(panel, "Arcane Force"), kRed);
+  EXPECT_EQ(RowColor(panel, "360"), kRed);
+}
+
+// A fight whose phases ask for different Sacred Power or sit behind different
+// defences shows each phase's number on the one row, and only a phase the
+// player falls short of goes red.
+TEST(BossSelectPanelTest, EachPhaseShowsItsOwnSacredPowerAndPdr) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossDifficulty* zakum = state.bosses["zakum"].mutable_difficulties(0);
+  ASSERT_EQ(zakum->phases_size(), 2);
+  zakum->set_sacred_power(150);
+  zakum->mutable_phases(1)->set_sacred_power(200);
+  state.mobs[zakum->phases(1).spawns(0).mob()].set_pdr(80);
+  BossSelectPanel panel(state);
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("150 / 200"), std::string::npos) << out;
+  EXPECT_NE(out.find("% / 80%"), std::string::npos) << out;
+  EXPECT_EQ(RowColor(panel, "150"), kRed);
+  EXPECT_EQ(RowColor(panel, "200"), kRed);
+
+  zakum->mutable_phases(1)->set_sacred_power(150);
+  BossSelectPanel same(state);
+  EXPECT_EQ(Render(same).find("150 / 150"), std::string::npos)
+      << "phases asking the same show it once";
 }
 
 // With neither fight gated, the list is ordered by the easiest difficulty's HP,
