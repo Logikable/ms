@@ -126,3 +126,22 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "placement",
+    srcs = ["placement.cc"],
+    hdrs = ["placement.h"],
+    deps = ["//src/protos:boss_proto_cc"],
+)
+
+cc_test(
+    name = "placement_test",
+    size = "small",
+    srcs = ["placement_test.cc"],
+    deps = [
+        ":placement",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -55,6 +55,20 @@ message BossPhase {
   // Too many players in one zone, and every one of them deals less to its
   // monsters. GMS's Kaling punishes three or more on one Peril.
   ZoneCrowding crowding = 12;
+  // How players are put in zones as the phase starts and each time a zone's
+  // monsters all die. Zones are filled in their listed order.
+  ZonePlacement placement = 13;
+}
+
+// See PlacePlayers in src/combat/boss/placement.h.
+enum ZonePlacement {
+  ZONE_PLACEMENT_UNSPECIFIED = 0;  // nobody is moved
+  // Evenly, at most two to a zone, the first zone filled first: Kaling's
+  // rooms, where Taowu's shields make him the one to kill first.
+  ZONE_PLACEMENT_SPREAD = 1;
+  // Two to a zone, a pair moving on together: Kaling's last phase, where she
+  // holds at each quarter until a Peril dies, so killing one at a time pays.
+  ZONE_PLACEMENT_PAIRS = 2;
 }
 
 // A set of the phase's player spots: whoever stands on one is in the zone.
