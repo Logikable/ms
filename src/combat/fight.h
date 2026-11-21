@@ -19,6 +19,18 @@
 
 namespace ms {
 
+// How a boss fight's rules treat one monster. See CombatSim::SetMobRules.
+struct MobRule {
+  // False parks it: nothing the player does reaches it, but it stays in the
+  // roster, so a phase doesn't end while it waits in another room.
+  bool reachable = true;
+  // Scales every hit on it, the numbers shown included, so a party's server is
+  // told the damage it actually took.
+  double damage_taken = 1.0;
+  // The fraction of max HP hits can't push it below.
+  double hp_floor = 0.0;
+};
+
 class CombatSim {
  public:
   // Advances the fight by `elapsed_seconds`. A gap longer than one attack is
@@ -26,11 +38,23 @@ class CombatSim {
   void Advance(const CombatParams& params, double elapsed_seconds);
 
   // Lowers the HP of the monsters in `hp_by_id` to the given fractions and
-  // removes any that died. Only lowers HP, and leaves unlisted monsters alone:
-  // a local copy of a shared fight may be ahead of the server, but never
-  // behind.
+  // removes any that died, parked ones included. Only lowers HP, and leaves
+  // unlisted monsters alone: a local copy of a shared fight may be ahead of the
+  // server, but never behind.
   void ClampRoster(const CombatParams& params,
                    const std::map<int, double>& hp_by_id);
+
+  // Applies `by_id` to the monsters it lists; the rest get the default rule.
+  // Kept until the next call, and dropped with the encounter.
+  void SetMobRules(const CombatParams& params,
+                   const std::map<int, MobRule>& by_id);
+  // Adds `hp_fraction` of max HP to the monster `id`, which may take it past
+  // max: a shield. Returns false if it isn't standing.
+  bool AddHp(const CombatParams& params, int id, double hp_fraction);
+  // Brings back monster `id` of type `type` at `hp_fraction`, for a party fight
+  // whose server says a monster this client reaped still stands: a shield
+  // landed before the killing blow reached it. Does nothing if it stands.
+  void Revive(const CombatParams& params, int id, int type, double hp_fraction);
 
   // What the last Advance published. Fully refreshed each step.
   const FightView& view() const {
@@ -154,6 +178,9 @@ class CombatSim {
     // The angel's mark on it, and the bonus for the line that consumes it.
     double marked_left_seconds = 0.0;
     double mark_lift_pct = 0.0;
+    // From its MobRule. The floor is in HP, not a fraction.
+    double damage_taken = 1.0;
+    double hp_floor = 0.0;
   };
 
   // The single wound in the fight, tracked by mob ID. Only one because that is
@@ -167,7 +194,8 @@ class CombatSim {
   // The landing for the mob at `index`, scaled by `scale`. The one place the
   // queue and the ledger meet.
   Landing LandingAt(int index, double scale) const {
-    return ledger_.LandingAt(queue_[index].id, index, scale);
+    return ledger_.LandingAt(queue_[index].id, index,
+                             scale * queue_[index].damage_taken);
   }
 
   // Counts and removes every mob at 0 HP or below. Used by attacks and burns
@@ -588,6 +616,11 @@ class CombatSim {
   // Deals `damage` to `mob` and counts it. All character damage goes through
   // here.
   void Hurt(QueuedMob& mob, double damage);
+  // A new monster of `type` at full HP, with the next ID.
+  QueuedMob Arrival(const CombatParams& params, int type);
+  // Moves monsters that would waste a hit, at their floor or taking nothing,
+  // behind the rest, so a one-target attack goes where it counts.
+  void PutWastedLast();
   void PublishPlayer(const CombatParams& params);
   void PublishTarget(const CombatParams& params);
   // Shows the buff being cast on the charge bar, filling over its animation.
@@ -605,8 +638,13 @@ class CombatSim {
   // that encounter, so a change invalidates them.
   std::string encounter_;
   std::vector<QueuedMob> queue_;  // mobs left this cycle; front is engaged
-  int next_mob_id_ = 0;           // assigned to each new mob; see MobStatus
-  double attack_phase_ = 0.0;     // seconds into the current attack
+  // Mobs out of reach (MobRule::reachable). Out of the queue, so no attack,
+  // burn or summon finds them, but still alive and still in the roster.
+  std::vector<QueuedMob> parked_;
+  // Whether any rule was set this encounter, so farming skips the reordering.
+  bool ruled_ = false;
+  int next_mob_id_ = 0;        // assigned to each new mob; see MobStatus
+  double attack_phase_ = 0.0;  // seconds into the current attack
   // A buff animation the character still has to play. Raising a buff takes its
   // cast time from the attack timer, so raising several at once puts that timer
   // in debt, and the character casts instead of attacking.

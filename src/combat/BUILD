@@ -329,6 +329,18 @@ cc_test(
 )
 
 cc_test(
+    name = "fight_rules_test",
+    size = "small",
+    srcs = ["fight_rules_test.cc"],
+    deps = [
+        ":encounter",
+        ":fight",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "fight_test",
     size = "small",
     srcs = ["fight_test.cc"],

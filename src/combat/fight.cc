@@ -60,21 +60,28 @@ double FormShare(const AttackOption& attack) {
 
 }  // namespace
 
+CombatSim::QueuedMob CombatSim::Arrival(const CombatParams& params, int type) {
+  QueuedMob arrival;
+  arrival.type = type;
+  arrival.hp = params.types[type].mob->max_hp();
+  arrival.max_hp = arrival.hp;
+  arrival.boss = params.types[type].mob->boss();
+  arrival.id = next_mob_id_++;
+  return arrival;
+}
+
 void CombatSim::TopUp(const CombatParams& params) {
   std::vector<int> standing(params.types.size(), 0);
-  for (const QueuedMob& mob : queue_) {
-    ++standing[mob.type];
+  // A parked mob is still standing, out of reach, and mustn't be replaced.
+  for (const std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (const QueuedMob& mob : *mobs) {
+      ++standing[mob.type];
+    }
   }
   int first_new = static_cast<int>(queue_.size());
   for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
     for (int k = standing[i]; k < params.types[i].simultaneous; ++k) {
-      QueuedMob arrival;
-      arrival.type = i;
-      arrival.hp = params.types[i].mob->max_hp();
-      arrival.max_hp = arrival.hp;
-      arrival.boss = params.types[i].mob->boss();
-      arrival.id = next_mob_id_++;
-      queue_.push_back(std::move(arrival));
+      queue_.push_back(Arrival(params, i));
     }
   }
   // Shuffle only the new mobs: moving a damaged mob out of the front would undo
@@ -1395,10 +1402,15 @@ void CombatSim::CreditFreeze(const CombatParams& params,
 }
 
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
+  damage *= mob.damage_taken;
   // Measured monsters never die: measurement wants the damage rate, and an
   // empty map would measure the respawn timer instead.
   if (!measuring_) {
+    double floor = std::min(mob.hp, mob.hp_floor);
     mob.hp -= damage;
+    if (mob.hp_floor > 0.0) {
+      mob.hp = std::max(mob.hp, floor);
+    }
   }
   view_.damage_this_step += damage;
   damage_dealt_ += damage;
@@ -1420,14 +1432,16 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
 
 void CombatSim::ClampRoster(const CombatParams& params,
                             const std::map<int, double>& hp_by_id) {
-  for (QueuedMob& mob : queue_) {
-    std::map<int, double>::const_iterator said = hp_by_id.find(mob.id);
-    if (said == hp_by_id.end() ||
-        mob.type >= static_cast<int>(params.types.size())) {
-      continue;
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (QueuedMob& mob : *mobs) {
+      std::map<int, double>::const_iterator said = hp_by_id.find(mob.id);
+      if (said == hp_by_id.end() ||
+          mob.type >= static_cast<int>(params.types.size())) {
+        continue;
+      }
+      mob.hp =
+          std::min(mob.hp, said->second * params.types[mob.type].mob->max_hp());
     }
-    mob.hp =
-        std::min(mob.hp, said->second * params.types[mob.type].mob->max_hp());
   }
   Reap();
   // Callers read a copy of the mob list made at the end of each step, and this
@@ -1436,17 +1450,81 @@ void CombatSim::ClampRoster(const CombatParams& params,
 }
 
 void CombatSim::Reap() {
-  std::vector<QueuedMob> survivors;
-  survivors.reserve(queue_.size());
-  for (QueuedMob& mob : queue_) {
-    if (mob.hp <= 0.0) {
-      ++view_.kills_this_step[mob.type];
-      ++kills_pending_;
-    } else {
-      survivors.push_back(std::move(mob));
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    std::vector<QueuedMob> survivors;
+    survivors.reserve(mobs->size());
+    for (QueuedMob& mob : *mobs) {
+      if (mob.hp <= 0.0) {
+        ++view_.kills_this_step[mob.type];
+        ++kills_pending_;
+      } else {
+        survivors.push_back(std::move(mob));
+      }
+    }
+    *mobs = std::move(survivors);
+  }
+}
+
+void CombatSim::SetMobRules(const CombatParams& params,
+                            const std::map<int, MobRule>& by_id) {
+  ruled_ = ruled_ || !by_id.empty();
+  std::vector<QueuedMob> reached;
+  std::vector<QueuedMob> parked;
+  // The queue first, so mobs already in reach keep their order and a mob
+  // coming back into reach joins behind them.
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (QueuedMob& mob : *mobs) {
+      std::map<int, MobRule>::const_iterator it = by_id.find(mob.id);
+      const MobRule rule = it == by_id.end() ? MobRule() : it->second;
+      mob.damage_taken = rule.damage_taken;
+      mob.hp_floor = rule.hp_floor * mob.max_hp;
+      (rule.reachable ? reached : parked).push_back(std::move(mob));
     }
   }
-  queue_ = std::move(survivors);
+  queue_ = std::move(reached);
+  parked_ = std::move(parked);
+  // Callers draw from the roster, and this didn't go through a step.
+  PublishRoster(params);
+}
+
+bool CombatSim::AddHp(const CombatParams& params, int id, double hp_fraction) {
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (QueuedMob& mob : *mobs) {
+      if (mob.id == id) {
+        mob.hp += hp_fraction * mob.max_hp;
+        PublishRoster(params);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void CombatSim::Revive(const CombatParams& params, int id, int type,
+                       double hp_fraction) {
+  if (type < 0 || type >= static_cast<int>(params.types.size()) ||
+      hp_fraction <= 0.0) {
+    return;
+  }
+  for (const std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (const QueuedMob& mob : *mobs) {
+      if (mob.id == id) {
+        return;
+      }
+    }
+  }
+  QueuedMob back = Arrival(params, type);
+  --next_mob_id_;  // it keeps its own ID, so no new one is spent
+  back.id = id;
+  back.hp = hp_fraction * back.max_hp;
+  queue_.push_back(std::move(back));
+  PublishRoster(params);
+}
+
+void CombatSim::PutWastedLast() {
+  std::stable_partition(queue_.begin(), queue_.end(), [](const QueuedMob& m) {
+    return m.damage_taken > 0.0 && m.hp > m.hp_floor;
+  });
 }
 
 void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
@@ -1657,7 +1735,7 @@ void CombatSim::RunDots(double dt) {
           ledger_.RecordRolls(
               ledger_.StandAlone(mob.id, {DamageOrigin::kBurn, slot},
                                  dot.credit),
-              dot.damage * helping);
+              dot.damage * helping * mob.damage_taken);
         }
         burned = true;
       }
@@ -1888,6 +1966,8 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
     clock.next_strike_seconds = 0.0;
   }
   next_mob_id_ = 0;
+  parked_.clear();
+  ruled_ = false;
   // The damage rate belongs to the encounter: the last map's damage says
   // nothing about how long this fight will take.
   damage_dealt_ = 0.0;
@@ -2850,11 +2930,14 @@ void CombatSim::MergeEngagedWindow(const CombatParams& params) {
 
 void CombatSim::PublishRoster(const CombatParams& params) {
   view_.roster.clear();
-  for (const QueuedMob& queued : queue_) {
-    const Mob& mob = *params.types[queued.type].mob;
-    double frac =
-        mob.max_hp() > 0 ? std::clamp(queued.hp / mob.max_hp(), 0.0, 1.0) : 0.0;
-    view_.roster.push_back({queued.id, queued.type, mob.name(), frac});
+  for (const std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (const QueuedMob& queued : *mobs) {
+      const Mob& mob = *params.types[queued.type].mob;
+      double frac = mob.max_hp() > 0
+                        ? std::clamp(queued.hp / mob.max_hp(), 0.0, 1.0)
+                        : 0.0;
+      view_.roster.push_back({queued.id, queued.type, mob.name(), frac});
+    }
   }
 }
 
@@ -3005,6 +3088,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // Before any attacks, so summons and the character target from the same
   // order, and the attack is chosen against what it will hit.
   AimAtHealthiest(params);
+  if (ruled_) {
+    PutWastedLast();
+  }
   // Before any auto-firing skill: a rain that scales with the crowd uses the
   // attack that called it, aimed last step.
   const std::vector<AttackOption>& options = Attacks(params);
