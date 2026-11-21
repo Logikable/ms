@@ -24,6 +24,7 @@
 #include "src/combat/boss/arena_spots.h"
 #include "src/combat/boss/boss_timing.h"
 #include "src/combat/boss/phase_rules.h"
+#include "src/combat/boss/placement.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"
@@ -176,6 +177,8 @@ struct BossSlot {
   std::vector<HpBarColor> hp_bars;
   // Percents of its HP marked across its bar.
   std::vector<int> hp_dividers;
+  // The phase zone it stands in (Spawn.zone); 0 for none.
+  int zone = 0;
   // How many moves of its walk it has made; each new move follows from these.
   // Stored so each move costs one move's work instead of replaying thousands.
   int steps_taken = 0;
@@ -354,6 +357,9 @@ class BossRun {
   // Whether spot `index` of player_spots() can be stood on now. A timed spot
   // is drawn only while it is open.
   bool spot_open(int index) const;
+  // The part of the arena this player sees: from column view_left(),
+  // arena_width() wide. All of it, unless they stand in a room of their own.
+  int view_left() const;
   int arena_width() const;
   int arena_height() const;
   // The attack being charged and its progress, for the player's charge bar.
@@ -371,6 +377,11 @@ class BossRun {
   const CombatParams& PhaseParams(const GameState& state);
   // The current phase, or null once the run is over.
   const BossPhase* current_phase() const;
+  // The room this player stands in, or null.
+  const ArenaRoom* SelfRoom() const;
+  // Sends this player to the zone the phase's placement gives them, if it
+  // moved them. Solo runs only; a party's server places everyone.
+  void PlaceSelf();
   // Ages every damage number on screen by `dt` and removes expired ones.
   void AgeDamageNumbers(double dt);
   // Turns the local player's latest damage into writes, one per hit per
@@ -541,6 +552,9 @@ class BossRun {
   std::vector<int> slot_types_;
   // The fight time shields have been given through.
   double shields_until_ = 0.0;
+  // Which zones had a monster standing when the player was last placed; empty
+  // until the phase's first placement.
+  std::vector<bool> zones_alive_;
   // Which member each server player is. The local player is always first here,
   // while the server lists players in party order.
   std::vector<int> member_of_player_;

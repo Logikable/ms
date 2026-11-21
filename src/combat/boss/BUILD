@@ -54,6 +54,7 @@ cc_library(
         ":arena_spots",
         ":boss_timing",
         ":phase_rules",
+        ":placement",
         "//src:build_config",
         "//src:game_state",
         "//src:spawn",

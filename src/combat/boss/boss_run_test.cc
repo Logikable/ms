@@ -949,6 +949,81 @@ TEST(BossRunTest, AShieldInASoloRunLandsOnItsClock) {
   EXPECT_GT(arm[1], arm[0]);
 }
 
+// Two rooms side by side, three columns each: the arm alone in the first,
+// the body in the second. Each room has two spots on its floor.
+Boss RoomsBoss() {
+  Boss boss;
+  boss.set_name("Zakum");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  phase->set_arena_width(6);
+  phase->set_arena_height(2);
+  phase->set_placement(ZONE_PLACEMENT_SPREAD);
+  for (int room = 0; room < 2; ++room) {
+    Spawn* spawn = phase->add_spawns();
+    spawn->set_mob(room == 0 ? "arm" : "body");
+    spawn->set_zone(room + 1);
+    spawn->add_spots()->set_x(3 * room + 1);
+    PhaseZone* zone = phase->add_zones();
+    zone->mutable_room()->set_x(3 * room);
+    zone->mutable_room()->set_width(3);
+    zone->mutable_room()->set_bgm(room == 0 ? "spring" : "summer");
+    for (int x : {0, 2}) {
+      zone->add_spots(phase->player_spots_size());
+      ArenaSpot* spot = phase->add_player_spots();
+      spot->set_x(3 * room + x);
+      spot->set_y(1);
+    }
+  }
+  return boss;
+}
+
+TEST(BossRunTest, APlayerSeesOnlyTheRoomTheyArePlacedIn) {
+  std::unique_ptr<GameState> state = MakeState(20, 1000000000);
+  Boss boss = RoomsBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(run.view_left(), 0);
+  EXPECT_EQ(run.arena_width(), 3);
+  EXPECT_EQ(run.bgm(), "spring");
+
+  for (int i = 0; i < 200 && HpOf(run, "Zakum's Arm") > 0.0; ++i) {
+    run.Advance(*state, 0.1);
+  }
+  run.Advance(*state, 0.1);
+  // The arm's room is empty now, so the player is sent to the body's.
+  EXPECT_EQ(run.view_left(), 3);
+  EXPECT_EQ(run.player_spot().x(), 3);
+  EXPECT_EQ(run.bgm(), "summer");
+  EXPECT_EQ(run.state(), BossRunState::kFighting);
+}
+
+TEST(BossRunTest, ARoomsWallsHoldThePlayerAndItsMonster) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = RoomsBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  ArenaWalk* walk = phase->mutable_spawns(0)->mutable_walk();
+  walk->set_interval_ms(100);
+  walk->set_range(ArenaWalk::RANGE_ROW);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  run.MovePlayer(1, 0);
+  run.MovePlayer(1, 0);
+  EXPECT_EQ(run.player_spot().x(), 2);
+  std::set<int> walked;
+  for (int i = 0; i < 50; ++i) {
+    run.Advance(*state, 0.1);
+    for (const BossSlot& slot : run.slots()) {
+      if (slot.name == "Zakum's Arm") {
+        walked.insert(slot.x);
+      }
+    }
+  }
+  EXPECT_EQ(walked, (std::set<int>{0, 1, 2}));
+}
+
 TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss(5);

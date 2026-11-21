@@ -75,6 +75,19 @@ enum ZonePlacement {
 message PhaseZone {
   // Indices into the phase's player spots.
   repeated int32 spots = 1;
+  // Set for a room of its own, as Kaling's first phase has one per Peril.
+  ArenaRoom room = 2;
+}
+
+// A room laid beside the others in the phase's arena: the columns from `x`,
+// `width` wide, the arena's full height. Whoever stands in it sees only it,
+// and its monsters (Spawn.zone) never walk out of it.
+message ArenaRoom {
+  int32 x = 1;
+  // 0 means it isn't a room, as does an unset message.
+  int32 width = 2;
+  // As BossPhase.bgm, for whoever is in it; empty keeps the phase's.
+  string bgm = 3;
 }
 
 // A zone with at least `players` in it is crowded: everyone there deals

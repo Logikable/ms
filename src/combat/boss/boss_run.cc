@@ -54,10 +54,17 @@ bool PlayerMayStand(const BossPhase& phase, int x, int y) {
   return false;
 }
 
-// Whether a monster may stand on (x, y): inside the arena, and not on a player
-// spot.
-bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
-  if (x < 0 || x >= width || y < 0 || y >= height) {
+// The columns [left, right) and rows a monster may move in.
+struct Bounds {
+  int left = 0;
+  int right = 0;
+  int height = 0;
+};
+
+// Whether a monster may stand on (x, y): inside its bounds, and not on a
+// player spot.
+bool MayEnter(const BossPhase& phase, int x, int y, const Bounds& bounds) {
+  if (x < bounds.left || x >= bounds.right || y < 0 || y >= bounds.height) {
     return false;
   }
   return !PlayerMayStand(phase, x, y);
@@ -68,7 +75,7 @@ bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
 // cell holds one bar.
 std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
                                    const ArenaWalk& walk, int x, int y,
-                                   int width, int height) {
+                                   const Bounds& bounds) {
   std::vector<ArenaSpot> targets;
   std::vector<ArenaSpot> tried;
   if (walk.range() == ArenaWalk::RANGE_STEP ||
@@ -83,7 +90,7 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
       tried.push_back(to);
     }
   } else {
-    for (int cell = 0; cell < width; ++cell) {
+    for (int cell = bounds.left; cell < bounds.right; ++cell) {
       ArenaSpot to;
       to.set_x(cell);
       to.set_y(y);
@@ -92,12 +99,31 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
   }
   for (const ArenaSpot& to : tried) {
     if ((to.x() == x && to.y() == y) ||
-        !MayEnter(phase, to.x(), to.y(), width, height)) {
+        !MayEnter(phase, to.x(), to.y(), bounds)) {
       continue;
     }
     targets.push_back(to);
   }
   return targets;
+}
+
+// The room `zone` is, or null if it isn't one.
+const ArenaRoom* RoomOf(const BossPhase& phase, int zone) {
+  if (zone < 1 || zone > phase.zones_size() ||
+      phase.zones(zone - 1).room().width() <= 0) {
+    return nullptr;
+  }
+  return &phase.zones(zone - 1).room();
+}
+
+// Where a monster in `zone` may move: its room, or the whole arena.
+Bounds BoundsOf(const BossPhase& phase, int zone) {
+  ArenaSpot size = ArenaSize(phase);
+  const ArenaRoom* room = RoomOf(phase, zone);
+  if (room == nullptr) {
+    return {0, size.x(), size.y()};
+  }
+  return {room->x(), room->x() + room->width(), size.y()};
 }
 
 }  // namespace
@@ -142,6 +168,17 @@ void BossRun::MovePlayer(int dx, int dy) {
   std::vector<int> taken = TakenSpots();
   std::vector<int> closed = ClosedSpots(*phase, FightSeconds());
   taken.insert(taken.end(), closed.begin(), closed.end());
+  // A room's walls hold: the other rooms' spots aren't a step away.
+  const ArenaRoom* room = SelfRoom();
+  if (room != nullptr) {
+    std::vector<ArenaSpot> spots = AllPlayerSpots(*phase);
+    for (int i = 0; i < static_cast<int>(spots.size()); ++i) {
+      if (spots[i].x() < room->x() ||
+          spots[i].x() >= room->x() + room->width()) {
+        taken.push_back(i);
+      }
+    }
+  }
   player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, taken);
   if (!members_.empty()) {
     members_[0].spot = player_at_;
@@ -198,6 +235,10 @@ std::string_view BossRun::bgm() const {
   const PhaseForm* form = current_form();
   if (form != nullptr && !form->bgm().empty()) {
     return form->bgm();
+  }
+  const ArenaRoom* room = SelfRoom();
+  if (room != nullptr && !room->bgm().empty()) {
+    return room->bgm();
   }
   // Walk back from the current phase to the nearest one that sets a track. That
   // lets one track cover a whole fight.
@@ -263,12 +304,24 @@ double BossRun::FightSeconds() const {
                   chosen->time_limit_seconds() - seconds_left_ - clock_cut_);
 }
 
+const ArenaRoom* BossRun::SelfRoom() const {
+  const BossPhase* phase = current_phase();
+  return phase == nullptr ? nullptr
+                          : RoomOf(*phase, ZoneOfSpot(*phase, player_at_));
+}
+
+int BossRun::view_left() const {
+  const ArenaRoom* room = SelfRoom();
+  return room == nullptr ? 0 : room->x();
+}
+
 int BossRun::arena_width() const {
   const BossPhase* phase = current_phase();
   if (phase == nullptr) {
     return 0;
   }
-  return ArenaSize(*phase).x();
+  const ArenaRoom* room = SelfRoom();
+  return room == nullptr ? ArenaSize(*phase).x() : room->width();
 }
 
 int BossRun::arena_height() const {
@@ -469,6 +522,11 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.giant = params.types[mob.type].giant;
     bar.hp_bars = params.types[mob.type].hp_bars;
     bar.hp_dividers = params.types[mob.type].hp_dividers;
+    const BossPhase* phase = current_phase();
+    int spawn = params.types[mob.type].spawn;
+    if (phase != nullptr && spawn >= 0 && spawn < phase->spawns_size()) {
+      bar.zone = phase->spawns(spawn).zone();
+    }
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
@@ -485,15 +543,15 @@ void BossRun::FillSlots(const CombatParams& params) {
 void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
   if (slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER) {
     std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
-    if (hunted && MayEnter(phase, hunted->x(), hunted->y() - 1, arena_width(),
-                           arena_height())) {
+    if (hunted && MayEnter(phase, hunted->x(), hunted->y() - 1,
+                           BoundsOf(phase, slot.zone))) {
       slot.x = hunted->x();
       slot.y = hunted->y() - 1;
     }
     return;
   }
-  std::vector<ArenaSpot> targets = WalkTargets(phase, slot.walk, slot.x, slot.y,
-                                               arena_width(), arena_height());
+  std::vector<ArenaSpot> targets =
+      WalkTargets(phase, slot.walk, slot.x, slot.y, BoundsOf(phase, slot.zone));
   if (targets.empty()) {
     return;
   }
@@ -507,7 +565,7 @@ void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
 
 bool BossRun::DashSlot(const BossPhase& phase, BossSlot& slot) {
   int to = slot.x + slot.dash_dx;
-  if (!MayEnter(phase, to, slot.y, arena_width(), arena_height())) {
+  if (!MayEnter(phase, to, slot.y, BoundsOf(phase, slot.zone))) {
     return false;
   }
   slot.x = to;
@@ -579,8 +637,8 @@ bool BossRun::StartSpecial(const BossPhase& phase, BossSlot& slot) {
   slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
   // If already against that wall, turn around instead of standing still for
   // the whole dash.
-  if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y, arena_width(),
-                arena_height())) {
+  if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y,
+                BoundsOf(phase, slot.zone))) {
     slot.dash_dx = -slot.dash_dx;
   }
   return false;
@@ -592,18 +650,24 @@ std::optional<ArenaSpot> BossRun::HuntedSpot(const BossPhase& phase,
     return std::nullopt;
   }
   std::vector<ArenaSpot> spots = AllPlayerSpots(phase);
-  int target =
-      hunt_targets_[Mixed(slot.id, slot.steps_taken) % hunt_targets_.size()];
-  if (target < 0 || target >= static_cast<int>(spots.size())) {
+  // Only players it can see: in a room, those in the same room.
+  const Bounds bounds = BoundsOf(phase, slot.zone);
+  std::vector<int> seen;
+  for (int target : hunt_targets_) {
+    if (target >= 0 && target < static_cast<int>(spots.size()) &&
+        spots[target].x() >= bounds.left && spots[target].x() < bounds.right) {
+      seen.push_back(target);
+    }
+  }
+  if (seen.empty()) {
     return std::nullopt;
   }
-  return spots[target];
+  return spots[seen[Mixed(slot.id, slot.steps_taken) % seen.size()]];
 }
 
 bool BossRun::StartFall(const BossPhase& phase, BossSlot& slot) {
   std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
-  if (!hunted ||
-      !MayEnter(phase, hunted->x(), 0, arena_width(), arena_height())) {
+  if (!hunted || !MayEnter(phase, hunted->x(), 0, BoundsOf(phase, slot.zone))) {
     return false;
   }
   slot.ground_y = slot.y;
@@ -614,12 +678,11 @@ bool BossRun::StartFall(const BossPhase& phase, BossSlot& slot) {
 }
 
 void BossRun::FallSlot(const BossPhase& phase, BossSlot& slot) {
-  if (MayEnter(phase, slot.x, slot.y + 1, arena_width(), arena_height())) {
+  if (MayEnter(phase, slot.x, slot.y + 1, BoundsOf(phase, slot.zone))) {
     ++slot.y;
   }
-  slot.falling =
-      slot.y < slot.ground_y &&
-      MayEnter(phase, slot.x, slot.y + 1, arena_width(), arena_height());
+  slot.falling = slot.y < slot.ground_y && MayEnter(phase, slot.x, slot.y + 1,
+                                                    BoundsOf(phase, slot.zone));
 }
 
 void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
@@ -723,6 +786,30 @@ std::vector<int> BossRun::PartySpots() const {
     spots.push_back(members_[i].spot);
   }
   return spots;
+}
+
+void BossRun::PlaceSelf() {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr || slots_.empty() ||
+      phase->placement() == ZONE_PLACEMENT_UNSPECIFIED) {
+    return;
+  }
+  std::vector<bool> zones = ZonesAlive(*phase, slot_spawns_, SlotsAlive());
+  const bool fresh = zones_alive_.empty();
+  if (!fresh && zones == zones_alive_) {
+    return;
+  }
+  zones_alive_ = zones;
+  const int current = fresh ? 0 : ZoneOfSpot(*phase, player_at_);
+  const int zone =
+      PlacePlayers(phase->placement(), zones, {current}, rng_).front();
+  if (zone == 0 || zone == current) {
+    return;
+  }
+  const int spot = FreeSpotInZone(*phase, zone, TakenSpots());
+  if (spot >= 0) {
+    player_at_ = spot;
+  }
 }
 
 void BossRun::ApplyPhaseRules(const CombatParams& params) {
@@ -851,11 +938,15 @@ void BossRun::RunPhase(GameState& state, double dt) {
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   CollectDamageWrites();
-  if (slots_.empty()) {
+  const bool filling = slots_.empty();
+  if (filling) {
     FillSlots(params);
-    ApplyPhaseRules(params);
   } else {
     SyncSlots(dt);
+  }
+  PlaceSelf();
+  if (filling) {
+    ApplyPhaseRules(params);
   }
   ComputePhaseHp(params);
   ReleaseAscents(state);
@@ -1010,6 +1101,7 @@ void BossRun::TakeShared(const SharedFight& shared) {
       cooldowns_due_ = current_phase()->reset_cooldowns();
     }
     slots_.clear();
+    zones_alive_.clear();
     // Mob IDs are only valid within the encounter that assigned them, and
     // damage waiting to be reported refers to slots of the finished phase.
     damage_stacks_.clear();
@@ -1254,6 +1346,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
       // Less what the step ran past the hold, which the phase has already had.
       phase_began_ = elapsed_seconds_ + hold_left_;
       slots_.clear();
+      zones_alive_.clear();
       // Mob IDs are only valid within the encounter that assigned them, and the
       // new phase is a different arena anyway.
       damage_stacks_.clear();

@@ -571,11 +571,15 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
   // row of bars lines up however many rows their names took.
   int rows = kPanelBorder + std::max(MobBarRows(slots), kPlayerBarRows);
   int height = std::max(run.arena_height(), run.player_spot().y() + 1);
+  // A room of its own shows only its columns, and no one outside them.
+  const int left = run.view_left();
+  const int right = left + run.arena_width();
+  auto seen = [left, right](int x) { return x >= left && x < right; };
   ftxui::Elements panels;
   std::vector<ArenaCell> cells;
   std::map<int, std::size_t> panel_of_slot;
   for (const BossSlot& slot : slots) {
-    if (!slot.visible || slot.y < 0 || slot.y >= height) {
+    if (!slot.visible || slot.y < 0 || slot.y >= height || !seen(slot.x)) {
       continue;
     }
     panel_of_slot[slot.id] = panels.size();
@@ -583,7 +587,7 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
     panels.push_back(MobBar(slot, MobBarRows(slots), span * rows - kPanelBorder,
                             run.current_form()) |
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, span * rows));
-    cells.push_back({slot.x, slot.y, span});
+    cells.push_back({slot.x - left, slot.y, span});
   }
   // The monster bars come first, and the arena relies on that: the column over
   // each is kept clear for the player's hits on that monster.
@@ -592,23 +596,28 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
   const std::vector<FightMember>& members = run.members();
   for (int i = 0; i < static_cast<int>(spots.size()); ++i) {
     if (Stood(members, i) || !run.spot_open(i) || spots[i].y() < 0 ||
-        spots[i].y() >= height) {
+        spots[i].y() >= height || !seen(spots[i].x())) {
       continue;
     }
     panels.push_back(EmptySpot(rows));
-    cells.push_back({spots[i].x(), spots[i].y()});
+    cells.push_back({spots[i].x() - left, spots[i].y()});
   }
   // The player at this screen is first in the list and drawn last, so a panel
   // pushed aside for room is someone else's.
   for (std::size_t i = members.size(); i > 0; --i) {
     const FightMember& member = members[i - 1];
     ArenaSpot standing;
+    standing.set_x(left);
     if (member.spot >= 0 && member.spot < static_cast<int>(spots.size())) {
       standing = spots[member.spot];
     }
+    if (!seen(standing.x())) {
+      continue;
+    }
     panels.push_back(MemberPanel(run, member, i == 1, buff_dots) |
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
-    cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
+    cells.push_back(
+        {standing.x() - left, std::clamp(standing.y(), 0, height - 1)});
   }
   // After the panels, so the numbers are placed knowing where every bar is,
   // including the one their monster is on.

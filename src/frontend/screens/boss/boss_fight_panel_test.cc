@@ -534,6 +534,44 @@ TEST(BossFightPanelTest, ASpawnsDividersAreDrawnOnItsBar) {
   EXPECT_GT(marks(true), marks(false));
 }
 
+// Two rooms side by side: the player is placed in the arm's and sees only it,
+// though the body stands in the same arena.
+TEST(BossFightPanelTest, ARoomShowsOnlyItsOwnMonsters) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss;
+  boss.set_name("Zakum");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  phase->set_arena_width(6);
+  phase->set_arena_height(2);
+  phase->set_placement(ZONE_PLACEMENT_SPREAD);
+  AddSpots(phase, {{0, 1}, {3, 1}});
+  for (int room = 0; room < 2; ++room) {
+    Spawn* spawn = phase->add_spawns();
+    spawn->set_mob(room == 0 ? "arm" : "body");
+    spawn->set_zone(room + 1);
+    spawn->add_spots()->set_x(3 * room + 1);
+    PhaseZone* zone = phase->add_zones();
+    zone->add_spots(room);
+    zone->mutable_room()->set_x(3 * room);
+    zone->mutable_room()->set_width(3);
+  }
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  std::string out = Render(run);
+  EXPECT_NE(out.find("Zakum's Arm"), std::string::npos);
+  // The heading names the fight; no bar names the body alone.
+  EXPECT_EQ(out.find("Zakum\n"), std::string::npos);
+  int named = 0;
+  for (std::size_t at = out.find("Zakum"); at != std::string::npos;
+       at = out.find("Zakum", at + 1)) {
+    ++named;
+  }
+  EXPECT_EQ(named, 2);
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
