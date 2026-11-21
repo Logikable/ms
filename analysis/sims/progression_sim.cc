@@ -170,6 +170,9 @@ ABSL_FLAG(int, star_ceiling, ms::kMaxStarForce,
           "A star the shopper will not go past whatever its arithmetic says. "
           "Here so one run can be pinned against another: the shopper decides "
           "where to stop by price, and stops well short of this.");
+ABSL_FLAG(int, cube_samples, ms::kCubeSamples,
+          "Rolls each cube and flame run's stopping rule is solved from. Few "
+          "price a run near the best of them, far below what it takes.");
 ABSL_FLAG(bool, cubes, true,
           "Whether the shopper cubes. Off is the counterfactual: the same "
           "climb with every cube's meso left for the stars.");
@@ -3060,6 +3063,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   Climb climb;
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
+  plan.samples = absl::GetFlag(FLAGS_cube_samples);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.clean_slates = absl::GetFlag(FLAGS_clean_slates);
   plan.cubes = absl::GetFlag(FLAGS_cubes);
@@ -3157,6 +3161,7 @@ AltLadder ClimbAlt(const Catalogs& catalogs, Job branch,
   Climb climb;
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
+  plan.samples = absl::GetFlag(FLAGS_cube_samples);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.clean_slates = absl::GetFlag(FLAGS_clean_slates);
   plan.cubes = false;
@@ -4220,6 +4225,52 @@ void PrintMesoLedger(const std::vector<Job>& branches,
   }
 }
 
+// What each kind of run was quoted at when the shopper chose it, against what
+// it took. The shopper ranks runs by gain per quoted meso, so a kind quoted
+// low is bought ahead of the rest.
+void PrintRunQuotes(const std::vector<Job>& branches,
+                    const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nEach kind of run as the shopper quoted it and as it paid, over the "
+      "whole run.\n\n%-13s %26s %26s %26s\n",
+      "branch", "stars: runs quoted paid", "cubes: runs quoted paid",
+      "flames: runs quoted paid");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const GearSpend& gear = climbs[i].ledger.gear;
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (const RunQuotes* kind :
+         {&gear.star_quotes, &gear.cube_quotes, &gear.flame_quotes}) {
+      char quoted[16];
+      char paid[16];
+      FormatShort(static_cast<double>(kind->quoted), quoted, sizeof(quoted));
+      FormatShort(static_cast<double>(kind->paid), paid, sizeof(paid));
+      std::printf(" %6d %8s %8s x%-4.1f", kind->runs, quoted, paid,
+                  kind->quoted == 0 ? 0.0
+                                    : static_cast<double>(kind->paid) /
+                                          static_cast<double>(kind->quoted));
+    }
+    std::printf("\n");
+  }
+  std::printf(
+      "\nThe same runs on the boss gear, as damage per billion meso: what the "
+      "shopper\nranked them on (quoted gain over quoted cost), and what they "
+      "did (gain over paid).\n\n%-13s %21s %21s %21s\n",
+      "branch", "stars: ranked did", "cubes: ranked did", "flames: ranked did");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const GearSpend& gear = climbs[i].ledger.gear;
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (const RunQuotes* kind :
+         {&gear.star_quotes, &gear.cube_quotes, &gear.flame_quotes}) {
+      auto per = [](double gain, int64_t meso) {
+        return meso <= 0 ? 0.0 : gain / (static_cast<double>(meso) / 1e9);
+      };
+      std::printf(" %10.3g %10.3g", per(kind->quoted_gain, kind->quoted),
+                  per(kind->gained, kind->paid));
+    }
+    std::printf("\n");
+  }
+}
+
 // The branch that got least far through the boss roster: the unbeaten share of
 // every fight the game opens, summed, with a fight never reached counting in
 // full.
@@ -4699,6 +4750,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_boss_report)) {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
+    PrintRunQuotes(branches, typical);
     PrintAlts(alts ? ladders.get() : AltLadders(), branches, typical);
     PrintCubing(branches, typical);
     PrintFlaming(branches, typical);

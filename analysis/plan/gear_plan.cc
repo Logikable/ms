@@ -1149,13 +1149,30 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (candidate.split) {
     return BuySplit(state, candidate.slot, spend);
   }
+  const bool boss = candidate.gear == kBossGear;
+  const double power = boss ? Power(state) : 0.0;
+  auto quote = [&](int64_t paid) {
+    RunQuotes run{1, candidate.cost, paid};
+    if (boss) {
+      run.quoted_gain = candidate.gain;
+      run.gained = Power(state) - power;
+    }
+    return run;
+  };
   if (candidate.cube) {
-    return BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
-                   candidate.cube_program, spend);
+    const int64_t before = spend.cubes;
+    const bool bought =
+        BuyCube(state, candidate.slot, candidate.gear, candidate.cube_type,
+                candidate.cube_program, spend);
+    spend.cube_quotes.Add(quote(spend.cubes - before));
+    return bought;
   }
   if (candidate.flame) {
-    return BuyFlame(state, candidate.slot, candidate.flame_type,
-                    candidate.flame_program, spend);
+    const int64_t before = spend.flames;
+    const bool bought = BuyFlame(state, candidate.slot, candidate.flame_type,
+                                 candidate.flame_program, spend);
+    spend.flame_quotes.Add(quote(spend.flames - before));
+    return bought;
   }
   if (!candidate.symbol_run.empty()) {
     return BuySymbolRun(state, candidate.symbol_run, spend);
@@ -1166,8 +1183,11 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   if (!candidate.star) {
     return BuyScroll(state, candidate, spend);
   }
-  return BuyStar(state, candidate.slot, candidate.gear, candidate.star_to,
-                 spend);
+  const int64_t before = spend.stars + spend.replacements;
+  const bool bought =
+      BuyStar(state, candidate.slot, candidate.gear, candidate.star_to, spend);
+  spend.star_quotes.Add(quote(spend.stars + spend.replacements - before));
+  return bought;
 }
 
 bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,

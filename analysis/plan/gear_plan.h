@@ -63,6 +63,27 @@ struct GearPlan {
   std::function<bool(const std::string&)> holds;
 };
 
+// What the shopper expected a kind of run to cost when it chose it, against
+// what the run then took. A ratio far from 1 means the runs are mispriced, and
+// the shopper is ranking them on the wrong cost.
+struct RunQuotes {
+  int runs = 0;
+  int64_t quoted = 0;
+  int64_t paid = 0;
+  // On the boss gear only, where a gain is damage: what the runs were
+  // expected to add, and what they did.
+  double quoted_gain = 0.0;
+  double gained = 0.0;
+
+  void Add(const RunQuotes& other) {
+    runs += other.runs;
+    quoted += other.quoted;
+    paid += other.paid;
+    quoted_gain += other.quoted_gain;
+    gained += other.gained;
+  }
+};
+
 // One pass of spending, with meso split by what it went on, so a tuning pass
 // can see where it went.
 struct GearSpend {
@@ -104,6 +125,9 @@ struct GearSpend {
   // and pay for it.
   int booms = 0;
   int64_t sold = 0;
+  RunQuotes star_quotes;
+  RunQuotes cube_quotes;
+  RunQuotes flame_quotes;
 
   int64_t meso() const {
     return scrolls + stars + replacements + copies + cubes + flames + symbols;
@@ -111,6 +135,9 @@ struct GearSpend {
 
   void Add(const GearSpend& other) {
     scrolls += other.scrolls;
+    star_quotes.Add(other.star_quotes);
+    cube_quotes.Add(other.cube_quotes);
+    flame_quotes.Add(other.flame_quotes);
     stars += other.stars;
     cubes += other.cubes;
     flames += other.flames;
