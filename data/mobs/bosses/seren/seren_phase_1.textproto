@@ -2,7 +2,8 @@
 name: "Chosen Seren"
 level: 270
 attack: 22000
-max_hp: 35600000000000
+# GMS v272 cut 32.1%.
+max_hp: 24172400000000
 exp: 0
 pdr: 380
 boss: true
