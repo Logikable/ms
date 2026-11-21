@@ -865,6 +865,34 @@ TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
   EXPECT_EQ(timed, 2) << "Gloom's tentacles are the only timed spots";
 }
 
+// The arrows reach every spot from where the player starts. A press with two
+// spots equally near goes nowhere, so a layout can strand a ledge without
+// anything else noticing.
+TEST_F(BossDataTest, TheArrowsReachEverySpot) {
+  const int kSteps[][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (int i = 0; i < difficulty.phases_size(); ++i) {
+        const BossPhase& phase = difficulty.phases(i);
+        std::set<int> seen = {0};
+        std::vector<int> frontier = {0};
+        while (!frontier.empty()) {
+          int from = frontier.back();
+          frontier.pop_back();
+          for (const auto& step : kSteps) {
+            int to = NextPlayerSpot(phase, from, step[0], step[1]);
+            if (seen.insert(to).second) {
+              frontier.push_back(to);
+            }
+          }
+        }
+        EXPECT_EQ(seen.size(), AllPlayerSpots(phase).size())
+            << entry.first << " " << difficulty.name() << " phase " << i + 1;
+      }
+    }
+  }
+}
+
 // Five spots on the floor of every fight, plus any ledges, at every difficulty,
 // so a full party always has somewhere to move.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
@@ -879,7 +907,8 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"damien", {5, 5}},      {"guardian_angel_slime", {5}},
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
       {"gloom", {5}},          {"darknell", {5}},
-      {"verus_hilla", {5}}};
+      {"verus_hilla", {5}},    {"seren", {5, 5}},
+      {"kalos", {9, 10}}};
   // A difficulty with a phase its Normal lacks.
   const std::map<std::string, std::vector<int>> kOwnShape = {
       {"lucid Hard", {5, 5, 5}}};

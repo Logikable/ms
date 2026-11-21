@@ -4,7 +4,8 @@ difficulties {
   name: "Easy"
   phases {
     # Karote Summit (client map 410006020): the floor, a long platform over
-    # columns 1-7 and a short one over 3-5.
+    # columns 1-7 and a short one over 3-5. Every spot sits on an even column,
+    # since an arrow with two spots equally near goes nowhere.
     bgm: "OccupiedFortress"
     spawns {
       mob: "easy_kalos_phase_1"
@@ -17,17 +18,17 @@ difficulties {
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 1 y: 3 }
-    player_spots { x: 3 y: 3 }
-    player_spots { x: 5 y: 3 }
-    player_spots { x: 7 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
     player_spots { x: 4 y: 1 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     # Battleworn Summit (client map 410006060): the floor, three platforms
-    # and two above them, made symmetric where GMS's sit up to 80px right.
+    # and two above them, made symmetric where GMS's sit up to 80px right, on
+    # even columns as phase 1's. Nothing is straight above the middle one.
     bgm: "FuryOfTheWatcher"
     spawns {
       mob: "easy_kalos_phase_2"
@@ -39,9 +40,9 @@ difficulties {
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 1 y: 3 }
+    player_spots { x: 2 y: 3 }
     player_spots { x: 4 y: 3 }
-    player_spots { x: 7 y: 3 }
+    player_spots { x: 6 y: 3 }
     player_spots { x: 2 y: 1 }
     player_spots { x: 6 y: 1 }
     arena_width: 9
@@ -90,7 +91,8 @@ difficulties {
   name: "Normal"
   phases {
     # Karote Summit (client map 410006020): the floor, a long platform over
-    # columns 1-7 and a short one over 3-5.
+    # columns 1-7 and a short one over 3-5. Every spot sits on an even column,
+    # since an arrow with two spots equally near goes nowhere.
     bgm: "OccupiedFortress"
     spawns {
       mob: "kalos_phase_1"
@@ -103,17 +105,17 @@ difficulties {
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 1 y: 3 }
-    player_spots { x: 3 y: 3 }
-    player_spots { x: 5 y: 3 }
-    player_spots { x: 7 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
     player_spots { x: 4 y: 1 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     # Battleworn Summit (client map 410006060): the floor, three platforms
-    # and two above them, made symmetric where GMS's sit up to 80px right.
+    # and two above them, made symmetric where GMS's sit up to 80px right, on
+    # even columns as phase 1's. Nothing is straight above the middle one.
     bgm: "FuryOfTheWatcher"
     sacred_power: 300
     spawns {
@@ -126,9 +128,9 @@ difficulties {
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
     player_spots { x: 8 y: 5 }
-    player_spots { x: 1 y: 3 }
+    player_spots { x: 2 y: 3 }
     player_spots { x: 4 y: 3 }
-    player_spots { x: 7 y: 3 }
+    player_spots { x: 6 y: 3 }
     player_spots { x: 2 y: 1 }
     player_spots { x: 6 y: 1 }
     arena_width: 9
