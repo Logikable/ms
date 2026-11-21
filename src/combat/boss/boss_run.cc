@@ -443,6 +443,9 @@ void BossRun::FillSlots(const CombatParams& params) {
   }
   slot_of_mob_.clear();
   mob_of_slot_.assign(counted, 0);
+  slot_spawns_.assign(counted, -1);
+  slot_types_.assign(counted, -1);
+  shields_until_ = FightSeconds();
   for (const MobStatus& mob : sim_.view().roster) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
     int taken = placed[mob.type]++;
@@ -454,6 +457,8 @@ void BossRun::FillSlots(const CombatParams& params) {
     if (slot < counted) {
       slot_of_mob_[mob.id] = slot;
       mob_of_slot_[slot] = mob.id;
+      slot_spawns_[slot] = params.types[mob.type].spawn;
+      slot_types_[slot] = mob.type;
     }
     BossSlot bar;
     bar.id = mob.id;
@@ -701,6 +706,53 @@ void BossRun::SyncSlots(double dt) {
   }
 }
 
+std::vector<bool> BossRun::SlotsAlive() const {
+  std::vector<bool> alive(mob_of_slot_.size(), false);
+  for (const MobStatus& mob : sim_.view().roster) {
+    std::map<int, int>::const_iterator slot = slot_of_mob_.find(mob.id);
+    if (slot != slot_of_mob_.end()) {
+      alive[slot->second] = true;
+    }
+  }
+  return alive;
+}
+
+std::vector<int> BossRun::PartySpots() const {
+  std::vector<int> spots = {player_at_};
+  for (std::size_t i = 1; i < members_.size(); ++i) {
+    spots.push_back(members_[i].spot);
+  }
+  return spots;
+}
+
+void BossRun::ApplyPhaseRules(const CombatParams& params) {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr || slots_.empty() || !HasSlotRules(*phase)) {
+    return;
+  }
+  const std::vector<bool> alive = SlotsAlive();
+  const double now = FightSeconds();
+  // A party's server gives the shields and says so; see RunSharedPhase.
+  if (authority_ == nullptr) {
+    std::vector<double> gained =
+        ShieldsBetween(*phase, slot_spawns_, alive, shields_until_, now);
+    for (std::size_t slot = 0; slot < gained.size(); ++slot) {
+      if (gained[slot] > 0.0) {
+        sim_.AddHp(params, mob_of_slot_[slot], gained[slot]);
+      }
+    }
+  }
+  shields_until_ = now;
+  std::vector<SlotRule> rules =
+      SlotRules(*phase, slot_spawns_, alive, now, player_at_, PartySpots());
+  std::map<int, MobRule> by_id;
+  for (std::size_t slot = 0; slot < rules.size(); ++slot) {
+    by_id[mob_of_slot_[slot]] = {
+        rules[slot].reachable, rules[slot].damage_taken, rules[slot].hp_floor};
+  }
+  sim_.SetMobRules(params, by_id);
+}
+
 void BossRun::ComputePhaseHp(const CombatParams& params) {
   double full = 0.0;
   for (const CombatType& type : params.types) {
@@ -795,11 +847,13 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   ResetCooldownsIfDue(params);
+  ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   CollectDamageWrites();
   if (slots_.empty()) {
     FillSlots(params);
+    ApplyPhaseRules(params);
   } else {
     SyncSlots(dt);
   }
@@ -1059,10 +1113,12 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   }
   item_drop_pct_ = params.drop_roll_item_drop_pct;
   ResetCooldownsIfDue(params);
+  ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   if (slots_.empty()) {
     FillSlots(params);
+    ApplyPhaseRules(params);
   }
   CollectDamageWrites();
   ReportToParty(dt);

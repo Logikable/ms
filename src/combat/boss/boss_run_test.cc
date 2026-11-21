@@ -866,6 +866,89 @@ TEST(BossRunTest, APhaseCyclesItsFormsOnItsOwnClock) {
 }
 
 // Running out of time is the only way the player can lose.
+// One phase: an arm in zone 1, which only spot 1 is in, and the body anywhere,
+// holding at half until the arm dies. The player starts on spot 0.
+Boss ZonedBoss() {
+  Boss boss;
+  boss.set_name("Zakum");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  Spawn* arm = phase->add_spawns();
+  arm->set_mob("arm");
+  arm->set_zone(1);
+  arm->add_spots()->set_x(4);
+  Spawn* body = phase->add_spawns();
+  body->set_mob("body");
+  body->add_hp_steps(50);
+  body->add_spots()->set_x(2);
+  for (int x : {0, 4}) {
+    ArenaSpot* spot = phase->add_player_spots();
+    spot->set_x(x);
+    spot->set_y(1);
+  }
+  phase->add_zones()->add_spots(1);
+  return boss;
+}
+
+double HpOf(const BossRun& run, const std::string& name) {
+  for (const BossSlot& slot : run.slots()) {
+    if (slot.name == name) {
+      return slot.hp_fraction;
+    }
+  }
+  return -1.0;
+}
+
+TEST(BossRunTest, AZonedMonsterTakesHitsOnlyFromItsZone) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 20);
+  Boss boss = ZonedBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  for (int i = 0; i < 100; ++i) {
+    run.Advance(*state, 0.1);
+  }
+  EXPECT_DOUBLE_EQ(HpOf(run, "Zakum's Arm"), 1.0);
+  // Held at its step while the arm stands, so the phase goes on.
+  EXPECT_DOUBLE_EQ(HpOf(run, "Zakum"), 0.5);
+  EXPECT_EQ(run.state(), BossRunState::kFighting);
+
+  run.MovePlayer(1, 0);
+  for (int i = 0; i < 100; ++i) {
+    run.Advance(*state, 0.1);
+  }
+  EXPECT_LT(HpOf(run, "Zakum's Arm"), 1.0);
+  EXPECT_DOUBLE_EQ(HpOf(run, "Zakum"), 0.5);
+}
+
+// The body shields the arm every second; the arm, hit from its zone, ends
+// healthier for it.
+TEST(BossRunTest, AShieldInASoloRunLandsOnItsClock) {
+  std::vector<double> arm;
+  for (bool shielded : {false, true}) {
+    std::unique_ptr<GameState> state = MakeState(1000000, 1000);
+    Boss boss = ZonedBoss();
+    BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+    phase->mutable_player_spots()->SwapElements(0, 1);
+    phase->mutable_zones(0)->set_spots(0, 0);
+    if (shielded) {
+      SpawnShield* shield = phase->mutable_spawns(1)->mutable_shield();
+      shield->set_interval_ms(1000);
+      shield->set_percent(10);
+      shield->add_mobs("arm");
+    }
+    BossRun run("zakum", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    for (int i = 0; i < 50; ++i) {
+      run.Advance(*state, 0.1);
+    }
+    arm.push_back(HpOf(run, "Zakum's Arm"));
+  }
+  EXPECT_LT(arm[0], 1.0);
+  EXPECT_GT(arm[1], arm[0]);
+}
+
 TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss(5);

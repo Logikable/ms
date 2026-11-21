@@ -42,6 +42,8 @@ struct CombatType {
   std::vector<HpBarColor> hp_bars;
   // Percents of its HP marked across its bar.
   std::vector<int> hp_dividers;
+  // Its spawn's index in the phase's list, which phase rules are read from.
+  int spawn = -1;
   // Expected damage of one hit to the player, after their DEF. Every mob of one
   // type hits the same.
   double damage_to_player = 0.0;

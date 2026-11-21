@@ -23,6 +23,7 @@
 
 #include "src/combat/boss/arena_spots.h"
 #include "src/combat/boss/boss_timing.h"
+#include "src/combat/boss/phase_rules.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"
@@ -422,6 +423,14 @@ class BossRun {
   static double NextJumpAt(const BossSlot& slot);
   // Starts or ends `slot`'s jump, and schedules the other half.
   static void JumpSlot(BossSlot& slot);
+  // Hands the sim this step's phase rules: who this player reaches, what each
+  // monster takes and holds at, and in a solo run the shields due since the
+  // last step. Does nothing for a phase without rules.
+  void ApplyPhaseRules(const CombatParams& params);
+  // Whether each slot's monster still stands, by the sim's roster.
+  std::vector<bool> SlotsAlive() const;
+  // Where everyone present stands, this player first.
+  std::vector<int> PartySpots() const;
   // Computes the phase's remaining HP as a fraction of its full HP.
   void ComputePhaseHp(const CombatParams& params);
   // Lets the sim cast the fight's Ascent uses: one each time the whole fight's
@@ -527,6 +536,11 @@ class BossRun {
   // numbers are the same on every client.
   std::map<int, int> slot_of_mob_;
   std::vector<int> mob_of_slot_;
+  // Each slot's spawn in the phase and type in the params, for its rules.
+  std::vector<int> slot_spawns_;
+  std::vector<int> slot_types_;
+  // The fight time shields have been given through.
+  double shields_until_ = 0.0;
   // Which member each server player is. The local player is always first here,
   // while the server lists players in party order.
   std::vector<int> member_of_player_;

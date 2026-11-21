@@ -53,6 +53,7 @@ cc_library(
     deps = [
         ":arena_spots",
         ":boss_timing",
+        ":phase_rules",
         "//src:build_config",
         "//src:game_state",
         "//src:spawn",
@@ -100,6 +101,28 @@ cc_test(
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "phase_rules",
+    srcs = ["phase_rules.cc"],
+    hdrs = ["phase_rules.h"],
+    deps = [
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "phase_rules_test",
+    size = "small",
+    srcs = ["phase_rules_test.cc"],
+    deps = [
+        ":phase_rules",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

@@ -764,7 +764,8 @@ void AddTypes(const GameState& state,
   DefenseStats scarred = defense;
   scarred.enemy_attack_pct =
       std::min(1.0, scarred.enemy_attack_pct + scar_enemy_attack_pct);
-  for (const Spawn& spawn : spawns) {
+  for (int index = 0; index < static_cast<int>(spawns.size()); ++index) {
+    const Spawn& spawn = spawns[index];
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());
     if (mob_it == state.mobs.end()) {
@@ -772,6 +773,7 @@ void AddTypes(const GameState& state,
     }
     CombatType type;
     type.mob = &mob_it->second;
+    type.spawn = index;
     type.simultaneous = SpawnCount(spawn);
     type.spots.assign(spawn.spots().begin(), spawn.spots().end());
     type.walk = spawn.walk();

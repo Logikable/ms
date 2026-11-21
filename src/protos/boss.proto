@@ -50,6 +50,25 @@ message BossPhase {
   // This phase's Sacred Power, in place of the difficulty's. GMS's Seren and
   // Normal Kalos ask more of their second phase. 0 keeps the difficulty's.
   int32 sacred_power = 10;
+  // Parts of the arena that only reach their own monsters (Spawn.zone).
+  repeated PhaseZone zones = 11;
+  // Too many players in one zone, and every one of them deals less to its
+  // monsters. GMS's Kaling punishes three or more on one Peril.
+  ZoneCrowding crowding = 12;
+}
+
+// A set of the phase's player spots: whoever stands on one is in the zone.
+message PhaseZone {
+  // Indices into the phase's player spots.
+  repeated int32 spots = 1;
+}
+
+// A zone with at least `players` in it is crowded: everyone there deals
+// `damage_pct` percent to its monsters. 0 players means never, as does an unset
+// message.
+message ZoneCrowding {
+  int32 players = 1;
+  int32 damage_pct = 2;
 }
 
 // One of a phase's forms: GMS's Seren cycles Noon, Dusk, Midnight and Dawn.

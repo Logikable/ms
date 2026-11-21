@@ -142,6 +142,33 @@ message Spawn {
   // Marks across its bar at these percents of its HP, as GMS draws Kaling's
   // quarters.
   repeated int32 hp_dividers = 7;
+  // The phase's zone it stands in, counting from 1: only a player standing in
+  // that zone reaches it. 0 means anyone does. See BossPhase.zones.
+  int32 zone = 8;
+  // When it can't be hit at all. GMS's Hundun hides for 12s of every minute.
+  SpawnWindow invulnerable = 9;
+  // Percents of max HP it can't be pushed below, each until one more of the
+  // phase's other monsters has died: Kaling holds at 75, 50 and 25% until her
+  // Perils fall.
+  repeated int32 hp_steps = 10;
+  // While it lives, it shields other monsters on its own clock.
+  SpawnShield shield = 11;
+}
+
+// A span that opens every `interval_ms` of fight time, measured from the end
+// of the countdown, for `open_ms`. 0 means never, as does an unset message.
+message SpawnWindow {
+  int32 interval_ms = 1;
+  int32 open_ms = 2;
+}
+
+// Every `interval_ms` of fight time, measured from the end of the countdown,
+// each living monster named in `mobs` gains `percent` of its max HP, which may
+// take it past max. GMS's Taowu shields the other Perils.
+message SpawnShield {
+  int32 interval_ms = 1;
+  int32 percent = 2;
+  repeated string mobs = 3;
 }
 
 // The colours of a boss split over several HP bars, after the hues of GMS's
