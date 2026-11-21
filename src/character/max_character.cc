@@ -71,6 +71,7 @@ struct OutfitBand {
 constexpr SetFamily kRA = SetFamily::kRootAbyss;
 constexpr SetFamily kAL = SetFamily::kAbsoLab;
 constexpr SetFamily kAU = SetFamily::kArcaneUmbra;
+constexpr SetFamily kET = SetFamily::kEternal;
 
 // What the sweep of 2026-10-04 wore in each slot on arriving at each level: the
 // fifth of ten branches from the top, by set family so each job wears its own
@@ -199,6 +200,36 @@ constexpr OutfitBand kOutfits[] = {
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
+    // The four Eternal pieces Kalos's Determination buys, worn by Lv280 by
+    // even the weakest branch of the uncapped sweep of 2026-11-20.
+    {280,
+     {Set(kET, EQUIP_SLOT_HAT),
+      Set(kET, EQUIP_SLOT_TOP),
+      Set(kET, EQUIP_SLOT_BOTTOM),
+      Set(kAU, EQUIP_SLOT_CAPE),
+      Set(kAU, EQUIP_SLOT_GLOVES),
+      Set(kAU, EQUIP_SLOT_SHOES),
+      Set(kET, EQUIP_SLOT_SHOULDER),
+      Set(kAU, EQUIP_SLOT_PRIMARY_WEAPON),
+      Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
+      Set(SetFamily::kMitrasRage, EQUIP_SLOT_EMBLEM),
+      Item("master_adventurer"),
+      Item("guardian_angel_ring"),
+      Item("meister_ring"),
+      Item("silver_blossom_ring"),
+      Item("kannas_treasure"),
+      Item("berserked"),
+      Item("magic_eyepatch"),
+      Item("estella_earrings"),
+      Item("horntail_necklace"),
+      Item("dominator_pendant"),
+      Item("pink_holy_cup"),
+      Item("black_heart"),
+      Item("crystal_ventus_badge"),
+      Item("golden_clover_belt"),
+      Item("bronze_incense_burner_totem"),
+      Item("horseback_riding_doll_totem"),
+      Item("jade_kettle_totem")}},
 };
 
 // What the farming preset wore in place of the bossing preset's piece, re-read
@@ -294,8 +325,9 @@ constexpr Clear kClears[] = {
     {"lucid", "Hard", 265},
     {"seren", "Normal", 265},
     {"seren", "Hard", 275},
-    {"kalos", "Easy", 270},
-    {"kalos", "Normal", 280},
+    // The uncapped sweep of 2026-11-20. No branch beat Normal Kalos in 365
+    // days, so it has no entry and max mode never clears it.
+    {"kalos", "Easy", 273},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

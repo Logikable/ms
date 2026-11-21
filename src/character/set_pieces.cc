@@ -276,6 +276,17 @@ std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
       return slot == EQUIP_SLOT_SHOULDER ? CygnusShoulder(job) : "";
     case SetFamily::kMitrasRage:
       return slot == EQUIP_SLOT_EMBLEM ? MitrasRage(job) : "";
+    case SetFamily::kEternal: {
+      const std::vector<std::string> armour = EternalArmour(job);
+      const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP,
+                                  EQUIP_SLOT_BOTTOM, EQUIP_SLOT_SHOULDER};
+      for (size_t i = 0; i < armour.size() && i < std::size(kSlots); ++i) {
+        if (kSlots[i] == slot) {
+          return armour[i];
+        }
+      }
+      return "";
+    }
   }
   return "";
 }

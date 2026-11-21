@@ -55,6 +55,7 @@ enum class SetFamily {
   kArcaneUmbra,
   kCygnus,      // the shoulder
   kMitrasRage,  // the emblem
+  kEternal,     // hat, top, bottom and shoulder
 };
 
 // The branch's Mitra's Rage, or "" for a beginner.

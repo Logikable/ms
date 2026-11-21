@@ -406,14 +406,20 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
 
 // Max mode clears a fight at the level progression_sim's sweep first beat it,
 // so a new fight needs a level in max_character.cc's kClears, read off the
-// next sweep, and a clear can't come before the fight opens.
+// next sweep, and a clear can't come before the fight opens. A fight the sweep
+// never beat is named here instead, and max mode never clears it.
 TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
+  const std::set<std::string> kNeverBeaten = {"kalos Normal"};
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
         continue;
       }
       const int cleared = MaxClearLevel(entry.first, difficulty.name());
+      if (kNeverBeaten.count(entry.first + " " + difficulty.name()) > 0) {
+        EXPECT_EQ(cleared, 0) << difficulty.name() << " " << entry.first;
+        continue;
+      }
       EXPECT_GE(cleared, difficulty.unlock_level())
           << difficulty.name() << " " << entry.first;
     }
