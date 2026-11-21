@@ -170,9 +170,9 @@ constexpr OutfitBand kOutfits[] = {
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
-    // Hard Seren falls to the fifth of ten branches at 275 (the uncapped
-    // sweep of 2026-11-19), and Mitra's Rage takes the emblem slot.
-    {275,
+    // Hard Seren falls to the fifth of ten branches at 271 (the uncapped
+    // sweep of 2026-11-20), and Mitra's Rage takes the emblem slot.
+    {271,
      {Set(kAU, EQUIP_SLOT_HAT),
       Set(kAU, EQUIP_SLOT_TOP),
       Set(kAU, EQUIP_SLOT_BOTTOM),
@@ -323,11 +323,12 @@ constexpr Clear kClears[] = {
     {"darknell", "Hard", 262},
     {"verus_hilla", "Hard", 262},
     {"lucid", "Hard", 265},
-    {"seren", "Normal", 265},
-    {"seren", "Hard", 275},
-    // The uncapped sweep of 2026-11-20. No branch beat Normal Kalos in 365
-    // days, so it has no entry and max mode never clears it.
-    {"kalos", "Easy", 269},
+    // The uncapped sweep of 2026-11-20, after v272's Seren and Kalos cuts. No
+    // branch beat Normal Kalos in 365 days, so it has no entry and max mode
+    // never clears it.
+    {"seren", "Normal", 263},
+    {"seren", "Hard", 271},
+    {"kalos", "Easy", 266},
 };
 
 // The alts the same sweep had levelled by each level: how many, to what

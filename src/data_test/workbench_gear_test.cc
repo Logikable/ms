@@ -363,14 +363,14 @@ TEST_F(WorkbenchGearTest, MaxModesOutfitIsInTheCatalogForEveryJob) {
       continue;
     }
     const Job job = JobForAdvancement(advancement);
-    // Mitra's Rage comes with Hard Seren's clear at 275, not before.
-    const std::vector<std::string> before = MaxOutfit(job, 274);
-    const std::vector<std::string> after = MaxOutfit(job, 275);
+    // Mitra's Rage comes with Hard Seren's clear at 271, not before.
+    const std::vector<std::string> before = MaxOutfit(job, 270);
+    const std::vector<std::string> after = MaxOutfit(job, 271);
     EXPECT_EQ(std::count(before.begin(), before.end(), MitrasRage(job)), 0)
         << Job_Name(job);
     EXPECT_EQ(std::count(after.begin(), after.end(), MitrasRage(job)), 1)
         << Job_Name(job);
-    for (int level : {100, 140, 170, 200, 230, 260, 275}) {
+    for (int level : {100, 140, 170, 200, 230, 260, 271}) {
       for (const std::string& key : MaxOutfit(job, level)) {
         SCOPED_TRACE(Job_Name(job) + " at " + std::to_string(level));
         auto found = equips_.find(key);
