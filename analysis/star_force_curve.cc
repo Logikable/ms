@@ -102,12 +102,12 @@ StarForceRun StarForceRunTo(int required_level, int from, int to) {
 }
 
 StarRunChoice BestStarRun(int required_level, int from, int ceiling,
-                          double spare, bool can_boom,
+                          double spare, double copies,
                           const std::function<double(int)>& gain_to) {
   StarRunChoice best;
   for (int to = from + 1; to <= ceiling; ++to) {
     StarForceRun run = StarForceRunTo(required_level, from, to);
-    if (run.meso <= 0.0 || (run.booms > 0.0 && !can_boom)) {
+    if (run.meso <= 0.0 || run.booms > copies) {
       break;
     }
     const double cost = run.meso + run.booms * spare;

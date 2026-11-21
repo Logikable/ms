@@ -35,10 +35,10 @@ struct StarRunChoice {
 };
 
 // Considers every run up to `ceiling` stars. `gain_to(to)` is what reaching
-// `to` adds over `from`. Without `can_boom` a run ends before the first star
-// that could destroy the item, since nothing would bring it back.
+// `to` adds over `from`. A run ends before its expected booms pass `copies`,
+// the spares that could bring the item back (infinity for a shop piece).
 StarRunChoice BestStarRun(int required_level, int from, int ceiling,
-                          double spare, bool can_boom,
+                          double spare, double copies,
                           const std::function<double(int)>& gain_to);
 
 }  // namespace ms

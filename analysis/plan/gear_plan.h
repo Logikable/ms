@@ -354,7 +354,7 @@ class GearShopper {
   std::map<SoulTier, std::vector<double>> SoulLineWorths(GameState& state,
                                                          const SoulRolls& hand);
   // Sells bag items held for nothing: pieces the character can't wear at all,
-  // and spares beyond what booms could ever use.
+  // and spares no boom could use. Spares a boom could use go to the bank.
   void SellSpares(GameState& state, GearSpend& spend);
   // Restores a destroyed piece from the trace the boom left and a spare copy.
   // False if nothing can cover it, which ends the run.

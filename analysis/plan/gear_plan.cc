@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
@@ -21,6 +22,7 @@
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
+#include "src/item/bank.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -143,41 +145,85 @@ int SparesInBag(const CharacterInstance& character, const std::string& name) {
   return spares;
 }
 
-// Whether a boom on this piece could be recovered from: a spare in the bag, or
-// one purchase away in meso or in the tokens held. Without the tokens, a set
-// piece never looked past 15 stars and the climb stopped at 10, short of the
-// 15-17 stretch that pays for 12-15.
-bool CanCoverBoom(const GameState& state, const EquipPrototype& proto) {
-  return proto.shop_price() > 0 ||
-         SparesInBag(state.character, proto.name()) > 0 ||
-         PayablePrice(state, proto) != nullptr;
+// Copies of `name` in the bank's equip pages, where spares wait so the bag
+// keeps room for drops.
+int SparesInBank(const GameState& state, const std::string& name) {
+  int spares = 0;
+  const BankInstance& bank = state.account.bank();
+  for (int page = 0; page < kBankPages; ++page) {
+    const InventoryInstance& held = bank.page(page);
+    for (int i = 0; i < held.size(); ++i) {
+      const EquipInstance* item = held.equip_instance(i);
+      if (item != nullptr && item->prototype().name() == name) {
+        ++spares;
+      }
+    }
+  }
+  return spares;
 }
 
-// Spares worth keeping of a piece: the expected booms on the longest star run
-// the character could afford, and at least one while it can boom at all.
-int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
-                       int stars) {
-  if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
-    return 0;  // safe however far it goes, or a copy is one purchase away
+// How many booms on this piece could be recovered from: spares in the bag and
+// the bank, and copies the tokens held would buy. Unlimited for a shop piece.
+double CopiesFor(const GameState& state, const EquipPrototype& proto) {
+  if (proto.shop_price() > 0) {
+    return std::numeric_limits<double>::infinity();
   }
-  int level = proto.required_level();
-  // A run only gets more expensive the further it goes, so bisect for the
-  // furthest affordable one instead of walking to it. Each step solves a linear
-  // system, and this runs at every look.
-  int lo = stars;
-  int hi = EquipTabItem::MaxStarsForLevel(level);
-  double booms = 0.0;
-  while (lo < hi) {
-    int mid = lo + (hi - lo + 1) / 2;
-    StarForceRun run = StarForceRunTo(level, stars, mid);
-    if (run.meso > static_cast<double>(state.character.meso())) {
-      hi = mid - 1;
-      continue;
+  double copies = SparesInBag(state.character, proto.name()) +
+                  SparesInBank(state, proto.name());
+  for (const TokenPrice& price : proto.token_prices()) {
+    std::map<std::string, ItemPrototype>::const_iterator token =
+        state.items.find(price.token_item());
+    if (token != state.items.end() && price.count() > 0) {
+      copies += static_cast<double>(
+          state.character.CountItem(token->second.name()) / price.count());
     }
-    booms = run.booms;
-    lo = mid;
   }
-  return std::max(1, static_cast<int>(std::ceil(booms)));
+  return copies;
+}
+
+// Moves one spare of `name` from the bank to the end of the bag. False if the
+// bank has none or the bag has no room.
+bool WithdrawSpare(GameState& state, const std::string& name) {
+  if (state.character.inventory().full()) {
+    return false;
+  }
+  BankInstance& bank = state.account.mutable_bank();
+  for (int page = 0; page < kBankPages; ++page) {
+    const InventoryInstance& held = bank.page(page);
+    for (int i = 0; i < held.size(); ++i) {
+      const EquipInstance* item = held.equip_instance(i);
+      if (item != nullptr && item->prototype().name() == name) {
+        return state.character.PickUp(bank.TakeEquip(page, i));
+      }
+    }
+  }
+  return false;
+}
+
+// Moves the bag's `index`-th item to the first bank page with room. False,
+// leaving it in the bag, if every page is full.
+bool Deposit(GameState& state, int index) {
+  BankInstance& bank = state.account.mutable_bank();
+  for (int page = 0; page < kBankPages; ++page) {
+    if (!bank.PageFull(page)) {
+      return bank.AddEquip(page, state.character.TakeEquip(index));
+    }
+  }
+  return false;
+}
+
+// Bag slots a spare never takes once the bank is full, so drops still land.
+constexpr int kBagRoomForDrops = kBankPageCapacity;
+
+// Whether spares of a worn piece at `stars` are worth keeping: it can still
+// boom on the way to `ceiling`, and no shop sells a copy. Every one is kept,
+// since a spare sells for next to nothing and 22 stars takes about seven.
+bool KeepsBoomSpares(const EquipPrototype& proto, int stars, int ceiling) {
+  if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
+    return false;
+  }
+  return stars < std::min(ceiling, EquipTabItem::MaxStarsForLevel(
+                                       proto.required_level()));
 }
 
 // Stars on the least-starred worn copy of `name`, or -1 if none is worn. The
@@ -401,14 +447,13 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   if (item == nullptr) {
     return std::nullopt;
   }
-  // Only risk destruction with a way to recover. The trace a boom leaves needs
-  // a spare copy, and if neither the shop nor the bag has one, the piece would
-  // simply be lost, which the sim can't undo.
-  const bool coverable = CanCoverBoom(state, item->prototype());
+  // Only risk the booms the copies at hand could recover from. The trace a
+  // boom leaves needs a spare copy, and without one the piece is lost.
+  const double copies = CopiesFor(state, item->prototype());
   const double spare = static_cast<double>(SpareCost(item->prototype()));
   const EquipStats now = item->StarForceStatGains(stars);
   StarRunChoice run = BestStarRun(
-      level, stars, ceiling, spare, coverable,
+      level, stars, ceiling, spare, copies,
       [&state, &basis, item, &now](int to) {
         return PowerWith(
                    state, basis.yard, basis.derived,
@@ -1025,6 +1070,11 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
     if (item->stars() >= to) {
       break;
     }
+    // Never risk a boom with no copy left to rebuild the piece from: the run
+    // ends short instead of losing it.
+    if (CanDestroy(item->stars()) && CopiesFor(state, item->prototype()) < 1) {
+      break;
+    }
     int64_t attempt =
         StarForceCost(item->prototype().required_level(), item->stars());
     if (attempt <= 0 || attempt > state.character.meso()) {
@@ -1140,6 +1190,9 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
   if (trace_index < 0) {
     return false;
   }
+  if (spare_index < 0 && WithdrawSpare(state, proto.name())) {
+    spare_index = state.character.inventory().size() - 1;
+  }
   if (spare_index < 0) {
     const TokenPrice* token =
         proto.shop_price() > 0 ? nullptr : PayablePrice(state, proto);
@@ -1162,9 +1215,34 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
 }
 
 void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
-  // Computed per piece rather than per copy: a spare's worth depends on the
-  // piece and the character's meso, not on how many the bag holds.
-  std::map<std::string, int> allowance;
+  const int ceiling = plan_.star_ceiling;
+  // A banked spare whose piece no longer needs it comes back to be sold, while
+  // the bag has room to take it.
+  BankInstance& bank = state.account.mutable_bank();
+  for (int page = 0; page < kBankPages; ++page) {
+    int i = 0;
+    while (i < bank.page(page).size()) {
+      const EquipInstance* item = bank.page(page).equip_instance(i);
+      if (item == nullptr ||
+          KeepsBoomSpares(item->prototype(),
+                          WornStars(state.character, item->prototype().name()),
+                          ceiling) ||
+          state.character.inventory().full()) {
+        ++i;
+        continue;
+      }
+      state.character.PickUp(bank.TakeEquip(page, i));
+      spend.sold +=
+          state.character.SellEquip(state.character.inventory().size() - 1);
+    }
+  }
+  // Computed per piece rather than per copy: what a spare is for depends on the
+  // piece, not on how many the bag holds.
+  struct Allowance {
+    int in_bag = 0;
+    bool boom_spares = false;
+  };
+  std::map<std::string, Allowance> allowance;
   int i = 0;
   while (i < state.character.inventory().size()) {
     const EquipInstance* item = state.character.inventory().equip_instance(i);
@@ -1180,21 +1258,37 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
       ++i;
       continue;
     }
-    std::map<std::string, int>::iterator kept = allowance.find(proto.name());
+    std::map<std::string, Allowance>::iterator kept =
+        allowance.find(proto.name());
     if (kept == allowance.end()) {
       int worn = WornStars(state.character, proto.name());
       // A piece not worn keeps one copy, since it's gear, not a spare. A worn
-      // piece keeps as many as booms could use, and one to split for farming.
-      int keep = worn < 0 ? 1 : SparesWorthKeeping(state, proto, worn);
-      if (AwaitsSplit(state.character, proto.name())) {
-        keep = std::max(keep, 1);
-      }
-      kept = allowance.insert({proto.name(), keep}).first;
+      // piece keeps one to split for farming, and every spare booms could use.
+      Allowance allow;
+      allow.in_bag =
+          worn < 0 || AwaitsSplit(state.character, proto.name()) ? 1 : 0;
+      allow.boom_spares = worn >= 0 && KeepsBoomSpares(proto, worn, ceiling);
+      kept = allowance.insert({proto.name(), allow}).first;
     }
-    if (state.character.MeetsJob(proto) && kept->second > 0) {
-      --kept->second;
+    if (!state.character.MeetsJob(proto)) {
+      spend.sold += state.character.SellEquip(i);
+      continue;
+    }
+    if (kept->second.in_bag > 0) {
+      --kept->second.in_bag;
       ++i;
       continue;
+    }
+    if (kept->second.boom_spares) {
+      if (Deposit(state, i)) {
+        continue;
+      }
+      // With the bank full, a spare stays in the bag only while a page of room
+      // is left for drops.
+      if (state.character.inventory().room() >= kBagRoomForDrops) {
+        ++i;
+        continue;
+      }
     }
     spend.sold += state.character.SellEquip(i);
   }

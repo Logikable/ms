@@ -12,6 +12,7 @@
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/game_state.h"
+#include "src/item/bank.h"
 #include "src/item/equip_instance.h"
 #include "src/item/upgrade/potential.h"
 #include "src/item/upgrade/soul.h"
@@ -411,6 +412,48 @@ TEST_F(GearPlanTest, TokensForASpareOpenTheRunPastFifteen) {
   EXPECT_EQ(furthest(), 0) << "every star past 15 can boom";
   character.AddItem(coin, 5);
   EXPECT_GT(furthest(), 15);
+}
+
+// A drop-only piece keeps every spare a boom could use, in the bank rather
+// than the bag, and the banked copies still open the run past 15.
+TEST_F(GearPlanTest, SparesOfADropOnlyPieceWaitInTheBank) {
+  EquipPrototype weapon = Sword();
+  weapon.set_required_level(160);
+  weapon.clear_shop_price();
+  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
+  weapon.add_unsupported_upgrades(UPGRADE_CUBE);
+  Grow(200, weapon);
+  CharacterInstance& character = state_->character;
+  Equip fifteen;
+  fifteen.set_stars(15);
+  character.PickUp(std::make_unique<EquipInstance>(weapon, fifteen));
+  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
+  for (int i = character.inventory().size() - 1; i >= 0; --i) {
+    if (character.inventory().equip_instance(i) != nullptr) {
+      character.SellEquip(i);
+    }
+  }
+  for (int i = 0; i < 3; ++i) {
+    character.PickUp(std::make_unique<EquipInstance>(weapon));
+  }
+  character.AddMeso(-character.meso());
+  GearShopper{GearPlan()}.Spend(*state_);
+  EXPECT_EQ(character.inventory().size(), 0);
+  int banked = 0;
+  for (int page = 0; page < kBankPages; ++page) {
+    banked += state_->account.bank().page(page).size();
+  }
+  EXPECT_EQ(banked, 3);
+
+  character.AddMeso(1'000'000'000'000);
+  int to = 0;
+  GearShopper shopper{GearPlan()};
+  for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
+    if (offer.star && offer.slot == EQUIP_SLOT_PRIMARY_WEAPON) {
+      to = std::max(to, offer.star_to);
+    }
+  }
+  EXPECT_GT(to, 15);
 }
 
 }  // namespace
