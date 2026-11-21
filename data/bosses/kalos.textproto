@@ -49,7 +49,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 900
+  time_limit_seconds: 1200
   unlock_level: 265
   sacred_power: 200
   # Five Intense Power Crystals at GMS's price (187,500,000), divided by seven
@@ -137,7 +137,7 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  time_limit_seconds: 900
+  time_limit_seconds: 1200
   unlock_level: 265
   # GMS asks 250 of phase 1 and 300 of phase 2.
   sacred_power: 250
