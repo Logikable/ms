@@ -298,12 +298,11 @@ void CountRolls(const GameState& state, const CubeBasis& basis,
                 const CubeIncome& income, GainDistribution& gains) {
   std::vector<PotentialLine> lines;
   std::map<std::pair<int, int>, int> index;  // (type, rank) -> lines
-  std::vector<double> alone_cache;
+  const double bare = GainOf(state, basis, pricing, Potential(), income);
   auto alone = [&](const PotentialLine& line) {
     Potential one;
     *one.add_lines() = line;
-    return GainOf(state, basis, pricing, one, income) -
-           GainOf(state, basis, pricing, Potential(), income);
+    return GainOf(state, basis, pricing, one, income) - bare;
   };
   std::vector<std::vector<LineDraw>> positions(kPotentialLines);
   std::map<std::pair<int, int>, bool> dead;

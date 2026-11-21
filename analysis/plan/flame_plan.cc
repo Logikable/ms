@@ -108,6 +108,9 @@ double ReserveFor(const GainDistribution& gains, double toll) {
   return std::min(hi, gains.high());
 }
 
+// Bins a flame's rolls are counted into; see CountFlames.
+constexpr int kFlameBins = 4096;
+
 // n choose k, as a double: the counts here pass no int's range.
 double Choose(int n, int k) {
   if (k < 0 || k > n) {
@@ -148,6 +151,18 @@ void CountFlames(const FlamePricing& pricing, FlameType flame,
       live.push_back(worth);
     }
   }
+  // Rolls are binned by gain over the widest span they could cover, each bin
+  // keeping its chance and mean gain: a weapon's pool counts tens of thousands
+  // of rolls, and sorting them all cost more than the rest of a sweep's flames.
+  double reach = 0.0;
+  double depth = 0.0;
+  for (const std::array<double, kFlameTiers>& worth : live) {
+    reach += std::max(0.0, *std::max_element(worth.begin(), worth.end()));
+    depth += std::min(0.0, *std::min_element(worth.begin(), worth.end()));
+  }
+  const double width = (reach - depth) / kFlameBins;
+  std::vector<double> bin_chance(kFlameBins + 1, 0.0);
+  std::vector<double> bin_mass(kFlameBins + 1, 0.0);
   const int n = static_cast<int>(pool.size());
   const int dead = n - static_cast<int>(live.size());
   const int lines = std::min(kFlameLines, n);
@@ -169,7 +184,11 @@ void CountFlames(const FlamePricing& pricing, FlameType flame,
              ++c, rest /= kFlameTiers) {
           gain += live[chosen[c]][rest % kFlameTiers];
         }
-        gains.Add(gain, chance / combos);
+        const int bin =
+            width > 0.0 ? static_cast<int>((gain - start - depth) / width) : 0;
+        const int at = std::clamp(bin, 0, kFlameBins);
+        bin_chance[at] += chance / combos;
+        bin_mass[at] += gain * chance / combos;
       }
     }
     if (static_cast<int>(chosen.size()) == lines) {
@@ -182,6 +201,11 @@ void CountFlames(const FlamePricing& pricing, FlameType flame,
     }
   };
   pick(0);
+  for (int at = 0; at <= kFlameBins; ++at) {
+    if (bin_chance[at] > 0.0) {
+      gains.Add(bin_mass[at] / bin_chance[at], bin_chance[at]);
+    }
+  }
 }
 
 const EquipInstance* Flammable(const GameState& state, EquipSlot slot) {
