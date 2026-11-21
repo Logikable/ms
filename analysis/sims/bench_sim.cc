@@ -389,11 +389,12 @@ double PlanRate(GameState& state, const Fight& fight) {
 }
 
 // The tokens AbsoLab's shelf and every shelf above it are priced in, and the
-// one thing the endowed character isn't given: Lotus, Damien, Lucid, Will and
-// Kalos drop them, so a character just entering those fights has none.
-constexpr std::array<std::string_view, 4> kBossCoins = {
+// one thing the endowed character isn't given: Lotus, Damien, Lucid, Will,
+// Kalos and Kaling drop them, so a character just entering those fights has
+// none.
+constexpr std::array<std::string_view, 5> kBossCoins = {
     "absolab_coin", "phantasma_coin", "arachno_coin",
-    "kalos_residual_determination"};
+    "kalos_residual_determination", "ferocious_beast_entanglement_ring"};
 
 bool IsBossCoin(std::string_view token) {
   return std::find(kBossCoins.begin(), kBossCoins.end(), token) !=

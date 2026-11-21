@@ -447,29 +447,33 @@ TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
       {"cygnus_shoulder_token", 140},
       {"absolab_coin", 160},
       {"arachno_coin", 200},
-      {"kalos_residual_determination", 250}};
+      {"kalos_residual_determination", 250},
+      {"ferocious_beast_entanglement_ring", 250}};
   // Token -> branch -> the one shoulder for that branch it buys.
   std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (proto.equip_slot() != EQUIP_SLOT_SHOULDER ||
-        proto.token_prices_size() != 1) {
+        proto.token_prices().empty()) {
       continue;
     }
     ASSERT_EQ(proto.equip_job_categories_size(), 1)
         << entry.first << " is a shoulder for more than one branch";
-    const std::string& token = proto.token_prices(0).token_item();
-    std::map<std::string, int>::const_iterator tier = kTiers.find(token);
-    ASSERT_NE(tier, kTiers.end())
-        << entry.first << " is bought with " << token
-        << ", which is a shoulder tier nothing here knows about";
-    EXPECT_EQ(proto.required_level(), tier->second) << entry.first;
-    EquipJobCategory branch = proto.equip_job_categories(0);
-    std::map<EquipJobCategory, std::string>& worn = shoulders[tier->first];
-    EXPECT_TRUE(worn.emplace(branch, entry.first).second)
-        << entry.first << " and " << worn[branch] << " are both the "
-        << tier->first << " shoulder for " << EquipJobCategory_Name(branch);
+    // Eternal's are bought with either Kalos's or Kaling's.
+    for (const TokenPrice& price : proto.token_prices()) {
+      const std::string& token = price.token_item();
+      std::map<std::string, int>::const_iterator tier = kTiers.find(token);
+      ASSERT_NE(tier, kTiers.end())
+          << entry.first << " is bought with " << token
+          << ", which is a shoulder tier nothing here knows about";
+      EXPECT_EQ(proto.required_level(), tier->second) << entry.first;
+      EquipJobCategory branch = proto.equip_job_categories(0);
+      std::map<EquipJobCategory, std::string>& worn = shoulders[tier->first];
+      EXPECT_TRUE(worn.emplace(branch, entry.first).second)
+          << entry.first << " and " << worn[branch] << " are both the "
+          << tier->first << " shoulder for " << EquipJobCategory_Name(branch);
+    }
   }
   const std::vector<EquipJobCategory> kBranches = {
       EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_JOB_CATEGORY_MAGICIAN,

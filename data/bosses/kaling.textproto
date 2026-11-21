@@ -1,0 +1,423 @@
+name: "Kaling"
+page: 3
+difficulties {
+  name: "Easy"
+  phases {
+    # Three rooms side by side, nine columns each, one Peril alone in each:
+    # Summer of Lost Light (Taowu), Autumn of Lost Color (Hundun) and Spring
+    # of Lost Vitality (Qiongqi), client maps 410008080, 410008120 and 410008040.
+    # Taowu's room fills first: his shields cover the other two while he
+    # lives.
+    bgm: "DestroyedFourSeasons"
+    placement: ZONE_PLACEMENT_SPREAD
+    # GMS gives no number for crowding a Peril; half is the user's call.
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "easy_taowu"
+      zone: 1
+      spots { x: 4 y: 4 }
+      # Teleports to a player (the beat is Kalos's 4s), and dashes on its 25s
+      # cooldown in the client.
+      walk {
+        interval_ms: 4000
+        range: RANGE_ABOVE_PLAYER
+        dash { interval_ms: 25000 cells: 4 step_ms: 120 }
+      }
+      # GMS: every 45s while Taowu lives, Hundun and Qiongqi gain a white
+      # shield of 1% of their HP.
+      shield {
+        interval_ms: 45000
+        percent: 1
+        mobs: "easy_hundun"
+        mobs: "easy_qiongqi"
+      }
+    }
+    spawns {
+      mob: "easy_hundun"
+      zone: 2
+      spots { x: 13 y: 4 }
+      # His dash's 5.4s cooldown in the client; GMS dashes only from his dark
+      # cloud, which the user dropped.
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 5400 cells: 4 step_ms: 120 }
+      }
+      # Black Flame Amplification: invincible for 12s every minute.
+      invulnerable { interval_ms: 60000 open_ms: 12000 }
+    }
+    spawns {
+      mob: "easy_qiongqi"
+      zone: 3
+      # He flies; GMS's flights to another spot are left out.
+      spots { x: 22 y: 1 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 5 y: 2 }
+    player_spots { x: 7 y: 2 }
+    player_spots { x: 13 y: 5 }
+    player_spots { x: 11 y: 5 }
+    player_spots { x: 15 y: 5 }
+    player_spots { x: 9 y: 5 }
+    player_spots { x: 17 y: 5 }
+    player_spots { x: 22 y: 5 }
+    player_spots { x: 20 y: 5 }
+    player_spots { x: 24 y: 5 }
+    player_spots { x: 18 y: 5 }
+    player_spots { x: 26 y: 5 }
+    player_spots { x: 18 y: 3 }
+    player_spots { x: 20 y: 3 }
+    player_spots { x: 24 y: 3 }
+    player_spots { x: 26 y: 3 }
+    # Summer of Lost Light.
+    zones {
+      spots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      room { x: 0 width: 9 }
+    }
+    # Autumn of Lost Color.
+    zones {
+      spots: [11, 12, 13, 14, 15]
+      room { x: 9 width: 9 }
+    }
+    # Spring of Lost Vitality.
+    zones {
+      spots: [16, 17, 18, 19, 20, 21, 22, 23, 24]
+      room { x: 18 width: 9 }
+    }
+    arena_width: 27
+    arena_height: 6
+  }
+  phases {
+    # Winter of Lost Faith (client map 410008160): the floor, three low
+    # platforms and two high ones over their gaps, on even columns.
+    bgm: "FadedWinter"
+    spawns {
+      mob: "easy_kaling_phase_2"
+      spots { x: 4 y: 0 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Four Seasons of Death (client map 410008200): one floor in three zones, each
+    # Peril still over its own (GMS: Qiongqi left, Hundun centre, Taowu
+    # right), and Kaling on the top row over whoever she hunts. Only a zone's
+    # players reach its Peril; anyone reaches Kaling, who holds at each
+    # quarter until another Peril falls.
+    bgm: "RuinationOfFourSeasons"
+    placement: ZONE_PLACEMENT_PAIRS
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "easy_frenzied_kaling"
+      spots { x: 4 y: 1 }
+      walk { interval_ms: 4000 range: RANGE_OVER_PLAYER }
+      hp_steps: [75, 50, 25]
+      hp_dividers: [25, 50, 75]
+    }
+    spawns {
+      mob: "easy_death_gripped_taowu"
+      zone: 1
+      spots { x: 7 y: 3 }
+      hp_bars: HP_BAR_COLOR_TEAL
+    }
+    spawns {
+      mob: "easy_death_gripped_hundun"
+      zone: 2
+      spots { x: 4 y: 3 }
+      hp_bars: HP_BAR_COLOR_PURPLE
+    }
+    spawns {
+      mob: "easy_death_gripped_qiongqi"
+      zone: 3
+      spots { x: 1 y: 3 }
+      hp_bars: HP_BAR_COLOR_AMBER
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    # Taowu's zone, then Hundun's, then Qiongqi's, each centre first.
+    zones { spots: [3, 4, 5] }
+    zones { spots: [0, 1, 2] }
+    zones { spots: [6, 7, 8] }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1200
+  unlock_level: 275
+  # GMS asks the same of every phase.
+  sacred_power: 230
+  # Five Intense Power Crystals at GMS's price (206,250,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 147300000
+  sol_erda_energy: 200
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "kalings_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4, as Kalos's Determination: 10% at Easy, which counts as
+  # the tier's Normal, and twice that at Normal, as two rolls. GMS drops
+  # fragments, two to a ring; the ring drops whole here.
+  drops {
+    item: "ferocious_beast_entanglement_ring"
+    per_kill: 0.1
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.01
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}
+difficulties {
+  name: "Normal"
+  phases {
+    # Three rooms side by side, nine columns each, one Peril alone in each:
+    # Summer of Lost Light (Taowu), Autumn of Lost Color (Hundun) and Spring
+    # of Lost Vitality (Qiongqi), client maps 410007180, 410007220 and 410007140.
+    # Taowu's room fills first: his shields cover the other two while he
+    # lives.
+    bgm: "DestroyedFourSeasons"
+    placement: ZONE_PLACEMENT_SPREAD
+    # GMS gives no number for crowding a Peril; half is the user's call.
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "taowu"
+      zone: 1
+      spots { x: 4 y: 4 }
+      # Teleports to a player (the beat is Kalos's 4s), and dashes on its 25s
+      # cooldown in the client.
+      walk {
+        interval_ms: 4000
+        range: RANGE_ABOVE_PLAYER
+        dash { interval_ms: 25000 cells: 4 step_ms: 120 }
+      }
+      # GMS: every 45s while Taowu lives, Hundun and Qiongqi gain a white
+      # shield of 1% of their HP.
+      shield {
+        interval_ms: 45000
+        percent: 1
+        mobs: "hundun"
+        mobs: "qiongqi"
+      }
+    }
+    spawns {
+      mob: "hundun"
+      zone: 2
+      spots { x: 13 y: 4 }
+      # His dash's 5.4s cooldown in the client; GMS dashes only from his dark
+      # cloud, which the user dropped.
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 5400 cells: 4 step_ms: 120 }
+      }
+      # Black Flame Amplification: invincible for 12s every minute.
+      invulnerable { interval_ms: 60000 open_ms: 12000 }
+    }
+    spawns {
+      mob: "qiongqi"
+      zone: 3
+      # He flies; GMS's flights to another spot are left out.
+      spots { x: 22 y: 1 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 5 y: 2 }
+    player_spots { x: 7 y: 2 }
+    player_spots { x: 13 y: 5 }
+    player_spots { x: 11 y: 5 }
+    player_spots { x: 15 y: 5 }
+    player_spots { x: 9 y: 5 }
+    player_spots { x: 17 y: 5 }
+    player_spots { x: 22 y: 5 }
+    player_spots { x: 20 y: 5 }
+    player_spots { x: 24 y: 5 }
+    player_spots { x: 18 y: 5 }
+    player_spots { x: 26 y: 5 }
+    player_spots { x: 18 y: 3 }
+    player_spots { x: 20 y: 3 }
+    player_spots { x: 24 y: 3 }
+    player_spots { x: 26 y: 3 }
+    # Summer of Lost Light.
+    zones {
+      spots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      room { x: 0 width: 9 }
+    }
+    # Autumn of Lost Color.
+    zones {
+      spots: [11, 12, 13, 14, 15]
+      room { x: 9 width: 9 }
+    }
+    # Spring of Lost Vitality.
+    zones {
+      spots: [16, 17, 18, 19, 20, 21, 22, 23, 24]
+      room { x: 18 width: 9 }
+    }
+    arena_width: 27
+    arena_height: 6
+  }
+  phases {
+    # Winter of Lost Faith (client map 410007260): the floor, three low
+    # platforms and two high ones over their gaps, on even columns.
+    bgm: "FadedWinter"
+    spawns {
+      mob: "kaling_phase_2"
+      spots { x: 4 y: 0 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Four Seasons of Death (client map 410007300): one floor in three zones, each
+    # Peril still over its own (GMS: Qiongqi left, Hundun centre, Taowu
+    # right), and Kaling on the top row over whoever she hunts. Only a zone's
+    # players reach its Peril; anyone reaches Kaling, who holds at each
+    # quarter until another Peril falls.
+    bgm: "RuinationOfFourSeasons"
+    placement: ZONE_PLACEMENT_PAIRS
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "frenzied_kaling"
+      spots { x: 4 y: 1 }
+      walk { interval_ms: 4000 range: RANGE_OVER_PLAYER }
+      hp_steps: [75, 50, 25]
+      hp_dividers: [25, 50, 75]
+    }
+    spawns {
+      mob: "death_gripped_taowu"
+      zone: 1
+      spots { x: 7 y: 3 }
+      hp_bars: HP_BAR_COLOR_TEAL
+    }
+    spawns {
+      mob: "death_gripped_hundun"
+      zone: 2
+      spots { x: 4 y: 3 }
+      hp_bars: HP_BAR_COLOR_PURPLE
+    }
+    spawns {
+      mob: "death_gripped_qiongqi"
+      zone: 3
+      spots { x: 1 y: 3 }
+      hp_bars: HP_BAR_COLOR_AMBER
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    # Taowu's zone, then Hundun's, then Qiongqi's, each centre first.
+    zones { spots: [3, 4, 5] }
+    zones { spots: [0, 1, 2] }
+    zones { spots: [6, 7, 8] }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1200
+  unlock_level: 275
+  # GMS asks the same of every phase.
+  sacred_power: 330
+  # Five Intense Power Crystals at GMS's price (301,300,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 215200000
+  sol_erda_energy: 300
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "kalings_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4, as Kalos's Determination: 10% at Easy, which counts as
+  # the tier's Normal, and twice that at Normal, as two rolls. GMS drops
+  # fragments, two to a ring; the ring drops whole here.
+  drops {
+    item: "ferocious_beast_entanglement_ring"
+    per_kill: 0.1
+    rolls: 2
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.02
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}

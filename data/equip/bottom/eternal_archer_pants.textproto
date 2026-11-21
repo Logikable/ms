@@ -14,3 +14,7 @@ token_prices {
   token_item: "kalos_residual_determination"
   count: 8
 }
+token_prices {
+  token_item: "ferocious_beast_entanglement_ring"
+  count: 8
+}

@@ -64,7 +64,7 @@ class BossDataTest : public testing::Test {
 // The bosses the Sacred Symbols name that aren't in the game yet. Building one
 // takes it off this list, and its file must use the stem named here.
 const std::set<std::string> kUnbuiltSymbolBosses = {
-    "first_adversary", "kaling", "malefic_star", "limbo", "baldrix", "jupiter",
+    "first_adversary", "malefic_star", "limbo", "baldrix", "jupiter",
 };
 
 // The lowest level any of `boss`'s built difficulties opens at. It marks a
@@ -199,7 +199,8 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
   // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla,
-  // Seren and Kalos, which are the same case and are fought for their drops.
+  // Seren, Kalos and Kaling, which are the same case and are fought for their
+  // drops.
   EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen",
                                               "darknell",
                                               "darknell",
@@ -207,6 +208,8 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                                               "gloom",
                                               "guardian_angel_slime",
                                               "guardian_angel_slime",
+                                              "kaling",
+                                              "kaling",
                                               "kalos",
                                               "kalos",
                                               "lotus",
@@ -369,11 +372,12 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 38) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+  EXPECT_EQ(fights, 40) << "Arkarium, Cygnus, Princess No, Papulatus, the "
                            "four of Root Abyss, and both difficulties of "
                            "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
                            "Damien, the Guardian Angel Slime, Lucid, Will, "
-                           "Gloom, Darknell, Verus Hilla, Seren and Kalos";
+                           "Gloom, Darknell, Verus Hilla, Seren, Kalos and "
+                           "Kaling";
 }
 
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
@@ -409,7 +413,9 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
 // next sweep, and a clear can't come before the fight opens. A fight the sweep
 // never beat is named here instead, and max mode never clears it.
 TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
-  const std::set<std::string> kNeverBeaten = {"kalos Normal"};
+  // Kaling until the first sweep with her in it.
+  const std::set<std::string> kNeverBeaten = {"kalos Normal", "kaling Easy",
+                                              "kaling Normal"};
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
@@ -534,7 +540,10 @@ const std::map<std::string, TierDrop>& TierDrops() {
                             "estella_earrings", "daybreak_pendant"}) {
       (*drops)[key] = {2, DropKind::kAccessory};
     }
-    (*drops)["kalos_residual_determination"] = {4, DropKind::kCurrency};
+    for (const char* key : {"kalos_residual_determination",
+                            "ferocious_beast_entanglement_ring"}) {
+      (*drops)[key] = {4, DropKind::kCurrency};
+    }
     for (const char* key : {"phantasma_coin", "arachno_coin"}) {
       (*drops)[key] = {3, DropKind::kCurrency};
     }
@@ -914,7 +923,7 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"lucid", {5, 5}},       {"will", {5, 5, 5}},
       {"gloom", {5}},          {"darknell", {5}},
       {"verus_hilla", {5}},    {"seren", {5, 5}},
-      {"kalos", {9, 10}}};
+      {"kalos", {9, 10}},      {"kaling", {25, 12, 9}}};
   // A difficulty with a phase its Normal lacks.
   const std::map<std::string, std::vector<int>> kOwnShape = {
       {"lucid Hard", {5, 5, 5}}};
@@ -947,7 +956,17 @@ TEST_F(BossDataTest, EveryArenaStandsOnTheOneGrid) {
       for (const BossPhase& phase : difficulty.phases()) {
         ++phases;
         std::string where = entry.first + " " + difficulty.name();
-        EXPECT_EQ(phase.arena_width(), kArenaColumns) << where;
+        // Rooms side by side are each a grid; see ArenaRoom.
+        int rooms = 0;
+        for (const PhaseZone& zone : phase.zones()) {
+          if (zone.room().width() > 0) {
+            EXPECT_EQ(zone.room().width(), kArenaColumns) << where;
+            EXPECT_EQ(zone.room().x(), rooms * kArenaColumns) << where;
+            ++rooms;
+          }
+        }
+        EXPECT_EQ(phase.arena_width(), std::max(1, rooms) * kArenaColumns)
+            << where;
         EXPECT_EQ(phase.arena_height(), kArenaRows) << where;
       }
     }

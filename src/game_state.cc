@@ -503,6 +503,10 @@ constexpr int kSerenLevel = 260;
 // pieces, worn from 250.
 constexpr int kKalosLevel = 265;
 
+// The level Kaling opens at, whose Ferocious Beast Entanglement Ring buys the
+// same four.
+constexpr int kKalingLevel = 275;
+
 // The pitched pieces Hard Damien and Hard Lotus drop, both opening with the
 // AbsoLab tier. Berserked outclasses the Twilight Mark in the face slot, so the
 // workbench never wears the Mark.
@@ -1651,6 +1655,9 @@ int TokenLevel(const std::string& token) {
   }
   if (token == "kalos_residual_determination") {
     return kKalosLevel;
+  }
+  if (token == "ferocious_beast_entanglement_ring") {
+    return kKalingLevel;
   }
   // The four Chaos Root Abyss Pieces, the only tokens named this way, and
   // Princess No's fragment, from a fight opening at the same level. The Frozen
