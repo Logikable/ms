@@ -1012,7 +1012,12 @@ TEST(BossRunTest, APlayerSeesOnlyTheRoomTheyArePlacedIn) {
     run.Advance(*state, 0.1);
   }
   run.Advance(*state, 0.1);
-  // The arm's room is empty now, so the player is sent to the body's.
+  // The arm's room is empty now, so the player walks to the body's, which
+  // takes the phase gap's pause.
+  EXPECT_EQ(run.view_left(), 0);
+  run.Advance(*state, kBossPhaseGapSeconds - 0.2);
+  EXPECT_EQ(run.view_left(), 0);
+  run.Advance(*state, 0.2);
   EXPECT_EQ(run.view_left(), 3);
   EXPECT_EQ(run.player_spot().x(), 3);
   EXPECT_EQ(run.bgm(), "summer");

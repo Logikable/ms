@@ -84,13 +84,8 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
   const std::vector<HpBarColor> bars =
       form != nullptr ? std::vector<HpBarColor>{form->hp_bar()} : slot.hp_bars;
   HpShade shade = ShadeHp(slot.hp_fraction, bars);
-  std::vector<double> dividers;
-  for (int percent : slot.hp_dividers) {
-    dividers.push_back(percent / 100.0);
-  }
-  ftxui::Element bar =
-      ProgressBar(shade.frac, shade.fill, shade.empty, lines,
-                  std::move(dividers), ShieldWidth(slot.shield_fraction, bars));
+  ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines,
+                                   {}, ShieldWidth(slot.shield_fraction, bars));
   return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
                       std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
@@ -689,7 +684,7 @@ std::string FightHeading(const BossRun& run) {
         phase += (phase.empty() ? " - " : " ") + run.current_form()->name();
       }
       return practice + run.title() + phase + " - " +
-             std::to_string(Percent(run.phase_hp_fraction())) + "%";
+             std::to_string(Percent(run.heading_hp_fraction())) + "%";
     }
   }
 }
@@ -719,10 +714,15 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   } else if (run.slots().size() == 1) {
     bars = run.slots()[0].hp_bars;
   }
-  HpShade shade = ShadeHp(run.phase_hp_fraction(), bars);
+  HpShade shade = ShadeHp(run.heading_hp_fraction(), bars);
+  std::vector<double> dividers;
+  for (int percent : run.heading_dividers()) {
+    dividers.push_back(percent / 100.0);
+  }
   return ftxui::vbox({
-      ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)}, {},
-                  ShieldWidth(run.phase_shield_fraction(), bars)),
+      ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)},
+                  std::move(dividers),
+                  ShieldWidth(run.heading_shield_fraction(), bars)),
       Arena(run, buff_dots) | ftxui::flex,
   });
 }

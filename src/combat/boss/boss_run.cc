@@ -179,7 +179,7 @@ void BossRun::MovePlayer(int dx, int dy) {
       }
     }
   }
-  player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, taken);
+  MoveSelf(NextPlayerSpot(*phase, player_at_, dx, dy, taken));
   if (!members_.empty()) {
     members_[0].spot = player_at_;
   }
@@ -522,7 +522,6 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.walk = params.types[mob.type].walk;
     bar.giant = params.types[mob.type].giant;
     bar.hp_bars = params.types[mob.type].hp_bars;
-    bar.hp_dividers = params.types[mob.type].hp_dividers;
     const BossPhase* phase = current_phase();
     int spawn = params.types[mob.type].spawn;
     if (phase != nullptr && spawn >= 0 && spawn < phase->spawns_size()) {
@@ -813,7 +812,9 @@ void BossRun::PlaceSelf() {
     return;
   }
   zones_alive_ = zones;
-  const int current = fresh ? 0 : ZoneOfSpot(*phase, player_at_);
+  const int current =
+      fresh ? 0
+            : ZoneOfSpot(*phase, walking_to_ >= 0 ? walking_to_ : player_at_);
   const int zone =
       PlacePlayers(phase->placement(), zones, {current}, rng_).front();
   if (zone == 0 || zone == current) {
@@ -821,7 +822,34 @@ void BossRun::PlaceSelf() {
   }
   const int spot = FreeSpotInZone(*phase, zone, TakenSpots());
   if (spot >= 0) {
+    MoveSelf(spot);
+  }
+}
+
+void BossRun::MoveSelf(int spot) {
+  const BossPhase* phase = current_phase();
+  const ArenaRoom* from = SelfRoom();
+  const ArenaRoom* to =
+      phase == nullptr ? nullptr : RoomOf(*phase, ZoneOfSpot(*phase, spot));
+  if (from == nullptr || to == nullptr || from == to) {
     player_at_ = spot;
+    walking_to_ = -1;
+    return;
+  }
+  if (walking_to_ != spot) {
+    walking_to_ = spot;
+    walk_left_ = kBossPhaseGapSeconds;
+  }
+}
+
+void BossRun::WalkBetweenRooms(double dt) {
+  if (walking_to_ < 0) {
+    return;
+  }
+  walk_left_ -= dt;
+  if (walk_left_ <= 0.0) {
+    player_at_ = walking_to_;
+    walking_to_ = -1;
   }
 }
 
@@ -887,6 +915,29 @@ void BossRun::ComputePhaseHp(const CombatParams& params) {
   }
   phase_hp_fraction_ = full > 0.0 ? std::clamp(left / full, 0.0, 1.0) : 0.0;
   phase_shield_fraction_ = full > 0.0 ? shielded / full : 0.0;
+
+  heading_hp_fraction_ = phase_hp_fraction_;
+  heading_shield_fraction_ = phase_shield_fraction_;
+  heading_dividers_.clear();
+  for (std::size_t t = 0; t < params.types.size(); ++t) {
+    const CombatType& type = params.types[t];
+    if (type.hp_dividers.empty()) {
+      continue;
+    }
+    heading_dividers_ = type.hp_dividers;
+    double cut_left = 0.0;
+    double cut_shield = 0.0;
+    for (const MobStatus& mob : sim_.view().roster) {
+      if (mob.type == static_cast<int>(t)) {
+        cut_left += mob.hp_fraction;
+        cut_shield += mob.shield_fraction;
+      }
+    }
+    const double count = std::max(1, type.simultaneous);
+    heading_hp_fraction_ = std::clamp(cut_left / count, 0.0, 1.0);
+    heading_shield_fraction_ = cut_shield / count;
+    break;
+  }
 }
 
 const CombatParams& BossRun::PhaseParams(const GameState& state) {
@@ -981,6 +1032,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   } else {
     SyncSlots(dt);
   }
+  WalkBetweenRooms(dt);
   PlaceSelf();
   if (filling) {
     ApplyPhaseRules(params);
@@ -1198,7 +1250,7 @@ void BossRun::TakeShared(const SharedFight& shared) {
   // A new placement moves this player too: the server sent them somewhere.
   if (player_at_ < 0 || shared.placements != placements_seen_ ||
       std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
-    player_at_ = stood;
+    MoveSelf(stood);
   }
   placements_seen_ = shared.placements;
   DropShared(shared);
@@ -1247,6 +1299,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
+  WalkBetweenRooms(dt);
   if (slots_.empty()) {
     FillSlots(params);
     ApplyPhaseRules(params);
@@ -1394,6 +1447,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
       phase_began_ = elapsed_seconds_ + hold_left_;
       slots_.clear();
       zones_alive_.clear();
+      walking_to_ = -1;
       // Mob IDs are only valid within the encounter that assigned them, and the
       // new phase is a different arena anyway.
       damage_stacks_.clear();

@@ -175,8 +175,6 @@ struct BossSlot {
   bool giant = false;
   // The bars its HP is drawn as, the first emptied first; empty for one.
   std::vector<HpBarColor> hp_bars;
-  // Percents of its HP marked across its bar.
-  std::vector<int> hp_dividers;
   // The phase zone it stands in (Spawn.zone); 0 for none.
   int zone = 0;
   // How many moves of its walk it has made; each new move follows from these.
@@ -309,6 +307,18 @@ class BossRun {
   double phase_shield_fraction() const {
     return phase_shield_fraction_;
   }
+  // What the screen's top bar shows: the phase, or in a phase with a spawn
+  // whose bar is cut (Spawn.hp_dividers, Kaling's 25/50/75%), that spawn
+  // alone with its cuts, as the client's phase3HpBar does.
+  double heading_hp_fraction() const {
+    return heading_hp_fraction_;
+  }
+  double heading_shield_fraction() const {
+    return heading_shield_fraction_;
+  }
+  const std::vector<int>& heading_dividers() const {
+    return heading_dividers_;
+  }
   // Seconds left on the fight's timer. Starts when the countdown ends and stops
   // when the fight does.
   double seconds_left() const {
@@ -388,6 +398,11 @@ class BossRun {
   // Sends this player to the zone the phase's placement gives them, if it
   // moved them. Solo runs only; a party's server places everyone.
   void PlaceSelf();
+  // Puts this player on `spot`. Into another room it takes the phase gap's
+  // pause first, standing where they were: the walk between rooms.
+  void MoveSelf(int spot);
+  // Counts down a walk between rooms, arriving when it ends.
+  void WalkBetweenRooms(double dt);
   // Ages every damage number on screen by `dt` and removes expired ones.
   void AgeDamageNumbers(double dt);
   // Turns the local player's latest damage into writes, one per hit per
@@ -530,6 +545,13 @@ class BossRun {
   // screen returns.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
+  double heading_hp_fraction_ = 0.0;
+  double heading_shield_fraction_ = 0.0;
+  std::vector<int> heading_dividers_;
+  // A walk to another room: the spot it ends on (-1 for none) and the seconds
+  // left.
+  int walking_to_ = -1;
+  double walk_left_ = 0.0;
   double phase_shield_fraction_ = 0.0;
   // Ascent uses not yet released to the sim. See ReleaseAscents.
   int ascents_left_ = kAscentUsesPerBossFight;

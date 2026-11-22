@@ -506,10 +506,10 @@ TEST(BossFightPanelTest, TheHeadingDrawsTheBarBeingEmptied) {
   EXPECT_EQ(screen.PixelAt(119, 0).background_color, kHpYellow);
 }
 
-// A spawn's dividers reach its bar, and the bar draws them.
-TEST(BossFightPanelTest, ASpawnsDividersAreDrawnOnItsBar) {
-  // Frames draw the same glyph, so count against the same fight without. At
-  // 85% the mark clears the arm's name.
+// A spawn's dividers go on the screen's top bar, not its own box.
+TEST(BossFightPanelTest, ASpawnsDividersAreDrawnOnTheTopBar) {
+  // Frames draw the same glyph, so count against the same fight without; on
+  // the top row there are no frames.
   auto marks = [](bool divided) {
     std::unique_ptr<GameState> state = MakeState(1000, 1);
     Boss boss = OneArmBoss();
@@ -522,16 +522,18 @@ TEST(BossFightPanelTest, ASpawnsDividersAreDrawnOnItsBar) {
     BossRun run("zakum", boss, 0);
     run.Advance(*state, kBossCountdownSeconds);
     run.Advance(*state, 0.03);
-    EXPECT_EQ(run.slots().at(0).hp_dividers.size(), divided ? 1u : 0u);
+    EXPECT_EQ(run.heading_dividers().size(), divided ? 1u : 0u);
     std::string out = Render(run);
+    const std::string top = out.substr(0, out.find('\n'));
     int count = 0;
-    for (std::size_t at = out.find("│"); at != std::string::npos;
-         at = out.find("│", at + 1)) {
+    for (std::size_t at = top.find("│"); at != std::string::npos;
+         at = top.find("│", at + 1)) {
       ++count;
     }
     return count;
   };
-  EXPECT_GT(marks(true), marks(false));
+  EXPECT_EQ(marks(false), 0);
+  EXPECT_EQ(marks(true), 1);
 }
 
 // Two rooms side by side: the player is placed in the arm's and sees only it,
