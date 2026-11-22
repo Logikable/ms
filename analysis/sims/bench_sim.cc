@@ -453,7 +453,7 @@ bool Wear(GameState& state, const std::string& key) {
 
 // Result of one build.
 struct Result {
-  int combat_power = 0;
+  int64_t combat_power = 0;
   double dps = 0.0;
   std::string swing;  // the attack the fight chose against a lone mob
   double swing_seconds = 0.0;
@@ -1043,7 +1043,7 @@ Result Fold(const std::vector<Result>& runs) {
     row.clears += run.clears;
   }
   row.dps = dps / row.runs;
-  row.combat_power = static_cast<int>(power / row.runs);
+  row.combat_power = static_cast<int64_t>(power / row.runs);
   return row;
 }
 

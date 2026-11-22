@@ -737,7 +737,7 @@ bool TuiController::StepComparisonSlot(int step) {
   return true;
 }
 
-std::optional<int> TuiController::CombatPowerDelta(
+std::optional<int64_t> TuiController::CombatPowerDelta(
     const EquipTabItem* item, std::optional<EquipSlot> fallback) const {
   if (item == nullptr) {
     return std::nullopt;
@@ -756,8 +756,8 @@ std::optional<int> TuiController::CombatPowerDelta(
          PowerAt(state_.character, gear);
 }
 
-int TuiController::PowerAt(const CharacterInstance& character,
-                           StatPreset gear) const {
+int64_t TuiController::PowerAt(const CharacterInstance& character,
+                               StatPreset gear) const {
   // The activity the preset stands for, so the Boss tab values a piece by what
   // it is worth against a boss. The third preset belongs to no activity and is
   // treated like the first.
@@ -767,7 +767,7 @@ int TuiController::PowerAt(const CharacterInstance& character,
                           gear);
 }
 
-std::optional<int> TuiController::flame_delta() const {
+std::optional<int64_t> TuiController::flame_delta() const {
   const EquipInstance* item = flame_item();
   const std::optional<FlameLines>& after = flame_panel_.after();
   if (item == nullptr || !after.has_value()) {
@@ -778,7 +778,7 @@ std::optional<int> TuiController::flame_delta() const {
   return RolledDelta(*item, EquipInstance(item->prototype(), rolled));
 }
 
-std::optional<int> TuiController::cube_delta() const {
+std::optional<int64_t> TuiController::cube_delta() const {
   const EquipInstance* item = cube_item();
   const std::optional<Potential>& after = cube_panel_.after();
   if (item == nullptr || !after.has_value()) {
@@ -841,14 +841,15 @@ RunningCombatPower TuiController::familiar_cube_running() const {
     }
   }
   const StatPreset gear = ComparisonPreset();
-  const int start = PowerAt(state_.character.WithFamiliars(book), gear);
+  const int64_t start = PowerAt(state_.character.WithFamiliars(book), gear);
   if (!familiar_cube_panel_.rolled()) {
     return {start, std::nullopt};
   }
   return {start, PowerAt(state_.character, gear) - start};
 }
 
-std::optional<int> TuiController::WornPower(const EquipInstance& item) const {
+std::optional<int64_t> TuiController::WornPower(
+    const EquipInstance& item) const {
   const StatPreset gear =
       subject_.equipped() ? subject_.preset() : ComparisonPreset();
   const EquipSlot slot =
@@ -862,10 +863,10 @@ std::optional<int> TuiController::WornPower(const EquipInstance& item) const {
 
 // Both sides wear the item, so a bag item prices After against Before, not
 // against whatever the slot holds now.
-std::optional<int> TuiController::RolledDelta(
+std::optional<int64_t> TuiController::RolledDelta(
     const EquipInstance& item, const EquipInstance& rolled) const {
-  const std::optional<int> before = WornPower(item);
-  const std::optional<int> after = WornPower(rolled);
+  const std::optional<int64_t> before = WornPower(item);
+  const std::optional<int64_t> after = WornPower(rolled);
   if (!before.has_value() || !after.has_value()) {
     return std::nullopt;
   }
@@ -883,7 +884,7 @@ RunningCombatPower TuiController::RunningFrom(const EquipInstance& start,
   return power;
 }
 
-std::optional<int> TuiController::inspect_delta() const {
+std::optional<int64_t> TuiController::inspect_delta() const {
   // An item already worn would replace itself, and a stackable is never worn.
   // Neither has a number to show.
   if (subject_.equipped()) {
@@ -892,7 +893,7 @@ std::optional<int> TuiController::inspect_delta() const {
   return CombatPowerDelta(inspect_item());
 }
 
-std::optional<int> TuiController::player_item_delta() const {
+std::optional<int64_t> TuiController::player_item_delta() const {
   // Priced into the slot the member wears it in, which is the slot this
   // screen's card opens on; see player_item_comparison.
   return CombatPowerDelta(player_inspect_panel_.selected_item(),

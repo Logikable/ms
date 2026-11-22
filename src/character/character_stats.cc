@@ -1968,9 +1968,9 @@ OffenseStats CharacterOffense(const CharacterInstance& character,
                          /*attack_level=*/0, PassiveOffenseFor(derived));
 }
 
-int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills,
-                         Activity preset, std::optional<StatPreset> gear) {
+int64_t CharacterCombatPower(const CharacterInstance& character,
+                             const std::map<std::string, Skill>& skills,
+                             Activity preset, std::optional<StatPreset> gear) {
   return CombatPower(CharacterOffense(character, skills, preset, gear),
                      preset == Activity::kBossing);
 }
@@ -2065,9 +2065,10 @@ OffenseStats GmsCharacterOffense(const CharacterInstance& character,
   return offense;
 }
 
-int GmsCharacterCombatPower(const CharacterInstance& character,
-                            const std::map<std::string, Skill>& skills,
-                            Activity preset, std::optional<StatPreset> gear) {
+int64_t GmsCharacterCombatPower(const CharacterInstance& character,
+                                const std::map<std::string, Skill>& skills,
+                                Activity preset,
+                                std::optional<StatPreset> gear) {
   return GmsCombatPower(GmsCharacterOffense(character, skills, preset, gear));
 }
 

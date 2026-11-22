@@ -686,24 +686,24 @@ class TuiController {
   // can't fill, or an item already worn in ComparisonPreset(). `fallback` is
   // the slot to compare against until the Equipped card's tab bar is used; if
   // unset, SlotToFill picks, matching Equip.
-  std::optional<int> CombatPowerDelta(
+  std::optional<int64_t> CombatPowerDelta(
       const EquipTabItem* item,
       std::optional<EquipSlot> fallback = std::nullopt) const;
   // The same for whichever item each screen shows.
-  std::optional<int> inspect_delta() const;
+  std::optional<int64_t> inspect_delta() const;
   // How keeping the flaming screen's After would change the player's combat
   // power against the item's lines now, in the slot it is worn in (or would
   // be). Empty with no After, or for an item this character can't wear.
-  std::optional<int> flame_delta() const;
+  std::optional<int64_t> flame_delta() const;
   // The same for the cubing screen's After, on the track the cube rolls.
-  std::optional<int> cube_delta() const;
+  std::optional<int64_t> cube_delta() const;
   // A window that rolls onto the item: the CP it opened on, with the item worn
   // in its slot as it was then, and the change since. Empty while closed.
   RunningCombatPower flame_running() const;
   RunningCombatPower cube_running() const;
   RunningCombatPower soul_running() const;
   RunningCombatPower familiar_cube_running() const;
-  std::optional<int> player_item_delta() const;
+  std::optional<int64_t> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;
@@ -733,14 +733,14 @@ class TuiController {
  private:
   // The CP wearing `item` in the slot the upgrade screen's item is worn in (or
   // would be). Empty for an item this character can't wear.
-  std::optional<int> WornPower(const EquipInstance& item) const;
+  std::optional<int64_t> WornPower(const EquipInstance& item) const;
   // `rolled` against `item`, both worn there.
-  std::optional<int> RolledDelta(const EquipInstance& item,
-                                 const EquipInstance& rolled) const;
+  std::optional<int64_t> RolledDelta(const EquipInstance& item,
+                                     const EquipInstance& rolled) const;
   RunningCombatPower RunningFrom(const EquipInstance& start,
                                  const EquipInstance& now, bool rolled) const;
   // `character`'s shown combat power at gear preset `gear`.
-  int PowerAt(const CharacterInstance& character, StatPreset gear) const;
+  int64_t PowerAt(const CharacterInstance& character, StatPreset gear) const;
   // Moves focus off a panel that isn't shown. The game starts focused on the
   // equipped panel, which a level 1 character doesn't have yet.
   void EnsureFocusIsVisible();

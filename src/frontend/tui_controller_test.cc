@@ -1521,7 +1521,7 @@ TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   EXPECT_EQ(slots.active, 2);
   EXPECT_EQ(controller_->inspect_comparison(), nullptr);
   ASSERT_TRUE(controller_->inspect_delta().has_value());
-  const int into_empty = *controller_->inspect_delta();
+  const int64_t into_empty = *controller_->inspect_delta();
   EXPECT_GT(into_empty, 0);
 
   FocusTheEquippedCard();
@@ -1530,7 +1530,7 @@ TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   EXPECT_EQ(controller_->inspect_comparison(),
             state_->character.WornAt(StatPreset::kFirst, EQUIP_SLOT_RING_2));
   ASSERT_TRUE(controller_->inspect_delta().has_value());
-  const int over_good = *controller_->inspect_delta();
+  const int64_t over_good = *controller_->inspect_delta();
   EXPECT_LT(over_good, 0) << "the Good Ring is the better of the two";
 
   controller_->OnEvent(ftxui::Event::ArrowLeft);
@@ -2368,7 +2368,7 @@ TEST_F(TuiControllerTest, RedCubeDeltaIsEverythingRolledSinceOpening) {
   ASSERT_EQ(cube_panel_.selected_cube(), CubeType::kRed);
   controller_->OnEvent(ftxui::Event::Return);  // the question
   ASSERT_TRUE(controller_->cube_running().start.has_value());
-  const int start = *controller_->cube_running().start;
+  const int64_t start = *controller_->cube_running().start;
   EXPECT_FALSE(controller_->cube_running().delta.has_value()) << "no roll yet";
   controller_->OnEvent(ftxui::Event::Return);  // grants Rare
   for (int i = 0; i < 5; ++i) {
@@ -2393,10 +2393,10 @@ TEST_F(TuiControllerTest, RedCubeDeltaIsEverythingRolledSinceOpening) {
   Equip bare = worn.equip_state();
   bare.clear_main_potential();
   const EquipInstance before(worn.prototype(), bare);
-  const int now =
+  const int64_t now =
       ShownCombatPower(state_->account, state_->character, state_->skills,
                        Activity::kFarming, StatPreset::kFirst);
-  const int then =
+  const int64_t then =
       ShownCombatPower(state_->account,
                        state_->character.Wearing(before, StatPreset::kFirst,
                                                  EQUIP_SLOT_PRIMARY_WEAPON),
@@ -5360,10 +5360,10 @@ TEST_F(FamiliarControllerTest, CubeDeltaIsEverythingRolledSinceOpening) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_TRUE(controller_->familiar_cube_running().delta.has_value());
-  const int now =
+  const int64_t now =
       ShownCombatPower(state_->account, state_->character, state_->skills,
                        Activity::kFarming, StatPreset::kFirst);
-  const int then =
+  const int64_t then =
       ShownCombatPower(state_->account, state_->character.WithFamiliars(opened),
                        state_->skills, Activity::kFarming, StatPreset::kFirst);
   EXPECT_EQ(controller_->familiar_cube_running().start, then);

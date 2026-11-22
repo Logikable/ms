@@ -286,7 +286,7 @@ bool InspectPanel::HasComparisonCard() const {
   return compare_.worn.size() > 1 || Compared() != nullptr;
 }
 
-void InspectPanel::SetCombatPowerDelta(std::optional<int> delta) {
+void InspectPanel::SetCombatPowerDelta(std::optional<int64_t> delta) {
   delta_ = delta;
 }
 

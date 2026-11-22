@@ -776,7 +776,7 @@ std::string WornNames(const GameState& state) {
 }
 
 // The character's current damage against a boss.
-int PowerNow(const GameState& state) {
+int64_t PowerNow(const GameState& state) {
   const Character& proto = state.character.proto();
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
   return CombatPower(
@@ -4649,10 +4649,10 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
       "than ten, and this is where to look.\n\n");
   char held[16];
   FormatShort(static_cast<double>(state.character.meso()), held, sizeof(held));
-  std::printf("%s, Lv%d, %s played, %s meso held, %d CombatPower\n",
+  std::printf("%s, Lv%d, %s played, %s meso held, %lld CombatPower\n",
               BranchName(branch).c_str(), proto.level(),
               Clock(climb.milestones[kNumMilestones - 1].seconds).c_str(), held,
-              PowerNow(state));
+              static_cast<long long>(PowerNow(state)));
   // Both presets: they differ in every lever a fight reads, and quoting the
   // farming preset against bosses makes a branch look ready for fights it can't
   // touch.

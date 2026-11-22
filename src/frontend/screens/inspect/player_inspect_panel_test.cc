@@ -97,7 +97,7 @@ class PlayerInspectPanelTest : public PanelTest {
   // inspect screen computes from the sheet.
   PlayerInfo Member(const std::string& name,
                     const std::vector<EquipPrototype>& items,
-                    int* power = nullptr) {
+                    int64_t* power = nullptr) {
     CharacterInstance them(rng_, Character());
     them.SetUsername(name);
     for (int i = 0; i < 30; ++i) {
@@ -195,7 +195,7 @@ class PlayerInspectPanelTest : public PanelTest {
 // The sheet names its items, the panel looks them up in this build's catalogs,
 // and it draws the member's own main screen.
 TEST_F(PlayerInspectPanelTest, DrawsTheMembersOwnScreen) {
-  int theirs = 0;
+  int64_t theirs = 0;
   PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}, &theirs));
 

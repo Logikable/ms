@@ -303,18 +303,18 @@ ftxui::Element RedUnless(ftxui::Element cell, bool ok);
 
 // A change in combat power, signed and comma-grouped: green for a gain, red for
 // a loss, the plain colour for none.
-ftxui::Element CombatPowerDeltaValue(int delta);
+ftxui::Element CombatPowerDeltaValue(int64_t delta);
 // "CP Δ" at the left edge and the change at the right, the row a choosing
 // reroll draws under After. A dash until there is a roll to price, so the
 // window keeps its height.
-ftxui::Element CombatPowerDeltaRow(std::optional<int> delta);
+ftxui::Element CombatPowerDeltaRow(std::optional<int64_t> delta);
 
 // What a window that rolls onto the item shows under its lines: the CP the
 // question opened on, and the change since, a running total.
 struct RunningCombatPower {
-  std::optional<int> start;
+  std::optional<int64_t> start;
   // Empty until the first roll.
-  std::optional<int> delta;
+  std::optional<int64_t> delta;
 };
 // "Start CP" over "CP Δ", a dash for either that is empty.
 void AppendRunningCombatPower(std::vector<ftxui::Element>& rows,

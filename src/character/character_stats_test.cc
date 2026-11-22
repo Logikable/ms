@@ -4466,7 +4466,7 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   c.set_autoswap_presets(true);
   EquipAttackWeapon(c);
 
-  int baseline = CharacterCombatPower(nothing, {});
+  int64_t baseline = CharacterCombatPower(nothing, {});
   // The same levels on each side, so the two modes come out equal, and both
   // above a character who has spent nothing.
   EXPECT_GT(CharacterCombatPower(c, {}, Activity::kFarming), baseline);
@@ -4508,7 +4508,7 @@ TEST(CharacterCombatPowerTest, ReadsTheGearPresetTheCallerNames) {
   c.PickUp(std::make_unique<EquipInstance>(hat));
   ASSERT_TRUE(c.Equip(c.inventory().size() - 1, kDropPreset));
 
-  const int farming = CharacterCombatPower(c, {}, Activity::kFarming);
+  const int64_t farming = CharacterCombatPower(c, {}, Activity::kFarming);
   EXPECT_EQ(CharacterCombatPower(c, {}, Activity::kFarming, StatPreset::kFirst),
             farming)
       << "naming the preset the activity already names changes nothing";

@@ -30,7 +30,7 @@ class FlamePanel {
   void SetItem(const EquipInstance* item, int64_t meso);
   // What keeping After would do to the player's combat power, shown under it.
   // Empty before a roll, or for an item this character can't wear.
-  void SetCombatPowerDelta(std::optional<int> delta) {
+  void SetCombatPowerDelta(std::optional<int64_t> delta) {
     delta_ = delta;
   }
   // A flame that doesn't choose: the CP under its lines.
@@ -77,7 +77,7 @@ class FlamePanel {
   int64_t meso_ = 0;
   int selected_ = 0;
   std::optional<FlameLines> after_;
-  std::optional<int> delta_;
+  std::optional<int64_t> delta_;
   RunningCombatPower running_;
   // See opened_with.
   std::optional<FlameLines> opened_with_;

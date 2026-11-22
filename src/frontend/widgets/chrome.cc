@@ -717,7 +717,7 @@ ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
   return ok ? cell : std::move(cell) | ftxui::color(kRed);
 }
 
-ftxui::Element CombatPowerDeltaValue(int delta) {
+ftxui::Element CombatPowerDeltaValue(int64_t delta) {
   if (delta == 0) {
     return ftxui::text("0");
   }
@@ -726,7 +726,7 @@ ftxui::Element CombatPowerDeltaValue(int delta) {
          ftxui::color(delta > 0 ? kGreen : kRed);
 }
 
-ftxui::Element CombatPowerDeltaRow(std::optional<int> delta) {
+ftxui::Element CombatPowerDeltaRow(std::optional<int64_t> delta) {
   ftxui::Element value = delta.has_value() ? CombatPowerDeltaValue(*delta)
                                            : ftxui::text("\u2014") | ftxui::dim;
   return ftxui::hbox({ftxui::text(" CP \u0394"), ftxui::filler(),

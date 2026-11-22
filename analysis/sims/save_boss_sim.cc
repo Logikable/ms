@@ -371,7 +371,7 @@ bool PrintShelf(const Catalogs& catalogs, const std::string& path) {
                         PassiveOffenseFor(derived)),
         /*vs_boss=*/true);
   };
-  const int cp = cp_with(EquipStats());
+  const int64_t cp = cp_with(EquipStats());
   std::printf(
       "%s, level %d: %s meso, boss Combat Power %s%s.\n\n", p.name().c_str(),
       p.level(), FormatWithCommas(character.meso()).c_str(),
@@ -387,7 +387,7 @@ bool PrintShelf(const Catalogs& catalogs, const std::string& path) {
     std::string true_cp = "-";
     std::string per_cp = "-";
     if (offer.stats.has_value()) {
-      const int gained = cp_with(*offer.stats) - cp;
+      const int64_t gained = cp_with(*offer.stats) - cp;
       true_cp = absl::StrCat(gained);
       if (gained > 0) {
         per_cp = FormatWithCommas(offer.cost / gained);
@@ -646,7 +646,7 @@ bool PrintGoals(const Catalogs& catalogs, const std::string& path, int runs,
   GearShopper shopper{plan};
   shopper.yardstick().Aim(fight);
   const std::string against = FightName(state, fight);
-  const int start_cp =
+  const int64_t start_cp =
       CharacterCombatPower(state.character, state.skills, Activity::kBossing);
   const double start_dpm = kDpmPerPower * shopper.Power(state);
   const int64_t purse = state.character.meso();

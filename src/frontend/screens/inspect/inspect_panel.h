@@ -91,7 +91,7 @@ class InspectPanel {
   // shown above its required level. Empty, the default, draws neither row,
   // which suits a screen showing an item the player isn't comparing, and is
   // what the Equipped card beside it always gets.
-  void SetCombatPowerDelta(std::optional<int> delta);
+  void SetCombatPowerDelta(std::optional<int64_t> delta);
   // Tells the panel which sets exist and how many pieces of each are worn. If
   // unset, an item is described alone and no set card appears, which suits
   // tests with no sets.
@@ -232,7 +232,7 @@ class InspectPanel {
 
   const EquipTabItem* item_ = nullptr;
   ComparisonSlots compare_;
-  std::optional<int> delta_;
+  std::optional<int64_t> delta_;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;
   StatPreset gear_ = StatPreset::kFirst;
