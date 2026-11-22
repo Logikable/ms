@@ -222,6 +222,7 @@ cc_test(
     deps = [
         ":gear_plan",
         "//analysis:sim_gear",
+        "//analysis:star_force_curve",
         "//src:game_state",
         "//src/character:progression",
         "//src/character:skill_placement",

@@ -18,6 +18,7 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "analysis/plan/cube_plan.h"
@@ -387,9 +388,14 @@ class GearShopper {
   // False if nothing can cover it, which ends the run.
   bool RecoverBoom(GameState& state, StatPreset owner,
                    const EquipPrototype& proto, GearSpend& spend);
+  // Restores each piece waiting_ holds whose copy can now be had.
+  void RecoverWaiting(GameState& state, GearSpend& spend);
 
   GearPlan plan_;
   GearSpend life_;
+  // Pieces a boom destroyed with no copy to restore them, and the preset each
+  // belongs to. Their traces wait in the bag until a copy can be had.
+  std::vector<std::pair<StatPreset, EquipPrototype>> waiting_;
   CubeIncome income_;
   // The best gain per meso off the last shelf, scrolls aside; see ScrollOffer.
   std::optional<double> slot_rate_;

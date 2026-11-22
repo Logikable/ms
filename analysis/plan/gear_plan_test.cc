@@ -8,6 +8,7 @@
 #include <string>
 
 #include "analysis/sim_gear.h"
+#include "analysis/star_force_curve.h"
 #include "src/character/force/symbol.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
@@ -370,10 +371,10 @@ TEST_F(GearPlanTest, AReplacingRunShortOfMesoSettlesForAnyGain) {
   EXPECT_GE(shopper.Power(*state_), before);
 }
 
-// A piece bought with tokens has no shop copy to recover a boom with. With the
-// tokens for a spare in hand, the run past 15 is priced and taken; without
-// them, it stops where booms begin.
-TEST_F(GearPlanTest, TokensForASpareOpenTheRunPastFifteen) {
+// A piece bought with tokens has no shop copy to recover a boom with. Without
+// the tokens for a spare, the run risks one boom, as a player stars a piece
+// with no spare; with them in hand it goes further.
+TEST_F(GearPlanTest, TokensForASpareLengthenTheRunPastFifteen) {
   EquipPrototype weapon = Sword();
   weapon.set_required_level(160);
   weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
@@ -409,9 +410,70 @@ TEST_F(GearPlanTest, TokensForASpareOpenTheRunPastFifteen) {
     }
     return to;
   };
-  EXPECT_EQ(furthest(), 0) << "every star past 15 can boom";
+  const int bare = furthest();
+  EXPECT_GT(bare, 15) << "one boom is risked without a spare";
+  EXPECT_LE(StarForceRunTo(160, 15, bare).booms, 1.0)
+      << "no more than one boom is expected on the way";
   character.AddItem(coin, 5);
-  EXPECT_GT(furthest(), 15);
+  EXPECT_GE(furthest(), bare);
+}
+
+// A boom with no copy leaves the trace in the bag and the slot empty, and the
+// next spend restores the piece once the tokens for a copy arrive.
+TEST_F(GearPlanTest, AnUncoveredBoomWaitsForTheTokens) {
+  EquipPrototype weapon = Sword();
+  weapon.set_required_level(160);
+  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
+  weapon.add_unsupported_upgrades(UPGRADE_CUBE);
+  TokenPrice* price = weapon.add_token_prices();
+  price->set_token_item("coin");
+  price->set_count(5);
+  Grow(200, weapon);
+  CharacterInstance& character = state_->character;
+  ItemPrototype coin;
+  coin.set_name("Coin");
+  coin.set_kind(ITEM_KIND_TOKEN);
+  coin.set_currency_mark("C");
+  state_->items["coin"] = coin;
+  Equip twenty;
+  twenty.set_stars(20);
+  character.PickUp(std::make_unique<EquipInstance>(weapon, twenty));
+  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
+  for (int i = character.inventory().size() - 1; i >= 0; --i) {
+    if (character.inventory().equip_instance(i) != nullptr) {
+      character.SellEquip(i);
+    }
+  }
+  character.AddMeso(1'000'000'000'000'000);
+
+  // Grow wore it on the first preset, which the boss preset inherits.
+  auto worn = [&character]() -> const EquipInstance* {
+    const std::map<EquipSlot, EquipInstance>& own =
+        character.own_gear(kFarmGear);
+    auto it = own.find(EQUIP_SLOT_PRIMARY_WEAPON);
+    return it == own.end() ? nullptr : &it->second;
+  };
+  GearShopper shopper{GearPlan()};
+  GearShopper::Candidate offer;
+  offer.slot = EQUIP_SLOT_PRIMARY_WEAPON;
+  offer.gear = kBossGear;
+  offer.star = true;
+  offer.star_to = 30;
+  GearSpend spend;
+  ASSERT_TRUE(shopper.Buy(*state_, offer, spend));
+  ASSERT_EQ(worn(), nullptr)
+      << "ten stars from 20 with no copy should have boomed";
+  ASSERT_EQ(character.inventory().size(), 1);
+  EXPECT_EQ(character.inventory().equip_instance(0), nullptr)
+      << "the trace waits in the bag";
+
+  character.AddItem(coin, 5);
+  character.SpendMeso(character.meso());  // or it stars the restored piece
+  shopper.Spend(*state_);
+  const EquipInstance* restored = worn();
+  ASSERT_NE(restored, nullptr);
+  EXPECT_EQ(restored->prototype().name(), weapon.name());
+  EXPECT_GE(restored->stars(), EquipInstance::RecoveryStars(20));
 }
 
 // A drop-only piece keeps every spare a boom could use, in the bank rather
@@ -436,7 +498,7 @@ TEST_F(GearPlanTest, SparesOfADropOnlyPieceWaitInTheBank) {
   for (int i = 0; i < 3; ++i) {
     character.PickUp(std::make_unique<EquipInstance>(weapon));
   }
-  character.AddMeso(-character.meso());
+  character.SpendMeso(character.meso());
   GearShopper{GearPlan()}.Spend(*state_);
   EXPECT_EQ(character.inventory().size(), 0);
   int banked = 0;

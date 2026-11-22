@@ -448,9 +448,10 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   if (item == nullptr) {
     return std::nullopt;
   }
-  // Only risk the booms the copies at hand could recover from. The trace a
-  // boom leaves needs a spare copy, and without one the piece is lost.
-  const double copies = CopiesFor(state, item->prototype());
+  // Risk the booms the copies at hand could recover from, and one more, as a
+  // player stars a piece with no spare: the trace that boom leaves waits for
+  // the tokens to buy a copy (see RecoverWaiting).
+  const double copies = CopiesFor(state, item->prototype()) + 1.0;
   const double spare = static_cast<double>(SpareCost(item->prototype()));
   const EquipStats now = item->StarForceStatGains(stars);
   StarRunChoice run = BestStarRun(
@@ -1101,16 +1102,12 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
       // piece, several stars lower with its scrolls intact, and the run
       // continues from there. That loop is what the offer's price solved.
       if (!RecoverBoom(state, owner, proto, spend)) {
+        waiting_.push_back({owner, proto});
         break;
       }
       continue;
     }
     if (item->stars() >= to) {
-      break;
-    }
-    // Never risk a boom with no copy left to rebuild the piece from: the run
-    // ends short instead of losing it.
-    if (CanDestroy(item->stars()) && CopiesFor(state, item->prototype()) < 1) {
       break;
     }
     int64_t attempt =
@@ -1270,6 +1267,16 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
   ++spend.booms;
   // RecoverTrace appends the restored piece, which is what goes back on.
   return state.character.Equip(state.character.inventory().size() - 1, owner);
+}
+
+void GearShopper::RecoverWaiting(GameState& state, GearSpend& spend) {
+  for (auto it = waiting_.begin(); it != waiting_.end();) {
+    if (RecoverBoom(state, it->first, it->second, spend)) {
+      it = waiting_.erase(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
@@ -1472,6 +1479,8 @@ void GearShopper::ApplySouls(GameState& state, GearSpend& spend) {
 GearSpend GearShopper::Spend(GameState& state) {
   GearSpend spend;
   splits_.reset();
+  // Before anything spends the tokens a waiting piece's copy needs.
+  RecoverWaiting(state, spend);
   SellSpares(state, spend);
   ApplySouls(state, spend);
   while (BuyBest(state, spend)) {
