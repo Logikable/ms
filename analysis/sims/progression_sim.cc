@@ -368,7 +368,8 @@ double MesoPerDamage(const GameState& state, const DropBasis& basis,
 // Meso per second the character earns on the map, counting damage and the drop
 // and meso levers. It ignores the respawn cap; BuffYield handles that with a
 // played fight.
-double CrowdRateOver(GameState& state, const DropBasis& basis, double seconds) {
+double CrowdRateOver(const GameState& state, const DropBasis& basis,
+                     double seconds) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
     return 0.0;
@@ -388,7 +389,7 @@ double CrowdRateOver(GameState& state, const DropBasis& basis, double seconds) {
          (1.0 + MesoBonus(derived)) * derived.meso_final_mult;
 }
 
-double CrowdRate(GameState& state, const DropBasis& basis) {
+double CrowdRate(const GameState& state, const DropBasis& basis) {
   return CrowdRateOver(state, basis, kBookSeconds);
 }
 
@@ -424,13 +425,14 @@ double BossPayout(const GameState& state, const DropBasis& basis,
 
 // Meso per second from the target fight: a clear's payout over how long it
 // takes. In meso, like the crowd rate, so the book can weigh the two.
-double BossRateOver(GameState& state, const DropBasis& basis, double seconds) {
+double BossRateOver(const GameState& state, const DropBasis& basis,
+                    double seconds) {
   std::pair<std::string, int> fight;
   if (!AimedFight(state, &fight)) {
     return 0.0;
   }
   const BossDifficulty& difficulty =
-      state.bosses[fight.first].difficulties(fight.second);
+      state.bosses.at(fight.first).difficulties(fight.second);
   int phase = BossObjectivePhase(state.mobs, difficulty);
   CombatParams params =
       ComputeBossParams(state, fight.first, difficulty, phase);
@@ -449,7 +451,7 @@ double BossRateOver(GameState& state, const DropBasis& basis, double seconds) {
   return BossPayout(state, basis, difficulty, drop_pct) * dps / body;
 }
 
-double BossRate(GameState& state, const DropBasis& basis) {
+double BossRate(const GameState& state, const DropBasis& basis) {
   return BossRateOver(state, basis, kBookSeconds);
 }
 
@@ -457,9 +459,14 @@ double BossRate(GameState& state, const DropBasis& basis) {
 // reaches Hilla with nothing that kills her. The geometric mean, not a sum, so
 // a build that can't hurt a boss can't score on the map alone. If one rate has
 // nothing to measure, the other is used alone.
-double BookRate(GameState& state, const DropBasis& basis) {
-  double crowd = CrowdRate(state, basis);
-  double boss = BossRate(state, basis);
+double BookRate(const GameState& state, const DropBasis& basis) {
+  // Two fights that only read the character, so they're played side by side.
+  double rates[2] = {0.0, 0.0};
+  ParallelFor(2, [&](int i) {
+    rates[i] = i == 0 ? CrowdRate(state, basis) : BossRate(state, basis);
+  });
+  const double crowd = rates[0];
+  const double boss = rates[1];
   if (crowd <= 0.0) {
     return boss;
   }
@@ -2668,8 +2675,13 @@ double AltWorth(Session& run, const DropBasis& basis, const AltStep& step,
   AltLevels with = run.alts;
   with[step.line] = step.level;
   WearAlts(run.state, with);
-  double rate_after = FarmRate(run, basis);
-  double boss_after = BossRateOver(run.state, basis, kBookSeconds);
+  double after[2] = {0.0, 0.0};
+  ParallelFor(2, [&](int i) {
+    after[i] = i == 0 ? FarmRate(run, basis)
+                      : BossRateOver(run.state, basis, kBookSeconds);
+  });
+  const double rate_after = after[0];
+  const double boss_after = after[1];
   WearAlts(run.state, run.alts);
 
   double kept = static_cast<double>(std::max<int64_t>(0, step.meso));

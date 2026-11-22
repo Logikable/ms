@@ -31,6 +31,41 @@
 #include "src/spawn.h"
 
 namespace ms {
+// Finds a skill by display name the way a scan of the catalog in key order
+// would, keeping the first of any it shares a name with, and remembers each
+// answer: a pulse paced by another skill asks once per buff combination, and
+// the scan was a tenth of building an attack set.
+class SkillFinder {
+ public:
+  SkillFinder() = default;
+  explicit SkillFinder(const std::map<std::string, Skill>& skills)
+      : skills_(&skills) {
+  }
+
+  const Skill* Find(const std::string& name) const {
+    std::map<std::string, const Skill*>::const_iterator held =
+        found_.find(name);
+    if (held != found_.end()) {
+      return held->second;
+    }
+    const Skill* match = nullptr;
+    if (skills_ != nullptr) {
+      for (const std::pair<const std::string, Skill>& entry : *skills_) {
+        if (entry.second.name() == name) {
+          match = &entry.second;
+          break;
+        }
+      }
+    }
+    found_.emplace(name, match);
+    return match;
+  }
+
+ private:
+  const std::map<std::string, Skill>* skills_ = nullptr;
+  mutable std::map<std::string, const Skill*> found_;
+};
+
 namespace {
 
 // How often the front mob hits the player, before game-speed scaling. This is
@@ -875,23 +910,19 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
 
 // How often a pulse fires: its own interval, or the attack speed of the skill
 // it's attached to.
-double PulseIntervalSeconds(const BuffPulse& pulse,
-                            const std::map<std::string, Skill>& skills,
+double PulseIntervalSeconds(const BuffPulse& pulse, const SkillFinder& skills,
                             int attack_speed, double speed_factor) {
   if (pulse.paced_by_skill_name().empty()) {
     return pulse.cast_interval_seconds() * speed_factor;
   }
-  for (const std::pair<const std::string, Skill>& entry : skills) {
-    const Skill& ridden = entry.second;
-    if (ridden.name() != pulse.paced_by_skill_name()) {
-      continue;
-    }
-    int delay_ms = ridden.base_delay_ms() > 0 ? ridden.base_delay_ms()
-                                              : kDefaultSwingDelayMs;
-    int stage = ridden.fixed_delay() ? kUnscaledAttackSpeedStage : attack_speed;
-    return SwingIntervalSeconds(delay_ms, stage) * speed_factor;
+  const Skill* ridden = skills.Find(pulse.paced_by_skill_name());
+  if (ridden == nullptr) {
+    return 0.0;
   }
-  return 0.0;
+  int delay_ms = ridden->base_delay_ms() > 0 ? ridden->base_delay_ms()
+                                             : kDefaultSwingDelayMs;
+  int stage = ridden->fixed_delay() ? kUnscaledAttackSpeedStage : attack_speed;
+  return SwingIntervalSeconds(delay_ms, stage) * speed_factor;
 }
 
 // The turret's final shot as a skill of its own. It keeps the pulse's bonuses
@@ -916,10 +947,10 @@ Skill FinalStrikeSkill(const Skill& bleed, const SwingHit& burst) {
 void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill,
                   const BuffPulse& pulse, int stance, int level,
-                  const DerivedStats& derived,
-                  const std::map<std::string, Skill>& skills, int attack_speed,
-                  double speed_factor, const std::vector<CombatType>& types,
-                  double start_delay, AttackSet& set) {
+                  const DerivedStats& derived, const SkillFinder& skills,
+                  int attack_speed, double speed_factor,
+                  const std::vector<CombatType>& types, double start_delay,
+                  AttackSet& set) {
   double interval =
       PulseIntervalSeconds(pulse, skills, attack_speed, speed_factor);
   if (interval <= 0.0) {
@@ -1002,10 +1033,9 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
 // skills have none.
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill, int level,
-                  const DerivedStats& derived,
-                  const std::map<std::string, Skill>& skills, int attack_speed,
-                  double speed_factor, const std::vector<CombatType>& types,
-                  AttackSet& set) {
+                  const DerivedStats& derived, const SkillFinder& skills,
+                  int attack_speed, double speed_factor,
+                  const std::vector<CombatType>& types, AttackSet& set) {
   for (const AutoMode& mode : skill.auto_mode()) {
     if (mode.cast_interval_seconds() <= 0.0 && mode.attacks_per_cast() <= 0) {
       continue;
@@ -1092,6 +1122,8 @@ struct LearnedBook {
   };
   Activity activity = Activity::kFarming;
   std::map<std::string, SkillBoosts> boosts;
+  // The catalog, for the skills a pulse is paced by.
+  SkillFinder finder;
   // Every skill with a level, in book order.
   std::vector<Entry> learned;
   // The character's line's copy of each learned skill with a line override
@@ -1171,6 +1203,7 @@ const Skill& Boosted(const Skill& skill, int level,
 LearnedBook LearnBook(const GameState& state, Activity activity) {
   LearnedBook book;
   book.activity = activity;
+  book.finder = SkillFinder(state.skills);
   int bonus = BonusSkillLevels(state.character, state.skills);
   book.boosts = BoostsByTarget(state.character, state.skills, bonus, activity);
   std::set<std::string> superseded =
@@ -1559,7 +1592,7 @@ void AddAttacks(const GameState& state, const LearnedBook& book,
     // anything, so everything below sees one skill.
     const Skill& swung = *entry.swung;
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
-                 state.skills, attack_speed, speed_factor, types, set);
+                 book.finder, attack_speed, speed_factor, types, set);
     // Skills that can't be used as an attack stop here. Their auto-firing parts
     // were already added, which is all an aura does.
     if (!Castable(swung)) {
