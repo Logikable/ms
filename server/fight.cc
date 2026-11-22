@@ -172,8 +172,20 @@ void PartyFight::RunRules() {
   const double now = FightSeconds();
   std::vector<bool> alive = SlotsAlive();
   std::vector<double> gained =
-      ShieldsBetween(*current, spawn_of_slot_, alive, shields_until_, now);
+      ShieldsBetween(*current, spawn_of_slot_, alive, shields_left_,
+                     phase_began_at_, shields_until_, now);
+  std::vector<bool> ending = SelfShieldsEnding(
+      *current, spawn_of_slot_, phase_began_at_, shields_until_, now);
   shields_until_ = now;
+  for (std::size_t slot = 0; slot < ending.size(); ++slot) {
+    if (!ending[slot] || hp_[slot] <= 0.0) {
+      continue;
+    }
+    hp_[slot] = std::min(max_hp_[slot], hp_[slot] + shield_hp_[slot]);
+    hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+    shield_hp_[slot] = 0.0;
+    shields_left_[slot] = 0.0;
+  }
   AdvanceGuards(*current, spawn_of_slot_, hp_fractions_, now, guards_);
   for (std::size_t slot = 0; slot < gained.size(); ++slot) {
     if (gained[slot] <= 0.0) {

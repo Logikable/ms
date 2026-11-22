@@ -455,6 +455,40 @@ TEST(BossRunTest, ALoneBossOutOfReachWaitsOutItsWindow) {
   EXPECT_LT(run.slots()[0].hp_fraction, before) << "hits resume once it's back";
 }
 
+// Seren's Dawn shield rises as the heading turns to Dawn, in the phase after
+// a gap, and what holds at its end heals her.
+TEST(BossRunTest, AFormsShieldRisesWithItsForm) {
+  std::unique_ptr<GameState> state = MakeState(1, 1);
+  state->mobs["body"].set_max_hp(int64_t{1} << 40);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* second = boss.mutable_difficulties(0)->mutable_phases(1);
+  for (const char* name : {"Noon", "Dawn"}) {
+    PhaseForm* form = second->add_forms();
+    form->set_name(name);
+    form->set_seconds(5);
+  }
+  SelfShield* shield = second->mutable_spawns(0)->mutable_self_shield();
+  shield->set_percent(50);
+  shield->set_form("Dawn");
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  bool shielded_before_dawn = false;
+  bool shielded_in_dawn = false;
+  for (int i = 0; i < 400 && !run.done(); ++i) {
+    run.Advance(*state, 0.03);
+    if (run.phase() != 2 || run.slots().empty()) {
+      continue;
+    }
+    const PhaseForm* form = run.current_form();
+    const bool dawn = form != nullptr && form->name() == "Dawn";
+    const bool shielded = run.slots()[0].shield_fraction > 0.0;
+    shielded_before_dawn = shielded_before_dawn || (shielded && !dawn);
+    shielded_in_dawn = shielded_in_dawn || (shielded && dawn);
+  }
+  EXPECT_TRUE(shielded_in_dawn);
+  EXPECT_FALSE(shielded_before_dawn);
+}
+
 // Lotus walks his row and, on the teleport's own beat, blinks over the player.
 TEST(BossRunTest, ATeleportBlinksOverThePlayerBetweenSteps) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);

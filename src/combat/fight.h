@@ -53,6 +53,8 @@ class CombatSim {
   // it has: hits take the shield before its HP. Returns false if it isn't
   // standing.
   bool AddShield(const CombatParams& params, int id, double fraction);
+  // Turns what is left of monster `id`'s shield into HP, up to its max.
+  void HealShield(const CombatParams& params, int id);
   // Brings back monster `id` of type `type` at `hp_fraction`, for a party fight
   // whose server says a monster this client reaped still stands: a shield
   // landed before the killing blow reached it. Does nothing if it stands.

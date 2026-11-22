@@ -614,6 +614,30 @@ TEST(FightRulesTest, TheServerOpensAGuardAtItsHpMark) {
   EXPECT_LT(fight.guards()[1].opened_at, 0.0) << "an unguarded slot";
 }
 
+// Lotus's shield: what holds when it ends heals him, up to his max.
+TEST(FightRulesTest, ASelfShieldsLeftoverHealsWhenItEnds) {
+  Boss boss = Rooms();
+  SelfShield* shield = boss.mutable_difficulties(0)
+                           ->mutable_phases(0)
+                           ->mutable_spawns(0)
+                           ->mutable_self_shield();
+  shield->set_percent(10);
+  shield->set_interval_ms(5000);
+  shield->set_duration_ms(2000);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Advance(1.0);
+  fight.Hit("one", 0, 20);
+  fight.Advance(4.5);
+  EXPECT_DOUBLE_EQ(fight.shields_left()[0], 0.1);
+  fight.Hit("one", 0, 4);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.8);
+  fight.Advance(2.0);
+  EXPECT_DOUBLE_EQ(fight.shields_left()[0], 0.0);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.86);
+}
+
 TEST(FightRulesTest, AShieldSoaksHitsAndIsSentOn) {
   Boss boss = Rooms();
   SpawnShield* shield = boss.mutable_difficulties(0)

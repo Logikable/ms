@@ -45,8 +45,8 @@ TEST(PhaseRulesTest, ASpotsZoneIsTheOneListingIt) {
 
 TEST(PhaseRulesTest, APlayerReachesTheBossAndOnlyTheirZonesPeril) {
   BossPhase phase = LastPhase();
-  std::vector<SlotRule> rules =
-      SlotRules(phase, kSlots, {true, true, true, true}, {}, 10.0, 0.0, 2, {2});
+  std::vector<SlotRule> rules = SlotRules(
+      phase, kSlots, {true, true, true, true}, {}, {}, 10.0, 0.0, 2, {2});
   EXPECT_TRUE(rules[0].reachable);
   EXPECT_FALSE(rules[1].reachable);
   EXPECT_TRUE(rules[2].reachable);
@@ -66,9 +66,9 @@ TEST(PhaseRulesTest, ACrowdedZoneHalvesItsPerilOnly) {
   BossPhase phase = LastPhase();
   std::vector<bool> alive = {true, true, true, true};
   std::vector<SlotRule> crowded =
-      SlotRules(phase, kSlots, alive, {}, 0.0, 0.0, 0, {0, 1, 6});
+      SlotRules(phase, kSlots, alive, {}, {}, 0.0, 0.0, 0, {0, 1, 6});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 1.0);
-  crowded = SlotRules(phase, kSlots, alive, {}, 0.0, 0.0, 0, {0, 1, 0});
+  crowded = SlotRules(phase, kSlots, alive, {}, {}, 0.0, 0.0, 0, {0, 1, 0});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 0.5);
   EXPECT_DOUBLE_EQ(crowded[0].damage_taken, 1.0);
 }
@@ -87,7 +87,7 @@ TEST(PhaseRulesTest, AnInvulnerableWindowOpensEachIntervalForItsLength) {
   BossPhase phase;
   *phase.add_spawns() = hundun;
   EXPECT_FALSE(
-      SlotRules(phase, {0}, {true}, {}, 61.0, 0.0, -1, {})[0].reachable);
+      SlotRules(phase, {0}, {true}, {}, {}, 61.0, 0.0, -1, {})[0].reachable);
 }
 
 // Hard Lucid can't be hit while she enters her last phase, from whenever it
@@ -104,7 +104,7 @@ TEST(PhaseRulesTest, AnEntryWindowCountsFromThePhasesStart) {
   *phase.add_spawns() = lucid;
   EXPECT_TRUE(HasSlotRules(phase));
   EXPECT_FALSE(
-      SlotRules(phase, {0}, {true}, {}, 302.0, 300.0, -1, {})[0].reachable);
+      SlotRules(phase, {0}, {true}, {}, {}, 302.0, 300.0, -1, {})[0].reachable);
 }
 
 // Gloom's guard: up but for 30s from each strike, which comes every 55s from
@@ -125,12 +125,14 @@ TEST(PhaseRulesTest, AGuardCutsHitsUntilItsIntervalOpensIt) {
   std::vector<GuardState> guards;
   AdvanceGuards(phase, {0}, {1.0}, 54.0, guards);
   EXPECT_DOUBLE_EQ(
-      SlotRules(phase, {0}, {true}, guards, 54.0, 0.0, -1, {})[0].damage_taken,
+      SlotRules(phase, {0}, {true}, guards, {}, 54.0, 0.0, -1, {})[0]
+          .damage_taken,
       0.1);
   AdvanceGuards(phase, {0}, {1.0}, 56.0, guards);
   EXPECT_DOUBLE_EQ(guards[0].opened_at, 55.0);
   EXPECT_DOUBLE_EQ(
-      SlotRules(phase, {0}, {true}, guards, 56.0, 0.0, -1, {})[0].damage_taken,
+      SlotRules(phase, {0}, {true}, guards, {}, 56.0, 0.0, -1, {})[0]
+          .damage_taken,
       1.0);
   EXPECT_TRUE(GuardOpen(phase.spawns(0).guard(), 55.0, 84.9));
   EXPECT_FALSE(GuardOpen(phase.spawns(0).guard(), 55.0, 85.0));
@@ -176,14 +178,76 @@ TEST(PhaseRulesTest, ALivingGiverShieldsTheMobsItNamesOnItsClock) {
   const std::vector<int> slots = {0, 1, 2};
 
   std::vector<double> gained =
-      ShieldsBetween(phase, slots, {true, true, true}, 40.0, 91.0);
+      ShieldsBetween(phase, slots, {true, true, true}, {}, 0.0, 40.0, 91.0);
   EXPECT_DOUBLE_EQ(gained[0], 0.0);
   EXPECT_DOUBLE_EQ(gained[1], 0.02);
   EXPECT_DOUBLE_EQ(gained[2], 0.0);
   EXPECT_DOUBLE_EQ(
-      ShieldsBetween(phase, slots, {false, true, true}, 40.0, 91.0)[1], 0.0);
+      ShieldsBetween(phase, slots, {false, true, true}, {}, 0.0, 40.0, 91.0)[1],
+      0.0);
   EXPECT_DOUBLE_EQ(
-      ShieldsBetween(phase, slots, {true, true, true}, 45.0, 89.0)[1], 0.0);
+      ShieldsBetween(phase, slots, {true, true, true}, {}, 0.0, 45.0, 89.0)[1],
+      0.0);
+}
+
+// Lotus: 0.5% every 40s for 20s, hits cut to 10% while it holds.
+TEST(PhaseRulesTest, ASelfShieldRisesOnItsClockAndCutsHitsWhileItHolds) {
+  BossPhase phase;
+  SelfShield* shield = phase.add_spawns()->mutable_self_shield();
+  shield->set_percent(0.5);
+  shield->set_interval_ms(40000);
+  shield->set_duration_ms(20000);
+  shield->set_damage_pct(10);
+  EXPECT_DOUBLE_EQ(ShieldsBetween(phase, {0}, {true}, {0.0}, 0.0, 0.0, 39.0)[0],
+                   0.0);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.0}, 0.0, 39.0, 41.0)[0], 0.005);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.0}, 0.0, 79.0, 81.0)[0], 0.005);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {false}, {0.0}, 0.0, 79.0, 81.0)[0], 0.0);
+  EXPECT_FALSE(SelfShieldsEnding(phase, {0}, 0.0, 41.0, 59.0)[0]);
+  EXPECT_TRUE(SelfShieldsEnding(phase, {0}, 0.0, 59.0, 61.0)[0]);
+  EXPECT_DOUBLE_EQ(
+      SlotRules(phase, {0}, {true}, {}, {0.004}, 45.0, 0.0, -1, {})[0]
+          .damage_taken,
+      0.1);
+  EXPECT_DOUBLE_EQ(
+      SlotRules(phase, {0}, {true}, {}, {0.0}, 45.0, 0.0, -1, {})[0]
+          .damage_taken,
+      1.0)
+      << "broken";
+}
+
+// Seren: 10% as Dawn begins, growing while it holds, ended with Dawn.
+TEST(PhaseRulesTest, AFormsShieldFollowsThePhasesOwnClock) {
+  BossPhase phase;
+  for (const auto& [name, seconds] :
+       std::vector<std::pair<std::string, int>>{{"Noon", 120}, {"Dawn", 130}}) {
+    PhaseForm* form = phase.add_forms();
+    form->set_name(name);
+    form->set_seconds(seconds);
+  }
+  SelfShield* shield = phase.add_spawns()->mutable_self_shield();
+  shield->set_percent(10);
+  shield->set_form("Dawn");
+  shield->set_percent_per_second(0.02);
+  // The phase began at 100, so Dawn holds from 220 to 350, then 470 to 600.
+  std::vector<ShieldSpan> spans =
+      SelfShieldSpans(phase, *shield, 100.0, 0.0, 500.0);
+  ASSERT_EQ(spans.size(), 2u);
+  EXPECT_DOUBLE_EQ(spans[0].start, 220.0);
+  EXPECT_DOUBLE_EQ(spans[0].end, 350.0);
+  EXPECT_DOUBLE_EQ(spans[1].start, 470.0);
+  EXPECT_NEAR(ShieldsBetween(phase, {0}, {true}, {0.0}, 100.0, 219.0, 221.0)[0],
+              0.1 + 0.0002, 1e-12);
+  EXPECT_NEAR(
+      ShieldsBetween(phase, {0}, {true}, {0.05}, 100.0, 300.0, 310.0)[0], 0.002,
+      1e-12);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.0}, 100.0, 300.0, 310.0)[0], 0.0)
+      << "a broken shield stops growing";
+  EXPECT_TRUE(SelfShieldsEnding(phase, {0}, 100.0, 349.0, 351.0)[0]);
 }
 
 }  // namespace

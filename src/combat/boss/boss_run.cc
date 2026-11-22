@@ -822,7 +822,7 @@ std::vector<bool> BossRun::SlotsAlive() const {
   return alive;
 }
 
-std::vector<double> BossRun::SlotHpFractions(const CombatParams& params) const {
+std::vector<double> BossRun::SlotHpFractions() const {
   std::vector<double> hp(mob_of_slot_.size(), 0.0);
   for (const MobStatus& mob : sim_.view().roster) {
     std::map<int, int>::const_iterator slot = slot_of_mob_.find(mob.id);
@@ -831,6 +831,17 @@ std::vector<double> BossRun::SlotHpFractions(const CombatParams& params) const {
     }
   }
   return hp;
+}
+
+std::vector<double> BossRun::SlotShieldFractions() const {
+  std::vector<double> shield(mob_of_slot_.size(), 0.0);
+  for (const MobStatus& mob : sim_.view().roster) {
+    std::map<int, int>::const_iterator slot = slot_of_mob_.find(mob.id);
+    if (slot != slot_of_mob_.end()) {
+      shield[slot->second] = mob.shield_fraction;
+    }
+  }
+  return shield;
 }
 
 double BossRun::GuardOpenedAt() const {
@@ -931,21 +942,31 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
   // A party's server gives the shields and says so; see RunSharedPhase.
   if (authority_ == nullptr) {
     std::vector<double> gained =
-        ShieldsBetween(*phase, slot_spawns_, alive, shields_until_, now);
+        ShieldsBetween(*phase, slot_spawns_, alive, SlotShieldFractions(),
+                       phase_began_at_, shields_until_, now);
     for (std::size_t slot = 0; slot < gained.size(); ++slot) {
       if (gained[slot] > 0.0) {
         sim_.AddShield(params, mob_of_slot_[slot], gained[slot]);
       }
     }
   }
+  // Each side heals its own leftover, so this copy never gets ahead of the
+  // server's HP.
+  std::vector<bool> ending = SelfShieldsEnding(
+      *phase, slot_spawns_, phase_began_at_, shields_until_, now);
+  for (std::size_t slot = 0; slot < ending.size(); ++slot) {
+    if (ending[slot]) {
+      sim_.HealShield(params, mob_of_slot_[slot]);
+    }
+  }
   shields_until_ = now;
   // A party's server owns the guards too; see TakeShared.
   if (authority_ == nullptr) {
-    AdvanceGuards(*phase, slot_spawns_, SlotHpFractions(params), now, guards_);
+    AdvanceGuards(*phase, slot_spawns_, SlotHpFractions(), now, guards_);
   }
   std::vector<SlotRule> rules =
-      SlotRules(*phase, slot_spawns_, alive, guards_, now, phase_began_at_,
-                player_at_, PartySpots());
+      SlotRules(*phase, slot_spawns_, alive, guards_, SlotShieldFractions(),
+                now, phase_began_at_, player_at_, PartySpots());
   std::map<int, MobRule> by_id;
   for (std::size_t slot = 0; slot < rules.size(); ++slot) {
     by_id[mob_of_slot_[slot]] = {

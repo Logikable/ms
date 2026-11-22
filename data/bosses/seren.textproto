@@ -39,6 +39,13 @@ difficulties {
         range: RANGE_ROW_STEP
         dash { interval_ms: 30000 cells: 4 step_ms: 120 }
       }
+      # Dawn raises a shield of 10% of her HP that grows 0.0192% / 0.024% a
+      # second (Normal / Hard); what holds as Noon returns heals her (namu).
+      self_shield {
+        percent: 10
+        form: "Dawn"
+        percent_per_second: 0.0192
+      }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -126,6 +133,11 @@ difficulties {
         interval_ms: 10000
         range: RANGE_ROW_STEP
         dash { interval_ms: 30000 cells: 4 step_ms: 120 }
+      }
+      self_shield {
+        percent: 10
+        form: "Dawn"
+        percent_per_second: 0.024
       }
     }
     player_spots { x: 4 y: 5 }

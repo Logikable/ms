@@ -171,6 +171,8 @@ message Spawn {
   int32 entry_invulnerable_ms = 12;
   // Cuts every hit on it except while it is open.
   SpawnGuard guard = 13;
+  // A shield it raises over itself on its own clock.
+  SelfShield self_shield = 14;
 }
 
 // A span that opens every `interval_ms` of fight time, measured from the end
@@ -193,6 +195,25 @@ message SpawnGuard {
   // highest first, and the next opening is one interval after that. One
   // reached while it is already open is spent.
   repeated int32 hp_opens = 4;
+}
+
+// A shield a monster raises over itself, soaking hits before its HP; what is
+// left when it ends heals it, up to its max HP. GMS's Lotus raises 0.5% of his
+// HP every 40s for 20s and takes 90% less while it holds; Chosen Seren raises
+// 10% as Dawn begins and it grows until Noon.
+message SelfShield {
+  // Percent of max HP raised, fractions allowed.
+  double percent = 1;
+  // Raised every `interval_ms` of fight time, the first one interval after the
+  // countdown, and ended `duration_ms` later.
+  int32 interval_ms = 2;
+  int32 duration_ms = 3;
+  // Or raised as the phase's form of this name begins, and ended with it.
+  string form = 4;
+  // Percent of max HP it grows by each second it holds.
+  double percent_per_second = 5;
+  // Hits deal this percent while it holds; 0 means it doesn't cut them.
+  int32 damage_pct = 6;
 }
 
 // Every `interval_ms` of fight time, measured from the end of the countdown,

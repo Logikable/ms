@@ -37,7 +37,8 @@ bool HasSlotRules(const BossPhase& phase) {
   for (const Spawn& spawn : phase.spawns()) {
     if (spawn.zone() != 0 || spawn.has_invulnerable() ||
         !spawn.hp_steps().empty() || spawn.has_shield() ||
-        spawn.entry_invulnerable_ms() > 0 || spawn.has_guard()) {
+        spawn.entry_invulnerable_ms() > 0 || spawn.has_guard() ||
+        spawn.has_self_shield()) {
       return true;
     }
   }
@@ -123,6 +124,59 @@ double PhaseGuardOpenedAt(const BossPhase& phase,
   return -1.0;
 }
 
+std::vector<ShieldSpan> SelfShieldSpans(const BossPhase& phase,
+                                        const SelfShield& shield,
+                                        double phase_began, double from,
+                                        double to) {
+  std::vector<ShieldSpan> spans;
+  double anchor = 0.0;
+  double period = 0.0;
+  double offset = 0.0;
+  double length = 0.0;
+  // The first span: one interval in for a clock, the first time round for a
+  // form.
+  int first = 0;
+  if (!shield.form().empty()) {
+    double cycle = 0.0;
+    bool found = false;
+    for (const PhaseForm& form : phase.forms()) {
+      if (!found && form.name() == shield.form()) {
+        offset = cycle;
+        length = std::max(0, form.seconds());
+        found = true;
+      }
+      cycle += std::max(0, form.seconds());
+    }
+    if (!found || cycle <= 0.0 || length <= 0.0) {
+      return spans;
+    }
+    anchor = phase_began;
+    period = cycle;
+  } else {
+    if (shield.interval_ms() <= 0 || shield.duration_ms() <= 0) {
+      return spans;
+    }
+    period = shield.interval_ms() / 1000.0;
+    length = shield.duration_ms() / 1000.0;
+    first = 1;
+  }
+  int k = std::max(
+      first,
+      static_cast<int>(std::floor((from - anchor - offset - length) / period)));
+  for (;; ++k) {
+    ShieldSpan span;
+    span.start = anchor + offset + k * period;
+    span.end = span.start + length;
+    if (span.start > to) {
+      break;
+    }
+    if (span.end >= from) {
+      spans.push_back(span);
+    }
+  }
+  return spans;
+}
+
 double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
                const std::vector<bool>& alive, int slot) {
   const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
@@ -140,6 +194,7 @@ std::vector<SlotRule> SlotRules(const BossPhase& phase,
                                 const std::vector<int>& slot_spawns,
                                 const std::vector<bool>& alive,
                                 const std::vector<GuardState>& guards,
+                                const std::vector<double>& shields_left,
                                 double fight_seconds, double phase_began,
                                 int spot, const std::vector<int>& spots) {
   const int zone = ZoneOfSpot(phase, spot);
@@ -167,6 +222,11 @@ std::vector<SlotRule> SlotRules(const BossPhase& phase,
         !GuardOpen(spawn->guard(), opened_at, fight_seconds)) {
       rule.damage_taken *= spawn->guard().damage_pct() / 100.0;
     }
+    if (spawn->self_shield().damage_pct() > 0 &&
+        slot < static_cast<int>(shields_left.size()) &&
+        shields_left[slot] > 0.0) {
+      rule.damage_taken *= spawn->self_shield().damage_pct() / 100.0;
+    }
     rule.hp_floor = HpFloor(phase, slot_spawns, alive, slot);
   }
   return rules;
@@ -174,9 +234,31 @@ std::vector<SlotRule> SlotRules(const BossPhase& phase,
 
 std::vector<double> ShieldsBetween(const BossPhase& phase,
                                    const std::vector<int>& slot_spawns,
-                                   const std::vector<bool>& alive, double from,
-                                   double to) {
+                                   const std::vector<bool>& alive,
+                                   const std::vector<double>& shields_left,
+                                   double phase_began, double from, double to) {
   std::vector<double> gained(slot_spawns.size(), 0.0);
+  for (int slot = 0; slot < static_cast<int>(slot_spawns.size()); ++slot) {
+    const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
+    if (spawn == nullptr || !spawn->has_self_shield() ||
+        slot >= static_cast<int>(alive.size()) || !alive[slot] || to <= from) {
+      continue;
+    }
+    const SelfShield& shield = spawn->self_shield();
+    bool holds = slot < static_cast<int>(shields_left.size()) &&
+                 shields_left[slot] > 0.0;
+    for (const ShieldSpan& span :
+         SelfShieldSpans(phase, shield, phase_began, from, to)) {
+      if (span.start > from && span.start <= to) {
+        gained[slot] += shield.percent() / 100.0;
+        holds = true;
+      }
+      double overlap = std::min(to, span.end) - std::max(from, span.start);
+      if (holds && overlap > 0.0) {
+        gained[slot] += overlap * shield.percent_per_second() / 100.0;
+      }
+    }
+  }
   for (int giver = 0; giver < static_cast<int>(slot_spawns.size()); ++giver) {
     const Spawn* spawn = SpawnOf(phase, slot_spawns, giver);
     if (spawn == nullptr || giver >= static_cast<int>(alive.size()) ||
@@ -200,6 +282,24 @@ std::vector<double> ShieldsBetween(const BossPhase& phase,
     }
   }
   return gained;
+}
+
+std::vector<bool> SelfShieldsEnding(const BossPhase& phase,
+                                    const std::vector<int>& slot_spawns,
+                                    double phase_began, double from,
+                                    double to) {
+  std::vector<bool> ending(slot_spawns.size(), false);
+  for (int slot = 0; slot < static_cast<int>(slot_spawns.size()); ++slot) {
+    const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
+    if (spawn == nullptr || !spawn->has_self_shield() || to <= from) {
+      continue;
+    }
+    for (const ShieldSpan& span :
+         SelfShieldSpans(phase, spawn->self_shield(), phase_began, from, to)) {
+      ending[slot] = ending[slot] || (span.end > from && span.end <= to);
+    }
+  }
+  return ending;
 }
 
 }  // namespace ms

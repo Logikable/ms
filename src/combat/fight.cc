@@ -1511,6 +1511,19 @@ bool CombatSim::AddShield(const CombatParams& params, int id, double fraction) {
   return false;
 }
 
+void CombatSim::HealShield(const CombatParams& params, int id) {
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (QueuedMob& mob : *mobs) {
+      if (mob.id == id && mob.shield > 0.0) {
+        mob.hp = std::min(mob.max_hp, mob.hp + mob.shield);
+        mob.shield = 0.0;
+        PublishRoster(params);
+        return;
+      }
+    }
+  }
+}
+
 void CombatSim::Revive(const CombatParams& params, int id, int type,
                        double hp_fraction) {
   if (type < 0 || type >= static_cast<int>(params.types.size()) ||

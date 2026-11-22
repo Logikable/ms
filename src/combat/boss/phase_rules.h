@@ -64,21 +64,45 @@ double PhaseGuardOpenedAt(const BossPhase& phase,
                           const std::vector<int>& slot_spawns,
                           const std::vector<GuardState>& guards);
 
+// One span a self shield (Spawn.self_shield) holds for, in fight seconds.
+struct ShieldSpan {
+  double start = 0.0;
+  double end = 0.0;
+};
+
+// The spans of `shield` that overlap fight time [from, to], its phase having
+// begun at `phase_began`.
+std::vector<ShieldSpan> SelfShieldSpans(const BossPhase& phase,
+                                        const SelfShield& shield,
+                                        double phase_began, double from,
+                                        double to);
+
 // Each slot's rule for a player on `spot`, with the present party on `spots`
-// (the player included). A dead slot's rule means nothing.
+// (the player included). `shields_left` is each slot's shield, as a fraction
+// of max HP. A dead slot's rule means nothing.
 std::vector<SlotRule> SlotRules(const BossPhase& phase,
                                 const std::vector<int>& slot_spawns,
                                 const std::vector<bool>& alive,
                                 const std::vector<GuardState>& guards,
+                                const std::vector<double>& shields_left,
                                 double fight_seconds, double phase_began,
                                 int spot, const std::vector<int>& spots);
 
 // The shields that land in fight time (from, to]: for each slot, the fraction
 // of its max HP it gains. Only living givers give and only living slots gain.
+// A self shield is raised as its span starts, and grows while it holds:
+// `shields_left` says whether it still does.
 std::vector<double> ShieldsBetween(const BossPhase& phase,
                                    const std::vector<int>& slot_spawns,
-                                   const std::vector<bool>& alive, double from,
-                                   double to);
+                                   const std::vector<bool>& alive,
+                                   const std::vector<double>& shields_left,
+                                   double phase_began, double from, double to);
+
+// The slots whose self shield ends in fight time (from, to], whatever is left
+// of it then healing them.
+std::vector<bool> SelfShieldsEnding(const BossPhase& phase,
+                                    const std::vector<int>& slot_spawns,
+                                    double phase_began, double from, double to);
 
 }  // namespace ms
 

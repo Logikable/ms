@@ -868,6 +868,33 @@ TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
               << where << " opens its timed spots for good";
         }
         for (const Spawn& spawn : phase.spawns()) {
+          if (!spawn.has_self_shield()) {
+            continue;
+          }
+          const SelfShield& shield = spawn.self_shield();
+          EXPECT_GT(shield.percent(), 0.0) << where;
+          EXPECT_GE(shield.percent_per_second(), 0.0) << where;
+          EXPECT_LT(shield.damage_pct(), 100) << where;
+          if (!shield.form().empty()) {
+            EXPECT_TRUE(std::any_of(
+                phase.forms().begin(), phase.forms().end(),
+                [&](const PhaseForm& f) { return f.name() == shield.form(); }))
+                << where << " raises its shield with a form it never takes";
+            EXPECT_EQ(shield.interval_ms(), 0) << where << " has two clocks";
+          } else {
+            EXPECT_GT(shield.duration_ms(), 0) << where;
+            EXPECT_LT(shield.duration_ms(), shield.interval_ms())
+                << where << " holds its shield for good";
+          }
+          // Its end heals whatever shield is left, so another's would heal too.
+          for (const Spawn& giver : phase.spawns()) {
+            EXPECT_FALSE(std::find(giver.shield().mobs().begin(),
+                                   giver.shield().mobs().end(),
+                                   spawn.mob()) != giver.shield().mobs().end())
+                << where << " shields " << spawn.mob() << " twice over";
+          }
+        }
+        for (const Spawn& spawn : phase.spawns()) {
           if (!spawn.has_guard()) {
             continue;
           }
