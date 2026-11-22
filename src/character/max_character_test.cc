@@ -41,15 +41,19 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   const MaxGear at200 = MaxGearForLevel(200);
   EXPECT_EQ(at200.stars, 10);
   EXPECT_EQ(at200.potential_level, 200);
-  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 11);
-  EXPECT_EQ(MaxGearForLevel(260).stars, 17);
+  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
+  EXPECT_EQ(MaxGearForLevel(260).stars, 15);
   EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 17);
+  EXPECT_EQ(MaxGearForLevel(280).stars, 22);
+  EXPECT_EQ(MaxGearForLevel(290).weapon_stars, 23);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
+  EXPECT_EQ(MaxGearForLevel(279).potential_level, 270);
+  EXPECT_EQ(MaxGearForLevel(300).potential_level, 280);
 
   int last_stars = 0;
   int last_potentials = 0;
-  for (int level = 1; level <= 260; ++level) {
+  for (int level = 1; level <= 300; ++level) {
     const MaxGear gear = MaxGearForLevel(level);
     EXPECT_GE(gear.stars, last_stars) << "at level " << level;
     EXPECT_GE(gear.potential_level, last_potentials) << "at level " << level;
@@ -77,10 +81,13 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
   EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "absolab_archer_shoulder"));
   EXPECT_TRUE(wears(JOB_SHADOWER, 260, "arcane_umbra_thief_shoulder"));
   EXPECT_TRUE(wears(JOB_HERO, 260, "arcane_umbra_knight_suit"));
-  EXPECT_TRUE(wears(JOB_HERO, 260, "guardian_angel_ring"));
+  EXPECT_TRUE(wears(JOB_HERO, 260, "endless_terror"));
   EXPECT_FALSE(wears(JOB_HERO, 260, "lightning_god_ring"));
+  EXPECT_TRUE(wears(JOB_HERO, 270, "ring_of_restraint_4"));
+  EXPECT_TRUE(wears(JOB_HERO, 270, "arcane_umbra_knight_suit"));
+  EXPECT_TRUE(wears(JOB_HERO, 280, "eternal_knight_helm"));
   for (Job job : {JOB_HERO, JOB_BISHOP, JOB_BOW_MASTER, JOB_NIGHT_LORD}) {
-    for (int level : {100, 140, 170, 200, 230, 260}) {
+    for (int level : {100, 140, 170, 200, 230, 260, 270, 280}) {
       const std::vector<std::string> keys = MaxOutfit(job, level);
       std::vector<std::string> sorted = keys;
       std::sort(sorted.begin(), sorted.end());
@@ -94,24 +101,28 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
 // after they open; a fight it never named never falls.
 TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
   EXPECT_EQ(MaxClearLevel("zakum", "Normal"), 110);
-  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 247);
+  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 245);
+  EXPECT_EQ(MaxClearLevel("kaling", "Easy"), 277);
+  EXPECT_EQ(MaxClearLevel("kaling", "Normal"), 0);
   EXPECT_EQ(MaxClearLevel("zakum", "Hard"), 0);
   EXPECT_EQ(MaxClearLevel("wall", ""), 0);
 }
 
-// Four alts at 120 from 230, seven at 260, never on the main's line.
+// Six alts from 230, eight from 270, each at its own level, never on the
+// main's line.
 TEST(MaxCharacterTest, AltsComeLateAndSkipTheMainsLine) {
   EXPECT_TRUE(MaxAlts(JOB_FIGHTER, 229).empty());
   const std::vector<MaxAlt> at230 = MaxAlts(JOB_FIGHTER, 230);
-  ASSERT_EQ(at230.size(), 4u);
-  EXPECT_EQ(at230[0].line, JOB_FIRE_POISON_WIZARD);
+  ASSERT_EQ(at230.size(), 6u);
+  EXPECT_EQ(at230[0].line, JOB_ICE_LIGHTNING_WIZARD);
   EXPECT_EQ(at230[0].level, 120);
-  const std::vector<MaxAlt> marksman = MaxAlts(JOB_CROSSBOWMAN, 260);
-  ASSERT_EQ(marksman.size(), 7u);
+  EXPECT_EQ(at230[1].level, 70);
+  const std::vector<MaxAlt> marksman = MaxAlts(JOB_CROSSBOWMAN, 270);
+  ASSERT_EQ(marksman.size(), 8u);
   for (const MaxAlt& alt : marksman) {
     EXPECT_NE(alt.line, JOB_CROSSBOWMAN);
-    EXPECT_EQ(alt.level, 120);
   }
+  EXPECT_EQ(marksman[0].level, 210);
 }
 
 Skill Node(VNodeKind kind, int max_level) {
@@ -127,20 +138,20 @@ TEST(MaxCharacterTest, TheMatrixFillsByKind) {
   const Skill boost = Node(V_NODE_KIND_BOOST, 60);
   const Skill common = Node(V_NODE_KIND_COMMON, 30);
   EXPECT_EQ(MaxMatrixLevel(boost, 200), 0);
-  EXPECT_EQ(MaxMatrixLevel(job, 230), 20);
-  EXPECT_EQ(MaxMatrixLevel(boost, 230), 40);
-  EXPECT_EQ(MaxMatrixLevel(Node(V_NODE_KIND_ARCHETYPE, 30), 230), 12);
-  EXPECT_EQ(MaxMatrixLevel(common, 230), 6);
+  EXPECT_EQ(MaxMatrixLevel(job, 230), 24);
+  EXPECT_EQ(MaxMatrixLevel(boost, 230), 33);
+  EXPECT_EQ(MaxMatrixLevel(Node(V_NODE_KIND_ARCHETYPE, 30), 230), 9);
+  EXPECT_EQ(MaxMatrixLevel(common, 230), 2);
   EXPECT_EQ(MaxMatrixLevel(common, 260), 30);
 }
 
 // Bossing reaches Legendary at 170; farming is rolled for meso and drop once
-// bossing settles, Unique by 230 and Legendary by 260.
+// bossing settles, Epic by 230 and Legendary by 260.
 TEST(MaxCharacterTest, BossingAbilityClimbsFirst) {
   EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 229).rank(),
             ABILITY_RANK_RARE);
   EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 230).rank(),
-            ABILITY_RANK_UNIQUE);
+            ABILITY_RANK_EPIC);
   const AbilityPreset farm =
       MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 260);
   EXPECT_EQ(farm.rank(), ABILITY_RANK_LEGENDARY);
@@ -156,19 +167,21 @@ TEST(MaxCharacterTest, BossingAbilityClimbsFirst) {
   EXPECT_EQ(boss.lines(1).type(), ABILITY_LINE_TYPE_MAGIC_ATTACK);
 }
 
-// No symbol before the level-200 reward, none from Grandis, and no symbol ever
-// loses a level or goes back in the bag.
+// No symbol before the level-200 reward, Sacred ones only from 260, and no
+// symbol ever loses a level or goes back in the bag.
 TEST(MaxCharacterTest, SymbolsClimbWithTheLevel) {
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 199), 0);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 200), 1);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_MORASS, 230), 0);
-  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 17);
-  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 260), 0);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 19);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 259), 0);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 260), 3);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CARCION, 280), 8);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_HAT, 260), 0);
   for (int slot = EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
-       slot <= EQUIP_SLOT_SYMBOL_ESFERA; ++slot) {
+       slot <= EQUIP_SLOT_SYMBOL_GEARDOCK; ++slot) {
     int last = 0;
-    for (int level = 1; level <= 260; ++level) {
+    for (int level = 1; level <= 300; ++level) {
       const int now = MaxSymbolLevel(static_cast<EquipSlot>(slot), level);
       EXPECT_GE(now, last) << slot << " at level " << level;
       last = now;
@@ -186,7 +199,7 @@ TEST(MaxCharacterTest, EveryLineCouldHaveBeenRolled) {
   const StatField kStats[] = {STAT_FIELD_STR, STAT_FIELD_DEX, STAT_FIELD_INT,
                               STAT_FIELD_LUK};
   int checked = 0;
-  for (int level : {200, 230, 260}) {
+  for (int level : {200, 230, 260, 270, 280}) {
     for (PotentialTrack track :
          {PotentialTrack::kMain, PotentialTrack::kBonus}) {
       for (EquipSlot slot : kSlots) {
@@ -230,16 +243,23 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
 
 // The weapon holds boss damage and attack; bonus weaponry holds attack.
 TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
-  const MaxGear gear = MaxGearForLevel(260);
+  const MaxGear gear = MaxGearForLevel(280);
   const Potential weapon = MaxPotentialFor(
       EQUIP_SLOT_PRIMARY_WEAPON, gear, STAT_FIELD_INT, PotentialTrack::kMain);
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
-  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 2);
+  EXPECT_EQ(weapon.lines(2).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
 
   const Potential bonus = MaxPotentialFor(
-      EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_INT, PotentialTrack::kBonus);
+      EQUIP_SLOT_SECONDARY, gear, STAT_FIELD_INT, PotentialTrack::kBonus);
   EXPECT_EQ(LinesOf(bonus, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 3);
+
+  // Mitra's Rage is never cubed.
+  EXPECT_EQ(MaxPotentialFor(EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_INT,
+                            PotentialTrack::kMain)
+                .lines_size(),
+            0);
 
   // Crit damage only rolls at Legendary, so both its lines are prime.
   const Potential gloves = MaxPotentialFor(
@@ -250,7 +270,8 @@ TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
   const Potential early =
       MaxPotentialFor(EQUIP_SLOT_SECONDARY, MaxGearForLevel(230),
                       STAT_FIELD_STR, PotentialTrack::kMain);
-  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
+  EXPECT_EQ(early.rank(), POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
 }
 
 // A slot that takes no potential gets none, nor does a level with no cubing,

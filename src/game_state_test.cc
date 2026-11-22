@@ -744,7 +744,7 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
       {"magic_eyepatch", "Magic Eyepatch", EQUIP_SLOT_EYE_ACCESSORY},
       {"aquatic_letter_eye_accessory", "Aquatic Letter Eye Accessory",
        EQUIP_SLOT_EYE_ACCESSORY},
-      {"guardian_angel_ring", "Guardian Angel Ring", EQUIP_SLOT_RING},
+      {"endless_terror", "Endless Terror", EQUIP_SLOT_RING},
       {"lightning_god_ring", "Lightning God Ring", EQUIP_SLOT_RING}};
   for (const auto& [key, name, slot] : accessories) {
     EquipPrototype accessory;
@@ -920,18 +920,18 @@ TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsClearsPaid) {
   }
 }
 
-// A max account holds the alts the sweep levelled for link skills: at the cap
-// seven lines at 120, none of them the Hero's own. Lines of one branch sum, so
-// the two archer alts give 4 and the three magicians 6.
+// A max account holds the alts the sweep levelled for link skills: at 260
+// six lines from 70 to 210, none of them the Hero's own. Lines of one branch
+// sum, so the two archer alts and the three magicians each add up.
 TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   GameState state = MakeMaxState(kTrialLevelCap);
-  ASSERT_EQ(state.inactive_characters.size(), 7u);
+  ASSERT_EQ(state.inactive_characters.size(), 6u);
   for (const CharacterSave& slot : state.inactive_characters) {
     const Character& sheet = slot.character();
     SCOPED_TRACE(sheet.name());
     EXPECT_FALSE(sheet.name().empty());
-    EXPECT_EQ(sheet.level(), 120);
-    EXPECT_EQ(sheet.job_stage(), 4);
+    EXPECT_GE(sheet.level(), 70);
+    EXPECT_GE(sheet.job_stage(), 3);
     EXPECT_EQ(sheet.ap(), 0);
     EXPECT_EQ(sheet.meso(), 50000000);
     EXPECT_EQ(slot.current_map(), kHomeMap);
@@ -942,8 +942,8 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 0)
       << "the Hero being played is not in the mirrored half";
   EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 4);
-  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 6);
-  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 4);
+  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 8);
+  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 1);
   EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 4);
 }
 
@@ -952,7 +952,7 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
 TEST(GameStateTest, TheLegionSeesTheWholeAccount) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.character.legion_summary().legion_level,
-            kTrialLevelCap + 7 * 120);
+            kTrialLevelCap + 210 + 120 + 210 + 120 + 70 + 120);
 
   LegionSummary summary = state.character.legion_summary();
   // Max mode spends Farm and Boss and leaves the spare.
@@ -1047,7 +1047,7 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(weapon.lines_size(), kPotentialLines);
-  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
+  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
 
   const Potential& hat = Worn(state, EQUIP_SLOT_HAT).potential();
   EXPECT_EQ(hat.rank(), POTENTIAL_RANK_LEGENDARY);
@@ -1061,7 +1061,7 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
 
   const Potential& bonus =
       Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();
-  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_UNIQUE);
   ASSERT_EQ(bonus.lines_size(), kPotentialLines);
   EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
 }
@@ -1083,7 +1083,7 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
   EXPECT_EQ(name_in(kDropPreset, EQUIP_SLOT_EYE_ACCESSORY),
             "Aquatic Letter Eye Accessory");
   EXPECT_EQ(name_in(farm, EQUIP_SLOT_RING), "Lightning God Ring");
-  EXPECT_EQ(name_in(boss, EQUIP_SLOT_RING), "Guardian Angel Ring");
+  EXPECT_EQ(name_in(boss, EQUIP_SLOT_RING), "Endless Terror");
 
   const EquipInstance& eye = *character.WornAt(farm, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_EQ(eye.potential().lines_size(), kPotentialLines);
@@ -1093,9 +1093,8 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
   EXPECT_EQ(eye.equip_state().bonus_potential().lines_size(), 0);
   const EquipInstance& ring = *character.WornAt(farm, EQUIP_SLOT_RING);
   ASSERT_EQ(ring.potential().lines_size(), kPotentialLines);
-  EXPECT_EQ(ring.potential().lines(0).type(),
-            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
-  EXPECT_EQ(ring.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(ring.potential().lines(0).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(ring.potential().lines(1).type(), POTENTIAL_LINE_TYPE_STR_PCT);
   const EquipInstance& patch =
       *character.WornAt(boss, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_GT(patch.potential().lines_size(), 0);
@@ -1120,14 +1119,21 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 }
 
 // A max character wears the symbols progression_sim's climbs held on arriving
-// at each level, so Arcane Force is checked against a real character.
+// at each level, so Arcane Force and Sacred Power are checked against a real
+// character. The first Sacred Symbols come at Grandis, from drops.
 TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
-  const std::pair<int, int> kLevelForce[] = {
-      {200, 30}, {230, 4 * 20 + 45 * 10}, {kGrandisLevel, 114 * 10 + 6 * 20}};
-  for (const std::pair<int, int>& entry : kLevelForce) {
-    GameState state = MakeMaxState(entry.first);
-    EXPECT_EQ(state.character.base_arcane_force(), entry.second) << entry.first;
-    EXPECT_EQ(state.character.sacred_power(), 0) << entry.first;
+  struct Force {
+    int level;
+    int arcane;
+    int sacred;
+  };
+  const Force kLevelForce[] = {{200, 30, 0},
+                               {230, 4 * 20 + 47 * 10, 0},
+                               {kGrandisLevel, 119 * 10 + 6 * 20, 70}};
+  for (const Force& entry : kLevelForce) {
+    GameState state = MakeMaxState(entry.level);
+    EXPECT_EQ(state.character.base_arcane_force(), entry.arcane) << entry.level;
+    EXPECT_EQ(state.character.sacred_power(), entry.sacred) << entry.level;
   }
 }
 

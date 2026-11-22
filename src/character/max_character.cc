@@ -32,11 +32,11 @@ namespace ms {
 
 namespace {
 
-// The stars //analysis/sims:progression_sim's sweep of 2026-10-04 wore on
-// arriving at each level: the fifth of ten branches from the top over every
-// starred piece. A fresh tier arrives at 10 whatever came before it; 230
-// re-read 2026-10-26. 260 is read at the run's end instead, the user's call: a
-// capped character stars the new tier to 17 within days.
+// The stars //analysis/sims:progression_sim's sweep wore on arriving at each
+// level: the fifth of ten branches from the top over every starred piece (the
+// median piece of each branch). 200 on re-read from the uncapped sweep of
+// 2026-11-21, three seeds of 365 days; 140 and 170 from 2026-10-04. Read on
+// arrival everywhere, 260 included, now that no climb stops there.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -44,7 +44,8 @@ struct GearBand {
 
 constexpr GearBand kBands[] = {
     {0, {5, 5, 0}},       {140, {8, 14, 0}},    {170, {10, 14, 0}},
-    {200, {10, 14, 200}}, {230, {10, 11, 230}}, {260, {17, 17, 260}},
+    {200, {10, 15, 200}}, {230, {11, 13, 230}}, {260, {15, 17, 260}},
+    {270, {19, 19, 270}}, {280, {22, 23, 280}},
 };
 
 // One piece of an outfit: a catalog key every job wears, or the job's own
@@ -73,11 +74,10 @@ constexpr SetFamily kAL = SetFamily::kAbsoLab;
 constexpr SetFamily kAU = SetFamily::kArcaneUmbra;
 constexpr SetFamily kET = SetFamily::kEternal;
 
-// What the sweep of 2026-10-04 wore in each slot on arriving at each level: the
-// fifth of ten branches from the top, by set family so each job wears its own
-// piece. The job's own weapon, secondary and ammunition come first, from the
-// workbench's table. 260 is re-read off a later sweep the same day, once
-// Arcane Umbra's boxes dropped: it took every slot but the top and cape.
+// What the sweep wore in each slot on arriving at each level: the fifth of ten
+// branches from the top, by set family so each job wears its own piece. The
+// job's own weapon, secondary and ammunition come first, from the workbench's
+// table. 100-170 from 2026-10-04; 200 on from the uncapped sweep of 2026-11-21.
 constexpr OutfitBand kOutfits[] = {
     {100, {Item("frozen_hat"), Item("frozen_top"), Item("frozen_bottom")}},
     {140,
@@ -110,6 +110,7 @@ constexpr OutfitBand kOutfits[] = {
       Item("black_bean_mark"),
       Item("dea_sidus_earring"),
       Item("horntail_necklace"),
+      Item("dominator_pendant"),
       Item("pink_holy_cup"),
       Item("royal_black_metal_shoulder"),
       Item("crystal_ventus_badge"),
@@ -154,14 +155,14 @@ constexpr OutfitBand kOutfits[] = {
       Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
       Item("gold_maple_leaf_emblem"),
       Item("master_adventurer"),
-      Item("guardian_angel_ring"),
+      Item("endless_terror"),
       Item("meister_ring"),
       Item("silver_blossom_ring"),
       Item("kannas_treasure"),
       Item("berserked"),
       Item("magic_eyepatch"),
       Item("estella_earrings"),
-      Item("horntail_necklace"),
+      Item("daybreak_pendant"),
       Item("dominator_pendant"),
       Item("pink_holy_cup"),
       Item("black_heart"),
@@ -170,9 +171,9 @@ constexpr OutfitBand kOutfits[] = {
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
-    // Hard Seren falls to the fifth of ten branches at 271 (the uncapped
-    // sweep of 2026-11-20), and Mitra's Rage takes the emblem slot.
-    {271,
+    // Mitra's Rage, the Pitched Boss pieces and a Ring of Restraint by 270 in
+    // the uncapped sweep of 2026-11-21; Arcane Umbra still holds the armour.
+    {270,
      {Set(kAU, EQUIP_SLOT_HAT),
       Set(kAU, EQUIP_SLOT_TOP),
       Set(kAU, EQUIP_SLOT_BOTTOM),
@@ -184,24 +185,23 @@ constexpr OutfitBand kOutfits[] = {
       Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
       Set(SetFamily::kMitrasRage, EQUIP_SLOT_EMBLEM),
       Item("master_adventurer"),
-      Item("guardian_angel_ring"),
+      Item("endless_terror"),
       Item("meister_ring"),
-      Item("silver_blossom_ring"),
+      Item("ring_of_restraint_4"),
       Item("kannas_treasure"),
       Item("berserked"),
       Item("magic_eyepatch"),
-      Item("estella_earrings"),
-      Item("horntail_necklace"),
+      Item("commanding_force_earring"),
+      Item("source_of_suffering"),
       Item("dominator_pendant"),
       Item("pink_holy_cup"),
       Item("black_heart"),
       Item("crystal_ventus_badge"),
-      Item("golden_clover_belt"),
+      Item("dreamy_belt"),
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
-    // The four Eternal pieces Kalos's Determination buys, worn by Lv280 by
-    // even the weakest branch of the uncapped sweep of 2026-11-20.
+    // The four Eternal pieces Kalos's Determination buys, by 280.
     {280,
      {Set(kET, EQUIP_SLOT_HAT),
       Set(kET, EQUIP_SLOT_TOP),
@@ -214,28 +214,29 @@ constexpr OutfitBand kOutfits[] = {
       Set(SetFamily::kPrincessNo, EQUIP_SLOT_SECONDARY),
       Set(SetFamily::kMitrasRage, EQUIP_SLOT_EMBLEM),
       Item("master_adventurer"),
-      Item("guardian_angel_ring"),
+      Item("endless_terror"),
       Item("meister_ring"),
-      Item("silver_blossom_ring"),
+      Item("ring_of_restraint_4"),
       Item("kannas_treasure"),
       Item("berserked"),
       Item("magic_eyepatch"),
-      Item("estella_earrings"),
-      Item("horntail_necklace"),
+      Item("commanding_force_earring"),
+      Item("source_of_suffering"),
       Item("dominator_pendant"),
       Item("pink_holy_cup"),
       Item("black_heart"),
       Item("crystal_ventus_badge"),
-      Item("golden_clover_belt"),
+      Item("dreamy_belt"),
       Item("bronze_incense_burner_totem"),
       Item("horseback_riding_doll_totem"),
       Item("jade_kettle_totem")}},
 };
 
 // What the farming preset wore in place of the bossing preset's piece, re-read
-// off the sweep of 2026-10-26: a slot where at least five of ten branches
-// farmed in a piece of their own, and the lines most of them held. The bossing
-// preset keeps the piece kOutfits names there, with no farm lines at all.
+// off the sweep of 2026-11-21 (the same from 260 to the run's end): a slot
+// where at least five of ten branches farmed in a piece of their own, and the
+// lines most of them held. The bossing preset keeps the piece kOutfits names
+// there, with no farm lines at all.
 struct FarmBand {
   int level;
   MaxFarmPiece pieces[6];
@@ -243,43 +244,47 @@ struct FarmBand {
 
 constexpr MaxFarmPiece kFarmEye = {EQUIP_SLOT_EYE_ACCESSORY,
                                    "aquatic_letter_eye_accessory", true, true};
-constexpr MaxFarmPiece kFarmFace = {EQUIP_SLOT_FACE_ACCESSORY,
-                                    "condensed_power_crystal", true, false};
-constexpr MaxFarmPiece kFarmMeister = {EQUIP_SLOT_RING_2, "meister_ring", true,
-                                       false};
 
 constexpr FarmBand kFarmOutfits[] = {
-    {230,
-     {kFarmEye,
-      kFarmFace,
-      {EQUIP_SLOT_RING, "lightning_god_ring", true, false},
-      kFarmMeister}},
+    {230, {kFarmEye, {EQUIP_SLOT_RING, "lightning_god_ring", true, false}}},
     {260,
      {kFarmEye,
-      kFarmFace,
-      {EQUIP_SLOT_PENDANT, "horntail_necklace", true, false},
-      {EQUIP_SLOT_RING, "lightning_god_ring", true, true},
-      kFarmMeister}},
+      {EQUIP_SLOT_FACE_ACCESSORY, "condensed_power_crystal", true, true},
+      {EQUIP_SLOT_EARRINGS, "dea_sidus_earring", false, true},
+      {EQUIP_SLOT_RING, "lightning_god_ring", true, false},
+      {EQUIP_SLOT_RING_2, "meister_ring", true, true}}},
 };
 
-// Each Arcane Symbol's level on arrival, read off the same sweep as kBands, in
-// EQUIP_SLOT_SYMBOL_* order. At 200 it is the level reward alone; Morass waits
-// for the first daily claim after 230. No climb held a Sacred Symbol at 260:
-// they come only from drops.
+// Each symbol's level on arrival, read off the same sweep as kBands: the six
+// Arcane Symbols in EQUIP_SLOT_SYMBOL_* order, then the Sacred ones from
+// Cernium to Carcion, Tallahart and Geardock. At 200 it is the level reward
+// alone; Sacred Symbols come only from drops, so they stay low.
 struct SymbolBand {
   int level;
   int arcane[6];
+  int sacred[8];
 };
 
 constexpr SymbolBand kSymbolBands[] = {
-    {200, {1, 0, 0, 0, 0, 0}},
-    {230, {14, 13, 10, 8, 0, 0}},
-    {260, {20, 20, 20, 19, 18, 17}},
+    {200, {1, 0, 0, 0, 0, 0}, {}},
+    {230, {14, 13, 11, 9, 0, 0}, {}},
+    {260, {20, 20, 20, 20, 20, 19}, {3, 2, 2, 0, 0, 0, 0, 0}},
+    {270, {20, 20, 20, 20, 20, 20}, {3, 2, 2, 4, 5, 3, 0, 0}},
+    {280, {20, 20, 20, 20, 20, 20}, {3, 2, 2, 4, 5, 8, 1, 0}},
 };
 
-// The level each fight's first solo clear came at in the same sweep, re-read
-// 2026-10-26. Hard Damien and Hard Lotus wait until 246-247, long after they
-// open.
+// The Sacred Symbol slots in kSymbolBands' order.
+constexpr EquipSlot kSacredSlots[] = {
+    EQUIP_SLOT_SYMBOL_CERNIUM,   EQUIP_SLOT_SYMBOL_ARCUS,
+    EQUIP_SLOT_SYMBOL_ODIUM,     EQUIP_SLOT_SYMBOL_SHANGRI_LA,
+    EQUIP_SLOT_SYMBOL_ARTERIA,   EQUIP_SLOT_SYMBOL_CARCION,
+    EQUIP_SLOT_SYMBOL_TALLAHART, EQUIP_SLOT_SYMBOL_GEARDOCK,
+};
+
+// The level each fight's first solo clear came at, the fifth of ten branches
+// from the top in the uncapped sweep of 2026-11-21 (three seeds of 365 days).
+// Normal Kaling fell to none of them, so it has no entry and max mode never
+// clears it.
 struct Clear {
   const char* boss;
   const char* difficulty;
@@ -296,62 +301,88 @@ constexpr Clear kClears[] = {
     {"hilla", "Hard", 190},
     {"horntail", "Chaos", 190},
     {"cygnus", "Normal", 200},
-    {"pierre", "Chaos", 200},
-    {"von_bon", "Chaos", 200},
-    {"crimson_queen", "Chaos", 201},
-    {"magnus", "Hard", 202},
-    {"zakum", "Chaos", 202},
-    {"pink_bean", "Chaos", 203},
-    {"vellum", "Chaos", 203},
-    {"princess_no", "Normal", 206},
+    {"pierre", "Chaos", 201},
+    {"von_bon", "Chaos", 201},
+    {"magnus", "Hard", 203},
+    {"zakum", "Chaos", 203},
+    {"crimson_queen", "Chaos", 204},
+    {"pink_bean", "Chaos", 205},
+    {"vellum", "Chaos", 206},
+    {"princess_no", "Normal", 210},
     {"papulatus", "Chaos", 210},
-    {"damien", "Normal", 214},
-    {"lotus", "Normal", 216},
-    {"guardian_angel_slime", "Normal", 227},
-    {"lucid", "Normal", 239},
+    {"damien", "Normal", 215},
+    {"lotus", "Normal", 217},
+    {"guardian_angel_slime", "Normal", 225},
+    {"lucid", "Normal", 238},
     {"will", "Normal", 245},
-    {"lotus", "Hard", 246},
-    {"damien", "Hard", 247},
-    {"gloom", "Normal", 247},
-    {"darknell", "Normal", 249},
-    {"guardian_angel_slime", "Chaos", 256},
-    {"verus_hilla", "Normal", 256},
-    // Past 260 from the uncapped sweep of 2026-11-19 (--uncapped
-    // --total_days=365), the fifth of ten branches.
-    {"will", "Hard", 260},
-    {"gloom", "Chaos", 261},
-    {"darknell", "Hard", 262},
-    {"verus_hilla", "Hard", 262},
-    {"lucid", "Hard", 265},
-    // The uncapped sweep of 2026-11-20, after v272's Seren and Kalos cuts. No
-    // branch beat Normal Kalos in 365 days, nor either Kaling in the sweep of
-    // 2026-11-21, so they have no entry and max mode never clears them.
-    {"seren", "Normal", 263},
-    {"seren", "Hard", 271},
-    {"kalos", "Easy", 266},
+    {"lotus", "Hard", 245},
+    {"damien", "Hard", 245},
+    {"gloom", "Normal", 245},
+    {"darknell", "Normal", 247},
+    {"guardian_angel_slime", "Chaos", 253},
+    {"verus_hilla", "Normal", 253},
+    {"will", "Hard", 257},
+    {"gloom", "Chaos", 259},
+    {"darknell", "Hard", 260},
+    {"verus_hilla", "Hard", 260},
+    {"lucid", "Hard", 261},
+    {"seren", "Normal", 261},
+    {"kalos", "Easy", 265},
+    {"seren", "Hard", 267},
+    {"kalos", "Normal", 277},
+    {"kaling", "Easy", 277},
 };
 
-// The alts the same sweep had levelled by each level: how many, to what
-// level, and which lines, commonest first. A line the main is on is skipped
-// and the next one taken.
+// The alts the same sweep had levelled by each level: how many past 70, and
+// each line's commonest level, the lines most branches levelled first. A line
+// the main is on is skipped and the next one taken.
 struct AltBand {
   int level;
   int count;
-  int alt_level;
-  Job lines[8];
+  MaxAlt lines[9];
 };
 
 constexpr AltBand kAltBands[] = {
     {230,
-     4,
-     120,
-     {JOB_FIRE_POISON_WIZARD, JOB_CROSSBOWMAN, JOB_ICE_LIGHTNING_WIZARD,
-      JOB_HUNTER, JOB_CLERIC}},
+     6,
+     {{JOB_ICE_LIGHTNING_WIZARD, 120},
+      {JOB_FIRE_POISON_WIZARD, 70},
+      {JOB_CROSSBOWMAN, 120},
+      {JOB_BANDIT, 120},
+      {JOB_HUNTER, 120},
+      {JOB_ASSASSIN, 70},
+      {JOB_CLERIC, 70}}},
     {260,
-     7,
-     120,
-     {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD, JOB_CROSSBOWMAN,
-      JOB_CLERIC, JOB_BANDIT, JOB_HUNTER, JOB_ASSASSIN, JOB_PAGE}},
+     6,
+     {{JOB_CLERIC, 210},
+      {JOB_FIRE_POISON_WIZARD, 120},
+      {JOB_ICE_LIGHTNING_WIZARD, 210},
+      {JOB_CROSSBOWMAN, 120},
+      {JOB_BANDIT, 70},
+      {JOB_HUNTER, 120},
+      {JOB_ASSASSIN, 120}}},
+    {270,
+     8,
+     {{JOB_CLERIC, 210},
+      {JOB_ICE_LIGHTNING_WIZARD, 210},
+      {JOB_FIRE_POISON_WIZARD, 120},
+      {JOB_CROSSBOWMAN, 210},
+      {JOB_HUNTER, 120},
+      {JOB_BANDIT, 120},
+      {JOB_ASSASSIN, 120},
+      {JOB_FIGHTER, 70},
+      {JOB_PAGE, 70}}},
+    {280,
+     8,
+     {{JOB_CLERIC, 210},
+      {JOB_ICE_LIGHTNING_WIZARD, 210},
+      {JOB_FIRE_POISON_WIZARD, 210},
+      {JOB_BANDIT, 210},
+      {JOB_CROSSBOWMAN, 210},
+      {JOB_HUNTER, 120},
+      {JOB_ASSASSIN, 210},
+      {JOB_FIGHTER, 70},
+      {JOB_PAGE, 70}}},
 };
 
 // The familiars the same sweep had on reaching each level, read at the fifth
@@ -388,6 +419,18 @@ constexpr FamiliarBand kFamiliarBands[] = {
      40,
      {{FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY},
       {FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE}}},
+    // Every familiar at the top level by 270 in the sweep of 2026-11-21, and
+    // the mains' second line Legendary by 280.
+    {270,
+     4,
+     80,
+     {{FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40, POTENTIAL_RANK_LEGENDARY},
+      {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE}}},
+    {280,
+     4,
+     80,
+     {{FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY},
+      {FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40, POTENTIAL_RANK_LEGENDARY}}},
 };
 
 FamiliarLineType StatPctLine(StatField primary) {
@@ -403,7 +446,8 @@ FamiliarLineType StatPctLine(StatField primary) {
   }
 }
 
-// The share of each node kind's levels the same sweep had bought. The sweep
+// The share of each node kind's levels the same sweep had bought, over every
+// node of the kind it reached (re-read 2026-11-21). The sweep
 // spends on the nodes it measures best and maxes them; spreading the same
 // share over every node of the kind keeps the points without choosing for
 // each job.
@@ -417,15 +461,15 @@ struct MatrixBand {
 
 constexpr MatrixBand kMatrixBands[] = {
     {200, 0.0, 0.0, 0.0, 0.0},
-    {230, 2.0 / 3, 2.0 / 3, 0.4, 0.2},
+    {230, 0.8, 0.55, 0.3, 0.06},
     {260, 1.0, 1.0, 1.0, 1.0},
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
-// Legendary. Farming is rolled once bossing settles: Unique by 230 and
-// Legendary by 260 in the sweep of 2026-10-26.
+// Legendary. Farming is rolled once bossing settles: Epic by 230 and
+// Legendary by 260 in the sweep of 2026-11-21.
 constexpr int kLegendaryAbilityLevel = 170;
-constexpr int kUniqueFarmingAbilityLevel = 230;
+constexpr int kEpicFarmingAbilityLevel = 230;
 constexpr int kLegendaryFarmingAbilityLevel = 260;
 
 // The %stat line for the stat the character fights with.
@@ -477,6 +521,7 @@ enum class Share {
   kIed,
   kBoss,
   kCritDamage,
+  kDamage,
 };
 
 // The kinds of item that wear different lines.
@@ -537,45 +582,76 @@ constexpr Share T = Share::kAllStat;
 constexpr Share B = Share::kBoss;
 constexpr Share I = Share::kIed;
 constexpr Share C = Share::kCritDamage;
+constexpr Share D = Share::kDamage;
 
 // What //analysis/sims:progression_sim's sweeps wore on arriving at each level,
 // the fifth of ten branches from the top: a max character spent well, not
-// luckily. Re-read 2026-10-26, once a wear-it-now cube run had to be covered
-// whole: the climb now cubes the weapon, secondary and emblem Rare by 200 and
-// leaves the rest uncubed, saves cubing until 230 is well behind, and spends
-// it all by 260. A piece left blank has no potential.
+// luckily. 230 on re-read 2026-11-21 off the uncapped sweep, three seeds of 365
+// days: weaponry Legendary by 230, armour by 260, everything by 270. Mitra's
+// Rage, the emblem from 270, is never cubed. A piece left blank has no
+// potential.
 constexpr PotentialBand kPotentialBands[] = {
     {200, {{R, {A, S, S}, 3}, {R, {A, S, S}, 3}, {R, {A, S, S}, 3}}, {}},
     {230,
-     {{U, {B, A, I}},
-      {U, {B, A, I}},
-      {U, {B, A, I}},
-      {R, {S, S, S}, 3},
-      {R, {S, S, S}, 3},
-      {R, {S, S, S}, 3},
-      {}},
-     {{E, {A, A, A}},
-      {R, {A, A, A}, 3},
-      {R, {A, A, A}, 3},
-      {R, {S, S, S}, 3},
+     {{L, {A, I, B}},
+      {L, {A, A, S}},
+      {E, {A, A, S}},
+      {E, {S, S, H}, 2},
+      {U, {T, T, S}, 2},
+      {E, {T, S, H}},
+      {R, {S, H, H}, 3}},
+     {{E, {A, D, D}},
+      {R, {S, A, A}, 3},
+      {R, {D, D, A}, 3},
+      {R, {S, H, H}, 3},
+      {R, {S, H, H}, 3},
       {R, {S, S, H}, 3},
-      {R, {S, S, S}, 3},
       {}}},
     {260,
-     {{L, {B, A, A}},
-      {L, {B, B, A}},
-      {L, {A, B, B}},
+     {{L, {A, B, B}},
+      {L, {B, A, A}},
+      {L, {A, B, A}},
       {L, {S, S, T}},
-      {L, {C, C, S}, 2},
-      {L, {S, S, T}},
-      {U, {S, S, S}}},
-     {{L, {A, A, A}},
-      {L, {A, A, A}},
-      {L, {A, A, A}},
-      {E, {S, S, S}},
-      {R, {S, S, H}, 3},
-      {E, {S, S, S}},
+      {L, {C, S, H}},
+      {L, {S, T, S}},
+      {U, {S, S, H}, 2}},
+     {{L, {A, S, A}},
+      {L, {A, D, A}},
+      {U, {A, A, D}},
+      {U, {S, S, H}},
+      {E, {S, H, H}},
+      {E, {S, T, H}, 2},
       {R, {S, S, H}, 3}}},
+    {270,
+     {{L, {A, B, A}, 2},
+      {L, {B, B, A}},
+      {},
+      {L, {S, S, S}},
+      {L, {C, S, S}, 2},
+      {L, {S, T, S}},
+      {L, {S, S, T}, 2}},
+     {{L, {A, A, B}, 2},
+      {L, {A, A, B}},
+      {},
+      {L, {S, S, T}},
+      {U, {S, S, S}},
+      {L, {S, S, H}},
+      {L, {S, S, S}, 2}}},
+    {280,
+     {{L, {B, A, B}, 2},
+      {L, {B, A, B}, 2},
+      {},
+      {L, {S, T, S}, 2},
+      {L, {C, C, T}, 2},
+      {L, {S, S, S}, 2},
+      {L, {S, S, S}, 2}},
+     {{L, {A, A, A}, 2},
+      {L, {A, A, A}},
+      {},
+      {L, {S, T, T}},
+      {L, {S, S, T}},
+      {L, {S, S, T}},
+      {L, {S, S, T}}}},
 };
 
 // The band `level` names, or null for none.
@@ -612,10 +688,15 @@ PotentialLineType LineTypeFor(Share share, PotentialRank rank,
              : rank == U ? POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
                          : POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
     case Share::kBoss:
+      if (track == PotentialTrack::kBonus) {
+        return POTENTIAL_LINE_TYPE_BONUS_BOSS_DAMAGE;
+      }
       return rank == L ? POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
                        : POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
     case Share::kCritDamage:
       return POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT;
+    case Share::kDamage:
+      return POTENTIAL_LINE_TYPE_DAMAGE_PCT;
   }
   return POTENTIAL_LINE_TYPE_UNSPECIFIED;
 }
@@ -637,10 +718,11 @@ struct FlameRecipeLine {
   int tier;
 };
 
-// What //analysis/sims:progression_sim's sweep of 2026-10-26 wore on arriving
-// at each level, at the upper quartile of each kind's tier total: the weapon
-// 22, 25 and 26, armour 20, 21 and 25, accessories 19, 20 and 22. The climb
-// flames from 200, and Black flames take some lines to tier 7.
+// What //analysis/sims:progression_sim's sweep wore on arriving at each level,
+// at the upper quartile of each kind's tier total, re-read 2026-11-21: the
+// weapon 21, 25, 26, 26 and 26 from 200 to 280, armour 20, 21, 24, 25 and 25,
+// accessories 20, 20, 23, 25 and 26. The climb flames from 200, and Black
+// flames take some lines to tier 7.
 struct FlameBand {
   int level;
   FlameRecipeLine weapon[kFlameLines];
@@ -658,17 +740,25 @@ constexpr FlameShare FD = FlameShare::kDamage;
 
 constexpr FlameBand kFlameBands[] = {
     {200,
-     {{FA, 6}, {FB, 6}, {FD, 5}, {P, 5}},
+     {{FA, 6}, {FB, 5}, {FD, 5}, {P, 5}},
      {{P, 5}, {FA, 5}, {FT, 5}, {OP, 5}},
-     {{P, 5}, {PP, 5}, {FT, 5}, {OP, 4}}},
+     {{P, 5}, {PP, 5}, {FT, 5}, {OP, 5}}},
     {230,
      {{FA, 7}, {FB, 6}, {FD, 6}, {P, 6}},
      {{P, 6}, {FA, 5}, {FT, 5}, {OP, 5}},
      {{P, 5}, {PP, 5}, {FT, 5}, {OP, 5}}},
     {260,
      {{FA, 7}, {FB, 7}, {FD, 6}, {P, 6}},
+     {{P, 6}, {FA, 6}, {FT, 6}, {OP, 6}},
+     {{P, 6}, {PP, 6}, {FT, 6}, {OP, 5}}},
+    {270,
+     {{FA, 7}, {FB, 7}, {FD, 6}, {P, 6}},
      {{P, 7}, {FA, 6}, {FT, 6}, {OP, 6}},
-     {{P, 6}, {PP, 6}, {FT, 5}, {OP, 5}}},
+     {{P, 7}, {PP, 6}, {FT, 6}, {OP, 6}}},
+    {280,
+     {{FA, 7}, {FB, 7}, {FD, 6}, {P, 6}},
+     {{P, 7}, {FA, 6}, {FT, 6}, {OP, 6}},
+     {{P, 7}, {PP, 7}, {FT, 6}, {OP, 6}}},
 };
 
 FlameStat SingleStat(StatField stat) {
@@ -888,12 +978,12 @@ std::vector<MaxAlt> MaxAlts(Job played_line, int level) {
   if (band == nullptr) {
     return alts;
   }
-  for (Job line : band->lines) {
+  for (const MaxAlt& alt : band->lines) {
     if (static_cast<int>(alts.size()) == band->count) {
       break;
     }
-    if (line != JOB_UNSPECIFIED && line != played_line) {
-      alts.push_back({line, band->alt_level});
+    if (alt.line != JOB_UNSPECIFIED && alt.line != played_line) {
+      alts.push_back(alt);
     }
   }
   return alts;
@@ -925,13 +1015,19 @@ int MaxMatrixLevel(const Skill& node, int level) {
 
 int MaxSymbolLevel(EquipSlot slot, int level) {
   const int area = slot - EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
-  if (area < 0 || area >= 6) {
+  int sacred = -1;
+  for (int i = 0; i < 8; ++i) {
+    if (kSacredSlots[i] == slot) {
+      sacred = i;
+    }
+  }
+  if ((area < 0 || area >= 6) && sacred < 0) {
     return 0;
   }
   int symbol_level = 0;
   for (const SymbolBand& band : kSymbolBands) {
     if (level >= band.level) {
-      symbol_level = band.arcane[area];
+      symbol_level = sacred >= 0 ? band.sacred[sacred] : band.arcane[area];
     }
   }
   return symbol_level;
@@ -1099,10 +1195,10 @@ void WearMaxSoul(CharacterInstance& character,
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level) {
   AbilityPreset built;
   // Meso on top and drop below it, the lines the sweep's farming rolls chase.
-  if (preset == Activity::kFarming && level >= kUniqueFarmingAbilityLevel) {
+  if (preset == Activity::kFarming && level >= kEpicFarmingAbilityLevel) {
     const AbilityRank top = level >= kLegendaryFarmingAbilityLevel
                                 ? ABILITY_RANK_LEGENDARY
-                                : ABILITY_RANK_UNIQUE;
+                                : ABILITY_RANK_EPIC;
     built.set_rank(top);
     const AbilityLineType types[] = {ABILITY_LINE_TYPE_MESO,
                                      ABILITY_LINE_TYPE_ITEM_DROP,
