@@ -42,7 +42,7 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   EXPECT_EQ(at200.stars, 10);
   EXPECT_EQ(at200.potential_level, 200);
   EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
-  EXPECT_EQ(MaxGearForLevel(260).stars, 15);
+  EXPECT_EQ(MaxGearForLevel(260).stars, 17);
   EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 17);
   EXPECT_EQ(MaxGearForLevel(280).stars, 22);
   EXPECT_EQ(MaxGearForLevel(290).weapon_stars, 23);

@@ -36,7 +36,9 @@ namespace {
 // level: the fifth of ten branches from the top over every starred piece (the
 // median piece of each branch). 200 on re-read from the uncapped sweep of
 // 2026-11-21, three seeds of 365 days; 140 and 170 from 2026-10-04. Read on
-// arrival everywhere, 260 included, now that no climb stops there.
+// arrival everywhere, 260 included, now that no climb stops there. 260 re-read
+// once star runs risked a boom with no spare (ca741071): Arcane armour is
+// mid-climb on arrival, 10-17, and 17-18 by 263.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -44,7 +46,7 @@ struct GearBand {
 
 constexpr GearBand kBands[] = {
     {0, {5, 5, 0}},       {140, {8, 14, 0}},    {170, {10, 14, 0}},
-    {200, {10, 15, 200}}, {230, {11, 13, 230}}, {260, {15, 17, 260}},
+    {200, {10, 15, 200}}, {230, {11, 13, 230}}, {260, {17, 17, 260}},
     {270, {19, 19, 270}}, {280, {22, 23, 280}},
 };
 
