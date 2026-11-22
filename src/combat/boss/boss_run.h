@@ -198,6 +198,7 @@ struct BossSlot {
   int ground_y = 0;
   double next_jump_at = 0.0;
   double land_at = 0.0;
+  double next_teleport_at = 0.0;
   double hp_fraction = 0.0;
   // Its shield, as a fraction of its max HP, drawn past its HP.
   double shield_fraction = 0.0;
@@ -455,6 +456,11 @@ class BossRun {
   static double NextJumpAt(const BossSlot& slot);
   // Starts or ends `slot`'s jump, and schedules the other half.
   static void JumpSlot(BossSlot& slot);
+  // When `slot`'s next teleport is due; kNeverMoves if it never teleports.
+  static double NextTeleportAt(const BossSlot& slot);
+  // Moves `slot` over a hunted player's column in its own row, if it may stand
+  // there, and schedules the next teleport.
+  void TeleportSlot(const BossPhase& phase, BossSlot& slot);
   // Hands the sim this step's phase rules: who this player reaches, what each
   // monster takes and holds at, and in a solo run the shields due since the
   // last step. Does nothing for a phase without rules.

@@ -424,6 +424,34 @@ TEST(BossRunTest, AnOverPlayerWalkKeepsItsRow) {
   EXPECT_EQ(run.slots()[0].y, 0);
 }
 
+// Lotus walks his row and, on the teleport's own beat, blinks over the player.
+TEST(BossRunTest, ATeleportBlinksOverThePlayerBetweenSteps) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = SpecialsBoss(false, false, 0, 0);
+  ArenaWalk* walk = boss.mutable_difficulties(0)
+                        ->mutable_phases(0)
+                        ->mutable_spawns(0)
+                        ->mutable_walk();
+  walk->Clear();
+  walk->set_interval_ms(1000000);
+  walk->set_range(ArenaWalk::RANGE_ROW_STEP);
+  walk->mutable_teleport()->set_interval_ms(8000);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  run.Advance(*state, 7.9);
+  ASSERT_EQ(run.slots().size(), 1u);
+  EXPECT_EQ(run.slots()[0].x, 4) << "it blinked before the beat";
+  run.Advance(*state, 0.2);
+  EXPECT_EQ(run.slots()[0].x, 6);
+  EXPECT_EQ(run.slots()[0].y, 4) << "a teleport keeps its row";
+
+  run.MovePlayer(-1, 0);
+  run.Advance(*state, 7.9);
+  EXPECT_EQ(run.slots()[0].x, 6) << "it followed between beats";
+  run.Advance(*state, 0.2);
+  EXPECT_EQ(run.slots()[0].x, 4);
+}
+
 // Given both, the specials take turns at random and the waits vary.
 TEST(BossRunTest, SpecialsPickBetweenTheDashAndTheFall) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);

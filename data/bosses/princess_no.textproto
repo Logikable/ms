@@ -6,7 +6,12 @@ difficulties {
   # stand.
   phases {
     bgm: "Hieijan_nohime"
-    spawns { mob: "princess_no" spots { x: 4 y: 4 } }
+    # Teleport Attack: to a random player, 15s cooldown (wiki).
+    spawns {
+      mob: "princess_no"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 15000 } }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }

@@ -534,6 +534,7 @@ void BossRun::FillSlots(const CombatParams& params) {
                               ? SpecialWait(bar, 0)
                               : bar.walk.dash().interval_ms() / 1000.0;
     bar.next_jump_at = bar.walk.jump().interval_ms() / 1000.0;
+    bar.next_teleport_at = bar.walk.teleport().interval_ms() / 1000.0;
     bar.ground_y = bar.y;
     bar.hp_fraction = mob.hp_fraction;
     slots_.push_back(std::move(bar));
@@ -600,6 +601,27 @@ void BossRun::JumpSlot(BossSlot& slot) {
   slot.airborne = true;
   slot.land_at = slot.next_jump_at + jump.hang_ms() / 1000.0;
   slot.next_jump_at += jump.interval_ms() / 1000.0;
+}
+
+double BossRun::NextTeleportAt(const BossSlot& slot) {
+  if (slot.walk.teleport().interval_ms() <= 0) {
+    return kNeverMoves;
+  }
+  return slot.next_teleport_at;
+}
+
+void BossRun::TeleportSlot(const BossPhase& phase, BossSlot& slot) {
+  slot.next_teleport_at += slot.walk.teleport().interval_ms() / 1000.0;
+  // Mid-dash, mid-fall or in the air, it skips this one.
+  if (slot.dash_left > 0 || slot.falling || slot.airborne) {
+    return;
+  }
+  ++slot.steps_taken;
+  std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
+  if (hunted &&
+      MayEnter(phase, hunted->x(), slot.y, BoundsOf(phase, slot.zone))) {
+    slot.x = hunted->x();
+  }
 }
 
 double BossRun::NextMoveAt(const BossSlot& slot) {
@@ -729,10 +751,13 @@ void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
                       ? kNeverMoves
                       : NextMoveAt(slot);
     double jump = NextJumpAt(slot);
-    if (std::min(move, jump) > elapsed) {
+    double teleport = NextTeleportAt(slot);
+    if (std::min({move, jump, teleport}) > elapsed) {
       return;
     }
-    if (jump <= move) {
+    if (teleport < std::min(move, jump)) {
+      TeleportSlot(phase, slot);
+    } else if (jump <= move) {
       JumpSlot(slot);
     } else {
       MoveSlot(phase, slot);
@@ -747,7 +772,8 @@ void BossRun::DriftSlots() {
   }
   double elapsed = FightSeconds();
   for (BossSlot& slot : slots_) {
-    if (slot.walk.interval_ms() <= 0 && slot.walk.jump().interval_ms() <= 0) {
+    if (slot.walk.interval_ms() <= 0 && slot.walk.jump().interval_ms() <= 0 &&
+        slot.walk.teleport().interval_ms() <= 0) {
       continue;
     }
     DriftSlot(*phase, slot, elapsed);

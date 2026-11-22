@@ -19,10 +19,11 @@ difficulties {
   }
   phases {
     bgm: "Suu2phase"
+    # GMS teleports to a random player every 8s (namu).
     spawns {
       mob: "lotus_phase_2"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 8000 } }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -40,7 +41,7 @@ difficulties {
     spawns {
       mob: "lotus_phase_3"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 8000 } }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -92,7 +93,7 @@ difficulties {
     spawns {
       mob: "hard_lotus_phase_2"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 8000 } }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -110,7 +111,7 @@ difficulties {
     spawns {
       mob: "hard_lotus_phase_3"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 8000 } }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }

@@ -66,6 +66,15 @@ message ArenaWalk {
   // Takes turns between the dash and the fall at random, in place of the
   // dash's own interval. Darknell's.
   ArenaSpecials specials = 5;
+  // A blink to the cell in its own row over a player's column, picked as a fall
+  // picks one, between its ordinary steps. Unset means it never teleports.
+  ArenaTeleport teleport = 6;
+}
+
+// GMS's Lotus teleports to a random player every 8 seconds.
+message ArenaTeleport {
+  // Milliseconds between teleports. 0 means never.
+  int32 interval_ms = 1;
 }
 
 // A fall: the monster vanishes from its row, appears on the top row over a

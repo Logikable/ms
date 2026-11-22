@@ -18,7 +18,11 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "pink_bean" spots { x: 4 y: 4 } }
+    spawns {
+      mob: "pink_bean"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -71,7 +75,12 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "chaos_pink_bean" spots { x: 4 y: 4 } }
+    # Chaos only: to the nearest player every 20s (namu).
+    spawns {
+      mob: "chaos_pink_bean"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP teleport { interval_ms: 20000 } }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
