@@ -5,7 +5,11 @@ difficulties {
   name: "Chaos"
   phases {
     bgm: "TimeChaos"
-    spawns { mob: "chaos_von_bon" spots { x: 4 y: 4 } }
+    spawns {
+      mob: "chaos_von_bon"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }

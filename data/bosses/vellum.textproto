@@ -9,7 +9,7 @@ difficulties {
     spawns {
       mob: "chaos_vellum"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 30000 range: RANGE_ROW }
+      walk { interval_ms: 4000 range: RANGE_ROW }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }

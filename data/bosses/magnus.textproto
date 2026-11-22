@@ -4,7 +4,12 @@ difficulties {
   name: "Normal"
   phases {
     bgm: "thefinalWar"
-    spawns { mob: "magnus" spots { x: 4 y: 4 } }
+    # Rush Slash every 8s (wiki); the dash is Damien's.
+    spawns {
+      mob: "magnus"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP dash { interval_ms: 8000 cells: 4 step_ms: 120 } }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
@@ -38,7 +43,11 @@ difficulties {
   name: "Hard"
   phases {
     bgm: "thefinalWar"
-    spawns { mob: "hard_magnus" spots { x: 4 y: 4 } }
+    spawns {
+      mob: "hard_magnus"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP dash { interval_ms: 8000 cells: 4 step_ms: 120 } }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }

@@ -4,7 +4,11 @@ difficulties {
   name: "Normal"
   phases {
     bgm: "AltarOfAkayrum"
-    spawns { mob: "arkarium" spots { x: 4 y: 4 } }
+    spawns {
+      mob: "arkarium"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
