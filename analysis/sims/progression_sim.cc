@@ -3779,6 +3779,26 @@ int LevelReached(const Climb& climb) {
   return climb.stints.empty() ? 1 : climb.stints.back().level;
 }
 
+// The level the boss tables report clears past by playtime: the run's own
+// cap, 300 when --uncapped lets every branch climb there.
+int ReportCap() {
+  return absl::GetFlag(FLAGS_uncapped) ? kMaxLevel : kTrialLevelCap;
+}
+
+// Playtime when the climb first reached `level`, or -1 if it never did.
+double SecondsReaching(const Climb& climb, int level) {
+  if (LevelReached(climb) < level) {
+    return -1.0;
+  }
+  double seconds = 0.0;
+  for (const Stint& stint : climb.stints) {
+    if (stint.level < level) {
+      seconds += stint.seconds;
+    }
+  }
+  return seconds;
+}
+
 // One branch's standing with one fight at the end of its run.
 struct FightStanding {
   int level = 0;            // level of the first clear, 0 if never won
@@ -3800,7 +3820,7 @@ FightStanding StandingOn(const Climb& climb, const std::string& key) {
   standing.best_done = log->second.best_done;
   standing.level = log->second.first_clear_level;
   standing.seconds = log->second.first_clear_seconds;
-  double cap = climb.milestones[kNumMilestones - 1].seconds;
+  const double cap = SecondsReaching(climb, ReportCap());
   if (standing.level > 0 && cap >= 0.0 && standing.seconds > cap) {
     standing.after_cap = standing.seconds - cap;
   }
@@ -3819,7 +3839,7 @@ std::string ClearCell(const ClearPoint& point) {
   if (point.level == 0) {
     return "never";
   }
-  if (point.level < kMilestones[kNumMilestones - 1]) {
+  if (point.level < ReportCap()) {
     return absl::StrCat("Lv", point.level);
   }
   return absl::StrCat("+", Clock(std::max(point.after_cap, 0.0)));
@@ -3982,7 +4002,7 @@ void PrintBossTimeline(const Catalogs& catalogs,
       "level its first clear\ncame at. A cell reading +Nh is a clear at the "
       "cap, timed from Lv%d, since every branch\nthat waited that long would "
       "otherwise print the same level.\n\n",
-      kTrialLevelCap);
+      ReportCap());
   std::vector<FightRow> fights = LiveFights(catalogs);
   PrintClearMatrix(fights, branches, climbs);
   PrintFinalDpm(catalogs, fights, branches, climbs);
