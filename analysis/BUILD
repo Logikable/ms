@@ -254,6 +254,15 @@ cc_library(
     hdrs = ["parallel.h"],
 )
 
+cc_test(
+    name = "parallel_test",
+    srcs = ["parallel_test.cc"],
+    deps = [
+        ":parallel",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "sim_format",
     srcs = ["sim_format.cc"],

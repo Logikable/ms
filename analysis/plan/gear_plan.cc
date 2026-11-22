@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "analysis/parallel.h"
 #include "analysis/plan/cube_plan.h"
 #include "analysis/plan/soul_plan.h"
 #include "analysis/sim_gear.h"
@@ -827,6 +828,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       pieces.push_back({kFarmGear, entry.first});
     }
   }
+  std::vector<std::pair<std::pair<StatPreset, EquipSlot>, const Cube*>> runs;
   for (const std::pair<StatPreset, EquipSlot>& piece : pieces) {
     const EquipInstance* item =
         state.character.WornAt(piece.first, piece.second);
@@ -834,31 +836,48 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
       continue;
     }
     for (const Cube& shelf : kCubes) {
-      if (!OnShelf(state, shelf.type)) {
-        continue;
+      if (OnShelf(state, shelf.type)) {
+        runs.push_back({piece, &shelf});
       }
-      CubeProgram run =
-          BestCubeProgram(state, basis, piece.first, piece.second, shelf.type,
-                          income_, rng_, plan_.samples);
-      if (!run.worth()) {
-        continue;
-      }
-      Candidate offer;
-      offer.slot = piece.second;
-      offer.gear = piece.first;
-      offer.cube = true;
-      offer.cube_type = shelf.type;
-      offer.cube_program = run;
-      // Price and value the whole run, so a slot needing a dozen rolls is
-      // ranked on the dozen's cost. The run stops where the purse does: a
-      // choosing cube keeps the best so far, so one cube is enough to start,
-      // but a replacing one would be left on its last roll, so the purse must
-      // hold the whole run.
-      offer.cost = run.cost;
-      offer.outlay = shelf.choose ? shelf.cost : 0;
-      offer.gain = run.gain;
-      offers.push_back(offer);
     }
+  }
+  // Each program only reads the character, so they're priced side by side;
+  // sampling draws from the one generator, so it keeps to this thread.
+  std::vector<CubeProgram> programs(runs.size());
+  const auto price = [&](int i) {
+    programs[i] =
+        BestCubeProgram(state, basis, runs[i].first.first, runs[i].first.second,
+                        runs[i].second->type, income_, rng_, plan_.samples);
+  };
+  if (plan_.samples > 0) {
+    for (int i = 0; i < static_cast<int>(runs.size()); ++i) {
+      price(i);
+    }
+  } else {
+    ParallelFor(static_cast<int>(runs.size()), price);
+  }
+  for (std::size_t i = 0; i < runs.size(); ++i) {
+    const std::pair<StatPreset, EquipSlot>& piece = runs[i].first;
+    const Cube& shelf = *runs[i].second;
+    const CubeProgram& run = programs[i];
+    if (!run.worth()) {
+      continue;
+    }
+    Candidate offer;
+    offer.slot = piece.second;
+    offer.gear = piece.first;
+    offer.cube = true;
+    offer.cube_type = shelf.type;
+    offer.cube_program = run;
+    // Price and value the whole run, so a slot needing a dozen rolls is
+    // ranked on the dozen's cost. The run stops where the purse does: a
+    // choosing cube keeps the best so far, so one cube is enough to start,
+    // but a replacing one would be left on its last roll, so the purse must
+    // hold the whole run.
+    offer.cost = run.cost;
+    offer.outlay = shelf.choose ? shelf.cost : 0;
+    offer.gain = run.gain;
+    offers.push_back(offer);
   }
   return offers;
 }
@@ -878,23 +897,42 @@ std::vector<GearShopper::Candidate> GearShopper::FlameOffers(GameState& state,
       slots.push_back(entry.first);
     }
   }
+  std::vector<std::pair<EquipSlot, const Flame*>> runs;
   for (EquipSlot slot : slots) {
     for (const Flame& shelf : kFlames) {
-      FlameProgram run = BestFlameProgram(state, basis, slot, shelf.type, best,
-                                          rng_, plan_.samples);
-      if (!run.worth()) {
-        continue;
-      }
-      Candidate offer;
-      offer.slot = slot;
-      offer.flame = true;
-      offer.flame_type = shelf.type;
-      offer.flame_program = run;
-      offer.cost = run.cost;
-      offer.outlay = shelf.choose ? shelf.cost : 0;  // as CubeOffers' cubes
-      offer.gain = run.gain;
-      offers.push_back(offer);
+      runs.push_back({slot, &shelf});
     }
+  }
+  // Side by side unless sampling, as CubeOffers.
+  std::vector<FlameProgram> programs(runs.size());
+  const auto price = [&](int i) {
+    programs[i] =
+        BestFlameProgram(state, basis, runs[i].first, runs[i].second->type,
+                         best, rng_, plan_.samples);
+  };
+  if (plan_.samples > 0) {
+    for (int i = 0; i < static_cast<int>(runs.size()); ++i) {
+      price(i);
+    }
+  } else {
+    ParallelFor(static_cast<int>(runs.size()), price);
+  }
+  for (std::size_t i = 0; i < runs.size(); ++i) {
+    const EquipSlot slot = runs[i].first;
+    const Flame& shelf = *runs[i].second;
+    const FlameProgram& run = programs[i];
+    if (!run.worth()) {
+      continue;
+    }
+    Candidate offer;
+    offer.slot = slot;
+    offer.flame = true;
+    offer.flame_type = shelf.type;
+    offer.flame_program = run;
+    offer.cost = run.cost;
+    offer.outlay = shelf.choose ? shelf.cost : 0;  // as CubeOffers' cubes
+    offer.gain = run.gain;
+    offers.push_back(offer);
   }
   return offers;
 }
