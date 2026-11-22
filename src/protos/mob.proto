@@ -166,6 +166,9 @@ message Spawn {
   repeated int32 hp_steps = 10;
   // While it lives, it shields other monsters on its own clock.
   SpawnShield shield = 11;
+  // Milliseconds from its phase's start in which it can't be hit: GMS's Hard
+  // Lucid spends 4.52s entering her last phase while its clock runs.
+  int32 entry_invulnerable_ms = 12;
 }
 
 // A span that opens every `interval_ms` of fight time, measured from the end

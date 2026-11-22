@@ -45,7 +45,7 @@ TEST(PhaseRulesTest, ASpotsZoneIsTheOneListingIt) {
 TEST(PhaseRulesTest, APlayerReachesTheBossAndOnlyTheirZonesPeril) {
   BossPhase phase = LastPhase();
   std::vector<SlotRule> rules =
-      SlotRules(phase, kSlots, {true, true, true, true}, 10.0, 2, {2});
+      SlotRules(phase, kSlots, {true, true, true, true}, 10.0, 0.0, 2, {2});
   EXPECT_TRUE(rules[0].reachable);
   EXPECT_FALSE(rules[1].reachable);
   EXPECT_TRUE(rules[2].reachable);
@@ -65,9 +65,9 @@ TEST(PhaseRulesTest, ACrowdedZoneHalvesItsPerilOnly) {
   BossPhase phase = LastPhase();
   std::vector<bool> alive = {true, true, true, true};
   std::vector<SlotRule> crowded =
-      SlotRules(phase, kSlots, alive, 0.0, 0, {0, 1, 6});
+      SlotRules(phase, kSlots, alive, 0.0, 0.0, 0, {0, 1, 6});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 1.0);
-  crowded = SlotRules(phase, kSlots, alive, 0.0, 0, {0, 1, 0});
+  crowded = SlotRules(phase, kSlots, alive, 0.0, 0.0, 0, {0, 1, 0});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 0.5);
   EXPECT_DOUBLE_EQ(crowded[0].damage_taken, 1.0);
 }
@@ -77,15 +77,32 @@ TEST(PhaseRulesTest, AnInvulnerableWindowOpensEachIntervalForItsLength) {
   Spawn hundun;
   hundun.mutable_invulnerable()->set_interval_ms(60000);
   hundun.mutable_invulnerable()->set_open_ms(12000);
-  EXPECT_FALSE(Invulnerable(hundun, 5.0));
-  EXPECT_TRUE(Invulnerable(hundun, 60.0));
-  EXPECT_TRUE(Invulnerable(hundun, 71.9));
-  EXPECT_FALSE(Invulnerable(hundun, 72.0));
-  EXPECT_TRUE(Invulnerable(hundun, 125.0));
+  EXPECT_FALSE(Invulnerable(hundun, 5.0, 0.0));
+  EXPECT_TRUE(Invulnerable(hundun, 60.0, 0.0));
+  EXPECT_TRUE(Invulnerable(hundun, 71.9, 0.0));
+  EXPECT_FALSE(Invulnerable(hundun, 72.0, 0.0));
+  EXPECT_TRUE(Invulnerable(hundun, 125.0, 0.0));
 
   BossPhase phase;
   *phase.add_spawns() = hundun;
-  EXPECT_FALSE(SlotRules(phase, {0}, {true}, 61.0, -1, {})[0].reachable);
+  EXPECT_FALSE(SlotRules(phase, {0}, {true}, 61.0, 0.0, -1, {})[0].reachable);
+}
+
+// Hard Lucid can't be hit while she enters her last phase, from whenever it
+// began on the fight's clock.
+TEST(PhaseRulesTest, AnEntryWindowCountsFromThePhasesStart) {
+  Spawn lucid;
+  lucid.set_entry_invulnerable_ms(4520);
+  EXPECT_TRUE(Invulnerable(lucid, 300.0, 300.0));
+  EXPECT_TRUE(Invulnerable(lucid, 304.5, 300.0));
+  EXPECT_FALSE(Invulnerable(lucid, 304.53, 300.0));
+  EXPECT_FALSE(Invulnerable(Spawn(), 300.0, 300.0));
+
+  BossPhase phase;
+  *phase.add_spawns() = lucid;
+  EXPECT_TRUE(HasSlotRules(phase));
+  EXPECT_FALSE(
+      SlotRules(phase, {0}, {true}, 302.0, 300.0, -1, {})[0].reachable);
 }
 
 TEST(PhaseRulesTest, ALivingGiverShieldsTheMobsItNamesOnItsClock) {

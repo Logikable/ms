@@ -32,8 +32,9 @@ bool HasSlotRules(const BossPhase& phase);
 // The zone `spot` is in, counting from 1, or 0 for none.
 int ZoneOfSpot(const BossPhase& phase, int spot);
 
-// Whether `spawn` can't be hit `fight_seconds` after the countdown ended.
-bool Invulnerable(const Spawn& spawn, double fight_seconds);
+// Whether `spawn` can't be hit `fight_seconds` after the countdown ended, its
+// phase having begun at `phase_began` on the same clock.
+bool Invulnerable(const Spawn& spawn, double fight_seconds, double phase_began);
 
 // The fraction of max HP slot `slot` holds at, given which slots are alive.
 double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
@@ -44,8 +45,8 @@ double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
 std::vector<SlotRule> SlotRules(const BossPhase& phase,
                                 const std::vector<int>& slot_spawns,
                                 const std::vector<bool>& alive,
-                                double fight_seconds, int spot,
-                                const std::vector<int>& spots);
+                                double fight_seconds, double phase_began,
+                                int spot, const std::vector<int>& spots);
 
 // The shields that land in fight time (from, to]: for each slot, the fraction
 // of its max HP it gains. Only living givers give and only living slots gain.

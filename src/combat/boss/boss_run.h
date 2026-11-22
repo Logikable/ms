@@ -590,6 +590,8 @@ class BossRun {
   std::vector<int> slot_types_;
   // The fight time shields have been given through.
   double shields_until_ = 0.0;
+  // FightSeconds() when the phase began.
+  double phase_began_at_ = 0.0;
   // A party fight's shields this client has added, per slot, and the server's
   // placement count it has followed.
   std::vector<double> shields_taken_;

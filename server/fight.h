@@ -218,6 +218,8 @@ class PartyFight {
   std::vector<double> shield_hp_;
   std::vector<double> shields_left_;
   double shields_until_ = 0.0;
+  // FightSeconds() when the phase began.
+  double phase_began_at_ = 0.0;
   std::vector<bool> zones_alive_;
   int placements_ = 0;
   std::vector<FightPlayer> players_;

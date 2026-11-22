@@ -36,7 +36,8 @@ int TicksBetween(int interval_ms, double from, double to) {
 bool HasSlotRules(const BossPhase& phase) {
   for (const Spawn& spawn : phase.spawns()) {
     if (spawn.zone() != 0 || spawn.has_invulnerable() ||
-        !spawn.hp_steps().empty() || spawn.has_shield()) {
+        !spawn.hp_steps().empty() || spawn.has_shield() ||
+        spawn.entry_invulnerable_ms() > 0) {
       return true;
     }
   }
@@ -54,7 +55,11 @@ int ZoneOfSpot(const BossPhase& phase, int spot) {
   return 0;
 }
 
-bool Invulnerable(const Spawn& spawn, double fight_seconds) {
+bool Invulnerable(const Spawn& spawn, double fight_seconds,
+                  double phase_began) {
+  if (fight_seconds - phase_began < spawn.entry_invulnerable_ms() / 1000.0) {
+    return true;
+  }
   const SpawnWindow& window = spawn.invulnerable();
   if (window.interval_ms() <= 0 || window.open_ms() <= 0 ||
       fight_seconds < 0.0) {
@@ -82,8 +87,8 @@ double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
 std::vector<SlotRule> SlotRules(const BossPhase& phase,
                                 const std::vector<int>& slot_spawns,
                                 const std::vector<bool>& alive,
-                                double fight_seconds, int spot,
-                                const std::vector<int>& spots) {
+                                double fight_seconds, double phase_began,
+                                int spot, const std::vector<int>& spots) {
   const int zone = ZoneOfSpot(phase, spot);
   int crowd = 0;
   for (int other : spots) {
@@ -99,7 +104,7 @@ std::vector<SlotRule> SlotRules(const BossPhase& phase,
     }
     SlotRule& rule = rules[slot];
     rule.reachable = (spawn->zone() == 0 || spawn->zone() == zone) &&
-                     !Invulnerable(*spawn, fight_seconds);
+                     !Invulnerable(*spawn, fight_seconds, phase_began);
     if (crowded && spawn->zone() != 0) {
       rule.damage_taken = crowding.damage_pct() / 100.0;
     }

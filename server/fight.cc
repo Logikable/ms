@@ -106,6 +106,7 @@ void PartyFight::EnterPhase(int phase) {
   shield_hp_.assign(hp_.size(), 0.0);
   shields_left_.assign(hp_.size(), 0.0);
   shields_until_ = FightSeconds();
+  phase_began_at_ = shields_until_;
   zones_alive_.clear();
   // Give each player their own spot, in party order. This assumes each phase
   // has at least as many spots as the party has members.
@@ -292,7 +293,7 @@ void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
   double floor = 0.0;
   if (current != nullptr && HasSlotRules(*current)) {
     const Spawn& spawn = current->spawns(spawn_of_slot_[slot]);
-    if (Invulnerable(spawn, FightSeconds())) {
+    if (Invulnerable(spawn, FightSeconds(), phase_began_at_)) {
       return;
     }
     floor = std::min(

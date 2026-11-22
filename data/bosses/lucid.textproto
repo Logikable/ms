@@ -96,6 +96,8 @@ difficulties {
     spawns {
       mob: "hard_lucid_phase_3"
       spots { x: 4 y: 3 }
+      # Her entrance takes 4.52s of the 45 (namu).
+      entry_invulnerable_ms: 4520
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }

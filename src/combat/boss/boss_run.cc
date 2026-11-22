@@ -500,6 +500,7 @@ void BossRun::FillSlots(const CombatParams& params) {
   slot_types_.assign(counted, -1);
   shields_taken_.assign(counted, 0.0);
   shields_until_ = FightSeconds();
+  phase_began_at_ = shields_until_;
   for (const MobStatus& mob : sim_.view().roster) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
     int taken = placed[mob.type]++;
@@ -919,7 +920,8 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
   }
   shields_until_ = now;
   std::vector<SlotRule> rules =
-      SlotRules(*phase, slot_spawns_, alive, now, player_at_, PartySpots());
+      SlotRules(*phase, slot_spawns_, alive, now, phase_began_at_, player_at_,
+                PartySpots());
   std::map<int, MobRule> by_id;
   for (std::size_t slot = 0; slot < rules.size(); ++slot) {
     by_id[mob_of_slot_[slot]] = {

@@ -574,6 +574,23 @@ TEST(FightRulesTest, AnInvulnerableMonsterTakesNoHit) {
   EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.9);
 }
 
+TEST(FightRulesTest, AnEnteringMonsterTakesNoHitUntilItsWindowEnds) {
+  Boss boss = Rooms();
+  boss.mutable_difficulties(0)
+      ->mutable_phases(0)
+      ->mutable_spawns(0)
+      ->set_entry_invulnerable_ms(3000);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Advance(2.5);
+  fight.Hit("one", 0, 10);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 1.0);
+  fight.Advance(1.0);
+  fight.Hit("one", 0, 10);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.9);
+}
+
 TEST(FightRulesTest, AShieldSoaksHitsAndIsSentOn) {
   Boss boss = Rooms();
   SpawnShield* shield = boss.mutable_difficulties(0)
