@@ -340,6 +340,9 @@ class CharacterInstance {
   // Gives node `index` three other stats, free; each level stays where it was.
   bool ReselectHexaStatNode(int index, HexaStat primary, HexaStat first,
                             HexaStat second);
+  // Replaces them whole, unpaid, for a character written outright (--mode=bis).
+  // False, changing nothing, for nodes the rules or the level refuse.
+  bool SetHexaStats(const HexaStats& stats);
 
   /* The potions. A buff is either owned or rented, and on or off; together
    * these decide what it does and what it costs. See

@@ -155,6 +155,18 @@ FamiliarBook MaxFamiliars(StatField primary, int level);
 // The three Inner Ability lines `preset` has at `level`.
 AbilityPreset MaxAbilityPreset(Activity preset, StatField primary, int level);
 
+// The boss mob with the most PDR among the fights `level` has unlocked, which
+// max mode values Ignore Defense against. Null when none has opened.
+const Mob* MaxBossTarget(const std::map<std::string, Boss>& bosses,
+                         const std::map<std::string, Mob>& mobs, int level);
+
+// One plain swing at MaxBossTarget through the full damage chain, the rate
+// max mode's own allocations are ranked by: blind to cooldowns and buffs.
+double MaxBossSwingRate(CharacterInstance& character,
+                        const std::map<std::string, Skill>& skills,
+                        const std::map<std::string, Boss>& bosses,
+                        const std::map<std::string, Mob>& mobs);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_MAX_CHARACTER_H_

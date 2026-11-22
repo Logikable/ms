@@ -109,6 +109,11 @@ ABSL_FLAG(bool, max, false,
           "the difference between a V node at 1 and one at 30, which is most "
           "of what a 5th job is. One row a branch, holding whatever the "
           "ceiling armed it with.");
+ABSL_FLAG(bool, bis, false,
+          "Measure --mode=bis's character instead: every item at its cap and "
+          "every rolled line the best the pool has, each chosen by a measured "
+          "fight against the toughest boss the level has opened. The ceiling "
+          "of --max, and slow: a search per branch.");
 ABSL_FLAG(double, seconds, 600.0,
           "How long the swings are played out for, in the game's own seconds "
           "-- the clock a cooldown is written in. The default is ten minutes, "
@@ -608,9 +613,17 @@ void RecordShares(const CombatParams& params, const Sequence& played,
 // The max character at `level`, geared and skilled by --mode=max. The branch is
 // named by its own advancement, so the level decides how far it goes: a Hero at
 // 200 is seeded as a 5th job Hero with the matrix maxed.
+// Whether the row is a character seeded whole, --max's or --bis's.
+bool Seeded() {
+  return absl::GetFlag(FLAGS_max) || absl::GetFlag(FLAGS_bis);
+}
+
 GameState MaxState(const Catalogs& catalogs, int level, Job branch) {
-  return NewMaxState(catalogs, AdvancementForJobStage(branch, StageOf(branch)),
-                     level, kSimSeed);
+  const JobAdvancement advancement =
+      AdvancementForJobStage(branch, StageOf(branch));
+  return absl::GetFlag(FLAGS_bis)
+             ? NewBisState(catalogs, advancement, level, kSimSeed)
+             : NewMaxState(catalogs, advancement, level, kSimSeed);
 }
 
 // How many of each other token the bag gets. More than any shelf asks, so what
@@ -718,7 +731,7 @@ GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
 // False if the build asks for a weapon this character never ends up holding.
 bool Outfit(const Catalogs& catalogs, int level, const Build& build,
             const Fight& fight, GameState& state, Result& result) {
-  bool max = absl::GetFlag(FLAGS_max);
+  bool max = Seeded();
   bool endowed = absl::GetFlag(FLAGS_endowed);
   state.bosses = catalogs.bosses;
   if (endowed) {
@@ -785,9 +798,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
   Result result;
   // The max character is seeded whole; the other two start from a fresh
   // character. A GameState can't be assigned, so which one is decided here.
-  GameState state = absl::GetFlag(FLAGS_max)
-                        ? MaxState(catalogs, level, build.job)
-                        : NewState(catalogs, seed);
+  GameState state = Seeded() ? MaxState(catalogs, level, build.job)
+                             : NewState(catalogs, seed);
   if (!Outfit(catalogs, level, build, fight, state, result)) {
     return result;
   }
@@ -982,6 +994,10 @@ std::string SeedLine() {
         static_cast<long long>(absl::GetFlag(FLAGS_v_points)));
     return line;
   }
+  if (absl::GetFlag(FLAGS_bis)) {
+    return "the best-in-slot character: every upgrade at its cap, every line "
+           "measured";
+  }
   if (absl::GetFlag(FLAGS_max)) {
     return "the ceiling character: max gear, hyper stats, ability and V matrix";
   }
@@ -1104,7 +1120,7 @@ void Run(int level) {
     const Result& result = rows[row];
     // A max character that doesn't match the row measured nothing: the branch
     // holds its other weapon, and that row prints instead.
-    if (absl::GetFlag(FLAGS_max) && result.combat_power == 0) {
+    if (Seeded() && result.combat_power == 0) {
       continue;
     }
     std::string key =

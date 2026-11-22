@@ -2802,6 +2802,15 @@ bool CharacterInstance::OpenHexaStatNode(HexaStat primary, HexaStat first,
   return true;
 }
 
+bool CharacterInstance::SetHexaStats(const HexaStats& stats) {
+  if (!HexaStatsAllowed(stats) ||
+      stats.nodes_size() > HexaStatNodesOpen(character_.level())) {
+    return false;
+  }
+  *character_.mutable_hexa_stats() = stats;
+  return true;
+}
+
 bool CharacterInstance::EnhanceHexaStatNode(int index) {
   if (index < 0 || index >= character_.hexa_stats().nodes_size()) {
     return false;

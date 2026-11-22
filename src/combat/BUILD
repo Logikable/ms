@@ -307,6 +307,20 @@ cc_test(
 )
 
 cc_library(
+    name = "bis_rate",
+    srcs = ["bis_rate.cc"],
+    hdrs = ["bis_rate.h"],
+    deps = [
+        ":encounter",
+        ":measure",
+        "//src:game_state",
+        "//src/character:max_character",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_library(
     name = "measure",
     srcs = ["measure.cc"],
     hdrs = ["measure.h"],

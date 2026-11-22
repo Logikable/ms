@@ -106,6 +106,28 @@ sim_binary(
 )
 
 sim_binary(
+    name = "bis_sim",
+    srcs = ["bis_sim.cc"],
+    deps = [
+        "//analysis:parallel",
+        "//analysis:sim_jobs",
+        "//analysis:sim_world",
+        "//src:game_state",
+        "//src/character",
+        "//src/character:max_character",
+        "//src/character:stat_preset",
+        "//src/combat:bis_rate",
+        "//src/item:equip_instance",
+        "//src/item/upgrade:potential",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:familiar_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+sim_binary(
     name = "bench_sim",
     srcs = ["bench_sim.cc"],
     deps = [

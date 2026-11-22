@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/bis_search.h"
 #include "src/character/account/familiar.h"
 #include "src/character/account/guild.h"
 #include "src/character/account/legion.h"
@@ -321,10 +322,9 @@ const Scroll* BestScrollFor(const GameState& state, const EquipPrototype& proto,
 // name an exact configuration. Written directly instead of rolled through
 // Scroll() and StarForce(), because the tester wants the finished item, not the
 // odds.
-Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
-                    const GearSetup& equips) {
+Equip UpgradedWith(const GameState& state, const EquipPrototype& proto,
+                   const Scroll* scroll, const GearSetup& equips) {
   Equip built = FreshEquip(proto);
-  const Scroll* scroll = BestScrollFor(state, proto, equips);
   if (equips.scrolled && scroll != nullptr && TakesUpgradeSlots(proto)) {
     int slots = built.remaining_upgrade_slots();
     std::vector<EquipStats> passes(slots, scroll->stats());
@@ -345,6 +345,23 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
         wanted, EquipTabItem::MaxStarsForLevel(proto.required_level())));
   }
   return built;
+}
+
+Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
+                    const GearSetup& equips) {
+  return UpgradedWith(state, proto, BestScrollFor(state, proto, equips),
+                      equips);
+}
+
+// What --mode=bis does to every item: the best scroll anywhere, boss drops and
+// the weapon included, and stars to the item's own cap.
+GearSetup BisSetup() {
+  GearSetup equips;
+  equips.scrolled = true;
+  equips.stars = std::numeric_limits<int>::max();
+  equips.dropped_scrolls_from = 0;
+  equips.dropped_weapon_scrolls = true;
+  return equips;
 }
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog has
@@ -1160,6 +1177,24 @@ void WearMaxSymbols(GameState& state) {
   }
 }
 
+// Every symbol the level can wear, at its maximum.
+void WearBisSymbols(GameState& state) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (!IsSymbol(proto) || !state.character.MeetsLevel(proto)) {
+      continue;
+    }
+    Equip raised;
+    raised.set_symbol_level(SymbolMaxLevel(proto));
+    int row = static_cast<int>(state.character.inventory().size());
+    state.character.PickUp(std::make_unique<EquipInstance>(proto, raised));
+    if (static_cast<int>(state.character.inventory().size()) > row) {
+      state.character.Equip(row);
+    }
+  }
+}
+
 // The pieces each preset holds as its own, the first preset's being everything
 // it wears, with the preset to address them through.
 std::vector<std::pair<EquipSlot, StatPreset>> OwnPieces(
@@ -1261,7 +1296,7 @@ void WearMaxFarmPieces(GameState& state, int level, const GearSetup& equips) {
 // Every matrix node at the level MaxMatrixLevel gives. The points are granted
 // at each node's cost, leaving nothing in the pool: this mode creates a
 // character who spent everything, not one holding points.
-void MaxVMatrix(GameState& state) {
+void MaxVMatrix(GameState& state, bool full) {
   CharacterInstance& character = state.character;
   if (!character.v_matrix_unlocked()) {
     return;
@@ -1273,7 +1308,8 @@ void MaxVMatrix(GameState& state) {
         !character.ReachesVNode(skill)) {
       continue;
     }
-    int room = MaxMatrixLevel(skill, level) - character.skill_level(skill);
+    int room = (full ? SkillMaxLevel(skill) : MaxMatrixLevel(skill, level)) -
+               character.skill_level(skill);
     if (room <= 0) {
       continue;
     }
@@ -1341,15 +1377,15 @@ std::vector<MaxMember> MaxAltMembers(Job played_line, int level) {
   return alts;
 }
 
-// What the rest of the account gives `member`: everyone in `account` but them.
+// What the rest of the account gives `account[self]`: everyone else in it, by
+// position, since a Legion can hold two of one job.
 // Arithmetic instead of a walk over characters, which lets the roster be built
 // before any character exists.
-LinkTally MaxTally(const std::vector<MaxMember>& account,
-                   const MaxMember& member) {
+LinkTally MaxTally(const std::vector<MaxMember>& account, size_t self) {
   LinkTally tally;
-  for (const MaxMember& other : account) {
-    if (other.advancement != member.advancement) {
-      tally.Record(JobForAdvancement(other.advancement), other.level);
+  for (size_t i = 0; i < account.size(); ++i) {
+    if (i != self) {
+      tally.Record(JobForAdvancement(account[i].advancement), account[i].level);
     }
   }
   return tally;
@@ -1357,11 +1393,12 @@ LinkTally MaxTally(const std::vector<MaxMember>& account,
 
 // The Legion's view of the rest of the account, as MaxTally gives the links.
 std::vector<LegionMember> MaxLegionRoster(const std::vector<MaxMember>& account,
-                                          const MaxMember& member) {
+                                          size_t self) {
   std::vector<LegionMember> others;
-  for (const MaxMember& other : account) {
-    if (other.advancement != member.advancement) {
-      others.push_back({JobForAdvancement(other.advancement), other.level});
+  for (size_t i = 0; i < account.size(); ++i) {
+    if (i != self) {
+      others.push_back(
+          {JobForAdvancement(account[i].advancement), account[i].level});
     }
   }
   return others;
@@ -1390,9 +1427,13 @@ void ThrowMaxToggles(GameState& state) {
   }
 }
 
+// `bis` builds --mode=bis's maxima instead of max mode's sweep: every fight
+// the level opens beaten, every symbol and node at its top, the default lines
+// SearchBis starts from, and no farming pieces.
 void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
                      const LinkTally& tally,
-                     std::vector<LegionMember> legion_roster) {
+                     std::vector<LegionMember> legion_roster,
+                     bool bis = false) {
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
   equips.scrolled = true;
@@ -1402,7 +1443,9 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   // and pets are full of dropped scrolls. Not the weapon: it was traced before
   // ten Magical Scrolls dropped, and holding its slots (and so its stars) for
   // them paid nothing (2026-10-26, progression_sim --hold_dropped_scrolls).
-  if (level >= kTrialLevelCap) {
+  if (bis) {
+    equips = BisSetup();
+  } else if (level >= kTrialLevelCap) {
     equips.dropped_scrolls_from = kGuardianAngelSlimeLevel;
     equips.dropped_weapon_scrolls = false;
   } else {
@@ -1415,25 +1458,41 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   ThrowMaxToggles(state);
   const int reached = state.character.proto().level();
   WearAll(state, MaxOutfit(state.character.proto().job(), reached), equips);
-  WearMaxFarmPieces(state, reached, equips);
-  RecordClears(state, [reached](const std::string& boss,
-                                const BossDifficulty& difficulty) {
+  if (!bis) {
+    WearMaxFarmPieces(state, reached, equips);
+  }
+  RecordClears(state, [reached, bis](const std::string& boss,
+                                     const BossDifficulty& difficulty) {
+    if (bis) {
+      return difficulty.unlock_level() <= reached;
+    }
     const int cleared = MaxClearLevel(boss, difficulty.name());
     return cleared > 0 && cleared <= reached;
   });
   WearStarterSymbol(state);
-  WearMaxSymbols(state);
+  if (bis) {
+    WearBisSymbols(state);
+  } else {
+    WearMaxSymbols(state);
+  }
   WearAll(state, MaxPets(), equips);
   // The climb's leftovers: pieces a level gate says to carry instead of wear,
   // and weapons replaced later.
   state.character.ClearEquipInventory();
 
-  DressMaxPotentials(state, gear);
-  DressMaxFlames(state);
+  if (!bis) {
+    DressMaxPotentials(state, gear);
+    DressMaxFlames(state);
+  }
   WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
               state.items);
-  MaxVMatrix(state);
-  WearMaxFamiliars(state, reached);
+  MaxVMatrix(state, bis);
+  // After the matrix: a HEXA node can need a V node's level first.
+  if (bis) {
+    DressBisDefaults(state);
+  } else {
+    WearMaxFamiliars(state, reached);
+  }
   state.character.set_link_tally(tally);
   state.character.ReconcileLinkSkills(state.skills);
   state.character.set_legion_roster(std::move(legion_roster));
@@ -1442,7 +1501,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   // Ignore Defense these give.
   SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
   SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
-  if (state.character.inner_ability_unlocked()) {
+  if (!bis && state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
     for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
       state.character.SetAbility(MaxAbilityPreset(activity, primary, reached),
@@ -1460,8 +1519,23 @@ void SeedMaxRoster(GameState& state, const std::vector<MaxMember>& account,
                    bool playable) {
   const int64_t now = static_cast<int64_t>(std::time(nullptr));
   state.inactive_characters.clear();
+  // A Legion holds several of one job; each is built once and copied, under
+  // its own name. A copy keeps its first build's links, which MirrorAccount
+  // recomputes on play anyway.
+  std::map<std::pair<JobAdvancement, int>, size_t> built;
+  std::map<JobAdvancement, int> copies;
   for (size_t i = 1; i < account.size(); ++i) {
     const MaxMember& alt = account[i];
+    auto first = built.find({alt.advancement, alt.level});
+    if (playable && first != built.end()) {
+      CharacterSave copy = state.inactive_characters[first->second];
+      copy.mutable_character()->set_name(
+          UsernameFor(alt.advancement) + " " +
+          std::to_string(++copies[alt.advancement] + 1));
+      state.inactive_characters.push_back(std::move(copy));
+      continue;
+    }
+    built[{alt.advancement, alt.level}] = state.inactive_characters.size();
     if (!playable) {
       Character& bare =
           *state.inactive_characters.emplace_back().mutable_character();
@@ -1470,8 +1544,8 @@ void SeedMaxRoster(GameState& state, const std::vector<MaxMember>& account,
       continue;
     }
     ResetToBeginner(state);
-    MaxOneCharacter(state, alt.advancement, alt.level, MaxTally(account, alt),
-                    MaxLegionRoster(account, alt));
+    MaxOneCharacter(state, alt.advancement, alt.level, MaxTally(account, i),
+                    MaxLegionRoster(account, i));
     CharacterSave& slot = state.inactive_characters.emplace_back();
     *slot.mutable_character() = state.character.ToProto();
     slot.set_current_map(kHomeMap);
@@ -1511,12 +1585,75 @@ void SeedMax(GameState& state, const TestOptions& options) {
   }
   SeedMaxRoster(state, account, options.playable_roster);
   ResetToBeginner(state);
-  MaxOneCharacter(state, advancement, level, MaxTally(account, account[0]),
-                  MaxLegionRoster(account, account[0]));
+  MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
+                  MaxLegionRoster(account, 0));
   // The main's Legion is the account's.
   *state.account.mutable_legion() = state.character.legion();
   // Recompute the tally from the roster: from now on the account provides it,
   // and removing a slot changes it.
+  state.MirrorAccount();
+  state.current_map = kHomeMap;
+}
+
+// The Legion's members past the link alts, up to a full Legion: whichever
+// job's effect raises the swing most, one at a time, read on the main
+// `state.character` holds. Job effects are flat stats and crit rate, which a
+// swing sees whole.
+void AddBisLegionMembers(GameState& state, std::vector<MaxMember>& account) {
+  const int full = LegionMemberSlots(kLegionRanks);
+  while (static_cast<int>(account.size()) < full) {
+    MaxMember best;
+    double best_rate = -1.0;
+    for (Job job : EveryFourthJob()) {
+      const MaxMember member = {CeilingAdvancementFor(job, kMaxLevel),
+                                kMaxLevel};
+      account.push_back(member);
+      state.character.set_legion_roster(MaxLegionRoster(account, 0));
+      const double rate = BisSwingRate(state);
+      account.pop_back();
+      if (rate > best_rate) {
+        best_rate = rate;
+        best = member;
+      }
+    }
+    account.push_back(best);
+  }
+}
+
+// --mode=bis: the main at every maximum the game has, then every rolled choice
+// measured (see bis_search.h). The account behind them is one of each other
+// job at the top level for the link skills, and a full Legion.
+void SeedBis(GameState& state, const TestOptions& options) {
+  state.account.SetAutoswapPresets(true);
+  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
+  BindMuteToM(state);
+  state.MirrorAccount();
+  const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
+                                    ? options.job
+                                    : kTestAdvancement;
+  const int level = LevelForJob(chosen, options.level);
+  state.character.set_uncapped(true);
+  const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
+  const Job own = FourthJobOf(LineOf(JobForAdvancement(advancement)));
+
+  std::vector<MaxMember> account = {{advancement, level}};
+  for (Job job : EveryFourthJob()) {
+    if (job != own) {
+      account.push_back({CeilingAdvancementFor(job, kMaxLevel), kMaxLevel});
+    }
+  }
+  // A first build of the main, only to choose the rest of the Legion by.
+  ResetToBeginner(state);
+  MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
+                  MaxLegionRoster(account, 0), /*bis=*/true);
+  AddBisLegionMembers(state, account);
+
+  SeedMaxRoster(state, account, options.playable_roster);
+  ResetToBeginner(state);
+  MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
+                  MaxLegionRoster(account, 0), /*bis=*/true);
+  SearchBis(state, options.bis_rate ? options.bis_rate : BisRate(BisSwingRate));
+  *state.account.mutable_legion() = state.character.legion();
   state.MirrorAccount();
   state.current_map = kHomeMap;
 }
@@ -1553,7 +1690,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   // Before seeding: a max character's allocations are measured by playing the
   // fight, and the fight reads this setting.
   account.SetAutoswapPresets(test.autoswap_presets);
-  uncapped = mode == GameMode::kMax;
+  uncapped = mode == GameMode::kMax || mode == GameMode::kBis;
   // Before seeding too: max mode measures its allocations on the character,
   // and a full set measured without its bonus buys the wrong stats.
   character.UseEquipSets(equip_sets);
@@ -1562,6 +1699,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
     SeedTest(*this, test);
   } else if (mode == GameMode::kMax) {
     SeedMax(*this, test);
+  } else if (mode == GameMode::kBis) {
+    SeedBis(*this, test);
   } else {
     SeedPlay(*this);
   }
@@ -1715,6 +1854,40 @@ int OwnedFromLevel(const EquipPrototype& proto) {
     return kTotemLevel;
   }
   return proto.required_level();
+}
+
+}  // namespace ms
+
+namespace ms {
+
+Equip BisUpgradedWith(const GameState& state, const EquipPrototype& proto,
+                      const Scroll* scroll) {
+  return UpgradedWith(state, proto, scroll, BisSetup());
+}
+
+std::vector<const Scroll*> BisScrollChoices(const GameState& state,
+                                            const EquipPrototype& proto) {
+  std::vector<const Scroll*> choices;
+  const ScrollTarget target = TargetForSlot(proto.equip_slot());
+  if (!TakesUpgradeSlots(proto) || target == SCROLL_TARGET_UNSPECIFIED) {
+    return choices;
+  }
+  const GearSetup equips = BisSetup();
+  auto add = [&choices](const Scroll* scroll) {
+    if (scroll != nullptr &&
+        std::find(choices.begin(), choices.end(), scroll) == choices.end()) {
+      choices.push_back(scroll);
+    }
+  };
+  // The default first, so a piece with nothing better keeps it.
+  add(BestScrollFor(state, proto, equips));
+  if (target != SCROLL_TARGET_PET) {
+    const StatField primary = PrimaryStatField(state.character.proto().job());
+    const ScrollType attack =
+        primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
+    add(BestScrollOfType(state, proto, target, attack));
+  }
+  return choices;
 }
 
 }  // namespace ms

@@ -15,6 +15,7 @@
 #include "absl/strings/str_join.h"
 #include "src/build_config.h"
 #include "src/character/exp_table.h"
+#include "src/combat/bis_rate.h"
 #include "src/combat/offline.h"
 #include "src/console.h"
 #include "src/embedded_data.h"
@@ -40,14 +41,15 @@ ABSL_FLAG(std::string, mode, "play",
           "Island, 'test' for the workbench -- a level 1 Beginner with meso "
           "and a spread of items to exercise the screens with -- or 'max' "
           "for the ceiling, a character standing in everything the climb to "
-          "--level pays for.");
+          "--level pays for, or 'bis' for every upgrade at its maximum and "
+          "every line measured best, which takes a while to search.");
 ABSL_FLAG(std::string, job, "",
-          "--mode=test or --mode=max: a job advancement to start at the top "
+          "--mode=test, max or bis: a job advancement to start at the top "
           "of, such as 'hunter' or 'archer'. The character arrives at the "
           "last level before their next advancement, with the AP spent. Unset "
           "starts the seeded character's own job.");
 ABSL_FLAG(int32_t, level, 0,
-          "--mode=test or --mode=max: the level to arrive at, instead of the "
+          "--mode=test, max or bis: the level to arrive at, instead of the "
           "top of the job's own band. Never below the level the job is taken "
           "at, and never above the highest level the game has.");
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
@@ -73,8 +75,11 @@ ms::GameMode ParseMode(const std::string& mode) {
   if (mode == "max") {
     return ms::GameMode::kMax;
   }
+  if (mode == "bis") {
+    return ms::GameMode::kBis;
+  }
   LOG(FATAL) << "Unknown --mode '" << mode
-             << "'; expected 'play', 'test' or 'max'";
+             << "'; expected 'play', 'test', 'max' or 'bis'";
 }
 
 // Every advancement a character can start at, as --job spells them: the enum
@@ -102,7 +107,7 @@ std::vector<std::string> JobFlagNames() {
 // stay workbench-only.
 void RefuseInPlay(const char* flag, ms::GameMode mode) {
   if (mode == ms::GameMode::kPlay) {
-    LOG(FATAL) << flag << " is for --mode=test or --mode=max";
+    LOG(FATAL) << flag << " is for --mode=test, max or bis";
   }
 }
 
@@ -211,6 +216,7 @@ int main(int argc, char** argv) {
   ms::TestOptions test;
   test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
   test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
+  test.bis_rate = ms::BisFightRate;
 
   std::unique_ptr<ms::GameState> owned = NewGameState(mode, test);
   ms::GameState& state = *owned;

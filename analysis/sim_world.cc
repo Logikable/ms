@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/character/matrix/hexa_matrix.h"
+#include "src/combat/bis_rate.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/map_level.h"
@@ -48,6 +49,20 @@ GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
                    GameMode::kMax, options, seed, catalogs.sets,
+                   catalogs.bosses);
+}
+
+GameState NewBisState(const Catalogs& catalogs, JobAdvancement advancement,
+                      int level, unsigned int seed) {
+  TestOptions options;
+  options.job = advancement;
+  options.level = level;
+  options.autoswap_presets = true;
+  options.playable_roster = false;
+  options.bis_rate = BisFightRate;
+  return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
+                   catalogs.mobs, catalogs.maps, catalogs.skills,
+                   GameMode::kBis, options, seed, catalogs.sets,
                    catalogs.bosses);
 }
 

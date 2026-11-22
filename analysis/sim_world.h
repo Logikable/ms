@@ -50,6 +50,10 @@ GameState NewState(const Catalogs& catalogs, unsigned int seed);
 GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
                       int level, unsigned int seed);
 
+// The same for --mode=bis, its choices measured by fight (BisFightRate).
+GameState NewBisState(const Catalogs& catalogs, JobAdvancement advancement,
+                      int level, unsigned int seed);
+
 // Buys every HEXA node the character reaches up to level `target`, handing it
 // the Sol Erda and Fragments as it goes. Repeated until nothing more is
 // bought, since a node can need another first.

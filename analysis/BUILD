@@ -237,6 +237,7 @@ cc_library(
         "//src:proto_loader",
         "//src/character",
         "//src/character/matrix:hexa_matrix",
+        "//src/combat:bis_rate",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

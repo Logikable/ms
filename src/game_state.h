@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <functional>
 #include <limits>
 #include <map>
 #include <optional>
@@ -36,15 +37,23 @@ namespace ms {
 // other map is the player's choice.
 inline constexpr char kHomeMap[] = "maple_island";
 
-// The three modes the game can start in. kPlay is the game as a player sees it.
+// The modes the game can start in. kPlay is the game as a player sees it.
 // kTest is the workbench, with the meso and items the upgrade and shop screens
 // need without playing up to them. kMax is a character who spent well, which
-// bosses are measured against.
+// bosses are measured against. kBis is the ceiling of the ceiling: every
+// upgrade at its maximum and every rolled line the best the pool allows.
 enum class GameMode {
   kPlay,
   kTest,
   kMax,
+  kBis,
 };
+
+struct GameState;
+
+// What kBis ranks its choices by: the character's damage per second against
+// its fight, higher is better. See //src/combat:bis_rate for the measured one.
+using BisRate = std::function<double(GameState&)>;
 
 // The upgrade state of a seeded character's gear. kMax sets it from the level's
 // band. Every piece is treated alike: the question is what a character at this
@@ -104,6 +113,10 @@ struct TestOptions {
   // played. Off, each is only the job and level link skills are read from, at
   // a tenth of the cost; the sims build thousands of max states.
   bool playable_roster = true;
+  // What kBis ranks its choices by. Unset, it rates one plain swing at the
+  // toughest boss the level has unlocked, which is blind to cooldowns, buff
+  // duration and attack speed; the game and the bench pass a measured fight.
+  BisRate bis_rate;
 };
 
 struct GameState {

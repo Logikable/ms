@@ -25,6 +25,32 @@ cc_test(
 )
 
 cc_test(
+    name = "bis_test",
+    size = "medium",
+    srcs = ["bis_test.cc"],
+    deps = [
+        "//src:build_config",
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:proto_loader",
+        "//src/character",
+        "//src/character:inner_ability",
+        "//src/character:stat_preset",
+        "//src/character/account:familiar",
+        "//src/character/account:legion",
+        "//src/character/force:symbol",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
+        "//src/combat:bis_rate",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/item/upgrade:flame",
+        "//src/item/upgrade:potential",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "boss_test",
     size = "small",
     srcs = ["boss_test.cc"],

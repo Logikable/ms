@@ -1306,4 +1306,17 @@ FamiliarBook MaxFamiliars(StatField primary, int level) {
   return levelled;
 }
 
+const Mob* MaxBossTarget(const std::map<std::string, Boss>& bosses,
+                         const std::map<std::string, Mob>& mobs, int level) {
+  return NominalTarget(bosses, mobs, level, Activity::kBossing);
+}
+
+double MaxBossSwingRate(CharacterInstance& character,
+                        const std::map<std::string, Skill>& skills,
+                        const std::map<std::string, Boss>& bosses,
+                        const std::map<std::string, Mob>& mobs) {
+  return MaxHyperRate(character, skills, Activity::kBossing,
+                      MaxBossTarget(bosses, mobs, character.proto().level()));
+}
+
 }  // namespace ms
