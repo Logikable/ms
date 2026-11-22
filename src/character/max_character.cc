@@ -284,7 +284,7 @@ constexpr EquipSlot kSacredSlots[] = {
 };
 
 // The level each fight's first solo clear came at, the fifth of ten branches
-// from the top in the uncapped sweep of 2026-11-21 (three seeds of 365 days).
+// from the top in the uncapped sweep of 2026-11-22 (three seeds of 365 days).
 // Normal Kaling fell to none of them, so it has no entry and max mode never
 // clears it.
 struct Clear {
@@ -305,34 +305,34 @@ constexpr Clear kClears[] = {
     {"cygnus", "Normal", 200},
     {"pierre", "Chaos", 201},
     {"von_bon", "Chaos", 201},
-    {"magnus", "Hard", 203},
-    {"zakum", "Chaos", 203},
-    {"crimson_queen", "Chaos", 204},
+    {"magnus", "Hard", 202},
+    {"zakum", "Chaos", 202},
+    {"crimson_queen", "Chaos", 205},
     {"pink_bean", "Chaos", 205},
-    {"vellum", "Chaos", 206},
+    {"vellum", "Chaos", 205},
     {"princess_no", "Normal", 210},
     {"papulatus", "Chaos", 210},
-    {"damien", "Normal", 215},
+    {"damien", "Normal", 214},
     {"lotus", "Normal", 217},
-    {"guardian_angel_slime", "Normal", 225},
-    {"lucid", "Normal", 238},
-    {"will", "Normal", 245},
-    {"lotus", "Hard", 245},
-    {"damien", "Hard", 245},
-    {"gloom", "Normal", 245},
-    {"darknell", "Normal", 247},
-    {"guardian_angel_slime", "Chaos", 253},
-    {"verus_hilla", "Normal", 253},
-    {"will", "Hard", 257},
-    {"gloom", "Chaos", 259},
-    {"darknell", "Hard", 260},
+    {"guardian_angel_slime", "Normal", 226},
+    {"lucid", "Normal", 242},
+    {"will", "Normal", 247},
+    {"lotus", "Hard", 249},
+    {"damien", "Hard", 249},
+    {"darknell", "Normal", 250},
+    {"gloom", "Normal", 252},
+    {"guardian_angel_slime", "Chaos", 256},
+    {"verus_hilla", "Normal", 256},
+    {"will", "Hard", 260},
     {"verus_hilla", "Hard", 260},
-    {"lucid", "Hard", 261},
-    {"seren", "Normal", 261},
+    {"darknell", "Hard", 261},
+    {"gloom", "Chaos", 262},
+    {"seren", "Normal", 262},
+    {"lucid", "Hard", 263},
     {"kalos", "Easy", 265},
-    {"seren", "Hard", 267},
-    {"kalos", "Normal", 277},
-    {"kaling", "Easy", 277},
+    {"seren", "Hard", 270},
+    {"kalos", "Normal", 276},
+    {"kaling", "Easy", 276},
 };
 
 // The alts the same sweep had levelled by each level: how many past 70, and
