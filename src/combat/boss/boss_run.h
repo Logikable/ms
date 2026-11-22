@@ -470,6 +470,10 @@ class BossRun {
   void TakeShields(const CombatParams& params, const SharedFight& shared);
   // Whether each slot's monster still stands, by the sim's roster.
   std::vector<bool> SlotsAlive() const;
+  // Each slot's HP fraction, by the sim's roster; 0 for a dead one.
+  std::vector<double> SlotHpFractions(const CombatParams& params) const;
+  // When the phase's guard last opened, for its timed spots.
+  double GuardOpenedAt() const;
   // Where everyone present stands, this player first.
   std::vector<int> PartySpots() const;
   // Computes the phase's remaining HP as a fraction of its full HP.
@@ -592,6 +596,8 @@ class BossRun {
   double shields_until_ = 0.0;
   // FightSeconds() when the phase began.
   double phase_began_at_ = 0.0;
+  // Each slot's guard: kept here alone, taken from the server in a party.
+  std::vector<GuardState> guards_;
   // A party fight's shields this client has added, per slot, and the server's
   // placement count it has followed.
   std::vector<double> shields_taken_;

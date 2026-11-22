@@ -40,11 +40,36 @@ bool Invulnerable(const Spawn& spawn, double fight_seconds, double phase_began);
 double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
                const std::vector<bool>& alive, int slot);
 
+// When each slot's guard (Spawn.guard) last opened, in fight seconds, and how
+// many of its HP openings are spent. Whoever owns the HP keeps these: the solo
+// run, or the server, which sends them on.
+struct GuardState {
+  // Negative before the first opening.
+  double opened_at = -1.0;
+  int hp_opens_spent = 0;
+};
+
+// Moves `guards` (one per slot) up to `fight_seconds`, given each slot's HP
+// fraction now: the openings its interval has brought, then one its HP has.
+void AdvanceGuards(const BossPhase& phase, const std::vector<int>& slot_spawns,
+                   const std::vector<double>& hp_fractions,
+                   double fight_seconds, std::vector<GuardState>& guards);
+
+// Whether a guard that last opened at `opened_at` is open at `fight_seconds`.
+bool GuardOpen(const SpawnGuard& guard, double opened_at, double fight_seconds);
+
+// When the phase's first guarded slot last opened, for the timed spots that
+// follow it; negative when none has.
+double PhaseGuardOpenedAt(const BossPhase& phase,
+                          const std::vector<int>& slot_spawns,
+                          const std::vector<GuardState>& guards);
+
 // Each slot's rule for a player on `spot`, with the present party on `spots`
 // (the player included). A dead slot's rule means nothing.
 std::vector<SlotRule> SlotRules(const BossPhase& phase,
                                 const std::vector<int>& slot_spawns,
                                 const std::vector<bool>& alive,
+                                const std::vector<GuardState>& guards,
                                 double fight_seconds, double phase_began,
                                 int spot, const std::vector<int>& spots);
 

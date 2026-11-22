@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "src/combat/boss/phase_rules.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/multiplayer.pb.h"
@@ -124,6 +125,10 @@ class PartyFight {
   const std::vector<double>& shields_left() const {
     return shields_left_;
   }
+  // Each slot's guard (Spawn.guard).
+  const std::vector<GuardState>& guards() const {
+    return guards_;
+  }
   // How many times everyone has been placed in the phase's zones.
   int placements() const {
     return placements_;
@@ -220,6 +225,7 @@ class PartyFight {
   double shields_until_ = 0.0;
   // FightSeconds() when the phase began.
   double phase_began_at_ = 0.0;
+  std::vector<GuardState> guards_;
   std::vector<bool> zones_alive_;
   int placements_ = 0;
   std::vector<FightPlayer> players_;

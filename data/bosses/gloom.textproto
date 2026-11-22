@@ -9,16 +9,26 @@ difficulties {
       mob: "gloom"
       spots { x: 4 y: 2 }
       giant: true
+      # Its tentacles cover the eye, cutting hits to 1/10, but for the ~30s from
+      # each strike to the end of the laser after it. A strike comes 55s after
+      # the last, and at once at 70% and 40% HP (namu).
+      guard {
+        damage_pct: 10
+        interval_ms: 55000
+        open_ms: 30000
+        hp_opens: 70
+        hp_opens: 40
+      }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
-    # The two tentacles GMS strikes with every 55 seconds, stood on as
-    # platforms until they retract.
+    # The two tentacles each strike leaves, stood on as platforms until they
+    # retract.
     timed_spots {
-      interval_ms: 55000
+      follow_guard: true
       open_ms: 20000
       spots { x: 1 y: 4 }
       spots { x: 7 y: 4 }
@@ -60,16 +70,27 @@ difficulties {
       mob: "chaos_gloom"
       spots { x: 4 y: 2 }
       giant: true
+      # Its tentacles cover the eye, cutting hits to 1/10, but for the ~30s from
+      # each strike to the end of the laser after it. A strike comes 55s after
+      # the last, and at once at 70%, 40% and 15% HP (namu).
+      guard {
+        damage_pct: 10
+        interval_ms: 55000
+        open_ms: 30000
+        hp_opens: 70
+        hp_opens: 40
+        hp_opens: 15
+      }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
     player_spots { x: 8 y: 5 }
     player_spots { x: 2 y: 5 }
     player_spots { x: 6 y: 5 }
-    # The two tentacles GMS strikes with every 55 seconds, stood on as
-    # platforms until they retract.
+    # The two tentacles each strike leaves, stood on as platforms until they
+    # retract.
     timed_spots {
-      interval_ms: 55000
+      follow_guard: true
       open_ms: 20000
       spots { x: 1 y: 4 }
       spots { x: 7 y: 4 }

@@ -166,7 +166,8 @@ void BossRun::MovePlayer(int dx, int dy) {
   // Move locally first and tell the server later, rather than waiting for it,
   // so movement never stutters.
   std::vector<int> taken = TakenSpots();
-  std::vector<int> closed = ClosedSpots(*phase, FightSeconds());
+  std::vector<int> closed =
+      ClosedSpots(*phase, FightSeconds(), GuardOpenedAt());
   taken.insert(taken.end(), closed.begin(), closed.end());
   // A room's walls hold: the other rooms' spots aren't a step away.
   const ArenaRoom* room = SelfRoom();
@@ -291,7 +292,8 @@ bool BossRun::spot_open(int index) const {
   if (phase == nullptr) {
     return false;
   }
-  std::vector<int> closed = ClosedSpots(*phase, FightSeconds());
+  std::vector<int> closed =
+      ClosedSpots(*phase, FightSeconds(), GuardOpenedAt());
   return std::find(closed.begin(), closed.end(), index) == closed.end();
 }
 
@@ -501,6 +503,7 @@ void BossRun::FillSlots(const CombatParams& params) {
   shields_taken_.assign(counted, 0.0);
   shields_until_ = FightSeconds();
   phase_began_at_ = shields_until_;
+  guards_.assign(counted, GuardState());
   for (const MobStatus& mob : sim_.view().roster) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
     int taken = placed[mob.type]++;
@@ -819,6 +822,23 @@ std::vector<bool> BossRun::SlotsAlive() const {
   return alive;
 }
 
+std::vector<double> BossRun::SlotHpFractions(const CombatParams& params) const {
+  std::vector<double> hp(mob_of_slot_.size(), 0.0);
+  for (const MobStatus& mob : sim_.view().roster) {
+    std::map<int, int>::const_iterator slot = slot_of_mob_.find(mob.id);
+    if (slot != slot_of_mob_.end()) {
+      hp[slot->second] = mob.hp_fraction;
+    }
+  }
+  return hp;
+}
+
+double BossRun::GuardOpenedAt() const {
+  const BossPhase* phase = current_phase();
+  return phase == nullptr ? -1.0
+                          : PhaseGuardOpenedAt(*phase, slot_spawns_, guards_);
+}
+
 std::vector<int> BossRun::PartySpots() const {
   std::vector<int> spots = {player_at_};
   for (std::size_t i = 1; i < members_.size(); ++i) {
@@ -919,9 +939,13 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
     }
   }
   shields_until_ = now;
+  // A party's server owns the guards too; see TakeShared.
+  if (authority_ == nullptr) {
+    AdvanceGuards(*phase, slot_spawns_, SlotHpFractions(params), now, guards_);
+  }
   std::vector<SlotRule> rules =
-      SlotRules(*phase, slot_spawns_, alive, now, phase_began_at_, player_at_,
-                PartySpots());
+      SlotRules(*phase, slot_spawns_, alive, guards_, now, phase_began_at_,
+                player_at_, PartySpots());
   std::map<int, MobRule> by_id;
   for (std::size_t slot = 0; slot < rules.size(); ++slot) {
     by_id[mob_of_slot_[slot]] = {
@@ -1071,8 +1095,8 @@ void BossRun::RunPhase(GameState& state, double dt) {
   hunt_targets_.assign(1, player_at_);
   // After the timer update, since walking positions follow the timer.
   DriftSlots();
-  player_at_ =
-      DropFromClosedSpots(*current_phase(), FightSeconds(), {player_at_})[0];
+  player_at_ = DropFromClosedSpots(*current_phase(), FightSeconds(),
+                                   GuardOpenedAt(), {player_at_})[0];
   if (!sim_.view().roster.empty()) {
     if (seconds_left_ <= 0.0) {
       Finish(BossRunState::kTimedOut);
@@ -1227,6 +1251,10 @@ void BossRun::TakeShared(const SharedFight& shared) {
     // The server decides where everyone starts in a new phase.
     player_at_ = -1;
   }
+  for (std::size_t slot = 0;
+       slot < shared.guard_opened_at.size() && slot < guards_.size(); ++slot) {
+    guards_[slot].opened_at = shared.guard_opened_at[slot];
+  }
   if (state_ != shared.state) {
     state_ = shared.state;
     if (done() || state_ == BossRunState::kWon ||
@@ -1300,7 +1328,8 @@ void BossRun::DropShared(const SharedFight& shared) {
       standing[i] = shared.players[i].spot;
     }
   }
-  standing = DropFromClosedSpots(*phase, FightSeconds(), standing);
+  standing =
+      DropFromClosedSpots(*phase, FightSeconds(), GuardOpenedAt(), standing);
   for (std::size_t i = 0; i < standing.size(); ++i) {
     if (static_cast<int>(i) == shared.self) {
       player_at_ = standing[i];

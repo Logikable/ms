@@ -36,8 +36,14 @@ ArenaSpot ArenaSize(const BossPhase& phase) {
   return extent;
 }
 
-bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds) {
+bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds,
+                    double guard_opened_at) {
   const TimedSpots& timed = phase.timed_spots();
+  if (timed.follow_guard()) {
+    return !timed.spots().empty() && guard_opened_at >= 0.0 &&
+           fight_seconds >= guard_opened_at &&
+           fight_seconds - guard_opened_at < timed.open_ms() / 1000.0;
+  }
   if (timed.interval_ms() <= 0 || timed.spots().empty()) {
     return false;
   }
@@ -48,9 +54,10 @@ bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds) {
   return std::fmod(fight_seconds, interval) < timed.open_ms() / 1000.0;
 }
 
-std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds) {
+std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds,
+                             double guard_opened_at) {
   std::vector<int> closed;
-  if (TimedSpotsOpen(phase, fight_seconds)) {
+  if (TimedSpotsOpen(phase, fight_seconds, guard_opened_at)) {
     return closed;
   }
   for (int i = 0; i < phase.timed_spots().spots_size(); ++i) {
@@ -61,8 +68,9 @@ std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds) {
 
 std::vector<int> DropFromClosedSpots(const BossPhase& phase,
                                      double fight_seconds,
+                                     double guard_opened_at,
                                      std::vector<int> standing) {
-  std::vector<int> closed = ClosedSpots(phase, fight_seconds);
+  std::vector<int> closed = ClosedSpots(phase, fight_seconds, guard_opened_at);
   if (closed.empty()) {
     return standing;
   }

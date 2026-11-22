@@ -591,6 +591,29 @@ TEST(FightRulesTest, AnEnteringMonsterTakesNoHitUntilItsWindowEnds) {
   EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.9);
 }
 
+// The server holds the HP, so it opens a guard at its HP marks and says when.
+TEST(FightRulesTest, TheServerOpensAGuardAtItsHpMark) {
+  Boss boss = Rooms();
+  SpawnGuard* guard = boss.mutable_difficulties(0)
+                          ->mutable_phases(0)
+                          ->mutable_spawns(0)
+                          ->mutable_guard();
+  guard->set_damage_pct(10);
+  guard->set_interval_ms(55000);
+  guard->set_open_ms(30000);
+  guard->add_hp_opens(50);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Advance(10.0);
+  ASSERT_EQ(fight.guards().size(), 3u);
+  EXPECT_LT(fight.guards()[0].opened_at, 0.0);
+  fight.Hit("one", 0, 60);
+  fight.Advance(0.5);
+  EXPECT_DOUBLE_EQ(fight.guards()[0].opened_at, 10.5);
+  EXPECT_LT(fight.guards()[1].opened_at, 0.0) << "an unguarded slot";
+}
+
 TEST(FightRulesTest, AShieldSoaksHitsAndIsSentOn) {
   Boss boss = Rooms();
   SpawnShield* shield = boss.mutable_difficulties(0)

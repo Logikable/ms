@@ -854,9 +854,34 @@ TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
         if (!phase.timed_spots().spots().empty()) {
           ++timed;
           EXPECT_GT(phase.timed_spots().open_ms(), 0) << where;
-          EXPECT_LT(phase.timed_spots().open_ms(),
-                    phase.timed_spots().interval_ms())
+          int interval = phase.timed_spots().interval_ms();
+          if (phase.timed_spots().follow_guard()) {
+            EXPECT_EQ(interval, 0) << where << " has two clocks";
+            for (const Spawn& spawn : phase.spawns()) {
+              if (spawn.has_guard()) {
+                interval = spawn.guard().interval_ms();
+                break;
+              }
+            }
+          }
+          EXPECT_LT(phase.timed_spots().open_ms(), interval)
               << where << " opens its timed spots for good";
+        }
+        for (const Spawn& spawn : phase.spawns()) {
+          if (!spawn.has_guard()) {
+            continue;
+          }
+          const SpawnGuard& guard = spawn.guard();
+          EXPECT_GT(guard.damage_pct(), 0) << where;
+          EXPECT_LT(guard.damage_pct(), 100) << where;
+          EXPECT_GT(guard.open_ms(), 0) << where;
+          EXPECT_LT(guard.open_ms(), guard.interval_ms())
+              << where << " opens its guard for good";
+          for (int i = 0; i < guard.hp_opens_size(); ++i) {
+            EXPECT_GT(guard.hp_opens(i), 0) << where;
+            EXPECT_LT(guard.hp_opens(i), i == 0 ? 100 : guard.hp_opens(i - 1))
+                << where << " lists its HP openings out of order";
+          }
         }
         for (const Spawn& spawn : phase.spawns()) {
           if (!spawn.giant()) {

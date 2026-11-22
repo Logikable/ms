@@ -28,11 +28,15 @@ ArenaSpot ArenaSize(const BossPhase& phase);
 double CutToPhaseClock(const BossPhase& phase, double& seconds_left);
 
 // Whether the timed spots are open `fight_seconds` after the countdown ended.
-bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds);
+// `guard_opened_at` is when the phase's guard last opened (PhaseGuardOpenedAt),
+// for spots that follow it.
+bool TimedSpotsOpen(const BossPhase& phase, double fight_seconds,
+                    double guard_opened_at);
 
 // The indices nobody may stand on or move to at `fight_seconds`: the timed
 // spots while they are closed.
-std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds);
+std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds,
+                             double guard_opened_at);
 
 // Where everyone stands once closed spots have dropped their players.
 // `standing` holds each player's spot in party order, -1 for nobody. Each
@@ -41,6 +45,7 @@ std::vector<int> ClosedSpots(const BossPhase& phase, double fight_seconds);
 // none free they stay put.
 std::vector<int> DropFromClosedSpots(const BossPhase& phase,
                                      double fight_seconds,
+                                     double guard_opened_at,
                                      std::vector<int> standing);
 
 // Which spot a key press moves to. Picks the nearest spot in the pressed

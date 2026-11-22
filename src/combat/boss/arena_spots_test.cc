@@ -47,38 +47,38 @@ constexpr int kTopLeft = 11;
 TEST(ArenaSpotsTest, TimedSpotsOpenFromEachIntervalForTheirSpan) {
   BossPhase phase = XArena();
   EXPECT_EQ(AllPlayerSpots(phase).size(), 13u);
-  EXPECT_FALSE(TimedSpotsOpen(phase, 0.0));
-  EXPECT_FALSE(TimedSpotsOpen(phase, 54.9));
-  EXPECT_TRUE(TimedSpotsOpen(phase, 55.0));
-  EXPECT_TRUE(TimedSpotsOpen(phase, 74.9));
-  EXPECT_FALSE(TimedSpotsOpen(phase, 75.0));
-  EXPECT_TRUE(TimedSpotsOpen(phase, 110.0));
-  EXPECT_EQ(ClosedSpots(phase, 60.0), std::vector<int>());
-  EXPECT_EQ(ClosedSpots(phase, 80.0),
+  EXPECT_FALSE(TimedSpotsOpen(phase, 0.0, -1.0));
+  EXPECT_FALSE(TimedSpotsOpen(phase, 54.9, -1.0));
+  EXPECT_TRUE(TimedSpotsOpen(phase, 55.0, -1.0));
+  EXPECT_TRUE(TimedSpotsOpen(phase, 74.9, -1.0));
+  EXPECT_FALSE(TimedSpotsOpen(phase, 75.0, -1.0));
+  EXPECT_TRUE(TimedSpotsOpen(phase, 110.0, -1.0));
+  EXPECT_EQ(ClosedSpots(phase, 60.0, -1.0), std::vector<int>());
+  EXPECT_EQ(ClosedSpots(phase, 80.0, -1.0),
             std::vector<int>({5, 6, 7, 8, 9, 10, 11, 12}));
-  EXPECT_EQ(ClosedSpots(BossPhase(), 80.0), std::vector<int>());
+  EXPECT_EQ(ClosedSpots(BossPhase(), 80.0, -1.0), std::vector<int>());
 }
 
 TEST(ArenaSpotsTest, DropsToNearestFreeSpot) {
   BossPhase phase = XArena();
   // Open: nobody moves.
-  EXPECT_EQ(DropFromClosedSpots(phase, 60.0, {kLowLeft, kTopLeft}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 60.0, -1.0, {kLowLeft, kTopLeft}),
             std::vector<int>({kLowLeft, kTopLeft}));
   // Straight down from the knee; from x:1 the two floor spots beside it tie,
   // and the inner one wins, at either height.
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kKneeLeft}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kKneeLeft}),
             std::vector<int>({kFloorInnerLeft}));
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kLowLeft}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kLowLeft}),
             std::vector<int>({kFloorInnerLeft}));
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kLowRight}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kLowRight}),
             std::vector<int>({kFloorInnerRight}));
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kTopLeft}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kTopLeft}),
             std::vector<int>({kFloorInnerLeft}));
   // Party order settles who lands where, and nobody lands on a member already
   // on the floor or one who left.
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kKneeLeft, kLowLeft}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kKneeLeft, kLowLeft}),
             std::vector<int>({kFloorInnerLeft, kFloorLeft}));
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0,
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0,
                                 {kFloorInnerLeft, -1, kLowLeft, kFloorMiddle}),
             std::vector<int>({kFloorInnerLeft, -1, kFloorLeft, kFloorMiddle}));
 }
@@ -86,7 +86,7 @@ TEST(ArenaSpotsTest, DropsToNearestFreeSpot) {
 TEST(ArenaSpotsTest, APlayerWithNowhereToDropStays) {
   BossPhase phase = XArena();
   phase.mutable_player_spots()->DeleteSubrange(1, 4);
-  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, {kFloorMiddle, 1}),
+  EXPECT_EQ(DropFromClosedSpots(phase, 80.0, -1.0, {kFloorMiddle, 1}),
             std::vector<int>({kFloorMiddle, 1}));
 }
 
@@ -96,8 +96,9 @@ TEST(ArenaSpotsTest, MovementReachesTimedSpotsUnlessTheyAreTaken) {
   EXPECT_EQ(NextPlayerSpot(phase, kLowLeft, 0, -1), kKneeLeft);
   // Up from the middle is a tie between the two knees.
   EXPECT_EQ(NextPlayerSpot(phase, kFloorMiddle, 0, -1), kFloorMiddle);
-  EXPECT_EQ(NextPlayerSpot(phase, kFloorLeft, 0, -1, ClosedSpots(phase, 0.0)),
-            kFloorLeft);
+  EXPECT_EQ(
+      NextPlayerSpot(phase, kFloorLeft, 0, -1, ClosedSpots(phase, 0.0, -1.0)),
+      kFloorLeft);
 }
 
 TEST(ArenaSpotsTest, ArenaSizeFallsBackToTheFurthestSpot) {
@@ -109,6 +110,21 @@ TEST(ArenaSpotsTest, ArenaSizeFallsBackToTheFurthestSpot) {
   AddSpot(phase.mutable_timed_spots()->mutable_spots(), 10, 0);
   EXPECT_EQ(ArenaSize(phase).x(), 11);
   EXPECT_EQ(ArenaSize(phase).y(), 6);
+}
+
+// Gloom's tentacles come with its strike, wherever the guard put it.
+TEST(ArenaSpotsTest, TimedSpotsCanFollowTheGuard) {
+  BossPhase phase;
+  phase.add_player_spots();
+  TimedSpots* timed = phase.mutable_timed_spots();
+  timed->set_open_ms(20000);
+  timed->set_follow_guard(true);
+  timed->add_spots();
+  EXPECT_FALSE(TimedSpotsOpen(phase, 30.0, -1.0));
+  EXPECT_TRUE(TimedSpotsOpen(phase, 30.0, 25.0));
+  EXPECT_TRUE(TimedSpotsOpen(phase, 44.9, 25.0));
+  EXPECT_FALSE(TimedSpotsOpen(phase, 45.0, 25.0));
+  EXPECT_EQ(ClosedSpots(phase, 50.0, 25.0), std::vector<int>({1}));
 }
 
 }  // namespace

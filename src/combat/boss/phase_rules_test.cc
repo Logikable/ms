@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/protos/boss.pb.h"
@@ -45,7 +46,7 @@ TEST(PhaseRulesTest, ASpotsZoneIsTheOneListingIt) {
 TEST(PhaseRulesTest, APlayerReachesTheBossAndOnlyTheirZonesPeril) {
   BossPhase phase = LastPhase();
   std::vector<SlotRule> rules =
-      SlotRules(phase, kSlots, {true, true, true, true}, 10.0, 0.0, 2, {2});
+      SlotRules(phase, kSlots, {true, true, true, true}, {}, 10.0, 0.0, 2, {2});
   EXPECT_TRUE(rules[0].reachable);
   EXPECT_FALSE(rules[1].reachable);
   EXPECT_TRUE(rules[2].reachable);
@@ -65,9 +66,9 @@ TEST(PhaseRulesTest, ACrowdedZoneHalvesItsPerilOnly) {
   BossPhase phase = LastPhase();
   std::vector<bool> alive = {true, true, true, true};
   std::vector<SlotRule> crowded =
-      SlotRules(phase, kSlots, alive, 0.0, 0.0, 0, {0, 1, 6});
+      SlotRules(phase, kSlots, alive, {}, 0.0, 0.0, 0, {0, 1, 6});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 1.0);
-  crowded = SlotRules(phase, kSlots, alive, 0.0, 0.0, 0, {0, 1, 0});
+  crowded = SlotRules(phase, kSlots, alive, {}, 0.0, 0.0, 0, {0, 1, 0});
   EXPECT_DOUBLE_EQ(crowded[1].damage_taken, 0.5);
   EXPECT_DOUBLE_EQ(crowded[0].damage_taken, 1.0);
 }
@@ -85,7 +86,8 @@ TEST(PhaseRulesTest, AnInvulnerableWindowOpensEachIntervalForItsLength) {
 
   BossPhase phase;
   *phase.add_spawns() = hundun;
-  EXPECT_FALSE(SlotRules(phase, {0}, {true}, 61.0, 0.0, -1, {})[0].reachable);
+  EXPECT_FALSE(
+      SlotRules(phase, {0}, {true}, {}, 61.0, 0.0, -1, {})[0].reachable);
 }
 
 // Hard Lucid can't be hit while she enters her last phase, from whenever it
@@ -102,7 +104,64 @@ TEST(PhaseRulesTest, AnEntryWindowCountsFromThePhasesStart) {
   *phase.add_spawns() = lucid;
   EXPECT_TRUE(HasSlotRules(phase));
   EXPECT_FALSE(
-      SlotRules(phase, {0}, {true}, 302.0, 300.0, -1, {})[0].reachable);
+      SlotRules(phase, {0}, {true}, {}, 302.0, 300.0, -1, {})[0].reachable);
+}
+
+// Gloom's guard: up but for 30s from each strike, which comes every 55s from
+// the last one and at once when its HP falls to 70% and 40%.
+BossPhase GuardedPhase() {
+  BossPhase phase;
+  SpawnGuard* guard = phase.add_spawns()->mutable_guard();
+  guard->set_damage_pct(10);
+  guard->set_interval_ms(55000);
+  guard->set_open_ms(30000);
+  guard->add_hp_opens(70);
+  guard->add_hp_opens(40);
+  return phase;
+}
+
+TEST(PhaseRulesTest, AGuardCutsHitsUntilItsIntervalOpensIt) {
+  BossPhase phase = GuardedPhase();
+  std::vector<GuardState> guards;
+  AdvanceGuards(phase, {0}, {1.0}, 54.0, guards);
+  EXPECT_DOUBLE_EQ(
+      SlotRules(phase, {0}, {true}, guards, 54.0, 0.0, -1, {})[0].damage_taken,
+      0.1);
+  AdvanceGuards(phase, {0}, {1.0}, 56.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 55.0);
+  EXPECT_DOUBLE_EQ(
+      SlotRules(phase, {0}, {true}, guards, 56.0, 0.0, -1, {})[0].damage_taken,
+      1.0);
+  EXPECT_TRUE(GuardOpen(phase.spawns(0).guard(), 55.0, 84.9));
+  EXPECT_FALSE(GuardOpen(phase.spawns(0).guard(), 55.0, 85.0));
+  AdvanceGuards(phase, {0}, {1.0}, 220.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 220.0) << "every 55s after";
+}
+
+TEST(PhaseRulesTest, AGuardOpensAtItsHpMarksAndRestartsItsInterval) {
+  BossPhase phase = GuardedPhase();
+  std::vector<GuardState> guards;
+  AdvanceGuards(phase, {0}, {0.69}, 40.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 40.0);
+  EXPECT_EQ(guards[0].hp_opens_spent, 1);
+  AdvanceGuards(phase, {0}, {0.69}, 94.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 40.0) << "55s from the strike, not 0";
+  AdvanceGuards(phase, {0}, {0.69}, 95.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 95.0);
+  // Already open at 40%: the mark is spent and changes nothing.
+  AdvanceGuards(phase, {0}, {0.39}, 100.0, guards);
+  EXPECT_DOUBLE_EQ(guards[0].opened_at, 95.0);
+  EXPECT_EQ(guards[0].hp_opens_spent, 2);
+}
+
+TEST(PhaseRulesTest, TheFirstGuardedSlotSaysWhenThePhaseOpened) {
+  BossPhase phase = GuardedPhase();
+  *phase.add_spawns() = Spawn();
+  std::swap(*phase.mutable_spawns(0), *phase.mutable_spawns(1));
+  std::vector<GuardState> guards(2);
+  guards[1].opened_at = 55.0;
+  EXPECT_DOUBLE_EQ(PhaseGuardOpenedAt(phase, {0, 1}, guards), 55.0);
+  EXPECT_DOUBLE_EQ(PhaseGuardOpenedAt(BossPhase(), {}, {}), -1.0);
 }
 
 TEST(PhaseRulesTest, ALivingGiverShieldsTheMobsItNamesOnItsClock) {

@@ -277,6 +277,10 @@ message FightState {
   // What is left of each slot's shield, as a share of its max HP. A client's
   // own shields are only ever lowered to these.
   repeated double shields_left = 13;
+  // When each slot's guard (Spawn.guard) last opened, in fight seconds;
+  // negative before its first opening. The server opens them, since an
+  // opening can follow the HP only it holds.
+  repeated double guard_opened_at = 14;
 }
 
 // One item a clear gave this player.

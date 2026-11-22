@@ -107,6 +107,7 @@ void PartyFight::EnterPhase(int phase) {
   shields_left_.assign(hp_.size(), 0.0);
   shields_until_ = FightSeconds();
   phase_began_at_ = shields_until_;
+  guards_.assign(hp_.size(), GuardState());
   zones_alive_.clear();
   // Give each player their own spot, in party order. This assumes each phase
   // has at least as many spots as the party has members.
@@ -173,6 +174,7 @@ void PartyFight::RunRules() {
   std::vector<double> gained =
       ShieldsBetween(*current, spawn_of_slot_, alive, shields_until_, now);
   shields_until_ = now;
+  AdvanceGuards(*current, spawn_of_slot_, hp_fractions_, now, guards_);
   for (std::size_t slot = 0; slot < gained.size(); ++slot) {
     if (gained[slot] <= 0.0) {
       continue;
@@ -350,7 +352,9 @@ bool PartyFight::MoveTo(const std::string& account_id, int spot) {
       spot >= static_cast<int>(AllPlayerSpots(*current).size())) {
     return false;
   }
-  std::vector<int> closed = ClosedSpots(*current, FightSeconds());
+  std::vector<int> closed =
+      ClosedSpots(*current, FightSeconds(),
+                  PhaseGuardOpenedAt(*current, spawn_of_slot_, guards_));
   if (std::find(closed.begin(), closed.end(), spot) != closed.end()) {
     return false;
   }
@@ -405,7 +409,9 @@ void PartyFight::DropFromClosedSpots() {
   for (const FightPlayer& player : players_) {
     standing.push_back(player.present ? player.spot : -1);
   }
-  standing = ms::DropFromClosedSpots(*current, FightSeconds(), standing);
+  standing = ms::DropFromClosedSpots(
+      *current, FightSeconds(),
+      PhaseGuardOpenedAt(*current, spawn_of_slot_, guards_), standing);
   for (std::size_t i = 0; i < players_.size(); ++i) {
     if (players_[i].present) {
       players_[i].spot = standing[i];

@@ -97,6 +97,8 @@ void PartyFightAuthority::TakeState(const FightState& state,
   fight_.shields.assign(state.shields().begin(), state.shields().end());
   fight_.shields_left.assign(state.shields_left().begin(),
                              state.shields_left().end());
+  fight_.guard_opened_at.assign(state.guard_opened_at().begin(),
+                                state.guard_opened_at().end());
   fight_.placements = state.placements();
   // Everyone who started the fight is here, whether or not they left, and a
   // clear's rewards are split by that count. FightEnded repeats the number at

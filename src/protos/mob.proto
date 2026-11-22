@@ -169,6 +169,8 @@ message Spawn {
   // Milliseconds from its phase's start in which it can't be hit: GMS's Hard
   // Lucid spends 4.52s entering her last phase while its clock runs.
   int32 entry_invulnerable_ms = 12;
+  // Cuts every hit on it except while it is open.
+  SpawnGuard guard = 13;
 }
 
 // A span that opens every `interval_ms` of fight time, measured from the end
@@ -176,6 +178,21 @@ message Spawn {
 message SpawnWindow {
   int32 interval_ms = 1;
   int32 open_ms = 2;
+}
+
+// A guard over a monster: hits deal `damage_pct` percent while it is up. GMS's
+// Gloom covers its eye with tentacles (1/10) except for the ~30s after each
+// strike, which comes every 55s and at once when its HP falls to 70% and 40%.
+message SpawnGuard {
+  int32 damage_pct = 1;
+  // It opens every `interval_ms` after its last opening, the first one interval
+  // after the countdown, and stays open for `open_ms`.
+  int32 interval_ms = 2;
+  int32 open_ms = 3;
+  // It also opens at once when its HP falls to each of these percents of max,
+  // highest first, and the next opening is one interval after that. One
+  // reached while it is already open is spent.
+  repeated int32 hp_opens = 4;
 }
 
 // Every `interval_ms` of fight time, measured from the end of the countdown,

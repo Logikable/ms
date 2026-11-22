@@ -109,23 +109,27 @@ message PhaseForm {
 }
 
 // Extra places to stand that open every `interval_ms` of fight time, measured
-// from the end of the countdown, and stay open for `open_ms`: Gloom's
-// tentacles open at 55s, 110s and so on. When they close, anyone on one drops
+// from the end of the countdown, and stay open for `open_ms`. When they close,
+// anyone on one drops
 // to the nearest free fixed spot, in party order; see DropFromClosedSpots in
 // src/combat/boss/arena_spots.h.
 message TimedSpots {
   // 0 means they never open, as does an unset message.
   int32 interval_ms = 1;
-  // Must be shorter than `interval_ms`.
+  // Must be shorter than `interval_ms`, or the guard's.
   int32 open_ms = 2;
   repeated ArenaSpot spots = 3;
+  // Opens with each opening of the phase's guard (Spawn.guard), for `open_ms`,
+  // in place of `interval_ms`: Gloom's tentacles are the strike that bares its
+  // eye.
+  bool follow_guard = 4;
 }
 
 // One difficulty of one boss: what the player fights, how long they have, how
 // often they may come back, and what it pays.
 message BossDifficulty {
   string name = 1;  // "Normal"
-  // Fought in order. Zakum's phase 1 is all eight of his arms at once.
+  // Fought in order.
   repeated BossPhase phases = 2;
   ResetPeriod reset = 3;
   // Seconds allowed for the whole fight. Running out ends it without a clear.

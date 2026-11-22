@@ -80,6 +80,8 @@ struct SharedFight {
   std::vector<double> shields;
   // What is left of each slot's shield; see FightState.
   std::vector<double> shields_left;
+  // When each slot's guard last opened; see FightState.
+  std::vector<double> guard_opened_at;
   // How many times the server has placed everyone; see FightState.
   int placements = 0;
   std::vector<SharedPlayer> players;
