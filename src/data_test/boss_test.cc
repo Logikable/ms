@@ -911,7 +911,7 @@ TEST_F(BossDataTest, TheArrowsReachEverySpot) {
 // so a full party always has somewhere to move.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {5}},       {"hilla", {5}},
+      {"zakum", {5}},          {"hilla", {5}},
       {"horntail", {6, 6, 6}}, {"magnus", {5}},
       {"arkarium", {5}},       {"cygnus", {5}},
       {"pink_bean", {5, 5}},   {"pierre", {5}},
