@@ -1554,6 +1554,9 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   // fight, and the fight reads this setting.
   account.SetAutoswapPresets(test.autoswap_presets);
   uncapped = mode == GameMode::kMax;
+  // Before seeding too: max mode measures its allocations on the character,
+  // and a full set measured without its bonus buys the wrong stats.
+  character.UseEquipSets(equip_sets);
   MirrorAccount();
   if (mode == GameMode::kTest) {
     SeedTest(*this, test);
