@@ -1621,8 +1621,9 @@ void AddBisLegionMembers(GameState& state, std::vector<MaxMember>& account) {
 }
 
 // --mode=bis: the main at every maximum the game has, then every rolled choice
-// measured (see bis_search.h). The account behind them is one of each other
-// job at the top level for the link skills, and a full Legion.
+// read from data/bis, or measured where it has no build (see bis_search.h). The
+// account behind them is one of each other job at the top level for the link
+// skills, and a full Legion.
 void SeedBis(GameState& state, const TestOptions& options) {
   state.account.SetAutoswapPresets(true);
   state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
@@ -1636,23 +1637,36 @@ void SeedBis(GameState& state, const TestOptions& options) {
   const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
   const Job own = FourthJobOf(LineOf(JobForAdvancement(advancement)));
 
+  const BisBuild* build = FindBisBuild(options.bis_tables, own, level);
   std::vector<MaxMember> account = {{advancement, level}};
-  for (Job job : EveryFourthJob()) {
-    if (job != own) {
-      account.push_back({CeilingAdvancementFor(job, kMaxLevel), kMaxLevel});
+  if (build != nullptr) {
+    for (int job : build->legion()) {
+      account.push_back(
+          {CeilingAdvancementFor(static_cast<Job>(job), kMaxLevel), kMaxLevel});
     }
+  } else {
+    for (Job job : EveryFourthJob()) {
+      if (job != own) {
+        account.push_back({CeilingAdvancementFor(job, kMaxLevel), kMaxLevel});
+      }
+    }
+    // A first build of the main, only to choose the rest of the Legion by.
+    ResetToBeginner(state);
+    MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
+                    MaxLegionRoster(account, 0), /*bis=*/true);
+    AddBisLegionMembers(state, account);
   }
-  // A first build of the main, only to choose the rest of the Legion by.
-  ResetToBeginner(state);
-  MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
-                  MaxLegionRoster(account, 0), /*bis=*/true);
-  AddBisLegionMembers(state, account);
 
   SeedMaxRoster(state, account, options.playable_roster);
   ResetToBeginner(state);
   MaxOneCharacter(state, advancement, level, MaxTally(account, 0),
                   MaxLegionRoster(account, 0), /*bis=*/true);
-  SearchBis(state, options.bis_rate ? options.bis_rate : BisRate(BisSwingRate));
+  if (build != nullptr) {
+    ApplyBisBuild(state, *build);
+  } else {
+    SearchBis(state,
+              options.bis_rate ? options.bis_rate : BisRate(BisSwingRate));
+  }
   *state.account.mutable_legion() = state.character.legion();
   state.MirrorAccount();
   state.current_map = kHomeMap;

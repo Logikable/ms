@@ -46,6 +46,7 @@ cc_test(
         "//src/item:equip_instance",
         "//src/item/upgrade:flame",
         "//src/item/upgrade:potential",
+        "//src/protos:bis_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

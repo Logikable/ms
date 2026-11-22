@@ -8,6 +8,7 @@ package(default_visibility = ["//visibility:public"])
 embedded_data(
     name = "embedded_data",
     groups = {
+        "//data/bis:all": "EmbeddedBis",
         "//data/bosses:all": "EmbeddedBosses",
         "//data/equip:all": "EmbeddedEquips",
         "//data/items:all": "EmbeddedItems",
@@ -78,6 +79,7 @@ cc_library(
     srcs = ["proto_loader.cc"],
     hdrs = ["proto_loader.h"],
     deps = [
+        "//src/protos:bis_proto_cc",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
@@ -295,6 +297,7 @@ cc_library(
         "//src/item/upgrade:potential",
         "//src/item/upgrade:soul",
         "//src/protos:achievement_proto_cc",
+        "//src/protos:bis_proto_cc",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

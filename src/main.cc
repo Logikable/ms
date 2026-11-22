@@ -217,6 +217,12 @@ int main(int argc, char** argv) {
   test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
   test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
   test.bis_rate = ms::BisFightRate;
+  if (mode == ms::GameMode::kBis) {
+    for (auto& [job, table] :
+         ms::LoadTextProtoMap<ms::BisTable>(ms::EmbeddedBis())) {
+      test.bis_tables.push_back(std::move(table));
+    }
+  }
 
   std::unique_ptr<ms::GameState> owned = NewGameState(mode, test);
   ms::GameState& state = *owned;

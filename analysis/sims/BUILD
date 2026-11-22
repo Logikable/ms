@@ -112,6 +112,7 @@ sim_binary(
         "//analysis:parallel",
         "//analysis:sim_jobs",
         "//analysis:sim_world",
+        "//src:build_config",
         "//src:game_state",
         "//src/character",
         "//src/character:max_character",
@@ -119,11 +120,15 @@ sim_binary(
         "//src/combat:bis_rate",
         "//src/item:equip_instance",
         "//src/item/upgrade:potential",
+        "//src/protos:bis_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@protobuf",
     ],
 )
 

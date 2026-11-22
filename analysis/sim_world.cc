@@ -25,6 +25,9 @@ Catalogs LoadCatalogs() {
   c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
   c.bosses = LoadTextProtoMap<Boss>(EmbeddedBosses());
   c.sets = LoadTextProtoMap<EquipSet>(EmbeddedSets());
+  for (auto& [job, table] : LoadTextProtoMap<BisTable>(EmbeddedBis())) {
+    c.bis_tables.push_back(std::move(table));
+  }
   return c;
 }
 
@@ -60,6 +63,7 @@ GameState NewBisState(const Catalogs& catalogs, JobAdvancement advancement,
   options.autoswap_presets = true;
   options.playable_roster = false;
   options.bis_rate = BisFightRate;
+  options.bis_tables = catalogs.bis_tables;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
                    GameMode::kBis, options, seed, catalogs.sets,

@@ -239,6 +239,23 @@ HexaStats DefaultHexaStats(int level) {
   return stats;
 }
 
+// Wears `proto` in `slot` built as `built`, any displaced piece discarded.
+void WearBuilt(CharacterInstance& character, EquipSlot slot,
+               const EquipPrototype& proto, const Equip& built) {
+  character.ClearEquipInventory();
+  const int row = static_cast<int>(character.inventory().size());
+  if (character.PickUp(std::make_unique<EquipInstance>(proto, built))) {
+    character.Equip(row, StatPreset::kFirst, slot);
+  }
+  character.ClearEquipInventory();
+}
+
+void RespendMaxAllocations(GameState& state) {
+  SpendMaxLegion(state.character, state.skills, state.bosses, state.mobs);
+  SpendMaxNoblesse(state.character, state.skills, state.bosses, state.mobs);
+  SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
+}
+
 bool Conflicts(const EquipPrototype& a, const EquipPrototype& b) {
   return a.name() == b.name() ||
          (a.has_equipment_skill() && b.has_equipment_skill() &&
@@ -263,9 +280,7 @@ class Search {
       Ability();
       Hexa();
       // The allocations max mode ranks by swing, re-read for the new gear.
-      SpendMaxLegion(c(), state_.skills, state_.bosses, state_.mobs);
-      SpendMaxNoblesse(c(), state_.skills, state_.bosses, state_.mobs);
-      SpendMaxHyperStats(c(), state_.skills, state_.bosses, state_.mobs);
+      RespendMaxAllocations(state_);
       best_ = rate_(state_);
       if (best_ <= start * (1.0 + 1e-4)) {
         break;
@@ -316,12 +331,7 @@ class Search {
 
   // Wears `proto` in `slot` built as `built`, any displaced piece discarded.
   void Wear(EquipSlot slot, const EquipPrototype& proto, const Equip& built) {
-    c().ClearEquipInventory();
-    const int row = static_cast<int>(c().inventory().size());
-    if (c().PickUp(std::make_unique<EquipInstance>(proto, built))) {
-      c().Equip(row, StatPreset::kFirst, slot);
-    }
-    c().ClearEquipInventory();
+    WearBuilt(c(), slot, proto, built);
   }
 
   // `proto` built for `slot`, carrying over what `held` has: its potentials,
@@ -712,6 +722,141 @@ void DressBisDefaults(GameState& state) {
 
 void SearchBis(GameState& state, const BisRate& rate) {
   Search(state, rate).Run();
+}
+
+const BisBuild* FindBisBuild(const std::vector<BisTable>& tables, Job job,
+                             int level) {
+  const BisBuild* found = nullptr;
+  for (const BisTable& table : tables) {
+    if (table.job() != job) {
+      continue;
+    }
+    for (const BisBuild& build : table.builds()) {
+      if (build.level() <= level &&
+          (found == nullptr || build.level() > found->level())) {
+        found = &build;
+      }
+    }
+  }
+  return found;
+}
+
+BisBuild ReadBisBuild(const GameState& state) {
+  const CharacterInstance& character = state.character;
+  BisBuild build;
+  build.set_level(character.proto().level());
+  for (const auto& [slot, worn] : character.equipped()) {
+    const EquipPrototype& proto = worn->prototype();
+    if (IsSymbol(proto) || FamilyTakesCopies(slot)) {
+      continue;
+    }
+    BisPiece& piece = *build.add_pieces();
+    piece.set_slot(slot);
+    for (const auto& [key, entry] : state.equips) {
+      if (entry.name() == proto.name()) {
+        piece.set_item(key);
+      }
+    }
+    // Which scroll it took isn't kept, so match what each choice adds.
+    for (const Scroll* scroll : BisScrollChoices(state, proto)) {
+      const Equip built = BisUpgradedWith(state, proto, scroll);
+      if (built.scroll_stats().SerializeAsString() ==
+          worn->equip_state().scroll_stats().SerializeAsString()) {
+        for (const auto& [key, entry] : state.scrolls) {
+          if (&entry == scroll) {
+            piece.set_scroll(key);
+          }
+        }
+        break;
+      }
+    }
+    const Equip& held = worn->equip_state();
+    if (held.main_potential().lines_size() > 0) {
+      *piece.mutable_main_potential() = held.main_potential();
+    }
+    if (held.bonus_potential().lines_size() > 0) {
+      *piece.mutable_bonus_potential() = held.bonus_potential();
+    }
+    *piece.mutable_flame() = held.flame();
+    if (held.has_soul()) {
+      piece.set_soul(held.soul().line());
+    }
+  }
+  const StatPreset boss = BossSlot();
+  for (const std::string& name : character.summoned_familiars(boss)) {
+    if (const Familiar* familiar = FindFamiliar(character.familiars(), name)) {
+      *build.add_familiars() = *familiar;
+    }
+  }
+  if (character.inner_ability_unlocked()) {
+    *build.mutable_ability() = character.ability(boss);
+  }
+  *build.mutable_hexa_stats() = character.hexa_stats();
+  for (const CharacterSave& alt : state.inactive_characters) {
+    build.add_legion(alt.character().job());
+  }
+  return build;
+}
+
+void ApplyBisBuild(GameState& state, const BisBuild& build) {
+  CharacterInstance& character = state.character;
+  for (const BisPiece& piece : build.pieces()) {
+    auto found = state.equips.find(piece.item());
+    if (found == state.equips.end() || !character.MeetsLevel(found->second) ||
+        !character.MeetsJob(found->second)) {
+      continue;
+    }
+    const EquipPrototype& proto = found->second;
+    auto scroll = state.scrolls.find(piece.scroll());
+    Equip built = BisUpgradedWith(
+        state, proto,
+        scroll == state.scrolls.end() ? nullptr : &scroll->second);
+    const EquipInstance probe(proto, built);
+    if (probe.CanCube()) {
+      *built.mutable_main_potential() = piece.main_potential();
+      *built.mutable_bonus_potential() = piece.bonus_potential();
+    }
+    if (probe.CanFlame()) {
+      *built.mutable_flame() = piece.flame();
+    }
+    // The soul's boss and tier come from the level; only the line is chosen.
+    const EquipInstance* worn =
+        character.WornAt(StatPreset::kFirst, piece.slot());
+    if (worn != nullptr && worn->equip_state().has_soul() &&
+        probe.CanTakeSoul()) {
+      *built.mutable_soul() = worn->equip_state().soul();
+      if (piece.soul() != SOUL_LINE_UNSPECIFIED) {
+        built.mutable_soul()->set_line(piece.soul());
+      }
+    }
+    WearBuilt(character, piece.slot(), proto, built);
+  }
+  FamiliarBook book = character.familiars();
+  for (const Familiar& chosen : build.familiars()) {
+    for (Familiar& familiar : *book.mutable_familiars()) {
+      if (familiar.name() == chosen.name()) {
+        *familiar.mutable_lines() = chosen.lines();
+      }
+    }
+  }
+  character.set_familiars(book);
+  if (character.inner_ability_unlocked() &&
+      build.ability().lines_size() == kAbilityLines) {
+    character.SetAbility(build.ability(), BossSlot());
+  }
+  if (character.proto().job_stage() >= kSixthJobStage) {
+    // A level past the checkpoint may have a node more open; it keeps its
+    // default, unless that breaks the rules, when the defaults all stand.
+    const HexaStats defaults = character.hexa_stats();
+    HexaStats stats;
+    for (int i = 0; i < defaults.nodes_size(); ++i) {
+      *stats.add_nodes() = i < build.hexa_stats().nodes_size()
+                               ? build.hexa_stats().nodes(i)
+                               : defaults.nodes(i);
+    }
+    character.SetHexaStats(stats);
+  }
+  RespendMaxAllocations(state);
 }
 
 double BisSwingRate(GameState& state) {

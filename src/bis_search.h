@@ -6,6 +6,9 @@
  * a slot, which scroll it takes, which lines its potentials, flame, soul,
  * familiars, Inner Ability and HEXA Stats roll -- is chosen here by measuring
  * the character, one choice at a time, until a whole pass changes nothing.
+ * The game doesn't search at launch: //analysis/sims:bis_sim --write runs it
+ * at kBisCheckpoints and data/bis holds the result, which ApplyBisBuild puts
+ * on. Only a level below every checkpoint is searched.
  *
  * Every choice is one the game's own rolls could give: potential lines at
  * Legendary and prime, flame lines distinct at tier 7, Inner Ability lines
@@ -17,6 +20,8 @@
 #include <vector>
 
 #include "src/game_state.h"
+#include "src/protos/bis.pb.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -42,6 +47,24 @@ void DressBisDefaults(GameState& state);
 // Every measured choice, ranked by `rate`. Run on the played character once
 // the seeding has set the maxima.
 void SearchBis(GameState& state, const BisRate& rate);
+
+// The levels data/bis holds a build for (the user's choice, 2026-11-22).
+inline constexpr int kBisCheckpoints[] = {200, 230, 250, 260,
+                                          270, 280, 290, 300};
+
+// The build `tables` hold for 4th job `job` at `level`: the checkpoint at or
+// below it. Null when none does.
+const BisBuild* FindBisBuild(const std::vector<BisTable>& tables, Job job,
+                             int level);
+
+// What SearchBis chose for the played character, as a build at its level,
+// with the rest of the account's jobs.
+BisBuild ReadBisBuild(const GameState& state);
+
+// Puts `build`'s choices on the played character in place of a search, then
+// re-spends what max mode allocates by swing. A piece the catalog no longer
+// has, or the level can't wear, keeps its default.
+void ApplyBisBuild(GameState& state, const BisBuild& build);
 
 // One plain swing at the toughest boss the level has unlocked: the rate kBis
 // uses when TestOptions gives none.

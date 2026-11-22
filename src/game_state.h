@@ -19,6 +19,7 @@
 #include "src/build_config.h"
 #include "src/character/character.h"
 #include "src/protos/achievement.pb.h"
+#include "src/protos/bis.pb.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -117,6 +118,9 @@ struct TestOptions {
   // toughest boss the level has unlocked, which is blind to cooldowns, buff
   // duration and attack speed; the game and the bench pass a measured fight.
   BisRate bis_rate;
+  // kBis's precomputed builds (data/bis, written by bis_sim --write). A job
+  // and level they cover is read from them; anything else is searched.
+  std::vector<BisTable> bis_tables;
 };
 
 struct GameState {

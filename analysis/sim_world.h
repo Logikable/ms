@@ -6,8 +6,10 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/game_state.h"
+#include "src/protos/bis.pb.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -35,6 +37,8 @@ struct Catalogs {
   std::map<std::string, Skill> skills;
   std::map<std::string, Boss> bosses;
   std::map<std::string, EquipSet> sets;
+  // --mode=bis's precomputed builds; empty makes NewBisState search.
+  std::vector<BisTable> bis_tables;
 };
 
 Catalogs LoadCatalogs();

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/character.proto";
+import "src/protos/equip.proto";
+import "src/protos/familiar.proto";
+
+// --mode=bis's measured choices, written by //analysis/sims:bis_sim --write
+// so the game reads them instead of searching. One file per 4th job.
+
+// One worn piece: catalog keys for the item and the scroll in every slot
+// (empty for none), and its rolled lines.
+message BisPiece {
+  EquipSlot slot = 1;
+  string item = 2;
+  string scroll = 3;
+  Potential main_potential = 4;
+  Potential bonus_potential = 5;
+  repeated FlameLine flame = 6;
+  // The weapon's soul line; its boss and tier are the level's own.
+  SoulLine soul = 7;
+}
+
+// Everything the search chose for one level.
+message BisBuild {
+  int32 level = 1;
+  repeated BisPiece pieces = 2;
+  // The summoned familiars, by roster name, with their lines.
+  repeated Familiar familiars = 3;
+  AbilityPreset ability = 4;
+  HexaStats hexa_stats = 5;
+  // The Legion's members past one of each job, by 4th job, all at the top
+  // level.
+  repeated Job legion = 6;
+}
+
+message BisTable {
+  Job job = 1;
+  // By level, rising. A level between two takes the build below it.
+  repeated BisBuild builds = 2;
+}

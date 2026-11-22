@@ -5,18 +5,29 @@
  * and the measured DPS of the bis and max characters against the fight the
  * search ranks by.
  *
- *   bazelisk run -c opt //analysis/sims:bis_sim -- --branch=HERO
- *   bazelisk run -c opt //analysis/sims:bis_sim -- --level=280
+ * --write searches every branch at every checkpoint and rewrites data/bis,
+ * which the game then reads instead of searching. Always under
+ * --config=sixth (the user's call): one table serves both builds.
+ *
+ *   bazelisk run -c opt --config=sixth //analysis/sims:bis_sim -- --branch=HERO
+ *   bazelisk run -c opt --config=sixth //analysis/sims:bis_sim -- --write
  */
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <string>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/check.h"
+#include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
+#include "google/protobuf/text_format.h"
+#include "src/bis_search.h"
+#include "src/build_config.h"
 #include "src/character/character.h"
 #include "src/character/max_character.h"
 #include "src/character/stat_preset.h"
@@ -24,6 +35,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/upgrade/potential.h"
+#include "src/protos/bis.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/familiar.pb.h"
@@ -32,6 +44,8 @@ ABSL_FLAG(int, level, 260, "Level of the characters searched.");
 ABSL_FLAG(std::string, branch, "",
           "One branch, as its Job enum name without the JOB_ prefix. Empty "
           "searches every branch with a 4th job.");
+ABSL_FLAG(bool, write, false,
+          "Search every branch at every checkpoint and rewrite data/bis.");
 
 namespace ms {
 namespace {
@@ -125,7 +139,41 @@ std::string Report(const Catalogs& catalogs, Job branch, int level) {
   return out + "\n";
 }
 
+// Every branch at every checkpoint, searched afresh, one file per branch.
+void Write(const std::vector<Job>& branches) {
+  Catalogs catalogs = LoadCatalogs();
+  catalogs.bis_tables.clear();
+  const int checkpoints = static_cast<int>(std::size(kBisCheckpoints));
+  std::vector<BisBuild> builds(branches.size() * checkpoints);
+  ParallelFor(static_cast<int>(builds.size()), [&](int i) {
+    const Job branch = branches[i / checkpoints];
+    GameState state =
+        NewBisState(catalogs, AdvancementForJobStage(branch, StageOf(branch)),
+                    kBisCheckpoints[i % checkpoints], kSeed);
+    builds[i] = ReadBisBuild(state);
+  });
+  const char* workspace = std::getenv("BUILD_WORKSPACE_DIRECTORY");
+  const std::string dir =
+      std::string(workspace != nullptr ? workspace : ".") + "/data/bis/";
+  for (std::size_t b = 0; b < branches.size(); ++b) {
+    BisTable table;
+    table.set_job(branches[b]);
+    for (int c = 0; c < checkpoints; ++c) {
+      *table.add_builds() = builds[b * checkpoints + c];
+    }
+    std::string text;
+    google::protobuf::TextFormat::PrintToString(table, &text);
+    const std::string name = absl::AsciiStrToLower(
+        Job_Name(branches[b]).substr(std::string("JOB_").size()));
+    std::ofstream out(dir + name + ".textproto");
+    out << "# Written by //analysis/sims:bis_sim --write; don't edit.\n"
+        << text;
+    std::printf("wrote %s%s.textproto\n", dir.c_str(), name.c_str());
+  }
+}
+
 void Run() {
+  QCHECK(kSixthJobEnabled) << "bis_sim runs under --config=sixth";
   const int level = absl::GetFlag(FLAGS_level);
   std::vector<Job> branches;
   if (absl::GetFlag(FLAGS_branch).empty()) {
@@ -136,6 +184,10 @@ void Run() {
     }
   } else {
     branches.push_back(ParseBranch(absl::GetFlag(FLAGS_branch)));
+  }
+  if (absl::GetFlag(FLAGS_write)) {
+    Write(branches);
+    return;
   }
   const Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> reports(branches.size());

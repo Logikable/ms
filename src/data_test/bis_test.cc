@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "src/bis_search.h"
 #include "src/character/account/familiar.h"
 #include "src/character/account/legion.h"
 #include "src/character/character.h"
@@ -26,18 +27,30 @@
 #include "src/item/upgrade/flame.h"
 #include "src/item/upgrade/potential.h"
 #include "src/proto_loader.h"
+#include "src/protos/bis.pb.h"
 
 namespace ms {
 namespace {
 
 constexpr int kLevel = 260;
 
-std::unique_ptr<GameState> NewState(GameMode mode, int level) {
+std::vector<BisTable> Tables() {
+  std::vector<BisTable> tables;
+  for (auto& [name, table] : LoadTextProtoMap<BisTable>(EmbeddedBis())) {
+    tables.push_back(std::move(table));
+  }
+  return tables;
+}
+
+// `tables` empty makes kBis search.
+std::unique_ptr<GameState> NewState(GameMode mode, int level,
+                                    std::vector<BisTable> tables = Tables()) {
   TestOptions options;
   options.job = JOB_ADVANCEMENT_HERO;
   options.level = level;
   options.autoswap_presets = true;
   options.bis_rate = BisFightRate;
+  options.bis_tables = std::move(tables);
   return std::make_unique<GameState>(
       LoadTextProtoMap<EquipPrototype>(EmbeddedEquips()),
       LoadTextProtoMap<Scroll>(EmbeddedScrolls()),
@@ -49,7 +62,7 @@ std::unique_ptr<GameState> NewState(GameMode mode, int level) {
       LoadTextProtoMap<Boss>(EmbeddedBosses()));
 }
 
-// One search for the whole file: it takes seconds.
+// One character for the whole file, read from data/bis.
 class BisTest : public testing::Test {
  protected:
   static void SetUpTestSuite() {
@@ -193,6 +206,62 @@ TEST_F(BisTest, BuysTheWholeVMatrix) {
       EXPECT_EQ(c().skill_level(skill), SkillMaxLevel(skill)) << name;
     }
   }
+}
+
+TEST(BisTableTest, CoversEveryFourthJobAtEveryCheckpoint) {
+  const std::vector<BisTable> tables = Tables();
+  std::set<Job> jobs;
+  for (const BisTable& table : tables) {
+    jobs.insert(table.job());
+    std::set<int> levels;
+    for (const BisBuild& build : table.builds()) {
+      levels.insert(build.level());
+    }
+    EXPECT_EQ(levels, std::set<int>(std::begin(kBisCheckpoints),
+                                    std::end(kBisCheckpoints)))
+        << Job_Name(table.job());
+  }
+  for (Job job :
+       {JOB_HERO, JOB_PALADIN, JOB_DARK_KNIGHT, JOB_BOW_MASTER, JOB_MARKSMAN,
+        JOB_ICE_LIGHTNING_ARCH_MAGE, JOB_FIRE_POISON_ARCH_MAGE, JOB_BISHOP,
+        JOB_NIGHT_LORD, JOB_SHADOWER}) {
+    EXPECT_EQ(jobs.count(job), 1u) << Job_Name(job);
+  }
+}
+
+// A renamed item or scroll would silently fall back to the default.
+TEST(BisTableTest, EveryKeyIsInTheCatalog) {
+  const auto equips = LoadTextProtoMap<EquipPrototype>(EmbeddedEquips());
+  const auto scrolls = LoadTextProtoMap<Scroll>(EmbeddedScrolls());
+  for (const BisTable& table : Tables()) {
+    for (const BisBuild& build : table.builds()) {
+      for (const BisPiece& piece : build.pieces()) {
+        EXPECT_EQ(equips.count(piece.item()), 1u) << piece.item();
+        if (!piece.scroll().empty()) {
+          EXPECT_EQ(scrolls.count(piece.scroll()), 1u) << piece.scroll();
+        }
+      }
+    }
+  }
+}
+
+TEST_F(BisTest, WearsTheTablesBuild) {
+  const std::vector<BisTable> tables = Tables();
+  const BisBuild* build = FindBisBuild(tables, JOB_HERO, kLevel);
+  ASSERT_NE(build, nullptr);
+  for (const BisPiece& piece : build->pieces()) {
+    const EquipInstance* worn = c().WornAt(StatPreset::kFirst, piece.slot());
+    ASSERT_NE(worn, nullptr) << EquipSlot_Name(piece.slot());
+    EXPECT_EQ(worn->prototype().name(), bis_->equips.at(piece.item()).name());
+  }
+}
+
+// Below the first checkpoint there is no build, so the search runs.
+TEST(BisSearchTest, ALevelTheTableMissesIsSearched) {
+  constexpr int kUncovered = 190;
+  std::unique_ptr<GameState> bis = NewState(GameMode::kBis, kUncovered);
+  std::unique_ptr<GameState> max = NewState(GameMode::kMax, kUncovered);
+  EXPECT_GT(BisFightRate(*bis), BisFightRate(*max));
 }
 
 TEST(BisSixthJobTest, BuysTheHexaMatrixAndOpensEveryStatNode) {

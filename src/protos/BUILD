@@ -25,6 +25,21 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "bis_proto",
+    srcs = ["bis.proto"],
+    deps = [
+        ":character_proto",
+        ":equip_proto",
+        ":familiar_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "bis_proto_cc",
+    deps = [":bis_proto"],
+)
+
+proto_library(
     name = "familiar_proto",
     srcs = ["familiar.proto"],
     deps = [":equip_proto"],
