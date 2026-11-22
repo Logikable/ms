@@ -443,7 +443,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     int64_t hp;
   };
   const std::vector<Want> kRungs = {
-      {"zakum", "Chaos", 11550000, 0, 113400000000LL},
+      {"zakum", "Chaos", 11550000, 0, 56700000000LL},
       {"magnus", "Hard", 13600000, 22000000, 81960000000LL},
       {"pink_bean", "Chaos", 12800000, 9590000, 199500000000LL}};
   for (const Want& want : kRungs) {
@@ -911,7 +911,7 @@ TEST_F(BossDataTest, TheArrowsReachEverySpot) {
 // so a full party always has somewhere to move.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}},       {"hilla", {5}},
+      {"zakum", {5}},       {"hilla", {5}},
       {"horntail", {6, 6, 6}}, {"magnus", {5}},
       {"arkarium", {5}},       {"cygnus", {5}},
       {"pink_bean", {5, 5}},   {"pierre", {5}},

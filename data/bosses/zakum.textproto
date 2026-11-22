@@ -2,30 +2,10 @@ name: "Zakum"
 page: 1
 difficulties {
   name: "Normal"
+  # GMS's arms are optional since 2015 (the body takes hits from the start)
+  # and vanish at 20%, so the fight is the body alone.
   phases {
     bgm: "WelcomeToTheHell"
-    spawns {
-      mob: "zakum_arm"
-      spots { x: 3 y: 1 }
-      spots { x: 3 y: 2 }
-      spots { x: 3 y: 3 }
-      spots { x: 3 y: 4 }
-      spots { x: 5 y: 1 }
-      spots { x: 5 y: 2 }
-      spots { x: 5 y: 3 }
-      spots { x: 5 y: 4 }
-    }
-    player_spots { x: 4 y: 5 }
-    player_spots { x: 0 y: 5 }
-    player_spots { x: 8 y: 5 }
-    player_spots { x: 2 y: 5 }
-    player_spots { x: 6 y: 5 }
-    player_spots { x: 0 y: 3 }
-    player_spots { x: 8 y: 3 }
-    arena_width: 9
-    arena_height: 6
-  }
-  phases {
     spawns {
       mob: "zakum"
       spots { x: 4 y: 4 }
@@ -60,30 +40,10 @@ difficulties {
 }
 difficulties {
   name: "Chaos"
+  # GMS's arms are optional since 2015 (the body takes hits from the start)
+  # and vanish at 20%, so the fight is the body alone.
   phases {
     bgm: "WelcomeToTheHell"
-    spawns {
-      mob: "chaos_zakum_arm"
-      spots { x: 3 y: 1 }
-      spots { x: 3 y: 2 }
-      spots { x: 3 y: 3 }
-      spots { x: 3 y: 4 }
-      spots { x: 5 y: 1 }
-      spots { x: 5 y: 2 }
-      spots { x: 5 y: 3 }
-      spots { x: 5 y: 4 }
-    }
-    player_spots { x: 4 y: 5 }
-    player_spots { x: 0 y: 5 }
-    player_spots { x: 8 y: 5 }
-    player_spots { x: 2 y: 5 }
-    player_spots { x: 6 y: 5 }
-    player_spots { x: 0 y: 3 }
-    player_spots { x: 8 y: 3 }
-    arena_width: 9
-    arena_height: 6
-  }
-  phases {
     spawns {
       mob: "chaos_zakum"
       spots { x: 4 y: 4 }
