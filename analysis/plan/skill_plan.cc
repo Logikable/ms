@@ -37,8 +37,10 @@ std::vector<int> NodeRungs(const CharacterInstance& character,
       rungs.push_back(next - level);
     }
   }
+  // Each rung plays a fight, so one already listed isn't priced twice.
   int affordable = character.LevelsAffordable(skill);
-  if (affordable > 0) {
+  if (affordable > 0 &&
+      std::find(rungs.begin(), rungs.end(), affordable) == rungs.end()) {
     rungs.push_back(affordable);
   }
   return rungs;
