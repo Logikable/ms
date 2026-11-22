@@ -356,6 +356,11 @@ struct AttackOption {
   int strikes_in_sequence = 1;
   // Seconds between those hits; 0 if they land together.
   double cast_interval_seconds = 0.0;
+  // For a cast whose strikes land through it (Skill.strike_ms): when each
+  // lands, in seconds into the swing, and its share of the swing's damage.
+  // Empty for every other attack, which lands whole at the swing's end.
+  std::vector<double> strike_seconds;
+  std::vector<double> strike_shares;
   // Ticks per raise of the required buff; it then stops until the buff is
   // raised again. See BuffPulse.max_pulses.
   int max_pulses = 0;

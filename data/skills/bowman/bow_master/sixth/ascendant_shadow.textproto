@@ -1,6 +1,6 @@
 # GMS (3141500): 39 flurries of 14 lines land inside the 4560ms cast (the
-# action's frames, and delayedSkillUseRequestTime), then 7 flurries of 8 every
-# 3s for 30s. Origin casts are fixed whatever the attack speed (the user's
+# action's frames, and delayedSkillUseRequestTime), at multiAttackInfo's
+# times, then 7 flurries of 8 every 3s for 30s. Origin casts are fixed whatever the attack speed (the user's
 # call); invincibility during the cast is left out.
 #
 # ignoreMobpdpR and bdR are log10(x)*20+log30(x)*30 and log20(x)*20+
@@ -18,7 +18,11 @@ base_delay_ms: 4560
 fixed_delay: true
 cooldown_seconds: 360.0
 max_enemies: 15
-lines: 546
+lines: 14
+casts: 39
+strike_ms: [660, 690, 720, 750, 780, 810, 840, 870, 900, 930, 2370, 2490, 2610,
+  2730, 2850, 2940, 3030, 3120, 3210, 3270, 3300, 3330, 3360, 3390, 3420, 3450,
+  3480, 3510, 3540, 3570, 3600, 3630, 3660, 3690, 3720, 3750, 3780, 3810, 3840]
 base { skill_pct: 7.29 }
 per_level { skill_pct: 0.24 }
 step { from_level: 10 base { ied_pct: 0.20 } }

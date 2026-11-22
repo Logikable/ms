@@ -1841,6 +1841,13 @@ message Skill {
   // doesn't change: the expectation of N attacks of L lines equals that of N*L.
   // Read through SkillCasts; 0 means one, as for every other swing.
   int32 casts = 56;
+  // When each strike lands, in milliseconds from the press, for a cast whose
+  // strikes land through it instead of at its end: one per strike, the
+  // attack's `casts` then each extra_hit's in order (the client's
+  // multiAttackInfo attackTime, a gap after the first, summed). Each lands its
+  // share of the attack's damage on what is there then; Final Attacks and
+  // procs ride the first. A time past the cast lands at its end.
+  repeated int32 strike_ms = 109;
   // Milliseconds between those attacks when they don't land together: each hits
   // the enemies left after the previous one, so a wall that clears the twelve
   // in front of it moves on to the next twelve.

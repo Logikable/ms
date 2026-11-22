@@ -862,7 +862,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     // bonus; later parts find the mark gone.
     double freeze =
         StateBoost(attack, queue_[j]) * SpendMark(attack, queue_[j]);
-    double share = shares.empty() ? 1.0 : shares[j];
+    double share = (shares.empty() ? 1.0 : shares[j]) * strike_share_;
     double damage =
         held > 0
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
@@ -877,9 +877,12 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     }
     Hurt(queue_[j], damage * freeze * share);
   }
-  StrikeRiders(attack, hit, lead);
-  double recovered = RollProcs(attack, hit);
-  ApplyStates(attack, hit);
+  double recovered = 0.0;
+  if (strike_riders_) {
+    StrikeRiders(attack, hit, lead);
+    recovered = RollProcs(attack, hit);
+    ApplyStates(attack, hit);
+  }
   Reap();
   return recovered;
 }
@@ -2671,6 +2674,7 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
     // Decided once, when the attack is first aimed: a hold in progress is the
     // player's key held down, and re-deciding it every step would flicker.
     if (aimed_ != previous) {
+      cast_strikes_ = 0;
       held_pulses_ =
           ChannelPulses(*attack, std::min(std::max(1, attack->max_enemies),
                                           static_cast<int>(queue_.size())));
@@ -2754,9 +2758,44 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
   while (attack != nullptr && attack->swing_seconds > 0.0 &&
          attack_phase_ >= HeldSeconds(*attack)) {
     attack_phase_ -= HeldSeconds(*attack);
+    LandCastStrikes(params, std::numeric_limits<double>::infinity());
     LandSwing(params, *attack);
     // Landing re-aims: the queue changed and the commitment is over.
     attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
+  }
+  if (attack != nullptr) {
+    LandCastStrikes(params, attack_phase_);
+  }
+}
+
+void CombatSim::LandCastStrikes(const CombatParams& params, double phase) {
+  if (aimed_ < 0) {
+    return;
+  }
+  while (cast_strikes_ <
+             static_cast<int>(Attacks(params)[aimed_].strike_seconds.size()) &&
+         Attacks(params)[aimed_].strike_seconds[cast_strikes_] <= phase) {
+    // Re-read each time: the first strike's buffs can switch attack tables.
+    int swung = aimed_;
+    if (cast_strikes_ == 0) {
+      LayBuffs(params, swung, /*on_cast=*/true);
+    }
+    const AttackOption& landed =
+        SwungForm(attack_clocks_[swung], Attacks(params)[swung]);
+    if (cast_strikes_ >= static_cast<int>(landed.strike_shares.size())) {
+      break;
+    }
+    attributing_ = swung;
+    strike_share_ = landed.strike_shares[cast_strikes_];
+    strike_riders_ = cast_strikes_ == 0;
+    RecoverHp(params, Strike(landed, {DamageOrigin::kSwing, 0}));
+    strike_share_ = 1.0;
+    strike_riders_ = true;
+    CreditFreeze(params, landed);
+    CreditBuffs(params, 0.0,
+                landed.lines / static_cast<int>(landed.strike_shares.size()));
+    attributing_ = -1;
+    ++cast_strikes_;
   }
 }
 
@@ -2782,18 +2821,23 @@ void CombatSim::LandSwing(const CombatParams& params,
     // `afflicted` is read before the strike, since the mob it checks may die.
     // See Buff::needs_afflicted_target.
     bool afflicted = !queue_.empty() && Afflicted(queue_.front());
+    // A cast whose strikes landed through it has dealt its damage and raised
+    // its on-cast buffs already (LandCastStrikes).
+    const bool struck = !attack.strike_seconds.empty();
     const AttackOption* cast = &attack;
-    if (LayBuffs(params, swung, /*on_cast=*/true)) {
+    if (!struck && LayBuffs(params, swung, /*on_cast=*/true)) {
       cast = &Attacks(params)[swung];
     }
     const AttackOption& landed = SwungForm(attack_clocks_[swung], *cast);
     // A barrage of bolts strikes once per bolt, so dead mobs are cleared
     // between them and a bolt whose targets are dead hits the next ones.
     double proc_recovered =
-        Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
+        struck ? 0.0 : Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
     // Per strike, not per attack: each shock spends its own stacks, so they
     // drain across the barrage rather than all at the start.
-    CreditFreeze(params, landed);
+    if (!struck) {
+      CreditFreeze(params, landed);
+    }
     // The rest of a spaced-out attack lands on its own timer while the player
     // keeps attacking, each strike hitting whatever is there at the time.
     if (landed.strikes_in_sequence > 1 && landed.cast_interval_seconds > 0.0) {
@@ -2815,7 +2859,7 @@ void CombatSim::LandSwing(const CombatParams& params,
       // Only the first strike's lines (the rest of a barrage credits its own
       // as they land), but the whole press's weight, since thirty bolts are
       // one key press.
-      CreditBuffs(params, cast->count_weight, landed.lines);
+      CreditBuffs(params, cast->count_weight, struck ? 0 : landed.lines);
       LayBuffs(params, swung, /*on_cast=*/false);
       // After the strike too: a buff an attack rolls for boosts later attacks,
       // never the one that earned it.

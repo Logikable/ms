@@ -1348,6 +1348,34 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
   }
 }
 
+// An Origin's or Ascent's strikes land through its cutscene, so each carries
+// the client's times: one per strike, rising, inside the cast (the client lets
+// Flashpoint's last run 30ms over). A miscount would be ignored by the fight
+// and the cast would land whole at its end again.
+TEST(SkillDataTest, ACutsceneTimesEveryStrike) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    const bool cutscene = skill.hexa_node() == HEXA_NODE_KIND_ORIGIN ||
+                          skill.hexa_node() == HEXA_NODE_KIND_ASCENT;
+    if (!cutscene && skill.strike_ms().empty()) {
+      continue;
+    }
+    int strikes = std::max(1, skill.casts());
+    for (const SwingHit& hit : skill.extra_hit()) {
+      if (hit.max_enemies() == 0) {
+        strikes += std::max(1, hit.casts());
+      }
+    }
+    EXPECT_EQ(skill.strike_ms_size(), strikes) << entry.first;
+    for (int i = 0; i < skill.strike_ms_size(); ++i) {
+      EXPECT_GT(skill.strike_ms(i), i == 0 ? 0 : skill.strike_ms(i - 1))
+          << entry.first << " strike " << i;
+      EXPECT_LE(skill.strike_ms(i), skill.base_delay_ms() + 100)
+          << entry.first << " strike " << i;
+    }
+  }
+}
+
 // A waived cast still records the animation GMS would play: the flag says the
 // animation isn't charged, and dropping the value too would state the waiver
 // twice and lose the client's number.

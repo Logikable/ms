@@ -2061,6 +2061,43 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   EXPECT_EQ(folded.view().kills_this_step[0], 0);
 }
 
+// An Origin's strikes land through its cast at their own times, each its share,
+// rather than all at the end: a quarter at 1s of a 4s cast, the whole by 3s.
+TEST(CombatSimTest, ACastLandsItsStrikesThroughIt) {
+  Mob boss = MakeMob("Boss", 1000);
+  CombatParams params = MakeParams(4.0, 1e9, {MakeType(&boss, 400.0, 1)});
+  params.attacks[0].strike_seconds = {1.0, 2.0, 2.5, 3.0};
+  params.attacks[0].strike_shares = {0.25, 0.25, 0.25, 0.25};
+  CombatSim sim;
+  sim.Advance(params, 0.9);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
+  sim.Advance(params, 0.2);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9, 1e-9);
+  sim.Advance(params, 2.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.6, 1e-9);
+  // The cast's end adds nothing: every strike has landed.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.6, 1e-9);
+  // The next cast lands again from its first strike.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.5, 1e-9);
+}
+
+// A step that crosses a cast's end lands the next cast's strikes that fall
+// inside it, and none of the first cast's twice.
+TEST(CombatSimTest, ALongStepLandsEveryStrikeOfACastOnce) {
+  Mob boss = MakeMob("Boss", 100000);
+  CombatParams params = MakeParams(4.0, 1e9, {MakeType(&boss, 400.0, 1)});
+  params.attacks[0].strike_seconds = {1.0, 2.0, 2.5, 3.0};
+  params.attacks[0].strike_shares = {0.25, 0.25, 0.25, 0.25};
+  CombatSim sim;
+  sim.Advance(params, 3.5);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 400.0 / 100000.0, 1e-9);
+  // To 3.5s into the next cast: all four of its strikes, none of the first's.
+  sim.Advance(params, 4.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 800.0 / 100000.0, 1e-9);
+}
+
 // A sequenced attack is valued at what one press really lands: the strikes that
 // fit before the same skill can be cast again and restart the wall.
 TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {

@@ -7457,11 +7457,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7806,7 +7806,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }

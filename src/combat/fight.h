@@ -603,6 +603,9 @@ class CombatSim {
   // One attack landing: the strike and everything that comes with it. Leaves
   // the next attack aimed.
   void LandSwing(const CombatParams& params, const AttackOption& attack);
+  // The aimed attack's in-cast strikes (AttackOption::strike_seconds) due by
+  // `phase` seconds into its swing.
+  void LandCastStrikes(const CombatParams& params, double phase);
   // The side strike and stored attack a press triggers. Both use the aimed
   // attack rather than any form that replaced it, since they belong to the
   // skill. They hit whatever the attack left alive.
@@ -805,6 +808,14 @@ class CombatSim {
   // Pulses the aimed attack will be held for, fixed when aimed: a hold in
   // progress isn't retimed as the queue changes.
   int held_pulses_ = 0;
+  // In-cast strikes the aimed attack has landed. A count, not a time: a swing
+  // restarted by a map change lands the rest later, never the first again.
+  int cast_strikes_ = 0;
+  // What Strike lands of the attack it is given: a share of its damage, and
+  // whether its Final Attacks, procs and states come too. Set around each
+  // in-cast strike.
+  double strike_share_ = 1.0;
+  bool strike_riders_ = true;
   // The level at the last step, to detect level-ups.
   int player_level_ = 0;
   DamageLedger ledger_;

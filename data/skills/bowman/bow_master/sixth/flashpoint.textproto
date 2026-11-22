@@ -1,5 +1,7 @@
 # GMS (3141503, then 3141504 within 30s): two presses of 1320ms each
 # (6thPointZero, 6thPointZero2), made one swing since nobody holds the second.
+# Strikes at multiAttackInfo's times, the explosions from the second press at
+# 1320ms; its last lands 30ms past the cast, so at its end.
 # Fixed whatever the attack speed, though the client's frames scale (the
 # user's call for every Ascent).
 #
@@ -22,6 +24,9 @@ fixed_delay: true
 max_enemies: 15
 lines: 10
 casts: 16
+strike_ms: [600, 660, 720, 780, 810, 840, 870, 900, 930, 960, 990, 1020, 1050,
+  1080, 1110, 1140, 2010, 2070, 2130, 2310, 2340, 2370, 2400, 2430, 2460, 2490,
+  2520, 2550, 2580, 2610, 2640, 2670]
 base { skill_pct: 9.08 crit_rate: 1.0 ied_pct: 0.60 boss_pct: 0.40 }
 per_level { skill_pct: 1.52 }
 step { from_level: 10 base { ied_pct: 0.10 boss_pct: 0.10 } }

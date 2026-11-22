@@ -5431,6 +5431,14 @@ TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
   // damage_per_hit is a whole strike: 546 lines against 8.
   EXPECT_NEAR(flurry->damage_per_hit[0] / cast->damage_per_hit[0],
               (1543.0 * 8) / (1425.0 * 546), 1e-9);
+  // The 39 flurries land through the cast at the client's times, equal parts.
+  ASSERT_EQ(cast->strike_seconds.size(), 39u);
+  EXPECT_NEAR(cast->strike_seconds.front(), 0.66, 1e-9);
+  EXPECT_NEAR(cast->strike_seconds.back(), 3.84, 1e-9);
+  ASSERT_EQ(cast->strike_shares.size(), 39u);
+  for (double share : cast->strike_shares) {
+    EXPECT_NEAR(share, 1.0 / 39, 1e-9);
+  }
 }
 
 // Flashpoint as shipped at 30: both presses as one fixed 2.64s swing, priced

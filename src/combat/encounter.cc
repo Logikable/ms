@@ -718,6 +718,28 @@ void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
   attack.scatter_max_hits_per_enemy = skill->scatter().max_hits_per_enemy();
 }
 
+// Each strike's share is its group's part of the swing, read against the first
+// mob type: the strikes differ only in multiplier, which every type scales
+// alike. A list that doesn't match the strikes is ignored (data_test checks).
+void AddStrikeTimes(const Skill& skill, double speed_factor,
+                    AttackOption& attack) {
+  if (skill.strike_ms().empty() ||
+      skill.strike_ms_size() != static_cast<int>(attack.groups.size())) {
+    return;
+  }
+  double total = 0.0;
+  for (const HitGroup& group : attack.groups) {
+    total += group.damage.empty() ? 0.0 : group.damage[0];
+  }
+  const double strikes = static_cast<double>(attack.groups.size());
+  for (int i = 0; i < skill.strike_ms_size(); ++i) {
+    const HitGroup& group = attack.groups[i];
+    attack.strike_seconds.push_back(skill.strike_ms(i) / 1000.0 * speed_factor);
+    attack.strike_shares.push_back(total > 0.0 ? group.damage[0] / total
+                                               : 1.0 / strikes);
+  }
+}
+
 // One attack's damage against every mob type. `skill` is null for the basic
 // attack, a plain 100% hit on one target. `equipped` is the character's gear
 // plus what passives grant; the formula can't tell them apart.
@@ -767,6 +789,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.wound_seconds = aimed->second.wound_seconds * speed_factor;
     }
     AddChannel(*skill, offense, level, types, speed_factor, attack);
+    AddStrikeTimes(*skill, speed_factor, attack);
   }
   // The plain stats everything triggered by the attack is priced from: no
   // skill, so no multiplier or lines, and no shadow, which copies the attack
