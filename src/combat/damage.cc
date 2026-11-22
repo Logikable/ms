@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "src/character/job_branch.h"
@@ -270,10 +271,22 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
     return at;
   }
   // Only the fields per_level sets: most skills scale one or two of the ninety,
-  // and the rest keep `base`'s value.
-  std::vector<const google::protobuf::FieldDescriptor*> climbing;
+  // and the rest keep `base`'s value. Listing them by reflection was a tenth
+  // of a sweep, so each distinct message's list is kept, keyed by its bytes
+  // rather than its address, which a temporary would reuse.
+  struct Listed {
+    bool done = false;
+    std::vector<const google::protobuf::FieldDescriptor*> fields;
+  };
+  thread_local std::unordered_map<std::string, Listed> listed;
   const google::protobuf::Reflection* reflect = per_level.GetReflection();
-  reflect->ListFields(per_level, &climbing);
+  Listed& entry = listed[per_level.SerializeAsString()];
+  if (!entry.done) {
+    reflect->ListFields(per_level, &entry.fields);
+    entry.done = true;
+  }
+  const std::vector<const google::protobuf::FieldDescriptor*>& climbing =
+      entry.fields;
   for (const google::protobuf::FieldDescriptor* field : climbing) {
     switch (field->cpp_type()) {
       case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
@@ -637,6 +650,33 @@ void AddSwingLevers(const SkillEffect& at, OffenseStats& offense) {
       (1.0 + offense.final_dmg_pct) * (1.0 + at.final_dmg_pct()) - 1.0;
 }
 
+// The part of SkillEffectAt that AddSwingLevers reads, summed the same way
+// but field by field: building the whole effect by reflection was a tenth of
+// a sweep, since every gear valuation lands here.
+SkillEffect SwingLeversAt(const Skill& skill, int level) {
+  const auto at = [&](double (SkillEffect::*field)() const) {
+    double value = (skill.base().*field)();
+    if (level > 1) {
+      value += (skill.per_level().*field)() * (level - 1);
+    }
+    for (const SkillStep& step : skill.step()) {
+      if (level >= step.from_level()) {
+        value += (step.base().*field)();
+      }
+    }
+    return value;
+  };
+  SkillEffect levers;
+  levers.set_ied_pct(at(&SkillEffect::ied_pct));
+  levers.set_ier_pct(at(&SkillEffect::ier_pct));
+  levers.set_boss_pct(at(&SkillEffect::boss_pct));
+  levers.set_damage_pct(at(&SkillEffect::damage_pct));
+  levers.set_normal_pct(at(&SkillEffect::normal_pct));
+  levers.set_crit_rate(at(&SkillEffect::crit_rate));
+  levers.set_final_dmg_pct(at(&SkillEffect::final_dmg_pct));
+  return levers;
+}
+
 // The attack skill's multiplier, replacing the basic attack's 100%. At level L
 // it is base + per_level * (L - 1). Passives are applied elsewhere. Skills on
 // their own timer compute damage the same way; the fight decides when they
@@ -651,7 +691,7 @@ void AddAttackSkill(const Skill& attack_skill, int attack_level,
   AddNamedBoost(attack_skill, passives, offense);
   // A summon's levers are its hits' too: AddPassive keeps them off the
   // character for every skill that deals damage.
-  AddSwingLevers(SkillEffectAt(attack_skill, attack_level), offense);
+  AddSwingLevers(SwingLeversAt(attack_skill, attack_level), offense);
   // A multi-hit skill hits each target this many times per attack, so
   // per-target damage is skill_pct once per line.
   offense.lines = SkillLinesAt(attack_skill, attack_level);
