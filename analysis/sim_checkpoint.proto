@@ -112,6 +112,12 @@ message CheckpointSlotPotential {
   int32 scroll_successes = 12;
   int32 scroll_attack = 13;
   int32 open_slots = 14;
+  // For the gear table: the set the piece counts toward ("" for none), its
+  // flame score and each potential's %stat (%ATT on weaponry) for the wearer.
+  string set = 15;
+  int32 flame_score = 16;
+  int32 main_percent = 17;
+  int32 bonus_percent = 18;
 }
 
 // Every worn piece's potentials the first time the climb reached `level`, or,

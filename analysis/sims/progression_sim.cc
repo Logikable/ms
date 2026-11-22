@@ -73,6 +73,7 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/match.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
@@ -125,6 +126,7 @@
 #include "src/item/item.h"
 #include "src/item/shop.h"
 #include "src/item/upgrade/flame.h"
+#include "src/item/upgrade/potential.h"
 #include "src/map_level.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
@@ -1268,8 +1270,145 @@ std::vector<int> PotentialLevels() {
   return levels;
 }
 
+std::string WithoutPrefix(const std::string& name, const std::string& prefix) {
+  return name.rfind(prefix, 0) == 0 ? name.substr(prefix.size()) : name;
+}
+
+// The set `proto` counts toward, by its short name, or "" for none.
+std::string SetLabelOf(const GameState& state, const EquipPrototype& proto) {
+  for (const std::pair<const std::string, EquipSet>& entry :
+       state.character.equip_sets()) {
+    for (const EquipSetMember& member : entry.second.members()) {
+      bool named = member.has_family() && member.family() == proto.set_family();
+      for (const std::string& name : member.items().name()) {
+        named = named || name == proto.name();
+      }
+      if (!named) {
+        continue;
+      }
+      std::string label = WithoutPrefix(EquipSetName_Name(entry.second.name()),
+                                        "EQUIP_SET_NAME_");
+      for (const char* line : {"_WARRIOR", "_BOWMAN", "_MAGICIAN", "_THIEF"}) {
+        if (absl::EndsWith(label, line)) {
+          label.resize(label.size() - std::strlen(line));
+        }
+      }
+      static const std::map<std::string, std::string>* const kShort =
+          new std::map<std::string, std::string>{
+              {"FROZEN", "Frozen"},       {"BOSS_ACCESSORY", "BossAcc"},
+              {"ROOT_ABYSS", "CRA"},      {"SENGOKU_TREASURE", "Sengoku"},
+              {"ABSOLAB", "Abso"},        {"DAWN_BOSS", "Dawn"},
+              {"ARCANE_UMBRA", "Arcane"}, {"PITCHED_BOSS", "Pitched"},
+              {"ETERNAL", "Eternal"},     {"ANTIQUE_TOTEM", "Totem"}};
+      std::map<std::string, std::string>::const_iterator it =
+          kShort->find(label);
+      return it == kShort->end() ? label : it->second;
+    }
+  }
+  return "";
+}
+
+// Whether a flame line of `stat` grants `field`; the paired lines grant both.
+bool FlameGrants(FlameStat stat, StatField field) {
+  switch (stat) {
+    case FLAME_STAT_STR:
+      return field == STAT_FIELD_STR;
+    case FLAME_STAT_DEX:
+      return field == STAT_FIELD_DEX;
+    case FLAME_STAT_INT:
+      return field == STAT_FIELD_INT;
+    case FLAME_STAT_LUK:
+      return field == STAT_FIELD_LUK;
+    case FLAME_STAT_STR_DEX:
+      return field == STAT_FIELD_STR || field == STAT_FIELD_DEX;
+    case FLAME_STAT_STR_INT:
+      return field == STAT_FIELD_STR || field == STAT_FIELD_INT;
+    case FLAME_STAT_STR_LUK:
+      return field == STAT_FIELD_STR || field == STAT_FIELD_LUK;
+    case FLAME_STAT_DEX_INT:
+      return field == STAT_FIELD_DEX || field == STAT_FIELD_INT;
+    case FLAME_STAT_DEX_LUK:
+      return field == STAT_FIELD_DEX || field == STAT_FIELD_LUK;
+    case FLAME_STAT_INT_LUK:
+      return field == STAT_FIELD_INT || field == STAT_FIELD_LUK;
+    default:
+      return false;
+  }
+}
+
+// The community's flame score, not this game's power: main stat, an eighth
+// of the secondary, 4 per ATT (MATT for a mage) and 10 per All Stats %. Boss
+// and Damage lines count nothing, as there.
+int FlameScoreOf(const EquipPrototype& proto, const FlameLines& flame,
+                 Job job) {
+  const StatField main = PrimaryStatField(job);
+  const StatField secondary = SecondaryStatField(job);
+  const FlameStat attack =
+      main == STAT_FIELD_INT ? FLAME_STAT_MAGIC_ATTACK : FLAME_STAT_ATTACK;
+  double score = 0.0;
+  for (const FlameLine& line : flame) {
+    const int value = FlameLineValue(line, proto);
+    if (FlameGrants(line.stat(), main)) {
+      score += value;
+    }
+    if (FlameGrants(line.stat(), secondary)) {
+      score += value / 8.0;
+    }
+    if (line.stat() == attack) {
+      score += 4.0 * value;
+    }
+    if (line.stat() == FLAME_STAT_ALL_STAT) {
+      score += 10.0 * value;
+    }
+  }
+  return static_cast<int>(std::lround(score));
+}
+
+// A potential's %main stat (All Stats counting), or its %ATT (%MATT for a
+// mage) on weaponry, on either track.
+int StatPercentOf(const Potential& potential, EquipSlot slot, int item_level,
+                  Job job) {
+  const StatField main = PrimaryStatField(job);
+  std::set<PotentialLineType> counted;
+  if (PotentialGroupOf(slot) == PotentialGroup::kWeaponry) {
+    counted = {main == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+                                      : POTENTIAL_LINE_TYPE_ATTACK_PCT};
+  } else {
+    counted = {POTENTIAL_LINE_TYPE_ALL_STATS_PCT,
+               POTENTIAL_LINE_TYPE_BONUS_ALL_STATS_PCT};
+    switch (main) {
+      case STAT_FIELD_STR:
+        counted.insert(
+            {POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_LINE_TYPE_BONUS_STR_PCT});
+        break;
+      case STAT_FIELD_DEX:
+        counted.insert(
+            {POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_LINE_TYPE_BONUS_DEX_PCT});
+        break;
+      case STAT_FIELD_INT:
+        counted.insert(
+            {POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_LINE_TYPE_BONUS_INT_PCT});
+        break;
+      case STAT_FIELD_LUK:
+        counted.insert(
+            {POTENTIAL_LINE_TYPE_LUK_PCT, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT});
+        break;
+      default:
+        break;
+    }
+  }
+  int percent = 0;
+  for (const PotentialLine& line : potential.lines()) {
+    if (counted.count(line.type()) > 0) {
+      percent += PotentialLineValue(line.type(), line.rank(), item_level);
+    }
+  }
+  return percent;
+}
+
 // Appends what `item`, worn in `at`, holds on both tracks, and its stars.
-void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
+void AddSlotPotential(const GameState& held, EquipSlot at,
+                      const EquipInstance& item, bool farm,
                       CheckpointPotentials& now) {
   CheckpointSlotPotential& slot = *now.add_slots();
   slot.set_slot(at);
@@ -1289,6 +1428,16 @@ void AddSlotPotential(EquipSlot at, const EquipInstance& item, bool farm,
   slot.set_scroll_attack(std::max(state.scroll_stats().attack(),
                                   state.scroll_stats().magic_attack()));
   slot.set_open_slots(state.remaining_upgrade_slots());
+  const Job job = held.character.proto().job();
+  slot.set_set(SetLabelOf(held, item.prototype()));
+  // A weapon's flame is read by its ATT tier, which the score would swamp.
+  if (PotentialGroupOf(at) != PotentialGroup::kWeaponry) {
+    slot.set_flame_score(FlameScoreOf(item.prototype(), state.flame(), job));
+  }
+  slot.set_main_percent(StatPercentOf(state.main_potential(), at,
+                                      item.prototype().required_level(), job));
+  slot.set_bonus_percent(StatPercentOf(state.bonus_potential(), at,
+                                       item.prototype().required_level(), job));
 }
 
 // Both potentials and the stars on every piece boss fights wear, then on every
@@ -1309,7 +1458,7 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
                                 entry.second)) {
         continue;
       }
-      AddSlotPotential(entry.first, *entry.second, farm, now);
+      AddSlotPotential(state, entry.first, *entry.second, farm, now);
     }
   }
   const CharacterInstance& character = state.character;
@@ -1771,10 +1920,6 @@ struct GearReached {
 // A line as the table shows it: "12% ATT", "40% boss". Uses the enum's own name
 // with prefix and suffix trimmed, since //analysis shouldn't depend on the
 // frontend's naming just to print eight rows.
-std::string WithoutPrefix(const std::string& name, const std::string& prefix) {
-  return name.rfind(prefix, 0) == 0 ? name.substr(prefix.size()) : name;
-}
-
 std::string LineText(const PotentialLine& line, int item_level) {
   return absl::StrCat(PotentialLineValue(line.type(), line.rank(), item_level),
                       " ",
@@ -4010,6 +4155,37 @@ std::string CountsOf(const std::vector<int>& values) {
   return absl::StrJoin(parts, " ");
 }
 
+// The median, then the range when the branches differ: "33 27-36".
+std::string Spread(std::vector<int> values) {
+  if (values.empty()) {
+    return "";
+  }
+  std::sort(values.begin(), values.end());
+  const int median = values[values.size() / 2];
+  if (values.front() == values.back()) {
+    return absl::StrCat(median);
+  }
+  return absl::StrCat(median, " ", values.front(), "-", values.back());
+}
+
+// How many branches hold each name, most first: "Arcane7 Abso3".
+std::string NameCounts(const std::vector<std::string>& names) {
+  std::map<std::string, int> counts;
+  for (const std::string& name : names) {
+    ++counts[name];
+  }
+  std::vector<std::pair<int, std::string>> ordered;
+  for (const std::pair<const std::string, int>& entry : counts) {
+    ordered.push_back({-entry.second, entry.first});
+  }
+  std::sort(ordered.begin(), ordered.end());
+  std::vector<std::string> parts;
+  for (const std::pair<int, std::string>& entry : ordered) {
+    parts.push_back(absl::StrCat(entry.second, -entry.first));
+  }
+  return absl::StrJoin(parts, " ");
+}
+
 // The recorded potentials at `level` (or the run's end, with level 0), or null
 // if the climb never got there.
 const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
@@ -4021,9 +4197,9 @@ const CheckpointPotentials* PotentialsAt(const Climb& climb, int level) {
   return nullptr;
 }
 
-// Main and bonus ranks, stars and flames on every slot at each
-// --potential_levels level, counted across branches. The lines themselves go
-// to --potential_dump.
+// Sets, main and bonus ranks and %stat, stars and flame scores on every slot
+// at each --potential_levels level, counted across branches. The lines
+// themselves go to --potential_dump.
 void PrintPotentialLevels(const std::vector<Job>& branches,
                           const std::vector<Climb>& climbs) {
   std::vector<int> levels = PotentialLevels();
@@ -4033,6 +4209,9 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     std::map<EquipSlot, std::vector<PotentialRank>> bonus;
     std::map<EquipSlot, std::vector<int>> stars;
     std::map<EquipSlot, std::vector<int>> flames;
+    std::map<EquipSlot, std::vector<int>> main_percent;
+    std::map<EquipSlot, std::vector<int>> bonus_percent;
+    std::map<EquipSlot, std::vector<std::string>> sets;
     std::map<EquipSlot, std::vector<int>> symbol_levels;
     int reached = 0;
     for (const Climb& climb : climbs) {
@@ -4052,11 +4231,10 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
         main[slot.slot()].push_back(slot.main().rank());
         bonus[slot.slot()].push_back(slot.bonus().rank());
         stars[slot.slot()].push_back(slot.stars());
-        int tiers = 0;
-        for (const FlameLine& line : slot.flame()) {
-          tiers += line.tier();
-        }
-        flames[slot.slot()].push_back(tiers);
+        flames[slot.slot()].push_back(slot.flame_score());
+        main_percent[slot.slot()].push_back(slot.main_percent());
+        bonus_percent[slot.slot()].push_back(slot.bonus_percent());
+        sets[slot.slot()].push_back(slot.set().empty() ? "-" : slot.set());
       }
     }
     std::printf("\nPotentials %s, %d of %zu branches:\n\n",
@@ -4066,17 +4244,20 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
     if (reached == 0) {
       continue;
     }
-    std::printf("  %-18s %-16s %-16s %-28s %s\n", "slot", "main", "bonus",
-                "stars", "flame tiers");
+    std::printf("  %-15s %-18s %-12s %-9s %-12s %-9s %-24s %s\n", "slot", "set",
+                "main", "main %", "bonus", "bonus %", "stars", "flame score");
     for (const std::pair<const EquipSlot, std::vector<PotentialRank>>& entry :
          main) {
       std::printf(
-          "  %-18s %-16s %-16s %-28s %s\n",
+          "  %-15s %-18s %-12s %-9s %-12s %-9s %-24s %s\n",
           WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_").c_str(),
+          NameCounts(sets[entry.first]).c_str(),
           RankCounts(entry.second).c_str(),
+          Spread(main_percent[entry.first]).c_str(),
           RankCounts(bonus[entry.first]).c_str(),
+          Spread(bonus_percent[entry.first]).c_str(),
           CountsOf(stars[entry.first]).c_str(),
-          CountsOf(flames[entry.first]).c_str());
+          Spread(flames[entry.first]).c_str());
     }
     for (const std::pair<const EquipSlot, std::vector<int>>& entry :
          symbol_levels) {

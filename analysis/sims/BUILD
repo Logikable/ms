@@ -204,6 +204,7 @@ sim_binary(
         "//src/item:equip_instance",
         "//src/item:shop",
         "//src/item/upgrade:flame",
+        "//src/item/upgrade:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:familiar_proto_cc",
