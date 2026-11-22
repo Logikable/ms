@@ -568,7 +568,7 @@ struct Yield {
 // at: the opening respawns go unmeasured, since a full map pays a burst no
 // steady farm sees. The rate holds until the level or map changes, so the
 // climb measures once and awards a whole stretch, giving up HP drift within it.
-Yield MeasureYield(GameState& state, const CombatParams& params,
+Yield MeasureYield(const GameState& state, const CombatParams& params,
                    const ProbeWindow& window, double step) {
   Yield yield;
   yield.kills_per_second.assign(params.types.size(), 0.0);
@@ -616,12 +616,9 @@ struct Probe {
 // What `map` pays with the character as they are. The fight runs straight from
 // CombatParams rather than AdvanceCombat, so the probe costs no EXP, meso or
 // HP.
-Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
-               const ProbeWindow& window, double step) {
-  std::string held = state.current_map;
-  state.current_map = map;
-  CombatParams params = ComputeCombatParams(state);
-  state.current_map = held;
+Probe ProbeMap(const GameState& state, const DropBasis& basis,
+               const std::string& map, const ProbeWindow& window, double step) {
+  CombatParams params = ComputeCombatParams(state, map);
 
   Probe probe;
   Yield yield = MeasureYield(state, params, window, step);
@@ -653,9 +650,8 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
   // One basis for every map: a drop's value depends on the character, not the
   // map that dropped it.
   DropBasis basis = DropBasisFor(state, power_per_meso, held);
-  std::string best;
-  double best_rate = 0.0;
   const int level = state.character.proto().level();
+  std::vector<const std::string*> probed;
   for (const std::string& map : candidates) {
     // Only maps near the character's level are probed: every probe plays a
     // fight, and a map far below pays little while one far above kills.
@@ -666,7 +662,18 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
         continue;
       }
     }
-    Probe probe = ProbeMap(state, basis, map, window, step);
+    probed.push_back(&map);
+  }
+  // Each probe only reads the character, so they're played side by side.
+  std::vector<Probe> probes(probed.size());
+  ParallelFor(static_cast<int>(probed.size()), [&](int i) {
+    probes[i] = ProbeMap(state, basis, *probed[i], window, step);
+  });
+  std::string best;
+  double best_rate = 0.0;
+  for (std::size_t i = 0; i < probed.size(); ++i) {
+    const std::string& map = *probed[i];
+    const Probe& probe = probes[i];
     double rate = for_meso ? probe.meso_per_second : probe.exp_per_second;
     if (probe.died || rate <= best_rate) {
       continue;

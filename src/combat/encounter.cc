@@ -1085,6 +1085,10 @@ struct LearnedBook {
     int level = 0;
     // Whether it can be offered at all; see Available.
     bool available = false;
+    // `skill` with the book's boosts applied (see Boosted): `skill` itself, or
+    // a copy in `own`. Made once here, since every buff combination's attack
+    // set is built from it.
+    const Skill* swung = nullptr;
   };
   Activity activity = Activity::kFarming;
   std::map<std::string, SkillBoosts> boosts;
@@ -1160,6 +1164,10 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
   return by_target;
 }
 
+const Skill& Boosted(const Skill& skill, int level,
+                     const std::map<std::string, SkillBoosts>& boosts,
+                     Skill& scratch);
+
 LearnedBook LearnBook(const GameState& state, Activity activity) {
   LearnedBook book;
   book.activity = activity;
@@ -1180,6 +1188,14 @@ LearnedBook LearnBook(const GameState& state, Activity activity) {
     }
     book.learned.push_back(LearnedBook::Entry{
         skill, level, Available(state, *skill, superseded, activity)});
+  }
+  for (LearnedBook::Entry& entry : book.learned) {
+    book.own.emplace_back();
+    entry.swung =
+        &Boosted(*entry.skill, entry.level, book.boosts, book.own.back());
+    if (entry.swung != &book.own.back()) {
+      book.own.pop_back();
+    }
   }
   return book;
 }
@@ -1538,12 +1554,10 @@ void AddAttacks(const GameState& state, const LearnedBook& book,
     if (!entry.available) {
       continue;
     }
-    const Skill& skill = *entry.skill;
     int learned = entry.level;
-    // Apply lines and reach other skills grant this one before building
+    // Lines and reach other skills grant this one were applied before building
     // anything, so everything below sees one skill.
-    Skill boosted;
-    const Skill& swung = Boosted(skill, learned, book.boosts, boosted);
+    const Skill& swung = *entry.swung;
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  state.skills, attack_speed, speed_factor, types, set);
     // Skills that can't be used as an attack stop here. Their auto-firing parts
