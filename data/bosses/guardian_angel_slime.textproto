@@ -12,6 +12,9 @@ difficulties {
         range: RANGE_ROW_STEP
         jump { interval_ms: 30000 y: 2 hang_ms: 660 }
       }
+      # The Guardian Wave: she leaves for the 10s minigame. The next starts 90s
+      # after the lower floor closes, 10s after a wave ends (wiki, namu).
+      invulnerable { interval_ms: 110000 open_ms: 10000 }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -55,6 +58,9 @@ difficulties {
         range: RANGE_ROW_STEP
         jump { interval_ms: 30000 y: 2 hang_ms: 660 }
       }
+      # The Guardian Wave: she leaves for the 10s minigame. The next starts 90s
+      # after the lower floor closes, 10s after a wave ends (wiki, namu).
+      invulnerable { interval_ms: 110000 open_ms: 10000 }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }

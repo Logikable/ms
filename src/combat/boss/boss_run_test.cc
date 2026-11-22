@@ -424,6 +424,37 @@ TEST(BossRunTest, AnOverPlayerWalkKeepsItsRow) {
   EXPECT_EQ(run.slots()[0].y, 0);
 }
 
+// A lone boss that can't be hit holds its HP and its phase until the window
+// closes: the Guardian Angel Slime leaves for her wave.
+TEST(BossRunTest, ALoneBossOutOfReachWaitsOutItsWindow) {
+  std::unique_ptr<GameState> state = MakeState();
+  state->mobs["arm"].set_max_hp(int64_t{1} << 36);
+  Boss boss = TwoPhaseBoss();
+  SpawnWindow* window = boss.mutable_difficulties(0)
+                            ->mutable_phases(0)
+                            ->mutable_spawns(0)
+                            ->mutable_invulnerable();
+  window->set_interval_ms(10000);
+  window->set_open_ms(5000);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  for (int i = 0; i < 34; ++i) {
+    run.Advance(*state, 0.3);
+  }
+  ASSERT_EQ(run.phase(), 1);
+  const double before = run.slots()[0].hp_fraction;
+  EXPECT_LT(before, 1.0);
+  for (int i = 0; i < 15; ++i) {
+    run.Advance(*state, 0.3);
+  }
+  EXPECT_EQ(run.phase(), 1);
+  EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, before);
+  for (int i = 0; i < 10; ++i) {
+    run.Advance(*state, 0.3);
+  }
+  EXPECT_LT(run.slots()[0].hp_fraction, before) << "hits resume once it's back";
+}
+
 // Lotus walks his row and, on the teleport's own beat, blinks over the player.
 TEST(BossRunTest, ATeleportBlinksOverThePlayerBetweenSteps) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
