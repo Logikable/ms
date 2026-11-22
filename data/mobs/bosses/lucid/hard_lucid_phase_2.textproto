@@ -1,9 +1,9 @@
 name: "Lucid"
 level: 230
 attack: 22000
-# GMS v272 cut 28.5% from the whole fight, which is 32% here with Phase 3
-# left as it was.
-max_hp: 36720000000000
+# GMS v272 cut 28.5% from Phase 1 and 2 and left Phase 3 as it was (namu:
+# 36.322T / 38.61T / 12.8T).
+max_hp: 38610000000000
 exp: 0
 pdr: 300
 boss: true
