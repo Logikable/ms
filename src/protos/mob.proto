@@ -175,8 +175,9 @@ message Spawn {
   SelfShield self_shield = 14;
 }
 
-// A span that opens every `interval_ms` of fight time, measured from the end
-// of the countdown, for `open_ms`. 0 means never, as does an unset message.
+// A span that opens every `interval_ms` from its phase's start, for `open_ms`:
+// GMS's First Adversary restarts his Power Cycle each phase. 0 means never, as
+// does an unset message.
 message SpawnWindow {
   int32 interval_ms = 1;
   int32 open_ms = 2;

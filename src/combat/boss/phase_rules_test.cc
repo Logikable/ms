@@ -90,6 +90,17 @@ TEST(PhaseRulesTest, AnInvulnerableWindowOpensEachIntervalForItsLength) {
       SlotRules(phase, {0}, {true}, {}, {}, 61.0, 0.0, -1, {})[0].reachable);
 }
 
+// The First Adversary's Power Cycle starts over with each phase.
+TEST(PhaseRulesTest, AnInvulnerableWindowCountsFromThePhasesStart) {
+  Spawn adversary;
+  adversary.mutable_invulnerable()->set_interval_ms(138000);
+  adversary.mutable_invulnerable()->set_open_ms(2880);
+  EXPECT_FALSE(Invulnerable(adversary, 138.0, 100.0));
+  EXPECT_TRUE(Invulnerable(adversary, 238.0, 100.0));
+  EXPECT_TRUE(Invulnerable(adversary, 240.8, 100.0));
+  EXPECT_FALSE(Invulnerable(adversary, 240.9, 100.0));
+}
+
 // Hard Lucid can't be hit while she enters her last phase, from whenever it
 // began on the fight's clock.
 TEST(PhaseRulesTest, AnEntryWindowCountsFromThePhasesStart) {

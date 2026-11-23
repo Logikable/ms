@@ -62,14 +62,14 @@ bool Invulnerable(const Spawn& spawn, double fight_seconds,
     return true;
   }
   const SpawnWindow& window = spawn.invulnerable();
-  if (window.interval_ms() <= 0 || window.open_ms() <= 0 ||
-      fight_seconds < 0.0) {
+  const double since = fight_seconds - phase_began;
+  if (window.interval_ms() <= 0 || window.open_ms() <= 0 || since < 0.0) {
     return false;
   }
   // Open from each interval mark, so the first comes one interval in.
   double interval = window.interval_ms() / 1000.0;
-  double into = std::fmod(fight_seconds, interval);
-  return fight_seconds >= interval && into < window.open_ms() / 1000.0;
+  double into = std::fmod(since, interval);
+  return since >= interval && into < window.open_ms() / 1000.0;
 }
 
 void AdvanceGuards(const BossPhase& phase, const std::vector<int>& slot_spawns,
