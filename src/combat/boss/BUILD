@@ -111,6 +111,7 @@ cc_library(
     srcs = ["phase_rules.cc"],
     hdrs = ["phase_rules.h"],
     deps = [
+        "//src/combat:guard_times",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
     ],

@@ -24,6 +24,33 @@ constexpr double kCountEpsilon = 1e-9;
 
 // Whether there's a fight to advance. The basic attack is always first, so
 // check its interval.
+// The damage taken over `seconds` from `from`, in seconds at full damage:
+// 1 a second while the guard is open, its cut while shut.
+double GuardCover(const GuardTimes& guard, double from, double seconds) {
+  const double to = from + seconds;
+  double open = std::max(0.0, std::min(to, guard.open_left) - from);
+  if (std::isfinite(guard.opens_in) && guard.open_seconds > 0.0) {
+    for (double start = guard.opens_in; start < to;
+         start += guard.interval_seconds) {
+      open += std::max(0.0, std::min(to, start + guard.open_seconds) -
+                                std::max(from, start));
+      if (guard.interval_seconds <= 0.0) {
+        break;
+      }
+    }
+  }
+  return guard.cut * seconds + (1.0 - guard.cut) * open;
+}
+
+// The same per second over a whole cycle: what a use lands at on average.
+double GuardMean(const GuardTimes& guard) {
+  if (guard.interval_seconds <= 0.0) {
+    return guard.cut;
+  }
+  const double open = std::min(guard.open_seconds, guard.interval_seconds);
+  return guard.cut + (1.0 - guard.cut) * open / guard.interval_seconds;
+}
+
 bool CanFight(const CombatParams& params) {
   return params.active && !params.types.empty() && !params.attacks.empty() &&
          params.attacks.front().swing_seconds > 0.0;
@@ -495,7 +522,7 @@ CombatSim::ComingWindow CombatSim::NextWindow(
         buff.duration_seconds <= 0.0) {
       continue;
     }
-    window.seconds = std::min(window.seconds, buffs_[i].cooldown_left);
+    window.seconds = std::min(window.seconds, ReadyIn(params, i));
   }
   if (!std::isfinite(window.seconds)) {
     return window;
@@ -512,11 +539,15 @@ CombatSim::ComingWindow CombatSim::NextWindow(
     }
     if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
         buff.shield_hits <= 0 && buff.duration_seconds > 0.0 &&
-        clock.cooldown_left <= window.seconds) {
+        ReadyIn(params, i) <= window.seconds) {
       window.mask |= 1 << i;
     }
   }
   return window;
+}
+
+double CombatSim::ReadyIn(const CombatParams& params, int i) const {
+  return std::max(buffs_[i].cooldown_left, BuffGuardWait(params, i));
 }
 
 bool CombatSim::HoldSaves(const CombatParams& params, int index,
@@ -596,24 +627,94 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   if (queue_.empty()) {
     return -1;  // nothing to hit, so nothing to choose
   }
-  std::vector<bool> held;
+  std::vector<bool> held(Attacks(params).size(), false);
   int best = TopAttack(params, held);
   ComingWindow window = NextWindow(params);
   // Nothing coming, nothing new in it, or the fight ends before it opens.
-  if (best < 0 || window.seconds <= 0.0 || window.mask == buff_mask_ ||
-      window.seconds >= SecondsLeft(params)) {
+  if (best >= 0 && window.seconds > 0.0 && window.mask != buff_mask_ &&
+      window.seconds < SecondsLeft(params)) {
+    while (best >= 0 && HoldSaves(params, best, window)) {
+      held[best] = true;
+      int filler = TopAttack(params, held);
+      if (!HoldPays(params, best, filler, window)) {
+        held[best] = false;
+        break;
+      }
+      best = filler;
+    }
+  }
+  const double wait = GuardWait(params);
+  if (wait <= 0.0) {
     return best;
   }
-  while (best >= 0 && HoldSaves(params, best, window)) {
-    held.resize(Attacks(params).size(), false);
+  const ComingWindow opening = {wait, buff_mask_};
+  while (best >= 0 && HoldSaves(params, best, opening)) {
     held[best] = true;
     int filler = TopAttack(params, held);
-    if (!HoldPays(params, best, filler, window)) {
+    if (!GuardHoldPays(params, best, filler, wait)) {
       return best;
     }
     best = filler;
   }
   return best;
+}
+
+double CombatSim::GuardWait(const CombatParams& params) const {
+  if (queue_.empty()) {
+    return 0.0;
+  }
+  const GuardTimes& guard = queue_.front().guard;
+  if (guard.cut >= 1.0 || guard.open_left > 0.0 ||
+      !std::isfinite(guard.opens_in) || guard.opens_in >= SecondsLeft(params)) {
+    return 0.0;
+  }
+  return guard.opens_in;
+}
+
+bool CombatSim::GuardHoldPays(const CombatParams& params, int index, int filler,
+                              double wait) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (filler < 0 || index >= static_cast<int>(options.size()) ||
+      filler >= static_cast<int>(options.size())) {
+    return false;  // nothing else to use, and the fight never idles
+  }
+  if (SwingRate(params, options[index]) <= SwingRate(params, options[filler])) {
+    return false;
+  }
+  if (options[index].channel.charge_seconds > 0.0) {
+    return true;  // charges lose nothing by waiting; HoldSaves prevents
+                  // overflow
+  }
+  // A use now lands at the cut and one inside at full; waiting loses
+  // wait/cooldown of a use, valued at an average one, unlike HoldPays: the use
+  // in hand is the shut one, worth far less than the one lost.
+  const GuardTimes& guard = queue_.front().guard;
+  return 1.0 - guard.cut >
+         GuardMean(guard) * wait / options[index].cooldown_seconds;
+}
+
+double CombatSim::BuffGuardWait(const CombatParams& params, int i) const {
+  const BuffOption& buff = params.buffs[i];
+  // A buff that guards or heals is wanted whatever the boss takes.
+  if (queue_.empty() || buff.cooldown_seconds <= 0.0 || buff.shield_hits > 0 ||
+      buff.heal_fraction > 0.0 || buff.damage_taken_pct > 0.0) {
+    return 0.0;
+  }
+  const GuardTimes& guard = queue_.front().guard;
+  if (guard.cut >= 1.0 || !std::isfinite(guard.opens_in)) {
+    return 0.0;
+  }
+  const double wait = guard.opens_in;
+  if (wait >= SecondsLeft(params)) {
+    return 0.0;
+  }
+  const double lasts = BuffWindowSeconds(buff);
+  const double gain =
+      GuardCover(guard, wait, lasts) - GuardCover(guard, 0.0, lasts);
+  if (gain <= GuardMean(guard) * lasts * wait / buff.cooldown_seconds) {
+    return 0.0;
+  }
+  return wait;
 }
 
 // Checks size because the timers grow to fit the params, and an attack queried
@@ -715,7 +816,9 @@ int CombatSim::Finisher(const CombatParams& params) const {
     if (seconds <= 0.0) {
       continue;
     }
-    const double damage = SwingDamage(attack) * StateBoost(attack, FrontMob());
+    // At what the target takes: a guard's cut is ten times as many swings.
+    const double damage = SwingDamage(attack) * StateBoost(attack, FrontMob()) *
+                          FrontMob().damage_taken;
     tries.push_back({i, damage, seconds, attack.cooldown_seconds});
     biggest = std::max(biggest, damage);
     any_rate = std::max(any_rate, damage / seconds);
@@ -1489,6 +1592,7 @@ void CombatSim::SetMobRules(const CombatParams& params,
       const MobRule rule = it == by_id.end() ? MobRule() : it->second;
       mob.damage_taken = rule.damage_taken;
       mob.hp_floor = rule.hp_floor * mob.max_hp;
+      mob.guard = rule.guard;
       (rule.reachable ? reached : parked).push_back(std::move(mob));
     }
   }
@@ -2281,7 +2385,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     // Raised as soon as it's ready, but only with something to fight: a buff
     // used on an empty map is missing when the mobs arrive. Never recast while
     // active. A buff applied by its own attack waits for that attack; see
-    // LayBuffs.
+    // LayBuffs. One worth more once a guard opens waits; see BuffGuardWait.
     //
     // Ready means either its cooldown is done or enough hits have landed.
     bool ready = buff.charge_lines > 0 ? clock.charge_left <= 0.0
@@ -2289,7 +2393,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     if (buff.laid_by_attack < 0 && buff.raise_chance <= 0.0 &&
         clock.left <= 0.0 && ready && !queue_.empty() &&
         buff.duration_seconds > 0.0 && ShieldWanted(params, buff) &&
-        !phase_ending()) {
+        !phase_ending() && BuffGuardWait(params, i) <= 0.0) {
       RaiseBuff(params, i);
     }
     if (clock.left > 0.0) {
@@ -3108,6 +3212,14 @@ void CombatSim::ResetCooldowns(const CombatParams& params) {
   for (BuffClock& buff : buffs_) {
     buff.cooldown_left = 0.0;
   }
+}
+
+void CombatSim::Begin(const CombatParams& params) {
+  if (!CanFight(params)) {
+    return;
+  }
+  BeginMapIfChanged(params);
+  PublishRoster(params);
 }
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {

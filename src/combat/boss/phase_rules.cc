@@ -111,6 +111,25 @@ bool GuardOpen(const SpawnGuard& guard, double opened_at,
          fight_seconds - opened_at < guard.open_ms() / 1000.0;
 }
 
+GuardTimes GuardTimesAt(const SpawnGuard& guard, double opened_at,
+                        double fight_seconds) {
+  GuardTimes times;
+  times.cut = guard.damage_pct() / 100.0;
+  times.open_seconds = guard.open_ms() / 1000.0;
+  times.interval_seconds = guard.interval_ms() / 1000.0;
+  if (GuardOpen(guard, opened_at, fight_seconds)) {
+    times.open_left = opened_at + times.open_seconds - fight_seconds;
+  }
+  if (times.interval_seconds > 0.0) {
+    double next = times.interval_seconds;
+    if (opened_at >= 0.0) {
+      next = opened_at + times.interval_seconds;
+    }
+    times.opens_in = std::max(0.0, next - fight_seconds);
+  }
+  return times;
+}
+
 double PhaseGuardOpenedAt(const BossPhase& phase,
                           const std::vector<int>& slot_spawns,
                           const std::vector<GuardState>& guards) {
@@ -218,9 +237,11 @@ std::vector<SlotRule> SlotRules(const BossPhase& phase,
     }
     const double opened_at =
         slot < static_cast<int>(guards.size()) ? guards[slot].opened_at : -1.0;
-    if (spawn->has_guard() &&
-        !GuardOpen(spawn->guard(), opened_at, fight_seconds)) {
-      rule.damage_taken *= spawn->guard().damage_pct() / 100.0;
+    if (spawn->has_guard()) {
+      rule.guard = GuardTimesAt(spawn->guard(), opened_at, fight_seconds);
+      if (!GuardOpen(spawn->guard(), opened_at, fight_seconds)) {
+        rule.damage_taken *= rule.guard.cut;
+      }
     }
     if (spawn->self_shield().damage_pct() > 0 &&
         slot < static_cast<int>(shields_left.size()) &&

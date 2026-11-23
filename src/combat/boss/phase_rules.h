@@ -12,6 +12,7 @@
 
 #include <vector>
 
+#include "src/combat/guard_times.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -23,6 +24,7 @@ struct SlotRule {
   double damage_taken = 1.0;
   // A fraction of max HP.
   double hp_floor = 0.0;
+  GuardTimes guard;
 };
 
 // Whether any of `phase`'s monsters has a rule here, so phases without one
@@ -57,6 +59,11 @@ void AdvanceGuards(const BossPhase& phase, const std::vector<int>& slot_spawns,
 
 // Whether a guard that last opened at `opened_at` is open at `fight_seconds`.
 bool GuardOpen(const SpawnGuard& guard, double opened_at, double fight_seconds);
+
+// When a guard that last opened at `opened_at` next opens and how long it
+// holds, from `fight_seconds`, for the fight to save a burst for it.
+GuardTimes GuardTimesAt(const SpawnGuard& guard, double opened_at,
+                        double fight_seconds);
 
 // When the phase's first guarded slot last opened, for the timed spots that
 // follow it; negative when none has.

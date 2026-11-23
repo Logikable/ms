@@ -2,6 +2,7 @@
 // damage it takes, its HP floor, shields and revival.
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -197,5 +198,151 @@ TEST(FightRulesTest, ARevivedMonsterKeepsItsIdAndTakesHitsAgain) {
   EXPECT_DOUBLE_EQ(HpByName(sim)["A"], 0.4);
 }
 
+// Gloom's guard: shut at a tenth until `opens_at`, then open for 30s, opening
+// again 55s after. What the boss rules would set at `now`.
+MobRule GuardRule(double opens_at, double now) {
+  MobRule rule;
+  rule.guard.cut = 0.1;
+  rule.guard.open_seconds = 30.0;
+  rule.guard.interval_seconds = 55.0;
+  if (now < opens_at) {
+    rule.damage_taken = 0.1;
+    rule.guard.opens_in = opens_at - now;
+  } else {
+    rule.guard.open_left = std::max(0.0, opens_at + 30.0 - now);
+    rule.guard.opens_in = opens_at + 55.0 - now;
+    if (rule.guard.open_left <= 0.0) {
+      rule.damage_taken = 0.1;
+    }
+  }
+  return rule;
+}
+
+// A boss whose guard opens at `opens_at`, a 10-damage basic attack and a
+// 100-damage Big Move on `cooldown`.
+CombatParams MakeGuardFight(const Mob& boss, double cooldown) {
+  CombatParams params = MakeParams({&boss}, 10.0, /*reach=*/1);
+  AttackOption big;
+  big.name = "Big Move";
+  big.max_enemies = 1;
+  big.damage_per_hit = {100.0};
+  big.swing_seconds = 1.0;
+  big.cooldown_seconds = cooldown;
+  params.attacks.push_back(big);
+  return params;
+}
+
+// Adds a buff on its own cooldown that doubles every attack while up.
+void GiveDoubling(CombatParams& params, double duration, double cooldown,
+                  double soften = 0.0) {
+  BuffOption buff;
+  buff.name = "Burst";
+  buff.duration_seconds = duration;
+  buff.cooldown_seconds = cooldown;
+  buff.damage_taken_pct = soften;
+  params.buffs.push_back(buff);
+  AttackSet set;
+  set.attacks = params.attacks;
+  for (AttackOption& attack : set.attacks) {
+    for (double& damage : attack.damage_per_hit) {
+      damage *= 2.0;
+    }
+  }
+  params.buffed[1] = std::move(set);
+}
+
+// Steps a fight for `seconds` under a guard opening at `opens_at`, and returns
+// when the attack at `index` landed, or with `buff` when buff 0 went up. The
+// first step, at 0, comes before any rules, as a boss run's countdown does.
+std::vector<double> Times(const CombatParams& params, double opens_at,
+                          double seconds, int index, bool buff = false) {
+  const double step = 0.05;
+  CombatSim sim;
+  sim.Advance(params, 0.0);
+  const int id = sim.view().roster.front().id;
+  std::vector<double> times;
+  bool was_up = false;
+  int landed = 0;
+  if (buff && (sim.buff_mask() & 1) != 0) {
+    times.push_back(0.0);
+    was_up = true;
+  }
+  for (int n = 0; n * step < seconds; ++n) {
+    sim.SetMobRules(params, {{id, GuardRule(opens_at, n * step)}});
+    sim.Advance(params, step);
+    const bool up = (sim.buff_mask() & 1) != 0;
+    if (buff && up && !was_up) {
+      times.push_back(n * step);
+    }
+    was_up = up;
+    if (!buff && index < static_cast<int>(sim.by_attack().size()) &&
+        sim.by_attack()[index].swings > landed) {
+      landed = sim.by_attack()[index].swings;
+      times.push_back((n + 1) * step);
+    }
+  }
+  return times;
+}
+
+// The move is back at 12 with the opening eight seconds off: waiting costs
+// 8/12 of a use at an average 0.59 of full, and lands this one at ten times.
+TEST(FightRulesTest, ACooldownWaitsForTheGuardToOpen) {
+  Mob boss = MakeMob("Gloom", 100000000);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/12.0);
+  std::vector<double> times = Times(params, /*opens_at=*/20.0, 25.0, 1);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 21.0, 0.11);
+}
+
+// Fifty seconds off costs four uses for the 0.9 gained: it's used now.
+TEST(FightRulesTest, AnOpeningFarOffIsNotWaitedFor) {
+  Mob boss = MakeMob("Gloom", 100000000);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/12.0);
+  std::vector<double> times = Times(params, /*opens_at=*/62.0, 15.0, 1);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 13.0, 0.11);
+}
+
+// At 12 the boss has 11 HP left and has taken 1.67 a second, so it will be dead
+// before the opening: it gets the move now.
+TEST(FightRulesTest, NoCooldownWaitsForAnOpeningPastTheEnd) {
+  Mob boss = MakeMob("Gloom", 31);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/12.0);
+  std::vector<double> times = Times(params, /*opens_at=*/20.0, 15.0, 1);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 13.0, 0.11);
+}
+
+// Back at 15 with the opening ten seconds off, a 5s buff covers half a second
+// at full damage now and all five then.
+TEST(FightRulesTest, ABurstBuffWaitsForTheGuardToOpen) {
+  Mob boss = MakeMob("Gloom", 100000000);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/60.0);
+  GiveDoubling(params, /*duration=*/5.0, /*cooldown=*/15.0);
+  std::vector<double> times = Times(params, /*opens_at=*/25.0, 30.0, 0, true);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 25.0, 0.06);
+}
+
+// A buff that also guards the player is wanted whatever the boss takes.
+TEST(FightRulesTest, AGuardingBuffIsRaisedAtOnce) {
+  Mob boss = MakeMob("Gloom", 100000000);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/60.0);
+  GiveDoubling(params, /*duration=*/5.0, /*cooldown=*/15.0, /*soften=*/0.2);
+  std::vector<double> times = Times(params, /*opens_at=*/25.0, 20.0, 0, true);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 15.0, 0.06);
+}
+
+// Back at 30 with two seconds of an opening left, a 20s buff covers 3.8s at
+// full damage; at the next opening, 27s later, all 20.
+TEST(FightRulesTest, ABurstBuffWaitsOutAnOpeningEnding) {
+  Mob boss = MakeMob("Gloom", 100000000);
+  CombatParams params = MakeGuardFight(boss, /*cooldown=*/60.0);
+  GiveDoubling(params, /*duration=*/20.0, /*cooldown=*/30.0);
+  std::vector<double> times = Times(params, /*opens_at=*/2.0, 60.0, 0, true);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 57.0, 0.06);
+}
 }  // namespace
 }  // namespace ms

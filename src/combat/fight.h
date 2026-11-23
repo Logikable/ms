@@ -16,6 +16,7 @@
 #include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight_view.h"
+#include "src/combat/guard_times.h"
 
 namespace ms {
 
@@ -29,6 +30,7 @@ struct MobRule {
   double damage_taken = 1.0;
   // The fraction of max HP hits can't push it below.
   double hp_floor = 0.0;
+  GuardTimes guard;
 };
 
 class CombatSim {
@@ -36,6 +38,10 @@ class CombatSim {
   // Advances the fight by `elapsed_seconds`. A gap longer than one attack is
   // capped, so a stall loses progress instead of paying out a burst.
   void Advance(const CombatParams& params, double elapsed_seconds);
+
+  // Brings in the encounter's monsters without a step, so a boss's rules can be
+  // set before the first choice: a burst raised at a shut guard is wasted.
+  void Begin(const CombatParams& params);
 
   // Lowers the HP of the monsters in `hp_by_id` to the given fractions, and
   // their shields to those in `shield_by_id`, and removes any that died,
@@ -187,6 +193,7 @@ class CombatSim {
     // From its MobRule. The floor is in HP, not a fraction.
     double damage_taken = 1.0;
     double hp_floor = 0.0;
+    GuardTimes guard;
   };
 
   // The single wound in the fight, tracked by mob ID. Only one because that is
@@ -500,6 +507,20 @@ class CombatSim {
   // is available.
   int TopAttack(const CombatParams& params,
                 const std::vector<bool>& held) const;
+  // Seconds to the front monster's next guard opening worth saving a cooldown
+  // for: 0 with no guard, while it's open, or when the fight ends first.
+  double GuardWait(const CombatParams& params) const;
+  // Whether saving the attack at `index` for that opening pays off, as
+  // HoldPays asks for a buff window, `filler` being used in its place.
+  bool GuardHoldPays(const CombatParams& params, int index, int filler,
+                     double wait) const;
+  // Seconds raising buff `i` should wait for the front monster's guard to open:
+  // when what it covers then, against what it covers now, beats delaying every
+  // later raise. 0 to raise it now.
+  double BuffGuardWait(const CombatParams& params, int i) const;
+  // Seconds until buff `i`, down now, goes up on its own: its cooldown, or
+  // longer while it waits for a guard.
+  double ReadyIn(const CombatParams& params, int i) const;
   // The attack with the most damage per second against the current queue, or -1
   // if there's nothing to hit. Measured per second and against the actual
   // queue, so slow animations must hit proportionally harder and wide skills

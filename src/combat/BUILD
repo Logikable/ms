@@ -280,8 +280,14 @@ cc_library(
         ":damage_ledger",
         ":encounter",
         ":fight_view",
+        ":guard_times",
         "//src/protos:mob_proto_cc",
     ],
+)
+
+cc_library(
+    name = "guard_times",
+    hdrs = ["guard_times.h"],
 )
 
 cc_library(

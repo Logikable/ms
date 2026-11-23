@@ -156,6 +156,31 @@ TEST(PhaseRulesTest, AGuardOpensAtItsHpMarksAndRestartsItsInterval) {
   EXPECT_EQ(guards[0].hp_opens_spent, 2);
 }
 
+// What the fight is told so a burst can wait: before the first opening, while
+// open, and after.
+TEST(PhaseRulesTest, AGuardSaysWhenItNextOpens) {
+  const SpawnGuard& guard = GuardedPhase().spawns(0).guard();
+  GuardTimes before = GuardTimesAt(guard, -1.0, 40.0);
+  EXPECT_DOUBLE_EQ(before.cut, 0.1);
+  EXPECT_DOUBLE_EQ(before.open_left, 0.0);
+  EXPECT_DOUBLE_EQ(before.opens_in, 15.0);
+  EXPECT_DOUBLE_EQ(before.open_seconds, 30.0);
+  EXPECT_DOUBLE_EQ(before.interval_seconds, 55.0);
+  GuardTimes open = GuardTimesAt(guard, 55.0, 60.0);
+  EXPECT_DOUBLE_EQ(open.open_left, 25.0);
+  EXPECT_DOUBLE_EQ(open.opens_in, 50.0);
+  GuardTimes shut = GuardTimesAt(guard, 55.0, 100.0);
+  EXPECT_DOUBLE_EQ(shut.open_left, 0.0);
+  EXPECT_DOUBLE_EQ(shut.opens_in, 10.0);
+  BossPhase phase = GuardedPhase();
+  std::vector<GuardState> guards(1);
+  guards[0].opened_at = 55.0;
+  EXPECT_DOUBLE_EQ(
+      SlotRules(phase, {0}, {true}, guards, {}, 100.0, 0.0, -1, {})[0]
+          .guard.opens_in,
+      10.0);
+}
+
 TEST(PhaseRulesTest, TheFirstGuardedSlotSaysWhenThePhaseOpened) {
   BossPhase phase = GuardedPhase();
   *phase.add_spawns() = Spawn();

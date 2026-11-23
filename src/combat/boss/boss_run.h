@@ -414,6 +414,9 @@ class BossRun {
   void Replace(DamageStack stack);
   // Creates a bar for each monster in a new phase, at its spawn position.
   void FillSlots(const CombatParams& params);
+  // Brings in a new phase's monsters and their bars before its first step, so
+  // that step's choices see the phase's rules. Does nothing mid-phase.
+  void FillBeforeTheStep(const CombatParams& params);
   // Updates the bars from the fight's mob list: living monsters keep their bar,
   // and dead ones start fading in place.
   void SyncSlots(double dt);

@@ -969,8 +969,9 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
                 now, phase_began_at_, player_at_, PartySpots());
   std::map<int, MobRule> by_id;
   for (std::size_t slot = 0; slot < rules.size(); ++slot) {
-    by_id[mob_of_slot_[slot]] = {
-        rules[slot].reachable, rules[slot].damage_taken, rules[slot].hp_floor};
+    by_id[mob_of_slot_[slot]] = {rules[slot].reachable,
+                                 rules[slot].damage_taken, rules[slot].hp_floor,
+                                 rules[slot].guard};
   }
   sim_.SetMobRules(params, by_id);
 }
@@ -1086,6 +1087,14 @@ void BossRun::ResetCooldownsIfDue(const CombatParams& params) {
   }
 }
 
+void BossRun::FillBeforeTheStep(const CombatParams& params) {
+  if (!slots_.empty()) {
+    return;
+  }
+  sim_.Begin(params);
+  FillSlots(params);
+}
+
 void BossRun::RunPhase(GameState& state, double dt) {
   const CombatParams& params = PhaseParams(state);
   if (!params.active) {
@@ -1095,21 +1104,17 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   ResetCooldownsIfDue(params);
+  if (slots_.empty()) {
+    FillBeforeTheStep(params);
+    PlaceSelf();
+  }
   ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   CollectDamageWrites();
-  const bool filling = slots_.empty();
-  if (filling) {
-    FillSlots(params);
-  } else {
-    SyncSlots(dt);
-  }
+  SyncSlots(dt);
   WalkBetweenRooms(dt);
   PlaceSelf();
-  if (filling) {
-    ApplyPhaseRules(params);
-  }
   ComputePhaseHp(params);
   ReleaseAscents(state);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
@@ -1374,14 +1379,11 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   }
   item_drop_pct_ = params.drop_roll_item_drop_pct;
   ResetCooldownsIfDue(params);
+  FillBeforeTheStep(params);
   ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
   breakdown_.AddSeconds(dt);
   WalkBetweenRooms(dt);
-  if (slots_.empty()) {
-    FillSlots(params);
-    ApplyPhaseRules(params);
-  }
   CollectDamageWrites();
   ReportToParty(dt);
   // The server's HP values are what everyone is hitting, so they win. This
