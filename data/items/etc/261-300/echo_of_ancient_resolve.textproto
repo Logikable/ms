@@ -3,6 +3,7 @@ kind: ITEM_KIND_TOKEN
 description:
   "Ancient traces left behind after the First Adversary's disappearance. The "
   "shop trades eight for an Eternal hat, top, bottom or shoulder."
-# Beside Kalos's crimson pentagon and Kaling's orange hexagon on one shelf.
-currency_mark: "■"
-currency_color: CURRENCY_COLOR_PURPLE
+# Every Eternal currency is a pentagon in its boss's colour: the First
+# Adversary's golden form.
+currency_mark: "⬟"
+currency_color: CURRENCY_COLOR_GOLD

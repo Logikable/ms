@@ -3,6 +3,6 @@ kind: ITEM_KIND_TOKEN
 description:
   "A ring bound up with the Three Perils' ferocity. The shop trades eight for "
   "an Eternal hat, top, bottom or shoulder."
-# A hexagon beside Kalos's pentagon: the two buy the same four pieces.
-currency_mark: "⬢"
+# Every Eternal currency is a pentagon in its boss's colour: Kaling's flames.
+currency_mark: "⬟"
 currency_color: CURRENCY_COLOR_ORANGE
