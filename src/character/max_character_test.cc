@@ -101,7 +101,7 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
 // after they open; a fight it never named never falls.
 TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
   EXPECT_EQ(MaxClearLevel("zakum", "Normal"), 110);
-  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 249);
+  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 245);
   EXPECT_EQ(MaxClearLevel("kaling", "Easy"), 276);
   EXPECT_EQ(MaxClearLevel("kaling", "Normal"), 0);
   EXPECT_EQ(MaxClearLevel("zakum", "Hard"), 0);

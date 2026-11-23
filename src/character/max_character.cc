@@ -284,7 +284,8 @@ constexpr EquipSlot kSacredSlots[] = {
 };
 
 // The level each fight's first solo clear came at, the fifth of ten branches
-// from the top in the uncapped sweep of 2026-11-22 (three seeds of 365 days).
+// from the top in the uncapped sweep of 2026-11-22, bursts held for guards
+// (three seeds of 365 days).
 // Normal Kaling fell to none of them, so it has no entry and max mode never
 // clears it.
 struct Clear {
@@ -303,7 +304,7 @@ constexpr Clear kClears[] = {
     {"hilla", "Hard", 190},
     {"horntail", "Chaos", 190},
     {"cygnus", "Normal", 200},
-    {"pierre", "Chaos", 201},
+    {"pierre", "Chaos", 200},
     {"von_bon", "Chaos", 201},
     {"magnus", "Hard", 202},
     {"zakum", "Chaos", 202},
@@ -315,22 +316,22 @@ constexpr Clear kClears[] = {
     {"damien", "Normal", 214},
     {"lotus", "Normal", 217},
     {"guardian_angel_slime", "Normal", 226},
-    {"lucid", "Normal", 242},
-    {"will", "Normal", 247},
-    {"lotus", "Hard", 249},
-    {"damien", "Hard", 249},
-    {"darknell", "Normal", 250},
-    {"gloom", "Normal", 252},
-    {"guardian_angel_slime", "Chaos", 256},
-    {"verus_hilla", "Normal", 256},
+    {"lucid", "Normal", 240},
+    {"will", "Normal", 245},
+    {"damien", "Hard", 245},
+    {"lotus", "Hard", 246},
+    {"darknell", "Normal", 248},
+    {"gloom", "Normal", 249},
+    {"guardian_angel_slime", "Chaos", 255},
+    {"verus_hilla", "Normal", 255},
     {"will", "Hard", 260},
-    {"verus_hilla", "Hard", 260},
+    {"verus_hilla", "Hard", 261},
     {"darknell", "Hard", 261},
-    {"gloom", "Chaos", 262},
-    {"seren", "Normal", 262},
+    {"gloom", "Chaos", 261},
+    {"seren", "Normal", 261},
     {"lucid", "Hard", 263},
     {"kalos", "Easy", 265},
-    {"seren", "Hard", 270},
+    {"seren", "Hard", 268},
     {"kalos", "Normal", 276},
     {"kaling", "Easy", 276},
 };
