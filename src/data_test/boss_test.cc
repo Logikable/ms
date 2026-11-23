@@ -501,9 +501,8 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
 // never beat is named here instead, and max mode never clears it.
 TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
   // No branch of the uncapped sweep of 2026-11-21 beat Normal Kaling.
-  // The First Adversary until the first sweep with him in it.
-  const std::set<std::string> kNeverBeaten = {
-      "kaling Normal", "first_adversary Easy", "first_adversary Normal"};
+  const std::set<std::string> kNeverBeaten = {"kaling Normal",
+                                              "first_adversary Normal"};
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
