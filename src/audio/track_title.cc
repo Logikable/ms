@@ -29,6 +29,8 @@ constexpr Title kTitles[] = {
     {"AncientMove", "Ancient Move"},
     {"AwakeningOfOldGod", "Awakening of the Old God"},
     {"BattleOnTheDeck", "Battle on the Deck"},
+    {"Bellona-Phase1", "Bellona Phase 1"},
+    {"Bellona-Phase2", "Bellona Phase 2"},
     {"BigMachine", "Big Machine"},
     {"BlackDungeon", "Black Dungeon"},
     {"BloodCage", "Blood Cage"},

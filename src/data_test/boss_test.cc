@@ -233,7 +233,7 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                                               "zakum"}));
 }
 
-// A shell (none today) can't be entered, so a timer, gate or
+// A shell can't be entered, so a timer, gate or
 // reward on one would be a promise the screen never shows.
 TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   std::vector<std::string> shells;
@@ -252,7 +252,11 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(shells, std::vector<std::string>());
+  EXPECT_EQ(shells,
+            std::vector<std::string>(
+                {"bellona Easy", "bellona Normal", "first_adversary Hard",
+                 "first_adversary Extreme", "kaling Hard", "kaling Extreme",
+                 "kalos Chaos", "kalos Extreme", "seren Extreme"}));
 }
 
 // Each harder fight is its Normal with GMS's Hard or Chaos numbers (v272's
@@ -312,6 +316,84 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   // GMS fights her at 250, past the level cap, and a shell's card doesn't show
   // a level, so nothing reads it yet.
   EXPECT_EQ(mobs_.at("chaos_guardian_angel_slime").level(), 250);
+}
+
+// A shell above a built Normal is that Normal cell for cell, its mobs the same
+// monsters at GMS's v272 HP, so building it means filling in the difficulty's
+// own fields. Bellona has no Normal built and stands on her own floor.
+TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
+  // Each shell's HP over every phase, every spawn counted.
+  const std::map<std::string, int64_t> kTotals = {
+      {"kalos Chaos", 2284560000000000LL},
+      {"kalos Extreme", 9625011600000000LL},
+      {"seren Extreme", 2681982100000000LL},
+      {"first_adversary Hard", 7177900000000000LL},
+      {"first_adversary Extreme", 22753200000000000LL},
+      {"kaling Hard", 6971300000000000LL},
+      {"kaling Extreme", 31915400000000000LL},
+      {"bellona Easy", 779000000000000LL},
+      {"bellona Normal", 4122000000000000LL}};
+  // Drops the shell's own prefix from its monsters, and what only a built
+  // difficulty carries, so what's left is the shape.
+  auto shape = [](BossPhase phase, const std::string& prefix) {
+    phase.clear_sacred_power();
+    auto strip = [&prefix](std::string* mob) {
+      if (absl::StartsWith(*mob, prefix)) {
+        *mob = mob->substr(prefix.size());
+      }
+    };
+    for (Spawn& spawn : *phase.mutable_spawns()) {
+      strip(spawn.mutable_mob());
+      for (std::string& shielded : *spawn.mutable_shield()->mutable_mobs()) {
+        strip(&shielded);
+      }
+    }
+    return phase.SerializeAsString();
+  };
+  int shells = 0;
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    const BossDifficulty* normal = nullptr;
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.name() == "Normal" && !difficulty.coming_soon()) {
+        normal = &difficulty;
+      }
+    }
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (!difficulty.coming_soon()) {
+        continue;
+      }
+      ++shells;
+      const std::string where = entry.first + " " + difficulty.name();
+      SCOPED_TRACE(where);
+      int64_t total = 0;
+      for (const BossPhase& phase : difficulty.phases()) {
+        for (const Spawn& spawn : phase.spawns()) {
+          total += SpawnCount(spawn) * mobs_.at(spawn.mob()).max_hp();
+        }
+      }
+      ASSERT_GT(kTotals.count(where), 0u);
+      EXPECT_EQ(total, kTotals.at(where));
+      if (normal == nullptr) {
+        continue;
+      }
+      std::string prefix = difficulty.name() + "_";
+      std::transform(prefix.begin(), prefix.end(), prefix.begin(), ::tolower);
+      ASSERT_EQ(difficulty.phases_size(), normal->phases_size());
+      for (int i = 0; i < difficulty.phases_size(); ++i) {
+        EXPECT_EQ(shape(difficulty.phases(i), prefix),
+                  shape(normal->phases(i), ""))
+            << "phase " << i + 1;
+        for (int j = 0; j < difficulty.phases(i).spawns_size(); ++j) {
+          const Mob& mob = mobs_.at(difficulty.phases(i).spawns(j).mob());
+          const Mob& before = mobs_.at(normal->phases(i).spawns(j).mob());
+          EXPECT_EQ(mob.name(), before.name());
+          EXPECT_EQ(mob.attack(), before.attack());
+          EXPECT_EQ(mob.pdr(), before.pdr());
+        }
+      }
+    }
+  }
+  EXPECT_EQ(shells, static_cast<int>(kTotals.size()));
 }
 
 // A drop names an item or an equip, and a name in neither catalog is given to

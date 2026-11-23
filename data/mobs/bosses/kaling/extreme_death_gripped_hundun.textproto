@@ -1,0 +1,8 @@
+# GMS's figure, from the wiki's infobox, which already has v272's cut.
+name: "Death-Gripped Hundun"
+level: 285
+attack: 22000
+max_hp: 3523900000000000
+exp: 0
+pdr: 380
+boss: true

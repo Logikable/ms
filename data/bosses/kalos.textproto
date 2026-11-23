@@ -177,3 +177,105 @@ difficulties {
     per_kill: 0.1
   }
 }
+difficulties {
+  name: "Chaos"
+  # GMS's Chaos at v272's HP, Normal's shape.
+  coming_soon: true
+  phases {
+    # Karote Summit (client map 410006020): the floor, a long platform over
+    # columns 1-7 and a short one over 3-5. Every spot sits on an even column,
+    # since an arrow with two spots equally near goes nowhere.
+    bgm: "OccupiedFortress"
+    spawns {
+      mob: "chaos_kalos_phase_1"
+      spots { x: 4 y: 0 }
+      # GMS's Kalos blinks to whoever he hunts; 4s is the user's beat.
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 4 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Battleworn Summit (client map 410006060): the floor, three platforms
+    # and two above them, made symmetric where GMS's sit up to 80px right, on
+    # even columns as phase 1's. Nothing is straight above the middle one.
+    bgm: "FuryOfTheWatcher"
+    spawns {
+      mob: "chaos_kalos_phase_2"
+      spots { x: 4 y: 2 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+}
+difficulties {
+  name: "Extreme"
+  # GMS's Extreme at v272's HP, Normal's shape.
+  coming_soon: true
+  phases {
+    # Karote Summit (client map 410006020): the floor, a long platform over
+    # columns 1-7 and a short one over 3-5. Every spot sits on an even column,
+    # since an arrow with two spots equally near goes nowhere.
+    bgm: "OccupiedFortress"
+    spawns {
+      mob: "extreme_kalos_phase_1"
+      spots { x: 4 y: 0 }
+      # GMS's Kalos blinks to whoever he hunts; 4s is the user's beat.
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 4 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Battleworn Summit (client map 410006060): the floor, three platforms
+    # and two above them, made symmetric where GMS's sit up to 80px right, on
+    # even columns as phase 1's. Nothing is straight above the middle one.
+    bgm: "FuryOfTheWatcher"
+    spawns {
+      mob: "extreme_kalos_phase_2"
+      spots { x: 4 y: 2 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+}

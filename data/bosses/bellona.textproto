@@ -1,0 +1,70 @@
+name: "Bellona"
+page: 3
+difficulties {
+  name: "Easy"
+  coming_soon: true
+  phases {
+    # Solatum's sanctum (client map 410041100): one flat floor.
+    bgm: "Bellona-Phase1"
+    spawns {
+      mob: "easy_bellona"
+      spots { x: 4 y: 4 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # The same floor.
+    bgm: "Bellona-Phase2"
+    spawns {
+      mob: "easy_berserk_bellona"
+      spots { x: 4 y: 4 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+}
+difficulties {
+  name: "Normal"
+  coming_soon: true
+  phases {
+    # Solatum's sanctum (client map 410042100): one flat floor.
+    bgm: "Bellona-Phase1"
+    spawns {
+      mob: "bellona"
+      spots { x: 4 y: 4 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Client map 410042300: the same floor.
+    bgm: "Bellona-Phase2"
+    spawns {
+      mob: "berserk_bellona"
+      spots { x: 4 y: 4 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+}

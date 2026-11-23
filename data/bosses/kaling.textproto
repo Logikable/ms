@@ -415,3 +415,341 @@ difficulties {
     per_kill: 0.1
   }
 }
+difficulties {
+  name: "Hard"
+  # GMS's Hard at v272's HP, Normal's shape.
+  coming_soon: true
+  phases {
+    # Three rooms side by side, nine columns each, one Peril alone in each:
+    # Summer of Lost Light (Taowu), Autumn of Lost Color (Hundun) and Spring
+    # of Lost Vitality (Qiongqi), client maps 410007180, 410007220 and 410007140.
+    # Taowu's room fills first: his shields cover the other two while he
+    # lives.
+    bgm: "DestroyedFourSeasons"
+    placement: ZONE_PLACEMENT_SPREAD
+    # GMS gives no number for crowding a Peril; half is the user's call.
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "hard_taowu"
+      zone: 1
+      spots { x: 4 y: 4 }
+      # Teleports to a player (the beat is Kalos's 4s), and dashes on its 25s
+      # cooldown in the client.
+      walk {
+        interval_ms: 4000
+        range: RANGE_ABOVE_PLAYER
+        dash { interval_ms: 25000 cells: 4 step_ms: 120 }
+      }
+      # GMS: every 45s while Taowu lives, Hundun and Qiongqi gain a white
+      # shield of 1% of their HP.
+      shield {
+        interval_ms: 45000
+        percent: 1
+        mobs: "hard_hundun"
+        mobs: "hard_qiongqi"
+      }
+    }
+    spawns {
+      mob: "hard_hundun"
+      zone: 2
+      spots { x: 13 y: 4 }
+      # His dash's 5.4s cooldown in the client; GMS dashes only from his dark
+      # cloud, which the user dropped.
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 5400 cells: 4 step_ms: 120 }
+      }
+      # Black Flame Amplification: invincible for 12s every minute.
+      invulnerable { interval_ms: 60000 open_ms: 12000 }
+    }
+    spawns {
+      mob: "hard_qiongqi"
+      zone: 3
+      # He flies; GMS's flights to another spot are left out.
+      spots { x: 22 y: 1 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 5 y: 2 }
+    player_spots { x: 7 y: 2 }
+    player_spots { x: 13 y: 5 }
+    player_spots { x: 11 y: 5 }
+    player_spots { x: 15 y: 5 }
+    player_spots { x: 9 y: 5 }
+    player_spots { x: 17 y: 5 }
+    player_spots { x: 22 y: 5 }
+    player_spots { x: 20 y: 5 }
+    player_spots { x: 24 y: 5 }
+    player_spots { x: 18 y: 5 }
+    player_spots { x: 26 y: 5 }
+    player_spots { x: 18 y: 3 }
+    player_spots { x: 20 y: 3 }
+    player_spots { x: 24 y: 3 }
+    player_spots { x: 26 y: 3 }
+    # Summer of Lost Light.
+    zones {
+      spots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      room { x: 0 width: 9 }
+    }
+    # Autumn of Lost Color.
+    zones {
+      spots: [11, 12, 13, 14, 15]
+      room { x: 9 width: 9 }
+    }
+    # Spring of Lost Vitality.
+    zones {
+      spots: [16, 17, 18, 19, 20, 21, 22, 23, 24]
+      room { x: 18 width: 9 }
+    }
+    arena_width: 27
+    arena_height: 6
+  }
+  phases {
+    # Winter of Lost Faith (client map 410007260): the floor, three low
+    # platforms and two high ones over their gaps, on even columns.
+    bgm: "FadedWinter"
+    spawns {
+      mob: "hard_kaling_phase_2"
+      spots { x: 4 y: 0 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Four Seasons of Death (client map 410007300): one floor in three zones, each
+    # Peril still over its own (GMS: Qiongqi left, Hundun centre, Taowu
+    # right), and Kaling on the top row over whoever she hunts. Only a zone's
+    # players reach its Peril; anyone reaches Kaling, who holds at each
+    # quarter until another Peril falls.
+    bgm: "RuinationOfFourSeasons"
+    placement: ZONE_PLACEMENT_PAIRS
+    spawns {
+      mob: "hard_frenzied_kaling"
+      spots { x: 4 y: 1 }
+      walk { interval_ms: 4000 range: RANGE_OVER_PLAYER }
+      hp_steps: [75, 50, 25]
+      hp_dividers: [25, 50, 75]
+    }
+    spawns {
+      mob: "hard_death_gripped_taowu"
+      zone: 1
+      spots { x: 7 y: 3 }
+      hp_bars: HP_BAR_COLOR_TEAL
+    }
+    spawns {
+      mob: "hard_death_gripped_hundun"
+      zone: 2
+      spots { x: 4 y: 3 }
+      hp_bars: HP_BAR_COLOR_PURPLE
+    }
+    spawns {
+      mob: "hard_death_gripped_qiongqi"
+      zone: 3
+      spots { x: 1 y: 3 }
+      hp_bars: HP_BAR_COLOR_AMBER
+    }
+    # Two spots to a zone, so a Peril never has more than a pair on it.
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    # Taowu's zone, then Hundun's, then Qiongqi's.
+    zones { spots: [2, 3] }
+    zones { spots: [0, 1] }
+    zones { spots: [4, 5] }
+    arena_width: 9
+    arena_height: 6
+  }
+}
+difficulties {
+  name: "Extreme"
+  # GMS's Extreme at v272's HP, Normal's shape.
+  coming_soon: true
+  phases {
+    # Three rooms side by side, nine columns each, one Peril alone in each:
+    # Summer of Lost Light (Taowu), Autumn of Lost Color (Hundun) and Spring
+    # of Lost Vitality (Qiongqi), client maps 410007180, 410007220 and 410007140.
+    # Taowu's room fills first: his shields cover the other two while he
+    # lives.
+    bgm: "DestroyedFourSeasons"
+    placement: ZONE_PLACEMENT_SPREAD
+    # GMS gives no number for crowding a Peril; half is the user's call.
+    crowding { players: 3 damage_pct: 50 }
+    spawns {
+      mob: "extreme_taowu"
+      zone: 1
+      spots { x: 4 y: 4 }
+      # Teleports to a player (the beat is Kalos's 4s), and dashes on its 25s
+      # cooldown in the client.
+      walk {
+        interval_ms: 4000
+        range: RANGE_ABOVE_PLAYER
+        dash { interval_ms: 25000 cells: 4 step_ms: 120 }
+      }
+      # GMS: every 45s while Taowu lives, Hundun and Qiongqi gain a white
+      # shield of 1% of their HP.
+      shield {
+        interval_ms: 45000
+        percent: 1
+        mobs: "extreme_hundun"
+        mobs: "extreme_qiongqi"
+      }
+    }
+    spawns {
+      mob: "extreme_hundun"
+      zone: 2
+      spots { x: 13 y: 4 }
+      # His dash's 5.4s cooldown in the client; GMS dashes only from his dark
+      # cloud, which the user dropped.
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 5400 cells: 4 step_ms: 120 }
+      }
+      # Black Flame Amplification: invincible for 12s every minute.
+      invulnerable { interval_ms: 60000 open_ms: 12000 }
+    }
+    spawns {
+      mob: "extreme_qiongqi"
+      zone: 3
+      # He flies; GMS's flights to another spot are left out.
+      spots { x: 22 y: 1 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 1 y: 5 }
+    player_spots { x: 7 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 1 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 5 y: 2 }
+    player_spots { x: 7 y: 2 }
+    player_spots { x: 13 y: 5 }
+    player_spots { x: 11 y: 5 }
+    player_spots { x: 15 y: 5 }
+    player_spots { x: 9 y: 5 }
+    player_spots { x: 17 y: 5 }
+    player_spots { x: 22 y: 5 }
+    player_spots { x: 20 y: 5 }
+    player_spots { x: 24 y: 5 }
+    player_spots { x: 18 y: 5 }
+    player_spots { x: 26 y: 5 }
+    player_spots { x: 18 y: 3 }
+    player_spots { x: 20 y: 3 }
+    player_spots { x: 24 y: 3 }
+    player_spots { x: 26 y: 3 }
+    # Summer of Lost Light.
+    zones {
+      spots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      room { x: 0 width: 9 }
+    }
+    # Autumn of Lost Color.
+    zones {
+      spots: [11, 12, 13, 14, 15]
+      room { x: 9 width: 9 }
+    }
+    # Spring of Lost Vitality.
+    zones {
+      spots: [16, 17, 18, 19, 20, 21, 22, 23, 24]
+      room { x: 18 width: 9 }
+    }
+    arena_width: 27
+    arena_height: 6
+  }
+  phases {
+    # Winter of Lost Faith (client map 410007260): the floor, three low
+    # platforms and two high ones over their gaps, on even columns.
+    bgm: "FadedWinter"
+    spawns {
+      mob: "extreme_kaling_phase_2"
+      spots { x: 4 y: 0 }
+      walk { interval_ms: 4000 range: RANGE_ABOVE_PLAYER }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    player_spots { x: 2 y: 1 }
+    player_spots { x: 6 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Four Seasons of Death (client map 410007300): one floor in three zones, each
+    # Peril still over its own (GMS: Qiongqi left, Hundun centre, Taowu
+    # right), and Kaling on the top row over whoever she hunts. Only a zone's
+    # players reach its Peril; anyone reaches Kaling, who holds at each
+    # quarter until another Peril falls.
+    bgm: "RuinationOfFourSeasons"
+    placement: ZONE_PLACEMENT_PAIRS
+    spawns {
+      mob: "extreme_frenzied_kaling"
+      spots { x: 4 y: 1 }
+      walk { interval_ms: 4000 range: RANGE_OVER_PLAYER }
+      hp_steps: [75, 50, 25]
+      hp_dividers: [25, 50, 75]
+    }
+    spawns {
+      mob: "extreme_death_gripped_taowu"
+      zone: 1
+      spots { x: 7 y: 3 }
+      hp_bars: HP_BAR_COLOR_TEAL
+    }
+    spawns {
+      mob: "extreme_death_gripped_hundun"
+      zone: 2
+      spots { x: 4 y: 3 }
+      hp_bars: HP_BAR_COLOR_PURPLE
+    }
+    spawns {
+      mob: "extreme_death_gripped_qiongqi"
+      zone: 3
+      spots { x: 1 y: 3 }
+      hp_bars: HP_BAR_COLOR_AMBER
+    }
+    # Two spots to a zone, so a Peril never has more than a pair on it.
+    player_spots { x: 3 y: 5 }
+    player_spots { x: 5 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    # Taowu's zone, then Hundun's, then Qiongqi's.
+    zones { spots: [2, 3] }
+    zones { spots: [0, 1] }
+    zones { spots: [4, 5] }
+    arena_width: 9
+    arena_height: 6
+  }
+}

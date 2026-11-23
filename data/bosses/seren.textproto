@@ -193,3 +193,60 @@ difficulties {
     per_kill: 0.1
   }
 }
+difficulties {
+  name: "Extreme"
+  # GMS's Extreme at v272's HP, Normal's shape.
+  coming_soon: true
+  phases {
+    bgm: "AwakeningOfOldGod"
+    spawns {
+      mob: "extreme_seren_phase_1"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 30000 cells: 4 step_ms: 120 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "SolarDeity-NoonOfJustice"
+    # GMS's clock: 120s Noon, 130s Dusk, 40s Midnight and 130s Dawn, from Noon
+    # (namu.wiki). GMS shrinks Midnight as players are cursed; nothing here
+    # curses.
+    forms { name: "Noon" seconds: 120 hp_bar: HP_BAR_COLOR_GOLD bgm: "SolarDeity-NoonOfJustice" }
+    forms { name: "Dusk" seconds: 130 hp_bar: HP_BAR_COLOR_ORANGE bgm: "SolarDeity-TwilightOfFlame" }
+    forms { name: "Midnight" seconds: 40 hp_bar: HP_BAR_COLOR_BLUE bgm: "SolarDeity-MidnightOfSilence" }
+    forms { name: "Dawn" seconds: 130 hp_bar: HP_BAR_COLOR_VIOLET bgm: "SolarDeity-DawnOfHope" }
+    spawns {
+      mob: "extreme_seren_phase_2"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 30000 cells: 4 step_ms: 120 }
+      }
+      # Dawn raises a shield of 10% of her HP that grows 0.0192% / 0.024% a
+      # second (Normal / Hard); what holds as Noon returns heals her (namu).
+      self_shield {
+        percent: 10
+        form: "Dawn"
+        percent_per_second: 0.0192
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+}
