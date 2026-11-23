@@ -448,6 +448,7 @@ TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
       {"absolab_coin", 160},
       {"arachno_coin", 200},
       {"kalos_residual_determination", 250},
+      {"echo_of_ancient_resolve", 250},
       {"ferocious_beast_entanglement_ring", 250}};
   // Token -> branch -> the one shoulder for that branch it buys.
   std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;

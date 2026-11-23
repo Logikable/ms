@@ -1,0 +1,5 @@
+name: "First Adversary's Soul Shard"
+kind: ITEM_KIND_SOUL_SHARD
+short_name: "First Adversary"
+description: "A fragment that contains a piece of the First Adversary's Soul."
+soul_tier: SOUL_TIER_SS

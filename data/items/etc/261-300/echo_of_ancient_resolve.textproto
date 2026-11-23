@@ -1,0 +1,8 @@
+name: "Echo of Ancient Resolve"
+kind: ITEM_KIND_TOKEN
+description:
+  "Ancient traces left behind after the First Adversary's disappearance. The "
+  "shop trades eight for an Eternal hat, top, bottom or shoulder."
+# Beside Kalos's crimson pentagon and Kaling's orange hexagon on one shelf.
+currency_mark: "■"
+currency_color: CURRENCY_COLOR_PURPLE

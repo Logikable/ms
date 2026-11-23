@@ -1,0 +1,225 @@
+name: "First Adversary"
+page: 3
+difficulties {
+  name: "Easy"
+  phases {
+    # Bountiful Bravery (client map 410020100): one flat floor, 1900px. His
+    # dashes (namu: 700px, or three of 500px, each pattern every 12s) are 3
+    # cells; the 8s teleport is the user's beat, since GMS's is set off by
+    # distance. Power Cycle (namu): 2.88s unhittable every 138s, from the
+    # phase's start.
+    bgm: "Courage Unbreakable"
+    spawns {
+      mob: "easy_adversarys_valor"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 12000 cells: 3 step_ms: 120 }
+        teleport { interval_ms: 8000 }
+      }
+      invulnerable { interval_ms: 138000 open_ms: 2880 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Truth in Wisdom (client map 410020300): the floor, and a ledge 350px up
+    # over each outer third with nothing over the middle, where he stands.
+    bgm: "Wisdom Beyond Aspirations"
+    spawns {
+      mob: "easy_adversarys_conviction"
+      spots { x: 4 y: 3 }
+      invulnerable { interval_ms: 138000 open_ms: 2880 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Fated to be Legend (client map 410020500): phase 1's floor again. One
+    # triple dash every 20s and 3.80s of each Power Cycle unhittable (namu).
+    bgm: "Voice of Verdict"
+    spawns {
+      mob: "easy_first_adversary"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 20000 cells: 3 step_ms: 120 }
+        teleport { interval_ms: 8000 }
+      }
+      invulnerable { interval_ms: 138000 open_ms: 3800 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1200
+  unlock_level: 270
+  sacred_power: 220
+  # Five Intense Power Crystals at GMS's price (197,000,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 140700000
+  sol_erda_energy: 200
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "first_adversarys_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
+  # twice that at Normal, as two rolls.
+  drops {
+    item: "echo_of_ancient_resolve"
+    per_kill: 0.1
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.01
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}
+difficulties {
+  name: "Normal"
+  phases {
+    # Bountiful Bravery (client map 410020100): one flat floor, 1900px. His
+    # dashes (namu: 700px, or three of 500px, each pattern every 12s) are 3
+    # cells; the 8s teleport is the user's beat, since GMS's is set off by
+    # distance. Power Cycle (namu): 2.88s unhittable every 138s, from the
+    # phase's start.
+    bgm: "Courage Unbreakable"
+    spawns {
+      mob: "adversarys_valor"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 12000 cells: 3 step_ms: 120 }
+        teleport { interval_ms: 8000 }
+      }
+      invulnerable { interval_ms: 138000 open_ms: 2880 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Truth in Wisdom (client map 410020300): the floor, and a ledge 350px up
+    # over each outer third with nothing over the middle, where he stands.
+    bgm: "Wisdom Beyond Aspirations"
+    spawns {
+      mob: "adversarys_conviction"
+      spots { x: 4 y: 3 }
+      invulnerable { interval_ms: 138000 open_ms: 2880 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 2 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 8 y: 3 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Fated to be Legend (client map 410020500): phase 1's floor again. One
+    # triple dash every 20s and 3.80s of each Power Cycle unhittable (namu).
+    bgm: "Voice of Verdict"
+    spawns {
+      mob: "first_adversary_phase_3"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 20000 cells: 3 step_ms: 120 }
+        teleport { interval_ms: 8000 }
+      }
+      invulnerable { interval_ms: 138000 open_ms: 3800 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 1200
+  unlock_level: 270
+  sacred_power: 320
+  # Five Intense Power Crystals at GMS's price (273,000,000), divided by seven
+  # and rounded to the nearest 50k.
+  meso: 195000000
+  sol_erda_energy: 280
+  # GMS lists no EXP on the body.
+  exp: 0
+  drops {
+    item: "first_adversarys_soul_shard"
+    per_kill: 1.0
+  }
+  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
+  # twice that at Normal, as two rolls.
+  drops {
+    item: "echo_of_ancient_resolve"
+    per_kill: 0.1
+    rolls: 2
+  }
+  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.02
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}

@@ -18,3 +18,7 @@ token_prices {
   token_item: "ferocious_beast_entanglement_ring"
   count: 8
 }
+token_prices {
+  token_item: "echo_of_ancient_resolve"
+  count: 8
+}

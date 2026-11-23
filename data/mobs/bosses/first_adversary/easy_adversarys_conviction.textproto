@@ -1,0 +1,9 @@
+# GMS's figure, from the wiki.
+name: "Adversary's Conviction"
+level: 270
+attack: 22000
+# GMS v272 cut 32.2%.
+max_hp: 116000000000000
+exp: 0
+pdr: 380
+boss: true

@@ -520,6 +520,10 @@ constexpr int kSerenLevel = 260;
 // pieces, worn from 250.
 constexpr int kKalosLevel = 265;
 
+// The level the First Adversary opens at, whose Echo of Ancient Resolve buys
+// the same four.
+constexpr int kFirstAdversaryLevel = 270;
+
 // The level Kaling opens at, whose Ferocious Beast Entanglement Ring buys the
 // same four.
 constexpr int kKalingLevel = 275;
@@ -1811,6 +1815,9 @@ int TokenLevel(const std::string& token) {
   }
   if (token == "kalos_residual_determination") {
     return kKalosLevel;
+  }
+  if (token == "echo_of_ancient_resolve") {
+    return kFirstAdversaryLevel;
   }
   if (token == "ferocious_beast_entanglement_ring") {
     return kKalingLevel;

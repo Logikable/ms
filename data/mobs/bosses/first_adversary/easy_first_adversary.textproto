@@ -1,0 +1,9 @@
+# GMS's figure, from the wiki.
+name: "First Adversary"
+level: 270
+attack: 22000
+# GMS v272 cut 32.2%.
+max_hp: 154500000000000
+exp: 0
+pdr: 380
+boss: true
