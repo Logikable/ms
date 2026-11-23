@@ -329,7 +329,7 @@ TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
       {"seren Extreme", 2681982100000000LL},
       {"first_adversary Hard", 7177900000000000LL},
       {"first_adversary Extreme", 22753200000000000LL},
-      {"kaling Hard", 6971300000000000LL},
+      {"kaling Hard", 6873300000000000LL},
       {"kaling Extreme", 31915400000000000LL},
       {"bellona Easy", 779000000000000LL},
       {"bellona Normal", 4122000000000000LL}};
