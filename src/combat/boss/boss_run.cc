@@ -793,6 +793,7 @@ void BossRun::SyncSlots(double dt) {
     if (it != roster.end()) {
       slot.hp_fraction = it->hp_fraction;
       slot.shield_fraction = it->shield_fraction;
+      slot.invulnerable = MobInvulnerable(slot.id);
       // A monster can come back: see TakeShields.
       slot.alive = true;
       slot.visible = true;
@@ -804,11 +805,24 @@ void BossRun::SyncSlots(double dt) {
       slot.alive = false;
       slot.hp_fraction = 0.0;
       slot.shield_fraction = 0.0;
+      slot.invulnerable = false;
       slot.dead_for = 0.0;
     }
     slot.dead_for += dt;
     slot.visible = slot.dead_for < kBossDeathHoldSeconds;
   }
+}
+
+bool BossRun::MobInvulnerable(int mob_id) const {
+  const BossPhase* phase = current_phase();
+  std::map<int, int>::const_iterator found = slot_of_mob_.find(mob_id);
+  if (phase == nullptr || found == slot_of_mob_.end() ||
+      found->second >= static_cast<int>(slot_spawns_.size())) {
+    return false;
+  }
+  int spawn = slot_spawns_[found->second];
+  return spawn >= 0 && spawn < phase->spawns_size() &&
+         Invulnerable(phase->spawns(spawn), FightSeconds(), phase_began_at_);
 }
 
 std::vector<bool> BossRun::SlotsAlive() const {

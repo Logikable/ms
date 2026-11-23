@@ -86,8 +86,9 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
   HpShade shade = ShadeHp(slot.hp_fraction, bars);
   ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines,
                                    {}, ShieldWidth(slot.shield_fraction, bars));
-  return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
-                      std::move(bar)) |
+  // Gold while it can't be hit, so a stall in the damage has a visible cause.
+  return AccentWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
+                      std::move(bar), slot.invulnerable ? kGold : kTheme) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
 }
 

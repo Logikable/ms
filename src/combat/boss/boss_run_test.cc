@@ -449,10 +449,12 @@ TEST(BossRunTest, ALoneBossOutOfReachWaitsOutItsWindow) {
   }
   EXPECT_EQ(run.phase(), 1);
   EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, before);
+  EXPECT_TRUE(run.slots()[0].invulnerable);
   for (int i = 0; i < 10; ++i) {
     run.Advance(*state, 0.3);
   }
   EXPECT_LT(run.slots()[0].hp_fraction, before) << "hits resume once it's back";
+  EXPECT_FALSE(run.slots()[0].invulnerable);
 }
 
 // Seren's Dawn shield rises as the heading turns to Dawn, in the phase after

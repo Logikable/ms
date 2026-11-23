@@ -617,6 +617,38 @@ TEST(BossFightPanelTest, AShieldShowsOnTheHeadingAndOnItsBar) {
   EXPECT_GT(rows.size(), 1u);
 }
 
+// A monster that can't be hit is framed in gold until its window closes.
+TEST(BossFightPanelTest, AnInvulnerableMonstersFrameTurnsGold) {
+  auto gold_cells = [](bool invulnerable) {
+    std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+    Boss boss = OneArmBoss();
+    if (invulnerable) {
+      SpawnWindow* window = boss.mutable_difficulties(0)
+                                ->mutable_phases(0)
+                                ->mutable_spawns(0)
+                                ->mutable_invulnerable();
+      window->set_interval_ms(1000);
+      window->set_open_ms(1000);
+    }
+    BossRun run("zakum", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    for (int i = 0; i < 40; ++i) {
+      run.Advance(*state, 0.03);
+    }
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                                 ftxui::Dimension::Fixed(30));
+    ftxui::Render(screen, BossFightPanel(run, false));
+    int cells = 0;
+    for (int y = 0; y < 30; ++y) {
+      for (int x = 0; x < 120; ++x) {
+        cells += screen.PixelAt(x, y).foreground_color == kGold;
+      }
+    }
+    return cells;
+  };
+  EXPECT_GT(gold_cells(true), gold_cells(false) + 10);
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();

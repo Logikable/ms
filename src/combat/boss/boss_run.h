@@ -202,6 +202,9 @@ struct BossSlot {
   double hp_fraction = 0.0;
   // Its shield, as a fraction of its max HP, drawn past its HP.
   double shield_fraction = 0.0;
+  // It can't be hit at all just now (Spawn.invulnerable or its entry), which
+  // its frame shows in gold. A guard only cuts hits, so it doesn't count.
+  bool invulnerable = false;
   bool alive = true;
   // False once a dead bar's display time runs out. The slot stays in the list
   // as an empty gap.
@@ -473,6 +476,8 @@ class BossRun {
   void TakeShields(const CombatParams& params, const SharedFight& shared);
   // Whether each slot's monster still stands, by the sim's roster.
   std::vector<bool> SlotsAlive() const;
+  // Whether the monster `mob_id` can't be hit at this moment of the fight.
+  bool MobInvulnerable(int mob_id) const;
   // Each slot's HP and shield, as fractions of max HP, by the sim's roster; 0
   // for a dead one.
   std::vector<double> SlotHpFractions() const;
