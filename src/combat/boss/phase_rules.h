@@ -84,6 +84,12 @@ std::vector<ShieldSpan> SelfShieldSpans(const BossPhase& phase,
                                         double phase_began, double from,
                                         double to);
 
+// The living slots whose Spawn.vanish has come, given each slot's HP fraction
+// (0 for a dead one).
+std::vector<bool> Vanishing(const BossPhase& phase,
+                            const std::vector<int>& slot_spawns,
+                            const std::vector<double>& hp_fractions);
+
 // Each slot's rule for a player on `spot`, with the present party on `spots`
 // (the player included). `shields_left` is each slot's shield, as a fraction
 // of max HP. A dead slot's rule means nothing.

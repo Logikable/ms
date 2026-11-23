@@ -471,6 +471,9 @@ class BossRun {
   // monster takes and holds at, and in a solo run the shields due since the
   // last step. Does nothing for a phase without rules.
   void ApplyPhaseRules(const CombatParams& params);
+  // Takes out the monsters whose Spawn.vanish has come. Solo only: a party's
+  // server zeroes their HP and says so.
+  void RemoveVanished(const CombatParams& params);
   // Adds the shields the server gave since the last step, bringing back a
   // monster this client reaped that the server says a shield saved.
   void TakeShields(const CombatParams& params, const SharedFight& shared);

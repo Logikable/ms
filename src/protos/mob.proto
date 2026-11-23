@@ -173,6 +173,15 @@ message Spawn {
   SpawnGuard guard = 13;
   // A shield it raises over itself on its own clock.
   SelfShield self_shield = 14;
+  // When it leaves the fight, alive or not; the phase can end without it.
+  SpawnVanish vanish = 15;
+}
+
+// Another of the phase's monsters falling to `hp_pct` percent of its max HP, or
+// dying: GMS's Zakum's arms need not die, and leave at 20%.
+message SpawnVanish {
+  string mob = 1;  // That monster's data file, by filename stem.
+  int32 hp_pct = 2;
 }
 
 // A span that opens every `interval_ms` from its phase's start, for `open_ms`:

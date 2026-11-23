@@ -990,6 +990,24 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
   sim_.SetMobRules(params, by_id);
 }
 
+void BossRun::RemoveVanished(const CombatParams& params) {
+  const BossPhase* phase = current_phase();
+  if (authority_ != nullptr || phase == nullptr || slots_.empty()) {
+    return;
+  }
+  std::vector<bool> leaving =
+      Vanishing(*phase, slot_spawns_, SlotHpFractions());
+  std::map<int, double> gone;
+  for (std::size_t slot = 0; slot < leaving.size(); ++slot) {
+    if (leaving[slot]) {
+      gone[mob_of_slot_[slot]] = 0.0;
+    }
+  }
+  if (!gone.empty()) {
+    sim_.ClampRoster(params, gone);
+  }
+}
+
 void BossRun::ComputePhaseHp(const CombatParams& params) {
   double full = 0.0;
   for (const CombatType& type : params.types) {
@@ -1124,6 +1142,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ApplyPhaseRules(params);
   AdvanceCombat(state, sim_, params, dt);
+  RemoveVanished(params);
   breakdown_.AddSeconds(dt);
   CollectDamageWrites();
   SyncSlots(dt);

@@ -38,7 +38,7 @@ bool HasSlotRules(const BossPhase& phase) {
     if (spawn.zone() != 0 || spawn.has_invulnerable() ||
         !spawn.hp_steps().empty() || spawn.has_shield() ||
         spawn.entry_invulnerable_ms() > 0 || spawn.has_guard() ||
-        spawn.has_self_shield()) {
+        spawn.has_self_shield() || spawn.has_vanish()) {
       return true;
     }
   }
@@ -207,6 +207,29 @@ double HpFloor(const BossPhase& phase, const std::vector<int>& slot_spawns,
     dead += other != slot && !alive[other];
   }
   return dead < spawn->hp_steps_size() ? spawn->hp_steps(dead) / 100.0 : 0.0;
+}
+
+std::vector<bool> Vanishing(const BossPhase& phase,
+                            const std::vector<int>& slot_spawns,
+                            const std::vector<double>& hp_fractions) {
+  std::vector<bool> vanishing(slot_spawns.size(), false);
+  const int slots =
+      static_cast<int>(std::min(slot_spawns.size(), hp_fractions.size()));
+  for (int slot = 0; slot < slots; ++slot) {
+    const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
+    if (spawn == nullptr || !spawn->has_vanish() || hp_fractions[slot] <= 0.0) {
+      continue;
+    }
+    for (int other = 0; other < slots; ++other) {
+      const Spawn* leader = SpawnOf(phase, slot_spawns, other);
+      if (leader != nullptr && leader->mob() == spawn->vanish().mob() &&
+          hp_fractions[other] * 100.0 <= spawn->vanish().hp_pct()) {
+        vanishing[slot] = true;
+        break;
+      }
+    }
+  }
+  return vanishing;
 }
 
 std::vector<SlotRule> SlotRules(const BossPhase& phase,

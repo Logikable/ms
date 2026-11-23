@@ -1036,6 +1036,31 @@ TEST(BossRunTest, AZonedMonsterTakesHitsOnlyFromItsZone) {
   EXPECT_DOUBLE_EQ(HpOf(run, "Zakum"), 0.5);
 }
 
+// The arm, out of reach in its zone, leaves once the body falls to 20%, and
+// the body's death wins the fight without it.
+TEST(BossRunTest, AVanishingMonsterLeavesWithoutHoldingThePhase) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 20);
+  Boss boss = ZonedBoss();
+  Spawn* body =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(1);
+  body->clear_hp_steps();
+  Spawn* arm =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
+  arm->mutable_vanish()->set_mob("body");
+  arm->mutable_vanish()->set_hp_pct(20);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  bool armed_below_a_fifth = false;
+  while (!run.done() && run.state() == BossRunState::kFighting) {
+    run.Advance(*state, 0.05);
+    const double body_hp = HpOf(run, "Zakum");
+    armed_below_a_fifth |=
+        body_hp >= 0.0 && body_hp <= 0.2 && HpOf(run, "Zakum's Arm") > 0.0;
+  }
+  EXPECT_FALSE(armed_below_a_fifth);
+  EXPECT_TRUE(run.won());
+}
+
 // The body shields the arm every second; the arm, hit from its zone, ends
 // healthier for it.
 TEST(BossRunTest, AShieldInASoloRunLandsOnItsClock) {

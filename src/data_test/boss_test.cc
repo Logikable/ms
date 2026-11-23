@@ -467,6 +467,34 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                            "First Adversary and Kaling";
 }
 
+// A spawn that leaves with another monster names one standing beside it, at a
+// mark that monster passes before it dies.
+TEST_F(BossDataTest, AVanishFollowsAMonsterOfItsOwnPhase) {
+  int vanishing = 0;
+  for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        for (const Spawn& spawn : phase.spawns()) {
+          if (!spawn.has_vanish()) {
+            continue;
+          }
+          ++vanishing;
+          SCOPED_TRACE(entry.first + " " + difficulty.name() + " " +
+                       spawn.mob());
+          EXPECT_NE(spawn.vanish().mob(), spawn.mob());
+          EXPECT_TRUE(std::any_of(phase.spawns().begin(), phase.spawns().end(),
+                                  [&](const Spawn& other) {
+                                    return other.mob() == spawn.vanish().mob();
+                                  }));
+          EXPECT_GT(spawn.vanish().hp_pct(), 0);
+          EXPECT_LT(spawn.vanish().hp_pct(), 100);
+        }
+      }
+    }
+  }
+  EXPECT_EQ(vanishing, 2) << "Zakum's arms, Normal and Chaos";
+}
+
 // A boss drop that sold would pay every clear twice, so nothing a boss drops
 // has a price, and a new boss's drop can't ship with one.
 TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
@@ -531,7 +559,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     int64_t hp;
   };
   const std::vector<Want> kRungs = {
-      {"zakum", "Chaos", 11550000, 0, 56700000000LL},
+      {"zakum", "Chaos", 11550000, 0, 113400000000LL},
       {"magnus", "Hard", 13600000, 22000000, 81960000000LL},
       {"pink_bean", "Chaos", 12800000, 9590000, 199500000000LL}};
   for (const Want& want : kRungs) {

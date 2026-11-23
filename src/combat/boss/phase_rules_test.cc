@@ -61,6 +61,24 @@ TEST(PhaseRulesTest, KalingsFloorDropsAStepPerDeadPeril) {
   EXPECT_DOUBLE_EQ(HpFloor(phase, kSlots, {true, true, true, true}, 1), 0.0);
 }
 
+TEST(PhaseRulesTest, AnArmLeavesWhenTheBodyFallsToItsMark) {
+  BossPhase phase;
+  phase.add_spawns()->set_mob("body");
+  Spawn* arm = phase.add_spawns();
+  arm->set_mob("arm");
+  arm->mutable_vanish()->set_mob("body");
+  arm->mutable_vanish()->set_hp_pct(20);
+  const std::vector<int> slots = {0, 1, 1};
+  EXPECT_TRUE(HasSlotRules(phase));
+  EXPECT_EQ(Vanishing(phase, slots, {0.21, 1.0, 1.0}),
+            (std::vector<bool>{false, false, false}));
+  EXPECT_EQ(Vanishing(phase, slots, {0.2, 1.0, 0.5}),
+            (std::vector<bool>{false, true, true}));
+  // A dead arm has nothing left to leave; a dead body sends the rest away.
+  EXPECT_EQ(Vanishing(phase, slots, {0.0, 0.0, 0.5}),
+            (std::vector<bool>{false, false, true}));
+}
+
 // Three on one Peril: all three deal half to it, and full to Kaling.
 TEST(PhaseRulesTest, ACrowdedZoneHalvesItsPerilOnly) {
   BossPhase phase = LastPhase();

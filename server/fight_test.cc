@@ -555,6 +555,29 @@ TEST(FightRulesTest, AStepHoldsUntilTheOthersFall) {
   EXPECT_DOUBLE_EQ(fight.hp_fractions()[2], 0.0);
 }
 
+// The arms leave once the body is at a fifth, and the body's death wins.
+TEST(FightRulesTest, ArmsLeaveAtTheirMarkAndNeedNotDie) {
+  Boss boss = Rooms();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->mutable_spawns(2)->clear_hp_steps();
+  for (int room = 0; room < 2; ++room) {
+    phase->mutable_spawns(room)->mutable_vanish()->set_mob("body");
+    phase->mutable_spawns(room)->mutable_vanish()->set_hp_pct(20);
+  }
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("f", "kaling", boss, 0, mobs, PartyOf(1));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Hit("one", 0, 50);
+  fight.Hit("one", 2, 399);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[0], 0.5);
+  EXPECT_DOUBLE_EQ(fight.hp_fractions()[1], 1.0);
+  fight.Hit("one", 2, 1);
+  EXPECT_EQ(fight.hp_fractions(), (std::vector<double>{0.0, 0.0, 0.2}));
+  fight.Hit("one", 2, 100);
+  fight.Advance(0.1);
+  EXPECT_EQ(fight.state(), PartyFightState::kWon);
+}
+
 TEST(FightRulesTest, AnInvulnerableMonsterTakesNoHit) {
   Boss boss = Rooms();
   SpawnWindow* hiding = boss.mutable_difficulties(0)
