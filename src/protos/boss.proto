@@ -50,6 +50,9 @@ message BossPhase {
   // How players are put in zones as the phase starts and each time a zone's
   // monsters all die. Zones are filled in their listed order.
   ZonePlacement placement = 13;
+  // Drawn black on white, everything flipped: GMS's Beyond Existence, where the
+  // Black Mage's last phase is fought.
+  bool white_arena = 14;
 }
 
 // See PlacePlayers in src/combat/boss/placement.h.

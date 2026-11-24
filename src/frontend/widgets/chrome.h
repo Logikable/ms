@@ -62,6 +62,13 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill, ftxui::Color empty,
                            std::vector<double> dividers = {},
                            float shield = 0.0f);
 
+// The same bar as tall as the box it is given, the labels in its middle rows:
+// a boss covering several of the arena's cells.
+ftxui::Element TallProgressBar(float frac, ftxui::Color fill,
+                               ftxui::Color empty,
+                               const std::vector<std::string>& labels,
+                               float shield = 0.0f);
+
 // Takes `element` out of the layout: it takes no space and draws at its own
 // size from the parent box's top-left. Put it last in a dbox, or the dbox
 // stretches to fit it and pushes out the borders it covers. Only the screen

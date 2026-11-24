@@ -172,11 +172,12 @@ std::vector<ShieldSpan> SelfShieldSpans(const BossPhase& phase,
     anchor = phase_began;
     period = cycle;
   } else {
-    if (shield.interval_ms() <= 0 || shield.duration_ms() <= 0) {
+    if (shield.interval_ms() <= 0) {
       return spans;
     }
     period = shield.interval_ms() / 1000.0;
-    length = shield.duration_ms() / 1000.0;
+    // One held until broken lasts until the next is raised.
+    length = shield.duration_ms() > 0 ? shield.duration_ms() / 1000.0 : period;
     first = 1;
   }
   int k = std::max(
@@ -294,7 +295,10 @@ std::vector<double> ShieldsBetween(const BossPhase& phase,
     for (const ShieldSpan& span :
          SelfShieldSpans(phase, shield, phase_began, from, to)) {
       if (span.start > from && span.start <= to) {
-        gained[slot] += shield.percent() / 100.0;
+        const double left = slot < static_cast<int>(shields_left.size())
+                                ? shields_left[slot]
+                                : 0.0;
+        gained[slot] += std::max(0.0, shield.percent() / 100.0 - left);
         holds = true;
       }
       double overlap = std::min(to, span.end) - std::max(from, span.start);
@@ -335,7 +339,10 @@ std::vector<bool> SelfShieldsEnding(const BossPhase& phase,
   std::vector<bool> ending(slot_spawns.size(), false);
   for (int slot = 0; slot < static_cast<int>(slot_spawns.size()); ++slot) {
     const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
-    if (spawn == nullptr || !spawn->has_self_shield() || to <= from) {
+    // One held until broken never ends; the next tops it up.
+    if (spawn == nullptr || !spawn->has_self_shield() || to <= from ||
+        (spawn->self_shield().form().empty() &&
+         spawn->self_shield().duration_ms() <= 0)) {
       continue;
     }
     for (const ShieldSpan& span :
@@ -344,6 +351,32 @@ std::vector<bool> SelfShieldsEnding(const BossPhase& phase,
     }
   }
   return ending;
+}
+
+bool ShieldVanishes(const BossPhase& phase, const std::vector<int>& slot_spawns,
+                    int slot) {
+  const Spawn* spawn = SpawnOf(phase, slot_spawns, slot);
+  return spawn != nullptr && spawn->self_shield().vanishes();
+}
+
+std::vector<int> HpPartners(const BossPhase& phase,
+                            const std::vector<int>& slot_spawns, int slot) {
+  std::vector<int> partners;
+  const Spawn* own = SpawnOf(phase, slot_spawns, slot);
+  if (own == nullptr) {
+    return partners;
+  }
+  for (int other = 0; other < static_cast<int>(slot_spawns.size()); ++other) {
+    const Spawn* spawn = SpawnOf(phase, slot_spawns, other);
+    if (other == slot || spawn == nullptr) {
+      continue;
+    }
+    if ((!own->shares_hp().empty() && own->shares_hp() == spawn->mob()) ||
+        (!spawn->shares_hp().empty() && spawn->shares_hp() == own->mob())) {
+      partners.push_back(other);
+    }
+  }
+  return partners;
 }
 
 }  // namespace ms

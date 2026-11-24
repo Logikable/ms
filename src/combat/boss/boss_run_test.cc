@@ -619,6 +619,75 @@ TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
       << "it walked between only one cell and its home";
 }
 
+// The Black Mage's knights: two tall monsters on one HP pool, standing apart in
+// a 9x6 room with the player between them on the floor.
+Boss KnightsBoss() {
+  Boss boss;
+  boss.set_name("Black Mage");
+  BossDifficulty* hard = boss.add_difficulties();
+  hard->set_name("Hard");
+  hard->set_time_limit_seconds(1200);
+  BossPhase* phase = hard->add_phases();
+  phase->set_arena_width(9);
+  phase->set_arena_height(6);
+  for (const char* mob : {"arm", "twin"}) {
+    Spawn* knight = phase->add_spawns();
+    knight->set_mob(mob);
+    ArenaSpot* spot = knight->add_spots();
+    spot->set_x(std::string(mob) == "arm" ? 2 : 6);
+    spot->set_y(4);
+    knight->mutable_size()->set_width(1);
+    knight->mutable_size()->set_height(4);
+  }
+  phase->mutable_spawns(1)->set_shares_hp("arm");
+  ArenaSpot* stand = phase->add_player_spots();
+  stand->set_x(4);
+  stand->set_y(5);
+  return boss;
+}
+
+// A hit on either knight takes from both: the front one is the only one hit,
+// yet both bars fall together.
+TEST(BossRunTest, MonstersSharingHpFallTogether) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  state->mobs["twin"] = MakeMob("Tanadian Ruin", 1000000000, 0);
+  Boss boss = KnightsBoss();
+  BossRun run("black_mage", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds + 5.0);
+  ASSERT_EQ(run.slots().size(), 2u);
+  EXPECT_LT(run.slots()[0].hp_fraction, 1.0);
+  EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, run.slots()[1].hp_fraction);
+  EXPECT_EQ(run.slots()[0].height, 4);
+}
+
+// The dive lands in the free column nearest the other knight, never on it,
+// and the wall sends both home.
+TEST(BossRunTest, AKnightDivesBesideTheOtherAndGoesHomeAtTheWall) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  state->mobs["twin"] = MakeMob("Tanadian Ruin", 1000000000, 0);
+  Boss boss = KnightsBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  ArenaWalk* dive = phase->mutable_spawns(0)->mutable_walk();
+  dive->mutable_teleport()->set_interval_ms(30000);
+  dive->mutable_teleport()->set_beside("twin");
+  dive->set_home_interval_ms(40000);
+  ArenaWalk* rush = phase->mutable_spawns(1)->mutable_walk();
+  rush->mutable_dash()->set_interval_ms(35000);
+  rush->mutable_dash()->set_cells(1);
+  rush->mutable_dash()->set_step_ms(100);
+  BossRun run("black_mage", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds + 29.0);
+  EXPECT_EQ(run.slots()[0].x, 2);
+  run.Advance(*state, 2.0);
+  EXPECT_EQ(std::abs(run.slots()[0].x - run.slots()[1].x), 1)
+      << "beside the other knight";
+  run.Advance(*state, 4.5);
+  EXPECT_NE(run.slots()[1].x, 6) << "the rush moved it";
+  EXPECT_NE(run.slots()[1].x, run.slots()[0].x) << "into the other's column";
+  run.Advance(*state, 5.0);
+  EXPECT_EQ(run.slots()[0].x, 2) << "home at the wall";
+}
+
 // Steps are derived from the clock, not rolled. Two runs of the same fight put
 // the monster on the same cell at the same time, so party members see it in the
 // same place without sending anything.

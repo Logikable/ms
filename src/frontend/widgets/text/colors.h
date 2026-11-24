@@ -89,6 +89,11 @@ inline const ftxui::Color kHpViolet = ftxui::Color::RGB(96, 70, 185);
 inline const ftxui::Color kHpAmber = ftxui::Color::RGB(185, 139, 70);
 inline const ftxui::Color kHpTeal = ftxui::Color::RGB(70, 185, 185);
 inline const ftxui::Color kHpPurple = ftxui::Color::RGB(134, 70, 185);
+// The Black Mage's knights, light and dark. Black's empty part is grey, since
+// the dark ground would hide where the fill ends.
+inline const ftxui::Color kHpWhite = ftxui::Color::RGB(235, 235, 235);
+inline const ftxui::Color kHpBlack = ftxui::Color::RGB(12, 12, 12);
+inline const ftxui::Color kHpBlackEmpty = ftxui::Color::RGB(100, 100, 100);
 // GMS's white HP shield, a step under white so a label still reads on it.
 inline const ftxui::Color kHpShield = ftxui::Color::RGB(215, 215, 215);
 

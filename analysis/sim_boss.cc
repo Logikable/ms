@@ -28,7 +28,7 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
   for (const Spawn& spawn : phase.spawns()) {
     std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
     if (it != mobs.end()) {
-      hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
+      hp += static_cast<int64_t>(HpCount(spawn)) * it->second.max_hp();
     }
   }
   return hp;

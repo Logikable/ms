@@ -112,10 +112,21 @@ std::vector<double> ShieldsBetween(const BossPhase& phase,
                                    double phase_began, double from, double to);
 
 // The slots whose self shield ends in fight time (from, to], whatever is left
-// of it then healing them.
+// of it then healing them unless it vanishes (ShieldVanishes). One held until
+// broken never ends.
 std::vector<bool> SelfShieldsEnding(const BossPhase& phase,
                                     const std::vector<int>& slot_spawns,
                                     double phase_began, double from, double to);
+
+// Whether what is left of the slot's self shield is lost as it ends instead of
+// healing it.
+bool ShieldVanishes(const BossPhase& phase, const std::vector<int>& slot_spawns,
+                    int slot);
+
+// The other slots sharing `slot`'s HP (Spawn.shares_hp): a hit on one is a hit
+// on every one of them.
+std::vector<int> HpPartners(const BossPhase& phase,
+                            const std::vector<int>& slot_spawns, int slot);
 
 }  // namespace ms
 

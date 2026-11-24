@@ -205,6 +205,11 @@ void BossRun::StandSelf() {
                  sim_.view().attack_fraction, sim_.view().buff_count};
 }
 
+bool BossRun::white_arena() const {
+  const BossPhase* phase = current_phase();
+  return phase != nullptr && phase->white_arena();
+}
+
 const PhaseForm* BossRun::current_form() const {
   const BossPhase* phase = current_phase();
   if (phase == nullptr || phase->forms().empty()) {
@@ -525,11 +530,16 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
     bar.giant = params.types[mob.type].giant;
+    bar.width = params.types[mob.type].width;
+    bar.height = params.types[mob.type].height;
+    bar.home_x = bar.x;
+    bar.home_y = bar.y;
     bar.hp_bars = params.types[mob.type].hp_bars;
     const BossPhase* phase = current_phase();
     int spawn = params.types[mob.type].spawn;
     if (phase != nullptr && spawn >= 0 && spawn < phase->spawns_size()) {
       bar.zone = phase->spawns(spawn).zone();
+      bar.mob = phase->spawns(spawn).mob();
     }
     // All timers count from the start of the fight, not the phase, so a monster
     // that appears later picks up its walk where the fight's time already is.
@@ -539,6 +549,8 @@ void BossRun::FillSlots(const CombatParams& params) {
                               : bar.walk.dash().interval_ms() / 1000.0;
     bar.next_jump_at = bar.walk.jump().interval_ms() / 1000.0;
     bar.next_teleport_at = bar.walk.teleport().interval_ms() / 1000.0;
+    // From the phase, as GMS's walls rise from the start of theirs.
+    bar.next_home_at = phase_began_at_ + bar.walk.home_interval_ms() / 1000.0;
     bar.ground_y = bar.y;
     bar.hp_fraction = mob.hp_fraction;
     slots_.push_back(std::move(bar));
@@ -555,14 +567,19 @@ void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
     const int y = slot.walk.range() == ArenaWalk::RANGE_ABOVE_PLAYER
                       ? hunted->y() - 1
                       : slot.y;
-    if (MayEnter(phase, hunted->x(), y, BoundsOf(phase, slot.zone))) {
+    if (Free(phase, slot, hunted->x(), y)) {
       slot.x = hunted->x();
       slot.y = y;
     }
     return;
   }
-  std::vector<ArenaSpot> targets =
-      WalkTargets(phase, slot.walk, slot.x, slot.y, BoundsOf(phase, slot.zone));
+  std::vector<ArenaSpot> targets;
+  for (const ArenaSpot& to : WalkTargets(phase, slot.walk, slot.x, slot.y,
+                                         BoundsOf(phase, slot.zone))) {
+    if (Free(phase, slot, to.x(), to.y())) {
+      targets.push_back(to);
+    }
+  }
   if (targets.empty()) {
     return;
   }
@@ -576,7 +593,7 @@ void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
 
 bool BossRun::DashSlot(const BossPhase& phase, BossSlot& slot) {
   int to = slot.x + slot.dash_dx;
-  if (!MayEnter(phase, to, slot.y, BoundsOf(phase, slot.zone))) {
+  if (!Free(phase, slot, to, slot.y)) {
     return false;
   }
   slot.x = to;
@@ -621,20 +638,77 @@ void BossRun::TeleportSlot(const BossPhase& phase, BossSlot& slot) {
     return;
   }
   ++slot.steps_taken;
+  const std::string& beside = slot.walk.teleport().beside();
+  if (!beside.empty()) {
+    for (const BossSlot& other : slots_) {
+      if (other.id == slot.id || other.mob != beside || !other.alive) {
+        continue;
+      }
+      // The free column nearest it, either side first by the step count.
+      int side = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
+      for (int d = 1; d < ArenaSize(phase).x(); ++d) {
+        for (int x : {other.x + side * d, other.x - side * d}) {
+          if (Free(phase, slot, x, slot.y)) {
+            slot.x = x;
+            return;
+          }
+        }
+      }
+      return;
+    }
+    return;
+  }
   std::optional<ArenaSpot> hunted = HuntedSpot(phase, slot);
-  if (hunted &&
-      MayEnter(phase, hunted->x(), slot.y, BoundsOf(phase, slot.zone))) {
+  if (hunted && Free(phase, slot, hunted->x(), slot.y)) {
     slot.x = hunted->x();
   }
+}
+
+double BossRun::NextHomeAt(const BossSlot& slot) {
+  return slot.walk.home_interval_ms() > 0 ? slot.next_home_at : kNeverMoves;
+}
+
+bool BossRun::Free(const BossPhase& phase, const BossSlot& slot, int x,
+                   int y) const {
+  const Bounds bounds = BoundsOf(phase, slot.zone);
+  const int left = x - (slot.width - 1) / 2;
+  const int top = y - slot.height + 1;
+  for (int cx = left; cx < left + slot.width; ++cx) {
+    for (int cy = top; cy <= y; ++cy) {
+      if (!MayEnter(phase, cx, cy, bounds)) {
+        return false;
+      }
+    }
+  }
+  // Bars of one cell may cross, as they always have; a sized one blocks.
+  const bool sized = slot.width > 1 || slot.height > 1;
+  for (const BossSlot& other : slots_) {
+    if (other.id == slot.id || !other.alive ||
+        (!sized && other.width == 1 && other.height == 1)) {
+      continue;
+    }
+    const int other_left = other.x - (other.width - 1) / 2;
+    const int other_top = other.y - other.height + 1;
+    if (left < other_left + other.width && other_left < left + slot.width &&
+        top <= other.y && other_top <= y) {
+      return false;
+    }
+  }
+  return true;
 }
 
 double BossRun::NextMoveAt(const BossSlot& slot) {
   bool specials = slot.walk.specials().max_interval_ms() > 0 ||
                   slot.walk.dash().interval_ms() > 0;
-  if (slot.dash_left > 0 || slot.falling || !specials) {
+  if (slot.dash_left > 0 || slot.falling) {
     return slot.next_move_at;
   }
-  return std::min(slot.next_move_at, slot.next_special_at);
+  // One that only dashes, as GMS's Black Mage knights do, moves on its dashes.
+  if (slot.walk.interval_ms() <= 0) {
+    return specials ? slot.next_special_at : kNeverMoves;
+  }
+  return specials ? std::min(slot.next_move_at, slot.next_special_at)
+                  : slot.next_move_at;
 }
 
 double BossRun::SpecialWait(const BossSlot& slot, int done) {
@@ -669,8 +743,7 @@ bool BossRun::StartSpecial(const BossPhase& phase, BossSlot& slot) {
   slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
   // If already against that wall, turn around instead of standing still for
   // the whole dash.
-  if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y,
-                BoundsOf(phase, slot.zone))) {
+  if (!Free(phase, slot, slot.x + slot.dash_dx, slot.y)) {
     slot.dash_dx = -slot.dash_dx;
   }
   return false;
@@ -719,6 +792,10 @@ void BossRun::FallSlot(const BossPhase& phase, BossSlot& slot) {
 
 void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   ++slot.steps_taken;
+  // With no ordinary step, the move due is the special.
+  if (slot.walk.interval_ms() <= 0 && slot.dash_left == 0 && !slot.falling) {
+    slot.next_move_at = std::max(slot.next_move_at, slot.next_special_at);
+  }
   // A special that is due replaces the next step, and starts from when it was
   // due rather than when the step was.
   bool specials = slot.walk.specials().max_interval_ms() > 0 ||
@@ -750,16 +827,21 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
 void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
                         double elapsed) {
   while (true) {
-    // Nothing walks while in the air, and a slot with no walk only jumps.
-    double move = slot.airborne || slot.walk.interval_ms() <= 0
-                      ? kNeverMoves
-                      : NextMoveAt(slot);
+    // Nothing walks while in the air.
+    double move = slot.airborne ? kNeverMoves : NextMoveAt(slot);
     double jump = NextJumpAt(slot);
     double teleport = NextTeleportAt(slot);
-    if (std::min({move, jump, teleport}) > elapsed) {
+    double home = NextHomeAt(slot);
+    if (std::min({move, jump, teleport, home}) > elapsed) {
       return;
     }
-    if (teleport < std::min(move, jump)) {
+    if (home <= std::min({move, jump, teleport})) {
+      // Whatever it was doing ends there.
+      slot.next_home_at += slot.walk.home_interval_ms() / 1000.0;
+      slot.x = slot.home_x;
+      slot.y = slot.home_y;
+      slot.dash_left = 0;
+    } else if (teleport < std::min(move, jump)) {
       TeleportSlot(phase, slot);
     } else if (jump <= move) {
       JumpSlot(slot);
@@ -777,7 +859,9 @@ void BossRun::DriftSlots() {
   double elapsed = FightSeconds();
   for (BossSlot& slot : slots_) {
     if (slot.walk.interval_ms() <= 0 && slot.walk.jump().interval_ms() <= 0 &&
-        slot.walk.teleport().interval_ms() <= 0) {
+        slot.walk.teleport().interval_ms() <= 0 &&
+        slot.walk.dash().interval_ms() <= 0 &&
+        slot.walk.home_interval_ms() <= 0) {
       continue;
     }
     DriftSlot(*phase, slot, elapsed);
@@ -970,7 +1054,9 @@ void BossRun::ApplyPhaseRules(const CombatParams& params) {
       *phase, slot_spawns_, phase_began_at_, shields_until_, now);
   for (std::size_t slot = 0; slot < ending.size(); ++slot) {
     if (ending[slot]) {
-      sim_.HealShield(params, mob_of_slot_[slot]);
+      sim_.HealShield(
+          params, mob_of_slot_[slot],
+          !ShieldVanishes(*phase, slot_spawns_, static_cast<int>(slot)));
     }
   }
   shields_until_ = now;
@@ -1076,7 +1162,7 @@ void BossRun::ReleaseAscents(const GameState& state) {
       std::map<std::string, Mob>::const_iterator mob =
           state.mobs.find(spawn.mob());
       if (mob != state.mobs.end()) {
-        full += SpawnCount(spawn) * mob->second.max_hp();
+        full += HpCount(spawn) * mob->second.max_hp();
       }
     }
     hp.push_back(full);

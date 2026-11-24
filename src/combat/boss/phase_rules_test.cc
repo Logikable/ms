@@ -304,5 +304,53 @@ TEST(PhaseRulesTest, AFormsShieldFollowsThePhasesOwnClock) {
   EXPECT_TRUE(SelfShieldsEnding(phase, {0}, 100.0, 349.0, 351.0)[0]);
 }
 
+// Black Mage's last phase: 3T of 47.9T every 30s, held until broken, a new one
+// topping up what is left rather than adding to it.
+TEST(PhaseRulesTest, AShieldHeldUntilBrokenIsToppedUpNotStacked) {
+  BossPhase phase;
+  SelfShield* shield = phase.add_spawns()->mutable_self_shield();
+  shield->set_percent(6);
+  shield->set_interval_ms(30000);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.0}, 0.0, 29.0, 31.0)[0], 0.06);
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.04}, 0.0, 59.0, 61.0)[0], 0.02)
+      << "topped up to 6%";
+  EXPECT_DOUBLE_EQ(
+      ShieldsBetween(phase, {0}, {true}, {0.06}, 0.0, 89.0, 91.0)[0], 0.0);
+  EXPECT_FALSE(SelfShieldsEnding(phase, {0}, 0.0, 0.0, 600.0)[0])
+      << "it never runs out";
+}
+
+// The knights' shield runs out after 15s and is simply gone, where Lotus's
+// leftover heals him.
+TEST(PhaseRulesTest, AVanishingShieldSaysSo) {
+  BossPhase phase;
+  SelfShield* lotus = phase.add_spawns()->mutable_self_shield();
+  lotus->set_percent(0.5);
+  lotus->set_interval_ms(40000);
+  lotus->set_duration_ms(20000);
+  SelfShield* knight = phase.add_spawns()->mutable_self_shield();
+  *knight = *lotus;
+  knight->set_vanishes(true);
+  EXPECT_FALSE(ShieldVanishes(phase, {0, 1}, 0));
+  EXPECT_TRUE(ShieldVanishes(phase, {0, 1}, 1));
+  EXPECT_TRUE(SelfShieldsEnding(phase, {0, 1}, 0.0, 59.0, 61.0)[1]);
+}
+
+// The knights share one HP, so each is the other's partner, and a third
+// monster is neither's.
+TEST(PhaseRulesTest, MonstersSharingHpArePartners) {
+  BossPhase phase;
+  phase.add_spawns()->set_mob("aeonian_rise");
+  Spawn* ruin = phase.add_spawns();
+  ruin->set_mob("tanadian_ruin");
+  ruin->set_shares_hp("aeonian_rise");
+  phase.add_spawns()->set_mob("bystander");
+  EXPECT_EQ(HpPartners(phase, {0, 1, 2}, 0), std::vector<int>({1}));
+  EXPECT_EQ(HpPartners(phase, {0, 1, 2}, 1), std::vector<int>({0}));
+  EXPECT_TRUE(HpPartners(phase, {0, 1, 2}, 2).empty());
+}
+
 }  // namespace
 }  // namespace ms

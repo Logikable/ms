@@ -75,7 +75,7 @@ int64_t PhaseHp(const GameState& state, const BossPhase& phase) {
     std::map<std::string, Mob>::const_iterator it =
         state.mobs.find(spawn.mob());
     if (it != state.mobs.end()) {
-      hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
+      hp += static_cast<int64_t>(HpCount(spawn)) * it->second.max_hp();
     }
   }
   return hp;

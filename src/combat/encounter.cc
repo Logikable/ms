@@ -836,6 +836,8 @@ void AddTypes(const GameState& state,
     type.spots.assign(spawn.spots().begin(), spawn.spots().end());
     type.walk = spawn.walk();
     type.giant = spawn.giant();
+    type.width = std::max(1, spawn.size().width());
+    type.height = std::max(1, spawn.size().height());
     type.hp_dividers.assign(spawn.hp_dividers().begin(),
                             spawn.hp_dividers().end());
     for (int bar : spawn.hp_bars()) {
@@ -844,6 +846,16 @@ void AddTypes(const GameState& state,
     type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
     type.damage_to_player_scarred = ExpectedDamageTaken(scarred, *type.mob);
     params.types.push_back(std::move(type));
+  }
+  for (CombatType& sharer : params.types) {
+    const std::string& named = spawns[sharer.spawn].shares_hp();
+    for (int owner = 0; owner < static_cast<int>(params.types.size());
+         ++owner) {
+      if (!named.empty() && spawns[params.types[owner].spawn].mob() == named) {
+        sharer.hp_pool = owner;
+        params.types[owner].hp_pool = owner;
+      }
+    }
   }
 }
 

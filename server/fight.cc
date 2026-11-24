@@ -181,8 +181,11 @@ void PartyFight::RunRules() {
     if (!ending[slot] || hp_[slot] <= 0.0) {
       continue;
     }
-    hp_[slot] = std::min(max_hp_[slot], hp_[slot] + shield_hp_[slot]);
-    hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+    if (!ShieldVanishes(*current, spawn_of_slot_, static_cast<int>(slot))) {
+      hp_[slot] = std::min(max_hp_[slot], hp_[slot] + shield_hp_[slot]);
+      hp_fractions_[slot] =
+          max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+    }
     shield_hp_[slot] = 0.0;
     shields_left_[slot] = 0.0;
   }
@@ -321,6 +324,12 @@ void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
   hp_[slot] = std::max(floor, hp_[slot] - (damage - soaked));
   hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
   if (current != nullptr) {
+    for (int other : HpPartners(*current, spawn_of_slot_, slot)) {
+      hp_[other] = hp_[slot];
+      hp_fractions_[other] = hp_fractions_[slot];
+      shield_hp_[other] = shield_hp_[slot];
+      shields_left_[other] = shields_left_[slot];
+    }
     std::vector<bool> leaving =
         Vanishing(*current, spawn_of_slot_, hp_fractions_);
     for (std::size_t other = 0; other < leaving.size(); ++other) {

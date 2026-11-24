@@ -59,8 +59,9 @@ class CombatSim {
   // it has: hits take the shield before its HP. Returns false if it isn't
   // standing.
   bool AddShield(const CombatParams& params, int id, double fraction);
-  // Turns what is left of monster `id`'s shield into HP, up to its max.
-  void HealShield(const CombatParams& params, int id);
+  // Turns what is left of monster `id`'s shield into HP, up to its max, or
+  // with `heal` false just takes it away.
+  void HealShield(const CombatParams& params, int id, bool heal = true);
   // Brings back monster `id` of type `type` at `hp_fraction`, for a party fight
   // whose server says a monster this client reaped still stands: a shield
   // landed before the killing blow reached it. Does nothing if it stands.
@@ -190,6 +191,9 @@ class CombatSim {
     double mark_lift_pct = 0.0;
     // Soaks hits before `hp`, in HP. See AddShield.
     double shield = 0.0;
+    // Its type's CombatType::hp_pool: every mob of one pool keeps the same HP
+    // and shield. -1 for none.
+    int pool = -1;
     // From its MobRule. The floor is in HP, not a fraction.
     double damage_taken = 1.0;
     double hp_floor = 0.0;
@@ -646,6 +650,8 @@ class CombatSim {
   // Deals `damage` to `mob` and counts it. All character damage goes through
   // here.
   void Hurt(QueuedMob& mob, double damage);
+  // Gives every other mob of `mob`'s pool its HP and shield.
+  void ShareHp(const QueuedMob& mob);
   // A new monster of `type` at full HP, with the next ID.
   QueuedMob Arrival(const CombatParams& params, int type);
   // Moves monsters that would waste a hit, at their floor or taking nothing,

@@ -71,6 +71,17 @@ float ShieldWidth(double shield, const std::vector<HpBarColor>& bars) {
 
 ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
                       const PhaseForm* form) {
+  const std::vector<HpBarColor> colours =
+      form != nullptr ? std::vector<HpBarColor>{form->hp_bar()} : slot.hp_bars;
+  if (slot.width > 1 || slot.height > 1) {
+    HpShade shade = ShadeHp(slot.hp_fraction, colours);
+    ftxui::Element bar =
+        TallProgressBar(shade.frac, shade.fill, shade.empty,
+                        BarLines(slot.name, rows, kBossPanelWidth),
+                        ShieldWidth(slot.shield_fraction, colours));
+    return AccentWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
+                        std::move(bar), slot.invulnerable ? kGold : kTheme);
+  }
   int width = slot.giant ? kGiantPanelWidth : kBossPanelWidth;
   std::vector<std::string> lines;
   if (slot.giant) {
@@ -155,6 +166,14 @@ struct ArenaCell {
   int y = 0;
   // How many rows of the grid its panel is as tall as: 2 for a giant.
   int span = 1;
+  // The cells a sized monster covers (Spawn.size), (x, y) being the bottom of
+  // its middle column. Its panel is stretched over all of them.
+  int width = 1;
+  int height = 1;
+
+  bool sized() const {
+    return width > 1 || height > 1;
+  }
 };
 
 // Numbers drawn directly onto the screen instead of built from rows, because
@@ -294,12 +313,14 @@ bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
 class ArenaNode : public ftxui::Node {
  public:
   ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
-            int rows, std::size_t mobs, std::vector<ArenaColumn> numbers,
-            std::vector<ArenaStack> stacks, ftxui::Element clock)
+            int rows, int unit, std::size_t mobs,
+            std::vector<ArenaColumn> numbers, std::vector<ArenaStack> stacks,
+            ftxui::Element clock)
       : ftxui::Node(std::move(panels)),
         cells_(std::move(cells)),
         columns_(std::max(1, columns)),
         rows_(std::max(1, rows)),
+        unit_(std::max(1, unit)),
         panels_(children_.size()),
         mobs_(mobs),
         numbers_(std::move(numbers)),
@@ -326,6 +347,9 @@ class ArenaNode : public ftxui::Node {
       child->ComputeRequirement();
     }
     for (std::size_t i = 0; i < panels_; ++i) {
+      if (cells_[i].sized()) {
+        continue;
+      }
       row_width[cells_[i].y] += children_[i]->requirement().min_x;
       tallest = std::max(tallest, children_[i]->requirement().min_y /
                                       std::max(1, cells_[i].span));
@@ -349,10 +373,14 @@ class ArenaNode : public ftxui::Node {
     ftxui::Box body = box;
     body.y_min = std::min(clock.y_max + 1, box.y_max);
     std::map<int, std::vector<std::size_t>> by_row;
-    for (std::size_t i = 0; i < panels_; ++i) {
-      by_row[cells_[i].y].push_back(i);
-    }
     panel_box_.assign(panels_, ftxui::Box());
+    for (std::size_t i = 0; i < panels_; ++i) {
+      if (cells_[i].sized()) {
+        PlaceSized(body, i);
+      } else {
+        by_row[cells_[i].y].push_back(i);
+      }
+    }
     for (std::pair<const int, std::vector<std::size_t>>& row : by_row) {
       PlaceRow(body, row.first, row.second);
     }
@@ -384,6 +412,29 @@ class ArenaNode : public ftxui::Node {
     ftxui::Box at = {left, left + width - 1, box.y_min, box.y_min + height - 1};
     clock->SetBox(at);
     return at;
+  }
+
+  // Stretches a sized monster's panel from the left edge of a usual panel in
+  // its first cell to the right edge of one in its last, and from the top of
+  // its top row's to the bottom of its bottom row's.
+  void PlaceSized(ftxui::Box box, std::size_t i) {
+    const ArenaCell& cell = cells_[i];
+    const int first_x = cell.x - (cell.width - 1) / 2;
+    const int last_x = first_x + cell.width - 1;
+    const int first_y = cell.y - cell.height + 1;
+    int left =
+        CentreOf(first_x, columns_, box.x_min, box.x_max) - kBossPanelWidth / 2;
+    int right = CentreOf(last_x, columns_, box.x_min, box.x_max) -
+                kBossPanelWidth / 2 + kBossPanelWidth - 1;
+    int top = CentreOf(first_y, rows_, box.y_min, box.y_max) - unit_ / 2;
+    int bottom =
+        CentreOf(cell.y, rows_, box.y_min, box.y_max) - unit_ / 2 + unit_ - 1;
+    left = std::max(left, box.x_min);
+    right = std::min(right, box.x_max);
+    top = std::max(top, box.y_min);
+    bottom = std::min(bottom, box.y_max);
+    panel_box_[i] = {left, std::max(left, right), top, std::max(top, bottom)};
+    children_[i]->SetBox(panel_box_[i]);
   }
 
   void PlaceRow(ftxui::Box box, int y, std::vector<std::size_t> row) {
@@ -545,6 +596,8 @@ class ArenaNode : public ftxui::Node {
   std::vector<ArenaCell> cells_;
   int columns_ = 1;
   int rows_ = 1;
+  // A usual panel's height, which a sized one's is counted in.
+  int unit_ = 1;
   // How many of the children are panels. The stacks come after them, and the
   // clock is the very last child.
   std::size_t panels_ = 0;
@@ -561,6 +614,43 @@ class ArenaNode : public ftxui::Node {
 
 // The clock, which the arena places across its own top row instead of giving it
 // a separate strip of the screen.
+// Draws its child black on white: the dark ground and the empty part of every
+// bar turn white, and everything written on them black. Bars keep their fills.
+class WhiteArenaNode : public ftxui::Node {
+ public:
+  explicit WhiteArenaNode(ftxui::Element child)
+      : ftxui::Node(ftxui::Elements{std::move(child)}) {
+  }
+
+  void ComputeRequirement() override {
+    ftxui::Node::ComputeRequirement();
+    requirement_ = children_[0]->requirement();
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    children_[0]->SetBox(box);
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    ftxui::Node::Render(screen);
+    const int right = std::min(box_.x_max, screen.dimx() - 1);
+    const int bottom = std::min(box_.y_max, screen.dimy() - 1);
+    for (int y = std::max(0, box_.y_min); y <= bottom; ++y) {
+      for (int x = std::max(0, box_.x_min); x <= right; ++x) {
+        ftxui::Pixel& pixel = screen.PixelAt(x, y);
+        if (pixel.background_color == ftxui::Color::Default ||
+            pixel.background_color == kBarEmpty ||
+            pixel.background_color == kHpBlackEmpty) {
+          pixel.background_color = ftxui::Color::White;
+          pixel.foreground_color = ftxui::Color::Black;
+          pixel.dim = false;
+        }
+      }
+    }
+  }
+};
+
 ftxui::Element ClockPanel(const BossRun& run) {
   return ThemedWindow("", CenteredRow(FormatClock(run.seconds_left())));
 }
@@ -585,6 +675,11 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
       continue;
     }
     panel_of_slot[slot.id] = panels.size();
+    if (slot.width > 1 || slot.height > 1) {
+      panels.push_back(MobBar(slot, MobBarRows(slots), 0, run.current_form()));
+      cells.push_back({slot.x - left, slot.y, 1, slot.width, slot.height});
+      continue;
+    }
     int span = slot.giant ? 2 : 1;
     panels.push_back(MobBar(slot, MobBarRows(slots), span * rows - kPanelBorder,
                             run.current_form()) |
@@ -644,8 +739,8 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
                       std::make_shared<DamageNumbersNode>(stack)});
   }
   return std::make_shared<ArenaNode>(
-      std::move(panels), std::move(cells), run.arena_width(), height, mobs,
-      std::move(numbers), std::move(stacks), ClockPanel(run));
+      std::move(panels), std::move(cells), run.arena_width(), height, rows,
+      mobs, std::move(numbers), std::move(stacks), ClockPanel(run));
 }
 
 }  // namespace
@@ -660,7 +755,9 @@ HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars) {
   HpShade shade;
   shade.frac = static_cast<float>(left - (count - 1 - bar));
   shade.fill = HpBarFill(bars[bar]);
-  shade.empty = bar + 1 < count ? HpBarFill(bars[bar + 1]) : kBarEmpty;
+  shade.empty = bar + 1 < count                   ? HpBarFill(bars[bar + 1])
+                : bars[bar] == HP_BAR_COLOR_BLACK ? kHpBlackEmpty
+                                                  : kBarEmpty;
   return shade;
 }
 
@@ -720,12 +817,16 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   for (int percent : run.heading_dividers()) {
     dividers.push_back(percent / 100.0);
   }
-  return ftxui::vbox({
+  ftxui::Element panel = ftxui::vbox({
       ProgressBar(shade.frac, shade.fill, shade.empty, {FightHeading(run)},
                   std::move(dividers),
                   ShieldWidth(run.heading_shield_fraction(), bars)),
       Arena(run, buff_dots) | ftxui::flex,
   });
+  if (run.white_arena()) {
+    return std::make_shared<WhiteArenaNode>(std::move(panel));
+  }
+  return panel;
 }
 
 }  // namespace ms

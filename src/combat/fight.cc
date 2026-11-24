@@ -93,6 +93,7 @@ CombatSim::QueuedMob CombatSim::Arrival(const CombatParams& params, int type) {
   arrival.hp = params.types[type].mob->max_hp();
   arrival.max_hp = arrival.hp;
   arrival.boss = params.types[type].mob->boss();
+  arrival.pool = params.types[type].hp_pool;
   arrival.id = next_mob_id_++;
   return arrival;
 }
@@ -1519,6 +1520,7 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
     if (mob.hp_floor > 0.0) {
       mob.hp = std::max(mob.hp, floor);
     }
+    ShareHp(mob);
   }
   view_.damage_this_step += damage;
   damage_dealt_ += damage;
@@ -1535,6 +1537,20 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
   } else {
     own_clock_damage_ += damage;
     own_clock_by_source_[striking_] += damage;
+  }
+}
+
+void CombatSim::ShareHp(const QueuedMob& mob) {
+  if (mob.pool < 0) {
+    return;
+  }
+  for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
+    for (QueuedMob& other : *mobs) {
+      if (other.pool == mob.pool && other.id != mob.id) {
+        other.hp = mob.hp;
+        other.shield = mob.shield;
+      }
+    }
   }
 }
 
@@ -1615,11 +1631,13 @@ bool CombatSim::AddShield(const CombatParams& params, int id, double fraction) {
   return false;
 }
 
-void CombatSim::HealShield(const CombatParams& params, int id) {
+void CombatSim::HealShield(const CombatParams& params, int id, bool heal) {
   for (std::vector<QueuedMob>* mobs : {&queue_, &parked_}) {
     for (QueuedMob& mob : *mobs) {
       if (mob.id == id && mob.shield > 0.0) {
-        mob.hp = std::min(mob.max_hp, mob.hp + mob.shield);
+        if (heal) {
+          mob.hp = std::min(mob.max_hp, mob.hp + mob.shield);
+        }
         mob.shield = 0.0;
         PublishRoster(params);
         return;

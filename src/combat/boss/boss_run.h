@@ -173,6 +173,16 @@ struct BossSlot {
   ArenaWalk walk;
   // Drawn at twice the height and half again the width of a usual bar.
   bool giant = false;
+  // The cells it covers, (x, y) being the bottom of its middle column.
+  int width = 1;
+  int height = 1;
+  // Its spawn's mob, by data file stem, for a teleport landing beside it.
+  std::string mob;
+  // The cell it spawned on, which a home return takes it back to, and when the
+  // next return is due.
+  int home_x = 0;
+  int home_y = 0;
+  double next_home_at = 0.0;
   // The bars its HP is drawn as, the first emptied first; empty for one.
   std::vector<HpBarColor> hp_bars;
   // The phase zone it stands in (Spawn.zone); 0 for none.
@@ -344,6 +354,8 @@ class BossRun {
   // The form the current phase is in, by the seconds since it began, or null
   // for a phase without forms.
   const PhaseForm* current_form() const;
+  // Whether the current phase is drawn black on white (BossPhase.white_arena).
+  bool white_arena() const;
   // Every bar in the current phase, in spawn order.
   const std::vector<BossSlot>& slots() const {
     return slots_;
@@ -464,8 +476,15 @@ class BossRun {
   static void JumpSlot(BossSlot& slot);
   // When `slot`'s next teleport is due; kNeverMoves if it never teleports.
   static double NextTeleportAt(const BossSlot& slot);
-  // Moves `slot` over a hunted player's column in its own row, if it may stand
-  // there, and schedules the next teleport.
+  // When `slot` next goes home; kNeverMoves if it never does.
+  static double NextHomeAt(const BossSlot& slot);
+  // Whether `slot` may stand with its bottom middle cell on (x, y): every cell
+  // it would cover inside its bounds, off the player's spots and, where either
+  // is sized, clear of every other living monster.
+  bool Free(const BossPhase& phase, const BossSlot& slot, int x, int y) const;
+  // Moves `slot` over a hunted player's column in its own row, or beside the
+  // monster its teleport names, if it may stand there, and schedules the next
+  // teleport.
   void TeleportSlot(const BossPhase& phase, BossSlot& slot);
   // Hands the sim this step's phase rules: who this player reaches, what each
   // monster takes and holds at, and in a solo run the shields due since the

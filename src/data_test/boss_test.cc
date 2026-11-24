@@ -377,7 +377,7 @@ TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
       int64_t total = 0;
       for (const BossPhase& phase : difficulty.phases()) {
         for (const Spawn& spawn : phase.spawns()) {
-          total += SpawnCount(spawn) * mobs_.at(spawn.mob()).max_hp();
+          total += HpCount(spawn) * mobs_.at(spawn.mob()).max_hp();
         }
       }
       ASSERT_GT(kTotals.count(where), 0u);

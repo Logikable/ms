@@ -29,5 +29,16 @@ TEST(SpawnCountTest, AnEmptySpawnPutsOutNothing) {
   EXPECT_EQ(SpawnCount(Spawn()), 0);
 }
 
+// A pool shared by two spawns is counted under the one it names.
+TEST(SpawnCountTest, ASharerAddsNoHp) {
+  Spawn owner;
+  owner.add_spots();
+  Spawn sharer = owner;
+  sharer.set_shares_hp("aeonian_rise");
+  EXPECT_EQ(HpCount(owner), 1);
+  EXPECT_EQ(HpCount(sharer), 0);
+  EXPECT_EQ(SpawnCount(sharer), 1);
+}
+
 }  // namespace
 }  // namespace ms

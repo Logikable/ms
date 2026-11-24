@@ -1373,6 +1373,111 @@ TEST(BossFightPanelTest, AGiantFillsItsRoomAndTheXOpensAroundIt) {
   EXPECT_EQ(EmptySpotsIn(Rows(run)).size(), 4u);
 }
 
+// A tall knight on the left and a 3x3 lord in the middle, over the player's
+// floor in a 9x6 room.
+Boss SizedBoss(bool white = false) {
+  Boss boss;
+  boss.set_name("Black Mage");
+  BossDifficulty* hard = boss.add_difficulties();
+  hard->set_name("Hard");
+  hard->set_time_limit_seconds(1200);
+  BossPhase* phase = hard->add_phases();
+  phase->set_arena_width(9);
+  phase->set_arena_height(6);
+  phase->set_white_arena(white);
+  Spawn* knight = phase->add_spawns();
+  knight->set_mob("arm");
+  ArenaSpot* at = knight->add_spots();
+  at->set_x(0);
+  at->set_y(4);
+  knight->mutable_size()->set_width(1);
+  knight->mutable_size()->set_height(4);
+  knight->add_hp_bars(HP_BAR_COLOR_BLACK);
+  Spawn* lord = phase->add_spawns();
+  lord->set_mob("body");
+  ArenaSpot* middle = lord->add_spots();
+  middle->set_x(4);
+  middle->set_y(4);
+  lord->mutable_size()->set_width(3);
+  lord->mutable_size()->set_height(3);
+  AddSpots(phase, {{4, 5}, {8, 5}});
+  return boss;
+}
+
+// The inside of the bar `name` is written on, as rows by columns. Unused
+// cells read as '#' too, so it is measured by its blank run.
+std::pair<int, int> InsideOf(const std::vector<std::string>& rows,
+                             const std::string& name) {
+  const int y = RowOf(rows, name);
+  if (y < 0) {
+    return {0, 0};
+  }
+  const int at = static_cast<int>(rows[y].find(name));
+  int left = at;
+  while (left > 0 && rows[y][left - 1] != '#') {
+    --left;
+  }
+  int right = at;
+  while (right + 1 < static_cast<int>(rows[y].size()) &&
+         rows[y][right + 1] != '#') {
+    ++right;
+  }
+  int top = y;
+  while (top > 0 && rows[top - 1][left] == ' ') {
+    --top;
+  }
+  int bottom = y;
+  while (bottom + 1 < static_cast<int>(rows.size()) &&
+         rows[bottom + 1][left] == ' ') {
+    ++bottom;
+  }
+  return {bottom - top + 1, right - left + 1};
+}
+
+// A sized monster's bar is stretched over its cells: the knight four panels
+// tall and one wide, the lord three by three, both clear of the player's row.
+TEST(BossFightPanelTest, ASizedMonsterCoversItsCells) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = SizedBoss();
+  BossRun run("black_mage", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  std::vector<std::string> rows = Rows(run);
+  const int you = RowOf(rows, "You");
+  ASSERT_GE(you, 0);
+  // At the arena's edge the knight is cut to the screen, so it is no wider
+  // than a usual bar.
+  std::pair<int, int> knight = InsideOf(rows, "Zakum's Arm");
+  std::pair<int, int> lord = InsideOf(rows, "Zakum ");
+  EXPECT_LE(knight.second, kBossPanelWidth - 2);
+  EXPECT_GT(knight.first, 3 * (2 + kPlayerBarRows)) << "four rows tall";
+  EXPECT_GT(lord.second, 2 * kBossPanelWidth) << "three columns wide";
+  EXPECT_GT(lord.first, 2 * (2 + kPlayerBarRows)) << "three rows tall";
+  EXPECT_LT(RowOf(rows, "Zakum's Arm") + knight.first / 2, you);
+}
+
+// The last phase is drawn black on white; the bars keep their fills.
+TEST(BossFightPanelTest, AWhiteArenaFlipsTheGroundButNotTheBars) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  for (bool white : {false, true}) {
+    Boss boss = SizedBoss(white);
+    BossRun run("black_mage", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    ftxui::Screen screen =
+        ftxui::Screen::Create(ftxui::Dimension::Fixed(kMinTerminalColumns),
+                              ftxui::Dimension::Fixed(kMinTerminalRows));
+    ftxui::Render(screen, BossFightPanel(run, true));
+    const ftxui::Pixel& corner = screen.PixelAt(kMinTerminalColumns - 1, 2);
+    EXPECT_EQ(corner.background_color == ftxui::Color::White, white);
+    std::vector<std::string> rows = RowsOf(screen);
+    const int name = RowOf(rows, "Zakum's Arm");
+    ASSERT_GE(name, 0);
+    const int x = ColumnOf(rows, "Zakum's Arm");
+    EXPECT_TRUE(screen.PixelAt(x, name).background_color == kHpBlack);
+    EXPECT_TRUE(screen.PixelAt(x, name).foreground_color != kHpBlack)
+        << "the name reads on the black fill";
+  }
+}
+
 // Three panels across the arena, each a fixed height but sized sideways to its
 // contents, which a long mob name or a large number could fill.
 TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {

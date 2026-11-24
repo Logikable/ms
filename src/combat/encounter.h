@@ -38,6 +38,12 @@ struct CombatType {
   ArenaWalk walk;
   // Whether the arena draws it as a giant bar.
   bool giant = false;
+  // The cells it covers (Spawn.size); 1 by 1 when unset.
+  int width = 1;
+  int height = 1;
+  // Types sharing HP (Spawn.shares_hp) all carry the index of the one named,
+  // that one included. -1 for none.
+  int hp_pool = -1;
   // The bars its HP is drawn as; empty for one.
   std::vector<HpBarColor> hp_bars;
   // Percents of its HP marked across its bar.

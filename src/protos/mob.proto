@@ -69,12 +69,20 @@ message ArenaWalk {
   // A blink to the cell in its own row over a player's column, picked as a fall
   // picks one, between its ordinary steps. Unset means it never teleports.
   ArenaTeleport teleport = 6;
+  // Milliseconds between returns to the cell it spawned on, from the phase's
+  // start. GMS's Black Mage knights go back at every Shrieking Wall. 0 means
+  // never.
+  int32 home_interval_ms = 7;
 }
 
 // GMS's Lotus teleports to a random player every 8 seconds.
 message ArenaTeleport {
   // Milliseconds between teleports. 0 means never.
   int32 interval_ms = 1;
+  // A monster of the phase, by data file stem: the blink lands in the free
+  // column nearest it instead of over a player. GMS's Black Mage knights dive
+  // onto each other.
+  string beside = 2;
 }
 
 // A fall: the monster vanishes from its row, appears on the top row over a
@@ -175,6 +183,21 @@ message Spawn {
   SelfShield self_shield = 14;
   // When it leaves the fight, alive or not; the phase can end without it.
   SpawnVanish vanish = 15;
+  // Another of the phase's monsters, by data file stem, whose HP this one
+  // shares: a hit on either takes from both, so a hit on both counts twice,
+  // and they die together. The pool is counted once, under the named one. GMS's
+  // Black Mage knights.
+  string shares_hp = 16;
+  // How many cells it covers, its spot being the bottom cell of its middle
+  // column. Unset is one cell. Every cell must stay clear of player spots.
+  SpawnSize size = 17;
+}
+
+// A monster drawn over several cells. The width must be odd, so the spot is its
+// middle column.
+message SpawnSize {
+  int32 width = 1;
+  int32 height = 2;
 }
 
 // Another of the phase's monsters falling to `hp_pct` percent of its max HP, or
@@ -210,12 +233,14 @@ message SpawnGuard {
 // A shield a monster raises over itself, soaking hits before its HP; what is
 // left when it ends heals it, up to its max HP. GMS's Lotus raises 0.5% of his
 // HP every 40s for 20s and takes 90% less while it holds; Chosen Seren raises
-// 10% as Dawn begins and it grows until Noon.
+// 10% as Dawn begins and it grows until Noon. A shield raised while one holds
+// tops it up to `percent` instead of adding to it, as GMS's Black Mage's does.
 message SelfShield {
   // Percent of max HP raised, fractions allowed.
   double percent = 1;
   // Raised every `interval_ms` of fight time, the first one interval after the
-  // countdown, and ended `duration_ms` later.
+  // countdown, and ended `duration_ms` later. No duration holds it until it
+  // is broken.
   int32 interval_ms = 2;
   int32 duration_ms = 3;
   // Or raised as the phase's form of this name begins, and ended with it.
@@ -224,6 +249,8 @@ message SelfShield {
   double percent_per_second = 5;
   // Hits deal this percent while it holds; 0 means it doesn't cut them.
   int32 damage_pct = 6;
+  // What is left when it ends is lost instead of healing it: GMS's Black Mage.
+  bool vanishes = 7;
 }
 
 // Every `interval_ms` of fight time, measured from the end of the countdown,
@@ -255,6 +282,9 @@ enum HpBarColor {
   HP_BAR_COLOR_AMBER = 9;
   HP_BAR_COLOR_TEAL = 10;
   HP_BAR_COLOR_PURPLE = 11;
+  // Black's empty part is grey on a dark arena, so the bar still reads.
+  HP_BAR_COLOR_WHITE = 12;
+  HP_BAR_COLOR_BLACK = 13;
 }
 
 // The definition of a monster type, loaded from data/mobs at startup and shared
