@@ -766,6 +766,9 @@ ftxui::Element Tui::RenderBossFight() {
   if (overlay == nullptr) {
     return fight;
   }
+  if (run->white_arena()) {
+    return WhiteArena(Overlay(std::move(fight), std::move(overlay)));
+  }
   return Overlay(std::move(fight), std::move(overlay));
 }
 

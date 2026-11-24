@@ -66,6 +66,11 @@ std::string TimeoutHpLine(const BossRun& run);
 // The whole screen for `run`. `buff_dots` is the Buff Indicators option.
 ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots);
 
+// Draws `element` black on white, as the fight panel draws a white arena: the
+// dark ground and every line on it flip, and filled bars keep their colours.
+// A card shown over a white arena goes through it too, so it matches.
+ftxui::Element WhiteArena(ftxui::Element element);
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_

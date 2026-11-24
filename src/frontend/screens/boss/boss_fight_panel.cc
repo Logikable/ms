@@ -824,9 +824,13 @@ ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
       Arena(run, buff_dots) | ftxui::flex,
   });
   if (run.white_arena()) {
-    return std::make_shared<WhiteArenaNode>(std::move(panel));
+    return WhiteArena(std::move(panel));
   }
   return panel;
+}
+
+ftxui::Element WhiteArena(ftxui::Element element) {
+  return std::make_shared<WhiteArenaNode>(std::move(element));
 }
 
 }  // namespace ms

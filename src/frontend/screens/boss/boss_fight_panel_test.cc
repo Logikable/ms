@@ -1491,3 +1491,24 @@ TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {
 }
 }  // namespace
 }  // namespace ms
+
+namespace ms {
+namespace {
+
+// A card over the white arena flips with it: a coloured rule turns black on
+// white, and the focused button stays inverted, so it still reads as focused.
+TEST(BossFightPanelTest, ACardOverTheWhiteArenaFlipsWithIt) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(10),
+                                               ftxui::Dimension::Fixed(2));
+  ftxui::Render(screen, WhiteArena(ftxui::vbox({
+                            ftxui::text("----------") | ftxui::color(kYellow),
+                            ftxui::text("[Go]") | ftxui::inverted,
+                        })));
+  const ftxui::Pixel& rule = screen.PixelAt(0, 0);
+  EXPECT_TRUE(rule.background_color == ftxui::Color::White);
+  EXPECT_TRUE(rule.foreground_color == ftxui::Color::Black);
+  EXPECT_TRUE(screen.PixelAt(0, 1).inverted);
+}
+
+}  // namespace
+}  // namespace ms
