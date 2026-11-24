@@ -106,8 +106,8 @@ difficulties {
   }
   phases {
     # Beyond Existence (client map 450013700): one flat floor, 1640px, all
-    # black and white. He walks as in phase 3; the pillars every 30s shield
-    # him until broken (namu).
+    # black and white. He holds the centre; the pillars every 30s shield him
+    # until broken (namu).
     bgm: "LostSpace"
     white_arena: true
     spawns {
@@ -115,7 +115,6 @@ difficulties {
       spots { x: 4 y: 4 }
       size { width: 3 height: 3 }
       hp_bars: HP_BAR_COLOR_BLACK
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
       self_shield { percent: 6.2615 interval_ms: 30000 }
     }
     player_spots { x: 4 y: 5 }
@@ -278,8 +277,8 @@ difficulties {
   }
   phases {
     # Beyond Existence (client map 450013700): one flat floor, 1640px, all
-    # black and white. He walks as in phase 3; the pillars every 30s shield
-    # him until broken (namu).
+    # black and white. He holds the centre; the pillars every 30s shield him
+    # until broken (namu).
     bgm: "LostSpace"
     white_arena: true
     spawns {
@@ -287,7 +286,6 @@ difficulties {
       spots { x: 4 y: 4 }
       size { width: 3 height: 3 }
       hp_bars: HP_BAR_COLOR_BLACK
-      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
       self_shield { percent: 6.6502 interval_ms: 30000 }
     }
     player_spots { x: 4 y: 5 }
