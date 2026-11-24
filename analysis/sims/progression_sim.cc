@@ -3826,7 +3826,8 @@ void PrintDropUse(const Catalogs& catalogs,
   std::sort(order.begin(), order.end());
   std::printf(
       "\nEvery boss drop while it mattered: from the first clear of a boss "
-      "that drops it to the\nlast look the run still wore something it is "
+      "that drops it to the\nlast look the boss preset still wore something it "
+      "is "
       "for. Over all %d runs: the median window, what\ndropped in it (median "
       "run) against what was used (no more in nine runs of ten) -- for a\n"
       "piece the most copies worn at once plus the held copies booms took, "

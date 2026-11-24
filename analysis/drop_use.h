@@ -1,10 +1,12 @@
 /* How much of each boss drop a run used while it still mattered.
  *
  * A drop matters from the first clear of a boss that drops it until the last
- * look the character still wears something it is for: the piece itself, a
- * piece its currency buys, or one its box gives. Over that window this counts
- * what dropped and what was used, so drop rates can be set against what a run
- * really needs rather than against the tiers alone.
+ * look the boss preset still wears something it is for: the piece itself, a
+ * piece its currency buys, or one its box gives. Farm and drop presets are
+ * left out: nobody upgrades those, so they would hold a window open for good.
+ * Over that window this counts what dropped and what was used, so drop rates
+ * can be set against what a run really needs rather than against the tiers
+ * alone.
  */
 #ifndef MS_ANALYSIS_DROP_USE_H_
 #define MS_ANALYSIS_DROP_USE_H_
@@ -83,8 +85,8 @@ class DropUse {
     DropUseResult last_use;
   };
 
-  // How many copies of a piece are worn, or for the other kinds whether any
-  // piece they are for is.
+  // How many copies of a piece the boss preset wears, or for the other kinds
+  // how many pieces they are for it wears.
   int InUse(const GameState& state, const Row& row) const;
   DropUseResult Snapshot(const GameState& state, const std::string& name,
                          const Row& row,

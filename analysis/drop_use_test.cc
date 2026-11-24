@@ -96,13 +96,14 @@ TEST(DropUseTest, CountsWhatDroppedAndWhatWasUsedWhileItMattered) {
   for (const char* key : {"belt", "hat"}) {
     state.character.PickUp(
         std::make_unique<EquipInstance>(state.equips.at(key)));
-    ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1));
+    ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1,
+                                      AutoswapSlotFor(Activity::kBossing)));
   }
   const std::map<std::string, int> spares = {{"Belt", 1}};
   use.Clear("boss", "Normal", Paid(1, 0, 2.5), 2.0);
   use.Look(state, spares, 2.0);
-  state.character.Unequip(EQUIP_SLOT_BELT);
-  state.character.Unequip(EQUIP_SLOT_HAT);
+  state.character.Unequip(EQUIP_SLOT_BELT, AutoswapSlotFor(Activity::kBossing));
+  state.character.Unequip(EQUIP_SLOT_HAT, AutoswapSlotFor(Activity::kBossing));
   use.Clear("boss", "Normal", Paid(5, 6, 4.0), 3.0);
   use.Look(state, spares, 3.0);
 
@@ -135,18 +136,31 @@ TEST(DropUseTest, ADropNeverUsedRunsToTheEnd) {
   EXPECT_EQ(belt->used, 0);
 }
 
-}  // namespace
-}  // namespace ms
-
-namespace ms {
-namespace {
-
 // Only the difficulty that drops it opens a drop's window.
 TEST(DropUseTest, AnotherDifficultyOpensNothing) {
   std::unique_ptr<GameState> owner = BeltAndCoin();
   DropUse use(*owner);
   use.Clear("boss", "Hard", Paid(0, 0, 1.0), 4.0);
   EXPECT_TRUE(use.Finish(*owner, {}, 9.0).empty());
+}
+
+// A piece worn only in the drop preset is not in use: drop gear is never
+// upgraded, so it would hold the window open to the end.
+TEST(DropUseTest, OnlyTheBossPresetCounts) {
+  std::unique_ptr<GameState> owner = BeltAndCoin();
+  GameState& state = *owner;
+  DropUse use(state);
+  use.Clear("boss", "Normal", Paid(1, 0, 1.0), 1.0);
+  state.character.PickUp(
+      std::make_unique<EquipInstance>(state.equips.at("belt")));
+  ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1,
+                                    kDropPreset));
+  use.Look(state, {}, 2.0);
+  std::vector<DropUseResult> results = use.Finish(state, {}, 9.0);
+  const DropUseResult* belt = Find(results, "Belt");
+  ASSERT_NE(belt, nullptr);
+  EXPECT_EQ(belt->end_day, 9.0);
+  EXPECT_EQ(belt->used, 0);
 }
 
 }  // namespace

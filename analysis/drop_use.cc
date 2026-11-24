@@ -134,32 +134,30 @@ void DropUse::Clear(const std::string& boss, const std::string& difficulty,
 
 int DropUse::InUse(const GameState& state, const Row& row) const {
   int in_use = 0;
-  for (int i = 0; i < kNumStatPresets; ++i) {
-    for (const auto& [slot, piece] :
-         state.character.own_gear(static_cast<StatPreset>(i))) {
-      const EquipPrototype& proto = piece.prototype();
-      bool counts = false;
-      switch (row.kind) {
-        case Kind::kPiece:
-          counts = proto.name() == state.equips.at(row.key).name();
-          break;
-        case Kind::kCurrency:
-        case Kind::kPickBox:
-          counts = row.pieces.count(proto.name()) > 0;
-          break;
-        case Kind::kBox:
-          counts = BoxGives(row.box, proto);
-          break;
-        case Kind::kRingBox:
-          counts = proto.has_equipment_skill() &&
-                   std::find(row.ring_box.skills().begin(),
-                             row.ring_box.skills().end(),
-                             proto.equipment_skill().skill()) !=
-                       row.ring_box.skills().end();
-          break;
-      }
-      in_use += counts ? 1 : 0;
+  for (const auto& [slot, piece] :
+       state.character.equipped(AutoswapSlotFor(Activity::kBossing))) {
+    const EquipPrototype& proto = piece->prototype();
+    bool counts = false;
+    switch (row.kind) {
+      case Kind::kPiece:
+        counts = proto.name() == state.equips.at(row.key).name();
+        break;
+      case Kind::kCurrency:
+      case Kind::kPickBox:
+        counts = row.pieces.count(proto.name()) > 0;
+        break;
+      case Kind::kBox:
+        counts = BoxGives(row.box, proto);
+        break;
+      case Kind::kRingBox:
+        counts = proto.has_equipment_skill() &&
+                 std::find(row.ring_box.skills().begin(),
+                           row.ring_box.skills().end(),
+                           proto.equipment_skill().skill()) !=
+                     row.ring_box.skills().end();
+        break;
     }
+    in_use += counts ? 1 : 0;
   }
   return in_use;
 }
