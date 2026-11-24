@@ -1028,8 +1028,13 @@ void SeedFlames(GameState& state) {
   }
 }
 
-// Neither workbench mode saves, so this never reaches the player's bindings.
-void BindMuteToM(GameState& state) {
+// No workbench mode saves, so none of this reaches the player's settings.
+// Autoswap because a workbench character has two allocations at once, GMS CP
+// to set it beside other jobs, and M to mute what a tester hears for hours.
+// The music stays on Follow Map, the shipped default.
+void ThrowWorkbenchSwitches(GameState& state) {
+  state.account.SetAutoswapPresets(true);
+  state.account.SetGmsCombatPower(true);
   Keybind* row = state.account.mutable_keybinds()->add_binds();
   row->set_action(KEY_ACTION_MUTE);
   row->add_keys("M");
@@ -1085,11 +1090,7 @@ void FillPurse(GameState& state) {
 // default workbench is complete instead of half-built.
 void SeedTest(GameState& state, const TestOptions& test) {
   state.exp_multiplier = kTestExpMultiplier;
-  // Both settings on: the workbench has two allocations at once, which is what
-  // autoswap is for, and the music is what a tester hears for hours.
-  state.account.SetAutoswapPresets(true);
-  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
-  BindMuteToM(state);
+  ThrowWorkbenchSwitches(state);
 
   FillPurse(state);
 
@@ -1565,11 +1566,7 @@ void SeedMaxRoster(GameState& state, const std::vector<MaxMember>& account,
 // income by then (max_character.cc has the math). Nothing from the workbench:
 // no extra meso, no EXP bonus, no spare gear.
 void SeedMax(GameState& state, const TestOptions& options) {
-  // A max character has two allocations at once, which is what autoswap is for,
-  // whatever the state requested.
-  state.account.SetAutoswapPresets(true);
-  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
-  BindMuteToM(state);
+  ThrowWorkbenchSwitches(state);
   state.MirrorAccount();
   // The same default as the workbench: the highest advancement written in the
   // line, which is where boss rosters are measured from.
@@ -1629,9 +1626,7 @@ void AddBisLegionMembers(GameState& state, std::vector<MaxMember>& account) {
 // account behind them is one of each other job at the top level for the link
 // skills, and a full Legion.
 void SeedBis(GameState& state, const TestOptions& options) {
-  state.account.SetAutoswapPresets(true);
-  state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
-  BindMuteToM(state);
+  ThrowWorkbenchSwitches(state);
   state.MirrorAccount();
   const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
                                     ? options.job

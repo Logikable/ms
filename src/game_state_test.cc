@@ -158,18 +158,20 @@ std::string MuteKey(const GameState& state) {
   return "";
 }
 
-// Both settings are on for the workbench: it has two stat allocations at once,
-// and a tester hears the music, with M to mute it. Play mode leaves all three
-// to the player.
+// The workbench has two stat allocations at once, shows GMS's Combat Power and
+// mutes on M; the music follows the map as in play. Play mode leaves the
+// switches to the player.
 TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
   GameState state = MakeTestModeState();
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
-  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
+  EXPECT_TRUE(state.account.gms_combat_power());
+  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_FOLLOW_MAP);
   EXPECT_EQ(MuteKey(state), "M");
 
   GameState played = MakePlayModeState();
   EXPECT_FALSE(played.account.autoswap_presets());
+  EXPECT_FALSE(played.account.gms_combat_power());
   EXPECT_EQ(played.account.jukebox_mode(), JUKEBOX_MODE_FOLLOW_MAP);
   EXPECT_EQ(MuteKey(played), "");
 }
@@ -875,13 +877,13 @@ TEST(GameStateTest, MaxModeThrowsItsToggles) {
   EXPECT_TRUE(state.character.SkillToggledOn("Righteously Indignant"));
 }
 
-// A max character has both allocations at once, and plays music, like the
-// workbench.
+// A max character throws the workbench's switches.
 TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
   GameState state = MakeMaxState(230);
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
-  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
+  EXPECT_TRUE(state.account.gms_combat_power());
+  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_FOLLOW_MAP);
   EXPECT_EQ(MuteKey(state), "M");
 }
 
