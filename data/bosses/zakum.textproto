@@ -30,7 +30,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
   unlock_level: 110
   # GMS pays Intense Power Crystals, a drop nobody keeps; this is five of them
@@ -80,7 +79,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS

@@ -63,7 +63,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   # Meant to be cleared by a party rather than alone.
   time_limit_seconds: 900
   unlock_level: 210
@@ -139,7 +138,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 210
   # Five Intense Power Crystals at GMS's price (88,935,000), divided by seven and
@@ -239,7 +237,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 210
   # Five Intense Power Crystals at GMS's price (279,500,000), divided by seven

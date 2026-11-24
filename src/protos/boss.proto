@@ -4,14 +4,6 @@ package ms;
 
 import "src/protos/mob.proto";
 
-// How often a boss can be cleared again. The clock turns over at 4am local
-// time; see src/character/boss_reset.h.
-enum ResetPeriod {
-  RESET_PERIOD_UNSPECIFIED = 0;
-  RESET_PERIOD_DAILY = 1;
-  RESET_PERIOD_WEEKLY = 2;
-}
-
 // One stage of a boss fight. The next stage begins when the last mob of this
 // one dies, so phases end on kills, not on a timer.
 message BossPhase {
@@ -125,13 +117,14 @@ message TimedSpots {
   bool follow_guard = 4;
 }
 
-// One difficulty of one boss: what the player fights, how long they have, how
-// often they may come back, and what it pays.
+// One difficulty of one boss: what the player fights, how long they have and
+// what it pays. Every boss is daily (src/character/boss_reset.h).
 message BossDifficulty {
   string name = 1;  // "Normal"
   // Fought in order.
   repeated BossPhase phases = 2;
-  ResetPeriod reset = 3;
+  reserved 3;
+  reserved "reset";
   // Seconds allowed for the whole fight. Running out ends it without a clear.
   int32 time_limit_seconds = 4;
   repeated MobDrop drops = 5;

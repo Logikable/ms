@@ -45,7 +45,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   # At his unlock level the field takes 10 to 29 minutes to kill him; the limit
   # is for the player who comes back twenty levels later.
   time_limit_seconds: 600
@@ -116,7 +115,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
   # GMS's own price. Low next to Arkarium's and Hard Hilla's, but kept.

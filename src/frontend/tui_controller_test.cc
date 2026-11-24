@@ -191,7 +191,6 @@ class TuiControllerTest : public testing::Test {
     boss.set_name("Zakum");
     BossDifficulty* normal = boss.add_difficulties();
     normal->set_name("Normal");
-    normal->set_reset(RESET_PERIOD_DAILY);
     normal->set_time_limit_seconds(300);
     Spawn* spawn = normal->add_phases()->add_spawns();
     spawn->set_mob("zakum_arm");
@@ -4443,7 +4442,6 @@ TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
   HoldASword();
   BossDifficulty* chaos = state_->bosses["zakum"].add_difficulties();
   chaos->set_name("Chaos");
-  chaos->set_reset(RESET_PERIOD_DAILY);
   chaos->set_time_limit_seconds(300);
   *chaos->mutable_phases() = state_->bosses["zakum"].difficulties(0).phases();
   state_->character.RecordBossClear("zakum", "Normal",

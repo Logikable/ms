@@ -49,7 +49,6 @@ std::unique_ptr<GameState> WallState() {
   boss.set_name("Wall");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(1800);
   AddPhase(normal, "opener");
   AddPhase(normal, "wall");

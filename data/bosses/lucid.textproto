@@ -32,7 +32,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 230
   arcane_force: 360
@@ -109,7 +108,6 @@ difficulties {
     time_limit_seconds: 45
     reset_cooldowns: true
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 230
   arcane_force: 360

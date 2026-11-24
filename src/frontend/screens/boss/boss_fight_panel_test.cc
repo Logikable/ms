@@ -60,7 +60,6 @@ Boss Zakum() {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   // The arms in two columns of four down the middle, with the player's floor
   // below and a ledge over each end, as the data file lays them out.
@@ -94,7 +93,6 @@ Boss OneArmBoss() {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   BossPhase* phase = normal->add_phases();
   Spawn* arm = phase->add_spawns();
@@ -116,7 +114,6 @@ Boss ColumnBoss() {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   BossPhase* phase = normal->add_phases();
   Spawn* arms = phase->add_spawns();
@@ -1255,7 +1252,6 @@ Boss GridBoss(const std::vector<std::pair<int, int>>& spots) {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   BossPhase* phase = normal->add_phases();
   Spawn* arm = phase->add_spawns();

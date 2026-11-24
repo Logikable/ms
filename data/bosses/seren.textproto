@@ -55,7 +55,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 260
   # GMS asks 150 of phase 1 and 200 of phase 2, at every difficulty.
@@ -148,7 +147,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 1200
   unlock_level: 260
   # GMS asks 150 of phase 1 and 200 of phase 2, at every difficulty.

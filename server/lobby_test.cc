@@ -57,11 +57,9 @@ std::map<std::string, Boss> Bosses() {
   BossDifficulty* normal = hilla.add_difficulties();
   normal->set_name("Normal");
   normal->set_unlock_level(120);
-  normal->set_reset(RESET_PERIOD_DAILY);
   BossDifficulty* hard = hilla.add_difficulties();
   hard->set_name("Hard");
   hard->set_unlock_level(120);
-  hard->set_reset(RESET_PERIOD_DAILY);
   return bosses;
 }
 

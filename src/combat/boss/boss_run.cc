@@ -1216,11 +1216,9 @@ void BossRun::PayReward(GameState& state,
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
   }
-  // Honor isn't split either. Only bosses with a reset period pay it.
-  if (chosen->reset() != RESET_PERIOD_UNSPECIFIED) {
-    reward_.honor = kBossClearHonor;
-    state.character.AddHonor(reward_.honor);
-  }
+  // Honor isn't split either.
+  reward_.honor = kBossClearHonor;
+  state.character.AddHonor(reward_.honor);
   if (kSixthJobEnabled) {
     reward_.sol_erda_energy = chosen->sol_erda_energy();
     state.character.AddSolErdaEnergy(reward_.sol_erda_energy);

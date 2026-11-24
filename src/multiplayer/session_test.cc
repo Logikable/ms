@@ -154,7 +154,6 @@ TEST_F(SessionTest, TheAccountsAchievementsTravelWithThePlayer) {
 TEST_F(SessionTest, ABossLockTravelsAsTheInstantItEnds) {
   Boss& lucid = state_->bosses["lucid"];
   lucid.add_difficulties()->set_name("Normal");
-  lucid.mutable_difficulties(0)->set_reset(RESET_PERIOD_WEEKLY);
   state_->bosses["zakum"].add_difficulties()->set_name("Normal");
   EXPECT_TRUE(PlayerFor(*state_).boss_locked_until().empty());
 
@@ -162,7 +161,7 @@ TEST_F(SessionTest, ABossLockTravelsAsTheInstantItEnds) {
   PlayerInfo player = PlayerFor(*state_);
   ASSERT_EQ(player.boss_locked_until_size(), 1);
   EXPECT_EQ(player.boss_locked_until().at("lucid"),
-            NextBossReset(RESET_PERIOD_WEEKLY, 1'700'000'000));
+            NextBossReset(1'700'000'000));
 }
 
 TEST_F(SessionTest, AchievementCountersTravelButNotThePurse) {

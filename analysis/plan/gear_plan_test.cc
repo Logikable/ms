@@ -103,7 +103,6 @@ class GearPlanTest : public ::testing::Test {
     boss.set_name("Wall");
     BossDifficulty* normal = boss.add_difficulties();
     normal->set_name("Normal");
-    normal->set_reset(RESET_PERIOD_DAILY);
     normal->set_unlock_level(200);
     normal->set_time_limit_seconds(1800);
     normal->set_arcane_force(100);

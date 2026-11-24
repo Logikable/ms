@@ -50,17 +50,6 @@ constexpr int kOptionsHeight = 3;
 // The switches on the row, left to right.
 constexpr int kOptionCount = 2;
 
-std::string ResetName(ResetPeriod period) {
-  switch (period) {
-    case RESET_PERIOD_DAILY:
-      return "Daily";
-    case RESET_PERIOD_WEEKLY:
-      return "Weekly";
-    default:
-      return "-";
-  }
-}
-
 // mm:ss, which suits a five-minute clock and matches the fight screen's
 // countdown.
 std::string Clock(int seconds) {
@@ -340,11 +329,6 @@ bool BossSelectPanel::selected_coming_soon() const {
   return difficulty != nullptr && difficulty->coming_soon();
 }
 
-ResetPeriod BossSelectPanel::selected_reset() const {
-  const BossDifficulty* difficulty = selected();
-  return difficulty == nullptr ? RESET_PERIOD_UNSPECIFIED : difficulty->reset();
-}
-
 ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   const Boss& fight = state_.bosses.at(Shown()[boss]);
   if (at >= fight.difficulties_size()) {
@@ -481,7 +465,6 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     }
   }
   rows.push_back(DetailRow("Time Limit", clock));
-  rows.push_back(DetailRow("Reset", ResetName(difficulty.reset())));
   std::vector<ftxui::Element>& rewards = detail.rewards;
   rewards.push_back(ThemedSeparator());
   rewards.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
@@ -602,10 +585,8 @@ void BossSelectPanel::RenderRewards(
     rows.push_back(DetailRow("EXP", FormatWithCommas(difficulty.exp())));
     ++named;
   }
-  // Honor is paid for a clear that has a reset, as PayReward does, and is shown
-  // only to a player who has something to spend it on.
-  if (difficulty.reset() != RESET_PERIOD_UNSPECIFIED &&
-      HonorVisible(state_.character.proto().level(),
+  // Honor is shown only to a player who has something to spend it on.
+  if (HonorVisible(state_.character.proto().level(),
                    state_.account.max_level())) {
     rows.push_back(DetailRow("Honor", FormatWithCommas(kBossClearHonor)));
     ++named;

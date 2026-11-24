@@ -38,49 +38,43 @@ int64_t ToUnix(std::tm local) {
 
 }  // namespace
 
-int64_t LastBossReset(ResetPeriod period, int64_t now) {
-  std::tm local = ResetHourOfDay(now);
-  int64_t today = ToUnix(local);
-  if (period == RESET_PERIOD_WEEKLY) {
-    // Back to the reset weekday, then back another week if that is after `now`,
-    // which happens on reset day itself before 4am.
-    int days_since = (local.tm_wday - kBossResetWeekday + 7) % 7;
-    int64_t at = today - days_since * kSecondsPerDay;
-    return at <= now ? at : at - 7 * kSecondsPerDay;
-  }
+int64_t LastBossReset(int64_t now) {
+  int64_t today = ToUnix(ResetHourOfDay(now));
   return today <= now ? today : today - kSecondsPerDay;
 }
 
-int64_t NextBossReset(ResetPeriod period, int64_t now) {
-  int64_t last = LastBossReset(period, now);
-  int64_t span =
-      period == RESET_PERIOD_WEEKLY ? 7 * kSecondsPerDay : kSecondsPerDay;
+int64_t NextBossReset(int64_t now) {
   // Computed by adding to the previous reset instead of moving the calendar
   // forward, so a daylight saving change shifts the hour by an hour instead of
   // skipping or repeating a whole reset.
-  return last + span;
+  return LastBossReset(now) + kSecondsPerDay;
 }
 
-bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now) {
-  if (cleared <= 0 || period == RESET_PERIOD_UNSPECIFIED) {
-    return true;
-  }
-  return cleared < LastBossReset(period, now);
+bool BossAvailable(int64_t cleared, int64_t now) {
+  return cleared <= 0 || cleared < LastBossReset(now);
 }
+
+namespace {
+
+// Whether `boss` still has the difficulty `clear` was at.
+bool HasDifficulty(const Boss& boss, const BossClear& clear) {
+  for (const BossDifficulty& difficulty : boss.difficulties()) {
+    if (difficulty.name() == clear.difficulty()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
 
 bool BossAvailable(const std::string& key, const Boss& boss,
                    const google::protobuf::RepeatedPtrField<BossClear>& clears,
                    int64_t now) {
   for (const BossClear& clear : clears) {
-    if (clear.boss() != key) {
-      continue;
-    }
-    for (const BossDifficulty& difficulty : boss.difficulties()) {
-      if (difficulty.name() == clear.difficulty() &&
-          !BossAvailable(clear.cleared_unix_seconds(), difficulty.reset(),
-                         now)) {
-        return false;
-      }
+    if (clear.boss() == key && HasDifficulty(boss, clear) &&
+        !BossAvailable(clear.cleared_unix_seconds(), now)) {
+      return false;
     }
   }
   return true;
@@ -91,15 +85,9 @@ int64_t BossLockedUntil(
     const google::protobuf::RepeatedPtrField<BossClear>& clears) {
   int64_t until = 0;
   for (const BossClear& clear : clears) {
-    if (clear.boss() != key || clear.cleared_unix_seconds() <= 0) {
-      continue;
-    }
-    for (const BossDifficulty& difficulty : boss.difficulties()) {
-      if (difficulty.name() == clear.difficulty() &&
-          difficulty.reset() != RESET_PERIOD_UNSPECIFIED) {
-        until = std::max(until, NextBossReset(difficulty.reset(),
-                                              clear.cleared_unix_seconds()));
-      }
+    if (clear.boss() == key && clear.cleared_unix_seconds() > 0 &&
+        HasDifficulty(boss, clear)) {
+      until = std::max(until, NextBossReset(clear.cleared_unix_seconds()));
     }
   }
   return until;

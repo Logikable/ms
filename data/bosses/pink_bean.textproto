@@ -31,7 +31,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   # At 170 the Shadower runs out of time and the Paladin and Bow Master finish
   # with seconds to spare; ten levels later every branch clears in under 7:20.
@@ -89,7 +88,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
   # GMS v272's Heroic Intense Power Crystal price; v272 made him a daily.

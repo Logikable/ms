@@ -55,7 +55,6 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(time_limit);
   BossPhase* first = normal->add_phases();
   Spawn* arms = first->add_spawns();
@@ -100,7 +99,6 @@ std::map<std::string, EquipPrototype> DropEquips() {
 Boss RewardingBoss(double mark_chance = 0.5) {
   Boss boss = TwoPhaseBoss();
   BossDifficulty* normal = boss.mutable_difficulties(0);
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_meso(3062500);
   normal->set_exp(4611597);
   MobDrop* mark = normal->add_drops();

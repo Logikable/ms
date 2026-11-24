@@ -136,9 +136,6 @@ class BossSelectPanel {
   // Whether the highlighted fight is defined but not built yet. Such a fight is
   // listed and readable but can never be entered.
   bool selected_coming_soon() const;
-  // How often the highlighted fight resets, for a notice that has to say when.
-  // RESET_PERIOD_UNSPECIFIED when there is no fight.
-  ResetPeriod selected_reset() const;
 
  private:
   ftxui::Element RenderBossList(

@@ -26,62 +26,33 @@ int64_t LocalTime(int year, int month, int day, int hour, int minute = 0) {
   return static_cast<int64_t>(std::mktime(&local));
 }
 
-// 2026-08-20 is a Thursday, so 2026-08-18 is the Tuesday before it.
+// 2026-08-20, a Thursday.
 constexpr int kThursday = 20;
-constexpr int kTuesday = 18;
 
-TEST(BossResetTest, TheDailyClockTurnsOverAtFourInTheMorning) {
+TEST(BossResetTest, TheClockTurnsOverAtFourInTheMorning) {
   // Just before 4am the day's reset has not happened: the last one is
   // yesterday's.
-  EXPECT_EQ(
-      LastBossReset(RESET_PERIOD_DAILY, LocalTime(2026, 8, kThursday, 3, 59)),
-      LocalTime(2026, 8, kThursday - 1, 4));
-  EXPECT_EQ(LastBossReset(RESET_PERIOD_DAILY, LocalTime(2026, 8, kThursday, 4)),
+  EXPECT_EQ(LastBossReset(LocalTime(2026, 8, kThursday, 3, 59)),
+            LocalTime(2026, 8, kThursday - 1, 4));
+  EXPECT_EQ(LastBossReset(LocalTime(2026, 8, kThursday, 4)),
             LocalTime(2026, 8, kThursday, 4));
-  EXPECT_EQ(
-      LastBossReset(RESET_PERIOD_DAILY, LocalTime(2026, 8, kThursday, 23, 59)),
-      LocalTime(2026, 8, kThursday, 4));
+  EXPECT_EQ(LastBossReset(LocalTime(2026, 8, kThursday, 23, 59)),
+            LocalTime(2026, 8, kThursday, 4));
 }
 
-TEST(BossResetTest, TheWeeklyClockTurnsOverOnTuesday) {
-  EXPECT_EQ(
-      LastBossReset(RESET_PERIOD_WEEKLY, LocalTime(2026, 8, kThursday, 12)),
-      LocalTime(2026, 8, kTuesday, 4));
-  // Tuesday before 4am still belongs to the week before.
-  EXPECT_EQ(
-      LastBossReset(RESET_PERIOD_WEEKLY, LocalTime(2026, 8, kTuesday, 3, 59)),
-      LocalTime(2026, 8, kTuesday - 7, 4));
-  EXPECT_EQ(LastBossReset(RESET_PERIOD_WEEKLY, LocalTime(2026, 8, kTuesday, 4)),
-            LocalTime(2026, 8, kTuesday, 4));
-}
-
-TEST(BossResetTest, TheNextResetIsOnePeriodOn) {
+TEST(BossResetTest, TheNextResetIsADayOn) {
   int64_t now = LocalTime(2026, 8, kThursday, 12);
-  EXPECT_EQ(NextBossReset(RESET_PERIOD_DAILY, now),
-            LastBossReset(RESET_PERIOD_DAILY, now) + 24 * 60 * 60);
-  EXPECT_EQ(NextBossReset(RESET_PERIOD_WEEKLY, now),
-            LastBossReset(RESET_PERIOD_WEEKLY, now) + 7 * 24 * 60 * 60);
-  EXPECT_GT(NextBossReset(RESET_PERIOD_DAILY, now), now);
+  EXPECT_EQ(NextBossReset(now), LastBossReset(now) + 24 * 60 * 60);
+  EXPECT_GT(NextBossReset(now), now);
 }
 
 TEST(BossResetTest, AClearHoldsUntilTheNextReset) {
   int64_t cleared = LocalTime(2026, 8, kThursday, 12);
-  EXPECT_FALSE(BossAvailable(cleared, RESET_PERIOD_DAILY, cleared + 60));
-  EXPECT_FALSE(BossAvailable(cleared, RESET_PERIOD_DAILY,
-                             LocalTime(2026, 8, kThursday + 1, 3, 59)));
-  EXPECT_TRUE(BossAvailable(cleared, RESET_PERIOD_DAILY,
-                            LocalTime(2026, 8, kThursday + 1, 4, 1)));
-  // The same clear is still spent a week later on a weekly boss.
-  EXPECT_FALSE(BossAvailable(cleared, RESET_PERIOD_WEEKLY,
-                             LocalTime(2026, 8, kThursday + 1, 4, 1)));
-  EXPECT_TRUE(BossAvailable(cleared, RESET_PERIOD_WEEKLY,
-                            LocalTime(2026, 8, kTuesday + 7, 4, 1)));
-}
-
-TEST(BossResetTest, NeverClearedAndNoPeriodAreAlwaysAvailable) {
-  int64_t now = LocalTime(2026, 8, kThursday, 12);
-  EXPECT_TRUE(BossAvailable(0, RESET_PERIOD_DAILY, now));
-  EXPECT_TRUE(BossAvailable(now, RESET_PERIOD_UNSPECIFIED, now));
+  EXPECT_FALSE(BossAvailable(cleared, cleared + 60));
+  EXPECT_FALSE(
+      BossAvailable(cleared, LocalTime(2026, 8, kThursday + 1, 3, 59)));
+  EXPECT_TRUE(BossAvailable(cleared, LocalTime(2026, 8, kThursday + 1, 4, 1)));
+  EXPECT_TRUE(BossAvailable(0, cleared)) << "never cleared";
 }
 
 TEST(BossResetTest, TheCharacterRemembersOneClearPerDifficulty) {
@@ -100,17 +71,15 @@ TEST(BossResetTest, TheCharacterRemembersOneClearPerDifficulty) {
   EXPECT_EQ(character.proto().boss_clears_size(), 2);
 }
 
-// Two difficulties of one boss, both daily, so a clear of either can be asked
-// about the other.
+// Two difficulties of one boss, so a clear of either can be asked about the
+// other.
 Boss TwoRungBoss() {
   Boss boss;
   boss.set_name("Hilla");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   BossDifficulty* hard = boss.add_difficulties();
   hard->set_name("Hard");
-  hard->set_reset(RESET_PERIOD_DAILY);
   return boss;
 }
 
@@ -144,7 +113,6 @@ TEST(BossResetTest, AClearOfOneDifficultyHoldsThemAll) {
 // when two clears hold it, and nothing for a boss it never cleared.
 TEST(BossResetTest, TheLockEndsAtTheNextResetAfterTheLatestClear) {
   Boss hilla = TwoRungBoss();
-  hilla.mutable_difficulties(1)->set_reset(RESET_PERIOD_WEEKLY);
   std::mt19937 rng(1);
   CharacterInstance character(rng, Character());
   EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
@@ -156,9 +124,10 @@ TEST(BossResetTest, TheLockEndsAtTheNextResetAfterTheLatestClear) {
   EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
             LocalTime(2026, 8, kThursday + 1, 4));
 
-  character.RecordBossClear("hilla", "Hard", cleared);
+  character.RecordBossClear("hilla", "Hard",
+                            LocalTime(2026, 8, kThursday + 1, 12));
   EXPECT_EQ(BossLockedUntil("hilla", hilla, character.proto().boss_clears()),
-            LocalTime(2026, 8, kTuesday + 7, 4));
+            LocalTime(2026, 8, kThursday + 2, 4));
 }
 
 }  // namespace

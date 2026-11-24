@@ -13,7 +13,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 200
   # GMS v272's Heroic Intense Power Crystal price; v272 made her a daily.

@@ -47,7 +47,6 @@ Boss Zakum() {
   boss.set_name("Zakum");
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   AddPhase(normal, "zakum_arm", 8);
   AddPhase(normal, "zakum", 1);
@@ -60,12 +59,10 @@ Boss Balrog() {
   boss.set_name("Balrog");
   BossDifficulty* easy = boss.add_difficulties();
   easy->set_name("Easy");
-  easy->set_reset(RESET_PERIOD_WEEKLY);
   easy->set_time_limit_seconds(600);
   AddPhase(easy, "balrog", 1);
   BossDifficulty* normal = boss.add_difficulties();
   normal->set_name("Normal");
-  normal->set_reset(RESET_PERIOD_WEEKLY);
   normal->set_time_limit_seconds(600);
   AddPhase(normal, "balrog", 1);
   return boss;
@@ -173,7 +170,7 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   EXPECT_NE(out.find("7M"), std::string::npos);
   EXPECT_NE(out.find("40%"), std::string::npos);
   EXPECT_NE(out.find("5:00"), std::string::npos);
-  EXPECT_NE(out.find("Daily"), std::string::npos);
+  EXPECT_NE(out.find("Time Limit"), std::string::npos);
   // Nothing drops yet, and an empty list says only that. A fight that pays no
   // EXP has no EXP row instead of one reading zero.
   EXPECT_NE(out.find("(empty)"), std::string::npos);
@@ -512,7 +509,6 @@ TEST(BossSelectPanelTest, AClearedFightSaysSoAndIsNotAvailable) {
   GameState& state = *owner;
   BossSelectPanel panel(state);
   EXPECT_TRUE(panel.selected_available());
-  EXPECT_EQ(panel.selected_reset(), RESET_PERIOD_DAILY);
   EXPECT_NE(Render(panel).find("Available"), std::string::npos);
 
   state.character.RecordBossClear("zakum", "Normal",
@@ -681,7 +677,6 @@ TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
   EXPECT_NE(out.find("Coming soon!"), std::string::npos);
   EXPECT_NE(out.find("84B"), std::string::npos) << "the HP still reads";
   EXPECT_EQ(out.find("Time Limit"), std::string::npos);
-  EXPECT_EQ(out.find("Reset"), std::string::npos);
   EXPECT_EQ(out.find("Rewards"), std::string::npos);
   EXPECT_EQ(out.find("Available"), std::string::npos);
   EXPECT_EQ(out.find("PDR"), std::string::npos);
@@ -764,14 +759,14 @@ TEST(BossSelectPanelTest, TheFightCardScrollsItsDetails) {
   // The bar is drawn only once something is below the window.
   EXPECT_NE(top.find("\u2503"), std::string::npos);
   EXPECT_NE(top.find("Level"), std::string::npos);
-  EXPECT_EQ(top.find("Daily"), std::string::npos);
+  EXPECT_EQ(top.find("Time Limit"), std::string::npos);
   EXPECT_NE(top.find("100%"), std::string::npos);
 
   panel.SwitchPanel(1);
   panel.MoveCursor(9);
   EXPECT_EQ(panel.selected_boss(), "zakum");
   std::string scrolled = Render(panel);
-  EXPECT_NE(scrolled.find("Daily"), std::string::npos);
+  EXPECT_NE(scrolled.find("Time Limit"), std::string::npos);
   EXPECT_NE(scrolled.find("100%"), std::string::npos);
   // Left and Right belong to the grid, and a card with the keys doesn't change
   // its column.

@@ -18,7 +18,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   # Ahead of Pink Bean because he is the easier fight: unlocked at 170, half the
   # branches cleared him that day, while Pink Bean at 160 took until 168.
@@ -56,7 +55,6 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  reset: RESET_PERIOD_DAILY
   time_limit_seconds: 600
   unlock_level: 190
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS

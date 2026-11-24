@@ -3637,16 +3637,12 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           /*refusal=*/true, "Close");
     } else if (!boss_select_panel_.selected_available() &&
                !boss_select_panel_.practice()) {
-      std::string when =
-          boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
-              ? "this week"
-              : "today";
       // Named without the difficulty: clearing any difficulty locks them all,
       // so the one under the cursor may not be the one cleared.
       OpenSentenceNotice(
           kBossNotice,
           state_.bosses.at(boss_select_panel_.selected_boss()).name() +
-              " has already been killed " + when + ".",
+              " has already been killed today.",
           /*refusal=*/false, "Close");
     } else {
       boss_prompt_.Open();

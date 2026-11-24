@@ -160,8 +160,6 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
       }
       EXPECT_GT(difficulty.time_limit_seconds(), 0)
           << entry.first << " " << difficulty.name();
-      EXPECT_NE(difficulty.reset(), RESET_PERIOD_UNSPECIFIED)
-          << entry.first << " " << difficulty.name();
       EXPECT_FALSE(difficulty.arcane_force() > 0 &&
                    difficulty.sacred_power() > 0)
           << entry.first << " " << difficulty.name() << " asks for both forces";
@@ -246,7 +244,6 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       std::string where = entry.first + " " + difficulty.name();
       shells.push_back(where);
       EXPECT_EQ(difficulty.time_limit_seconds(), 0) << where;
-      EXPECT_EQ(difficulty.reset(), RESET_PERIOD_UNSPECIFIED) << where;
       EXPECT_EQ(difficulty.unlock_level(), 0) << where;
       EXPECT_EQ(difficulty.meso(), 0) << where;
       EXPECT_EQ(difficulty.exp(), 0) << where;
@@ -583,7 +580,6 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     SCOPED_TRACE(want.boss);
     EXPECT_EQ(hard.name(), want.name);
     EXPECT_FALSE(hard.coming_soon());
-    EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
     EXPECT_EQ(hard.time_limit_seconds(), 600);
     EXPECT_EQ(hard.unlock_level(), 190);
     EXPECT_EQ(hard.meso(), want.meso);

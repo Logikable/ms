@@ -131,7 +131,7 @@ std::vector<DailyReward> ClaimableSymbols(
 }
 
 bool DailiesAvailable(int64_t claimed, int64_t now) {
-  return BossAvailable(claimed, RESET_PERIOD_DAILY, now);
+  return BossAvailable(claimed, now);
 }
 
 bool ClaimDailies(CharacterInstance& character,
