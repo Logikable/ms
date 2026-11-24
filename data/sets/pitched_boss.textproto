@@ -11,7 +11,7 @@ members {
 }
 members {
   slot: EQUIP_SLOT_HEART
-  items { name: "Black Heart" }
+  items { name: ["Black Heart", "Total Control"] }
 }
 members {
   slot: EQUIP_SLOT_BELT

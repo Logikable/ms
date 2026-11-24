@@ -1,0 +1,8 @@
+name: "Lotus"
+level: 285
+attack: 22000
+# GMS v272 cut 32.2%.
+max_hp: 330999600000000
+exp: 0
+pdr: 380
+boss: true

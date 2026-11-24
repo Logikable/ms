@@ -200,7 +200,7 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
     }
   }
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
-  // Chaos Zakum, for whom GMS gives no EXP; and both difficulties of Lotus,
+  // Chaos Zakum, for whom GMS gives no EXP; and every difficulty of Lotus,
   // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla,
   // Seren, Kalos, the First Adversary and Kaling, which are the same case and
   // are fought for their drops.
@@ -217,6 +217,7 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                                               "kaling",
                                               "kalos",
                                               "kalos",
+                                              "lotus",
                                               "lotus",
                                               "lotus",
                                               "lucid",
@@ -262,16 +263,22 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
 // Each harder fight is its Normal with GMS's Hard or Chaos numbers (v272's
 // HP), and the difficulty is the only difference: the same mobs in the same
 // cells, so building a shell means filling in what's missing. Hard
-// Lucid adds a third phase of her own after Normal's two.
+// Lucid adds a third phase of her own after Normal's two, and Extreme Lotus
+// takes GMS's 380 PDR.
 TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
     std::string name;
     std::vector<int64_t> hp;
+    int pdr = 0;  // 0: Normal's.
   };
   const std::vector<Want> kHarder = {
       {"damien", "Hard", {17085600000000LL, 7322400000000LL}},
       {"lotus", "Hard", {6830082000000LL, 6830082000000LL, 9106776000000LL}},
+      {"lotus",
+       "Extreme",
+       {250521000000000LL, 250521000000000LL, 330999600000000LL},
+       380},
       {"guardian_angel_slime", "Chaos", {61650000000000LL}},
       {"lucid", "Hard", {36322000000000LL, 38610000000000LL, 12800000000000LL}},
       {"will", "Hard", {28182000000000LL, 21136500000000LL, 35227500000000LL}},
@@ -280,11 +287,16 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
       {"verus_hilla", "Hard", {122451000000000LL}}};
   for (const Want& want : kHarder) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
-    ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
-    const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
-    const BossDifficulty& harder = bosses_.at(want.boss).difficulties(1);
-    SCOPED_TRACE(want.boss);
-    EXPECT_EQ(harder.name(), want.name);
+    const Boss& boss = bosses_.at(want.boss);
+    const BossDifficulty& normal = boss.difficulties(0);
+    const auto found = std::find_if(
+        boss.difficulties().begin(), boss.difficulties().end(),
+        [&](const BossDifficulty& d) { return d.name() == want.name; });
+    ASSERT_NE(found, boss.difficulties().end())
+        << want.boss << " " << want.name;
+    const BossDifficulty& harder = *found;
+    SCOPED_TRACE(want.boss + " " + want.name);
+    EXPECT_EQ(normal.name(), "Normal");
     ASSERT_EQ(harder.phases_size(), static_cast<int>(want.hp.size()));
     ASSERT_EQ(harder.phases_size(),
               normal.phases_size() + (want.boss == "lucid" ? 1 : 0));
@@ -309,7 +321,7 @@ TEST_F(BossDataTest, EveryHarderFightIsItsNormalShapeAtGmsNumbers) {
       const Mob& before = mobs_.at(shape.spawns(0).mob());
       EXPECT_EQ(mob.name(), before.name());
       EXPECT_EQ(mob.attack(), before.attack());
-      EXPECT_EQ(mob.pdr(), before.pdr());
+      EXPECT_EQ(mob.pdr(), want.pdr != 0 ? want.pdr : before.pdr());
       EXPECT_EQ(mob.max_hp(), want.hp[i]);
     }
   }
@@ -459,12 +471,13 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
           << where << " makes no soul";
     }
   }
-  EXPECT_EQ(fights, 42) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "four of Root Abyss, and both difficulties of "
-                           "Zakum, Magnus, Pink Bean, Hilla, Horntail, Lotus, "
+  EXPECT_EQ(fights, 43) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "four of Root Abyss, both difficulties of "
+                           "Zakum, Magnus, Pink Bean, Hilla, Horntail, "
                            "Damien, the Guardian Angel Slime, Lucid, Will, "
                            "Gloom, Darknell, Verus Hilla, Seren, Kalos, the "
-                           "First Adversary and Kaling";
+                           "First Adversary and Kaling, and all three of "
+                           "Lotus";
 }
 
 // A spawn that leaves with another monster names one standing beside it, at a
@@ -528,9 +541,9 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
 // next sweep, and a clear can't come before the fight opens. A fight the sweep
 // never beat is named here instead, and max mode never clears it.
 TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
-  // No branch of the uncapped sweep of 2026-11-21 beat Normal Kaling.
-  const std::set<std::string> kNeverBeaten = {"kaling Normal",
-                                              "first_adversary Normal"};
+  // No branch of the uncapped sweeps of 2026-11-21 to 11-23 beat these.
+  const std::set<std::string> kNeverBeaten = {
+      "kaling Normal", "first_adversary Normal", "lotus Extreme"};
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
@@ -621,6 +634,8 @@ struct TierDrop {
   double rate = 0.0;
   bool per_boss_tier = false;
   bool per_difficulty = false;
+  // With `per_difficulty`, the most it doubles to; 0 for no cap.
+  double max_steps = 0;
 };
 
 // The two levers, and each tier's currency rate at Normal.
@@ -664,9 +679,10 @@ const std::map<std::string, TierDrop>& TierDrops() {
       (*drops)[key] = {3, DropKind::kCurrency};
     }
     for (const char* key :
-         {"magic_eyepatch", "berserked", "black_heart", "dreamy_belt",
-          "wills_cursed_spellbook_selection_box", "endless_terror",
-          "commanding_force_earring", "source_of_suffering"}) {
+         {"magic_eyepatch", "berserked", "black_heart", "total_control",
+          "dreamy_belt", "wills_cursed_spellbook_selection_box",
+          "endless_terror", "commanding_force_earring",
+          "source_of_suffering"}) {
       (*drops)[key] = {3, DropKind::kAccessory};
     }
     // Two coin fights (Hard Lucid, Hard Will) against six box fights, Normal
@@ -676,15 +692,17 @@ const std::map<std::string, TierDrop>& TierDrops() {
     // The user's rates (2026-10-04, memory boss_ring_boxes.md).
     (*drops)["black_jade_boss_ring_box"] = {
         3, DropKind::kFixed, 0, 1, 1, 0.02, /*per_boss_tier=*/true};
-    // The user's rate (2026-11-18): 1% for a tier 4 boss, doubled for Hard.
+    // The user's rates (2026-10-04, 2026-11-18): 1%, half on Easy, doubled for
+    // Hard. Extreme Lotus, Seren and Black Mage are doubled too, not 4x.
     (*drops)["white_jade_boss_ring_box"] = {4,
                                             DropKind::kFixed,
                                             0,
                                             1,
                                             1,
                                             0.01,
-                                            /*per_boss_tier=*/true,
-                                            /*per_difficulty=*/true};
+                                            /*per_boss_tier=*/false,
+                                            /*per_difficulty=*/true,
+                                            /*max_steps=*/2};
     (*drops)["mitras_rage_selection_box"] = {3, DropKind::kAccessory};
     for (const char* key : {"premium_scroll_for_accessory",
                             "premium_scroll_for_pet", "scroll_for_accessory"}) {
@@ -768,7 +786,8 @@ TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
               want *= kDaysPerSet[tier.tier - 1] / kDaysPerSet[boss_tier - 1];
             }
             if (tier.per_difficulty) {
-              want *= steps;
+              want *=
+                  tier.max_steps > 0 ? std::min(steps, tier.max_steps) : steps;
             }
             break;
         }

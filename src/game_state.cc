@@ -1867,6 +1867,12 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.set_family() == "Mitra's Rage") {
     return kSerenLevel;
   }
+  // Extreme Lotus opens at 210 like the others, but nobody beats a level 285
+  // fight there, so it counts from max mode's first clear.
+  if (proto.name() == "Total Control") {
+    const int cleared = MaxClearLevel("lotus", "Extreme");
+    return cleared > 0 ? cleared : kNeverOwned;
+  }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {
     return kAbsoLabLevel;
