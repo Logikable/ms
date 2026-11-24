@@ -1,0 +1,9 @@
+# The wiki marks this HP as estimated.
+name: "Black Mage"
+level: 280
+attack: 22000
+# GMS v272 cut Extreme 32.3%.
+max_hp: 869945000000000
+exp: 0
+pdr: 300
+boss: true

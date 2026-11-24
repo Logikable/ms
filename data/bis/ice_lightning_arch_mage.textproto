@@ -866,7 +866,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -2416,7 +2416,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -2522,7 +2522,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -2968,7 +2968,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -3471,7 +3471,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3553,38 +3553,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_6"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -3608,15 +3577,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3796,7 +3765,38 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "ring_of_restraint_6"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
@@ -4023,7 +4023,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -4228,7 +4228,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5085,7 +5085,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -5093,7 +5093,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6161,7 +6161,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -6312,7 +6312,7 @@ builds {
       first_level: 10
     }
     nodes {
-      primary: HEXA_STAT_DAMAGE
+      primary: HEXA_STAT_MAIN_STAT
       first: HEXA_STAT_CRIT_DAMAGE
       second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
@@ -7172,11 +7172,11 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ALL_STAT
+      stat: FLAME_STAT_INT_LUK
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_INT_LUK
+      stat: FLAME_STAT_ALL_STAT
       tier: 7
     }
     flame {
@@ -7237,7 +7237,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -7388,7 +7388,7 @@ builds {
       first_level: 10
     }
     nodes {
-      primary: HEXA_STAT_DAMAGE
+      primary: HEXA_STAT_MAIN_STAT
       first: HEXA_STAT_CRIT_DAMAGE
       second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
@@ -8313,7 +8313,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM

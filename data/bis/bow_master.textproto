@@ -870,7 +870,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -2530,7 +2530,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -2980,7 +2980,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -4039,7 +4039,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -5105,7 +5105,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -5367,7 +5367,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_ATTACK
+    soul: SOUL_LINE_CRIT_RATE
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -6185,7 +6185,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -6447,7 +6447,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_ATTACK
+    soul: SOUL_LINE_CRIT_RATE
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -7265,7 +7265,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM
@@ -8345,7 +8345,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BADGE
-    item: "crystal_ventus_badge"
+    item: "genesis_badge"
   }
   pieces {
     slot: EQUIP_SLOT_EMBLEM

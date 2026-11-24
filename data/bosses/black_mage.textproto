@@ -1,0 +1,301 @@
+name: "Black Mage"
+page: 2
+difficulties {
+  name: "Hard"
+  # The white shields are namu's (750B, 2.2T, 3.5T, 3T), which no source says
+  # v272 touched, over v272's HP.
+  phases {
+    # Temple of Darkness (client map 450013100): one flat floor, 4520px, so a
+    # column is ~500px. The knights start 700px either side of the player
+    # (namu); 2 and 6 is the user's spacing. Neither the rush nor the dive has
+    # a published interval, nor a cooldown in the client (Mob 8880500/1): 30s
+    # each is the user's. A Shrieking Wall every 40s sends both home and
+    # shields them for 15s (namu).
+    bgm: "TempleOfDarkness"
+    spawns {
+      mob: "hard_aeonian_rise"
+      spots { x: 2 y: 4 }
+      size { width: 1 height: 4 }
+      hp_bars: HP_BAR_COLOR_WHITE
+      walk {
+        dash { interval_ms: 30000 cells: 1 step_ms: 120 }
+        teleport { interval_ms: 30000 beside: "hard_tanadian_ruin" }
+        home_interval_ms: 40000
+      }
+      self_shield {
+        percent: 3.3917
+        interval_ms: 40000
+        duration_ms: 15000
+        vanishes: true
+      }
+    }
+    spawns {
+      mob: "hard_tanadian_ruin"
+      spots { x: 6 y: 4 }
+      size { width: 1 height: 4 }
+      hp_bars: HP_BAR_COLOR_BLACK
+      shares_hp: "hard_aeonian_rise"
+      walk {
+        dash { interval_ms: 30000 cells: 1 step_ms: 120 }
+        teleport { interval_ms: 30000 beside: "hard_aeonian_rise" }
+        home_interval_ms: 40000
+      }
+      self_shield {
+        percent: 3.3917
+        interval_ms: 40000
+        duration_ms: 15000
+        vanishes: true
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Throne of Darkness (client map 450013300): one flat floor, 2000px. He
+    # stands at his throne; Red Lightning every 70s shields him for 30s
+    # (namu).
+    bgm: "ThroneOfDarkness"
+    spawns {
+      mob: "hard_black_mage_phase_2"
+      spots { x: 4 y: 4 }
+      size { width: 3 height: 3 }
+      self_shield {
+        percent: 5.4267
+        interval_ms: 70000
+        duration_ms: 30000
+        vanishes: true
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # The In-Between (client map 450013500): the floor and six ledges, put on
+    # the nearest even column; the one 175px up under him is left out, as it
+    # would sit on his row. He walks slowly after his target; the Power of
+    # Creation and Destruction every 65s shields him until broken (namu).
+    bgm: "WorldHorizon"
+    spawns {
+      mob: "hard_black_mage_phase_3"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      self_shield { percent: 6.3311 interval_ms: 65000 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 8 y: 2 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Beyond Existence (client map 450013700): one flat floor, 1640px, all
+    # black and white. He walks as in phase 3; the pillars every 30s shield
+    # him until broken (namu).
+    bgm: "LostSpace"
+    white_arena: true
+    spawns {
+      mob: "hard_black_mage_phase_4"
+      spots { x: 4 y: 4 }
+      size { width: 3 height: 3 }
+      hp_bars: HP_BAR_COLOR_BLACK
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      self_shield { percent: 6.2615 interval_ms: 30000 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  time_limit_seconds: 1200
+  unlock_level: 255
+  arcane_force: 1320
+  # Five Intense Power Crystals at GMS's price (900,000,000), divided by thirty:
+  # GMS's monthly clear made a daily.
+  meso: 150000000
+  # 1 Sol Erda (200) and 10 Faint (10 each).
+  sol_erda_energy: 300
+  # GMS lists no EXP on any of the four bodies.
+  exp: 0
+  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, Hard being
+  # its easiest.
+  drops {
+    equip: "genesis_badge"
+    per_kill: 0.1
+  }
+  # GMS never published the odds. The boxes pay one piece for every three the
+  # coins buy across the tier, shared with fights that drop no coin.
+  drops {
+    item: "arcane_umbra_weapon_box"
+    per_kill: 0.0111
+  }
+  drops {
+    item: "arcane_umbra_armor_box"
+    per_kill: 0.0333
+  }
+  # The user's rates (2026-10-04, 2026-11-18); Hard is this boss's Normal.
+  drops {
+    item: "white_jade_boss_ring_box"
+    per_kill: 0.01
+  }
+  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  drops {
+    item: "premium_scroll_for_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    item: "premium_scroll_for_pet"
+    per_kill: 0.5
+  }
+  drops {
+    item: "magical_scroll_for_weapon"
+    per_kill: 0.1
+  }
+}
+difficulties {
+  name: "Extreme"
+  # GMS's Extreme at v272's HP, Hard's shape; its shields are namu's 42T, 42T,
+  # 60T and 52T.
+  coming_soon: true
+  phases {
+    # Temple of Darkness (client map 450013100): one flat floor, 4520px, so a
+    # column is ~500px. The knights start 700px either side of the player
+    # (namu); 2 and 6 is the user's spacing. Neither the rush nor the dive has
+    # a published interval, nor a cooldown in the client (Mob 8880500/1): 30s
+    # each is the user's. A Shrieking Wall every 40s sends both home and
+    # shields them for 15s (namu).
+    bgm: "TempleOfDarkness"
+    spawns {
+      mob: "extreme_aeonian_rise"
+      spots { x: 2 y: 4 }
+      size { width: 1 height: 4 }
+      hp_bars: HP_BAR_COLOR_WHITE
+      walk {
+        dash { interval_ms: 30000 cells: 1 step_ms: 120 }
+        teleport { interval_ms: 30000 beside: "extreme_tanadian_ruin" }
+        home_interval_ms: 40000
+      }
+      self_shield {
+        percent: 5.2575
+        interval_ms: 40000
+        duration_ms: 15000
+        vanishes: true
+      }
+    }
+    spawns {
+      mob: "extreme_tanadian_ruin"
+      spots { x: 6 y: 4 }
+      size { width: 1 height: 4 }
+      hp_bars: HP_BAR_COLOR_BLACK
+      shares_hp: "extreme_aeonian_rise"
+      walk {
+        dash { interval_ms: 30000 cells: 1 step_ms: 120 }
+        teleport { interval_ms: 30000 beside: "extreme_aeonian_rise" }
+        home_interval_ms: 40000
+      }
+      self_shield {
+        percent: 5.2575
+        interval_ms: 40000
+        duration_ms: 15000
+        vanishes: true
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Throne of Darkness (client map 450013300): one flat floor, 2000px. He
+    # stands at his throne; Red Lightning every 70s shields him for 30s
+    # (namu).
+    bgm: "ThroneOfDarkness"
+    spawns {
+      mob: "extreme_black_mage_phase_2"
+      spots { x: 4 y: 4 }
+      size { width: 3 height: 3 }
+      self_shield {
+        percent: 5.2089
+        interval_ms: 70000
+        duration_ms: 30000
+        vanishes: true
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # The In-Between (client map 450013500): the floor and six ledges, put on
+    # the nearest even column; the one 175px up under him is left out, as it
+    # would sit on his row. He walks slowly after his target; the Power of
+    # Creation and Destruction every 65s shields him until broken (namu).
+    bgm: "WorldHorizon"
+    spawns {
+      mob: "extreme_black_mage_phase_3"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      self_shield { percent: 6.897 interval_ms: 65000 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 4 y: 3 }
+    player_spots { x: 6 y: 3 }
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 8 y: 2 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    # Beyond Existence (client map 450013700): one flat floor, 1640px, all
+    # black and white. He walks as in phase 3; the pillars every 30s shield
+    # him until broken (namu).
+    bgm: "LostSpace"
+    white_arena: true
+    spawns {
+      mob: "extreme_black_mage_phase_4"
+      spots { x: 4 y: 4 }
+      size { width: 3 height: 3 }
+      hp_bars: HP_BAR_COLOR_BLACK
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+      self_shield { percent: 6.6502 interval_ms: 30000 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 8 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+}

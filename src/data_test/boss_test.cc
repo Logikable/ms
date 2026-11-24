@@ -200,9 +200,10 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
   // Chaos Zakum, for whom GMS gives no EXP; and every difficulty of Lotus,
   // the Guardian Angel Slime, Lucid, Will, Gloom, Darknell, Verus Hilla,
-  // Seren, Kalos, the First Adversary and Kaling, which are the same case and
-  // are fought for their drops.
-  EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen",
+  // the Black Mage, Seren, Kalos, the First Adversary and Kaling, which are
+  // the same case and are fought for their drops.
+  EXPECT_EQ(unpaid, std::vector<std::string>({"black_mage",
+                                              "crimson_queen",
                                               "darknell",
                                               "darknell",
                                               "first_adversary",
@@ -250,11 +251,11 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(shells,
-            std::vector<std::string>(
-                {"bellona Easy", "bellona Normal", "first_adversary Hard",
-                 "first_adversary Extreme", "kaling Hard", "kaling Extreme",
-                 "kalos Chaos", "kalos Extreme", "seren Extreme"}));
+  EXPECT_EQ(shells, std::vector<std::string>(
+                        {"bellona Easy", "bellona Normal", "black_mage Extreme",
+                         "first_adversary Hard", "first_adversary Extreme",
+                         "kaling Hard", "kaling Extreme", "kalos Chaos",
+                         "kalos Extreme", "seren Extreme"}));
 }
 
 // Each harder fight is its Normal with GMS's Hard or Chaos numbers (v272's
@@ -341,7 +342,8 @@ TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
       {"kaling Hard", 6873300000000000LL},
       {"kaling Extreme", 31915400000000000LL},
       {"bellona Easy", 779000000000000LL},
-      {"bellona Normal", 4122000000000000LL}};
+      {"bellona Normal", 4122000000000000LL},
+      {"black_mage Extreme", 3257047000000000LL}};
   // Drops the shell's own prefix from its monsters, and what only a built
   // difficulty carries, so what's left is the shape.
   auto shape = [](BossPhase phase, const std::string& prefix) {
@@ -353,19 +355,31 @@ TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
     };
     for (Spawn& spawn : *phase.mutable_spawns()) {
       strip(spawn.mutable_mob());
+      strip(spawn.mutable_shares_hp());
+      strip(spawn.mutable_walk()->mutable_teleport()->mutable_beside());
       for (std::string& shielded : *spawn.mutable_shield()->mutable_mobs()) {
         strip(&shielded);
       }
+      // A shield's size is a GMS number, like the HP.
+      spawn.mutable_self_shield()->clear_percent();
     }
     return phase.SerializeAsString();
   };
   int shells = 0;
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
+    // Normal, or for a boss with none (the Black Mage) its first built one.
     const BossDifficulty* normal = nullptr;
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      if (difficulty.name() == "Normal" && !difficulty.coming_soon()) {
+      if (!difficulty.coming_soon() &&
+          (difficulty.name() == "Normal" || normal == nullptr)) {
         normal = &difficulty;
       }
+    }
+    std::string base_prefix;
+    if (normal != nullptr && normal->name() != "Normal") {
+      base_prefix = normal->name() + "_";
+      std::transform(base_prefix.begin(), base_prefix.end(),
+                     base_prefix.begin(), ::tolower);
     }
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (!difficulty.coming_soon()) {
@@ -390,7 +404,7 @@ TEST_F(BossDataTest, EveryShellIsItsNormalAtGmsHp) {
       ASSERT_EQ(difficulty.phases_size(), normal->phases_size());
       for (int i = 0; i < difficulty.phases_size(); ++i) {
         EXPECT_EQ(shape(difficulty.phases(i), prefix),
-                  shape(normal->phases(i), ""))
+                  shape(normal->phases(i), base_prefix))
             << "phase " << i + 1;
         for (int j = 0; j < difficulty.phases(i).spawns_size(); ++j) {
           const Mob& mob = mobs_.at(difficulty.phases(i).spawns(j).mob());
@@ -443,6 +457,10 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
+        continue;
+      }
+      // GMS made no soul of the Black Mage.
+      if (entry.first == "black_mage") {
         continue;
       }
       ++fights;
@@ -676,9 +694,9 @@ const std::map<std::string, TierDrop>& TierDrops() {
     }
     for (const char* key :
          {"magic_eyepatch", "berserked", "black_heart", "total_control",
-          "dreamy_belt", "wills_cursed_spellbook_selection_box",
-          "endless_terror", "commanding_force_earring",
-          "source_of_suffering"}) {
+          "genesis_badge", "dreamy_belt",
+          "wills_cursed_spellbook_selection_box", "endless_terror",
+          "commanding_force_earring", "source_of_suffering"}) {
       (*drops)[key] = {3, DropKind::kAccessory};
     }
     // Two coin fights (Hard Lucid, Hard Will) against six box fights, Normal
@@ -1014,9 +1032,11 @@ TEST_F(BossDataTest, GiantsAndTimedSpotsLeaveTheirArenasDrawable) {
                 << where << " raises its shield with a form it never takes";
             EXPECT_EQ(shield.interval_ms(), 0) << where << " has two clocks";
           } else {
-            EXPECT_GT(shield.duration_ms(), 0) << where;
+            // No duration holds it until broken, the next topping it up.
+            EXPECT_GT(shield.interval_ms(), 0) << where;
+            EXPECT_GE(shield.duration_ms(), 0) << where;
             EXPECT_LT(shield.duration_ms(), shield.interval_ms())
-                << where << " holds its shield for good";
+                << where << " outlasts its own clock";
           }
           // Its end heals whatever shield is left, so another's would heal too.
           for (const Spawn& giver : phase.spawns()) {

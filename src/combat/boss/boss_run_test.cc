@@ -660,8 +660,8 @@ TEST(BossRunTest, MonstersSharingHpFallTogether) {
   EXPECT_EQ(run.slots()[0].height, 4);
 }
 
-// The dive lands in the free column nearest the other knight, never on it,
-// and the wall sends both home.
+// The dive lands in the free column nearest the other knight, one clear of
+// it, and the wall sends both home.
 TEST(BossRunTest, AKnightDivesBesideTheOtherAndGoesHomeAtTheWall) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   state->mobs["twin"] = MakeMob("Tanadian Ruin", 1000000000, 0);
@@ -679,11 +679,12 @@ TEST(BossRunTest, AKnightDivesBesideTheOtherAndGoesHomeAtTheWall) {
   run.Advance(*state, kBossCountdownSeconds + 29.0);
   EXPECT_EQ(run.slots()[0].x, 2);
   run.Advance(*state, 2.0);
-  EXPECT_EQ(std::abs(run.slots()[0].x - run.slots()[1].x), 1)
-      << "beside the other knight";
+  EXPECT_EQ(std::abs(run.slots()[0].x - run.slots()[1].x), 2)
+      << "beside the other knight, a column between them";
   run.Advance(*state, 4.5);
   EXPECT_NE(run.slots()[1].x, 6) << "the rush moved it";
-  EXPECT_NE(run.slots()[1].x, run.slots()[0].x) << "into the other's column";
+  EXPECT_GE(std::abs(run.slots()[1].x - run.slots()[0].x), 2)
+      << "up against the other";
   run.Advance(*state, 5.0);
   EXPECT_EQ(run.slots()[0].x, 2) << "home at the wall";
 }

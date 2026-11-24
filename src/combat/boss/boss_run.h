@@ -480,7 +480,7 @@ class BossRun {
   static double NextHomeAt(const BossSlot& slot);
   // Whether `slot` may stand with its bottom middle cell on (x, y): every cell
   // it would cover inside its bounds, off the player's spots and, where either
-  // is sized, clear of every other living monster.
+  // is sized, a column clear of every other living monster.
   bool Free(const BossPhase& phase, const BossSlot& slot, int x, int y) const;
   // Moves `slot` over a hunted player's column in its own row, or beside the
   // monster its teleport names, if it may stand there, and schedules the next

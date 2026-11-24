@@ -687,9 +687,11 @@ bool BossRun::Free(const BossPhase& phase, const BossSlot& slot, int x,
         (!sized && other.width == 1 && other.height == 1)) {
       continue;
     }
-    const int other_left = other.x - (other.width - 1) / 2;
+    // A column apart at least, since a bar is wider than its column and two
+    // side by side would be drawn over each other.
+    const int other_left = other.x - (other.width - 1) / 2 - 1;
     const int other_top = other.y - other.height + 1;
-    if (left < other_left + other.width && other_left < left + slot.width &&
+    if (left < other_left + other.width + 2 && other_left < left + slot.width &&
         top <= other.y && other_top <= y) {
       return false;
     }

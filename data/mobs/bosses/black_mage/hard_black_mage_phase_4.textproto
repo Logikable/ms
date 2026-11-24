@@ -1,0 +1,9 @@
+# The wiki marks this HP as estimated.
+name: "Black Mage"
+level: 265
+attack: 22000
+# GMS v272 cut Hard 64.9%.
+max_hp: 47911500000000
+exp: 0
+pdr: 300
+boss: true

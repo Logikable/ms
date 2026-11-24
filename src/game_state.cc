@@ -516,6 +516,10 @@ constexpr int kVerusHillaLevel = 250;
 // 200.
 constexpr int kSerenLevel = 260;
 
+// The level the Black Mage opens at, whose Hard difficulty drops the Genesis
+// Badge, worn from 200.
+constexpr int kBlackMageLevel = 255;
+
 // The level Kalos opens at, whose Residual Determination buys four Eternal
 // pieces, worn from 250.
 constexpr int kKalosLevel = 265;
@@ -851,6 +855,12 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
       MakeRoomFor(state, emblem->second);
       WearAll(state, {emblem->first}, equips);
     }
+  }
+  std::map<std::string, EquipPrototype>::const_iterator badge =
+      state.equips.find("genesis_badge");
+  if (badge != state.equips.end() && level >= OwnedFromLevel(badge->second)) {
+    MakeRoomFor(state, badge->second);
+    WearAll(state, {badge->first}, equips);
   }
 }
 
@@ -1463,6 +1473,14 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   ThrowMaxToggles(state);
   const int reached = state.character.proto().level();
   WearAll(state, MaxOutfit(state.character.proto().job(), reached), equips);
+  std::map<std::string, EquipPrototype>::const_iterator badge =
+      state.equips.find("genesis_badge");
+  if (badge != state.equips.end() &&
+      (bis ? reached >= kBlackMageLevel
+           : reached >= OwnedFromLevel(badge->second))) {
+    MakeRoomFor(state, badge->second);
+    WearAll(state, {badge->first}, equips);
+  }
   if (!bis) {
     WearMaxFarmPieces(state, reached, equips);
   }
@@ -1866,6 +1884,12 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   // fight there, so it counts from max mode's first clear.
   if (proto.name() == "Total Control") {
     const int cleared = MaxClearLevel("lotus", "Extreme");
+    return cleared > 0 ? cleared : kNeverOwned;
+  }
+  // The Black Mage opens at 255, so the badge counts from max mode's first
+  // clear of him.
+  if (proto.name() == "Genesis Badge") {
+    const int cleared = MaxClearLevel("black_mage", "Hard");
     return cleared > 0 ? cleared : kNeverOwned;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||

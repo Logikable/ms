@@ -1,5 +1,5 @@
 name: EQUIP_SET_NAME_PITCHED_BOSS
-# GMS's ten slots. The badge drops from a fight not built yet.
+# GMS's ten slots.
 complete_pieces: 10
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -39,6 +39,10 @@ members {
 members {
   slot: EQUIP_SLOT_PENDANT
   items { name: "Source of Suffering" }
+}
+members {
+  slot: EQUIP_SLOT_BADGE
+  items { name: "Genesis Badge" }
 }
 members {
   slot: EQUIP_SLOT_EMBLEM

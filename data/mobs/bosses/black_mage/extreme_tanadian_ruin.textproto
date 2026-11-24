@@ -1,0 +1,9 @@
+# The wiki marks this HP as estimated.
+name: "Tanadian Ruin"
+level: 275
+attack: 46000
+# GMS v272 cut Extreme 32.3%. Shares its HP with Aeonian Rise.
+max_hp: 798860000000000
+exp: 0
+pdr: 300
+boss: true
