@@ -61,3 +61,25 @@ TEST(BestStarRunTest, NothingPastTheCeiling) {
 
 }  // namespace
 }  // namespace ms
+
+namespace ms {
+namespace {
+
+// Nothing below 15 stars can boom, so no spare is ever needed to get there.
+TEST(StarForceBoomsCoveringTest, NoSpareBelowTheFirstBoom) {
+  EXPECT_EQ(StarForceBoomsCovering(0, 15, 0.99), 0);
+}
+
+// Nine runs in ten need more spares than the average run, and more stars need
+// more.
+TEST(StarForceBoomsCoveringTest, TheTailIsAboveTheMean) {
+  const double mean = StarForceRunTo(200, 0, 22).booms;
+  const int half = StarForceBoomsCovering(0, 22, 0.5);
+  const int most = StarForceBoomsCovering(0, 22, 0.9);
+  EXPECT_LE(half, mean);
+  EXPECT_GT(most, mean);
+  EXPECT_GT(StarForceBoomsCovering(0, 23, 0.9), most);
+}
+
+}  // namespace
+}  // namespace ms

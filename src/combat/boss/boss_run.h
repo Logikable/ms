@@ -158,6 +158,8 @@ struct BossReward {
   // Noblesse SP this clear earned: only a first solo clear of a difficulty
   // earns any, and beating one first pays for those below it too.
   int noblesse_sp = 0;
+  // The item drop rate the drops were rolled at, 2.5 for +250%.
+  double item_drop_pct = 0.0;
 };
 
 // One monster's bar. Created when the phase starts and never reused: a dead

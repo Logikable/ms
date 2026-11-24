@@ -101,6 +101,45 @@ StarForceRun StarForceRunTo(int required_level, int from, int to) {
   return run;
 }
 
+int StarForceBoomsCovering(int from, int to, double share) {
+  if (from < 0 || to <= from || to > kMaxStarForce) {
+    return 0;
+  }
+  // covered[s]: the chance a run from s reaches `to` with at most k booms.
+  // With k booms allowed, a boom at s leaves k - 1 from the recovery star:
+  //
+  //   P_k[s] = p_success P_k[s+1] + p_destroy P_{k-1}[recovery] + p_fail P_k[s]
+  std::vector<double> covered(to, 0.0);
+  constexpr int kMostBooms = 2000;
+  for (int booms = 0; booms <= kMostBooms; ++booms) {
+    Matrix a(to, std::vector<double>(to, 0.0));
+    std::vector<double> b(to, 0.0);
+    for (int stars = 0; stars < to; ++stars) {
+      StarForceRate rate = EquipInstance::RateAt(stars);
+      double success = rate.success / 10000.0;
+      double destroy = rate.destroy / 10000.0;
+      a[stars][stars] = success + destroy;
+      if (stars + 1 < to) {
+        a[stars][stars + 1] -= success;
+      } else {
+        b[stars] += success;
+      }
+      if (destroy > 0.0) {
+        b[stars] += destroy * covered[EquipInstance::RecoveryStars(stars)];
+      }
+    }
+    std::vector<double> next = Solve(a, b);
+    if (next.empty()) {
+      return 0;
+    }
+    covered = next;
+    if (covered[from] >= share) {
+      return booms;
+    }
+  }
+  return kMostBooms;
+}
+
 StarRunChoice BestStarRun(int required_level, int from, int ceiling,
                           double spare, double copies,
                           const std::function<double(int)>& gain_to) {

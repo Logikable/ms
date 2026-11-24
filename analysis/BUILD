@@ -171,6 +171,42 @@ cc_test(
 )
 
 cc_library(
+    name = "drop_use",
+    srcs = ["drop_use.cc"],
+    hdrs = ["drop_use.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:stat_preset",
+        "//src/combat:drop",
+        "//src/combat/boss:boss_run",
+        "//src/item",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "drop_use_test",
+    size = "small",
+    srcs = ["drop_use_test.cc"],
+    deps = [
+        ":drop_use",
+        "//src:game_state",
+        "//src/combat/boss:boss_run",
+        "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "sim_boss",
     srcs = ["sim_boss.cc"],
     hdrs = ["sim_boss.h"],

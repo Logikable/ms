@@ -1248,6 +1248,7 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
   if (spare_index < 0 && WithdrawSpare(state, proto.name())) {
     spare_index = state.character.inventory().size() - 1;
   }
+  const bool held = spare_index >= 0;
   if (spare_index < 0) {
     const TokenPrice* token =
         proto.shop_price() > 0 ? nullptr : PayablePrice(state, proto);
@@ -1265,6 +1266,9 @@ bool GearShopper::RecoverBoom(GameState& state, StatPreset owner,
   }
   state.character.RecoverTrace(trace_index, spare_index);
   ++spend.booms;
+  if (held) {
+    ++spend.held_spares_used[proto.name()];
+  }
   // RecoverTrace appends the restored piece, which is what goes back on.
   return state.character.Equip(state.character.inventory().size() - 1, owner);
 }

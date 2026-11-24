@@ -94,6 +94,7 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   BossOutcome outcome;
   outcome.won = run.won();
   outcome.seconds = run.FightSeconds();
+  outcome.reward = run.reward();
   if (!outcome.won) {
     outcome.left = LeftStanding(run, phase_hp);
     // A fight that ran out on its own has no clock left to carry the pace
@@ -119,6 +120,7 @@ BossOutcome ClaimBoss(GameState& state, const std::string& boss_key,
   BossOutcome outcome;
   outcome.won = run.won();
   outcome.seconds = run.clear_seconds();
+  outcome.reward = run.reward();
   return outcome;
 }
 

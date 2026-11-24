@@ -180,6 +180,7 @@ sim_binary(
     srcs = ["progression_sim.cc"],
     deps = [
         "//analysis:checkpoint",
+        "//analysis:drop_use",
         "//analysis:drop_value",
         "//analysis:meso_rate",
         "//analysis:parallel",
@@ -190,6 +191,7 @@ sim_binary(
         "//analysis:sim_gear",
         "//analysis:sim_jobs",
         "//analysis:sim_world",
+        "//analysis:star_force_curve",
         "//analysis/plan:ability_plan",
         "//analysis/plan:alt_plan",
         "//analysis/plan:buff_plan",

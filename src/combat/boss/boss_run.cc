@@ -1252,6 +1252,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   if (phase_ + 1 >= phases_) {
     PayReward(state, RollAwards(state, params.drop_roll_item_drop_pct));
+    reward_.item_drop_pct = params.drop_roll_item_drop_pct;
     Finish(BossRunState::kWon);
     return;
   }
@@ -1267,6 +1268,7 @@ void BossRun::ClaimClear(GameState& state, double seconds) {
   const double item_drop_pct = PhaseParams(state).drop_roll_item_drop_pct;
   seconds_left_ = std::max(0.0, difficulty()->time_limit_seconds() - seconds);
   PayReward(state, RollAwards(state, item_drop_pct));
+  reward_.item_drop_pct = item_drop_pct;
   Finish(BossRunState::kWon);
 }
 

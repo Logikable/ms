@@ -24,6 +24,11 @@ struct StarForceRun {
 // because a drop-only item has no price. Zero for a run that goes nowhere.
 StarForceRun StarForceRunTo(int required_level, int from, int to);
 
+// The fewest booms that cover a run from `from` stars to `to` in `share` of
+// runs (0.9 for nine in ten), so a drop-only piece needs that many spares. The
+// mean is StarForceRunTo's `booms`; the tail is long, so this is well above it.
+int StarForceBoomsCovering(int from, int to, double share);
+
 // The run from `from` stars worth the most per meso, and what its first star
 // costs. A star is bought as the first step of such a run: 13 to 15 are poor
 // on their own, but they are the only way to 16 and past, which add far more.

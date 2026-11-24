@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/combat/boss/boss_run.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
@@ -30,6 +31,8 @@ struct BossOutcome {
   // of a 30:00 fight reads near 1.0 left whatever the build. Equal to `left`
   // for a fight that ran out of time, whichever clock ended it.
   double left_at_clock = 0.0;
+  // What a clear paid; empty for a loss.
+  BossReward reward;
 };
 
 // Fights `difficulty_index` of `boss_key` and returns the outcome, collecting

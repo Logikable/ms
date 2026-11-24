@@ -79,6 +79,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "analysis/checkpoint.h"
+#include "analysis/drop_use.h"
 #include "analysis/drop_value.h"
 #include "analysis/meso_rate.h"
 #include "analysis/parallel.h"
@@ -97,6 +98,7 @@
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
+#include "analysis/star_force_curve.h"
 #include "src/character/account/familiar.h"
 #include "src/character/account/legion.h"
 #include "src/character/account/link.h"
@@ -210,6 +212,9 @@ ABSL_FLAG(double, total_days, 120.0,
           "nobody beats a wall rather than a run that stopped short. 0 leaves "
           "--give_up_hours and --endgame_days to say where each half stops on "
           "its own.");
+ABSL_FLAG(bool, drop_use, false,
+          "Print, for every boss drop, what dropped and what was used while it "
+          "still mattered, over every run, against its drop rate.");
 ABSL_FLAG(bool, boss_report, true,
           "Print where each fight falls across the branches: the level of the "
           "first clear, the clock at it, and how far the branches that never "
@@ -1102,6 +1107,10 @@ struct Climb {
   int frozen_set_level = 0;
   // Daily boss totals by boss key, in unlock order.
   std::map<std::string, BossLog> bosses;
+  // What each boss drop paid and was used for while it mattered; see DropUse.
+  // Shared so a Climb stays copyable; only the main climb has one.
+  std::shared_ptr<DropUse> drop_tracker;
+  std::vector<DropUseResult> drop_use;
   // Where the endgame ended: days played past the cap, what they paid, and what
   // the character wore at the end.
   double endgame_seconds = 0.0;
@@ -1566,6 +1575,10 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
     return outcome.seconds;
   }
   ++log.clears;
+  if (climb.drop_tracker != nullptr) {
+    climb.drop_tracker->Clear(fight.first, difficulty.name(), outcome.reward,
+                              (now + outcome.seconds) / kDaySeconds);
+  }
   if (log.first_clear_level == 0) {
     log.first_clear_level = level;
     log.first_clear_seconds = now + outcome.seconds;
@@ -2648,6 +2661,10 @@ void Restock(Session& run) {
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
          run.matrix, run.mapped, run.climb.ledger, &run.ring_memo,
          FamiliarPricesFor(run));
+  if (run.climb.drop_tracker != nullptr) {
+    run.climb.drop_tracker->Look(run.state, run.shopper.life().held_spares_used,
+                                 run.seconds / kDaySeconds);
+  }
   SpendNoblessePoints(run);
   SpendLegionPlan(run);
   SpendHyperPoints(run);
@@ -3225,6 +3242,9 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // bosses must opt in. This one runs the dailies.
   state.bosses = catalogs.bosses;
   Climb climb;
+  if (absl::GetFlag(FLAGS_drop_use)) {
+    climb.drop_tracker = std::make_shared<DropUse>(state);
+  }
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.samples = absl::GetFlag(FLAGS_cube_samples);
@@ -3278,6 +3298,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // endgame section does: it spends at every level of the climb, and a run that
   // never reaches the cap would report none of it.
   climb.ledger.gear = run.shopper.life();
+  if (climb.drop_tracker != nullptr) {
+    climb.drop_use = climb.drop_tracker->Finish(
+        state, run.shopper.life().held_spares_used, run.seconds / kDaySeconds);
+    climb.drop_tracker.reset();
+  }
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
   climb.farm_meso = MesoBonus(farming);
   climb.farm_drop = farming.item_drop_pct;
@@ -3718,6 +3743,123 @@ void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log) {
 
 // How much of each fight's time limit the branch needed: a clear at nine tenths
 // of the limit could be lost to the next balance change.
+// The value `share` of the way up `values` (0.5 the median, 0.9 the ninetieth
+// percentile), by nearest rank.
+double ShareOf(std::vector<double> values, double share) {
+  if (values.empty()) {
+    return 0.0;
+  }
+  std::sort(values.begin(), values.end());
+  const int rank = static_cast<int>(std::ceil(share * values.size())) - 1;
+  return values[std::clamp(rank, 0, static_cast<int>(values.size()) - 1)];
+}
+
+// Copies a drop-only piece takes from 0 stars to `to`: the piece itself and a
+// spare for every boom, on average and in nine runs of ten. Blank where the
+// piece can't go that high.
+std::string CopiesTo(const EquipPrototype* proto, int to) {
+  if (proto == nullptr || !Supports(*proto, UPGRADE_STAR_FORCE) ||
+      EquipInstance::MaxStarsForLevel(proto->required_level()) < to) {
+    return "-";
+  }
+  return absl::StrFormat(
+      "%.1f/%d", StarForceRunTo(proto->required_level(), 0, to).booms + 1.0,
+      StarForceBoomsCovering(0, to, 0.9) + 1);
+}
+
+// Every boss drop over every run: the days it mattered, what dropped then (the
+// median run) against what was used (nine runs in ten use no more), and the
+// boss drop rate the clears rolled at, beside the rates the tables give it.
+void PrintDropUse(const Catalogs& catalogs,
+                  const std::vector<std::vector<Climb>>& runs) {
+  struct Rows {
+    std::vector<double> start, end, dropped, used, low, high;
+  };
+  std::map<std::string, Rows> rows;
+  int total = 0;
+  for (const std::vector<Climb>& branch : runs) {
+    for (const Climb& climb : branch) {
+      ++total;
+      for (const DropUseResult& result : climb.drop_use) {
+        Rows& row = rows[result.name];
+        row.start.push_back(result.start_day);
+        row.end.push_back(result.end_day);
+        row.dropped.push_back(static_cast<double>(result.dropped));
+        row.used.push_back(static_cast<double>(result.used));
+        row.low.push_back(100.0 * result.low_drop);
+        row.high.push_back(100.0 * result.high_drop);
+      }
+    }
+  }
+  // The table rates, by drop name, and the piece behind a name.
+  std::map<std::string, std::string> rates;
+  std::map<std::string, const EquipPrototype*> pieces;
+  for (const auto& [key, equip] : catalogs.equips) {
+    pieces[equip.name()] = &equip;
+  }
+  for (const auto& [key, boss] : catalogs.bosses) {
+    for (const BossDifficulty& difficulty : boss.difficulties()) {
+      if (difficulty.coming_soon()) {
+        continue;
+      }
+      for (const MobDrop& drop : difficulty.drops()) {
+        std::string name;
+        if (drop.has_equip() && catalogs.equips.count(drop.equip()) > 0) {
+          name = catalogs.equips.at(drop.equip()).name();
+        } else if (catalogs.items.count(drop.item()) > 0) {
+          name = catalogs.items.at(drop.item()).name();
+        }
+        if (rows.count(name) == 0) {
+          continue;
+        }
+        std::string& rate = rates[name];
+        rate += absl::StrFormat(
+            "%s%s %s %g%%", rate.empty() ? "" : ", ", difficulty.name(),
+            boss.name(), 100.0 * drop.per_kill() * std::max(1, drop.rolls()));
+      }
+    }
+  }
+  std::vector<std::pair<double, std::string>> order;
+  for (const auto& [name, row] : rows) {
+    order.push_back({ShareOf(row.start, 0.5), name});
+  }
+  std::sort(order.begin(), order.end());
+  std::printf(
+      "\nEvery boss drop while it mattered: from the first clear of a boss "
+      "that drops it to the\nlast look the run still wore something it is "
+      "for. Over all %d runs: the median window, what\ndropped in it (median "
+      "run) against what was used (no more in nine runs of ten) -- for a\n"
+      "piece the most copies worn at once plus the held copies booms took, "
+      "for a currency or\nbox what left the bag. To 22/23* is the copies a "
+      "drop-only piece takes from 0 stars,\nmean/nine in ten. Drop is the "
+      "boss drop rate the window's clears rolled at, median\nlowest to median "
+      "highest.\n\n",
+      total);
+  std::printf("  %-34s %5s %13s %9s %8s %9s %9s %12s  %s\n", "drop", "runs",
+              "days", "dropped", "used p90", "to 22*", "to 23*", "drop",
+              "rate");
+  std::printf("  %s\n", std::string(150, '-').c_str());
+  for (const auto& [start, name] : order) {
+    const Rows& row = rows.at(name);
+    std::map<std::string, const EquipPrototype*>::const_iterator piece =
+        pieces.find(name);
+    const EquipPrototype* proto =
+        piece == pieces.end() ? nullptr : piece->second;
+    const bool equipment = proto != nullptr;
+    std::printf(
+        "  %-34s %5zu %13s %9.0f %8.0f %9s %9s %12s  %s\n", name.c_str(),
+        row.start.size(),
+        absl::StrFormat("%.0f-%.0f", start, ShareOf(row.end, 0.5)).c_str(),
+        ShareOf(row.dropped, 0.5), ShareOf(row.used, 0.9),
+        equipment ? CopiesTo(proto, 22).c_str() : "",
+        equipment ? CopiesTo(proto, 23).c_str() : "",
+        absl::StrFormat("%.0f-%.0f%%", ShareOf(row.low, 0.5),
+                        ShareOf(row.high, 0.5))
+            .c_str(),
+        rates[name].c_str());
+  }
+}
+
 void PrintBossReadiness(const Catalogs& catalogs,
                         const std::vector<Job>& branches,
                         const std::vector<Climb>& climbs) {
@@ -4980,6 +5122,9 @@ void Run() {
     PrintCharacterSheet(catalogs, branches[weakest], typical[weakest]);
   }
   PrintBossReadiness(catalogs, branches, typical);
+  if (absl::GetFlag(FLAGS_drop_use)) {
+    PrintDropUse(catalogs, runs);
+  }
   if (!absl::GetFlag(FLAGS_potential_dump).empty()) {
     DumpPotentials(absl::GetFlag(FLAGS_potential_dump), branches, typical);
   }

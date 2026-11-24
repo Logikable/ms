@@ -126,6 +126,9 @@ struct GearSpend {
   // and pay for it.
   int booms = 0;
   int64_t sold = 0;
+  // Booms restored from a copy the character held rather than one bought, by
+  // the piece's name: the dropped copies star force used up.
+  std::map<std::string, int> held_spares_used;
   RunQuotes star_quotes;
   RunQuotes cube_quotes;
   RunQuotes flame_quotes;
@@ -172,6 +175,9 @@ struct GearSpend {
     souls += other.souls;
     booms += other.booms;
     sold += other.sold;
+    for (const auto& [name, count] : other.held_spares_used) {
+      held_spares_used[name] += count;
+    }
   }
 };
 
