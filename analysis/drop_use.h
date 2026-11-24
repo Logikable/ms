@@ -35,6 +35,9 @@ struct DropUseResult {
   // For a piece, the most copies worn at once plus the held copies booms used
   // up; for a currency or a box, what left the bag.
   int64_t used = 0;
+  // Whether the boss preset ever wore something it is for. One it never wore
+  // closes at its first clear, with what that clear paid.
+  bool worn = false;
   // The item drop rate the window's clears rolled at, 2.5 for +250%.
   double low_drop = 0.0;
   double high_drop = 0.0;
@@ -56,11 +59,8 @@ class DropUse {
   void Look(const GameState& state,
             const std::map<std::string, int>& held_spares_used, double day);
 
-  // Every drop whose window opened. One the character never had a use for runs
-  // to `day`.
-  std::vector<DropUseResult> Finish(
-      const GameState& state,
-      const std::map<std::string, int>& held_spares_used, double day) const;
+  // Every drop whose window opened.
+  std::vector<DropUseResult> Finish() const;
 
  private:
   enum class Kind { kPiece, kCurrency, kBox, kPickBox, kRingBox };

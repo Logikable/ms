@@ -3299,8 +3299,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // never reaches the cap would report none of it.
   climb.ledger.gear = run.shopper.life();
   if (climb.drop_tracker != nullptr) {
-    climb.drop_use = climb.drop_tracker->Finish(
-        state, run.shopper.life().held_spares_used, run.seconds / kDaySeconds);
+    climb.drop_use = climb.drop_tracker->Finish();
     climb.drop_tracker.reset();
   }
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
@@ -3774,6 +3773,7 @@ void PrintDropUse(const Catalogs& catalogs,
                   const std::vector<std::vector<Climb>>& runs) {
   struct Rows {
     std::vector<double> start, end, dropped, used, low, high;
+    int worn = 0;
   };
   std::map<std::string, Rows> rows;
   int total = 0;
@@ -3788,6 +3788,7 @@ void PrintDropUse(const Catalogs& catalogs,
         row.used.push_back(static_cast<double>(result.used));
         row.low.push_back(100.0 * result.low_drop);
         row.high.push_back(100.0 * result.high_drop);
+        row.worn += result.worn ? 1 : 0;
       }
     }
   }
@@ -3828,7 +3829,8 @@ void PrintDropUse(const Catalogs& catalogs,
       "\nEvery boss drop while it mattered: from the first clear of a boss "
       "that drops it to the\nlast look the boss preset still wore something it "
       "is "
-      "for. Over all %d runs: the median window, what\ndropped in it (median "
+      "for (a run that never wore it: its first clear alone). Over all %d "
+      "runs: the median window, what\ndropped in it (median "
       "run) against what was used (no more in nine runs of ten) -- for a\n"
       "piece the most copies worn at once plus the held copies booms took, "
       "for a currency or\nbox what left the bag. To 22/23* is the copies a "
@@ -3836,10 +3838,10 @@ void PrintDropUse(const Catalogs& catalogs,
       "boss drop rate the window's clears rolled at, median\nlowest to median "
       "highest.\n\n",
       total);
-  std::printf("  %-34s %5s %13s %9s %8s %9s %9s %12s  %s\n", "drop", "runs",
-              "days", "dropped", "used p90", "to 22*", "to 23*", "drop",
+  std::printf("  %-34s %5s %5s %13s %9s %8s %9s %9s %12s  %s\n", "drop", "runs",
+              "worn", "days", "dropped", "used p90", "to 22*", "to 23*", "drop",
               "rate");
-  std::printf("  %s\n", std::string(150, '-').c_str());
+  std::printf("  %s\n", std::string(156, '-').c_str());
   for (const auto& [start, name] : order) {
     const Rows& row = rows.at(name);
     std::map<std::string, const EquipPrototype*>::const_iterator piece =
@@ -3848,8 +3850,8 @@ void PrintDropUse(const Catalogs& catalogs,
         piece == pieces.end() ? nullptr : piece->second;
     const bool equipment = proto != nullptr;
     std::printf(
-        "  %-34s %5zu %13s %9.0f %8.0f %9s %9s %12s  %s\n", name.c_str(),
-        row.start.size(),
+        "  %-34s %5zu %5d %13s %9.0f %8.0f %9s %9s %12s  %s\n", name.c_str(),
+        row.start.size(), row.worn,
         absl::StrFormat("%.0f-%.0f", start, ShareOf(row.end, 0.5)).c_str(),
         ShareOf(row.dropped, 0.5), ShareOf(row.used, 0.9),
         equipment ? CopiesTo(proto, 22).c_str() : "",

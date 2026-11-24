@@ -111,11 +111,14 @@ DropUse::DropUse(const GameState& state) {
 
 void DropUse::Clear(const std::string& boss, const std::string& difficulty,
                     const BossReward& reward, double day) {
+  std::vector<Row*> opened;
   for (auto& [name, row] : rows_) {
     if (row.fights.count(boss + "/" + difficulty) == 0) {
       continue;
     }
     if (!row.open) {
+      opened.push_back(&row);
+      row.last_use.name = name;
       row.open = true;
       row.start_day = day;
       row.low_drop = reward.item_drop_pct;
@@ -129,6 +132,18 @@ void DropUse::Clear(const std::string& boss, const std::string& difficulty,
     if (row != rows_.end()) {
       row->second.dropped += item.count;
     }
+  }
+  // Until the boss preset wears something it is for, a window holds only its
+  // first clear: nothing it paid was needed yet.
+  for (Row* row : opened) {
+    DropUseResult& first = row->last_use;
+    first.equipment = row->kind == Kind::kPiece;
+    first.required_level = row->required_level;
+    first.start_day = day;
+    first.end_day = day;
+    first.dropped = row->dropped;
+    first.low_drop = row->low_drop;
+    first.high_drop = row->high_drop;
   }
 }
 
@@ -174,6 +189,7 @@ DropUseResult DropUse::Snapshot(
   result.dropped = row.dropped;
   result.low_drop = row.low_drop;
   result.high_drop = row.high_drop;
+  result.worn = true;
   if (result.equipment) {
     std::map<std::string, int>::const_iterator spares =
         held_spares_used.find(name);
@@ -203,17 +219,12 @@ void DropUse::Look(const GameState& state,
   }
 }
 
-std::vector<DropUseResult> DropUse::Finish(
-    const GameState& state, const std::map<std::string, int>& held_spares_used,
-    double day) const {
+std::vector<DropUseResult> DropUse::Finish() const {
   std::vector<DropUseResult> results;
   for (const auto& [name, row] : rows_) {
-    if (!row.open) {
-      continue;
+    if (row.open) {
+      results.push_back(row.last_use);
     }
-    results.push_back(row.seen_in_use
-                          ? row.last_use
-                          : Snapshot(state, name, row, held_spares_used, day));
   }
   return results;
 }

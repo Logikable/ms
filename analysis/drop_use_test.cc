@@ -107,10 +107,11 @@ TEST(DropUseTest, CountsWhatDroppedAndWhatWasUsedWhileItMattered) {
   use.Clear("boss", "Normal", Paid(5, 6, 4.0), 3.0);
   use.Look(state, spares, 3.0);
 
-  std::vector<DropUseResult> results = use.Finish(state, spares, 9.0);
+  std::vector<DropUseResult> results = use.Finish();
   const DropUseResult* belt = Find(results, "Belt");
   ASSERT_NE(belt, nullptr);
   EXPECT_TRUE(belt->equipment);
+  EXPECT_TRUE(belt->worn);
   EXPECT_EQ(belt->dropped, 3);
   EXPECT_EQ(belt->used, 2);
   EXPECT_EQ(belt->start_day, 1.0);
@@ -124,15 +125,21 @@ TEST(DropUseTest, CountsWhatDroppedAndWhatWasUsedWhileItMattered) {
   EXPECT_EQ(coin->used, 2);
 }
 
-// A drop nobody ever wore something for runs to the end of the run.
-TEST(DropUseTest, ADropNeverUsedRunsToTheEnd) {
+// A drop the boss preset never wore is its first clear alone: nothing it paid
+// was needed.
+TEST(DropUseTest, ADropNeverWornIsItsFirstClear) {
   std::unique_ptr<GameState> owner = BeltAndCoin();
   DropUse use(*owner);
   use.Clear("boss", "Normal", Paid(1, 0, 1.0), 4.0);
-  std::vector<DropUseResult> results = use.Finish(*owner, {}, 9.0);
+  use.Clear("boss", "Normal", Paid(2, 0, 2.0), 5.0);
+  std::vector<DropUseResult> results = use.Finish();
   const DropUseResult* belt = Find(results, "Belt");
   ASSERT_NE(belt, nullptr);
-  EXPECT_EQ(belt->end_day, 9.0);
+  EXPECT_FALSE(belt->worn);
+  EXPECT_EQ(belt->start_day, 4.0);
+  EXPECT_EQ(belt->end_day, 4.0);
+  EXPECT_EQ(belt->dropped, 1);
+  EXPECT_EQ(belt->high_drop, 1.0);
   EXPECT_EQ(belt->used, 0);
 }
 
@@ -141,11 +148,11 @@ TEST(DropUseTest, AnotherDifficultyOpensNothing) {
   std::unique_ptr<GameState> owner = BeltAndCoin();
   DropUse use(*owner);
   use.Clear("boss", "Hard", Paid(0, 0, 1.0), 4.0);
-  EXPECT_TRUE(use.Finish(*owner, {}, 9.0).empty());
+  EXPECT_TRUE(use.Finish().empty());
 }
 
 // A piece worn only in the drop preset is not in use: drop gear is never
-// upgraded, so it would hold the window open to the end.
+// upgraded, so it would hold the window open for good.
 TEST(DropUseTest, OnlyTheBossPresetCounts) {
   std::unique_ptr<GameState> owner = BeltAndCoin();
   GameState& state = *owner;
@@ -156,10 +163,11 @@ TEST(DropUseTest, OnlyTheBossPresetCounts) {
   ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1,
                                     kDropPreset));
   use.Look(state, {}, 2.0);
-  std::vector<DropUseResult> results = use.Finish(state, {}, 9.0);
+  std::vector<DropUseResult> results = use.Finish();
   const DropUseResult* belt = Find(results, "Belt");
   ASSERT_NE(belt, nullptr);
-  EXPECT_EQ(belt->end_day, 9.0);
+  EXPECT_FALSE(belt->worn);
+  EXPECT_EQ(belt->end_day, 1.0);
   EXPECT_EQ(belt->used, 0);
 }
 
