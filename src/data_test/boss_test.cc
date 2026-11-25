@@ -670,9 +670,8 @@ const std::map<std::string, TierDrop>& TierDrops() {
           "silver_blossom_ring", "horntail_necklace", "chaos_horntail_necklace",
           "dea_sidus_earring", "black_bean_mark", "golden_clover_belt",
           "pink_holy_cup", "crystal_ventus_badge", "royal_black_metal_shoulder",
-          "stone_of_eternal_life", "will_o_the_wisps", "dominator_pendant",
-          "papulatus_mark", "kannas_treasure", "ayames_treasure",
-          "hayatos_treasure"}) {
+          "stone_of_eternal_life", "dominator_pendant", "papulatus_mark",
+          "kannas_treasure"}) {
       (*drops)[key] = {1, DropKind::kAccessory};
     }
     for (const char* key : {"absolab_coin", "captivating_fragment"}) {

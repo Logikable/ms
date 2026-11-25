@@ -1318,11 +1318,11 @@ std::string SetLabelOf(const GameState& state, const EquipPrototype& proto) {
       }
       static const std::map<std::string, std::string>* const kShort =
           new std::map<std::string, std::string>{
-              {"FROZEN", "Frozen"},       {"BOSS_ACCESSORY", "BossAcc"},
-              {"ROOT_ABYSS", "CRA"},      {"SENGOKU_TREASURE", "Sengoku"},
-              {"ABSOLAB", "Abso"},        {"DAWN_BOSS", "Dawn"},
-              {"ARCANE_UMBRA", "Arcane"}, {"PITCHED_BOSS", "Pitched"},
-              {"ETERNAL", "Eternal"},     {"ANTIQUE_TOTEM", "Totem"}};
+              {"FROZEN", "Frozen"},        {"BOSS_ACCESSORY", "BossAcc"},
+              {"ROOT_ABYSS", "CRA"},       {"ABSOLAB", "Abso"},
+              {"DAWN_BOSS", "Dawn"},       {"ARCANE_UMBRA", "Arcane"},
+              {"PITCHED_BOSS", "Pitched"}, {"ETERNAL", "Eternal"},
+              {"ANTIQUE_TOTEM", "Totem"}};
       std::map<std::string, std::string>::const_iterator it =
           kShort->find(label);
       return it == kShort->end() ? label : it->second;

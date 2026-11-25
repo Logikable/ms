@@ -1537,7 +1537,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BELT
-    item: "ayames_treasure"
+    item: "golden_clover_belt"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -1623,7 +1623,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_POCKET
-    item: "pink_holy_cup"
+    item: "cursed_blue_spellbook"
     flame {
       stat: FLAME_STAT_INT
       tier: 7
@@ -1643,7 +1643,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_EARRINGS
-    item: "will_o_the_wisps"
+    item: "dea_sidus_earring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY

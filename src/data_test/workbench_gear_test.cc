@@ -271,7 +271,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
       {EQUIP_SLOT_RING, "Silver Blossom Ring"},
       {EQUIP_SLOT_PENDANT, "Chaos Horntail Necklace"},
       {EQUIP_SLOT_PENDANT_2, "Dominator Pendant"},
-      {EQUIP_SLOT_EARRINGS, "Will o' the Wisps"},
+      {EQUIP_SLOT_EARRINGS, "Dea Sidus Earring"},
       {EQUIP_SLOT_SHOULDER, "Lionheart Battle Shoulder"},
       {EQUIP_SLOT_BELT, "Golden Clover Belt"},
       {EQUIP_SLOT_BADGE, "Crystal Ventus Badge"}};

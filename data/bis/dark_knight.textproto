@@ -1537,7 +1537,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BELT
-    item: "dreamy_belt"
+    item: "golden_clover_belt"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -1643,7 +1643,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_EARRINGS
-    item: "will_o_the_wisps"
+    item: "commanding_force_earring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY

@@ -591,10 +591,7 @@ std::vector<std::string> BossAccessories() {
           "chaos_horntail_necklace",
           "dominator_pendant",
           "dea_sidus_earring",
-          "will_o_the_wisps",
           "royal_black_metal_shoulder",
-          "hayatos_treasure",
-          "ayames_treasure",
           "golden_clover_belt",
           "crystal_ventus_badge"};
 }

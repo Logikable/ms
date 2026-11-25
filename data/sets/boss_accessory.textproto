@@ -36,10 +36,7 @@ members {
 }
 members {
   slot: EQUIP_SLOT_EARRINGS
-  items {
-    name: "Dea Sidus Earring"
-    name: "Will o' the Wisps"
-  }
+  items { name: "Dea Sidus Earring" }
 }
 members {
   slot: EQUIP_SLOT_SHOULDER
