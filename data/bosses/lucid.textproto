@@ -148,9 +148,9 @@ difficulties {
     per_kill: 0.03
     pity: 10
   }
-  # The user's rate (2026-10-04); GMS publishes none.
+  # The user's rate (2026-11-25); GMS publishes none.
   drops {
     item: "scroll_for_accessory"
-    per_kill: 0.5
+    per_kill: 0.03
   }
 }

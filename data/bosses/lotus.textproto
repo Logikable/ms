@@ -178,10 +178,10 @@ difficulties {
     per_kill: 0.005
     pity: 10
   }
-  # The user's rate (2026-10-04); GMS publishes none.
+  # The user's rate (2026-11-25); GMS publishes none.
   drops {
     item: "scroll_for_accessory"
-    per_kill: 0.5
+    per_kill: 0.03
   }
 }
 difficulties {
@@ -285,21 +285,21 @@ difficulties {
     per_kill: 0.005
     pity: 15
   }
-  # The scroll rates are the user's (2026-10-04); GMS publishes none.
+  # The scroll rates are the user's (2026-11-25); GMS publishes none.
   drops {
     item: "scroll_for_accessory"
-    per_kill: 0.5
+    per_kill: 0.03
   }
   drops {
     item: "premium_scroll_for_accessory"
-    per_kill: 0.5
+    per_kill: 0.03
   }
   drops {
     item: "premium_scroll_for_pet"
-    per_kill: 0.5
+    per_kill: 0.01
   }
   drops {
     item: "magical_scroll_for_weapon"
-    per_kill: 0.1
+    per_kill: 0.0025
   }
 }

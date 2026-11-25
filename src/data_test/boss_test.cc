@@ -679,11 +679,11 @@ const std::map<std::string, TableDrop>& DropTable() {
     put({"absolab_armor_box", "absolab_weapon_box", "arcane_umbra_armor_box",
          "arcane_umbra_weapon_box"},
         {0.005});
-    // The scroll rates are the user's (2026-10-04).
-    put({"premium_scroll_for_accessory", "premium_scroll_for_pet",
-         "scroll_for_accessory"},
-        {0.5});
-    put({"magical_scroll_for_weapon"}, {0.1});
+    // The scroll rates are the user's (2026-11-25), cut from 50% and 10%
+    // when thousands went unused.
+    put({"premium_scroll_for_accessory", "scroll_for_accessory"}, {0.03});
+    put({"premium_scroll_for_pet"}, {0.01});
+    put({"magical_scroll_for_weapon"}, {0.0025});
     return table;
   }();
   return *kTable;
