@@ -12,7 +12,7 @@ bool CanTrade(const ItemPrototype& proto) {
 }
 
 bool CanTrade(const EquipPrototype& proto) {
-  return !IsSymbol(proto);
+  return !IsSymbol(proto) && !proto.untradeable();
 }
 
 }  // namespace ms

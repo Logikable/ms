@@ -101,13 +101,50 @@ TEST(EquipDataTest, EveryProjectileClimbsTheSameLadder) {
   }
 }
 
+// The Liberation hands over the Genesis weapon of whatever type is worn, so
+// every weapon type an endgame weapon exists for has one, and each arrives
+// finished but bare: 22 stars, every slot scrolled, no potential or flames.
+TEST(EquipDataTest, EveryEndgameWeaponTypeHasAFinishedGenesisWeapon) {
+  std::set<EquipType> endgame;
+  std::set<EquipType> genesis;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.set_family().rfind("Arcane Umbra ", 0) == 0 &&
+        proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
+      endgame.insert(proto.equip_type());
+    }
+    if (proto.set_family().rfind("Genesis ", 0) != 0) {
+      continue;
+    }
+    EXPECT_TRUE(genesis.insert(proto.equip_type()).second)
+        << entry.first << " is a second Genesis weapon of its type";
+    const Equip fresh = FreshEquip(proto);
+    EXPECT_EQ(fresh.stars(), 22) << entry.first;
+    EXPECT_EQ(fresh.remaining_upgrade_slots(), 0) << entry.first;
+    EXPECT_EQ(fresh.scroll_successes(), 8) << entry.first;
+    EXPECT_FALSE(fresh.has_main_potential()) << entry.first;
+    EXPECT_FALSE(fresh.has_bonus_potential()) << entry.first;
+    EXPECT_EQ(fresh.flame_size(), 0) << entry.first;
+    EXPECT_FALSE(fresh.has_soul()) << entry.first;
+    EXPECT_TRUE(proto.lucky_item()) << entry.first;
+    EXPECT_TRUE(proto.untradeable()) << entry.first;
+    EXPECT_EQ(proto.weapon_skills_size(), 2) << entry.first;
+  }
+  for (EquipType type : endgame) {
+    EXPECT_EQ(genesis.count(type), 1u) << FormatEquipType(type);
+  }
+}
+
 // The refusal is the exception. If it spread to ordinary weapons, the catalog
 // would pass every check above and the player couldn't upgrade anything.
 TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON) {
+    // A Genesis weapon arrives finished, which is the exception.
+    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+        proto.dropped_as().stars() > 0) {
       continue;
     }
     EXPECT_TRUE(Supports(proto, UPGRADE_SCROLL))

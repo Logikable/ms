@@ -43,5 +43,14 @@ TEST(TradeableTest, ASymbolIsBoundToItsOwner) {
   EXPECT_FALSE(CanTrade(symbol));
 }
 
+// A Genesis weapon is the character's own: it never trades or banks.
+TEST(TradeableTest, AnUntradeableEquipStays) {
+  EquipPrototype genesis;
+  genesis.set_name("Genesis Staff");
+  EXPECT_TRUE(CanTrade(genesis));
+  genesis.set_untradeable(true);
+  EXPECT_FALSE(CanTrade(genesis));
+}
+
 }  // namespace
 }  // namespace ms

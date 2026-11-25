@@ -1889,6 +1889,10 @@ int OwnedFromLevel(const EquipPrototype& proto) {
     const int cleared = MaxClearLevel("black_mage", "Hard");
     return cleared > 0 ? cleared : kNeverOwned;
   }
+  // Only the Liberation pays a Genesis weapon.
+  if (proto.lucky_item()) {
+    return kNeverOwned;
+  }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {
     return kAbsoLabLevel;

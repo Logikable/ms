@@ -204,8 +204,9 @@ bool HasACastAnimation(const Skill& skill) {
 // Whether `skill` is, or levels with, a node every job's matrix has.
 bool IsCommonNode(const std::map<std::string, Skill>& skills,
                   const Skill& skill) {
+  // An item's attack, like the Genesis weapon's, is in every class's hands.
   if (skill.v_node() == V_NODE_KIND_COMMON ||
-      skill.hexa_node() == HEXA_NODE_KIND_COMMON) {
+      skill.hexa_node() == HEXA_NODE_KIND_COMMON || skill.granted_by_equip()) {
     return true;
   }
   for (const std::pair<const std::string, Skill>& entry : skills) {

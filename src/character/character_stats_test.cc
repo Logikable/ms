@@ -590,6 +590,65 @@ TEST_F(DerivedStatsTest, StrippingAPieceEndsTheTier) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
 }
 
+// A Lucky Item fills one more piece of a set three are worn of, and never
+// counts for a set below that.
+TEST_F(DerivedStatsTest, ALuckyItemFillsAGapInAThreePieceSet) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  EquipPrototype genesis;
+  genesis.set_name("Genesis Staff");
+  genesis.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  genesis.set_lucky_item(true);
+  c.PickUp(std::make_unique<EquipInstance>(genesis));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  const EquipSet frozen = FrozenSet().at("frozen");
+
+  WearFrozen(c, 2);
+  EXPECT_EQ(c.PiecesWornOf(frozen), 2);
+  WearFrozenPiece(c, 2);
+  EXPECT_EQ(c.PiecesWornOf(frozen), 4);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 14);
+  WearFrozenPiece(c, 3);
+  EXPECT_EQ(c.PiecesWornOf(frozen), 5);
+}
+
+// A Lucky Item that is itself a piece of the set counts once.
+TEST_F(DerivedStatsTest, ALuckyItemInItsOwnSetCountsOnce) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  EquipPrototype weapon;
+  weapon.set_name("Frozen Staff");
+  weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon.set_set_family("Frozen Weapon");
+  weapon.set_lucky_item(true);
+  c.PickUp(std::make_unique<EquipInstance>(weapon));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  WearFrozen(c, 3);
+  EXPECT_EQ(c.PiecesWornOf(FrozenSet().at("frozen")), 4);
+}
+
+// A weapon's skills are granted while it is worn, beside a ring's.
+TEST_F(DerivedStatsTest, AWeaponGrantsItsSkillsWhileWorn) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  Skill ruin;
+  ruin.set_name("Tanadian Ruin");
+  ruin.set_kind(SKILL_KIND_PASSIVE);
+  ruin.set_granted_by_equip(true);
+  ruin.set_max_level(1);
+  ruin.mutable_base()->set_final_dmg_pct(0.10);
+  const std::map<std::string, Skill> skills = {{"tanadian_ruin", ruin}};
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).final_dmg_pct, 0.0);
+  EquipPrototype genesis;
+  genesis.set_name("Genesis Staff");
+  genesis.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipmentSkill* granted = genesis.add_weapon_skills();
+  granted->set_skill("Tanadian Ruin");
+  granted->set_level(1);
+  c.PickUp(std::make_unique<EquipInstance>(genesis));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
+}
+
 // Any item of the family fills the slot the set names that family for. An item
 // with no family fills nothing, which keeps an ordinary weapon out of a set.
 TEST_F(DerivedStatsTest, AFamilyPieceFillsTheSlotTheSetNamesIt) {

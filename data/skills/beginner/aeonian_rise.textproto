@@ -1,0 +1,17 @@
+# GMS skill 80002633: 10 seconds of invincibility, and ending it early fires
+# Genesis Force. Nothing here hits the player, so only Genesis Force is kept,
+# priced as two casts: one to start it and one to end it.
+name: "Aeonian Rise"
+description:
+  "Call upon the power of Aeonian Rise, which the Black Mage created with his "
+  "powers as a Transcendent. Ending it early unleashes Genesis Force."
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 12 }
+kind: SKILL_KIND_ATTACK
+granted_by_equip: true
+max_level: 1
+fixed_delay: true
+base_delay_ms: 240
+cooldown_seconds: 120.0
+max_enemies: 12
+lines: 7
+base { skill_pct: 15.0 }

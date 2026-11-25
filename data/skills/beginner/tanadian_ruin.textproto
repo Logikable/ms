@@ -1,0 +1,11 @@
+# GMS skill 80002632. Its summon is only a picture (namu), so only the passive
+# is kept.
+name: "Tanadian Ruin"
+description:
+  "Call upon the power of Tanadian Ruin, which the Black Mage created with his "
+  "powers as a Transcendent."
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 11 }
+kind: SKILL_KIND_PASSIVE
+granted_by_equip: true
+max_level: 1
+base { final_dmg_pct: 0.10 }

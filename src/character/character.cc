@@ -1771,9 +1771,14 @@ int CharacterInstance::EquipmentSkillLevel(const Skill& skill,
   int level = 0;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
        equipped(gear)) {
-    const EquipmentSkill& granted = worn.second->prototype().equipment_skill();
-    if (granted.skill() == skill.name()) {
-      level = std::max(level, granted.level());
+    const EquipPrototype& proto = worn.second->prototype();
+    if (proto.equipment_skill().skill() == skill.name()) {
+      level = std::max(level, proto.equipment_skill().level());
+    }
+    for (const EquipmentSkill& granted : proto.weapon_skills()) {
+      if (granted.skill() == skill.name()) {
+        level = std::max(level, granted.level());
+      }
     }
   }
   return level;
@@ -2100,10 +2105,32 @@ std::string CharacterInstance::WornOfMember(const EquipSetMember& member,
 int CharacterInstance::PiecesWornOf(const EquipSet& set,
                                     StatPreset preset) const {
   int worn = 0;
+  bool lucky_counted = false;
   for (const EquipSetMember& member : set.members()) {
-    if (!WornOfMember(member, preset).empty()) {
-      ++worn;
+    const std::string name = WornOfMember(member, preset);
+    if (name.empty()) {
+      continue;
     }
+    ++worn;
+    for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+         equipped(preset)) {
+      if (kv.second->prototype().name() == name &&
+          kv.second->prototype().lucky_item()) {
+        lucky_counted = true;
+      }
+    }
+  }
+  // GMS's Lucky Item rule: three pieces of a set, and a Lucky Item worn
+  // elsewhere fills one more of its gaps.
+  const int size =
+      set.complete_pieces() > 0 ? set.complete_pieces() : set.members_size();
+  if (worn >= 3 && worn < size && !lucky_counted &&
+      absl::c_any_of(
+          equipped(preset),
+          [](const std::pair<const EquipSlot, const EquipInstance*>& kv) {
+            return kv.second->prototype().lucky_item();
+          })) {
+    ++worn;
   }
   return worn;
 }

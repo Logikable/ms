@@ -1,0 +1,33 @@
+name: "Genesis Saber"
+required_level: 200
+base_stats {
+  str: 150
+  dex: 150
+  attack: 326
+  boss_damage: 30
+  ignore_enemy_defense: 20
+}
+attack_speed: ATTACK_SPEED_FAST_1
+equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+# GMS's liberated weapon comes at 22 stars with its eight slots done in 15%
+# scrolls, and takes neither again. It arrives with no potential, flames or
+# soul (the user's call; GMS gives Unique and Epic).
+upgrade_slots: 8
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+dropped_as {
+  stars: 22
+  scroll_successes: 8
+  scroll_stats {
+    str: 32
+    attack: 72
+  }
+}
+set_family: "Genesis Warrior Weapon"
+lucky_item: true
+untradeable: true
+sell_price: 0
+weapon_skills { skill: "Tanadian Ruin" level: 1 }
+weapon_skills { skill: "Aeonian Rise" level: 1 }

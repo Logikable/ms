@@ -3,7 +3,8 @@
  *
  * Almost everything can. The exceptions are currencies, which are balances
  * instead of rows and are transferred on their own line, and Arcane Symbols,
- * which are bound to the character who levelled them. AbsoLab boxes trade,
+ * which are bound to the character who levelled them, as is anything marked
+ * untradeable (the Genesis weapons). AbsoLab boxes trade,
  * though GMS binds them. Both screens check here instead of listing the
  * exceptions themselves.
  */

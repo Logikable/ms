@@ -501,6 +501,14 @@ message EquipPrototype {
   // Combat Power prices every weapon as that bow. Data files never set this;
   // FillBowAttack does, and 0 means no bow matched.
   int32 bow_attack = 20;
+  // A Lucky Item counts as one more piece of every other set the wearer has
+  // three or more pieces of on. GMS's Genesis weapon is one.
+  bool lucky_item = 21;
+  // Bound to the character who earned it: it can't be traded or banked.
+  bool untradeable = 22;
+  // What a weapon grants while worn, beside equipment_skill, which stays the
+  // Special Skill Rings' own: the code that reads it treats it as a ring.
+  repeated EquipmentSkill weapon_skills = 23;
 }
 
 // A skill a worn item grants. See Skill.granted_by_equip.

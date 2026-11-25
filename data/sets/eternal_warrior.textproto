@@ -1,7 +1,6 @@
 name: EQUIP_SET_NAME_ETERNAL_WARRIOR
-# GMS's set also counts the Destiny weapon, an eighth piece for a 40 ATT, 15%
-# boss tier; no Destiny weapon exists here, so the set stops at seven.
-complete_pieces: 7
+# GMS's Destiny weapon fills the weapon slot too; it doesn't exist here.
+complete_pieces: 8
 members {
   slot: EQUIP_SLOT_HAT
   items { name: "Eternal Knight Helm" }
@@ -29,6 +28,10 @@ members {
 members {
   slot: EQUIP_SLOT_SHOULDER
   items { name: "Eternal Knight Shoulder" }
+}
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "Genesis Warrior Weapon"
 }
 tiers {
   pieces: 2
@@ -88,6 +91,14 @@ tiers {
     dex: 50
     int: 50
     luk: 50
+    attack: 40
+    magic_attack: 40
+    boss_pct: 0.15
+  }
+}
+tiers {
+  pieces: 8
+  effect {
     attack: 40
     magic_attack: 40
     boss_pct: 0.15

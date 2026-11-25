@@ -921,42 +921,56 @@ std::vector<CardRow> InspectPanel::PotentialRows(
 
 std::vector<CardRow> InspectPanel::EquipmentSkillRows(
     const EquipTabItem& item) const {
-  const EquipmentSkill& granted = item.prototype().equipment_skill();
-  if (skills_ == nullptr || granted.skill().empty()) {
-    return {};
+  std::vector<EquipmentSkill> granted(item.prototype().weapon_skills().begin(),
+                                      item.prototype().weapon_skills().end());
+  if (item.prototype().has_equipment_skill()) {
+    granted.insert(granted.begin(), item.prototype().equipment_skill());
   }
-  const Skill* skill = nullptr;
-  for (const std::pair<const std::string, Skill>& entry : *skills_) {
-    if (entry.second.name() == granted.skill()) {
-      skill = &entry.second;
+  std::vector<CardRow> rows;
+  if (skills_ == nullptr) {
+    return rows;
+  }
+  for (const EquipmentSkill& grant : granted) {
+    const Skill* skill = nullptr;
+    for (const std::pair<const std::string, Skill>& entry : *skills_) {
+      if (entry.second.name() == grant.skill()) {
+        skill = &entry.second;
+      }
     }
-  }
-  if (skill == nullptr) {
-    return {};
-  }
-  std::vector<CardRow> rows = {
-      RuleRow(ThemedSeparator()),
-      TextRow(ftxui::text(" " + skill->name() + " Lv. " +
-                          std::to_string(granted.level()) + " ") |
-              ftxui::color(kGold)),
-  };
-  // A buff says how long it lasts and how often; a passive is simply worn.
-  SkillEffect effect =
-      EffectAt(skill->base(), skill->per_level(), granted.level());
-  std::string timing;
-  if (skill->has_buff()) {
-    effect = BuffEffectAt(skill->buff(), granted.level());
-    timing = std::to_string(
-                 WholeValue(BuffSecondsAt(skill->buff(), granted.level()))) +
-             "s, every " +
-             std::to_string(WholeValue(CooldownAt(*skill, granted.level()))) +
-             "s";
-  }
-  for (const std::string& line : EffectLines(effect)) {
-    rows.push_back(TextRow(ftxui::text("   " + line + " ")));
-  }
-  if (!timing.empty()) {
-    rows.push_back(TextRow(ftxui::text("   " + timing + " ")));
+    if (skill == nullptr) {
+      continue;
+    }
+    if (rows.empty()) {
+      rows.push_back(RuleRow(ThemedSeparator()));
+    }
+    rows.push_back(TextRow(ftxui::text(" " + skill->name() + " Lv. " +
+                                       std::to_string(grant.level()) + " ") |
+                           ftxui::color(kGold)));
+    // A buff says how long it lasts and how often; a passive is simply worn.
+    SkillEffect effect =
+        EffectAt(skill->base(), skill->per_level(), grant.level());
+    std::string timing;
+    if (skill->has_buff()) {
+      effect = BuffEffectAt(skill->buff(), grant.level());
+      timing = std::to_string(
+                   WholeValue(BuffSecondsAt(skill->buff(), grant.level()))) +
+               "s, every " +
+               std::to_string(WholeValue(CooldownAt(*skill, grant.level()))) +
+               "s";
+    } else if (skill->kind() == SKILL_KIND_ATTACK) {
+      timing = std::to_string(WholeValue(effect.skill_pct() * 100.0)) + "% x" +
+               std::to_string(skill->lines()) + " on " +
+               std::to_string(skill->max_enemies()) + ", every " +
+               std::to_string(WholeValue(CooldownAt(*skill, grant.level()))) +
+               "s";
+      effect.clear_skill_pct();
+    }
+    for (const std::string& line : EffectLines(effect)) {
+      rows.push_back(TextRow(ftxui::text("   " + line + " ")));
+    }
+    if (!timing.empty()) {
+      rows.push_back(TextRow(ftxui::text("   " + timing + " ")));
+    }
   }
   return rows;
 }
