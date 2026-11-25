@@ -330,6 +330,7 @@ constexpr Clear kClears[] = {
     {"gloom", "Chaos", 261},
     {"seren", "Normal", 261},
     {"lucid", "Hard", 263},
+    {"liberation", "Genesis", 264},
     {"kalos", "Easy", 265},
     {"black_mage", "Hard", 266},
     {"seren", "Hard", 268},

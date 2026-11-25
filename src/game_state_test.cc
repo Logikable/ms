@@ -1029,6 +1029,38 @@ TEST(GameStateTest, MaxModeWearsTheBestSoulItsLevelOpens) {
       << "Early's shards are open, but the Soul entry isn't";
 }
 
+// The max character holds a Genesis weapon from the level the sweep first won
+// the Liberation, as it dropped: 22 stars and every slot spent.
+TEST(GameStateTest, MaxModeWearsGenesisFromTheLiberationsLevel) {
+  auto weapon_at = [](int level) {
+    std::map<std::string, EquipPrototype> catalog = MaxCatalog();
+    catalog["frozen_two_handed_axe"].set_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
+    EquipPrototype genesis = catalog["frozen_two_handed_axe"];
+    genesis.set_name("Genesis Two-handed Axe");
+    genesis.set_set_family("Genesis Warrior Weapon");
+    genesis.set_required_level(200);
+    genesis.set_upgrade_slots(8);
+    genesis.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+    genesis.add_unsupported_upgrades(UPGRADE_SCROLL);
+    genesis.mutable_dropped_as()->set_stars(22);
+    genesis.mutable_dropped_as()->set_scroll_successes(8);
+    catalog["genesis_two_handed_axe"] = genesis;
+    TestOptions options;
+    options.job = JOB_ADVANCEMENT_HERO;
+    options.level = level;
+    GameState state(std::move(catalog), MaxTraces(), {}, MaxMobs(), {},
+                    EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
+                    MaxBosses());
+    return Worn(state, EQUIP_SLOT_PRIMARY_WEAPON);
+  };
+  const int level = MaxClearLevel(kLiberationKey, "Genesis");
+  EXPECT_EQ(weapon_at(level - 1).prototype().name(), "Frozen Two-handed Axe");
+  const EquipInstance genesis = weapon_at(level);
+  EXPECT_EQ(genesis.prototype().name(), "Genesis Two-handed Axe");
+  EXPECT_EQ(genesis.stars(), 22);
+  EXPECT_EQ(genesis.equip_state().scroll_successes(), 8);
+}
+
 // The max character at the cap: every slot passed, and the stars the level's
 // band pays for, capped at what the item's level takes.
 TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
