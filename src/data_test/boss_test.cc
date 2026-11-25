@@ -649,11 +649,11 @@ const std::map<std::string, TableDrop>& DropTable() {
          "stone_of_eternal_life", "dea_sidus_earring", "horntail_necklace",
          "silver_blossom_ring", "crystal_ventus_badge",
          "royal_black_metal_shoulder", "black_bean_mark", "golden_clover_belt",
-         "pink_holy_cup", "chaos_horntail_necklace", "cygnus_shoulder_token"},
+         "pink_holy_cup", "chaos_horntail_necklace"},
         {0.01, 1});
     put({"dominator_pendant"}, {0.05, 1});
     put({"piece_of_mockery", "piece_of_time", "piece_of_anguish",
-         "piece_of_destruction"},
+         "piece_of_destruction", "cygnus_shoulder_token"},
         {0.05, 1, 5});
     put({"papulatus_mark"}, {0.01, 3});
     put({"kannas_treasure", "guardian_angel_ring"}, {0.05, 3});

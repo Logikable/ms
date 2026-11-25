@@ -15,6 +15,6 @@ set_family: "Cygnus Shoulder"
 upgrade_slots: 1
 token_prices {
   token_item: "cygnus_shoulder_token"
-  count: 1
+  count: 5
 }
 sell_price: 0

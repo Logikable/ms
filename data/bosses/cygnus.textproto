@@ -21,8 +21,9 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "cygnus_shoulder_token"
-    per_kill: 0.01
+    per_kill: 0.05
     pity: 1
+    pity_copies: 5
   }
   drops {
     item: "cygnuss_soul_shard"
