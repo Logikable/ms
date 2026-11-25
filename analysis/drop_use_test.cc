@@ -113,6 +113,7 @@ TEST(DropUseTest, CountsWhatDroppedAndWhatWasUsedWhileItMattered) {
   EXPECT_TRUE(belt->equipment);
   EXPECT_TRUE(belt->worn);
   EXPECT_EQ(belt->dropped, 3);
+  EXPECT_EQ(belt->first_day, 1.0);
   EXPECT_EQ(belt->used, 2);
   EXPECT_EQ(belt->start_day, 1.0);
   EXPECT_EQ(belt->end_day, 2.0);
@@ -122,6 +123,7 @@ TEST(DropUseTest, CountsWhatDroppedAndWhatWasUsedWhileItMattered) {
   ASSERT_NE(coin, nullptr);
   EXPECT_FALSE(coin->equipment);
   EXPECT_EQ(coin->dropped, 4);
+  EXPECT_EQ(coin->first_day, 1.0);
   EXPECT_EQ(coin->used, 2);
 }
 
@@ -139,8 +141,29 @@ TEST(DropUseTest, ADropNeverWornIsItsFirstClear) {
   EXPECT_EQ(belt->start_day, 4.0);
   EXPECT_EQ(belt->end_day, 4.0);
   EXPECT_EQ(belt->dropped, 1);
+  EXPECT_EQ(belt->first_day, 4.0);
   EXPECT_EQ(belt->high_drop, 1.0);
   EXPECT_EQ(belt->used, 0);
+}
+
+// The first copy can fall after the window opens: the clear that opened it may
+// pay none.
+TEST(DropUseTest, TheFirstCopyMayComeLater) {
+  std::unique_ptr<GameState> owner = BeltAndCoin();
+  GameState& state = *owner;
+  DropUse use(state);
+  use.Clear("boss", "Normal", Paid(0, 0, 1.0), 2.0);
+  use.Clear("boss", "Normal", Paid(1, 0, 1.0), 5.0);
+  state.character.PickUp(
+      std::make_unique<EquipInstance>(state.equips.at("belt")));
+  ASSERT_TRUE(state.character.Equip(state.character.inventory().size() - 1,
+                                    AutoswapSlotFor(Activity::kBossing)));
+  use.Look(state, {}, 5.0);
+  const std::vector<DropUseResult> results = use.Finish();
+  const DropUseResult* belt = Find(results, "Belt");
+  ASSERT_NE(belt, nullptr);
+  EXPECT_EQ(belt->start_day, 2.0);
+  EXPECT_EQ(belt->first_day, 5.0);
 }
 
 // Only the difficulty that drops it opens a drop's window.

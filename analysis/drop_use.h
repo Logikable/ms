@@ -32,6 +32,8 @@ struct DropUseResult {
   double start_day = 0.0;
   double end_day = 0.0;
   int64_t dropped = 0;
+  // The day the first copy dropped, or -1 if none did.
+  double first_day = -1.0;
   // For a piece, the most copies worn at once plus the held copies booms used
   // up; for a currency or a box, what left the bag.
   int64_t used = 0;
@@ -78,6 +80,7 @@ class DropUse {
     bool open = false;
     double start_day = 0.0;
     int64_t dropped = 0;
+    double first_day = -1.0;
     double low_drop = 0.0;
     double high_drop = 0.0;
     int most_worn = 0;
