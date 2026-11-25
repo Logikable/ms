@@ -1111,6 +1111,7 @@ struct Climb {
   // Shared so a Climb stays copyable; only the main climb has one.
   std::shared_ptr<DropUse> drop_tracker;
   std::vector<DropUseResult> drop_use;
+  std::vector<DropLeftover> leftovers;
   // Where the endgame ended: days played past the cap, what they paid, and what
   // the character wore at the end.
   double endgame_seconds = 0.0;
@@ -3306,6 +3307,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   climb.ledger.gear = run.shopper.life();
   if (climb.drop_tracker != nullptr) {
     climb.drop_use = climb.drop_tracker->Finish();
+    climb.leftovers = climb.drop_tracker->Leftovers(state);
     climb.drop_tracker.reset();
   }
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
@@ -3775,6 +3777,51 @@ std::string CopiesTo(const EquipPrototype* proto, int to) {
 // Whole days, or "never" for a run that got no copy.
 std::string Days(double days) {
   return std::isinf(days) ? "never" : absl::StrFormat("%.0f", days);
+}
+
+// Every boss drop but soul shards over every whole run: what dropped, what is
+// still held unworn at the end, and what went in between.
+void PrintLeftovers(const std::vector<std::vector<Climb>>& runs) {
+  struct Rows {
+    std::vector<double> dropped, gone, left;
+    bool equipment = false;
+  };
+  std::map<std::string, Rows> rows;
+  int total = 0;
+  for (const std::vector<Climb>& branch : runs) {
+    for (const Climb& climb : branch) {
+      ++total;
+      for (const DropLeftover& leftover : climb.leftovers) {
+        Rows& row = rows[leftover.name];
+        row.equipment = leftover.equipment;
+        row.dropped.push_back(static_cast<double>(leftover.dropped));
+        row.left.push_back(static_cast<double>(leftover.left));
+        row.gone.push_back(static_cast<double>(
+            std::max<int64_t>(0, leftover.dropped - leftover.left)));
+      }
+    }
+  }
+  std::printf(
+      "\nEvery boss drop but soul shards over the whole of each of %d runs: "
+      "what dropped, what went\n(used, opened, spent or applied; for a piece "
+      "also worn, boomed or sold), and what is left\nunworn in the bag and "
+      "the bank at the end. Each median/nine in ten.\n\n",
+      total);
+  std::printf("  %-38s %5s %11s %11s %11s\n", "drop", "kind", "dropped", "went",
+              "left");
+  std::printf("  %s\n", std::string(80, '-').c_str());
+  auto pair = [](const std::vector<double>& values) {
+    return absl::StrFormat("%.0f/%.0f", ShareOf(values, 0.5),
+                           ShareOf(values, 0.9));
+  };
+  for (const auto& [name, row] : rows) {
+    if (ShareOf(row.dropped, 1.0) <= 0.0) {
+      continue;
+    }
+    std::printf("  %-38s %5s %11s %11s %11s\n", name.c_str(),
+                row.equipment ? "equip" : "item", pair(row.dropped).c_str(),
+                pair(row.gone).c_str(), pair(row.left).c_str());
+  }
 }
 
 // Every boss drop over every run: the days it mattered, what dropped then (the
@@ -5163,6 +5210,7 @@ void Run() {
   PrintBossReadiness(catalogs, branches, typical);
   if (absl::GetFlag(FLAGS_drop_use)) {
     PrintDropUse(catalogs, runs);
+    PrintLeftovers(runs);
   }
   if (!absl::GetFlag(FLAGS_potential_dump).empty()) {
     DumpPotentials(absl::GetFlag(FLAGS_potential_dump), branches, typical);

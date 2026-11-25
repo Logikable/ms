@@ -167,6 +167,31 @@ TEST(DropUseTest, TheFirstCopyMayComeLater) {
   EXPECT_EQ(belt->longest_drought, 3.0);
 }
 
+// Over the whole run, whatever matters: what dropped, and what is still held
+// unworn at the end.
+TEST(DropUseTest, CountsWhatIsLeftAtTheEnd) {
+  std::unique_ptr<GameState> state = BeltAndCoin();
+  DropUse use(*state);
+  use.Clear("boss", "Normal", Paid(2, 5, 1.0), 1.0);
+  state->character.AddItem(state->items.at("coin"), 3);  // two spent
+  state->character.PickUp(
+      std::make_unique<EquipInstance>(state->equips.at("belt")));
+  state->character.PickUp(
+      std::make_unique<EquipInstance>(state->equips.at("belt")));
+  ASSERT_TRUE(state->character.Equip(0));  // one worn, one spare
+  std::map<std::string, DropLeftover> by_name;
+  for (const DropLeftover& leftover : use.Leftovers(*state)) {
+    by_name[leftover.name] = leftover;
+  }
+  ASSERT_EQ(by_name.count("Belt"), 1);
+  EXPECT_TRUE(by_name["Belt"].equipment);
+  EXPECT_EQ(by_name["Belt"].dropped, 2);
+  EXPECT_EQ(by_name["Belt"].left, 1);
+  ASSERT_EQ(by_name.count("Coin"), 1);
+  EXPECT_EQ(by_name["Coin"].dropped, 5);
+  EXPECT_EQ(by_name["Coin"].left, 3);
+}
+
 // Only the difficulty that drops it opens a drop's window.
 TEST(DropUseTest, AnotherDifficultyOpensNothing) {
   std::unique_ptr<GameState> owner = BeltAndCoin();

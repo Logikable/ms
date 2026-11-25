@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <limits>
 
+#include "absl/strings/match.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/drop.h"
+#include "src/item/bank.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -54,6 +57,10 @@ DropUse::DropUse(const GameState& state) {
         const std::string name = DropName(state, drop);
         if (name.empty()) {
           continue;
+        }
+        if (!absl::EndsWith(drop.has_equip() ? drop.equip() : drop.item(),
+                            "_soul_shard")) {
+          tallied_[name] = drop.has_equip();
         }
         Row row;
         if (drop.has_equip()) {
@@ -129,6 +136,9 @@ void DropUse::Clear(const std::string& boss, const std::string& difficulty,
     row.high_drop = std::max(row.high_drop, reward.item_drop_pct);
   }
   for (const BossRewardItem& item : reward.items) {
+    if (tallied_.count(item.name) > 0) {
+      run_dropped_[item.name] += item.count;
+    }
     std::map<std::string, Row>::iterator row = rows_.find(item.name);
     if (row != rows_.end()) {
       if (row->second.dropped == 0 && item.count > 0) {
@@ -240,6 +250,39 @@ std::vector<DropUseResult> DropUse::Finish() const {
     }
   }
   return results;
+}
+
+std::vector<DropLeftover> DropUse::Leftovers(const GameState& state) const {
+  std::vector<DropLeftover> leftovers;
+  const BankInstance& bank = state.account.bank();
+  for (const auto& [name, equipment] : tallied_) {
+    DropLeftover leftover;
+    leftover.name = name;
+    leftover.equipment = equipment;
+    std::map<std::string, int64_t>::const_iterator dropped =
+        run_dropped_.find(name);
+    leftover.dropped = dropped == run_dropped_.end() ? 0 : dropped->second;
+    if (!equipment) {
+      leftover.left =
+          state.character.CountItem(name) + bank.CountCurrency(name);
+    } else {
+      // A trace returns no EquipInstance: it is what a boom left, not a copy.
+      auto count = [&name](const InventoryInstance& held) {
+        int64_t copies = 0;
+        for (int i = 0; i < held.size(); ++i) {
+          const EquipInstance* item = held.equip_instance(i);
+          copies += item != nullptr && item->prototype().name() == name;
+        }
+        return copies;
+      };
+      leftover.left = count(state.character.inventory());
+      for (int page = 0; page < kBankPages; ++page) {
+        leftover.left += count(bank.page(page));
+      }
+    }
+    leftovers.push_back(leftover);
+  }
+  return leftovers;
 }
 
 }  // namespace ms

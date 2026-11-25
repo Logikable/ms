@@ -48,6 +48,15 @@ struct DropUseResult {
   double high_drop = 0.0;
 };
 
+// One drop over a whole run, soul shards aside: what dropped and what the
+// character still holds at the end, unworn, in the bag or the bank.
+struct DropLeftover {
+  std::string name;
+  bool equipment = false;
+  int64_t dropped = 0;
+  int64_t left = 0;
+};
+
 class DropUse {
  public:
   // Reads every built boss's drop table for the equipment, currencies and boxes
@@ -66,6 +75,10 @@ class DropUse {
 
   // Every drop whose window opened.
   std::vector<DropUseResult> Finish() const;
+
+  // Every drop the run's clears could pay, soul shards aside, with what is
+  // left.
+  std::vector<DropLeftover> Leftovers(const GameState& state) const;
 
  private:
   enum class Kind { kPiece, kCurrency, kBox, kPickBox, kRingBox };
@@ -102,6 +115,10 @@ class DropUse {
                          double day) const;
 
   std::map<std::string, Row> rows_;
+  // Every drop but soul shards, by name, as whether it is equipment, and what
+  // dropped of it over the whole run.
+  std::map<std::string, bool> tallied_;
+  std::map<std::string, int64_t> run_dropped_;
 };
 
 }  // namespace ms
