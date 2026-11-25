@@ -432,61 +432,100 @@ TEST_F(GearPlanTest, TokensForASpareLengthenTheRunPastFifteen) {
 }
 
 // A boom with no copy leaves the trace in the bag and the slot empty, and the
-// next spend restores the piece once the tokens for a copy arrive.
+// next spend restores the piece once the tokens for a copy arrive. Not on the
+// weapon: its run stops short of an attempt that could destroy it.
 TEST_F(GearPlanTest, AnUncoveredBoomWaitsForTheTokens) {
-  EquipPrototype weapon = Sword();
-  weapon.set_required_level(160);
-  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
-  weapon.add_unsupported_upgrades(UPGRADE_CUBE);
-  TokenPrice* price = weapon.add_token_prices();
-  price->set_token_item("coin");
-  price->set_count(5);
-  Grow(200, weapon);
-  CharacterInstance& character = state_->character;
-  ItemPrototype coin;
-  coin.set_name("Coin");
-  coin.set_kind(ITEM_KIND_TOKEN);
-  coin.set_currency_mark("C");
-  state_->items["coin"] = coin;
-  Equip twenty;
-  twenty.set_stars(20);
-  character.PickUp(std::make_unique<EquipInstance>(weapon, twenty));
-  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
-  for (int i = character.inventory().size() - 1; i >= 0; --i) {
-    if (character.inventory().equip_instance(i) != nullptr) {
-      character.SellEquip(i);
+  auto star_from_twenty = [this](EquipSlot slot) {
+    EquipPrototype piece = Sword();
+    piece.set_name("Token Piece");
+    piece.set_equip_slot(slot);
+    piece.set_required_level(160);
+    piece.add_unsupported_upgrades(UPGRADE_SCROLL);
+    piece.add_unsupported_upgrades(UPGRADE_CUBE);
+    TokenPrice* price = piece.add_token_prices();
+    price->set_token_item("coin");
+    price->set_count(5);
+    Grow(200);
+    CharacterInstance& character = state_->character;
+    ItemPrototype coin;
+    coin.set_name("Coin");
+    coin.set_kind(ITEM_KIND_TOKEN);
+    coin.set_currency_mark("C");
+    state_->items["coin"] = coin;
+    Equip twenty;
+    twenty.set_stars(20);
+    character.PickUp(std::make_unique<EquipInstance>(piece, twenty));
+    EXPECT_TRUE(character.Equip(character.inventory().size() - 1));
+    for (int i = character.inventory().size() - 1; i >= 0; --i) {
+      if (character.inventory().equip_instance(i) != nullptr) {
+        character.SellEquip(i);
+      }
     }
-  }
-  character.AddMeso(1'000'000'000'000'000);
-
+    character.AddMeso(1'000'000'000'000'000);
+    auto shopper = std::make_unique<GearShopper>(GearPlan());
+    GearShopper::Candidate offer;
+    offer.slot = slot;
+    offer.gear = kBossGear;
+    offer.star = true;
+    offer.star_to = 30;
+    GearSpend spend;
+    EXPECT_TRUE(shopper->Buy(*state_, offer, spend));
+    return shopper;
+  };
   // Grow wore it on the first preset, which the boss preset inherits.
-  auto worn = [&character]() -> const EquipInstance* {
+  auto worn = [this](EquipSlot slot) -> const EquipInstance* {
     const std::map<EquipSlot, EquipInstance>& own =
-        character.own_gear(kFarmGear);
-    auto it = own.find(EQUIP_SLOT_PRIMARY_WEAPON);
+        state_->character.own_gear(kFarmGear);
+    auto it = own.find(slot);
     return it == own.end() ? nullptr : &it->second;
   };
-  GearShopper shopper{GearPlan()};
-  GearShopper::Candidate offer;
-  offer.slot = EQUIP_SLOT_PRIMARY_WEAPON;
-  offer.gear = kBossGear;
-  offer.star = true;
-  offer.star_to = 30;
-  GearSpend spend;
-  ASSERT_TRUE(shopper.Buy(*state_, offer, spend));
-  ASSERT_EQ(worn(), nullptr)
-      << "ten stars from 20 with no copy should have boomed";
-  ASSERT_EQ(character.inventory().size(), 1);
-  EXPECT_EQ(character.inventory().equip_instance(0), nullptr)
-      << "the trace waits in the bag";
 
-  character.AddItem(coin, 5);
+  star_from_twenty(EQUIP_SLOT_PRIMARY_WEAPON);
+  ASSERT_NE(worn(EQUIP_SLOT_PRIMARY_WEAPON), nullptr)
+      << "the weapon was risked with no copy to rebuild it";
+  EXPECT_EQ(worn(EQUIP_SLOT_PRIMARY_WEAPON)->stars(), 20);
+
+  std::unique_ptr<GearShopper> shopper = star_from_twenty(EQUIP_SLOT_EARRINGS);
+  CharacterInstance& character = state_->character;
+  ASSERT_EQ(worn(EQUIP_SLOT_EARRINGS), nullptr)
+      << "ten stars from 20 with no copy should have boomed";
+  int traces = 0;
+  for (int i = 0; i < character.inventory().size(); ++i) {
+    traces += character.inventory().equip_instance(i) == nullptr;
+  }
+  EXPECT_EQ(traces, 1) << "the trace waits in the bag";
+
+  character.AddItem(state_->items.at("coin"), 5);
   character.SpendMeso(character.meso());  // or it stars the restored piece
-  shopper.Spend(*state_);
-  const EquipInstance* restored = worn();
+  shopper->Spend(*state_);
+  const EquipInstance* restored = worn(EQUIP_SLOT_EARRINGS);
   ASSERT_NE(restored, nullptr);
-  EXPECT_EQ(restored->prototype().name(), weapon.name());
+  EXPECT_EQ(restored->prototype().name(), "Token Piece");
   EXPECT_GE(restored->stars(), EquipInstance::RecoveryStars(20));
+}
+
+// A dropped scroll held goes on before the shopper traces the slot, so a
+// piece bought or worn with open slots takes the drop first.
+TEST_F(GearPlanTest, AHeldDroppedScrollFillsTheSlotBeforeATrace) {
+  Scroll scroll = GrowScrollableSword();
+  scroll.set_name("Weapon Scroll");
+  scroll.set_trace_cost(0);
+  scroll.mutable_stats()->set_attack(10);
+  scroll.set_paid_with("Weapon Scroll");
+  state_->scrolls["weapon_scroll"] = scroll;
+  ItemPrototype drop;
+  drop.set_name("Weapon Scroll");
+  state_->items["weapon_scroll"] = drop;
+  CharacterInstance& character = state_->character;
+  const int open = character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)
+                       ->equip_state()
+                       .remaining_upgrade_slots();
+  ASSERT_GT(open, 0);
+  character.AddItem(drop, open);
+  GearShopper shopper{GearPlan()};
+  const GearSpend spend = shopper.Spend(*state_);
+  EXPECT_EQ(spend.dropped_scrolls, open);
+  EXPECT_EQ(character.CountItem("Weapon Scroll"), 0);
 }
 
 // A drop-only piece keeps every spare a boom could use, in the bank rather

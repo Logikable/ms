@@ -96,6 +96,7 @@ struct GearSpend {
   int64_t replacements = 0;  // copies bought to replace destroyed pieces
   int64_t copies = 0;        // copies bought to give farming its own piece
   int slots_filled = 0;
+  int dropped_scrolls = 0;  // slots filled with a dropped scroll held
   int stars_gained = 0;
   // Every star force roll, and the ones that failed or destroyed the piece.
   int star_attempts = 0;
@@ -149,6 +150,7 @@ struct GearSpend {
     replacements += other.replacements;
     copies += other.copies;
     slots_filled += other.slots_filled;
+    dropped_scrolls += other.dropped_scrolls;
     stars_gained += other.stars_gained;
     star_attempts += other.star_attempts;
     star_fails += other.star_fails;

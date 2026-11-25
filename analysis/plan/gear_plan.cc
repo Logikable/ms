@@ -1112,6 +1112,14 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, StatPreset gear,
     if (item->stars() >= to) {
       break;
     }
+    // The run is priced on average booms, and a run can boom more. On the
+    // weapon a boom with no copy to rebuild from ends every fight that would
+    // earn one, so it stops short of any attempt that could.
+    if (slot == EQUIP_SLOT_PRIMARY_WEAPON &&
+        EquipInstance::RateAt(item->stars()).destroy > 0 &&
+        CopiesFor(state, item->prototype()) < 1.0) {
+      break;
+    }
     int64_t attempt =
         StarForceCost(item->prototype().required_level(), item->stars());
     if (attempt <= 0 || attempt > state.character.meso()) {
@@ -1489,8 +1497,11 @@ GearSpend GearShopper::Spend(GameState& state) {
   RecoverWaiting(state, spend);
   SellSpares(state, spend);
   ApplySouls(state, spend);
-  while (BuyBest(state, spend)) {
-  }
+  // Held dropped scrolls go on before each buy: a piece bought this spend
+  // would otherwise be traced in it before any dropped scroll saw its slots.
+  do {
+    spend.dropped_scrolls += UseDroppedScrolls(state);
+  } while (BuyBest(state, spend));
   life_.Add(spend);
   return spend;
 }
