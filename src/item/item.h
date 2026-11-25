@@ -43,6 +43,10 @@ const std::string& ShortName(const ItemPrototype& proto);
 // at max stars.
 bool Supports(const EquipPrototype& proto, Upgrade upgrade);
 
+// Whether `proto` is one of the Genesis weapons, which only the Liberation
+// pays.
+bool IsGenesisWeapon(const EquipPrototype& proto);
+
 // Whether `proto` has upgrade slots at all: it takes scrolls and drops with
 // somewhere to put one.
 bool TakesUpgradeSlots(const EquipPrototype& proto);

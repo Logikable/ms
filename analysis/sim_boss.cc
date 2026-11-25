@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "src/combat/boss/boss_run.h"
+#include "src/combat/boss/liberation.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
@@ -104,6 +106,49 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
       double pace = (1.0 - outcome.left) / std::max(outcome.seconds, 1.0);
       outcome.left_at_clock = std::max(0.0, 1.0 - pace * clock);
     }
+  }
+  return outcome;
+}
+
+BossOutcome FightLiberation(GameState& state) {
+  BossOutcome outcome;
+  const EquipPrototype* genesis = GenesisWeaponFor(state);
+  if (genesis == nullptr) {
+    outcome.left = outcome.left_at_clock = 1.0;
+    return outcome;
+  }
+  for (int i = 0; i < kLiberationMissionCount; ++i) {
+    std::unique_ptr<BossRun> run =
+        LiberationMissionRun(state, i, BossOptions());
+    if (run == nullptr) {
+      outcome.left = outcome.left_at_clock = 1.0;
+      return outcome;
+    }
+    const LiberationMission& mission = kLiberationMissions[i];
+    const Boss& boss = state.bosses.at(mission.boss);
+    const BossDifficulty& difficulty =
+        boss.difficulties(BossDifficultyIndex(boss, mission.difficulty));
+    std::vector<int64_t> phase_hp;
+    for (const BossPhase& phase : difficulty.phases()) {
+      phase_hp.push_back(PhaseHp(state.mobs, phase));
+    }
+    while (!run->done() &&
+           !WalkedOut(LeftStanding(*run, phase_hp), run->FightSeconds(),
+                      difficulty.time_limit_seconds())) {
+      run->Advance(state, kStepSeconds);
+    }
+    outcome.seconds += run->FightSeconds();
+    if (!run->won()) {
+      outcome.left =
+          (kLiberationMissionCount - i - 1 + LeftStanding(*run, phase_hp)) /
+          kLiberationMissionCount;
+      outcome.left_at_clock = outcome.left;
+      return outcome;
+    }
+  }
+  outcome.won = GrantLiberation(state, *genesis);
+  if (outcome.won) {
+    outcome.reward.items.push_back({genesis->name(), 1, /*prize=*/true, 1.0});
   }
   return outcome;
 }

@@ -785,6 +785,28 @@ void ClimbToJob(GameState& state, JobAdvancement advancement, int level,
   WearThePath(state, path, equips);
 }
 
+// The Genesis weapon of the type worn, from the level max mode first won the
+// Liberation, which it is recorded as won with.
+void WearGenesisWeapon(GameState& state, int level, const GearSetup& equips) {
+  const EquipInstance* worn =
+      state.character.WornAt(StatPreset::kFirst, EQUIP_SLOT_PRIMARY_WEAPON);
+  if (worn == nullptr) {
+    return;
+  }
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (IsGenesisWeapon(proto) &&
+        proto.equip_type() == worn->prototype().equip_type() &&
+        level >= OwnedFromLevel(proto)) {
+      MakeRoomFor(state, proto);
+      WearAll(state, {entry.first}, equips);
+      state.character.RecordDefeat(kLiberationKey);
+      return;
+    }
+  }
+}
+
 // Every boss tier the workbench's level opens, over the job's own gear.
 void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
   const int level = state.character.proto().level();
@@ -859,6 +881,7 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
     MakeRoomFor(state, badge->second);
     WearAll(state, {badge->first}, equips);
   }
+  WearGenesisWeapon(state, level, equips);
 }
 
 // Records a solo clear of every fight `cleared` accepts, with whatever skill a
@@ -1479,6 +1502,7 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
     WearAll(state, {badge->first}, equips);
   }
   if (!bis) {
+    WearGenesisWeapon(state, reached, equips);
     WearMaxFarmPieces(state, reached, equips);
   }
   RecordClears(state, [reached, bis](const std::string& boss,
@@ -1889,9 +1913,11 @@ int OwnedFromLevel(const EquipPrototype& proto) {
     const int cleared = MaxClearLevel("black_mage", "Hard");
     return cleared > 0 ? cleared : kNeverOwned;
   }
-  // Only the Liberation pays a Genesis weapon.
-  if (proto.lucky_item()) {
-    return kNeverOwned;
+  // Only the Liberation pays a Genesis weapon, so it counts from max mode's
+  // first win of it.
+  if (IsGenesisWeapon(proto)) {
+    const int won = MaxClearLevel(kLiberationKey, "Genesis");
+    return won > 0 ? won : kNeverOwned;
   }
   if (proto.name() == "Berserked" || proto.name() == "Magic Eyepatch" ||
       proto.name() == "Black Heart") {

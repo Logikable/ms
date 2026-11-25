@@ -123,6 +123,8 @@ TEST(LiberationTest, ASealedFightStripsTheGearAndPutsItBack) {
           << EquipSlot_Name(slot);
       EXPECT_EQ(item->equip_state().stars(), 0)
           << EquipSlot_Name(slot) << " keeps no stars";
+      EXPECT_EQ(item->prototype().weapon_skills_size(), 0)
+          << "the sealed weapon has no skills yet";
     }
     sealed = ComputeBossParams(*state, "magnus", magnus, 0);
   }

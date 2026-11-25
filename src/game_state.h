@@ -38,6 +38,12 @@ namespace ms {
 // other map is the player's choice.
 inline constexpr char kHomeMap[] = "maple_island";
 
+// The Liberation (src/combat/boss/liberation.h): the key a won one is recorded
+// under in the character's defeated bosses, and the level it opens at, GMS's
+// from the Limina questline its first mission follows.
+inline constexpr char kLiberationKey[] = "liberation";
+inline constexpr int kLiberationLevel = 255;
+
 // The modes the game can start in. kPlay is the game as a player sees it.
 // kTest is the workbench, with the meso and items the upgrade and shop screens
 // need without playing up to them. kMax is a character who spent well, which

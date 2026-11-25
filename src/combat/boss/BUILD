@@ -160,6 +160,7 @@ cc_library(
         "//src/character:stat_preset",
         "//src/character/force:symbol",
         "//src/combat:encounter",
+        "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
     ],

@@ -426,6 +426,11 @@ bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
   return true;
 }
 
+bool IsGenesisWeapon(const EquipPrototype& proto) {
+  return proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON &&
+         proto.set_family().rfind("Genesis ", 0) == 0;
+}
+
 bool TakesUpgradeSlots(const EquipPrototype& proto) {
   return Supports(proto, UPGRADE_SCROLL) && proto.upgrade_slots() > 0;
 }

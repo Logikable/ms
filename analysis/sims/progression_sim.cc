@@ -115,6 +115,7 @@
 #include "src/character/job_branch.h"
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/progression.h"
+#include "src/combat/boss/liberation.h"
 #include "src/combat/combat.h"
 #include "src/combat/constants.h"
 #include "src/combat/encounter.h"
@@ -1882,6 +1883,10 @@ double LootPerDrop(Session& run, double seconds) {
     if (log.clears == 0) {
       continue;
     }
+    // The Liberation drops nothing, and is no catalog boss.
+    if (log.boss == kLiberationKey) {
+      continue;
+    }
     double& slot = best[log.boss];
     slot = std::max(
         slot, ClearLootPerDropRate(
@@ -2198,6 +2203,52 @@ void CloseForToday(Session& run,
   }
 }
 
+// The Liberation, once it opens and until it is won: retried like any fight
+// after a loss, and its weapon worn the moment it is paid. Returns the
+// playtime it took.
+double TryLiberation(Session& run, int level, bool levelled, int power) {
+  GameState& state = run.state;
+  if (level < kLiberationLevel || Liberated(state.character) ||
+      GenesisWeaponFor(state) == nullptr) {
+    return 0.0;
+  }
+  FightState& fight = run.fights[kLiberationKey];
+  if (!WorthATry(run, fight, levelled, power)) {
+    return 0.0;
+  }
+  fight.power_at_last_try = power;
+  BossLog& log = run.climb.bosses[kLiberationKey];
+  if (log.attempts == 0) {
+    log.label = std::string("Genesis ") + kLiberationName;
+    log.boss = kLiberationKey;
+    log.unlock_level = kLiberationLevel;
+    log.first_attempt_level = level;
+  }
+  ++log.attempts;
+  const BossOutcome outcome = FightLiberation(state);
+  log.best_done = std::max(log.best_done, 1.0 - outcome.left_at_clock);
+  fight.lost = !outcome.won;
+  fight.retry_at = run.seconds + outcome.seconds + kRetrySeconds;
+  fight.near_miss = outcome.left <= kNearMiss;
+  if (outcome.won) {
+    ++log.clears;
+    log.first_clear_level = level;
+    log.first_clear_seconds = run.seconds + outcome.seconds;
+    log.best_seconds = outcome.seconds;
+    log.best_power = power;
+    // Paid fresh into the bag, and worn over whatever weapon was: nothing of
+    // its level is better.
+    const InventoryInstance& bag = state.character.inventory();
+    for (int i = bag.size() - 1; i >= 0; --i) {
+      if (bag[i].prototype().lucky_item()) {
+        state.character.Equip(i, kFarmGear);
+        break;
+      }
+    }
+  }
+  return outcome.seconds;
+}
+
 // Attempts every open fight worth trying, wears what dropped, and returns
 // whether any was fought. A loss costs only playtime: the daily limit is used
 // by a clear, not an attempt.
@@ -2243,6 +2294,7 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
       }
     }
   }
+  spent += TryLiberation(run, level, levelled, power);
   if (spent <= 0.0) {
     return false;
   }
@@ -3203,6 +3255,8 @@ void AddWhereStats(RunStats& stats, const Climb& climb,
     if (log.first_clear_seconds >= 0.0) {
       stats.Add(absl::StrCat("boss_first_clear_day/", log.label),
                 log.first_clear_seconds / kDaySeconds);
+      stats.Add(absl::StrCat("boss_first_clear_level/", log.label),
+                log.first_clear_level);
     }
   }
 }

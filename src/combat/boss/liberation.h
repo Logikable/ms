@@ -21,12 +21,8 @@
 
 namespace ms {
 
-// What the boss screen lists it under, and the key a won Liberation is recorded
-// under in the character's defeated bosses.
-inline constexpr char kLiberationKey[] = "liberation";
+// What the boss screen lists it under. Its key and level are in game_state.h.
 inline constexpr char kLiberationName[] = "Liberation";
-// GMS's, from the Limina questline the first mission follows.
-inline constexpr int kLiberationLevel = 255;
 
 // One mission: an ordinary boss difficulty and GMS's handicap on it.
 struct LiberationMission {
@@ -67,10 +63,10 @@ bool Liberated(const CharacterInstance& character);
 // null when they wear none or no Genesis weapon is of that type.
 const EquipPrototype* GenesisWeaponFor(const GameState& state);
 
-// What a sealed mission is fought in: `genesis` and the secondary with no
-// upgrades at all, the symbols and the projectile as they are, and nothing
-// else. GMS allows the weapon, the secondary and the symbols; a projectile
-// isn't equipment there.
+// What a sealed mission is fought in: `genesis`, without its skills, and the
+// secondary with no upgrades at all, the symbols and the projectile as they
+// are, and nothing else. GMS allows the weapon, the secondary and the symbols;
+// a projectile isn't equipment there.
 std::map<EquipSlot, EquipInstance> SealedGear(const GameState& state,
                                               const EquipPrototype& genesis);
 

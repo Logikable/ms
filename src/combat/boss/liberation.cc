@@ -11,6 +11,7 @@
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -42,9 +43,7 @@ const EquipPrototype* GenesisWeaponFor(const GameState& state) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
-    if (proto.set_family().rfind("Genesis ", 0) == 0 &&
-        proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON &&
-        proto.equip_type() == worn->equip_type()) {
+    if (IsGenesisWeapon(proto) && proto.equip_type() == worn->equip_type()) {
       return &proto;
     }
   }
@@ -60,8 +59,13 @@ std::map<EquipSlot, EquipInstance> SealedGear(const GameState& state,
     state.set_equip_name(proto.name());
     return EquipInstance(proto, state);
   };
+  // GMS's sealed weapon has neither skill nor the Lucky Item effect; the
+  // awakenings bring them.
+  EquipPrototype sealed = genesis;
+  sealed.clear_weapon_skills();
+  sealed.set_lucky_item(false);
   std::map<EquipSlot, EquipInstance> gear;
-  gear.emplace(EQUIP_SLOT_PRIMARY_WEAPON, bare(genesis));
+  gear.emplace(EQUIP_SLOT_PRIMARY_WEAPON, bare(sealed));
   const CharacterInstance& character = state.character;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped(

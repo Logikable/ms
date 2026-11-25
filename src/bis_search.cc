@@ -391,8 +391,10 @@ class Search {
     std::vector<const EquipPrototype*> found;
     const std::vector<EquipSlot> family = SlotFamily(slot);
     for (const auto& [key, proto] : state_.equips) {
+      // A Genesis weapon waits for the level the Liberation opens at.
       if (IsSymbol(proto) || SlotFamily(proto.equip_slot()) != family ||
           !c().MeetsLevel(proto) || !c().MeetsJob(proto) ||
+          (IsGenesisWeapon(proto) && c().proto().level() < kLiberationLevel) ||
           (held != nullptr && held->prototype().name() == proto.name())) {
         continue;
       }

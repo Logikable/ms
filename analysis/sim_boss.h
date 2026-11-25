@@ -41,6 +41,12 @@ struct BossOutcome {
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
                       int difficulty_index);
 
+// Fights the Liberation's missions in order until one is lost, walking out of a
+// lost one as FightBoss does, and pays the Genesis weapon for winning them all.
+// `left` is the share of the run's missions not won, the one lost counted by
+// its HP left. Wearing the weapon is the caller's.
+BossOutcome FightLiberation(GameState& state);
+
 // Pays a clear of `difficulty_index` in `seconds` without playing it, for a
 // fight the caller has already settled. See BossRun::ClaimClear.
 BossOutcome ClaimBoss(GameState& state, const std::string& boss_key,

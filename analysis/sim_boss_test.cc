@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include "src/combat/boss/liberation.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -85,6 +86,46 @@ TEST(FightBossTest, APhaseClockLossReadsWhatWasLeft) {
   EXPECT_LT(outcome.seconds, 60.0);
   EXPECT_GT(outcome.left, 0.999);
   EXPECT_EQ(outcome.left_at_clock, outcome.left);
+}
+
+// The Liberation's bosses, one HP each but `wall`'s, and a Genesis weapon of
+// the plain sword's type.
+std::unique_ptr<GameState> LiberationState(const std::string& wall) {
+  std::unique_ptr<GameState> state = WallState();
+  for (const LiberationMission& mission : kLiberationMissions) {
+    Boss boss;
+    boss.set_name(mission.boss);
+    BossDifficulty* difficulty = boss.add_difficulties();
+    difficulty->set_name(mission.difficulty);
+    difficulty->set_time_limit_seconds(600);
+    AddPhase(difficulty, mission.boss == wall ? "wall" : "opener");
+    state->bosses[mission.boss] = boss;
+  }
+  EquipPrototype genesis = PlainSword();
+  genesis.set_name("Genesis Sword");
+  genesis.set_set_family("Genesis Warrior Weapon");
+  state->equips["genesis_sword"] = genesis;
+  return state;
+}
+
+TEST(FightLiberationTest, WinningEveryMissionPaysTheWeapon) {
+  std::unique_ptr<GameState> state = LiberationState("");
+  BossOutcome outcome = FightLiberation(*state);
+  EXPECT_TRUE(outcome.won);
+  EXPECT_TRUE(Liberated(state->character));
+  ASSERT_EQ(outcome.reward.items.size(), 1u);
+  EXPECT_EQ(outcome.reward.items[0].name, "Genesis Sword");
+}
+
+// Lost at the fifth mission: the two after it and nearly all of the fifth are
+// left.
+TEST(FightLiberationTest, ALossEndsTheRunAndCountsWhatWasLeft) {
+  std::unique_ptr<GameState> state = LiberationState("will");
+  BossOutcome outcome = FightLiberation(*state);
+  EXPECT_FALSE(outcome.won);
+  EXPECT_FALSE(Liberated(state->character));
+  EXPECT_GT(outcome.left, 2.9 / kLiberationMissionCount);
+  EXPECT_LT(outcome.left, 3.0 / kLiberationMissionCount);
 }
 
 }  // namespace

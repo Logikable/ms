@@ -228,6 +228,7 @@ sim_binary(
         "//src/combat:fight",
         "//src/combat:loot",
         "//src/combat:measure",
+        "//src/combat/boss:liberation",
         "//src/item",
         "//src/item:currency",
         "//src/item:equip_instance",

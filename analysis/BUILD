@@ -217,6 +217,7 @@ cc_library(
         "//src:game_state",
         "//src:spawn",
         "//src/combat/boss:boss_run",
+        "//src/combat/boss:liberation",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
     ],
@@ -229,6 +230,7 @@ cc_test(
     deps = [
         ":sim_boss",
         "//src:game_state",
+        "//src/combat/boss:liberation",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
