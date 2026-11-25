@@ -13,6 +13,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/inner_ability.h"
+#include "src/combat/boss/liberation.h"
 #include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/text/colors.h"
 #include "src/game_state.h"
@@ -933,5 +934,31 @@ TEST(BossSelectPanelTest, NoPanelWeldsARowToItsRightBorder) {
   panel.SwitchPanel(1);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render(kHead)).empty());
 }
+// The Liberation sits last on its page, as one difficulty, and its card lists
+// the fights in order with their handicaps. Won, it reads as done.
+TEST(BossSelectPanelTest, TheLiberationListsItsFights) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  LevelTo(state, kLiberationLevel);
+  BossSelectPanel panel(state);
+  panel.MoveCursor(-1);  // the tab row
+  for (int i = 1; i < kLiberationPage; ++i) {
+    panel.ChangeDifficulty(1);
+  }
+  panel.MoveCursor(-1);  // up from the tabs: the page's last row
+  ASSERT_TRUE(panel.selected_liberation());
+  EXPECT_EQ(panel.selected_title(), "Genesis Liberation");
+  EXPECT_TRUE(panel.selected_available());
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("1 Normal arkarium"), std::string::npos) << out;
+  EXPECT_NE(out.find("FD -75%, weapon only"), std::string::npos) << out;
+  EXPECT_NE(out.find("HP -25%, FD +10%"), std::string::npos) << out;
+  EXPECT_NE(out.find("Available"), std::string::npos);
+
+  state.character.RecordDefeat(kLiberationKey);
+  EXPECT_FALSE(panel.selected_available());
+  EXPECT_NE(Render(panel).find("Liberated"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

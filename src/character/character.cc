@@ -3188,6 +3188,11 @@ CharacterInstance CharacterInstance::Without(absl::Span<const EquipSlot> slots,
   return probe;
 }
 
+void CharacterInstance::SwapWornGear(PresetGear& gear) {
+  std::swap(worn_, gear);
+  RecomputeEquipStats();
+}
+
 CharacterInstance CharacterInstance::Wearing(
     const EquipTabItem& item, StatPreset preset,
     std::optional<EquipSlot> slot_override) const {

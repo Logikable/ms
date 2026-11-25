@@ -53,6 +53,7 @@ cc_library(
     deps = [
         ":arena_spots",
         ":boss_timing",
+        ":liberation",
         ":phase_rules",
         ":placement",
         "//src:build_config",
@@ -145,6 +146,48 @@ cc_test(
         ":placement",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "liberation",
+    srcs = ["liberation.cc"],
+    hdrs = ["liberation.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:stat_preset",
+        "//src/character/force:symbol",
+        "//src/combat:encounter",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "liberation_test",
+    size = "small",
+    srcs = ["liberation_test.cc"],
+    data = [
+        "//data/bosses:all",
+        "//data/equip:all",
+        "//data/items:all",
+        "//data/maps:all",
+        "//data/mobs:all",
+        "//data/scrolls:all",
+        "//data/sets:all",
+        "//data/skills:all",
+    ],
+    deps = [
+        ":boss_run",
+        ":liberation",
+        "//src:game_state",
+        "//src/character",
+        "//src/combat:encounter",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/testing:data_files",
         "@googletest//:gtest_main",
     ],
 )

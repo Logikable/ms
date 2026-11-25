@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -250,6 +251,11 @@ class BossRun {
           FightAuthority* authority = nullptr,
           const BossOptions& options = BossOptions());
 
+  // Makes this run mission `index` of the `count` the Liberation fights: under
+  // `rules`, titled with its place in the run, and paying nothing, since the
+  // Liberation pays once at its end. Call before the first Advance.
+  void MakeMission(const MissionRules& rules, int index, int count);
+
   // Advances the run by `elapsed_seconds` of real time, paying the character
   // for anything that died. Does nothing once the run is finished.
   void Advance(GameState& state, double elapsed_seconds);
@@ -282,6 +288,10 @@ class BossRun {
   // caller checks this before recording a clear.
   bool practice() const {
     return options_.practice();
+  }
+  // Whether this is one of the Liberation's missions; see MakeMission.
+  bool mission() const {
+    return mission_;
   }
   // The boss's name without the difficulty, used in the prompt when leaving.
   const std::string& boss_name() const {
@@ -407,8 +417,9 @@ class BossRun {
  private:
   const BossDifficulty* difficulty() const;
   // The damage table for the current phase, rebuilt only when an input changes.
-  // See params_.
-  const CombatParams& PhaseParams(const GameState& state);
+  // See params_. A sealed mission dresses the character for the build, hence
+  // the mutable state.
+  const CombatParams& PhaseParams(GameState& state);
   // The current phase, or null once the run is over.
   const BossPhase* current_phase() const;
   // The room this player stands in, or null.
@@ -562,6 +573,8 @@ class BossRun {
 
   std::string boss_key_;
   const Boss* boss_ = nullptr;
+  MissionRules rules_;
+  bool mission_ = false;
   int difficulty_index_ = 0;
   std::string title_;
   BossOptions options_;
@@ -660,6 +673,11 @@ class BossRun {
   BossReward reward_;
   CombatSim sim_;
 };
+
+// Liberation mission `index` as a run of its boss, or null when the catalog
+// lacks that boss or difficulty. `state` must outlive the run.
+std::unique_ptr<BossRun> LiberationMissionRun(const GameState& state, int index,
+                                              const BossOptions& options);
 
 }  // namespace ms
 

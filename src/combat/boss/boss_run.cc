@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,6 +15,7 @@
 #include "src/build_config.h"
 #include "src/character/account/guild.h"
 #include "src/character/honor.h"
+#include "src/combat/boss/liberation.h"
 #include "src/combat/combat.h"
 #include "src/combat/drop.h"
 #include "src/combat/encounter.h"
@@ -149,6 +151,13 @@ BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
     clock_cut_ = CutToPhaseClock(chosen->phases(0), seconds_left_);
   }
   StandPlayerAtStart();
+}
+
+void BossRun::MakeMission(const MissionRules& rules, int index, int count) {
+  rules_ = rules;
+  mission_ = true;
+  title_ +=
+      " (" + std::to_string(index + 1) + "/" + std::to_string(count) + ")";
 }
 
 void BossRun::StandPlayerAtStart() {
@@ -1135,10 +1144,21 @@ void BossRun::ComputePhaseHp(const CombatParams& params) {
   }
 }
 
-const CombatParams& BossRun::PhaseParams(const GameState& state) {
+const CombatParams& BossRun::PhaseParams(GameState& state) {
   int level = state.character.proto().level();
   if (params_phase_ != phase_ || params_level_ != level) {
-    params_ = ComputeBossParams(state, boss_key_, *difficulty(), phase_);
+    const EquipPrototype* genesis =
+        rules_.sealed ? GenesisWeaponFor(state) : nullptr;
+    if (rules_.sealed && genesis == nullptr) {
+      params_ = CombatParams();  // no weapon to seal: nothing to fight with
+    } else if (rules_.sealed) {
+      ScopedGear sealed(state.character, SealedGear(state, *genesis));
+      params_ =
+          ComputeBossParams(state, boss_key_, *difficulty(), phase_, rules_);
+    } else {
+      params_ =
+          ComputeBossParams(state, boss_key_, *difficulty(), phase_, rules_);
+    }
     params_phase_ = phase_;
     params_level_ = level;
   }
@@ -1300,7 +1320,7 @@ void BossRun::PayReward(GameState& state,
   clear_seconds_ = FightSeconds();
   // A practice run pays nothing: no meso, EXP, honor or drops. The clear time
   // above is still recorded, since beating it is the point.
-  if (options_.practice()) {
+  if (options_.practice() || mission_) {
     return;
   }
   // A party splits the meso and nothing else. Every member beat the boss, so
@@ -1680,6 +1700,28 @@ void BossRun::RunAlone(GameState& state, double dt) {
       hold_left_ = std::max(0.0, hold_left_ - dt);
       return;
   }
+}
+
+std::unique_ptr<BossRun> LiberationMissionRun(const GameState& state, int index,
+                                              const BossOptions& options) {
+  if (index < 0 || index >= kLiberationMissionCount) {
+    return nullptr;
+  }
+  const LiberationMission& mission = kLiberationMissions[index];
+  std::map<std::string, Boss>::const_iterator boss =
+      state.bosses.find(mission.boss);
+  if (boss == state.bosses.end()) {
+    return nullptr;
+  }
+  for (int at = 0; at < boss->second.difficulties_size(); ++at) {
+    if (boss->second.difficulties(at).name() == mission.difficulty) {
+      std::unique_ptr<BossRun> run = std::make_unique<BossRun>(
+          mission.boss, boss->second, at, /*authority=*/nullptr, options);
+      run->MakeMission(LiberationRules(index), index, kLiberationMissionCount);
+      return run;
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace ms

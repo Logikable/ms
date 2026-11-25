@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <limits>
@@ -16,7 +17,9 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/boss_reset.h"
 #include "src/character/honor.h"
+#include "src/combat/boss/liberation.h"
 #include "src/combat/drop.h"
+#include "src/combat/encounter.h"
 #include "src/combat/loot.h"
 #include "src/combat/pity.h"
 #include "src/frontend/widgets/chrome.h"
@@ -178,9 +181,24 @@ BossSelectPanel::BossSelectPanel(const GameState& state)
   for (const std::tuple<int, int64_t, std::string, std::string>& entry :
        sorted) {
     const std::string& key = std::get<3>(entry);
-    const int page = std::clamp(state_.bosses.at(key).page(), 1, kBossPages);
+    const int page = std::clamp(BossAt(key).page(), 1, kBossPages);
     pages_[page - 1].push_back(key);
   }
+  // Last on its page: it is fought after every boss it sends the player to.
+  liberation_.set_name(kLiberationName);
+  liberation_.set_page(kLiberationPage);
+  BossDifficulty* genesis = liberation_.add_difficulties();
+  genesis->set_name("Genesis");
+  genesis->set_unlock_level(kLiberationLevel);
+  pages_[kLiberationPage - 1].push_back(kLiberationKey);
+}
+
+const Boss& BossSelectPanel::BossAt(const std::string& key) const {
+  return key == kLiberationKey ? liberation_ : state_.bosses.at(key);
+}
+
+bool BossSelectPanel::selected_liberation() const {
+  return !Shown().empty() && Shown()[selected_] == kLiberationKey;
 }
 
 void BossSelectPanel::Reset() {
@@ -228,7 +246,7 @@ int BossSelectPanel::Columns() const {
   int columns = 0;
   for (const std::vector<std::string>& page : pages_) {
     for (const std::string& key : page) {
-      columns = std::max(columns, state_.bosses.at(key).difficulties_size());
+      columns = std::max(columns, BossAt(key).difficulties_size());
     }
   }
   return columns;
@@ -267,7 +285,7 @@ void BossSelectPanel::ScrollInfo(int delta) {
 }
 
 int BossSelectPanel::DifficultyAt(int boss) const {
-  int count = state_.bosses.at(Shown()[boss]).difficulties_size();
+  int count = BossAt(Shown()[boss]).difficulties_size();
   return std::clamp(column_, 0, std::max(0, count - 1));
 }
 
@@ -284,7 +302,7 @@ const BossDifficulty* BossSelectPanel::selected() const {
   if (Shown().empty()) {
     return nullptr;
   }
-  const Boss& boss = state_.bosses.at(Shown()[selected_]);
+  const Boss& boss = BossAt(Shown()[selected_]);
   int at = DifficultyAt(selected_);
   if (at < 0 || at >= boss.difficulties_size()) {
     return nullptr;
@@ -297,7 +315,7 @@ std::string BossSelectPanel::selected_title() const {
   if (difficulty == nullptr) {
     return "";
   }
-  return difficulty->name() + " " + state_.bosses.at(Shown()[selected_]).name();
+  return difficulty->name() + " " + BossAt(Shown()[selected_]).name();
 }
 
 bool BossSelectPanel::selected_available() const {
@@ -307,8 +325,10 @@ bool BossSelectPanel::selected_available() const {
   // Checked on the boss rather than the difficulty: beating him at any
   // difficulty counts, and every difficulty waits for the reset.
   const std::string& key = Shown()[selected_];
-  return BossAvailable(key, state_.bosses.at(key),
-                       state_.character.proto().boss_clears(),
+  if (key == kLiberationKey) {
+    return !Liberated(state_.character);
+  }
+  return BossAvailable(key, BossAt(key), state_.character.proto().boss_clears(),
                        static_cast<int64_t>(std::time(nullptr)));
 }
 
@@ -332,7 +352,7 @@ bool BossSelectPanel::selected_coming_soon() const {
 }
 
 ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
-  const Boss& fight = state_.bosses.at(Shown()[boss]);
+  const Boss& fight = BossAt(Shown()[boss]);
   if (at >= fight.difficulties_size()) {
     return ftxui::text(std::string(kDifficultyWidth, ' '));
   }
@@ -349,7 +369,8 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   // separately, so Normal can be open while Chaos next to it isn't.
   if (!on_tabs_ && boss == selected_ && at == DifficultyAt(boss)) {
     name = std::move(name) | ftxui::inverted;
-  } else if (!Unlocked(difficulty) || difficulty.coming_soon()) {
+  } else if (!Unlocked(difficulty) || difficulty.coming_soon() ||
+             (Shown()[boss] == kLiberationKey && Liberated(state_.character))) {
     name = std::move(name) | ftxui::dim;
   }
   int pad = std::max(
@@ -377,9 +398,9 @@ ftxui::Element BossSelectPanel::RenderBossList(
   }
   for (int i = 0; i < static_cast<int>(Shown().size()); ++i) {
     std::vector<ftxui::Element> cells;
-    cells.push_back(ftxui::text(
-        " " + ScrollingWindow(state_.bosses.at(Shown()[i]).name(),
-                              kBossNameWidth, now.time_since_epoch())));
+    cells.push_back(ftxui::text(" " + ScrollingWindow(BossAt(Shown()[i]).name(),
+                                                      kBossNameWidth,
+                                                      now.time_since_epoch())));
     for (int at = 0; at < columns; ++at) {
       cells.push_back(RenderDifficultyCell(i, at));
     }
@@ -403,6 +424,9 @@ ftxui::Element BossSelectPanel::RenderDetailTitle(
 BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     const BossDifficulty& difficulty,
     std::chrono::steady_clock::time_point now) const {
+  if (selected_liberation()) {
+    return BuildLiberationDetail(difficulty, now);
+  }
   DetailRows detail;
   detail.head.push_back(RenderDetailTitle(now));
   detail.head.push_back(ThemedSeparator());
@@ -475,6 +499,83 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
   // still reads the card to decide what a real clear is worth. The rule above
   // the heading stays lit, since it belongs to the card's frame.
   if (practice()) {
+    for (std::size_t i = 1; i < rewards.size(); ++i) {
+      rewards[i] = std::move(rewards[i]) | ftxui::dim;
+    }
+  }
+  return detail;
+}
+
+BossSelectPanel::DetailRows BossSelectPanel::BuildLiberationDetail(
+    const BossDifficulty& difficulty,
+    std::chrono::steady_clock::time_point now) const {
+  DetailRows detail;
+  detail.head.push_back(RenderDetailTitle(now));
+  detail.head.push_back(ThemedSeparator());
+  std::vector<ftxui::Element>& rows = detail.info;
+  rows.push_back(RedUnless(
+      DetailRow("Unlock Level", std::to_string(difficulty.unlock_level())),
+      Unlocked(difficulty)));
+  if (!Unlocked(difficulty)) {
+    rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
+  } else if (Liberated(state_.character)) {
+    // Once and never again, so it reads as done rather than as waiting.
+    rows.push_back(DetailRow("Status", "Liberated") | ftxui::color(kGreen));
+  } else if (practice()) {
+    rows.push_back(DetailRow("Status", "Practice") | ftxui::color(kYellow));
+  } else {
+    rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
+  }
+  rows.push_back(DetailRow("Party", "Solo"));
+  // A blank row, not a rule: a rule here would stop short of the scroll bar's
+  // lane.
+  rows.push_back(ftxui::text(""));
+  rows.push_back(ftxui::text(" Fights in a row ") | ftxui::color(kTheme));
+  for (int i = 0; i < kLiberationMissionCount; ++i) {
+    const LiberationMission& mission = kLiberationMissions[i];
+    std::map<std::string, Boss>::const_iterator boss =
+        state_.bosses.find(mission.boss);
+    const std::string name =
+        std::string(mission.difficulty) + " " +
+        (boss == state_.bosses.end() ? mission.boss : boss->second.name());
+    const MissionRules rules = LiberationRules(i);
+    std::string handicap;
+    auto add = [&](const std::string& part) {
+      handicap += (handicap.empty() ? "" : ", ") + part;
+    };
+    if (mission.damage_factor < 1.0) {
+      add("FD -" +
+          std::to_string(static_cast<int>(
+              std::lround((1.0 - mission.damage_factor) * 100))) +
+          "%");
+    }
+    if (rules.sealed) {
+      add("weapon only");
+    }
+    if (mission.hp_factor < 1.0) {
+      add("HP -" +
+          std::to_string(
+              static_cast<int>(std::lround((1.0 - mission.hp_factor) * 100))) +
+          "%");
+    }
+    if (i >= kTanadianRuinFromMission) {
+      add("FD +10%");
+    }
+    rows.push_back(
+        ftxui::text(" " + PadRight(std::to_string(i + 1) + " " + name, 20) +
+                    PadLeft(handicap, kDetailWidth - 22) + " "));
+  }
+  std::vector<ftxui::Element>& rewards = detail.rewards;
+  rewards.push_back(ThemedSeparator());
+  rewards.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
+  const EquipPrototype* genesis = GenesisWeaponFor(state_);
+  rewards.push_back(ftxui::text(
+      " " +
+      PadRight(genesis == nullptr ? "A Genesis weapon of the type worn"
+                                  : genesis->name(),
+               kDetailWidth - 2) +
+      " "));
+  if (practice() || Liberated(state_.character)) {
     for (std::size_t i = 1; i < rewards.size(); ++i) {
       rewards[i] = std::move(rewards[i]) | ftxui::dim;
     }

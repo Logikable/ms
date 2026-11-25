@@ -17,6 +17,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/combat/boss/battle_analysis.h"
 #include "src/combat/boss/boss_run.h"
+#include "src/combat/boss/liberation.h"
 #include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/keybinds.h"
@@ -620,6 +621,15 @@ class TuiController {
   // Charges the potion cost of entering a fight. Both ways into a boss run
   // call it: solo and party.
   void ChargeBossEntry();
+  // Refuses the Liberation with a notice and returns true when it can't start:
+  // in a party, already won, no Genesis weapon for the type worn, or a full
+  // bag. The level and weapon checks every fight shares come first.
+  bool RefuseLiberation();
+  // Starts Liberation mission `index`, or ends the run if it can't be built.
+  void StartLiberationMission(int index);
+  // A mission was won: the next one starts, or after the last the weapon is
+  // paid and the clear card opens.
+  void LiberationMissionWon();
   // True while a fight is on screen, when the map shouldn't be farmed because
   // the player is somewhere else.
   bool in_boss_fight() const {
@@ -1281,6 +1291,12 @@ class TuiController {
   std::unique_ptr<BossRun> boss_run_;
   std::string boss_run_key_;
   std::string boss_run_difficulty_;
+  // The Liberation's mission being fought, -1 when no Liberation is running;
+  // the weapon it pays, fixed at the start; and the seconds its won missions
+  // took, which the clear card shows.
+  int liberation_mission_ = -1;
+  const EquipPrototype* liberation_weapon_ = nullptr;
+  double liberation_seconds_ = 0.0;
   // The party's fight, which the run follows. Null for single-player.
   std::unique_ptr<PartyFightAuthority> party_fight_;
   bool quit_requested_ = false;

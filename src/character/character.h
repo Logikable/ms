@@ -1017,6 +1017,14 @@ class CharacterInstance {
   // included, for pricing a hit GMS says those slots don't reach.
   CharacterInstance Without(absl::Span<const EquipSlot> slots,
                             StatPreset preset) const;
+  // Every preset's own gear, as worn_ holds it.
+  using PresetGear =
+      std::array<std::map<EquipSlot, EquipInstance>, kNumStatPresets>;
+  // Trades every preset's gear for `gear` and recomputes, leaving what was worn
+  // in `gear`: a second call with it puts everything back. Nothing is checked,
+  // so it is only for pricing a fight in gear the character doesn't own, such
+  // as the Liberation's sealed missions; ScopedGear makes the pair.
+  void SwapWornGear(PresetGear& gear);
 
  private:
   // Private so a character is never copied by accident; only a probe like
@@ -1119,6 +1127,27 @@ class CharacterInstance {
   double consumable_debt_ = 0.0;
   std::map<std::string, EquipSet> equip_sets_;
   std::array<std::vector<SkillEffect>, kNumStatPresets> set_bonuses_;
+};
+
+// Dresses a character in `gear`, worn in the first preset and inherited by the
+// rest, until it goes out of scope, then puts back what they wore.
+class ScopedGear {
+ public:
+  ScopedGear(CharacterInstance& character,
+             std::map<EquipSlot, EquipInstance> gear)
+      : character_(character) {
+    held_[0] = std::move(gear);
+    character_.SwapWornGear(held_);
+  }
+  ~ScopedGear() {
+    character_.SwapWornGear(held_);
+  }
+  ScopedGear(const ScopedGear&) = delete;
+  ScopedGear& operator=(const ScopedGear&) = delete;
+
+ private:
+  CharacterInstance& character_;
+  CharacterInstance::PresetGear held_;
 };
 
 }  // namespace ms

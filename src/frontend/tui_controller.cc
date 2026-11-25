@@ -2609,6 +2609,7 @@ bool TuiController::in_party_fight() const {
 
 void TuiController::DropBossRun() {
   boss_run_.reset();
+  liberation_mission_ = -1;
   // The party's skills apply to this character only for the fight; afterwards
   // they farm alone.
   state_.party.clear();
@@ -3635,6 +3636,11 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           boss_prompt_title_ + " unlocks at level " +
               std::to_string(boss_select_panel_.selected_unlock_level()) + ".",
           /*refusal=*/true, "Close");
+    } else if (boss_select_panel_.selected_liberation()) {
+      if (!RefuseLiberation()) {
+        boss_prompt_.Open();
+        screen_ = kBossConfirm;
+      }
     } else if (!boss_select_panel_.selected_available() &&
                !boss_select_panel_.practice()) {
       // Named without the difficulty: clearing any difficulty locks them all,
@@ -3666,6 +3672,13 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
   if (choice != ConfirmChoice::kConfirmed) {
     return true;
   }
+  if (boss_select_panel_.selected_liberation()) {
+    ChargeBossEntry();
+    liberation_weapon_ = GenesisWeaponFor(state_);
+    liberation_seconds_ = 0.0;
+    StartLiberationMission(0);
+    return true;
+  }
   boss_run_key_ = boss_select_panel_.selected_boss();
   const BossDifficulty* difficulty = boss_select_panel_.selected();
   std::map<std::string, Boss>::const_iterator it =
@@ -3691,6 +3704,60 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
       /*authority=*/nullptr, state_.FightOptions());
   screen_ = kBossFight;
   return true;
+}
+
+bool TuiController::RefuseLiberation() {
+  std::string refusal;
+  if (Lobby().party.members_size() >= 2) {
+    refusal = "The Liberation is fought alone.";
+  } else if (Liberated(state_.character)) {
+    refusal = "Your Genesis weapon is already liberated.";
+  } else if (GenesisWeaponFor(state_) == nullptr) {
+    refusal = "No Genesis weapon is made for the weapon you are holding.";
+  } else if (!boss_select_panel_.practice() &&
+             state_.character.inventory().full()) {
+    refusal = "Make room in your bag for the Genesis weapon first.";
+  }
+  if (refusal.empty()) {
+    return false;
+  }
+  OpenSentenceNotice(kBossNotice, refusal, /*refusal=*/true, "Close");
+  return true;
+}
+
+void TuiController::StartLiberationMission(int index) {
+  boss_run_ = LiberationMissionRun(state_, index, state_.FightOptions());
+  if (boss_run_ == nullptr) {
+    liberation_mission_ = -1;
+    screen_ = kBossSelect;
+    return;
+  }
+  liberation_mission_ = index;
+  boss_run_key_ = kLiberationMissions[index].boss;
+  boss_run_difficulty_ = kLiberationMissions[index].difficulty;
+  screen_ = kBossFight;
+}
+
+void TuiController::LiberationMissionWon() {
+  liberation_seconds_ += boss_run_->clear_seconds();
+  if (liberation_mission_ + 1 < kLiberationMissionCount) {
+    StartLiberationMission(liberation_mission_ + 1);
+    return;
+  }
+  liberation_mission_ = -1;
+  boss_clear_title_ = std::string("Genesis ") + kLiberationName;
+  boss_clear_reward_ = BossReward();
+  boss_clear_seconds_ = liberation_seconds_;
+  // The bag was checked at the start, and nothing can fill it mid-run.
+  if (!boss_run_->practice() && liberation_weapon_ != nullptr &&
+      GrantLiberation(state_, *liberation_weapon_)) {
+    boss_clear_reward_.items.push_back(
+        {liberation_weapon_->name(), 1, /*prize=*/true, /*chance=*/1.0});
+    save_wanted_ = true;
+  }
+  boss_result_prompt_.Open();
+  boss_result_on_analysis_ = false;
+  screen_ = kBossClear;
 }
 
 void TuiController::ToggleBossOption(int option) {
@@ -3847,6 +3914,11 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   if (!boss_run_->done()) {
     return;
   }
+  if (boss_run_->won() && liberation_mission_ >= 0) {
+    LiberationMissionWon();
+    return;
+  }
+  liberation_mission_ = -1;
   if (boss_run_->won()) {
     // A practice clear costs nothing: the fight isn't recorded, so the reset
     // clock never sees it.

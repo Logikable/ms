@@ -593,6 +593,9 @@ struct CombatParams {
   // so a clear's length is the character's alone. See ClearTimes.
   bool respawn_on_clear = false;
   std::vector<CombatType> types;  // in map order
+  // Copies of catalog mobs with their HP changed (MissionRules.hp_factor),
+  // which `types` point at. Shared so a copied CombatParams points at the same.
+  std::vector<std::shared_ptr<const Mob>> scaled_mobs;
   // Every available attack, basic attack first. Never empty while active.
   std::vector<AttackOption> attacks;
   // Attacks on their own timer that run alongside normal attacks. The fight
@@ -662,12 +665,27 @@ CombatParams ComputeCombatParams(const GameState& state);
 CombatParams ComputeCombatParams(const GameState& state,
                                  const std::string& map);
 
+// A Liberation mission's handicaps on an ordinary boss fight; see
+// src/combat/boss/liberation.h. The default changes nothing.
+struct MissionRules {
+  // Multiplies everything the player deals: GMS's "Final Damage decreased by
+  // 75%" is 0.25.
+  double damage_factor = 1.0;
+  // Multiplies every monster's max HP: Verus Hilla's mission takes off 25%.
+  double hp_factor = 1.0;
+  // Fought in a bare Genesis weapon of the worn type, the secondary at its
+  // base stats and the symbols, and nothing else. BossRun dresses the
+  // character; the params only read what is worn.
+  bool sealed = false;
+};
+
 // The same for one phase of a boss difficulty. Nothing respawns or hits back,
 // and the fight runs in real time rather than stretched by game speed, since
 // the player watches bosses rather than idling.
 CombatParams ComputeBossParams(const GameState& state,
                                const std::string& boss_key,
-                               const BossDifficulty& difficulty, int phase);
+                               const BossDifficulty& difficulty, int phase,
+                               const MissionRules& rules = {});
 
 // The CombatParams::encounter value for one boss phase. Unique per phase, which
 // makes a new phase rebuild the mobs, and distinct from map names.

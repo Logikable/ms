@@ -384,3 +384,17 @@ sim_binary(
         "@abseil-cpp//absl/flags:parse",
     ],
 )
+
+sim_binary(
+    name = "liberation_sim",
+    srcs = ["liberation_sim.cc"],
+    deps = [
+        "//analysis:sim_jobs",
+        "//analysis:sim_world",
+        "//src:game_state",
+        "//src/combat/boss:boss_run",
+        "//src/combat/boss:liberation",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)

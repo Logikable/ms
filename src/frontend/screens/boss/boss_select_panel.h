@@ -60,6 +60,8 @@ inline constexpr int kBossPages = 3;
 // header and the rule under it. A page with more loses its end, so the data is
 // tested against this.
 inline constexpr int kBossListCapacity = kBossPanelHeight - 2 - 3;
+// The page the Liberation is listed on, with the bosses it sends the player to.
+inline constexpr int kLiberationPage = 2;
 
 // Which window the arrows control. Tab moves around the ring.
 enum class BossPanel { kList, kFight, kOptions };
@@ -133,6 +135,9 @@ class BossSelectPanel {
   // The level the highlighted difficulty unlocks at, or 0 if it has no gate of
   // its own.
   int selected_unlock_level() const;
+  // Whether the highlighted row is the Liberation, which the controller starts
+  // as its own run of missions rather than as one fight.
+  bool selected_liberation() const;
   // Whether the highlighted fight is defined but not built yet. Such a fight is
   // listed and readable but can never be entered.
   bool selected_coming_soon() const;
@@ -163,6 +168,13 @@ class BossSelectPanel {
   };
   DetailRows BuildDetail(const BossDifficulty& difficulty,
                          std::chrono::steady_clock::time_point now) const;
+  // The Liberation's card: its fights in order, each with its handicap.
+  DetailRows BuildLiberationDetail(
+      const BossDifficulty& difficulty,
+      std::chrono::steady_clock::time_point now) const;
+  // The boss a key names: one from the catalog, or the Liberation, which
+  // isn't one, since it only strings together fights that are.
+  const Boss& BossAt(const std::string& key) const;
   // The rows the details have between the title and the rewards.
   static int InfoRoom(const DetailRows& detail);
   // Appends `visible` rows of the details, each with its scroll bar cell,
@@ -201,6 +213,8 @@ class BossSelectPanel {
   bool Unlocked(const BossDifficulty& difficulty) const;
 
   const GameState& state_;
+  // The Liberation's row, listed like a boss with one difficulty.
+  Boss liberation_;
   // Boss keys by page, each in display order: by the easiest difficulty's
   // unlock level, then its HP, then name. The unlock level comes first because
   // that is the order a player meets them in.

@@ -22,6 +22,7 @@
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/boss/boss_run.h"
+#include "src/combat/boss/liberation.h"
 #include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/panels/character_panel.h"
@@ -4540,6 +4541,98 @@ TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), cleared)
       << "the clock never heard about it";
   EXPECT_EQ(controller_->boss_clear_reward().meso, 0);
+}
+
+int BagCount(const CharacterInstance& character, const std::string& name) {
+  int count = 0;
+  for (int i = 0; i < character.inventory().size(); ++i) {
+    count += character.inventory()[i].prototype().name() == name ? 1 : 0;
+  }
+  return count;
+}
+
+// The Liberation's seven bosses, one HP each but `tough`'s, which can't be
+// beaten in its clock; a Genesis weapon of the sword's type; and the character
+// at the level it opens at, on its row.
+void SetUpLiberation(GameState& state, CharacterInstance& character,
+                     TuiController& controller, const std::string& tough = "") {
+  Mob weak;
+  weak.set_name("Commander");
+  weak.set_level(200);
+  weak.set_max_hp(1);
+  weak.set_boss(true);
+  state.mobs["commander"] = weak;
+  Mob strong = weak;
+  strong.set_max_hp(int64_t{1} << 50);
+  state.mobs["strong_commander"] = strong;
+  for (const LiberationMission& mission : kLiberationMissions) {
+    Boss boss;
+    boss.set_name(mission.boss);
+    BossDifficulty* difficulty = boss.add_difficulties();
+    difficulty->set_name(mission.difficulty);
+    difficulty->set_time_limit_seconds(60);
+    Spawn* spawn = difficulty->add_phases()->add_spawns();
+    spawn->set_mob(mission.boss == tough ? "strong_commander" : "commander");
+    spawn->set_count(1);
+    state.bosses[mission.boss] = boss;
+  }
+  EquipPrototype genesis;
+  genesis.set_name("Genesis Sword");
+  genesis.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  genesis.set_set_family("Genesis Warrior Weapon");
+  genesis.mutable_dropped_as()->set_stars(22);
+  state.equips["genesis_sword"] = genesis;
+  while (character.proto().level() < kLiberationLevel) {
+    character.LevelUp();
+  }
+  controller.OpenDailiesEntry(DailiesEntry::kBoss);
+  controller.OnEvent(ftxui::Event::ArrowUp);     // the tab row
+  controller.OnEvent(ftxui::Event::ArrowRight);  // its page
+  controller.OnEvent(ftxui::Event::ArrowDown);   // the Liberation
+}
+
+// One run, every mission back to back, and the weapon at the end. It is won
+// once, and never again.
+TEST_F(TuiControllerTest, TheLiberationRunsEveryMissionAndPaysTheWeapon) {
+  HoldASword();
+  SetUpLiberation(*state_, state_->character, *controller_);
+  ASSERT_TRUE(boss_select_panel_->selected_liberation());
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossConfirm);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossFight);
+  ASSERT_NE(controller_->boss_run(), nullptr);
+  EXPECT_TRUE(controller_->boss_run()->mission());
+  EXPECT_EQ(controller_->boss_run()->title(), "Normal arkarium (1/7)");
+
+  RunFightToEnd();
+  ASSERT_EQ(controller_->screen(), kBossClear);
+  EXPECT_EQ(controller_->boss_clear_title(), "Genesis Liberation");
+  ASSERT_EQ(controller_->boss_clear_reward().items.size(), 1u);
+  EXPECT_EQ(controller_->boss_clear_reward().items[0].name, "Genesis Sword");
+  EXPECT_TRUE(Liberated(state_->character));
+  EXPECT_EQ(BagCount(state_->character, "Genesis Sword"), 1);
+  EXPECT_EQ(state_->character.BossClearedAt("damien", "Hard"), 0)
+      << "a mission uses no clear";
+
+  controller_->OnEvent(ftxui::Event::Return);  // leave the card
+  ASSERT_EQ(controller_->screen(), kBossSelect);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_TRUE(Liberated(state_->character));
+}
+
+// Losing any mission ends the run there, and pays nothing.
+TEST_F(TuiControllerTest, LosingAMissionEndsTheLiberation) {
+  HoldASword();
+  SetUpLiberation(*state_, state_->character, *controller_, "will");
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  RunFightToEnd();
+  ASSERT_EQ(controller_->screen(), kBossTimeout);
+  EXPECT_EQ(controller_->boss_run()->title(), "Hard will (5/7)");
+  EXPECT_FALSE(Liberated(state_->character));
+  EXPECT_EQ(BagCount(state_->character, "Genesis Sword"), 0);
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {

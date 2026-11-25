@@ -1,6 +1,7 @@
 #include "src/combat/encounter.h"
 
 #include <algorithm>
+#include <cmath>
 #include <deque>
 #include <map>
 #include <memory>
@@ -2429,13 +2430,16 @@ namespace {
 DerivedStats BossDerived(const GameState& state,
                          const CharacterInstance& character,
                          const std::string& boss_key,
-                         const BossDifficulty& difficulty, int phase) {
+                         const BossDifficulty& difficulty, int phase,
+                         const MissionRules& rules) {
   DerivedStats derived = DerivedStatsFor(character, state.skills, {},
                                          state.party, Activity::kBossing);
   derived.damage_pct += SymbolBossDamagePct(character, boss_key, derived.gear);
   ForceFactors force =
       BossForceFor(difficulty, phase, character, state.skills).factors;
-  derived.force_damage_factor = force.damage_dealt;
+  // The mission's cut rides on the force factor: both are a flat multiplier
+  // on everything dealt, applied last.
+  derived.force_damage_factor = force.damage_dealt * rules.damage_factor;
   derived.force_taken_factor = force.damage_taken;
   return derived;
 }
@@ -2447,7 +2451,8 @@ DerivedStats BossDerived(const GameState& state,
 // 1.97x KMS's battle analysis to 1.22x (the user's call).
 void PriceAscentsBare(const GameState& state, const std::string& boss_key,
                       const BossDifficulty& difficulty, int phase,
-                      const EquipPrototype& weapon, CombatParams& params) {
+                      const MissionRules& rules, const EquipPrototype& weapon,
+                      CombatParams& params) {
   if (absl::c_none_of(params.attacks,
                       [](const AttackOption& a) { return a.held; })) {
     return;
@@ -2458,7 +2463,8 @@ void PriceAscentsBare(const GameState& state, const std::string& boss_key,
   CharacterInstance bare = state.character.Without(
       kUnreached,
       state.character.SlotFor(PresetKind::kEquip, Activity::kBossing));
-  DerivedStats derived = BossDerived(state, bare, boss_key, difficulty, phase);
+  DerivedStats derived =
+      BossDerived(state, bare, boss_key, difficulty, phase, rules);
   derived.final_dmg_pct = 0.0;
   AttackSet set = BuildAttackSet(state, *params.buffed_source.book, derived,
                                  weapon, 1.0, params.types, &bare);
@@ -2480,7 +2486,8 @@ void PriceAscentsBare(const GameState& state, const std::string& boss_key,
 
 CombatParams ComputeBossParams(const GameState& state,
                                const std::string& boss_key,
-                               const BossDifficulty& difficulty, int phase) {
+                               const BossDifficulty& difficulty, int phase,
+                               const MissionRules& rules) {
   CombatParams params;
   if (phase < 0 || phase >= difficulty.phases_size()) {
     return params;
@@ -2493,7 +2500,7 @@ CombatParams ComputeBossParams(const GameState& state,
 
   // Boss fights use the bossing stat allocation.
   DerivedStats derived =
-      BossDerived(state, state.character, boss_key, difficulty, phase);
+      BossDerived(state, state.character, boss_key, difficulty, phase, rules);
   // Boss fights run in real time at every level. Game speed stretches idle maps
   // so the player can leave them running; a watched fight needs neither that
   // nor respawns. Both intervals stay 0.
@@ -2503,8 +2510,17 @@ CombatParams ComputeBossParams(const GameState& state,
   if (params.types.empty()) {
     return params;
   }
+  if (rules.hp_factor != 1.0) {
+    for (CombatType& type : params.types) {
+      std::shared_ptr<Mob> scaled = std::make_shared<Mob>(*type.mob);
+      scaled->set_max_hp(static_cast<int64_t>(std::llround(
+          static_cast<double>(scaled->max_hp()) * rules.hp_factor)));
+      type.mob = scaled.get();
+      params.scaled_mobs.push_back(std::move(scaled));
+    }
+  }
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
-  PriceAscentsBare(state, boss_key, difficulty, phase, *weapon, params);
+  PriceAscentsBare(state, boss_key, difficulty, phase, rules, *weapon, params);
   params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);
   // Attack the healthiest boss part first; see CombatParams::focus_healthiest.
