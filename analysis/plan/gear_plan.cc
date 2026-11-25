@@ -450,8 +450,10 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   }
   // Risk the booms the copies at hand could recover from, and one more, as a
   // player stars a piece with no spare: the trace that boom leaves waits for
-  // the tokens to buy a copy (see RecoverWaiting).
-  const double copies = CopiesFor(state, item->prototype()) + 1.0;
+  // the tokens to buy a copy (see RecoverWaiting). Not the weapon: losing it
+  // ends all farming and bossing, so nothing would ever earn the copy.
+  const double copies = CopiesFor(state, item->prototype()) +
+                        (slot == EQUIP_SLOT_PRIMARY_WEAPON ? 0.0 : 1.0);
   const double spare = static_cast<double>(SpareCost(item->prototype()));
   const EquipStats now = item->StarForceStatGains(stars);
   StarRunChoice run = BestStarRun(

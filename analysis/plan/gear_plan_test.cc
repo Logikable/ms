@@ -372,49 +372,63 @@ TEST_F(GearPlanTest, AReplacingRunShortOfMesoSettlesForAnyGain) {
 
 // A piece bought with tokens has no shop copy to recover a boom with. Without
 // the tokens for a spare, the run risks one boom, as a player stars a piece
-// with no spare; with them in hand it goes further.
+// with no spare, but never on the weapon, whose loss stops every fight that
+// would earn the copy. With the tokens in hand it goes further.
 TEST_F(GearPlanTest, TokensForASpareLengthenTheRunPastFifteen) {
-  EquipPrototype weapon = Sword();
-  weapon.set_required_level(160);
-  weapon.add_unsupported_upgrades(UPGRADE_SCROLL);
-  weapon.add_unsupported_upgrades(UPGRADE_CUBE);
-  TokenPrice* price = weapon.add_token_prices();
-  price->set_token_item("coin");
-  price->set_count(5);
-  Grow(200, weapon);
-  CharacterInstance& character = state_->character;
-  ItemPrototype coin;
-  coin.set_name("Coin");
-  coin.set_kind(ITEM_KIND_TOKEN);
-  state_->items["coin"] = coin;
-  Equip fifteen;
-  fifteen.set_stars(15);
-  character.PickUp(std::make_unique<EquipInstance>(weapon, fifteen));
-  ASSERT_TRUE(character.Equip(character.inventory().size() - 1));
-  // The copy Grow wore is now in the bag, and would be the spare.
-  for (int i = character.inventory().size() - 1; i >= 0; --i) {
-    if (character.inventory().equip_instance(i) != nullptr) {
-      character.SellEquip(i);
-    }
-  }
-  character.AddMeso(1'000'000'000'000);
-
-  auto furthest = [this]() {
-    GearShopper shopper{GearPlan()};
-    int to = 0;
-    for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
-      if (offer.star && offer.slot == EQUIP_SLOT_PRIMARY_WEAPON) {
-        to = std::max(to, offer.star_to);
+  auto furthest_without_and_with_tokens = [this](EquipSlot slot) {
+    EquipPrototype piece = Sword();
+    piece.set_name("Token Piece");
+    piece.set_equip_slot(slot);
+    piece.set_required_level(160);
+    piece.add_unsupported_upgrades(UPGRADE_SCROLL);
+    piece.add_unsupported_upgrades(UPGRADE_CUBE);
+    TokenPrice* price = piece.add_token_prices();
+    price->set_token_item("coin");
+    price->set_count(5);
+    Grow(200);
+    CharacterInstance& character = state_->character;
+    ItemPrototype coin;
+    coin.set_name("Coin");
+    coin.set_kind(ITEM_KIND_TOKEN);
+    state_->items["coin"] = coin;
+    Equip fifteen;
+    fifteen.set_stars(15);
+    character.PickUp(std::make_unique<EquipInstance>(piece, fifteen));
+    EXPECT_TRUE(character.Equip(character.inventory().size() - 1));
+    // Nothing in the bag for a spare: the sword Grow wore goes too.
+    for (int i = character.inventory().size() - 1; i >= 0; --i) {
+      if (character.inventory().equip_instance(i) != nullptr) {
+        character.SellEquip(i);
       }
     }
-    return to;
+    character.AddMeso(1'000'000'000'000);
+    auto furthest = [this, slot]() {
+      GearShopper shopper{GearPlan()};
+      int to = 0;
+      for (const GearShopper::Candidate& offer : shopper.Shelf(*state_)) {
+        if (offer.star && offer.slot == slot) {
+          to = std::max(to, offer.star_to);
+        }
+      }
+      return to;
+    };
+    const int bare = furthest();
+    character.AddItem(coin, 5);
+    return std::make_pair(bare, furthest());
   };
-  const int bare = furthest();
-  EXPECT_GT(bare, 15) << "one boom is risked without a spare";
-  EXPECT_LE(StarForceRunTo(160, 15, bare).booms, 1.0)
+
+  const auto [earring, earring_tokens] =
+      furthest_without_and_with_tokens(EQUIP_SLOT_EARRINGS);
+  EXPECT_GT(earring, 15) << "one boom is risked without a spare";
+  EXPECT_LE(StarForceRunTo(160, 15, earring).booms, 1.0)
       << "no more than one boom is expected on the way";
-  character.AddItem(coin, 5);
-  EXPECT_GE(furthest(), bare);
+  EXPECT_GE(earring_tokens, earring);
+
+  const auto [weapon, weapon_tokens] =
+      furthest_without_and_with_tokens(EQUIP_SLOT_PRIMARY_WEAPON);
+  EXPECT_EQ(StarForceRunTo(160, 15, weapon).booms, 0.0)
+      << "the weapon risks no boom it can't recover from";
+  EXPECT_GT(weapon_tokens, weapon);
 }
 
 // A boom with no copy leaves the trace in the bag and the slot empty, and the
