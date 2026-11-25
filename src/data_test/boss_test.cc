@@ -646,8 +646,9 @@ const std::map<std::string, TableDrop>& DropTable() {
       }
     };
     // 1% for what a player needs one of, 3% for what they star-force
-    // through several of, 5% for currency, the Jade boxes aside: they drop
-    // from many bosses.
+    // through several of, 5% for currency. The Jade boxes, Black Heart,
+    // Genesis Badge, Mitra's box and Will's spellbook are 0.5% (the user's,
+    // 2026-11-25).
     put({"aquatic_letter_eye_accessory", "condensed_power_crystal",
          "stone_of_eternal_life", "dea_sidus_earring", "horntail_necklace",
          "silver_blossom_ring", "crystal_ventus_badge",
@@ -670,10 +671,10 @@ const std::map<std::string, TableDrop>& DropTable() {
          "daybreak_pendant", "source_of_suffering", "endless_terror",
          "commanding_force_earring", "dreamy_belt"},
         {0.03, 10});
-    put({"black_heart", "wills_cursed_spellbook_selection_box"}, {0.01, 10});
-    put({"genesis_badge", "mitras_rage_selection_box"}, {0.01, 15});
+    put({"black_heart", "wills_cursed_spellbook_selection_box"}, {0.005, 10});
+    put({"genesis_badge", "mitras_rage_selection_box"}, {0.005, 15});
     put({"total_control"}, {0.03, 15});
-    put({"black_jade_boss_ring_box", "white_jade_boss_ring_box"}, {0.01, 15});
+    put({"black_jade_boss_ring_box", "white_jade_boss_ring_box"}, {0.005, 15});
     // Boxes the table doesn't list: 0.5%, no pity (the user's).
     put({"absolab_armor_box", "absolab_weapon_box", "arcane_umbra_armor_box",
          "arcane_umbra_weapon_box"},

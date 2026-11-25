@@ -154,7 +154,7 @@ difficulties {
   }
   drops {
     item: "wills_cursed_spellbook_selection_box"
-    per_kill: 0.01
+    per_kill: 0.005
     pity: 10
   }
   # The user's rate (2026-10-04); GMS publishes none.

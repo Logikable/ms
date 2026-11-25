@@ -94,7 +94,7 @@ difficulties {
   }
   drops {
     item: "white_jade_boss_ring_box"
-    per_kill: 0.01
+    per_kill: 0.005
     pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
@@ -205,7 +205,7 @@ difficulties {
   }
   drops {
     item: "white_jade_boss_ring_box"
-    per_kill: 0.01
+    per_kill: 0.005
     pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
