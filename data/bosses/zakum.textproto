@@ -36,13 +36,16 @@ difficulties {
   # at the Heroic price, as meso.
   meso: 3062500
   exp: 4750740
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "aquatic_letter_eye_accessory"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "condensed_power_crystal"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     item: "zakums_soul_shard"
@@ -86,14 +89,16 @@ difficulties {
   meso: 11550000
   # GMS pays no EXP for Chaos Zakum, for the arms or the body.
   exp: 0
-  # Normal's drops. Chaos adds nothing of its own in GMS either.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "aquatic_letter_eye_accessory"
-    per_kill: 0.8
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "condensed_power_crystal"
-    per_kill: 0.8
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     item: "zakums_soul_shard"

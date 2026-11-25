@@ -37,22 +37,19 @@ difficulties {
     item: "verus_hillas_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
-  # Seren.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.1
+    per_kill: 0.02
+    pity: 10
   }
-  # GMS never published the odds. The boxes pay one piece for every three the
-  # coins buy across the tier, shared with fights that drop no coin; Normal
-  # pays half of Hard.
   drops {
     item: "arcane_umbra_weapon_box"
-    per_kill: 0.0111
+    per_kill: 0.005
   }
   drops {
     item: "arcane_umbra_armor_box"
-    per_kill: 0.0333
+    per_kill: 0.005
   }
   # The user's rate (2026-10-04); GMS publishes none.
   drops {
@@ -96,31 +93,29 @@ difficulties {
     item: "verus_hillas_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, x2 for Hard,
-  # split with Seren.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.2
+    per_kill: 0.02
+    pity: 10
   }
-  # GMS never published the odds. The boxes pay one piece for every three the
-  # coins buy across the tier, shared with fights that drop no coin.
   drops {
     item: "arcane_umbra_weapon_box"
-    per_kill: 0.0222
+    per_kill: 0.005
   }
   drops {
     item: "arcane_umbra_armor_box"
-    per_kill: 0.0667
+    per_kill: 0.005
   }
-  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
   drops {
     equip: "source_of_suffering"
-    per_kill: 0.2
+    per_kill: 0.02
+    pity: 10
   }
-  # The user's planned rate (2026-10-04): GMS publishes none.
   drops {
     item: "black_jade_boss_ring_box"
     per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {

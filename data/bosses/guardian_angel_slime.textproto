@@ -34,11 +34,11 @@ difficulties {
   meso: 33100000
   # GMS lists no EXP for her.
   exp: 0
-  # GMS rolls her ring from a chest opened after the fight; only the roll is
-  # kept here.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "guardian_angel_ring"
-    per_kill: 0.2
+    per_kill: 0.05
+    pity: 3
   }
   drops {
     item: "guardian_angel_slimes_soul_shard"
@@ -77,20 +77,20 @@ difficulties {
   sol_erda_energy: 70
   # GMS lists no EXP for her.
   exp: 0
-  # GMS rolls her ring from a chest opened after the fight; only the roll is
-  # kept here.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "guardian_angel_ring"
-    per_kill: 0.4
+    per_kill: 0.05
+    pity: 3
   }
   drops {
     item: "guardian_angel_slimes_soul_shard"
     per_kill: 1.0
   }
-  # The user's planned rate (2026-10-04): GMS publishes none.
   drops {
     item: "black_jade_boss_ring_box"
     per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {

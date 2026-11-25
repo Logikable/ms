@@ -627,184 +627,84 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   }
 }
 
-// Where a drop sits in the boss drop tiers (memory boss_drop_tiers.md). A
-// currency's Normal rate is its tier's; an accessory's is 1 / days to a full
-// set x the accessory multiplier, split between the bosses that drop it; a box
-// pays one piece for every three its currency buys. A fixed rate is the user's,
-// outside the tiers.
-enum class DropKind { kCurrency, kAccessory, kBox, kFixed };
-struct TierDrop {
-  int tier = 1;
-  DropKind kind = DropKind::kCurrency;
-  // A box only: what its piece costs, and the fights dropping the currency
-  // against the fights dropping the box, each counted at the box's
-  // difficulty (a Normal fight is half of one).
-  int price = 0;
-  double currency_fights = 1;
-  double box_fights = 1;
-  // kFixed only. `rate` is for a boss of `tier`; with `per_boss_tier` a boss
-  // of another tier takes it in proportion to its days per set, and with
-  // `per_difficulty` it doubles a step as a currency does.
+// Every boss drop's rate and pity: the user's table (2026-11-24, memory
+// boss_pity.md), the same at every difficulty of a boss. A new boss's drop
+// fails here until it is in the table.
+struct TableDrop {
   double rate = 0.0;
-  bool per_boss_tier = false;
-  bool per_difficulty = false;
-  // With `per_difficulty`, the most it doubles to; 0 for no cap.
-  double max_steps = 0;
+  int pity = 0;
+  int pity_copies = 0;
 };
 
-// The two levers, and each tier's currency rate at Normal.
-constexpr double kAccessoryMultiplier = 2.0;
-constexpr double kDaysPerSet[] = {5, 10, 20, 40};
-constexpr double kCurrencyRate[] = {1.0, 0.5, 0.25, 0.1};
-
-const std::map<std::string, TierDrop>& TierDrops() {
-  static const std::map<std::string, TierDrop>* const kDrops = [] {
-    auto* drops = new std::map<std::string, TierDrop>;
-    for (const char* key :
-         {"piece_of_anguish", "piece_of_mockery", "piece_of_destruction",
-          "piece_of_time", "cygnus_shoulder_token"}) {
-      (*drops)[key] = {1, DropKind::kCurrency};
-    }
-    for (const char* key :
-         {"aquatic_letter_eye_accessory", "condensed_power_crystal",
-          "silver_blossom_ring", "horntail_necklace", "chaos_horntail_necklace",
-          "dea_sidus_earring", "black_bean_mark", "golden_clover_belt",
-          "pink_holy_cup", "crystal_ventus_badge", "royal_black_metal_shoulder",
-          "stone_of_eternal_life", "dominator_pendant", "papulatus_mark",
-          "kannas_treasure"}) {
-      (*drops)[key] = {1, DropKind::kAccessory};
-    }
-    for (const char* key : {"absolab_coin", "captivating_fragment"}) {
-      (*drops)[key] = {2, DropKind::kCurrency};
-    }
-    (*drops)["absolab_armor_box"] = {2, DropKind::kBox, 1};
-    (*drops)["absolab_weapon_box"] = {2, DropKind::kBox, 3};
-    for (const char* key : {"guardian_angel_ring", "twilight_mark",
-                            "estella_earrings", "daybreak_pendant"}) {
-      (*drops)[key] = {2, DropKind::kAccessory};
-    }
-    for (const char* key :
-         {"kalos_residual_determination", "echo_of_ancient_resolve",
-          "ferocious_beast_entanglement_ring"}) {
-      (*drops)[key] = {4, DropKind::kCurrency};
-    }
-    for (const char* key : {"phantasma_coin", "arachno_coin"}) {
-      (*drops)[key] = {3, DropKind::kCurrency};
-    }
-    for (const char* key :
-         {"magic_eyepatch", "berserked", "black_heart", "total_control",
-          "genesis_badge", "dreamy_belt",
-          "wills_cursed_spellbook_selection_box", "endless_terror",
-          "commanding_force_earring", "source_of_suffering"}) {
-      (*drops)[key] = {3, DropKind::kAccessory};
-    }
-    // Two coin fights (Hard Lucid, Hard Will) against six box fights, Normal
-    // Verus Hilla and Hard Black Mage (unbuilt) among them at half.
-    (*drops)["arcane_umbra_armor_box"] = {3, DropKind::kBox, 1, 2, 5};
-    (*drops)["arcane_umbra_weapon_box"] = {3, DropKind::kBox, 3, 2, 5};
-    // The user's rates (2026-10-04, memory boss_ring_boxes.md).
-    (*drops)["black_jade_boss_ring_box"] = {
-        3, DropKind::kFixed, 0, 1, 1, 0.02, /*per_boss_tier=*/true};
-    // The user's rates (2026-10-04, 2026-11-18): 1%, half on Easy, doubled for
-    // Hard. Extreme Lotus, Seren and Black Mage are doubled too, not 4x.
-    (*drops)["white_jade_boss_ring_box"] = {4,
-                                            DropKind::kFixed,
-                                            0,
-                                            1,
-                                            1,
-                                            0.01,
-                                            /*per_boss_tier=*/false,
-                                            /*per_difficulty=*/true,
-                                            /*max_steps=*/2};
-    (*drops)["mitras_rage_selection_box"] = {3, DropKind::kAccessory};
-    for (const char* key : {"premium_scroll_for_accessory",
-                            "premium_scroll_for_pet", "scroll_for_accessory"}) {
-      (*drops)[key] = {3, DropKind::kFixed, 0, 1, 1, 0.5};
-    }
-    (*drops)["magical_scroll_for_weapon"] = {3, DropKind::kFixed, 0, 1, 1, 0.1};
-    return drops;
-  }();
-  return *kDrops;
-}
-
-// Steps above Normal: Easy -1, Hard and Chaos +1, Extreme +2.
-int DifficultyRank(const std::string& name) {
-  if (name == "Easy") {
-    return 0;
-  }
-  if (name == "Normal") {
-    return 1;
-  }
-  if (name == "Extreme") {
-    return 3;
-  }
-  return 2;
-}
-
-// Every drop but a soul shard has the rate its tier gives it. A new boss's
-// drop fails here until it is placed in a tier, which is the point: rates come
-// from the design, never by hand.
-TEST_F(BossDataTest, EveryDropFollowsTheBossDropTiers) {
-  std::map<std::string, int> sources;
-  for (const std::pair<const std::string, Boss>& entry : bosses_) {
-    std::set<std::string> keys;
-    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      for (const MobDrop& drop : difficulty.drops()) {
-        keys.insert(DropKey(drop));
+const std::map<std::string, TableDrop>& DropTable() {
+  static const std::map<std::string, TableDrop>* const kTable = [] {
+    auto* table = new std::map<std::string, TableDrop>;
+    auto put = [table](std::initializer_list<const char*> keys,
+                       TableDrop drop) {
+      for (const char* key : keys) {
+        (*table)[key] = drop;
       }
-    }
-    for (const std::string& key : keys) {
-      ++sources[key];
-    }
-  }
+    };
+    put({"aquatic_letter_eye_accessory", "condensed_power_crystal",
+         "stone_of_eternal_life", "dea_sidus_earring", "horntail_necklace",
+         "silver_blossom_ring", "crystal_ventus_badge",
+         "royal_black_metal_shoulder", "black_bean_mark", "golden_clover_belt",
+         "pink_holy_cup", "chaos_horntail_necklace", "cygnus_shoulder_token"},
+        {0.01, 1});
+    put({"dominator_pendant"}, {0.05, 1});
+    put({"piece_of_mockery", "piece_of_time", "piece_of_anguish",
+         "piece_of_destruction"},
+        {0.05, 1, 5});
+    put({"papulatus_mark"}, {0.01, 3});
+    put({"kannas_treasure", "guardian_angel_ring"}, {0.05, 3});
+    put({"captivating_fragment"}, {0.01, 1, 5});
+    put({"absolab_coin"}, {0.05, 1, 10});
+    put({"phantasma_coin"}, {0.03, 1, 6});
+    put({"arachno_coin"}, {0.03, 1, 4});
+    put({"twilight_mark", "magic_eyepatch", "berserked"}, {0.03, 10});
+    put({"black_heart"}, {0.01, 10});
+    put({"estella_earrings", "daybreak_pendant", "source_of_suffering",
+         "endless_terror", "commanding_force_earring", "dreamy_belt"},
+        {0.02, 10});
+    put({"wills_cursed_spellbook_selection_box"}, {0.01, 10});
+    put({"genesis_badge", "mitras_rage_selection_box"}, {0.01, 15});
+    put({"total_control"}, {0.02, 15});
+    put({"kalos_residual_determination", "echo_of_ancient_resolve",
+         "ferocious_beast_entanglement_ring"},
+        {0.02, 1, 10});
+    put({"black_jade_boss_ring_box", "white_jade_boss_ring_box"}, {0.02, 15});
+    // Boxes the table doesn't list: 0.5%, no pity (the user's).
+    put({"absolab_armor_box", "absolab_weapon_box", "arcane_umbra_armor_box",
+         "arcane_umbra_weapon_box"},
+        {0.005});
+    // The scroll rates are the user's (2026-10-04).
+    put({"premium_scroll_for_accessory", "premium_scroll_for_pet",
+         "scroll_for_accessory"},
+        {0.5});
+    put({"magical_scroll_for_weapon"}, {0.1});
+    return table;
+  }();
+  return *kTable;
+}
+
+TEST_F(BossDataTest, EveryDropFollowsTheDropTable) {
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
-    // An equip, or a box of them, takes its own set's tier; anything else
-    // takes the boss's. Grandis bosses are tier 4 and Arcane River's tier 3.
-    const int boss_tier = LowestUnlockLevel(entry.second) >= kGrandisLevel ? 4
-                          : LowestUnlockLevel(entry.second) >= 200         ? 3
-                                                                           : 0;
-    // The easiest difficulty a boss has counts as Normal.
-    const int base = DifficultyRank(entry.second.difficulties(0).name()) - 1;
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      const double steps =
-          std::pow(2.0, DifficultyRank(difficulty.name()) - 1 - base);
       for (const MobDrop& drop : difficulty.drops()) {
         const std::string key = DropKey(drop);
         SCOPED_TRACE(entry.first + " " + difficulty.name() + " " + key);
+        EXPECT_EQ(drop.rolls(), 0) << "one roll, whatever the difficulty";
         if (absl::EndsWith(key, "_soul_shard")) {
           EXPECT_DOUBLE_EQ(drop.per_kill(), 1.0);
+          EXPECT_EQ(drop.pity(), 0);
           continue;
         }
-        std::map<std::string, TierDrop>::const_iterator it =
-            TierDrops().find(key);
-        ASSERT_NE(it, TierDrops().end()) << "in no tier";
-        const TierDrop& tier = it->second;
-        double want = 0.0;
-        switch (tier.kind) {
-          case DropKind::kCurrency:
-            want = kCurrencyRate[tier.tier - 1] * steps;
-            break;
-          case DropKind::kAccessory:
-            want = steps * kAccessoryMultiplier / kDaysPerSet[tier.tier - 1] /
-                   sources[key];
-            break;
-          case DropKind::kBox:
-            want = kCurrencyRate[tier.tier - 1] * steps * tier.currency_fights /
-                   (3.0 * tier.price * tier.box_fights);
-            break;
-          case DropKind::kFixed:
-            want = tier.rate;
-            if (tier.per_boss_tier) {
-              ASSERT_GT(boss_tier, 0) << "a boss tier below Arcane River";
-              want *= kDaysPerSet[tier.tier - 1] / kDaysPerSet[boss_tier - 1];
-            }
-            if (tier.per_difficulty) {
-              want *=
-                  tier.max_steps > 0 ? std::min(steps, tier.max_steps) : steps;
-            }
-            break;
-        }
-        EXPECT_NEAR(drop.per_kill() * DropRolls(drop), want, 0.005);
+        std::map<std::string, TableDrop>::const_iterator it =
+            DropTable().find(key);
+        ASSERT_NE(it, DropTable().end()) << "not in the table";
+        EXPECT_DOUBLE_EQ(drop.per_kill(), it->second.rate);
+        EXPECT_EQ(drop.pity(), it->second.pity);
+        EXPECT_EQ(drop.pity_copies(), it->second.pity_copies);
       }
     }
   }

@@ -42,9 +42,11 @@ difficulties {
   meso: 18900000
   # GMS pays this on the body itself; here the clear pays it.
   exp: 1234200
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "papulatus_mark"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 3
   }
   drops {
     item: "papulatuss_soul_shard"

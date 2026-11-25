@@ -40,19 +40,21 @@ difficulties {
   meso: 36250000
   # GMS lists no EXP on either body.
   exp: 0
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "phantasma_coin"
-    per_kill: 0.25
+    per_kill: 0.03
+    pity: 1
+    pity_copies: 6
   }
   drops {
     item: "lucids_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
-  # Will.
   drops {
     equip: "twilight_mark"
-    per_kill: 0.1
+    per_kill: 0.03
+    pity: 10
   }
 }
 difficulties {
@@ -117,34 +119,34 @@ difficulties {
   sol_erda_energy: 50
   # GMS lists no EXP on any of the three bodies.
   exp: 0
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "phantasma_coin"
-    per_kill: 0.5
+    per_kill: 0.03
+    pity: 1
+    pity_copies: 6
   }
   drops {
     item: "lucids_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
-  # Will, x2 for Hard.
   drops {
     equip: "twilight_mark"
-    per_kill: 0.2
+    per_kill: 0.03
+    pity: 10
   }
-  # GMS never published the odds. The boxes pay one piece for every three the
-  # coins buy across the tier, shared with fights that drop no coin.
   drops {
     item: "arcane_umbra_weapon_box"
-    per_kill: 0.0222
+    per_kill: 0.005
   }
   drops {
     item: "arcane_umbra_armor_box"
-    per_kill: 0.0667
+    per_kill: 0.005
   }
-  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
   drops {
     equip: "dreamy_belt"
-    per_kill: 0.2
+    per_kill: 0.02
+    pity: 10
   }
   # The user's rate (2026-10-04); GMS publishes none.
   drops {

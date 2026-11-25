@@ -18,12 +18,11 @@ difficulties {
   # GMS v272's Heroic Intense Power Crystal price; v272 made her a daily.
   meso: 14450000
   exp: 204000000
-  # The token buys whichever of the four shoulders the character's branch can
-  # wear. A branch-specific shoulder can't be a drop, since four would drop for
-  # one slot and three of them would be useless.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "cygnus_shoulder_token"
-    per_kill: 1.0
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     item: "cygnuss_soul_shard"

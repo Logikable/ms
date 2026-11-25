@@ -44,9 +44,12 @@ difficulties {
   meso: 24150000
   # GMS pays this on the second body; here the clear pays it.
   exp: 22000000
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "absolab_coin"
-    per_kill: 0.5
+    per_kill: 0.05
+    pity: 1
+    pity_copies: 10
   }
   drops {
     item: "damiens_soul_shard"
@@ -97,28 +100,29 @@ difficulties {
   sol_erda_energy: 50
   # GMS pays Hard the same EXP as Normal.
   exp: 22000000
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "absolab_coin"
-    per_kill: 1.0
+    per_kill: 0.05
+    pity: 1
+    pity_copies: 10
   }
   drops {
     item: "damiens_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the boxes' odds. Unlike GMS, drop rate raises them.
   drops {
     item: "absolab_weapon_box"
-    per_kill: 0.11
+    per_kill: 0.005
   }
   drops {
     item: "absolab_armor_box"
-    per_kill: 0.33
+    per_kill: 0.005
   }
-  # GMS's rate is about 0.2%. Pitched gear is tier 3 at one difficulty up:
-  # 1/20 days x 2 x the accessory multiplier of 2.
   drops {
     equip: "magic_eyepatch"
-    per_kill: 0.2
+    per_kill: 0.03
+    pity: 10
   }
   # The user's rate (2026-10-04); GMS publishes none.
   drops {

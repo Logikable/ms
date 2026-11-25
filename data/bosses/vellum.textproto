@@ -24,9 +24,12 @@ difficulties {
   # Five Intense Power Crystals at GMS's price, divided by seven, since GMS
   # clears Root Abyss once a week and this game once a day.
   meso: 15000000
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "piece_of_destruction"
-    per_kill: 1.0
+    per_kill: 0.05
+    pity: 1
+    pity_copies: 5
   }
   drops {
     item: "vellums_soul_shard"

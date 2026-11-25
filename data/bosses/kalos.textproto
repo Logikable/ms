@@ -61,16 +61,17 @@ difficulties {
     item: "kalos_the_guardians_soul_shard"
     per_kill: 1.0
   }
-  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
-  # twice that at Normal, as two rolls.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "kalos_residual_determination"
-    per_kill: 0.1
+    per_kill: 0.02
+    pity: 1
+    pity_copies: 10
   }
-  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
   drops {
     item: "white_jade_boss_ring_box"
-    per_kill: 0.01
+    per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {
@@ -149,17 +150,17 @@ difficulties {
     item: "kalos_the_guardians_soul_shard"
     per_kill: 1.0
   }
-  # Eternal is tier 4: 10% at Easy, which counts as the tier's Normal, and
-  # twice that at Normal, as two rolls.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "kalos_residual_determination"
-    per_kill: 0.1
-    rolls: 2
+    per_kill: 0.02
+    pity: 1
+    pity_copies: 10
   }
-  # The user's tier 4 1% (2026-11-18), doubled a difficulty up.
   drops {
     item: "white_jade_boss_ring_box"
     per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {

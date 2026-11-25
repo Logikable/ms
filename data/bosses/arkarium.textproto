@@ -23,9 +23,11 @@ difficulties {
   meso: 10082000
   # Five times Pink Bean's, the same gap GMS has between the two.
   exp: 50000000
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "dominator_pendant"
-    per_kill: 0.4
+    per_kill: 0.05
+    pity: 1
   }
   drops {
     item: "arkariums_soul_shard"

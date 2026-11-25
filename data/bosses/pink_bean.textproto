@@ -39,17 +39,21 @@ difficulties {
   meso: 7022500
   # The statues account for 3,300,000 of it and the bean 6,290,000.
   exp: 9590000
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "black_bean_mark"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "golden_clover_belt"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "pink_holy_cup"
-    per_kill: 0.4
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     item: "pink_beans_soul_shard"
@@ -94,18 +98,21 @@ difficulties {
   meso: 12800000
   # GMS gives the Chaos bean the same EXP as the Normal one.
   exp: 9590000
-  # Normal's drops. Chaos adds nothing of its own in GMS either.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "black_bean_mark"
-    per_kill: 0.8
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "golden_clover_belt"
-    per_kill: 0.8
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     equip: "pink_holy_cup"
-    per_kill: 0.8
+    per_kill: 0.01
+    pity: 1
   }
   drops {
     item: "pink_beans_soul_shard"

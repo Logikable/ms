@@ -69,16 +69,16 @@ difficulties {
     item: "serens_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, split with
-  # Verus Hilla.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.1
+    per_kill: 0.02
+    pity: 10
   }
-  # Seren is a tier 4 boss: the tier 3 2% over 40 days instead of 20.
   drops {
     item: "black_jade_boss_ring_box"
-    per_kill: 0.01
+    per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {
@@ -161,21 +161,21 @@ difficulties {
     item: "serens_soul_shard"
     per_kill: 1.0
   }
-  # GMS never published the odds. Dawn is tier 2: 1/10 days x 2, x2 for Hard,
-  # split with Verus Hilla.
+  # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "daybreak_pendant"
-    per_kill: 0.2
+    per_kill: 0.02
+    pity: 10
   }
-  # GMS never published the odds. Pitched is tier 3: 1/20 days x 2, x2 for Hard.
   drops {
     item: "mitras_rage_selection_box"
-    per_kill: 0.2
+    per_kill: 0.01
+    pity: 15
   }
-  # The user's tier 4 1% (2026-11-18), doubled for Hard.
   drops {
     item: "white_jade_boss_ring_box"
     per_kill: 0.02
+    pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
   drops {
