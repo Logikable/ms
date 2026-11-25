@@ -164,6 +164,7 @@ TEST(DropUseTest, TheFirstCopyMayComeLater) {
   ASSERT_NE(belt, nullptr);
   EXPECT_EQ(belt->start_day, 2.0);
   EXPECT_EQ(belt->first_day, 5.0);
+  EXPECT_EQ(belt->longest_drought, 3.0);
 }
 
 // Only the difficulty that drops it opens a drop's window.

@@ -120,6 +120,7 @@ void DropUse::Clear(const std::string& boss, const std::string& difficulty,
       opened.push_back(&row);
       row.last_use.name = name;
       row.open = true;
+      row.last_copy_day = day;
       row.start_day = day;
       row.low_drop = reward.item_drop_pct;
       row.high_drop = reward.item_drop_pct;
@@ -132,6 +133,11 @@ void DropUse::Clear(const std::string& boss, const std::string& difficulty,
     if (row != rows_.end()) {
       if (row->second.dropped == 0 && item.count > 0) {
         row->second.first_day = day;
+      }
+      if (item.count > 0) {
+        row->second.longest_drought = std::max(row->second.longest_drought,
+                                               day - row->second.last_copy_day);
+        row->second.last_copy_day = day;
       }
       row->second.dropped += item.count;
     }
@@ -192,6 +198,8 @@ DropUseResult DropUse::Snapshot(
   result.end_day = day;
   result.dropped = row.dropped;
   result.first_day = row.first_day;
+  result.longest_drought =
+      std::max(row.longest_drought, day - row.last_copy_day);
   result.low_drop = row.low_drop;
   result.high_drop = row.high_drop;
   result.worn = true;

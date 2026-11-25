@@ -3781,6 +3781,8 @@ void PrintDropUse(const Catalogs& catalogs,
     // Days from the window opening to the first copy; a run that got none
     // counts as never.
     std::vector<double> wait;
+    // The longest run of days without a copy while it mattered.
+    std::vector<double> drought;
     int worn = 0;
   };
   std::map<std::string, Rows> rows;
@@ -3797,6 +3799,9 @@ void PrintDropUse(const Catalogs& catalogs,
         row.low.push_back(100.0 * result.low_drop);
         row.high.push_back(100.0 * result.high_drop);
         row.worn += result.worn ? 1 : 0;
+        if (result.worn) {
+          row.drought.push_back(result.longest_drought);
+        }
         row.wait.push_back(result.first_day < 0.0
                                ? std::numeric_limits<double>::infinity()
                                : result.first_day - result.start_day);
@@ -3848,13 +3853,13 @@ void PrintDropUse(const Catalogs& catalogs,
       "drop-only piece takes from 0 stars,\nmean/nine in ten. Drop is the "
       "boss drop rate the window's clears rolled at, median\nlowest to median "
       "highest. 1st copy is the days from the window opening to the first "
-      "copy, "
-      "median/nine in ten.\n\n",
+      "copy,\nmedian/nine in ten. Drought is the most days a run that wore it "
+      "went without a copy,\nnine in ten/worst.\n\n",
       total);
-  std::printf("  %-34s %5s %5s %13s %9s %8s %9s %9s %12s  %s\n", "drop", "runs",
-              "worn", "days", "dropped", "used p90", "to 22*", "to 23*", "drop",
-              "rate");
-  std::printf("  %s\n", std::string(168, '-').c_str());
+  std::printf("  %-34s %5s %5s %13s %11s %9s %9s %8s %9s %9s %12s  %s\n",
+              "drop", "runs", "worn", "days", "1st copy", "drought", "dropped",
+              "used p90", "to 22*", "to 23*", "drop", "rate");
+  std::printf("  %s\n", std::string(178, '-').c_str());
   for (const auto& [start, name] : order) {
     const Rows& row = rows.at(name);
     std::map<std::string, const EquipPrototype*>::const_iterator piece =
@@ -3863,12 +3868,17 @@ void PrintDropUse(const Catalogs& catalogs,
         piece == pieces.end() ? nullptr : piece->second;
     const bool equipment = proto != nullptr;
     std::printf(
-        "  %-34s %5zu %5d %13s %11s %9.0f %8.0f %9s %9s %12s  %s\n",
+        "  %-34s %5zu %5d %13s %11s %9s %9.0f %8.0f %9s %9s %12s  %s\n",
         name.c_str(), row.start.size(), row.worn,
         absl::StrFormat("%.0f-%.0f", start, ShareOf(row.end, 0.5)).c_str(),
         absl::StrCat(Days(ShareOf(row.wait, 0.5)), "/",
                      Days(ShareOf(row.wait, 0.9)))
             .c_str(),
+        row.drought.empty()
+            ? ""
+            : absl::StrFormat("%.0f/%.0f", ShareOf(row.drought, 0.9),
+                              ShareOf(row.drought, 1.0))
+                  .c_str(),
         ShareOf(row.dropped, 0.5), ShareOf(row.used, 0.9),
         equipment ? CopiesTo(proto, 22).c_str() : "",
         equipment ? CopiesTo(proto, 23).c_str() : "",

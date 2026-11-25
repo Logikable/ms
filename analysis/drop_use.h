@@ -34,6 +34,9 @@ struct DropUseResult {
   int64_t dropped = 0;
   // The day the first copy dropped, or -1 if none did.
   double first_day = -1.0;
+  // The most days the window went without a copy: from its opening to the
+  // first, between two, or from the last to the window's end.
+  double longest_drought = 0.0;
   // For a piece, the most copies worn at once plus the held copies booms used
   // up; for a currency or a box, what left the bag.
   int64_t used = 0;
@@ -81,6 +84,8 @@ class DropUse {
     double start_day = 0.0;
     int64_t dropped = 0;
     double first_day = -1.0;
+    double last_copy_day = 0.0;
+    double longest_drought = 0.0;
     double low_drop = 0.0;
     double high_drop = 0.0;
     int most_worn = 0;
