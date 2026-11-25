@@ -2927,6 +2927,12 @@ void RestockAtCap(Session& run, const CombatParams& params,
                    run.climb.ledger);
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
+  // As the climb's Restock does: without it every drop's window closed on the
+  // day the character reached the cap.
+  if (run.climb.drop_tracker != nullptr) {
+    run.climb.drop_tracker->Look(run.state, run.shopper.life().held_spares_used,
+                                 run.seconds / kDaySeconds);
+  }
   SpendNoblessePoints(run);
   SpendLegionPlan(run);
   SpendHyperPoints(run);
