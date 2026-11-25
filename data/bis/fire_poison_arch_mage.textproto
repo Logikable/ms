@@ -3130,12 +3130,11 @@ builds {
   level: 260
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4192,8 +4191,7 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -5268,20 +5266,19 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
         type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5719,7 +5716,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6344,8 +6341,7 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -6357,7 +6353,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7357,7 +7353,7 @@ builds {
       first_level: 10
     }
     nodes {
-      primary: HEXA_STAT_DAMAGE
+      primary: HEXA_STAT_MAIN_STAT
       first: HEXA_STAT_CRIT_DAMAGE
       second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
@@ -7420,20 +7416,19 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
         type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7922,7 +7917,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -8433,7 +8428,7 @@ builds {
       first_level: 10
     }
     nodes {
-      primary: HEXA_STAT_DAMAGE
+      primary: HEXA_STAT_MAIN_STAT
       first: HEXA_STAT_CRIT_DAMAGE
       second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10

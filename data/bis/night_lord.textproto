@@ -3142,8 +3142,7 @@ builds {
   level: 260
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_guards"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_guards"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -3538,38 +3537,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_6"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -3593,15 +3561,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3781,7 +3749,38 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "ring_of_restraint_6"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
@@ -4208,12 +4207,11 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_guards"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_guards"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5288,8 +5286,7 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_guards"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_guards"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -5798,7 +5795,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6368,8 +6365,7 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_guards"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_guards"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -7448,8 +7444,7 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_guards"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_guards"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {

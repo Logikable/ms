@@ -3161,8 +3161,7 @@ builds {
   level: 260
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -3252,7 +3251,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3471,11 +3470,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3585,7 +3584,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4223,8 +4222,7 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -4314,7 +4312,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4678,7 +4676,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4721,7 +4719,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5299,8 +5297,7 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -5390,7 +5387,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5801,7 +5798,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6375,8 +6372,7 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -6466,7 +6462,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6979,7 +6975,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7451,8 +7447,7 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_staff"
-    scroll: "magical_scroll_for_weapon_matt"
+    item: "genesis_staff"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -7542,7 +7537,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -8059,7 +8054,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {

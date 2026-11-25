@@ -3161,8 +3161,7 @@ builds {
   level: 260
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_two_handed_axe"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_two_handed_axe"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -3471,11 +3470,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3581,7 +3580,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4223,12 +4222,11 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_two_handed_axe"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_two_handed_axe"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4678,7 +4676,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5299,12 +5297,11 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_two_handed_axe"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_two_handed_axe"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5801,7 +5798,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6375,12 +6372,11 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_two_handed_axe"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_two_handed_axe"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7451,8 +7447,7 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_two_handed_axe"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_two_handed_axe"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -8059,7 +8054,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {

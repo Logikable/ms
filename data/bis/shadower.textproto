@@ -3161,12 +3161,11 @@ builds {
   level: 260
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_dagger"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_dagger"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3252,30 +3251,30 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3471,15 +3470,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3581,7 +3580,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4223,8 +4222,7 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_dagger"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_dagger"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -4314,30 +4312,30 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4670,15 +4668,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4721,7 +4719,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5196,7 +5194,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -5299,8 +5297,7 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_dagger"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_dagger"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -5390,30 +5387,30 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5750,11 +5747,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5797,15 +5794,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6375,8 +6372,7 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_dagger"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_dagger"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -6466,30 +6462,30 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6873,15 +6869,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6979,7 +6975,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7451,8 +7447,7 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_dagger"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_dagger"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
@@ -7542,30 +7537,30 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7718,7 +7713,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7953,11 +7948,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -8055,11 +8050,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
