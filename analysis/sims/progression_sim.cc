@@ -1112,6 +1112,7 @@ struct Climb {
   std::shared_ptr<DropUse> drop_tracker;
   std::vector<DropUseResult> drop_use;
   std::vector<DropLeftover> leftovers;
+  std::vector<ScrollWait> scroll_waits;
   // Where the endgame ended: days played past the cap, what they paid, and what
   // the character wore at the end.
   double endgame_seconds = 0.0;
@@ -3308,6 +3309,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   if (climb.drop_tracker != nullptr) {
     climb.drop_use = climb.drop_tracker->Finish();
     climb.leftovers = climb.drop_tracker->Leftovers(state);
+    climb.scroll_waits = climb.drop_tracker->ScrollWaits();
     climb.drop_tracker.reset();
   }
   const DerivedStats farming = DerivedStatsFor(state.character, state.skills);
@@ -3777,6 +3779,48 @@ std::string CopiesTo(const EquipPrototype* proto, int to) {
 // Whole days, or "never" for a run that got no copy.
 std::string Days(double days) {
   return std::isinf(days) ? "never" : absl::StrFormat("%.0f", days);
+}
+
+// How long the boss preset's pieces a dropped scroll fits took to fill every
+// upgrade slot, by the scroll's drop, over every run.
+void PrintScrollWaits(const std::vector<std::vector<Climb>>& runs) {
+  struct Rows {
+    std::vector<double> days;  // infinite for a piece never filled
+    int never = 0;
+  };
+  std::map<std::string, Rows> rows;
+  int total = 0;
+  for (const std::vector<Climb>& branch : runs) {
+    for (const Climb& climb : branch) {
+      ++total;
+      for (const ScrollWait& wait : climb.scroll_waits) {
+        Rows& row = rows[wait.scroll];
+        if (wait.full_day < 0.0) {
+          ++row.never;
+          row.days.push_back(std::numeric_limits<double>::infinity());
+        } else {
+          row.days.push_back(wait.full_day - wait.start_day);
+        }
+      }
+    }
+  }
+  std::printf(
+      "\nPieces the boss preset wore that a dropped scroll fits, over %d runs, "
+      "by the best scroll's drop:\ndays from first worn to every upgrade slot "
+      "filled (by any scroll), median/nine in ten/worst,\nand how many were "
+      "never filled by the run's end.\n\n",
+      total);
+  std::printf("  %-32s %7s %18s %6s\n", "scroll drop", "pieces", "days to full",
+              "never");
+  std::printf("  %s\n", std::string(66, '-').c_str());
+  for (const auto& [name, row] : rows) {
+    std::printf("  %-32s %7zu %18s %6d\n", name.c_str(), row.days.size(),
+                absl::StrCat(Days(ShareOf(row.days, 0.5)), "/",
+                             Days(ShareOf(row.days, 0.9)), "/",
+                             Days(ShareOf(row.days, 1.0)))
+                    .c_str(),
+                row.never);
+  }
 }
 
 // Every boss drop but soul shards over every whole run: what dropped, what is
@@ -5211,6 +5255,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_drop_use)) {
     PrintDropUse(catalogs, runs);
     PrintLeftovers(runs);
+    PrintScrollWaits(runs);
   }
   if (!absl::GetFlag(FLAGS_potential_dump).empty()) {
     DumpPotentials(absl::GetFlag(FLAGS_potential_dump), branches, typical);

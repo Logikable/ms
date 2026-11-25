@@ -175,6 +175,7 @@ cc_library(
     srcs = ["drop_use.cc"],
     hdrs = ["drop_use.h"],
     deps = [
+        ":sim_gear",
         "//src:game_state",
         "//src/character:stat_preset",
         "//src/combat:drop",

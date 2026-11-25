@@ -15,6 +15,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/combat/boss/boss_run.h"
@@ -57,6 +58,15 @@ struct DropLeftover {
   int64_t left = 0;
 };
 
+// A boss-preset piece a dropped scroll fits, from the first look that saw it
+// worn to the first that saw every upgrade slot filled, by whatever scroll.
+struct ScrollWait {
+  std::string scroll;  // the drop the best-fitting dropped scroll is paid with
+  std::string piece;
+  double start_day = 0.0;
+  double full_day = -1.0;  // -1 while a slot is still open
+};
+
 class DropUse {
  public:
   // Reads every built boss's drop table for the equipment, currencies and boxes
@@ -79,6 +89,9 @@ class DropUse {
   // Every drop the run's clears could pay, soul shards aside, with what is
   // left.
   std::vector<DropLeftover> Leftovers(const GameState& state) const;
+
+  // Every piece a dropped scroll fits that the boss preset wore, by slot.
+  std::vector<ScrollWait> ScrollWaits() const;
 
  private:
   enum class Kind { kPiece, kCurrency, kBox, kPickBox, kRingBox };
@@ -119,6 +132,8 @@ class DropUse {
   // dropped of it over the whole run.
   std::map<std::string, bool> tallied_;
   std::map<std::string, int64_t> run_dropped_;
+  // By slot and piece name, so a replaced piece starts its own wait.
+  std::map<std::pair<int, std::string>, ScrollWait> waits_;
 };
 
 }  // namespace ms

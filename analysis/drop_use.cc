@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "absl/strings/match.h"
+#include "analysis/sim_gear.h"
 #include "src/character/stat_preset.h"
 #include "src/combat/drop.h"
 #include "src/item/bank.h"
@@ -228,6 +229,42 @@ DropUseResult DropUse::Snapshot(
 void DropUse::Look(const GameState& state,
                    const std::map<std::string, int>& held_spares_used,
                    double day) {
+  const Job job = state.character.proto().job();
+  const bool magic = PrimaryStatField(job) == STAT_FIELD_INT;
+  for (const auto& [slot, piece] :
+       state.character.equipped(AutoswapSlotFor(Activity::kBossing))) {
+    // The strongest dropped scroll that fits, as UseDroppedScrolls tries first.
+    const Scroll* best = nullptr;
+    auto raise = [magic](const Scroll& scroll) {
+      return magic ? scroll.stats().magic_attack() : scroll.stats().attack();
+    };
+    for (const auto& [key, scroll] : state.scrolls) {
+      if (DroppedScrollFits(scroll, piece->prototype(), job) &&
+          (best == nullptr || raise(scroll) > raise(*best))) {
+        best = &scroll;
+      }
+    }
+    if (best == nullptr) {
+      continue;
+    }
+    ScrollWait& wait =
+        waits_
+            .try_emplace({static_cast<int>(slot), piece->prototype().name()},
+                         ScrollWait{})
+            .first->second;
+    if (wait.piece.empty()) {
+      std::map<std::string, ItemPrototype>::const_iterator item =
+          state.items.find(best->paid_with());
+      wait.scroll =
+          item == state.items.end() ? best->paid_with() : item->second.name();
+      wait.piece = piece->prototype().name();
+      wait.start_day = day;
+    }
+    if (wait.full_day < 0.0 &&
+        piece->equip_state().remaining_upgrade_slots() <= 0) {
+      wait.full_day = day;
+    }
+  }
   for (auto& [name, row] : rows_) {
     if (!row.open) {
       continue;
@@ -283,6 +320,14 @@ std::vector<DropLeftover> DropUse::Leftovers(const GameState& state) const {
     leftovers.push_back(leftover);
   }
   return leftovers;
+}
+
+std::vector<ScrollWait> DropUse::ScrollWaits() const {
+  std::vector<ScrollWait> waits;
+  for (const auto& [key, wait] : waits_) {
+    waits.push_back(wait);
+  }
+  return waits;
 }
 
 }  // namespace ms

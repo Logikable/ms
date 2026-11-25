@@ -167,6 +167,45 @@ TEST(DropUseTest, TheFirstCopyMayComeLater) {
   EXPECT_EQ(belt->longest_drought, 3.0);
 }
 
+// A piece a dropped scroll fits waits from the look that first saw it worn to
+// the one that saw its last slot filled.
+TEST(DropUseTest, TimesTheWaitForEveryUpgradeSlot) {
+  std::unique_ptr<GameState> owner = BeltAndCoin();
+  GameState& state = *owner;
+  Scroll scroll;
+  scroll.set_name("Coin Scroll");
+  scroll.set_target(TargetForSlot(EQUIP_SLOT_BELT));
+  scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  scroll.mutable_stats()->set_attack(1);
+  scroll.set_paid_with("coin");
+  state.scrolls["coin_scroll"] = scroll;
+  DropUse use(state);
+  const StatPreset boss = AutoswapSlotFor(Activity::kBossing);
+  EquipPrototype belt = state.equips.at("belt");
+  belt.set_upgrade_slots(2);
+  state.character.PickUp(std::make_unique<EquipInstance>(belt));
+  ASSERT_TRUE(
+      state.character.Equip(state.character.inventory().size() - 1, boss));
+  use.Look(state, {}, 2.0);
+  int filled = 0;
+  while (state.character.WornAt(boss, EQUIP_SLOT_BELT)
+             ->equip_state()
+             .remaining_upgrade_slots() > 0) {
+    use.Look(state, {}, 3.0);
+    state.character.ScrollEquipped(EQUIP_SLOT_BELT, scroll, boss);
+    ASSERT_LT(++filled, 100);
+  }
+  ASSERT_GT(filled, 0) << "the belt needs an open slot to wait on";
+  use.Look(state, {}, 5.0);
+  use.Look(state, {}, 6.0);
+  const std::vector<ScrollWait> waits = use.ScrollWaits();
+  ASSERT_EQ(waits.size(), 1);
+  EXPECT_EQ(waits[0].scroll, "Coin");
+  EXPECT_EQ(waits[0].piece, "Belt");
+  EXPECT_EQ(waits[0].start_day, 2.0);
+  EXPECT_EQ(waits[0].full_day, 5.0);
+}
+
 // Over the whole run, whatever matters: what dropped, and what is still held
 // unworn at the end.
 TEST(DropUseTest, CountsWhatIsLeftAtTheEnd) {
