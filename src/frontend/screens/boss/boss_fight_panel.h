@@ -55,6 +55,10 @@ struct HpShade {
 };
 HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars);
 
+// A whole percent of HP left, rounded up: the last 1% lasts as long as any
+// other, and a boss with anything left never reads 0.
+int HpPercent(double fraction);
+
 // The heading: "Normal Zakum - P1 - 100%", or the fight's result once it is
 // over.
 std::string FightHeading(const BossRun& run);

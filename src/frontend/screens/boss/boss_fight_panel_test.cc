@@ -390,6 +390,17 @@ TEST(BossFightPanelTest, TheTimeoutLineNamesThePhaseOnlyWhenThereAreSeveral) {
   EXPECT_EQ(TimeoutHpLine(single), "Normal Zakum had 100.0% HP left");
 }
 
+// Rounded up, so 1% takes as long to burn as 2% and only a dead bar reads 0.
+TEST(BossFightPanelTest, HpPercentRoundsUp) {
+  EXPECT_EQ(HpPercent(1.0), 100);
+  EXPECT_EQ(HpPercent(0.991), 100);
+  EXPECT_EQ(HpPercent(0.07), 7);
+  EXPECT_EQ(HpPercent(0.0101), 2);
+  EXPECT_EQ(HpPercent(0.01), 1);
+  EXPECT_EQ(HpPercent(0.0001), 1);
+  EXPECT_EQ(HpPercent(0.0), 0);
+}
+
 TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
@@ -492,7 +503,7 @@ TEST(BossFightPanelTest, TheHeadingDrawsTheBarBeingEmptied) {
   // Inside the second bar, with the third showing through.
   ASSERT_LT(run.phase_hp_fraction(), 0.75);
   ASSERT_GT(run.phase_hp_fraction(), 0.5);
-  int percent = static_cast<int>(run.phase_hp_fraction() * 100.0);
+  int percent = HpPercent(run.phase_hp_fraction());
   EXPECT_EQ(FightHeading(run),
             "Normal Zakum - " + std::to_string(percent) + "%");
 

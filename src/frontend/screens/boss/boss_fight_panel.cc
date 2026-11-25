@@ -29,15 +29,6 @@ constexpr int kPanelClearance = 4;
 // The two border rows a panel uses before drawing anything.
 constexpr int kPanelBorder = 2;
 
-// A whole percent, rounded down so a bar with anything left never reads 0.
-int Percent(double fraction) {
-  int pct = static_cast<int>(fraction * 100.0);
-  if (pct == 0 && fraction > 0.0) {
-    return 1;
-  }
-  return std::clamp(pct, 0, 100);
-}
-
 std::vector<std::string> BarLines(const std::string& text, int rows,
                                   int width = kBossPanelWidth) {
   std::vector<std::string> lines = WrapBalanced(text, width - kPanelClearance);
@@ -79,8 +70,9 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
         TallProgressBar(shade.frac, shade.fill, shade.empty,
                         BarLines(slot.name, rows, kBossPanelWidth),
                         ShieldWidth(slot.shield_fraction, colours));
-    return AccentWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
-                        std::move(bar), slot.invulnerable ? kGold : kTheme);
+    return AccentWindow(
+        " " + std::to_string(HpPercent(slot.hp_fraction)) + "% ",
+        std::move(bar), slot.invulnerable ? kGold : kTheme);
   }
   int width = slot.giant ? kGiantPanelWidth : kBossPanelWidth;
   std::vector<std::string> lines;
@@ -98,7 +90,7 @@ ftxui::Element MobBar(const BossSlot& slot, int rows, int inside,
   ftxui::Element bar = ProgressBar(shade.frac, shade.fill, shade.empty, lines,
                                    {}, ShieldWidth(slot.shield_fraction, bars));
   // Gold while it can't be hit, so a stall in the damage has a visible cause.
-  return AccentWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
+  return AccentWindow(" " + std::to_string(HpPercent(slot.hp_fraction)) + "% ",
                       std::move(bar), slot.invulnerable ? kGold : kTheme) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
 }
@@ -745,6 +737,12 @@ ftxui::Element Arena(const BossRun& run, bool buff_dots) {
 
 }  // namespace
 
+int HpPercent(double fraction) {
+  // The slack keeps 0.07 * 100 = 7.000000000000001 from reading 8.
+  const int pct = static_cast<int>(std::ceil(fraction * 100.0 - 1e-9));
+  return std::clamp(pct, 0, 100);
+}
+
 HpShade ShadeHp(double fraction, const std::vector<HpBarColor>& bars) {
   if (bars.empty()) {
     return {static_cast<float>(fraction), kRed, kBarEmpty};
@@ -782,14 +780,13 @@ std::string FightHeading(const BossRun& run) {
         phase += (phase.empty() ? " - " : " ") + run.current_form()->name();
       }
       return practice + run.title() + phase + " - " +
-             std::to_string(Percent(run.heading_hp_fraction())) + "%";
+             std::to_string(HpPercent(run.heading_hp_fraction())) + "%";
     }
   }
 }
 
 std::string TimeoutHpLine(const BossRun& run) {
-  // Tenths, rounded down like Percent and for the same reason: a boss with
-  // anything left never reads 0.0%.
+  // Tenths, at least 0.1 so a boss with anything left never reads 0.0%.
   const double fraction = run.phase_hp_fraction();
   int tenths = std::clamp(static_cast<int>(fraction * 1000.0), 0, 1000);
   if (tenths == 0 && fraction > 0.0) {
