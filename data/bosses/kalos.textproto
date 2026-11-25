@@ -64,13 +64,13 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "kalos_residual_determination"
-    per_kill: 0.02
+    per_kill: 0.05
     pity: 1
     pity_copies: 10
   }
   drops {
     item: "white_jade_boss_ring_box"
-    per_kill: 0.02
+    per_kill: 0.01
     pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
@@ -153,13 +153,13 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "kalos_residual_determination"
-    per_kill: 0.02
+    per_kill: 0.05
     pity: 1
     pity_copies: 10
   }
   drops {
     item: "white_jade_boss_ring_box"
-    per_kill: 0.02
+    per_kill: 0.01
     pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.

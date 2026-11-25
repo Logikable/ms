@@ -59,7 +59,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "arachno_coin"
-    per_kill: 0.03
+    per_kill: 0.05
     pity: 1
     pity_copies: 4
   }
@@ -131,7 +131,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "arachno_coin"
-    per_kill: 0.03
+    per_kill: 0.05
     pity: 1
     pity_copies: 4
   }

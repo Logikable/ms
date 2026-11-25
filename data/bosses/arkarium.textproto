@@ -26,7 +26,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "dominator_pendant"
-    per_kill: 0.05
+    per_kill: 0.03
     pity: 1
   }
   drops {

@@ -43,7 +43,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "phantasma_coin"
-    per_kill: 0.03
+    per_kill: 0.05
     pity: 1
     pity_copies: 6
   }
@@ -122,7 +122,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     item: "phantasma_coin"
-    per_kill: 0.03
+    per_kill: 0.05
     pity: 1
     pity_copies: 6
   }
@@ -145,7 +145,7 @@ difficulties {
   }
   drops {
     equip: "dreamy_belt"
-    per_kill: 0.02
+    per_kill: 0.03
     pity: 10
   }
   # The user's rate (2026-10-04); GMS publishes none.

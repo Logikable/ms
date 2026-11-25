@@ -645,34 +645,35 @@ const std::map<std::string, TableDrop>& DropTable() {
         (*table)[key] = drop;
       }
     };
+    // 1% for what a player needs one of, 3% for what they star-force
+    // through several of, 5% for currency, the Jade boxes aside: they drop
+    // from many bosses.
     put({"aquatic_letter_eye_accessory", "condensed_power_crystal",
          "stone_of_eternal_life", "dea_sidus_earring", "horntail_necklace",
          "silver_blossom_ring", "crystal_ventus_badge",
          "royal_black_metal_shoulder", "black_bean_mark", "golden_clover_belt",
          "pink_holy_cup", "chaos_horntail_necklace"},
         {0.01, 1});
-    put({"dominator_pendant"}, {0.05, 1});
-    put({"piece_of_mockery", "piece_of_time", "piece_of_anguish",
-         "piece_of_destruction", "cygnus_shoulder_token"},
+    put({"cygnus_shoulder_token", "piece_of_mockery", "piece_of_time",
+         "piece_of_anguish", "piece_of_destruction"},
         {0.05, 1, 5});
+    put({"dominator_pendant"}, {0.03, 1});
     put({"papulatus_mark"}, {0.01, 3});
-    put({"kannas_treasure", "guardian_angel_ring"}, {0.05, 3});
+    put({"kannas_treasure", "guardian_angel_ring"}, {0.03, 3});
     put({"captivating_fragment"}, {0.01, 1, 5});
-    put({"absolab_coin"}, {0.05, 1, 10});
-    put({"phantasma_coin"}, {0.03, 1, 6});
-    put({"arachno_coin"}, {0.03, 1, 4});
-    put({"twilight_mark", "magic_eyepatch", "berserked"}, {0.03, 10});
-    put({"black_heart"}, {0.01, 10});
-    put({"estella_earrings", "daybreak_pendant", "source_of_suffering",
-         "endless_terror", "commanding_force_earring", "dreamy_belt"},
-        {0.02, 10});
-    put({"wills_cursed_spellbook_selection_box"}, {0.01, 10});
+    put({"absolab_coin", "kalos_residual_determination",
+         "echo_of_ancient_resolve", "ferocious_beast_entanglement_ring"},
+        {0.05, 1, 10});
+    put({"phantasma_coin"}, {0.05, 1, 6});
+    put({"arachno_coin"}, {0.05, 1, 4});
+    put({"twilight_mark", "magic_eyepatch", "berserked", "estella_earrings",
+         "daybreak_pendant", "source_of_suffering", "endless_terror",
+         "commanding_force_earring", "dreamy_belt"},
+        {0.03, 10});
+    put({"black_heart", "wills_cursed_spellbook_selection_box"}, {0.01, 10});
     put({"genesis_badge", "mitras_rage_selection_box"}, {0.01, 15});
-    put({"total_control"}, {0.02, 15});
-    put({"kalos_residual_determination", "echo_of_ancient_resolve",
-         "ferocious_beast_entanglement_ring"},
-        {0.02, 1, 10});
-    put({"black_jade_boss_ring_box", "white_jade_boss_ring_box"}, {0.02, 15});
+    put({"total_control"}, {0.03, 15});
+    put({"black_jade_boss_ring_box", "white_jade_boss_ring_box"}, {0.01, 15});
     // Boxes the table doesn't list: 0.5%, no pity (the user's).
     put({"absolab_armor_box", "absolab_weapon_box", "arcane_umbra_armor_box",
          "arcane_umbra_weapon_box"},

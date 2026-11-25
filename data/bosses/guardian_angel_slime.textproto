@@ -37,7 +37,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "guardian_angel_ring"
-    per_kill: 0.05
+    per_kill: 0.03
     pity: 3
   }
   drops {
@@ -80,7 +80,7 @@ difficulties {
   # Rate and pity are the user's (2026-11-24), the same at every difficulty.
   drops {
     equip: "guardian_angel_ring"
-    per_kill: 0.05
+    per_kill: 0.03
     pity: 3
   }
   drops {
@@ -89,7 +89,7 @@ difficulties {
   }
   drops {
     item: "black_jade_boss_ring_box"
-    per_kill: 0.02
+    per_kill: 0.01
     pity: 15
   }
   # The scroll rates are the user's (2026-10-04); GMS publishes none.
