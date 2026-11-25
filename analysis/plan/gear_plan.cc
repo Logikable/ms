@@ -1497,11 +1497,8 @@ GearSpend GearShopper::Spend(GameState& state) {
   RecoverWaiting(state, spend);
   SellSpares(state, spend);
   ApplySouls(state, spend);
-  // Held dropped scrolls go on before each buy: a piece bought this spend
-  // would otherwise be traced in it before any dropped scroll saw its slots.
-  do {
-    spend.dropped_scrolls += UseDroppedScrolls(state);
-  } while (BuyBest(state, spend));
+  while (BuyBest(state, spend)) {
+  }
   life_.Add(spend);
   return spend;
 }

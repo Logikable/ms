@@ -3133,8 +3133,7 @@ void AddUpgradeStats(RunStats& stats, const Climb& climb) {
                 : static_cast<double>(climb.endgame_stars_worn) /
                       climb.endgame_pieces);
   stats.Add("scrolls/slots_filled", gear.slots_filled);
-  stats.Add("scrolls/dropped_used",
-            ledger.dropped_scrolls + gear.dropped_scrolls);
+  stats.Add("scrolls/dropped_used", ledger.dropped_scrolls);
   stats.Add("boxes_opened", ledger.boxes_opened);
   stats.Add("symbol_levels", gear.symbol_levels);
   stats.Add("souls", gear.souls);
@@ -5072,8 +5071,7 @@ void PrintTargets(const std::vector<Job>& branches,
       std::printf(
           "  %-46s %d boxes opened, %d dropped scrolls used, rings: %s\n",
           "  from boss boxes", typical.ledger.boxes_opened,
-          typical.ledger.dropped_scrolls + typical.ledger.gear.dropped_scrolls,
-          typical.rings.c_str());
+          typical.ledger.dropped_scrolls, typical.rings.c_str());
       std::printf("  %-46s %d levels, %d cubes: %s\n", "  familiars",
                   typical.ledger.familiars.levels,
                   typical.ledger.familiars.cubes, typical.familiars.c_str());

@@ -504,30 +504,6 @@ TEST_F(GearPlanTest, AnUncoveredBoomWaitsForTheTokens) {
   EXPECT_GE(restored->stars(), EquipInstance::RecoveryStars(20));
 }
 
-// A dropped scroll held goes on before the shopper traces the slot, so a
-// piece bought or worn with open slots takes the drop first.
-TEST_F(GearPlanTest, AHeldDroppedScrollFillsTheSlotBeforeATrace) {
-  Scroll scroll = GrowScrollableSword();
-  scroll.set_name("Weapon Scroll");
-  scroll.set_trace_cost(0);
-  scroll.mutable_stats()->set_attack(10);
-  scroll.set_paid_with("Weapon Scroll");
-  state_->scrolls["weapon_scroll"] = scroll;
-  ItemPrototype drop;
-  drop.set_name("Weapon Scroll");
-  state_->items["weapon_scroll"] = drop;
-  CharacterInstance& character = state_->character;
-  const int open = character.WornAt(kBossGear, EQUIP_SLOT_PRIMARY_WEAPON)
-                       ->equip_state()
-                       .remaining_upgrade_slots();
-  ASSERT_GT(open, 0);
-  character.AddItem(drop, open);
-  GearShopper shopper{GearPlan()};
-  const GearSpend spend = shopper.Spend(*state_);
-  EXPECT_EQ(spend.dropped_scrolls, open);
-  EXPECT_EQ(character.CountItem("Weapon Scroll"), 0);
-}
-
 // A drop-only piece keeps every spare a boom could use, in the bank rather
 // than the bag, and the banked copies still open the run past 15.
 TEST_F(GearPlanTest, SparesOfADropOnlyPieceWaitInTheBank) {
