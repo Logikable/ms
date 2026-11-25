@@ -652,6 +652,8 @@ class BossRun {
   // party's best-rate rule. Kept for a clear that happens on a step with no new
   // value.
   double item_drop_pct_ = 0.0;
+  // What this player's pity makes certain on the clear, for the party's server.
+  std::vector<std::string> pity_due_;
   // Chooses which side of a bar each stack prefers. Uses the default seed, so a
   // run plays out the same way every time and tests can predict placement.
   std::mt19937 rng_;

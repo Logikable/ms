@@ -268,15 +268,28 @@ void PartyFight::DealDrops() {
     if (takers.empty()) {
       continue;
     }
-    // One roll per fight, where a map rolls once per kill. BossDropRate
-    // decides how drop rate affects each drop.
-    int64_t rolled =
-        RollDrops(BossDropRate(drop, best_drop_pct), DropRolls(drop), rng_);
-    std::uniform_int_distribution<size_t> who(0, takers.size() - 1);
+    // Everyone whose pity is due gets a copy of their own. The rest share one
+    // roll at the party's best rate (the pity players' rates included), one
+    // fight's roll where a map rolls each kill; BossDropRate decides how drop
+    // rate affects each drop.
+    const std::string key = drop.has_equip() ? drop.equip() : drop.item();
     std::vector<int64_t> won(takers.size());
-    for (int64_t i = 0; i < rolled; ++i) {
-      // Pick a player for each copy, so two copies can go to two players.
-      ++won[who(rng_)];
+    std::vector<size_t> rollers;
+    for (size_t i = 0; i < takers.size(); ++i) {
+      if (takers[i]->pity_due.count(key) > 0) {
+        won[i] = 1;
+      } else {
+        rollers.push_back(i);
+      }
+    }
+    if (!rollers.empty()) {
+      int64_t rolled =
+          RollDrops(BossDropRate(drop, best_drop_pct), DropRolls(drop), rng_);
+      std::uniform_int_distribution<size_t> who(0, rollers.size() - 1);
+      for (int64_t i = 0; i < rolled; ++i) {
+        // Pick a player for each copy, so two copies can go to two players.
+        ++won[rollers[who(rng_)]];
+      }
     }
     for (size_t i = 0; i < takers.size(); ++i) {
       if (won[i] == 0) {
@@ -351,6 +364,8 @@ void PartyFight::Report(const std::string& account_id,
   player->attack_fraction = update.attack_fraction();
   player->buff_count = update.buff_count();
   player->item_drop_pct = update.item_drop_pct();
+  player->pity_due.clear();
+  player->pity_due.insert(update.pity_due().begin(), update.pity_due().end());
   // Each report carries the full table, so take it even from a report that
   // crossed a phase change.
   if (update.breakdown_size() > 0) {

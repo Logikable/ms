@@ -73,6 +73,26 @@ cc_library(
 )
 
 cc_library(
+    name = "pity",
+    srcs = ["pity.cc"],
+    hdrs = ["pity.h"],
+    deps = [
+        "//src/protos:account_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "pity_test",
+    srcs = ["pity_test.cc"],
+    deps = [
+        ":pity",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "drop",
     srcs = ["drop.cc"],
     hdrs = ["drop.h"],

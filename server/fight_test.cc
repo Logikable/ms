@@ -410,6 +410,46 @@ TEST(FightDropsTest, DropRateStacksACertainShard) {
   EXPECT_LE(total, 3);
 }
 
+// Everyone whose pity is due gets a copy of their own; the rest share the
+// ordinary roll, which a zero rate never pays.
+TEST(FightDropsTest, EachPlayerWithPityGetsTheirOwnCopy) {
+  Boss boss = Dropping(0.0, 0.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  FightUpdate due;
+  due.add_pity_due("mark");
+  fight.Report("one", due);
+  fight.Report("three", due);
+  Clear(fight);
+
+  ASSERT_EQ(fight.state(), PartyFightState::kWon);
+  for (int i : {0, 2}) {
+    ASSERT_EQ(fight.players()[i].awards.size(), 1u) << i;
+    EXPECT_EQ(fight.players()[i].awards[0].equip(), "mark");
+    EXPECT_EQ(fight.players()[i].awards[0].count(), 1);
+  }
+  EXPECT_TRUE(fight.players()[1].awards.empty());
+}
+
+// The ordinary roll goes only to players without pity, at the best rate in the
+// party, a pity player's rate included.
+TEST(FightDropsTest, TheRestRollAtTheBestRateAndOnlyTheyCanWinIt) {
+  Boss boss = Dropping(0.0, 0.5);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  FightUpdate due;
+  due.add_pity_due("mark");
+  due.set_item_drop_pct(1.0);
+  fight.Report("one", due);
+  Clear(fight);
+
+  ASSERT_EQ(fight.state(), PartyFightState::kWon);
+  EXPECT_EQ(TotalAwards(fight), 2);
+  ASSERT_EQ(fight.players()[0].awards.size(), 1u);
+  EXPECT_EQ(fight.players()[1].awards.size() + fight.players()[2].awards.size(),
+            1u);
+}
+
 TEST(FightDropsTest, NothingIsDealtToAPlayerWhoHasGone) {
   Boss boss = Dropping(1.0);
   std::map<std::string, Mob> mobs = Mobs();

@@ -1440,6 +1440,33 @@ TEST(BossRunTest, EachRollOfADropPays) {
   }
 }
 
+// A drop that never rolls still pays on its pity kill, and a practice run
+// doesn't count toward it.
+TEST(BossRunTest, PityPaysTheKillItNames) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  MobDrop* mark = nullptr;
+  for (MobDrop& drop : *boss.mutable_difficulties(0)->mutable_drops()) {
+    if (drop.has_equip()) {
+      mark = &drop;
+    }
+  }
+  ASSERT_NE(mark, nullptr);
+  mark->set_pity(2);
+  BossOptions practice_only;
+  practice_only.set_practice(true);
+  BossRun practice("zakum", boss, 0, /*authority=*/nullptr, practice_only);
+  RunToEnd(practice, *state);
+  for (int clear = 1; clear <= 3; ++clear) {
+    BossRun run("zakum", boss, 0);
+    RunToEnd(run, *state);
+    ASSERT_TRUE(run.won());
+    EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")),
+              clear >= 2 ? 1 : 0)
+        << clear;
+  }
+}
+
 // Void drops keeps a sure equip from dropping and pays everything else.
 TEST(BossRunTest, VoidDropsPaysAllButEquips) {
   std::unique_ptr<GameState> state = MakeState();

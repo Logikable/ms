@@ -99,6 +99,14 @@ class AccountInstance {
   // Records one. Returns false, and records nothing, for one already there.
   bool RecordSoloClear(const std::string& boss, const std::string& difficulty);
 
+  // Every boss drop's pity; see //src/combat:pity.
+  const google::protobuf::RepeatedPtrField<BossPity>& boss_pity() const {
+    return account_.boss_pity();
+  }
+  google::protobuf::RepeatedPtrField<BossPity>* mutable_boss_pity() {
+    return account_.mutable_boss_pity();
+  }
+
   // How the Legion's points are spent. Copied onto the character being played,
   // so a change must be followed by GameState::MirrorAccount.
   const Legion& legion() const {

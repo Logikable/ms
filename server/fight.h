@@ -9,6 +9,7 @@
 
 #include <map>
 #include <random>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,8 @@ struct FightPlayer {
   int buff_count = 0;
   // Their Item Drop Rate as a fraction. Drops roll against the party's best.
   double item_drop_pct = 0.0;
+  // The drops their pity makes certain, by catalog key, as last reported.
+  std::set<std::string> pity_due;
   // Whether they turned on Void drops before the fight: no equip is dealt to
   // them.
   bool void_drops = false;

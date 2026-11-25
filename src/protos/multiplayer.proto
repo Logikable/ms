@@ -222,6 +222,9 @@ message FightUpdate {
   // FightState.placements as this client last saw it. A report sent before it
   // saw the latest placement would undo it, so its spot is ignored.
   int32 placements = 9;
+  // The drops this player's pity makes certain on this clear, by catalog key.
+  // Each is dealt to them alone; see PartyFight::DealDrops.
+  repeated string pity_due = 10;
 }
 
 // One player as the rest of the party sees them during a fight.

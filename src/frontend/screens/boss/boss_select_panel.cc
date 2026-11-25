@@ -6,6 +6,7 @@
 #include <ctime>
 #include <limits>
 #include <map>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -17,6 +18,7 @@
 #include "src/character/honor.h"
 #include "src/combat/drop.h"
 #include "src/combat/loot.h"
+#include "src/combat/pity.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/text/colors.h"
 #include "src/frontend/widgets/text/format.h"
@@ -630,6 +632,14 @@ void BossSelectPanel::RenderDropRow(
   // nothing, and a second row would push the next drop out of the window. The
   // chance stays in the same column as every other value on this panel.
   std::string chance = DropChance(drop.per_kill(), DropRolls(drop));
+  // Shown until it is spent, so the player can see how close the certain copy
+  // is.
+  std::optional<PityProgress> pity =
+      ProgressOf(state_.account.boss_pity(), selected_boss(), drop);
+  if (pity.has_value()) {
+    chance += " (Pity " + std::to_string(pity->count) + "/" +
+              std::to_string(pity->of) + ")";
+  }
   int width = kDetailWidth - 3 - static_cast<int>(chance.size());
   ftxui::Element row = ftxui::text(
       " " +

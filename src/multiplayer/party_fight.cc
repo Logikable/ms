@@ -171,6 +171,9 @@ void PartyFightAuthority::Report(const FightReport& report) {
   update.set_attack_fraction(report.attack_fraction);
   update.set_buff_count(report.buff_count);
   update.set_item_drop_pct(report.item_drop_pct);
+  for (const std::string& key : report.pity_due) {
+    update.add_pity_due(key);
+  }
   for (const SharedLine& line : report.lines) {
     FightDamage* sent = update.add_lines();
     sent->set_slot(line.slot);

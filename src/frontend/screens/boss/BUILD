@@ -119,6 +119,7 @@ cc_library(
         "//src/character:honor",
         "//src/combat:drop",
         "//src/combat:loot",
+        "//src/combat:pity",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets/text:colors",
         "//src/frontend/widgets/text:format",

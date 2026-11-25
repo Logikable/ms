@@ -18,6 +18,13 @@ message MobDrop {
   // whose rate would be too coarse as one chance rolls it several times
   // instead, so two rolls at 10% can pay none, one or two.
   int32 rolls = 4;
+  // Boss drops only. The kill, counted across the boss's difficulties and the
+  // whole account since its last copy, on which a copy is certain; unset means
+  // never. It holds for the first `pity_copies` copies (unset means one), so
+  // pity 1 with pity_copies 5 pays each of the first five kills. See
+  // //src/combat:pity.
+  int32 pity = 5;
+  int32 pity_copies = 6;
 }
 
 // Where one monster stands in a boss arena: a cell on a grid `arena_width`

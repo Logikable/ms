@@ -18,6 +18,7 @@
 #include "src/combat/drop.h"
 #include "src/combat/encounter.h"
 #include "src/combat/loot.h"
+#include "src/combat/pity.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -1283,6 +1284,9 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
     // rate applies depends on the item; see BossDropRate.
     int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct),
                                DropRolls(drop), state.rng);
+    if (rolled == 0 && PityDue(state.account.boss_pity(), boss_key_, drop)) {
+      rolled = 1;
+    }
     if (rolled > 0) {
       awards.push_back({drop, rolled});
     }
@@ -1316,6 +1320,18 @@ void BossRun::PayReward(GameState& state,
   reward_.exp = chosen->exp();
   if (reward_.exp > 0) {
     AwardExp(state, reward_.exp);
+  }
+  // Every clear counts toward each drop's pity, whoever rolled it: the party's
+  // server deals a pity copy itself.
+  for (const MobDrop& drop : chosen->drops()) {
+    if (options_.void_drops() && drop.has_equip()) {
+      continue;
+    }
+    bool paid = false;
+    for (const SharedAward& award : awards) {
+      paid = paid || (award.count > 0 && DropKey(award.drop) == DropKey(drop));
+    }
+    RecordPity(*state.account.mutable_boss_pity(), boss_key_, drop, paid);
   }
   for (const SharedAward& award : awards) {
     int64_t granted = GrantDrop(state, award.drop, award.count);
@@ -1499,6 +1515,12 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     return;
   }
   item_drop_pct_ = params.drop_roll_item_drop_pct;
+  pity_due_.clear();
+  for (const MobDrop& drop : difficulty()->drops()) {
+    if (PityDue(state.account.boss_pity(), boss_key_, drop)) {
+      pity_due_.push_back(DropKey(drop));
+    }
+  }
   ResetCooldownsIfDue(params);
   FillBeforeTheStep(params);
   ApplyPhaseRules(params);
@@ -1543,7 +1565,7 @@ void BossRun::ReportToParty(double dt) {
   authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
                       sim_.view().attack_fraction, item_drop_pct_,
                       sim_.view().buff_count, breakdown_.Rows(),
-                      placements_seen_});
+                      placements_seen_, pity_due_});
   landed_.clear();
 }
 

@@ -118,6 +118,8 @@ struct FightReport {
   std::vector<BreakdownRow> breakdown;
   // SharedFight::placements as last seen; see FightUpdate.
   int placements = 0;
+  // The drops this player's pity makes certain on the clear, by catalog key.
+  std::vector<std::string> pity_due;
 };
 
 class FightAuthority {
