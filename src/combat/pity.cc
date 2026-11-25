@@ -5,18 +5,19 @@
 namespace ms {
 namespace {
 
-int PityCopies(const MobDrop& drop) {
-  return std::max(1, drop.pity_copies());
-}
-
-const BossPity* Find(const PityRecord& record, const std::string& boss,
-                     const std::string& key) {
+int Kills(const PityRecord& record, const std::string& boss,
+          const std::string& key) {
   for (const BossPity& pity : record) {
     if (pity.boss() == boss && pity.drop() == key) {
-      return &pity;
+      return pity.kills();
     }
   }
-  return nullptr;
+  return 0;
+}
+
+// The last kill pity pays.
+int LastPityKill(const MobDrop& drop) {
+  return drop.pity() + std::max(1, drop.pity_copies()) - 1;
 }
 
 }  // namespace
@@ -30,35 +31,26 @@ bool PityDue(const PityRecord& record, const std::string& boss,
   if (drop.pity() <= 0) {
     return false;
   }
-  const BossPity* pity = Find(record, boss, DropKey(drop));
-  const int kills = pity == nullptr ? 0 : pity->kills();
-  const int copies = pity == nullptr ? 0 : pity->copies();
-  return copies < PityCopies(drop) && kills + 1 >= drop.pity();
+  const int kill = Kills(record, boss, DropKey(drop)) + 1;
+  return kill >= drop.pity() && kill <= LastPityKill(drop);
 }
 
 void RecordPity(PityRecord& record, const std::string& boss,
-                const MobDrop& drop, bool paid) {
+                const MobDrop& drop) {
   if (drop.pity() <= 0) {
     return;
   }
   const std::string key = DropKey(drop);
-  BossPity* pity = nullptr;
-  for (BossPity& entry : record) {
-    if (entry.boss() == boss && entry.drop() == key) {
-      pity = &entry;
+  for (BossPity& pity : record) {
+    if (pity.boss() == boss && pity.drop() == key) {
+      pity.set_kills(pity.kills() + 1);
+      return;
     }
   }
-  if (pity == nullptr) {
-    pity = record.Add();
-    pity->set_boss(boss);
-    pity->set_drop(key);
-  }
-  if (paid) {
-    pity->set_copies(pity->copies() + 1);
-    pity->set_kills(0);
-  } else {
-    pity->set_kills(pity->kills() + 1);
-  }
+  BossPity* pity = record.Add();
+  pity->set_boss(boss);
+  pity->set_drop(key);
+  pity->set_kills(1);
 }
 
 std::optional<PityProgress> ProgressOf(const PityRecord& record,
@@ -67,16 +59,11 @@ std::optional<PityProgress> ProgressOf(const PityRecord& record,
   if (drop.pity() <= 0) {
     return std::nullopt;
   }
-  const BossPity* pity = Find(record, boss, DropKey(drop));
-  const int kills = pity == nullptr ? 0 : pity->kills();
-  const int copies = pity == nullptr ? 0 : pity->copies();
-  if (copies >= PityCopies(drop)) {
+  const int kills = Kills(record, boss, DropKey(drop));
+  if (kills >= LastPityKill(drop)) {
     return std::nullopt;
   }
-  if (PityCopies(drop) > 1) {
-    return PityProgress{copies, PityCopies(drop)};
-  }
-  return PityProgress{kills, drop.pity()};
+  return PityProgress{kills, LastPityKill(drop)};
 }
 
 }  // namespace ms

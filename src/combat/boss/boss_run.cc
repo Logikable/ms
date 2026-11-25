@@ -1280,13 +1280,13 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
     if (options_.void_drops() && drop.has_equip()) {
       continue;
     }
-    // Bosses roll each drop once per fight; maps roll once per kill. How drop
-    // rate applies depends on the item; see BossDropRate.
-    int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct),
-                               DropRolls(drop), state.rng);
-    if (rolled == 0 && PityDue(state.account.boss_pity(), boss_key_, drop)) {
-      rolled = 1;
-    }
+    // A pity kill pays one copy without a roll. Otherwise bosses roll each
+    // drop once per fight, where maps roll once per kill; how drop rate
+    // applies depends on the item, see BossDropRate.
+    int64_t rolled = PityDue(state.account.boss_pity(), boss_key_, drop)
+                         ? 1
+                         : RollDrops(BossDropRate(drop, item_drop_pct),
+                                     DropRolls(drop), state.rng);
     if (rolled > 0) {
       awards.push_back({drop, rolled});
     }
@@ -1321,17 +1321,13 @@ void BossRun::PayReward(GameState& state,
   if (reward_.exp > 0) {
     AwardExp(state, reward_.exp);
   }
-  // Every clear counts toward each drop's pity, whoever rolled it: the party's
-  // server deals a pity copy itself.
+  // Every clear counts toward each drop's pity, alone or in a party, whose
+  // server deals a pity copy itself. A voided equip's kill isn't counted, so
+  // voiding never spends its pity.
   for (const MobDrop& drop : chosen->drops()) {
-    if (options_.void_drops() && drop.has_equip()) {
-      continue;
+    if (!(options_.void_drops() && drop.has_equip())) {
+      RecordPity(*state.account.mutable_boss_pity(), boss_key_, drop);
     }
-    bool paid = false;
-    for (const SharedAward& award : awards) {
-      paid = paid || (award.count > 0 && DropKey(award.drop) == DropKey(drop));
-    }
-    RecordPity(*state.account.mutable_boss_pity(), boss_key_, drop, paid);
   }
   for (const SharedAward& award : awards) {
     int64_t granted = GrantDrop(state, award.drop, award.count);

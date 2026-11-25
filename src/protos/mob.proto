@@ -18,11 +18,11 @@ message MobDrop {
   // whose rate would be too coarse as one chance rolls it several times
   // instead, so two rolls at 10% can pay none, one or two.
   int32 rolls = 4;
-  // Boss drops only. The kill, counted across the boss's difficulties and the
-  // whole account since its last copy, on which a copy is certain; unset means
-  // never. It holds for the first `pity_copies` copies (unset means one), so
-  // pity 1 with pity_copies 5 pays each of the first five kills. See
-  // //src/combat:pity.
+  // Boss drops only. The kill of the boss, counted across its difficulties and
+  // the whole account, that pays exactly one copy without a roll; unset means
+  // none. With `pity_copies` (unset means one) the kills from `pity` on pay so
+  // many times over, so pity 1 with pity_copies 5 pays each of the first five
+  // kills. Every other kill rolls `per_kill`. See //src/combat:pity.
   int32 pity = 5;
   int32 pity_copies = 6;
 }

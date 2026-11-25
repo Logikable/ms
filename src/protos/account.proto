@@ -64,8 +64,8 @@ message Account {
   // //src/achievement.h.
   repeated EarnedAchievement achievements = 13;
 
-  // Each boss drop's pity, for every character: kills since its last copy and
-  // copies so far. See MobDrop.pity.
+  // How many times the account has cleared each boss since each of its drops
+  // came in, for MobDrop.pity.
   repeated BossPity boss_pity = 14;
 }
 
@@ -74,7 +74,6 @@ message BossPity {
   string boss = 1;
   string drop = 2;
   int32 kills = 3;
-  int32 copies = 4;
 }
 
 // One boss difficulty, named as BossClear names it.
