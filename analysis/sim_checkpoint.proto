@@ -139,6 +139,9 @@ message CheckpointPotentials {
   map<string, int32> scroll_items_held = 10;
   // The familiars: levels and lines, the pool left out.
   FamiliarBook familiars = 11;
+  // The HEXA Matrix the same way as v_nodes, and the HEXA Stat nodes.
+  map<string, int32> hexa_nodes = 12;
+  HexaStats hexa_stats = 13;
 }
 
 // Everything the tables have collected so far. Mirrors Climb field for field: a

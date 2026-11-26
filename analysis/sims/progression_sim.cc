@@ -1543,7 +1543,13 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
       (*now.mutable_v_nodes())[entry.first] =
           character.skill_level(entry.second);
     }
+    if (entry.second.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED &&
+        character.skill_level(entry.second) > 0) {
+      (*now.mutable_hexa_nodes())[entry.first] =
+          character.skill_level(entry.second);
+    }
   }
+  *now.mutable_hexa_stats() = character.hexa_stats();
   for (const std::pair<const Job, int>& line :
        character.link_tally().best_by_line()) {
     (*now.mutable_link_lines())[line.first] = line.second;
@@ -4776,6 +4782,15 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
       for (const auto& [line, level] : held.link_lines()) {
         out << at << "link\t" << Job_Name(static_cast<Job>(line)) << '\t'
             << level << '\n';
+      }
+      for (const auto& [node, level] : held.hexa_nodes()) {
+        out << at << "hexa_node\t" << node << '\t' << level << '\n';
+      }
+      for (const HexaStatNode& node : held.hexa_stats().nodes()) {
+        out << at << "hexa_stat\t" << HexaStat_Name(node.primary()) << ' '
+            << HexaStat_Name(node.first()) << ' '
+            << HexaStat_Name(node.second()) << '\t' << node.primary_level()
+            << ' ' << node.first_level() << ' ' << node.second_level() << '\n';
       }
       out << at << "noblesse_sp\t-\t" << held.noblesse_sp() << '\n';
       for (const Familiar& familiar : held.familiars().familiars()) {
