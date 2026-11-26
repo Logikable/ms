@@ -56,7 +56,12 @@ inline constexpr double kTanadianRuinFactor = 1.10;
 // Mission `index`'s handicaps, Tanadian Ruin's 10% folded in from Damien on.
 MissionRules LiberationRules(int index);
 
-// Whether this character has won the Liberation, which can't be run again.
+// Whether this character holds a Genesis weapon, in the bag or worn in any
+// preset.
+bool HoldsGenesisWeapon(const CharacterInstance& character);
+
+// Whether this character has won the Liberation or holds a Genesis weapon;
+// either way it can't be run again.
 bool Liberated(const CharacterInstance& character);
 
 // The Genesis weapon of the type `state`'s character wears for bossing, or

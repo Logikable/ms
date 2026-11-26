@@ -187,5 +187,20 @@ TEST(LiberationTest, WinningPaysTheWeaponOnce) {
   EXPECT_FALSE(paid.has_main_potential());
 }
 
+// A Genesis weapon held anywhere closes the run, bag or any preset, even with
+// no win on record.
+TEST(LiberationTest, HoldingAGenesisWeaponClosesTheRun) {
+  std::unique_ptr<GameState> state = Hero();
+  const EquipPrototype* genesis = GenesisWeaponFor(*state);
+  ASSERT_NE(genesis, nullptr);
+  const int bag = state->character.inventory().size();
+  ASSERT_TRUE(state->character.PickUp(
+      std::make_unique<EquipInstance>(*genesis, FreshEquip(*genesis))));
+  EXPECT_FALSE(state->character.HasDefeated(kLiberationKey));
+  EXPECT_TRUE(Liberated(state->character)) << "in the bag";
+  ASSERT_TRUE(state->character.Equip(bag, StatPreset::kThird));
+  EXPECT_TRUE(Liberated(state->character)) << "worn in the third preset";
+}
+
 }  // namespace
 }  // namespace ms

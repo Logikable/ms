@@ -31,8 +31,25 @@ MissionRules LiberationRules(int index) {
   return rules;
 }
 
+bool HoldsGenesisWeapon(const CharacterInstance& character) {
+  for (int i = 0; i < character.inventory().size(); ++i) {
+    const EquipInstance* item = character.inventory().equip_instance(i);
+    if (item != nullptr && IsGenesisWeapon(item->prototype())) {
+      return true;
+    }
+  }
+  for (int preset = 0; preset < kNumStatPresets; ++preset) {
+    for (const auto& [slot, item] : character.own_gear(StatPresetAt(preset))) {
+      if (IsGenesisWeapon(item.prototype())) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool Liberated(const CharacterInstance& character) {
-  return character.HasDefeated(kLiberationKey);
+  return character.HasDefeated(kLiberationKey) || HoldsGenesisWeapon(character);
 }
 
 const EquipPrototype* GenesisWeaponFor(const GameState& state) {
