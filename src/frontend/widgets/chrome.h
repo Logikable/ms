@@ -155,6 +155,9 @@ inline constexpr char kShopTabKey[] = "shop";
 // player opens it.
 inline constexpr char kHyperTabKey[] = "hyper";
 
+// The HEXA tab's key, on the same terms as Hyper's.
+inline constexpr char kHexaTabKey[] = "hexa";
+
 // The Ability tab's key. It is per account: a player is told about Inner
 // Ability the first time any of their characters reaches it.
 inline constexpr char kAbilityTabKey[] = "ability";

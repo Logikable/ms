@@ -12,6 +12,7 @@ cc_library(
         "//src/character:consumables",
         "//src/character:job_name",
         "//src/character:progression",
+        "//src/character/matrix:hexa_stat",
         "//src/combat:damage",
         "//src/frontend:panel_widths",
         "//src/frontend:types",

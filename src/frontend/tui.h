@@ -160,6 +160,10 @@ class Tui {
   ftxui::Element RenderBossFight();
   // The dialog over the arena, or null while the fight is in progress.
   ftxui::Element BossFightOverlay();
+  // The HEXA Stat menu beside the node's row, in a Character panel
+  // `panel_width` wide, and over a party member's Inspect screen.
+  ftxui::Element HexaMenuAt(int cursor_row, int panel_width);
+  ftxui::Element RenderPlayerInspectHexaMenu();
   ftxui::Element RenderShopInspect();
   ftxui::Element RenderBoxInspect();
   // The inspect screen for a buy-back row: the item as it was sold, rebuilt

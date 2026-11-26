@@ -14,6 +14,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character_stats.h"
 #include "src/character/job_name.h"
+#include "src/character/matrix/hexa_stat.h"
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/frontend/types.h"
@@ -71,7 +72,7 @@ ftxui::Element CenteredCell(const std::string& label,
 }
 
 // The outer tab labels, indexed by CharacterPanel::Tab.
-const char* kTabLabels[] = {"Stats",   "Skills", "Hyper",
+const char* kTabLabels[] = {"Stats",   "Skills", "Hyper",  "HEXA",
                             "Ability", "Buffs",  "Advance"};
 
 // The Farm/Boss row's labels for the two Hyper Stat allocations, used wherever
@@ -133,6 +134,27 @@ constexpr int kBuffFixedWidth = 1 + kBuffTagWidth + 1 + 1 + 1;
 
 // Roman numerals for the job advancement pages, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
+
+// A HEXA node's numeral, right-aligned in the widest one's columns ("III:")
+// and a gap, so the names after it start in one column.
+constexpr int kHexaNumeralWidth = 4;
+
+// The VI page's and HEXA tab's balances. Widths reserved for 99.99 and 9999,
+// so the marks don't shift as the balances grow.
+constexpr int kSolErdaWidth = 8;
+constexpr int kFragmentsWidth = 7;
+
+ftxui::Element SolErdaFooter(const CharacterInstance& character) {
+  return ftxui::hbox({
+      ftxui::filler(),
+      ftxui::text(
+          PadLeft(FormatSolErda(character.sol_erda_energy()), kSolErdaWidth) +
+          "  " +
+          PadLeft(FormatFragments(character.sol_erda_fragments()),
+                  kFragmentsWidth)),
+      ftxui::filler(),
+  });
+}
 
 // The beginner page has no stage and so no numeral. GMS draws it as a large
 // circle, and this is the circle the token currencies already use.
@@ -310,6 +332,10 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (Unlocked(Feature::kHyperStats, character_, account_)) {
     tabs.push_back(kTabHyper);
   }
+  // From the 6th advancement, the same level the first node opens at.
+  if (character_.proto().job_stage() >= kSixthJobStage) {
+    tabs.push_back(kTabHexa);
+  }
   // Ability is the only tab gated on this character alone. The Feature table is
   // account-wide, and an ability below the unlock level grants nothing, whoever
   // else on the account got there.
@@ -359,6 +385,8 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
       return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
     case kZoneBuffRows:
       return ActiveTab() == kTabBuffs ? zone_ : kZoneTabs;
+    case kZoneHexaRows:
+      return ActiveTab() == kTabHexa ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
     case kZoneSkillRows:
       return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
@@ -434,6 +462,9 @@ int CharacterPanel::RingStops() const {
     // belongs to the character, not an allocation.
     return 2 + static_cast<int>(BuffsShown().size());
   }
+  if (ActiveTab() == kTabHexa) {
+    return 2 + HexaRows();
+  }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
                    JobChoicesForStage(character_.proto().job(),
@@ -478,6 +509,8 @@ int CharacterPanel::CursorStop() const {
       return AbilityRows() + 3;
     case kZoneBuffRows:
       return buff_sel_ + 2;
+    case kZoneHexaRows:
+      return hexa_sel_ + 2;
   }
   return 0;
 }
@@ -533,6 +566,11 @@ void CharacterPanel::SetCursorStop(int stop) {
     buff_sel_ = stop - 2;
     return;
   }
+  if (ActiveTab() == kTabHexa) {
+    zone_ = kZoneHexaRows;
+    hexa_sel_ = stop - 2;
+    return;
+  }
   if (ActiveTab() == kTabAdvance) {
     zone_ = kZoneJobRows;
     job_sel_ = stop - 2;
@@ -566,6 +604,9 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     // Gold on the bar until the player has opened it once. One key for the tab,
     // not one per level, since it appears once and stays.
     return kHyperTabKey;
+  }
+  if (tab == kTabHexa) {
+    return kHexaTabKey;
   }
   if (tab == kTabAbility) {
     // Gold for the first character on the account to reach it and quiet for
@@ -1316,15 +1357,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
 
 ftxui::Element CharacterPanel::RenderSkillFooter(bool reset_focused) const {
   if (IsVIPage(SelectedSkillPage())) {
-    // Widths reserved for 99.99 and 9999, so the marks don't shift as the
-    // balances grow.
-    return ftxui::hbox({
-        ftxui::filler(),
-        ftxui::text(
-            PadLeft(FormatSolErda(character_.sol_erda_energy()), 8) + "  " +
-            PadLeft(FormatFragments(character_.sol_erda_fragments()), 7)),
-        ftxui::filler(),
-    });
+    return SolErdaFooter(character_);
   }
   ftxui::Element right =
       ftxui::hbox({ftxui::filler(), ftxui::text(PoolText() + " ")});
@@ -1668,6 +1701,68 @@ ftxui::Element CharacterPanel::RenderBuffsTab(bool rows_focused) const {
   return ftxui::vbox(std::move(rows));
 }
 
+int CharacterPanel::HexaRows() const {
+  return HexaStatNodesListed(character_.hexa_stats(),
+                             character_.proto().level(),
+                             character_.proto().job_stage());
+}
+
+ftxui::Element CharacterPanel::RenderHexaRow(int index,
+                                             bool rows_focused) const {
+  const bool selected = rows_focused && hexa_sel_ == index;
+  const HexaStats& stats = character_.hexa_stats();
+  std::vector<ftxui::Element> cells = {
+      ftxui::text(" "),
+      ftxui::text(PadLeft(HexaStatNodeNumeral(index) + ":", kHexaNumeralWidth) +
+                  " ") |
+          ftxui::color(kPurple),
+  };
+  bool band = false;
+  if (index < stats.nodes_size()) {
+    const HexaStatNode& node = stats.nodes(index);
+    ftxui::Element name = ftxui::text(HexaStatName(
+        node.primary(), PrimaryStatField(character_.proto().job())));
+    if (selected) {
+      name = std::move(name) | ftxui::inverted;
+    }
+    cells.push_back(std::move(name));
+    cells.push_back(ftxui::filler());
+    cells.push_back(ftxui::text(std::to_string(HexaStatNodeLevels(node)) + "/" +
+                                std::to_string(kHexaStatNodeLevels) + " "));
+  } else {
+    // Coloured cells, so the cursor is the row's band rather than an inverted
+    // cell (chrome.h).
+    const HexaStatPrice price = HexaStatOpenPrice(index);
+    auto amount = [](const std::string& text, bool short_of) {
+      ftxui::Element cell = ftxui::text(text);
+      return short_of ? std::move(cell) | ftxui::color(kRed) : cell;
+    };
+    cells.push_back(amount(FormatSolErda(price.energy),
+                           character_.sol_erda_energy() < price.energy));
+    cells.push_back(ftxui::text("  "));
+    cells.push_back(amount(FormatFragments(price.fragments),
+                           character_.sol_erda_fragments() < price.fragments));
+    cells.push_back(ftxui::filler());
+    band = selected;
+  }
+  ftxui::Element row = HighlightRow(ftxui::hbox(std::move(cells)), band);
+  if (selected) {
+    row = std::move(row) | ftxui::reflect(hexa_cursor_box_);
+  }
+  return std::move(row) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth());
+}
+
+ftxui::Element CharacterPanel::RenderHexaTab(bool rows_focused) const {
+  std::vector<ftxui::Element> rows;
+  for (int i = 0; i < HexaRows(); ++i) {
+    rows.push_back(RenderHexaRow(i, rows_focused));
+  }
+  rows.push_back(PanelSeparator(highlighted_));
+  rows.push_back(SolErdaFooter(character_));
+  return ftxui::vbox(std::move(rows));
+}
+
 ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
   int stage = character_.proto().job_stage() + 1;
   std::vector<Job> jobs = JobChoicesForStage(character_.proto().job(), stage);
@@ -1736,6 +1831,8 @@ ftxui::Element CharacterPanel::Render() const {
                                focused && zone == kZoneAbilityReroll);
   } else if (ActiveTab() == kTabBuffs) {
     content = RenderBuffsTab(focused && zone == kZoneBuffRows);
+  } else if (ActiveTab() == kTabHexa) {
+    content = RenderHexaTab(focused && zone == kZoneHexaRows);
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
@@ -2006,6 +2103,21 @@ bool CharacterPanel::OnBuffsTabEvent(const ftxui::Event& event,
   return true;
 }
 
+bool CharacterPanel::OnHexaTabEvent(const ftxui::Event& event,
+                                    const CharacterPanelActions& actions) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (!IsForward(event)) {
+    return false;
+  }
+  if (actions.hexa_menu && hexa_sel_ < HexaRows()) {
+    actions.hexa_menu(hexa_sel_);
+  }
+  return true;
+}
+
 void CharacterPanel::StepSkillPage(int delta) {
   skill_tab_ =
       std::max(0, std::min(SkillPages() - 1, SelectedSkillPage() + delta));
@@ -2133,6 +2245,9 @@ bool CharacterPanel::RouteEvent(const ftxui::Event& event,
   }
   if (ActiveTab() == kTabBuffs) {
     return OnBuffsTabEvent(event, actions);
+  }
+  if (ActiveTab() == kTabHexa) {
+    return OnHexaTabEvent(event, actions);
   }
   if (ActiveTab() == kTabAdvance) {
     return OnAdvanceTabEvent(event, actions);

@@ -131,5 +131,54 @@ TEST(HexaStatTest, EachNodeOpensAtItsLevelOnceTheOneBeforeIsFull) {
       << "all three";
 }
 
+TEST(HexaStatTest, TheTabListsTheNodesOpenedAndTheNextOneThatMayOpen) {
+  HexaStats stats;
+  EXPECT_EQ(HexaStatNodesListed(stats, 259, kSixthJobStage), 0);
+  EXPECT_EQ(HexaStatNodesListed(stats, 260, kSixthJobStage), 1);
+  *stats.add_nodes() =
+      Node(HEXA_STAT_BOSS_DAMAGE, 5, HEXA_STAT_ATTACK, 5, HEXA_STAT_DAMAGE, 9);
+  EXPECT_EQ(HexaStatNodesListed(stats, 300, kSixthJobStage), 1)
+      << "the second waits for the first to be full";
+  stats.mutable_nodes(0)->set_second_level(10);
+  EXPECT_EQ(HexaStatNodesListed(stats, 264, kSixthJobStage), 1);
+  EXPECT_EQ(HexaStatNodesListed(stats, 265, kSixthJobStage), 2);
+}
+
+TEST(HexaStatTest, APickKeepsGmsRulesAcrossTheDraftAndTheNodes) {
+  HexaStats stats;
+  *stats.add_nodes() =
+      Node(HEXA_STAT_BOSS_DAMAGE, 10, HEXA_STAT_ATTACK, 5, HEXA_STAT_DAMAGE, 5);
+  *stats.add_nodes() = Node(HEXA_STAT_CRIT_DAMAGE, 10, HEXA_STAT_ATTACK, 5,
+                            HEXA_STAT_MAIN_STAT, 5);
+  HexaStatNode draft;
+  EXPECT_FALSE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kPrimary,
+                                   HEXA_STAT_BOSS_DAMAGE))
+      << "already a primary";
+  EXPECT_TRUE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kFirst,
+                                  HEXA_STAT_BOSS_DAMAGE))
+      << "an additional may repeat a primary";
+  EXPECT_FALSE(
+      HexaStatPickAllowed(stats, draft, HexaStatSlot::kFirst, HEXA_STAT_ATTACK))
+      << "already an additional twice";
+  EXPECT_TRUE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kPrimary,
+                                  HEXA_STAT_ATTACK))
+      << "the cap is on additionals only";
+  EXPECT_TRUE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kSecond,
+                                  HEXA_STAT_DAMAGE));
+
+  draft.set_primary(HEXA_STAT_IGNORE_DEFENSE);
+  EXPECT_FALSE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kSecond,
+                                   HEXA_STAT_IGNORE_DEFENSE))
+      << "taken by the draft's own primary";
+  EXPECT_TRUE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kPrimary,
+                                  HEXA_STAT_IGNORE_DEFENSE))
+      << "a place doesn't block itself";
+  draft.set_first(HEXA_STAT_DAMAGE);
+  EXPECT_FALSE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kPrimary,
+                                   HEXA_STAT_DAMAGE));
+  EXPECT_FALSE(HexaStatPickAllowed(stats, draft, HexaStatSlot::kSecond,
+                                   HEXA_STAT_UNSPECIFIED));
+}
+
 }  // namespace
 }  // namespace ms

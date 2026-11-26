@@ -85,6 +85,16 @@ TEST_F(ItemMenuTest, DisabledEntriesAreSteppedOver) {
   EXPECT_EQ(menu_.selected(), 1) << "wrapped past the disabled last entry";
 }
 
+TEST_F(ItemMenuTest, SelectLandsOnTheEntryOrTheNextEnabledOne) {
+  menu_.Select(2);
+  EXPECT_EQ(menu_.selected(), 2);
+  menu_.Disable(1);
+  menu_.Select(1);
+  EXPECT_EQ(menu_.selected(), 2);
+  menu_.Select(7);
+  EXPECT_EQ(menu_.selected(), 2) << "out of range changes nothing";
+}
+
 // With nowhere else to go, the cursor stays put rather than landing on
 // something the player can't choose. The walk still ends, because it comes back
 // round to the enabled entry it started on.

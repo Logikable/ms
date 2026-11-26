@@ -19,6 +19,19 @@ namespace {
 
 // --- DisplayStatFor ---
 
+TEST(HexaStatNameTest, EveryStatHasANameAndTwoFollowTheJob) {
+  for (int i = HEXA_STAT_UNSPECIFIED + 1; i <= HexaStat_MAX; ++i) {
+    EXPECT_FALSE(HexaStatName(static_cast<HexaStat>(i), STAT_FIELD_STR).empty())
+        << i;
+  }
+  EXPECT_EQ(HexaStatName(HEXA_STAT_ATTACK, STAT_FIELD_LUK), "ATT");
+  EXPECT_EQ(HexaStatName(HEXA_STAT_ATTACK, STAT_FIELD_INT), "Magic ATT");
+  EXPECT_EQ(HexaStatName(HEXA_STAT_MAIN_STAT, STAT_FIELD_DEX), "DEX");
+  EXPECT_EQ(HexaStatName(HEXA_STAT_UNSPECIFIED, STAT_FIELD_STR), "");
+  EXPECT_EQ(HexaStatNodeNumeral(0), "I");
+  EXPECT_EQ(HexaStatNodeNumeral(2), "III");
+}
+
 TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
   EquipStats stats;
   stats.set_luk(7);

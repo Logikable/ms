@@ -1012,6 +1012,99 @@ TEST_F(TuiControllerTest, AHexaNodeCardCarriesTheSkillsRidingOnIt) {
 
 // --- Job advancement ---
 
+// --- the HEXA tab's menu and the stat picker ---
+
+class HexaStatMenuTest : public TuiControllerTest {
+ protected:
+  void SetUp() override {
+    TuiControllerTest::SetUp();
+    LevelTo(260);
+    for (Job job : {JOB_SWORDMAN, JOB_SPEARMAN, JOB_BERSERKER, JOB_DARK_KNIGHT,
+                    JOB_DARK_KNIGHT, JOB_DARK_KNIGHT}) {
+      state_->character.AdvanceJob(job);
+    }
+  }
+
+  std::string RenderHexaMenu() {
+    ftxui::Element menu = controller_->hexa_menu().Render(0, 0);
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(menu));
+    ftxui::Render(screen, menu);
+    return ScreenText(screen);
+  }
+
+  void Press(const ftxui::Event& event) {
+    controller_->OnEvent(event);
+  }
+};
+
+TEST_F(HexaStatMenuTest, ActivatePicksThreeStatsAndPaysForTheNode) {
+  state_->character.AddSolErdaEnergy(6'000);
+  state_->character.AddSolErdaFragments(25);
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
+  EXPECT_NE(RenderHexaMenu().find("Activate"), std::string::npos);
+  Press(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kHexaStatActivate);
+  for (int row = 0; row < 3; ++row) {
+    Press(ftxui::Event::Return);  // the dropdown, on the first stat allowed
+    Press(ftxui::Event::Return);
+    Press(ftxui::Event::ArrowDown);
+  }
+  Press(ftxui::Event::Return);  // [Activate]
+  EXPECT_EQ(controller_->screen(), kMain);
+  ASSERT_EQ(state_->character.hexa_stats().nodes_size(), 1);
+  const HexaStatNode& node = state_->character.hexa_stats().nodes(0);
+  EXPECT_EQ(node.primary(), HEXA_STAT_CRIT_DAMAGE);
+  EXPECT_EQ(node.first(), HEXA_STAT_BOSS_DAMAGE);
+  EXPECT_EQ(node.second(), HEXA_STAT_IGNORE_DEFENSE);
+  EXPECT_EQ(state_->character.sol_erda_energy(), 1'000);
+  EXPECT_EQ(state_->character.sol_erda_fragments(), 15);
+}
+
+TEST_F(HexaStatMenuTest, ActivateIsGreyWithoutThePrice) {
+  state_->character.AddSolErdaEnergy(6'000);
+  state_->character.AddSolErdaFragments(9);
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
+  EXPECT_EQ(controller_->hexa_menu().selected(), kHexaStatMenuClose);
+  Press(ftxui::Event::ArrowUp);
+  Press(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.hexa_stats().nodes_size(), 0);
+}
+
+TEST_F(HexaStatMenuTest, CancelLeavesWithoutPaying) {
+  state_->character.AddSolErdaEnergy(6'000);
+  state_->character.AddSolErdaFragments(25);
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
+  Press(ftxui::Event::Return);
+  Press(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.sol_erda_fragments(), 25);
+}
+
+// Enhance waits for its own screen: pressing it leaves the menu open.
+TEST_F(HexaStatMenuTest, AnOpenNodeOffersEnhance) {
+  state_->character.AddSolErdaEnergy(6'000);
+  state_->character.AddSolErdaFragments(25);
+  ASSERT_TRUE(state_->character.OpenHexaStatNode(
+      HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE));
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
+  EXPECT_NE(RenderHexaMenu().find("Enhance"), std::string::npos);
+  Press(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kHexaStatMenu);
+  Press(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// A party member's node has only Inspect, grey on one they haven't opened,
+// and the menu goes back to their sheet.
+TEST_F(HexaStatMenuTest, AMembersNodeOffersInspect) {
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/true);
+  EXPECT_NE(RenderHexaMenu().find("Inspect"), std::string::npos);
+  EXPECT_EQ(controller_->hexa_menu().selected(), kHexaStatMenuClose);
+  Press(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kPlayerInspect);
+}
+
 // --- the Buffs tab's menu, card and question ---
 
 // The switch is the menu's first entry, labelled with the state it would put

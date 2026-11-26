@@ -35,6 +35,7 @@
 #include "src/frontend/screens/account/link_skill_panel.h"
 #include "src/frontend/screens/boss/boss_analysis_panel.h"
 #include "src/frontend/screens/boss/boss_select_panel.h"
+#include "src/frontend/screens/hexa/hexa_stat_activate_panel.h"
 #include "src/frontend/screens/inspect/buff_info_panel.h"
 #include "src/frontend/screens/inspect/inspect_panel.h"
 #include "src/frontend/screens/inspect/job_inspect_panel.h"
@@ -210,6 +211,26 @@ class TuiController {
   // Shows the buff's context menu over the main view: read it, buy it
   // permanently, or close.
   void OpenBuffMenu(ConsumableType type);
+  // Shows HEXA Stat node `index`'s menu: Activate for the node that may open
+  // next, grey while the character can't pay, and Enhance for an open one.
+  // `from_inspect` is the party member's node on the Inspect screen, with
+  // Inspect, grey on a node they haven't opened.
+  void OpenHexaStatMenu(int index, bool from_inspect);
+  const ItemMenu& hexa_menu() const {
+    return hexa_menu_;
+  }
+  bool hexa_from_inspect() const {
+    return hexa_from_inspect_;
+  }
+  const HexaStatActivatePanel& hexa_activate_panel() const {
+    return hexa_activate_panel_;
+  }
+  // The node the menu and card are about, and whose it is.
+  int hexa_node() const {
+    return hexa_node_;
+  }
+  const CharacterInstance& hexa_character() const;
+
   // Asks before buying `type` permanently, starting on Cancel because it costs
   // hundreds of millions. If the character can't afford it, the dialog still
   // opens with the price in red and [Confirm] greyed out, so the player can see
@@ -793,6 +814,12 @@ class TuiController {
   bool OnBuffMenuEvent(ftxui::Event event);
   bool OnBuffInfoEvent(ftxui::Event event);
   bool OnBuffBuyEvent(ftxui::Event event);
+  bool OnHexaStatMenuEvent(ftxui::Event event);
+  bool OnHexaStatActivateEvent(ftxui::Event event);
+  bool OnHexaStatInspectEvent(ftxui::Event event);
+  // Where the HEXA Stat menu goes back to: the main view, or the Inspect
+  // screen it was opened from.
+  Screen HexaStatReturn() const;
   bool OnJobInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
@@ -1155,6 +1182,10 @@ class TuiController {
   ConsumableType buff_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
   ItemMenu buff_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt buff_buy_prompt_;
+  int hexa_node_ = 0;
+  bool hexa_from_inspect_ = false;
+  ItemMenu hexa_menu_{{"Activate", "Close"}};
+  HexaStatActivatePanel hexa_activate_panel_;
   DailiesPanel dailies_panel_;
   // Measures the Sacred Symbol dailies while the player is still on the way
   // to the claim; see OpenMenuEntry.

@@ -1,9 +1,9 @@
 /* The character panel: the player's name, a "Lv X <job>" title, a tab bar, and
  * the selected tab's content. Stats shows the base stats and combat stats,
  * including equipment and learned passives. Skills shows one page per job
- * advancement, with its SP and skills. Hyper, Ability and Buffs appear as the
- * character reaches them, and an Advance tab appears only while an advancement
- * is pending.
+ * advancement, with its SP and skills. Hyper, HEXA, Ability and Buffs appear
+ * as the character reaches them, and an Advance tab appears only while an
+ * advancement is pending.
  *
  * Focus moves top to bottom through zones, with Down going down and Up going
  * up. The username row is the top zone, and the tab bar is the only place Left
@@ -72,6 +72,9 @@ struct CharacterPanelActions {
   // cursor and toggles its lock. The panel doesn't know which way it goes.
   std::function<void(int)> ability_lock;
   std::function<void()> ability_reroll;
+  // The HEXA tab. Enter on a node's row opens its menu, with the node's index
+  // (0 for the first), on a read-only panel too.
+  std::function<void(int)> hexa_menu;
   // The Buffs tab. Enter on a row opens the buff's menu, which holds all of its
   // actions, including turning it on.
   std::function<void(ConsumableType)> buff_menu;
@@ -159,6 +162,12 @@ class CharacterPanel {
     return buff_cursor_box_.y_min;
   }
 
+  // The screen row the selected HEXA Stat node was drawn on, for placing its
+  // menu. Read from the render, like the two above.
+  int hexa_cursor_row() const {
+    return hexa_cursor_box_.y_min;
+  }
+
   // The screen row the preset row was drawn on, for placing its menu. There is
   // no list cursor here, so the menu hangs from the chip's own row.
   int preset_row() const {
@@ -240,9 +249,10 @@ class CharacterPanel {
     kTabStats = 0,
     kTabSkills = 1,
     kTabHyper = 2,
-    kTabAbility = 3,
-    kTabBuffs = 4,
-    kTabAdvance = 5
+    kTabHexa = 3,
+    kTabAbility = 4,
+    kTabBuffs = 5,
+    kTabAdvance = 6
   };
 
   // Vertical focus zones, top to bottom. Down from the outer tab bar enters the
@@ -264,6 +274,9 @@ class CharacterPanel {
     // The Ability tab's three line rows and the [Reroll] button under them.
     kZoneAbilityRows,
     kZoneAbilityReroll,
+    // The HEXA tab's node rows. One stop each: everything a node offers is on
+    // the menu Enter opens.
+    kZoneHexaRows,
     // The Buffs tab's rows. One stop each, since everything a buff offers is on
     // the menu Enter opens.
     kZoneBuffRows
@@ -342,6 +355,8 @@ class CharacterPanel {
                          const CharacterPanelActions& actions);
   bool OnBuffsTabEvent(const ftxui::Event& event,
                        const CharacterPanelActions& actions);
+  bool OnHexaTabEvent(const ftxui::Event& event,
+                      const CharacterPanelActions& actions);
 
   // The available tabs, in bar order. The Advance tab is included only while an
   // advancement is pending, so the count varies.
@@ -412,6 +427,14 @@ class CharacterPanel {
   // How many lines the selected allocation has, which sets the size of the
   // tab's cursor ring.
   int AbilityRows() const;
+
+  // The HEXA tab: a row per node listed (see HexaStatNodesListed), then a rule
+  // and the Sol Erda and Fragments, as on the VI page.
+  ftxui::Element RenderHexaTab(bool rows_focused) const;
+  // One node: its numeral, then its primary stat and its levels, or the price
+  // of opening it with each amount the character is short of in red.
+  ftxui::Element RenderHexaRow(int index, bool rows_focused) const;
+  int HexaRows() const;
 
   // The Buffs tab: one row per buff this character has reached. Nothing
   // scrolls, since there are few enough buffs to always fit.
@@ -611,6 +634,7 @@ class CharacterPanel {
   HyperCol hyper_col_ = kHyperColName;  // selected column of that row
   int ability_sel_ = 0;                 // selected Ability tab line row
   int buff_sel_ = 0;                    // selected Buffs tab row
+  int hexa_sel_ = 0;                    // selected HEXA tab node row
   // How long the cursor has been on the selected buff, for scrolling its name.
   // It has its own clock because the two tabs share row numbers, and one clock
   // would carry a scroll from one tab to the other.
@@ -623,6 +647,7 @@ class CharacterPanel {
   mutable ftxui::Box preset_row_box_;
   mutable ftxui::Box skill_cursor_box_;
   mutable ftxui::Box buff_cursor_box_;
+  mutable ftxui::Box hexa_cursor_box_;
 };
 
 }  // namespace ms

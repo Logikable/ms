@@ -73,6 +73,17 @@ void ItemMenu::Step(int delta) {
   }
 }
 
+void ItemMenu::Select(int index) {
+  const int stops = static_cast<int>(options_.size());
+  if (index < 0 || index >= stops) {
+    return;
+  }
+  selected_ = index;
+  if (disabled_[index]) {
+    Step(1);
+  }
+}
+
 void ItemMenu::Reset() {
   std::fill(disabled_.begin(), disabled_.end(), false);
   std::fill(hidden_.begin(), hidden_.end(), false);

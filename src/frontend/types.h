@@ -55,6 +55,12 @@ enum Screen : int {
   kBuffMenu,
   kBuffInfo,
   kBuffBuy,
+  // Enter on a node in the Character panel's HEXA tab: Activate or Enhance on
+  // the player's own, Inspect on a party member's, and Close. Activate opens
+  // the stat picker, Inspect the node's card.
+  kHexaStatMenu,
+  kHexaStatActivate,
+  kHexaStatInspect,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // close. The screen it opens shows the job's book without taking the job.
   kJobMenu,
@@ -342,6 +348,12 @@ enum BuffMenuItem : int {
   kBuffMenuInspect = 1,
   kBuffMenuBuyPerm = 2,
   kBuffMenuClose = 3,
+};
+// Entries of the HEXA Stat menu. The first is named for what the node offers:
+// Activate, Enhance, or Inspect on a party member's node.
+enum HexaStatMenuItem : int {
+  kHexaStatMenuAction = 0,
+  kHexaStatMenuClose = 1,
 };
 // Entries of the Etc stackable context menu.
 enum StackMenuItem : int {

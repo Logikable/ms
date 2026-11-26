@@ -72,6 +72,20 @@ HexaStatPrice HexaStatOpenPrice(int index);
 // next node: the 6th job, the node's level, and the node before it full.
 bool HexaStatNextNodeOpens(const HexaStats& stats, int level, int job_stage);
 
+// How many nodes the HEXA tab lists: every node opened, and the next one once
+// it may open. A node that can't open yet isn't listed at all.
+int HexaStatNodesListed(const HexaStats& stats, int level, int job_stage);
+
+// The three places in a node, in the order the picker lists them.
+enum class HexaStatSlot { kPrimary, kFirst, kSecond };
+
+// Whether `stat` may go in `slot` of `draft`, the node about to be opened
+// after `stats`: none of the draft's other places holds it, and as a primary
+// it isn't one already, as an additional it isn't on two nodes already. An
+// unpicked place in the draft is HEXA_STAT_UNSPECIFIED and blocks nothing.
+bool HexaStatPickAllowed(const HexaStats& stats, const HexaStatNode& draft,
+                         HexaStatSlot slot, HexaStat stat);
+
 // The levels a node has, across its three stats.
 int HexaStatNodeLevels(const HexaStatNode& node);
 

@@ -39,6 +39,7 @@ void PlayerInspectPanel::BuildPanels() {
   char_actions.hyper_inspect = actions_.hyper_stat;
   char_actions.stat_inspect = actions_.stat;
   char_actions.all_stats = actions_.all_stats;
+  char_actions.hexa_menu = actions_.hexa_menu;
   char_component_ = char_panel_->MakeComponent(std::move(char_actions));
 
   equip_component_ = equip_panel_->MakeComponent(

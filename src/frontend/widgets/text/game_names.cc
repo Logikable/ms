@@ -587,6 +587,30 @@ std::string StatFieldName(StatField field) {
   }
 }
 
+std::string HexaStatName(HexaStat stat, StatField main_stat) {
+  switch (stat) {
+    case HEXA_STAT_CRIT_DAMAGE:
+      return "Crit Damage";
+    case HEXA_STAT_BOSS_DAMAGE:
+      return "Boss Damage";
+    case HEXA_STAT_IGNORE_DEFENSE:
+      return "Ignore DEF";
+    case HEXA_STAT_DAMAGE:
+      return "Damage";
+    case HEXA_STAT_ATTACK:
+      return main_stat == STAT_FIELD_INT ? "Magic ATT" : "ATT";
+    case HEXA_STAT_MAIN_STAT:
+      return StatFieldName(main_stat);
+    default:
+      return "";
+  }
+}
+
+std::string HexaStatNodeNumeral(int index) {
+  static const char* const kNumerals[] = {"I", "II", "III", "IV", "V", "VI"};
+  return index >= 0 && index < 6 ? kNumerals[index] : "";
+}
+
 const HyperStatField kHyperStatOrder[] = {
     HYPER_STAT_FIELD_STR,           HYPER_STAT_FIELD_DEX,
     HYPER_STAT_FIELD_INT,           HYPER_STAT_FIELD_LUK,

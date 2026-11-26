@@ -49,6 +49,9 @@ class ItemMenu {
   // inside its panel. Call after Hide(), since hidden entries don't count.
   int Width() const;
   int selected() const;
+  // Puts the cursor on `index`, or on the next enabled entry after it when
+  // that one is disabled. Call after Reset() and any Disable().
+  void Select(int index);
 
  private:
   // Moves `delta` places, skipping disabled entries. Stays put when there is no

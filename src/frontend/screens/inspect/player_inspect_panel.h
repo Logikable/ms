@@ -54,6 +54,8 @@ struct PlayerInspectActions {
   // The View All Stats row, which opens the member's own All Stats screen (see
   // RenderAllStats below).
   std::function<void()> all_stats;
+  // Enter on a node in their HEXA tab, with its index: the node's menu.
+  std::function<void(int)> hexa_menu;
 };
 
 class PlayerInspectPanel {
@@ -113,6 +115,11 @@ class PlayerInspectPanel {
   std::string selected_familiar() const;
   const FamiliarBook& familiars() const {
     return character_.familiars();
+  }
+  // The screen row their HEXA tab's selected node was drawn on, for placing
+  // its menu.
+  int hexa_cursor_row() const {
+    return char_panel_->hexa_cursor_row();
   }
   // Which of the member's two allocations is shown.
   Activity preset() const;

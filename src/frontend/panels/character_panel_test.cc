@@ -3239,6 +3239,113 @@ ftxui::Component OpenLastSkillPage(CharacterPanel& panel) {
   return page;
 }
 
+// A 6th job Dark Knight at `level` holding 12.43 Sol Erda and `fragments`.
+CharacterInstance MakeHexaStatter(std::mt19937& rng, int level,
+                                  int64_t fragments = 340) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(kSixthJobStage);
+  proto.set_sol_erda_energy(12'430);
+  proto.set_sol_erda_fragments(fragments);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+HexaStatNode BossNode(int levels) {
+  HexaStatNode node;
+  node.set_primary(HEXA_STAT_BOSS_DAMAGE);
+  node.set_first(HEXA_STAT_ATTACK);
+  node.set_second(HEXA_STAT_DAMAGE);
+  node.set_primary_level(std::min(levels, 10));
+  node.set_first_level(std::min(std::max(levels - 10, 0), 10));
+  return node;
+}
+
+// Right along the outer tab bar to HEXA, however many tabs come before it.
+ftxui::Component OpenHexaTab(CharacterPanel& panel,
+                             CharacterPanelActions actions = {}) {
+  ftxui::Component comp = panel.MakeComponent(std::move(actions));
+  for (int i = 0; i < 8; ++i) {
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, comp->Render());
+    const std::string bar = ScreenText(screen);
+    if (bar.find("I:") != std::string::npos) {
+      break;
+    }
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  return comp;
+}
+
+TEST_F(CharacterPanelTest, TheHexaTabWaitsForTheSixthJob) {
+  CharacterInstance fifth = MakeFifthJob(rng_, /*v_points=*/0);
+  CharacterPanel before(fifth, account_, panel_focus_);
+  EXPECT_EQ(RenderElement(before.Render()).find("HEXA"), std::string::npos);
+  CharacterInstance sixth = MakeHexaStatter(rng_, 260);
+  CharacterPanel after(sixth, account_, panel_focus_);
+  const std::string bar = RenderElement(after.Render());
+  EXPECT_LT(bar.find("Hyper"), bar.find("HEXA")) << bar;
+}
+
+// An unopened node shows its price where the name goes, each amount the
+// character is short of in red, and the balances under a rule.
+TEST_F(CharacterPanelTest, AnUnopenedNodeShowsItsPrice) {
+  CharacterInstance c = MakeHexaStatter(rng_, 260, /*fragments=*/4);
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = OpenHexaTab(panel);
+  const std::string text = RenderComponentText(comp);
+  EXPECT_NE(text.find("I: 🔆  5.00  🔹  10"), std::string::npos) << text;
+  EXPECT_EQ(text.find("II:"), std::string::npos) << text;
+  EXPECT_NE(text.find("12.43"), std::string::npos) << "the footer: " << text;
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+  EXPECT_EQ(ColorOf(screen, "I:"), kPurple);
+  EXPECT_NE(ColorOf(screen, "5.00"), kRed);
+  EXPECT_EQ(ColorOf(screen, "10 "), kRed) << "4 Fragments of 10";
+}
+
+// An open node shows its primary and its levels; the next waits until it is
+// full, and then shows its own price.
+TEST_F(CharacterPanelTest, AnOpenNodeShowsItsStatAndLevels) {
+  CharacterInstance c = MakeHexaStatter(rng_, 265);
+  HexaStats stats;
+  *stats.add_nodes() = BossNode(19);
+  ASSERT_TRUE(c.SetHexaStats(stats));
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = OpenHexaTab(panel);
+  std::string text = RenderComponentText(comp);
+  EXPECT_NE(text.find("I: Boss Damage"), std::string::npos) << text;
+  EXPECT_NE(text.find("19/20"), std::string::npos) << text;
+  EXPECT_EQ(text.find("II:"), std::string::npos) << text;
+
+  *stats.mutable_nodes(0) = BossNode(20);
+  ASSERT_TRUE(c.SetHexaStats(stats));
+  text = RenderComponentText(comp);
+  EXPECT_NE(text.find(" II: 🔆  10.00  🔹  200"), std::string::npos) << text;
+  EXPECT_NE(text.find("  I: Boss Damage"), std::string::npos)
+      << "the numerals right-aligned: " << text;
+}
+
+TEST_F(CharacterPanelTest, EnterOnANodeOpensItsMenu) {
+  CharacterInstance c = MakeHexaStatter(rng_, 265);
+  HexaStats stats;
+  *stats.add_nodes() = BossNode(20);
+  ASSERT_TRUE(c.SetHexaStats(stats));
+  CharacterPanel panel(c, account_, panel_focus_);
+  int opened = -1;
+  CharacterPanelActions actions;
+  actions.hexa_menu = [&opened](int index) { opened = index; };
+  ftxui::Component comp = OpenHexaTab(panel, std::move(actions));
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_NE(RenderComponentText(comp).find("Stats"), std::string::npos);
+}
+
 // The VI page lists the nodes in their four blocks, a rule between each, and
 // leaves a skill riding on a node to that node's card.
 TEST_F(CharacterPanelTest, TheVIPageListsItsNodesInFourBlocks) {

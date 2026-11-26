@@ -242,6 +242,14 @@ extern const int kNumHyperStats;
 // What a Hyper Stat is called on screen, or "" for one with no name.
 std::string HyperStatName(HyperStatField field);
 
+// What a HEXA Stat is called on screen for a job whose primary stat is
+// `main_stat`: the main stat by its own name, and attack as Magic ATT for a
+// job that fights with INT. "" for HEXA_STAT_UNSPECIFIED.
+std::string HexaStatName(HexaStat stat, StatField main_stat);
+
+// A HEXA Stat node's numeral, "I" for the first (index 0) up to "VI".
+std::string HexaStatNodeNumeral(int index);
+
 // A preset slot's name. With the autoswap on, slots are named for their use.
 // With it off, they are numbered. `kind` matters because gear's third slot is
 // the Drop preset, while the other kinds' third slot is unnamed storage.

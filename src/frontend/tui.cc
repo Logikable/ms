@@ -41,6 +41,7 @@
 #include "src/frontend/screens/account/achievements_panel.h"
 #include "src/frontend/screens/boss/boss_clear_panel.h"
 #include "src/frontend/screens/boss/boss_fight_panel.h"
+#include "src/frontend/screens/hexa/hexa_stat_card.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/upgrade/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -251,6 +252,9 @@ void Tui::BuildComponents() {
   };
   char_actions.buff_menu = [this](ConsumableType type) {
     controller_.OpenBuffMenu(type);
+  };
+  char_actions.hexa_menu = [this](int index) {
+    controller_.OpenHexaStatMenu(index, /*from_inspect=*/false);
   };
   char_actions.preset_menu = [this](PresetKind kind, StatPreset slot) {
     controller_.OpenPresetMenu(kind, slot);
@@ -676,6 +680,27 @@ ftxui::Element Tui::RenderPlayerInspect() {
   // panels, laid out at the same widths as the player's.
   return player_inspect_panel_.Render(ftxui::Terminal::Size().dimy,
                                       ftxui::Terminal::Size().dimx);
+}
+
+ftxui::Element Tui::HexaMenuAt(int cursor_row, int panel_width) {
+  // Past the widest price, "🔆 15.00  🔹 350", so the menu covers the blank
+  // after it rather than the row it is about. It stays inside the panel.
+  constexpr int kHexaMenuCol = 24;
+  const ItemMenu& menu = controller_.hexa_menu();
+  int col = std::max(0, std::min(kHexaMenuCol, panel_width - menu.Width()));
+  return menu.Render(std::max(0, cursor_row - 1), col);
+}
+
+ftxui::Element Tui::RenderPlayerInspectHexaMenu() {
+  const int columns = ftxui::Terminal::Size().dimx;
+  ftxui::Element screen =
+      player_inspect_panel_.Render(ftxui::Terminal::Size().dimy, columns);
+  const MainWidths widths =
+      ComputeMainWidths(columns, /*has_right_column=*/true);
+  return ftxui::dbox(
+      {std::move(screen),
+       Floating(
+           HexaMenuAt(player_inspect_panel_.hexa_cursor_row(), widths.left))});
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
@@ -1340,6 +1365,28 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(BuffBuyDialog());
     case kBuffInfo:
       return Centred(buff_info_panel_.Render());
+    case kHexaStatMenu:
+      if (controller_.hexa_from_inspect()) {
+        return RenderPlayerInspectHexaMenu();
+      }
+      return RenderMain();
+    case kHexaStatActivate: {
+      const HexaStatActivatePanel& panel = controller_.hexa_activate_panel();
+      ftxui::Element screen = OverMain(panel.Render());
+      if (!panel.dropdown_open()) {
+        return screen;
+      }
+      return ftxui::dbox({std::move(screen), Floating(panel.RenderDropdown())});
+    }
+    case kHexaStatInspect: {
+      const CharacterInstance& character = controller_.hexa_character();
+      const int index = controller_.hexa_node();
+      if (index >= character.hexa_stats().nodes_size()) {
+        return RenderPlayerInspect();
+      }
+      return Centred(HexaStatCard(index, character.hexa_stats().nodes(index),
+                                  PrimaryStatField(character.proto().job())));
+    }
     case kStatInspect:
       stat_inspect_panel_.SetStat(controller_.stat_inspect_stat(),
                                   controller_.stat_inspect_breakdown());
@@ -1398,6 +1445,9 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
     constexpr int kJobMenuCol = 14;
     return Floating(controller_.job_menu().Render(
         std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol));
+  }
+  if (controller_.screen() == kHexaStatMenu) {
+    return Floating(HexaMenuAt(char_panel_.hexa_cursor_row(), widths.left));
   }
   if (controller_.screen() == kBuffMenu) {
     // Past the widest buff name, so the menu covers the columns after it rather

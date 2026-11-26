@@ -18,6 +18,7 @@
 #include "src/character/dailies.h"
 #include "src/character/force/symbol.h"
 #include "src/character/job_advancement.h"
+#include "src/character/matrix/hexa_stat.h"
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/combat/encounter.h"
@@ -119,6 +120,9 @@ TuiController::TuiController(GameState& state, Screens screens,
     OpenPlayerStatInspect(stat);
   };
   inspect_actions.all_stats = [this]() { OpenPlayerAllStats(); };
+  inspect_actions.hexa_menu = [this](int index) {
+    OpenHexaStatMenu(index, /*from_inspect=*/true);
+  };
   player_inspect_panel_.UseActions(std::move(inspect_actions));
 
   if (multiplayer_ != nullptr) {
@@ -386,6 +390,103 @@ void TuiController::OpenBuffMenu(ConsumableType type) {
     buff_menu_.Disable(kBuffMenuBuyPerm);
   }
   screen_ = kBuffMenu;
+}
+
+void TuiController::OpenHexaStatMenu(int index, bool from_inspect) {
+  hexa_node_ = index;
+  hexa_from_inspect_ = from_inspect;
+  hexa_menu_.Reset();
+  const CharacterInstance& character = hexa_character();
+  const bool opened = index < character.hexa_stats().nodes_size();
+  if (from_inspect) {
+    hexa_menu_.SetLabel(kHexaStatMenuAction, "Inspect");
+    if (!opened) {
+      hexa_menu_.Disable(kHexaStatMenuAction);
+    }
+  } else if (opened) {
+    hexa_menu_.SetLabel(kHexaStatMenuAction, "Enhance");
+  } else {
+    hexa_menu_.SetLabel(kHexaStatMenuAction, "Activate");
+    const HexaStatPrice price = HexaStatOpenPrice(index);
+    if (character.sol_erda_energy() < price.energy ||
+        character.sol_erda_fragments() < price.fragments) {
+      hexa_menu_.Disable(kHexaStatMenuAction);
+    }
+  }
+  screen_ = kHexaStatMenu;
+}
+
+const CharacterInstance& TuiController::hexa_character() const {
+  return hexa_from_inspect_ ? player_inspect_panel_.character()
+                            : state_.character;
+}
+
+Screen TuiController::HexaStatReturn() const {
+  return hexa_from_inspect_ ? kPlayerInspect : kMain;
+}
+
+bool TuiController::OnHexaStatMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    hexa_menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    hexa_menu_.Down();
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = HexaStatReturn();
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  if (hexa_menu_.selected() != kHexaStatMenuAction) {
+    screen_ = HexaStatReturn();
+    return true;
+  }
+  const CharacterInstance& character = hexa_character();
+  const bool opened = hexa_node_ < character.hexa_stats().nodes_size();
+  if (hexa_from_inspect_) {
+    if (opened) {
+      screen_ = kHexaStatInspect;
+    }
+    return true;
+  }
+  // Enhance waits for its screen.
+  if (opened) {
+    return true;
+  }
+  hexa_activate_panel_.Open(character.hexa_stats(),
+                            PrimaryStatField(character.proto().job()));
+  screen_ = kHexaStatActivate;
+  return true;
+}
+
+bool TuiController::OnHexaStatActivateEvent(ftxui::Event event) {
+  switch (hexa_activate_panel_.OnEvent(event)) {
+    case HexaStatActivatePanel::Result::kActivate: {
+      const HexaStatNode& draft = hexa_activate_panel_.draft();
+      state_.character.OpenHexaStatNode(draft.primary(), draft.first(),
+                                        draft.second());
+      screen_ = kMain;
+      break;
+    }
+    case HexaStatActivatePanel::Result::kCancel:
+      screen_ = kMain;
+      break;
+    case HexaStatActivatePanel::Result::kPending:
+      break;
+  }
+  return true;
+}
+
+// Back to the menu it was opened from, as the buff card does.
+bool TuiController::OnHexaStatInspectEvent(ftxui::Event event) {
+  if (IsBack(event) || IsForward(event)) {
+    screen_ = kHexaStatMenu;
+  }
+  return true;
 }
 
 void TuiController::OpenBuffBuy(ConsumableType type) {
@@ -1006,6 +1107,11 @@ bool TuiController::CloseMainViewDropdown() {
     case kBuffMenu:
     case kPresetMenu:
       break;
+    case kHexaStatMenu:
+      if (hexa_from_inspect_) {
+        return false;
+      }
+      break;
     // Also opened from the Legion and Link Skills screens, which aren't the
     // main view.
     case kPresetMove:
@@ -1100,6 +1206,12 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnBuffInfoEvent(event);
     case kBuffBuy:
       return OnBuffBuyEvent(event);
+    case kHexaStatMenu:
+      return OnHexaStatMenuEvent(event);
+    case kHexaStatActivate:
+      return OnHexaStatActivateEvent(event);
+    case kHexaStatInspect:
+      return OnHexaStatInspectEvent(event);
     case kJobInspect:
       return OnJobInspectEvent(event);
     case kJobAdvance:

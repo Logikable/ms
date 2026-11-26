@@ -5,6 +5,7 @@
 #include <map>
 #include <random>
 #include <set>
+#include <utility>
 
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/matrix/sol_erda.h"
@@ -179,6 +180,36 @@ bool HexaStatNextNodeOpens(const HexaStats& stats, int level, int job_stage) {
   }
   return index == 0 ||
          HexaStatNodeLevels(stats.nodes(index - 1)) >= kHexaStatNodeLevels;
+}
+
+int HexaStatNodesListed(const HexaStats& stats, int level, int job_stage) {
+  return stats.nodes_size() +
+         (HexaStatNextNodeOpens(stats, level, job_stage) ? 1 : 0);
+}
+
+bool HexaStatPickAllowed(const HexaStats& stats, const HexaStatNode& draft,
+                         HexaStatSlot slot, HexaStat stat) {
+  if (stat == HEXA_STAT_UNSPECIFIED) {
+    return false;
+  }
+  const std::pair<HexaStatSlot, HexaStat> places[] = {
+      {HexaStatSlot::kPrimary, draft.primary()},
+      {HexaStatSlot::kFirst, draft.first()},
+      {HexaStatSlot::kSecond, draft.second()},
+  };
+  for (const auto& [other, picked] : places) {
+    if (other != slot && picked == stat) {
+      return false;
+    }
+  }
+  int primaries = 0;
+  int additional = 0;
+  for (const HexaStatNode& node : stats.nodes()) {
+    primaries += node.primary() == stat ? 1 : 0;
+    additional +=
+        (node.first() == stat ? 1 : 0) + (node.second() == stat ? 1 : 0);
+  }
+  return slot == HexaStatSlot::kPrimary ? primaries == 0 : additional < 2;
 }
 
 int HexaStatNodeLevels(const HexaStatNode& node) {
