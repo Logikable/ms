@@ -24,10 +24,12 @@ TEST(SolErdaTest, RollsAreWholeDropsAndNothingForNoKills) {
   EXPECT_EQ(RollMobSolErdaEnergy(-5, 0.0, rng), 0);
   const int64_t energy = RollMobSolErdaEnergy(1'000'000, 0.0, rng);
   EXPECT_EQ(energy % kEnergyPerDrop, 0);
-  // 4,000 drops expected; a binomial sd of about 63.
-  EXPECT_NEAR(static_cast<double>(energy / kEnergyPerDrop), 4000.0, 400.0);
+  // Within ten percent of the mean; the binomial sd is about 3%.
+  const double drops = 1'000'000 * kEnergyDropChance;
+  EXPECT_NEAR(static_cast<double>(energy / kEnergyPerDrop), drops, drops / 10);
+  const double fragments = 1'000'000 * kFragmentDropChance;
   EXPECT_NEAR(static_cast<double>(RollMobFragments(1'000'000, 0.0, rng)),
-              1000.0, 200.0);
+              fragments, fragments / 5);
 }
 
 }  // namespace
