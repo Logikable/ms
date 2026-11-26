@@ -283,37 +283,68 @@ constexpr HexaStat kHexaStatChoices[] = {
     HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_IGNORE_DEFENSE,
     HEXA_STAT_DAMAGE,      HEXA_STAT_ATTACK,      HEXA_STAT_MAIN_STAT};
 
-// Opens the next HEXA Stat node on the three stats that measure best with
-// the node's primary at 10, best as primary.
+// `held` plus a node of `primary`, `first` and `second` at `primary_level`,
+// if the rules allow one: no primary twice, no additional stat thrice.
+bool WithHexaStatNode(const HexaStats& held, HexaStat primary, HexaStat first,
+                      HexaStat second, int primary_level, HexaStats* out) {
+  *out = held;
+  HexaStatNode& node = *out->add_nodes();
+  node.set_primary(primary);
+  node.set_first(first);
+  node.set_second(second);
+  node.set_primary_level(primary_level);
+  return HexaStatsAllowed(*out);
+}
+
+// Opens the next HEXA Stat node: the primary that measures best at level 10
+// among those still allowed, then the two best additional stats the rules
+// allow, in that order.
 bool OpenBestHexaStatNode(GameState& state, const SkillRate& rate) {
   CharacterInstance& character = state.character;
   const HexaStats held = character.hexa_stats();
   std::vector<std::pair<double, HexaStat>> ranked;
   for (HexaStat stat : kHexaStatChoices) {
-    HexaStats trial = held;
-    HexaStatNode& node = *trial.add_nodes();
-    node.set_primary(stat);
-    node.set_primary_level(kHexaStatMaxLevel);
-    // Two others, at no level, only to make the node whole.
-    for (HexaStat other : kHexaStatChoices) {
-      if (other == stat) {
-        continue;
-      }
-      if (node.first() == HEXA_STAT_UNSPECIFIED) {
-        node.set_first(other);
-      } else if (node.second() == HEXA_STAT_UNSPECIFIED) {
-        node.set_second(other);
+    // Any two others that make the node whole; at no level they add nothing.
+    bool measured = false;
+    for (HexaStat first : kHexaStatChoices) {
+      for (HexaStat second : kHexaStatChoices) {
+        HexaStats trial;
+        if (measured || first >= second ||
+            !WithHexaStatNode(held, stat, first, second, kHexaStatMaxLevel,
+                              &trial) ||
+            !character.SetHexaStats(trial)) {
+          continue;
+        }
+        ranked.push_back({rate(state), stat});
+        character.SetHexaStats(held);
+        measured = true;
       }
     }
-    if (!character.SetHexaStats(trial)) {
-      return false;
-    }
-    ranked.push_back({rate(state), stat});
-    character.SetHexaStats(held);
   }
   std::sort(ranked.rbegin(), ranked.rend());
-  return character.OpenHexaStatNode(ranked[0].second, ranked[1].second,
-                                    ranked[2].second);
+  // The primary is the best measured; the additional stats the best of the
+  // rest by the same measure, a stat used as a primary before included.
+  std::vector<HexaStat> order;
+  for (const std::pair<double, HexaStat>& entry : ranked) {
+    order.push_back(entry.second);
+  }
+  for (HexaStat stat : kHexaStatChoices) {
+    if (std::find(order.begin(), order.end(), stat) == order.end()) {
+      order.push_back(stat);
+    }
+  }
+  for (const std::pair<double, HexaStat>& primary : ranked) {
+    for (std::size_t a = 0; a < order.size(); ++a) {
+      for (std::size_t b = a + 1; b < order.size(); ++b) {
+        HexaStats trial;
+        if (WithHexaStatNode(held, primary.second, order[a], order[b], 0,
+                             &trial)) {
+          return character.OpenHexaStatNode(primary.second, order[a], order[b]);
+        }
+      }
+    }
+  }
+  return false;
 }
 
 void SpendHexaStats(GameState& state, const SkillRate& rate) {

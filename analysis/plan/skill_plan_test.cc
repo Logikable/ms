@@ -82,7 +82,7 @@ Skill MasteryNode(const std::string& name) {
 
 // A whole Mastery costs 83 Sol Erda and 2,252 Fragments. The spender maxes
 // the node that measures, leaves the one that doesn't, and opens and rolls
-// the first HEXA Stat node.
+// all three HEXA Stat nodes, each on a primary of its own.
 TEST(SpendHexaMatrixTest, BuysWhatMeasuresAndNothingThatDoesnt) {
   if (!kSixthJobEnabled) {
     GTEST_SKIP() << "the 6th job is behind --config=sixth";
@@ -94,20 +94,23 @@ TEST(SpendHexaMatrixTest, BuysWhatMeasuresAndNothingThatDoesnt) {
       std::map<std::string, Skill>{{"good", MasteryNode("Good")},
                                    {"idle", MasteryNode("Idle")}});
   Character proto;
-  proto.set_level(260);
+  proto.set_level(270);
   proto.set_job(JOB_DARK_KNIGHT);
   proto.set_job_stage(6);
   proto.set_sol_erda_energy(200 * kEnergyPerSolErda);
-  proto.set_sol_erda_fragments(5000);
+  proto.set_sol_erda_fragments(20000);
   state->character.RestoreFrom(proto, state->equips, state->items);
   SpendHexaMatrix(*state, [](GameState& inner) {
     return 1.0 + inner.character.skill_level(inner.skills.at("good"));
   });
   EXPECT_EQ(state->character.skill_level(state->skills.at("good")), 30);
   EXPECT_EQ(state->character.skill_level(state->skills.at("idle")), 0);
-  ASSERT_EQ(state->character.hexa_stats().nodes_size(), 1);
-  EXPECT_EQ(HexaStatNodeLevels(state->character.hexa_stats().nodes(0)),
-            kHexaStatNodeLevels);
+  const HexaStats& stats = state->character.hexa_stats();
+  ASSERT_EQ(stats.nodes_size(), kHexaStatNodes);
+  for (const HexaStatNode& node : stats.nodes()) {
+    EXPECT_EQ(HexaStatNodeLevels(node), kHexaStatNodeLevels);
+  }
+  EXPECT_TRUE(HexaStatsAllowed(stats));
   EXPECT_GE(state->character.sol_erda_fragments(), 0);
 }
 
