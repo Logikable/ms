@@ -201,6 +201,7 @@ sim_binary(
         "//analysis/plan:hyper_plan",
         "//analysis/plan:legion_plan",
         "//analysis/plan:skill_plan",
+        "//src:build_config",
         "//src:embedded_data",
         "//src:game_state",
         "//src:map_level",

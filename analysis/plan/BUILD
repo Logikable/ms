@@ -209,6 +209,9 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src/character",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
+        "//src/character/matrix:sol_erda",
         "//src/character/matrix:v_matrix",
         "//src/protos:character_proto_cc",
         "//src/protos:skill_proto_cc",
@@ -334,8 +337,12 @@ cc_test(
     srcs = ["skill_plan_test.cc"],
     deps = [
         ":skill_plan",
+        "//src:build_config",
         "//src:game_state",
         "//src/character:skill_placement",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
+        "//src/character/matrix:sol_erda",
         "//src/character/matrix:v_matrix",
         "//src/protos:character_proto_cc",
         "//src/protos:skill_proto_cc",

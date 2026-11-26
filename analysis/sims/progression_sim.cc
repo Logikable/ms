@@ -99,6 +99,7 @@
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
 #include "analysis/star_force_curve.h"
+#include "src/build_config.h"
 #include "src/character/account/familiar.h"
 #include "src/character/account/legion.h"
 #include "src/character/account/link.h"
@@ -144,7 +145,9 @@
 
 ABSL_FLAG(bool, uncapped, false,
           "Lift every job's level cap, as max mode does, and climb to the end "
-          "of the EXP table: where a fight falls is then read as a level.");
+          "of the EXP table: where a fight falls is then read as a level. "
+          "Always on with the 6th job, whose jobs past Bow Master would "
+          "otherwise stop at 260.");
 ABSL_FLAG(double, step, 0.5,
           "Seconds the fight is advanced by per tick. Comfortably finer than a "
           "swing (0.66s) or a mob hit (1.5s), which is all the resolution the "
@@ -270,6 +273,12 @@ ABSL_FLAG(std::string, branch, "",
 namespace ms {
 namespace {
 
+// The sim climbs past 260 with the 6th job on, though only Bow Master's is
+// written and the game holds the rest there.
+bool Uncapped() {
+  return absl::GetFlag(FLAGS_uncapped) || kSixthJobEnabled;
+}
+
 // How a map's rate is measured; see MeasureYield. `seconds` is in game seconds,
 // stretched by GameSpeedFactor on the way in.
 struct ProbeWindow {
@@ -307,7 +316,9 @@ void SpendPoints(CharacterInstance& character) {
 // Noblesse SP is left to SpendNoblessePoints, which ranks every point.
 void LearnTheRest(GameState& state) {
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (entry.second.guild() == GUILD_SKILL_NOBLESSE) {
+    // HEXA nodes have their own spender, SpendSolErda.
+    if (entry.second.guild() == GUILD_SKILL_NOBLESSE ||
+        entry.second.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
       continue;
     }
     while (state.character.LearnSkill(entry.second)) {
@@ -495,6 +506,8 @@ struct Ledger {
   int dropped_scrolls = 0;  // scrolls paid for with a boss drop
   FamiliarSpend familiars;  // levels, and the Familiar Cubes' meso
   int64_t v_points_spent = 0;
+  int64_t hexa_energy_spent = 0;
+  int64_t hexa_fragments_spent = 0;
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears + alt_meso;
@@ -832,7 +845,15 @@ struct MatrixChoice {
   double defence = 0.0;
   int power = 0;
   MatrixMemo memo;
+  // The HEXA Matrix, which is never replanned (GMS has no reset): Fragments
+  // held after the last top-up, which waits for kHexaTopUpFragments more.
+  int64_t hexa_fragments = -1;
+  MatrixMemo hexa_memo;
 };
+
+// Fragments gained before the HEXA Matrix is topped up again: about a day's
+// farming, and more than most single levels cost, so a top-up usually buys.
+constexpr int64_t kHexaTopUpFragments = 200;
 
 PlanKey PlanKeyFor(const GameState& state) {
   PlanKey key;
@@ -897,6 +918,26 @@ void ReplanBook(GameState& state, GearShopper& shopper, ToggleChoice& toggles,
       replan, &matrix.memo);
 }
 
+// The HEXA Matrix and HEXA Stats, on the book's rate, once enough Fragments
+// have come in since the last top-up.
+void SpendSolErda(GameState& state, GearShopper& shopper, MatrixChoice& matrix,
+                  Ledger& ledger) {
+  const int64_t fragments = state.character.sol_erda_fragments();
+  if (state.character.proto().job_stage() < kSixthJobStage ||
+      fragments < matrix.hexa_fragments + kHexaTopUpFragments) {
+    return;
+  }
+  DropBasis basis =
+      DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
+  const int64_t energy = state.character.sol_erda_energy();
+  SpendHexaMatrix(
+      state, [&basis](GameState& inner) { return BookRate(inner, basis); },
+      &matrix.hexa_memo);
+  matrix.hexa_fragments = state.character.sol_erda_fragments();
+  ledger.hexa_energy_spent += energy - state.character.sol_erda_energy();
+  ledger.hexa_fragments_spent += fragments - matrix.hexa_fragments;
+}
+
 // The familiar EXP and cubes. Before the shelf, priced at the rate its last
 // pass paid: a Familiar Cube buys far more damage per meso than the shelf's
 // marginal offer, and after it the purse is empty.
@@ -954,6 +995,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     ReplanBook(state, shopper, toggles, matrix);
     ledger.v_points_spent += points - state.character.v_points();
   }
+  SpendSolErda(state, shopper, matrix, ledger);
   LearnTheRest(state);
   // Record the key after the free skills, since the key reads their levels.
   // Recorded before, every look would find a key the last look couldn't have
@@ -1179,6 +1221,13 @@ struct Climb {
   // For --stats_out: meso earned by the end of each day, farming seconds by
   // map key, and when each permanent buff was bought.
   std::vector<int64_t> earned_by_day;
+  // Sol Erda energy and Fragments earned and spent, and the level, at the end
+  // of each day.
+  std::vector<int64_t> energy_by_day;
+  std::vector<int64_t> fragments_by_day;
+  std::vector<int64_t> energy_spent_by_day;
+  std::vector<int64_t> fragments_spent_by_day;
+  std::vector<int> level_by_day;
   std::map<std::string, double> map_seconds;
   std::map<std::string, double> buff_bought_at;
   RunStats stats;
@@ -2814,8 +2863,17 @@ void ConsiderAlts(Session& run) {
 void NoteFarmed(Session& run, double farmed) {
   run.climb.map_seconds[run.state.current_map] += farmed;
   std::vector<int64_t>& days = run.climb.earned_by_day;
+  const CharacterInstance& character = run.state.character;
   while (run.seconds >= static_cast<double>(days.size() + 1) * kDaySeconds) {
     days.push_back(run.purse.earned);
+    const Ledger& ledger = run.climb.ledger;
+    run.climb.energy_by_day.push_back(character.sol_erda_energy() +
+                                      ledger.hexa_energy_spent);
+    run.climb.fragments_by_day.push_back(character.sol_erda_fragments() +
+                                         ledger.hexa_fragments_spent);
+    run.climb.fragments_spent_by_day.push_back(ledger.hexa_fragments_spent);
+    run.climb.energy_spent_by_day.push_back(ledger.hexa_energy_spent);
+    run.climb.level_by_day.push_back(character.proto().level());
   }
 }
 
@@ -3142,6 +3200,20 @@ void AddSpendStats(RunStats& stats, const Climb& climb) {
                 static_cast<double>(climb.earned_by_day[day - 1]));
     }
   }
+  for (int day : {90, 135, 180, 270, 365}) {
+    if (day <= static_cast<int>(climb.energy_by_day.size())) {
+      stats.Add(absl::StrCat("sol_erda/energy_by_day_", day),
+                static_cast<double>(climb.energy_by_day[day - 1]));
+      stats.Add(absl::StrCat("sol_erda/fragments_by_day_", day),
+                static_cast<double>(climb.fragments_by_day[day - 1]));
+      stats.Add(absl::StrCat("sol_erda/energy_spent_by_day_", day),
+                static_cast<double>(climb.energy_spent_by_day[day - 1]));
+      stats.Add(absl::StrCat("sol_erda/fragments_spent_by_day_", day),
+                static_cast<double>(climb.fragments_spent_by_day[day - 1]));
+      stats.Add(absl::StrCat("level/by_day_", day),
+                climb.level_by_day[day - 1]);
+    }
+  }
   stats.Add("meso/etc_sales", static_cast<double>(ledger.etc_sales));
   stats.Add("meso/boss_clears", static_cast<double>(ledger.boss_clears));
   stats.Add("meso/alts_kept", static_cast<double>(ledger.alt_meso));
@@ -3331,7 +3403,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
                 absl::GetFlag(FLAGS_measure_seconds)};
   run.rng.seed(seed);
   run.saves = &saves;
-  if (absl::GetFlag(FLAGS_uncapped)) {
+  if (Uncapped()) {
     state.uncapped = true;
     state.MirrorAccount();
     run.stop_level = kMaxLevel;
@@ -4108,7 +4180,7 @@ int LevelReached(const Climb& climb) {
 // The level the boss tables report clears past by playtime: the run's own
 // cap, 300 when --uncapped lets every branch climb there.
 int ReportCap() {
-  return absl::GetFlag(FLAGS_uncapped) ? kMaxLevel : kTrialLevelCap;
+  return Uncapped() ? kMaxLevel : kTrialLevelCap;
 }
 
 // Playtime when the climb first reached `level`, or -1 if it never did.

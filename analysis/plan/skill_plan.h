@@ -79,6 +79,16 @@ struct MatrixMemo {
 void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true,
                   MatrixMemo* memo = nullptr);
 
+// Spends Sol Erda and Fragments on the HEXA Matrix: the node level that
+// measures the most per cost, cost being Fragments plus Sol Erda at the
+// matrix's own exchange (48,011 Fragments to 1,672 Sol Erda), until nothing
+// left pays. There is no reset, so this only ever tops up. Levels step to the
+// next multiple of 10, where the ladders put a node's perks, or one at a time.
+// HEXA Stat nodes come first, as each opens: the three stats that measure best
+// at level 10, in order, then rolled to 20 levels while Fragments last.
+void SpendHexaMatrix(GameState& state, const SkillRate& rate,
+                     MatrixMemo* memo = nullptr);
+
 }  // namespace ms
 
 #endif  // MS_ANALYSIS_SKILL_PLAN_H_

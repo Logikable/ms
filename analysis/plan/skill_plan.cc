@@ -8,6 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/hexa_stat.h"
+#include "src/character/matrix/sol_erda.h"
 #include "src/character/matrix/v_matrix.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
@@ -183,7 +186,10 @@ int BuyDeep(GameState& state, const Skill& skill,
       !state.character.MeetsSkillRequirement(skill)) {
     std::map<std::string, const Skill*>::const_iterator req =
         named.find(skill.required_skill().skill_name());
-    if (req == named.end()) {
+    // A HEXA node is SpendHexaMatrix's to buy, with Sol Erda, never as a
+    // book skill's prerequisite.
+    if (req == named.end() ||
+        req->second->hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
       return 0;
     }
     while (!state.character.MeetsSkillRequirement(skill)) {
@@ -213,6 +219,130 @@ std::string ToggleRoster(const GameState& state) {
   return roster;
 }
 
+// What a whole matrix costs, which sets how many Fragments a Sol Erda is
+// worth to the spender.
+constexpr double kMatrixFragments = 48011.0;
+constexpr double kMatrixSolErda = 1672.0;
+
+double HexaCost(const HexaPrice& price) {
+  return static_cast<double>(price.fragments) +
+         static_cast<double>(price.energy) / kEnergyPerSolErda *
+             (kMatrixFragments / kMatrixSolErda);
+}
+
+// One level, the levels up to the next multiple of 10, and the most the purse
+// pays for.
+std::vector<int> HexaRungs(const CharacterInstance& character,
+                           const Skill& skill) {
+  const int level = character.skill_level(skill);
+  const int room = MaxHexaNodeLevel(skill.hexa_node()) - level;
+  std::vector<int> rungs;
+  if (room <= 0) {
+    return rungs;
+  }
+  rungs.push_back(1);
+  const int to_band = std::min(room, 10 - level % 10);
+  if (to_band > 1) {
+    rungs.push_back(to_band);
+  }
+  const int affordable = character.LevelsAffordable(skill);
+  if (affordable > 1 &&
+      std::find(rungs.begin(), rungs.end(), affordable) == rungs.end()) {
+    rungs.push_back(affordable);
+  }
+  return rungs;
+}
+
+void PriceHexaNode(GameState& state, double held, const SkillRate& rate,
+                   Offer* offer) {
+  Character before = state.character.ToProto();
+  offer->measured = true;
+  offer->score = 0.0;
+  offer->levels = 0;
+  offer->afforded = false;
+  for (int levels : HexaRungs(state.character, *offer->skill)) {
+    // An Origin's first level is free; a free level still has to pay.
+    const double cost = std::max(
+        1.0, HexaCost(state.character.HexaNodePriceFor(*offer->skill, levels)));
+    if (!state.character.LearnSkill(*offer->skill, levels)) {
+      continue;
+    }
+    offer->afforded = true;
+    const double measured = rate(state);
+    const double score = (measured - held) / cost;
+    if (score > offer->score) {
+      offer->score = score;
+      offer->rate = measured;
+      offer->levels = levels;
+    }
+    state.character.RestoreFrom(before, state.equips, state.items);
+  }
+}
+
+constexpr HexaStat kHexaStatChoices[] = {
+    HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_IGNORE_DEFENSE,
+    HEXA_STAT_DAMAGE,      HEXA_STAT_ATTACK,      HEXA_STAT_MAIN_STAT};
+
+// Opens the next HEXA Stat node on the three stats that measure best with
+// the node's primary at 10, best as primary.
+bool OpenBestHexaStatNode(GameState& state, const SkillRate& rate) {
+  CharacterInstance& character = state.character;
+  const HexaStats held = character.hexa_stats();
+  std::vector<std::pair<double, HexaStat>> ranked;
+  for (HexaStat stat : kHexaStatChoices) {
+    HexaStats trial = held;
+    HexaStatNode& node = *trial.add_nodes();
+    node.set_primary(stat);
+    node.set_primary_level(kHexaStatMaxLevel);
+    // Two others, at no level, only to make the node whole.
+    for (HexaStat other : kHexaStatChoices) {
+      if (other == stat) {
+        continue;
+      }
+      if (node.first() == HEXA_STAT_UNSPECIFIED) {
+        node.set_first(other);
+      } else if (node.second() == HEXA_STAT_UNSPECIFIED) {
+        node.set_second(other);
+      }
+    }
+    if (!character.SetHexaStats(trial)) {
+      return false;
+    }
+    ranked.push_back({rate(state), stat});
+    character.SetHexaStats(held);
+  }
+  std::sort(ranked.rbegin(), ranked.rend());
+  return character.OpenHexaStatNode(ranked[0].second, ranked[1].second,
+                                    ranked[2].second);
+}
+
+void SpendHexaStats(GameState& state, const SkillRate& rate) {
+  CharacterInstance& character = state.character;
+  while (true) {
+    const HexaStats& stats = character.hexa_stats();
+    const int last = stats.nodes_size() - 1;
+    if (last >= 0 &&
+        HexaStatNodeLevels(stats.nodes(last)) < kHexaStatNodeLevels) {
+      const int64_t price = HexaStatEnhancePrice(stats.nodes(last));
+      if (price > character.sol_erda_fragments() ||
+          !character.EnhanceHexaStatNode(last)) {
+        return;
+      }
+      continue;
+    }
+    if (!HexaStatNextNodeOpens(stats, character.proto().level(),
+                               character.proto().job_stage())) {
+      return;
+    }
+    const HexaStatPrice open = HexaStatOpenPrice(stats.nodes_size());
+    if (open.energy > character.sol_erda_energy() ||
+        open.fragments > character.sol_erda_fragments() ||
+        !OpenBestHexaStatNode(state, rate)) {
+      return;
+    }
+  }
+}
+
 }  // namespace
 
 std::map<std::string, const Skill*> SkillsByName(const GameState& state) {
@@ -232,9 +362,10 @@ void SpendBook(GameState& state, const SkillRate& rate) {
   std::map<std::string, const Skill*> named = SkillsByName(state);
   std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    // The V Matrix and Noblesse have their own pools and their own
-    // allocators.
-    if (!IsNode(entry.second) && entry.second.guild() != GUILD_SKILL_NOBLESSE) {
+    // The V and HEXA Matrices and Noblesse have their own pools and their
+    // own allocators.
+    if (!IsNode(entry.second) && entry.second.guild() != GUILD_SKILL_NOBLESSE &&
+        entry.second.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED) {
       offers.push_back({&entry.second});
     }
   }
@@ -332,6 +463,31 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan,
       state, rate, offers,
       [&rate](GameState& inner, double held, Offer* offer) {
         PriceNode(inner, held, rate, offer);
+      },
+      [](GameState& inner, const Offer& offer) {
+        inner.character.LearnSkill(*offer.skill, offer.levels);
+      },
+      memo);
+}
+
+void SpendHexaMatrix(GameState& state, const SkillRate& rate,
+                     MatrixMemo* memo) {
+  if (state.character.sol_erda_fragments() <= 0) {
+    return;
+  }
+  SpendHexaStats(state, rate);
+  std::vector<Offer> offers;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    // Unreachable nodes too: a purchase can meet another's requirement. One
+    // still closed fails to learn and is priced without a fight.
+    if (entry.second.hexa_node() != HEXA_NODE_KIND_UNSPECIFIED) {
+      offers.push_back({&entry.second});
+    }
+  }
+  SpendGreedily(
+      state, rate, offers,
+      [&rate](GameState& inner, double held, Offer* offer) {
+        PriceHexaNode(inner, held, rate, offer);
       },
       [](GameState& inner, const Offer& offer) {
         inner.character.LearnSkill(*offer.skill, offer.levels);
