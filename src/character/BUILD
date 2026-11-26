@@ -438,6 +438,8 @@ cc_library(
         "//src/character/account:familiar",
         "//src/character/account:legion_plan",
         "//src/character/account:noblesse_plan",
+        "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
         "//src/character/matrix:hyper_plan",
         "//src/character/matrix:hyper_stats",
         "//src/combat:damage",

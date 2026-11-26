@@ -1353,6 +1353,36 @@ void MaxVMatrix(GameState& state, bool full) {
   }
 }
 
+// The HEXA Matrix at MaxHexaMatrixLevel and the HEXA Stats of MaxHexaStats,
+// paid for like MaxVMatrix. Repeated until nothing grows, since a node can
+// need another's level first.
+void MaxHexa(GameState& state) {
+  CharacterInstance& character = state.character;
+  if (character.proto().job_stage() < kSixthJobStage) {
+    return;
+  }
+  const int level = character.proto().level();
+  for (bool grew = true; grew;) {
+    grew = false;
+    for (const auto& [name, skill] : state.skills) {
+      if (skill.hexa_node() == HEXA_NODE_KIND_UNSPECIFIED ||
+          !character.ReachesHexaNode(skill)) {
+        continue;
+      }
+      const int room =
+          MaxHexaMatrixLevel(skill, level) - character.skill_level(skill);
+      if (room <= 0) {
+        continue;
+      }
+      const HexaPrice price = character.HexaNodePriceFor(skill, room);
+      character.AddSolErdaEnergy(price.energy);
+      character.AddSolErdaFragments(price.fragments);
+      grew = character.LearnSkill(skill, room) || grew;
+    }
+  }
+  character.SetHexaStats(MaxHexaStats(level));
+}
+
 // Every job the fourth advancement leads to, one per line. Read from the
 // advancement table instead of listed, so a new line is included automatically.
 std::vector<Job> EveryFourthJob() {
@@ -1531,6 +1561,9 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   WearMaxSoul(state.character, state.skills, state.bosses, state.mobs,
               state.items);
   MaxVMatrix(state, bis);
+  if (!bis) {
+    MaxHexa(state);
+  }
   // After the matrix: a HEXA node can need a V node's level first.
   if (bis) {
     DressBisDefaults(state);

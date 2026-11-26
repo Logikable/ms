@@ -403,6 +403,7 @@ cc_test(
         "//src/character/force:sacred_power",
         "//src/character/force:symbol",
         "//src/character/matrix:hexa_matrix",
+        "//src/character/matrix:hexa_stat",
         "//src/character/matrix:hyper_stats",
         "//src/character/matrix:v_matrix",
         "//src/item",

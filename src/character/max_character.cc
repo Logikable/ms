@@ -13,6 +13,8 @@
 #include "src/character/character_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
+#include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/hexa_stat.h"
 #include "src/character/matrix/hyper_plan.h"
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/set_pieces.h"
@@ -469,6 +471,50 @@ constexpr MatrixBand kMatrixBands[] = {
     {200, 0.0, 0.0, 0.0, 0.0},
     {230, 0.8, 0.55, 0.3, 0.06},
     {260, 1.0, 1.0, 1.0, 1.0},
+};
+
+// The HEXA Matrix the same way, by node kind, from the sweep of 2026-11-26.
+// Only Bow Master's 6th job is written, so only it climbs past 260 and these
+// are its own shares; re-read them over every branch once others are. It
+// never bought Flashpoint, the Ascent, by 280.
+struct HexaBand {
+  int level;
+  double origin;
+  double ascent;
+  double mastery;
+  double enhancement;
+  double common;
+  double archetype;
+};
+
+constexpr HexaBand kHexaBands[] = {
+    {270, 0.1, 0.0, 0.55, 0.18, 0.13, 0.23},
+    {280, 0.3, 0.0, 0.97, 0.6, 0.47, 0.63},
+};
+
+// Bow Master's HEXA Stat nodes on arriving at each band, as the sweep rolled
+// and reselected them: primary, then the two additional stats, each with its
+// level. Every branch chose from attack, damage and the main stat.
+struct HexaStatBand {
+  int level;
+  int nodes;
+  HexaStat stats[kHexaStatNodes][3];
+  int levels[kHexaStatNodes][3];
+};
+
+constexpr HexaStatBand kHexaStatBands[] = {
+    {270,
+     2,
+     {{HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT},
+      {HEXA_STAT_MAIN_STAT, HEXA_STAT_DAMAGE, HEXA_STAT_ATTACK},
+      {}},
+     {{8, 5, 7}, {6, 5, 9}, {}}},
+    {280,
+     3,
+     {{HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT},
+      {HEXA_STAT_MAIN_STAT, HEXA_STAT_DAMAGE, HEXA_STAT_ATTACK},
+      {HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK}},
+     {{8, 5, 7}, {6, 5, 9}, {6, 5, 9}}},
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
@@ -1017,6 +1063,63 @@ int MaxMatrixLevel(const Skill& node, int level) {
     }
   }
   return static_cast<int>(std::lround(share * SkillMaxLevel(node)));
+}
+
+int MaxHexaMatrixLevel(const Skill& node, int level) {
+  double share = 0.0;
+  for (const HexaBand& band : kHexaBands) {
+    if (level < band.level) {
+      continue;
+    }
+    switch (node.hexa_node()) {
+      case HEXA_NODE_KIND_ORIGIN:
+        share = band.origin;
+        break;
+      case HEXA_NODE_KIND_ASCENT:
+        share = band.ascent;
+        break;
+      case HEXA_NODE_KIND_MASTERY:
+        share = band.mastery;
+        break;
+      case HEXA_NODE_KIND_ENHANCEMENT:
+        share = band.enhancement;
+        break;
+      case HEXA_NODE_KIND_COMMON:
+        share = band.common;
+        break;
+      case HEXA_NODE_KIND_ARCHETYPE:
+        share = band.archetype;
+        break;
+      default:
+        share = 0.0;
+        break;
+    }
+  }
+  return static_cast<int>(
+      std::lround(share * MaxHexaNodeLevel(node.hexa_node())));
+}
+
+HexaStats MaxHexaStats(int level) {
+  HexaStats stats;
+  const HexaStatBand* held = nullptr;
+  for (const HexaStatBand& band : kHexaStatBands) {
+    if (level >= band.level) {
+      held = &band;
+    }
+  }
+  if (held == nullptr) {
+    return stats;
+  }
+  for (int i = 0; i < held->nodes; ++i) {
+    HexaStatNode& node = *stats.add_nodes();
+    node.set_primary(held->stats[i][0]);
+    node.set_first(held->stats[i][1]);
+    node.set_second(held->stats[i][2]);
+    node.set_primary_level(held->levels[i][0]);
+    node.set_first_level(held->levels[i][1]);
+    node.set_second_level(held->levels[i][2]);
+  }
+  return stats;
 }
 
 int MaxSymbolLevel(EquipSlot slot, int level) {

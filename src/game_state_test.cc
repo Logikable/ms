@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/build_config.h"
 #include "src/character/account/legion.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
@@ -18,6 +19,7 @@
 #include "src/character/force/symbol.h"
 #include "src/character/honor.h"
 #include "src/character/matrix/hexa_matrix.h"
+#include "src/character/matrix/hexa_stat.h"
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/matrix/v_matrix.h"
 #include "src/character/max_character.h"
@@ -1278,6 +1280,39 @@ TEST(GameStateTest, MaxModeFillsTheMatrixAsTheSweepDid) {
     EXPECT_EQ(nodes, 2);
     EXPECT_EQ(state.character.v_points(), 0);
   }
+}
+
+// Past 260 the HEXA Matrix and HEXA Stats are the sweep's Bow Master's: a
+// Mastery node at its band's share, and every HEXA Stat node it held.
+TEST(GameStateTest, MaxModeFillsTheHexaMatrixAndStatsAsTheSweepDid) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "the 6th job is behind --config=sixth";
+  }
+  Skill mastery;
+  mastery.set_name("Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(mastery, JOB_ADVANCEMENT_BOW_MASTER_VI);
+  mastery.set_hexa_node(HEXA_NODE_KIND_MASTERY);
+  mastery.set_max_level(kHexaNodeMaxLevel);
+  for (int level : {kTrialLevelCap, 270, 280}) {
+    std::map<std::string, Skill> skills = EveryStageBook(JOB_BOW_MASTER);
+    skills.insert({"mastery", mastery});
+    TestOptions options;
+    options.job = JOB_ADVANCEMENT_BOW_MASTER_VI;
+    options.level = level;
+    GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {}, skills,
+                    GameMode::kMax, options, std::nullopt, {}, MaxBosses());
+    ASSERT_EQ(state.character.proto().job_stage(), kSixthJobStage);
+    EXPECT_EQ(state.character.skill_level(state.skills.at("mastery")),
+              MaxHexaMatrixLevel(mastery, level))
+        << level;
+    EXPECT_EQ(state.character.hexa_stats().nodes_size(),
+              MaxHexaStats(level).nodes_size())
+        << level;
+    EXPECT_TRUE(HexaStatsAllowed(state.character.hexa_stats()));
+  }
+  EXPECT_EQ(MaxHexaStats(kTrialLevelCap).nodes_size(), 0);
+  EXPECT_GT(MaxHexaMatrixLevel(mastery, 280), MaxHexaMatrixLevel(mastery, 270));
 }
 
 }  // namespace
