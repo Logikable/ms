@@ -114,5 +114,51 @@ TEST(SpendHexaMatrixTest, BuysWhatMeasuresAndNothingThatDoesnt) {
   EXPECT_GE(state->character.sol_erda_fragments(), 0);
 }
 
+// Wherever the rolls land a node's levels, the reselect moves the one stat
+// that measures onto the slot they made worth most.
+TEST(SpendHexaMatrixTest, ReselectsEachNodeOntoItsBestSlots) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "the 6th job is behind --config=sixth";
+  }
+  auto state = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
+      std::map<std::string, MapData>{}, std::map<std::string, Skill>{});
+  Character proto;
+  proto.set_level(270);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(6);
+  proto.set_sol_erda_energy(200 * kEnergyPerSolErda);
+  proto.set_sol_erda_fragments(20000);
+  state->character.RestoreFrom(proto, state->equips, state->items);
+  const SkillRate boss = [](GameState& inner) {
+    return 1.0 + HexaStatTotalsFor(inner.character.hexa_stats(),
+                                   inner.character.proto().level())
+                     .boss_pct;
+  };
+  SpendHexaMatrix(*state, boss);
+  const HexaStats held = state->character.hexa_stats();
+  ASSERT_EQ(held.nodes_size(), kHexaStatNodes);
+  const double kept = boss(*state);
+  const HexaStat choices[] = {HEXA_STAT_CRIT_DAMAGE,    HEXA_STAT_BOSS_DAMAGE,
+                              HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_DAMAGE,
+                              HEXA_STAT_ATTACK,         HEXA_STAT_MAIN_STAT};
+  for (int node = 0; node < kHexaStatNodes; ++node) {
+    for (HexaStat primary : choices) {
+      for (HexaStat first : choices) {
+        for (HexaStat second : choices) {
+          HexaStats trial = held;
+          trial.mutable_nodes(node)->set_primary(primary);
+          trial.mutable_nodes(node)->set_first(first);
+          trial.mutable_nodes(node)->set_second(second);
+          if (state->character.SetHexaStats(trial)) {
+            EXPECT_LE(boss(*state), kept) << "node " << node;
+          }
+        }
+      }
+    }
+  }
+}
+
 }  // namespace
 }  // namespace ms

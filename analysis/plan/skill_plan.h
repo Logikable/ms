@@ -85,7 +85,9 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true,
 // left pays. There is no reset, so this only ever tops up. Levels step to the
 // next multiple of 10, where the ladders put a node's perks, or one at a time.
 // HEXA Stat nodes come first, as each opens: the three stats that measure best
-// at level 10, in order, then rolled to 20 levels while Fragments last.
+// at level 10, in order, then rolled to 20 levels while Fragments last, and
+// reselected after each batch of rolls onto the stats that measure best on
+// the slots the levels landed in. Never reset: that throws Fragments away.
 void SpendHexaMatrix(GameState& state, const SkillRate& rate,
                      MatrixMemo* memo = nullptr);
 

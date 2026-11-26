@@ -347,19 +347,135 @@ bool OpenBestHexaStatNode(GameState& state, const SkillRate& rate) {
   return false;
 }
 
+// `node` of `held` set to `primary`, `first` and `second`, keeping its slot
+// levels, if the rules allow it.
+bool WithHexaStatArrangement(const HexaStats& held, int node, HexaStat primary,
+                             HexaStat first, HexaStat second, HexaStats* out) {
+  *out = held;
+  HexaStatNode& slots = *out->mutable_nodes(node);
+  slots.set_primary(primary);
+  slots.set_first(first);
+  slots.set_second(second);
+  return HexaStatsAllowed(*out);
+}
+
+// What `stat` alone adds in `slot` of `node` at that slot's level, over the
+// node at no levels; the other two places are any stats the rules allow. -1
+// when the rules keep `stat` out of that slot.
+double HexaStatSlotGain(GameState& state, const SkillRate& rate,
+                        const HexaStats& held, int node, HexaStatSlot slot,
+                        HexaStat stat, double bare) {
+  const HexaStatNode& levels = held.nodes(node);
+  for (HexaStat a : kHexaStatChoices) {
+    for (HexaStat b : kHexaStatChoices) {
+      // `a` and `b` fill the two places `stat` leaves, in order.
+      HexaStat primary = slot == HexaStatSlot::kPrimary ? stat : a;
+      HexaStat first = slot == HexaStatSlot::kFirst
+                           ? stat
+                           : (slot == HexaStatSlot::kPrimary ? a : b);
+      HexaStat second = slot == HexaStatSlot::kSecond ? stat : b;
+      HexaStats trial;
+      if (!WithHexaStatArrangement(held, node, primary, first, second,
+                                   &trial)) {
+        continue;
+      }
+      HexaStatNode& bared = *trial.mutable_nodes(node);
+      bared.set_primary_level(
+          slot == HexaStatSlot::kPrimary ? levels.primary_level() : 0);
+      bared.set_first_level(slot == HexaStatSlot::kFirst ? levels.first_level()
+                                                         : 0);
+      bared.set_second_level(
+          slot == HexaStatSlot::kSecond ? levels.second_level() : 0);
+      state.character.SetHexaStats(trial);
+      const double measured = rate(state);
+      state.character.SetHexaStats(held);
+      return measured - bare;
+    }
+  }
+  return -1.0;
+}
+
+// Reselects `node` onto the arrangement that measures best, its slot levels
+// kept: each stat priced alone in each slot, the best sum the rules allow
+// measured whole, and taken only if it beats what the node holds. Free here,
+// so worth it whenever the rolls landed levels on a weak stat.
+void ReselectBestHexaStatNode(GameState& state, const SkillRate& rate,
+                              int node) {
+  CharacterInstance& character = state.character;
+  const HexaStats held = character.hexa_stats();
+  const HexaStatNode& current = held.nodes(node);
+  HexaStats bare = held;
+  bare.mutable_nodes(node)->set_primary_level(0);
+  bare.mutable_nodes(node)->set_first_level(0);
+  bare.mutable_nodes(node)->set_second_level(0);
+  character.SetHexaStats(bare);
+  const double bare_rate = rate(state);
+  character.SetHexaStats(held);
+  std::map<std::pair<HexaStatSlot, HexaStat>, double> gain;
+  for (HexaStatSlot slot :
+       {HexaStatSlot::kPrimary, HexaStatSlot::kFirst, HexaStatSlot::kSecond}) {
+    for (HexaStat stat : kHexaStatChoices) {
+      gain[{slot, stat}] =
+          HexaStatSlotGain(state, rate, held, node, slot, stat, bare_rate);
+    }
+  }
+  double best = -1.0;
+  HexaStat pick[3] = {current.primary(), current.first(), current.second()};
+  for (HexaStat primary : kHexaStatChoices) {
+    for (HexaStat first : kHexaStatChoices) {
+      for (HexaStat second : kHexaStatChoices) {
+        HexaStats trial;
+        if (!WithHexaStatArrangement(held, node, primary, first, second,
+                                     &trial)) {
+          continue;
+        }
+        const double sum = gain[{HexaStatSlot::kPrimary, primary}] +
+                           gain[{HexaStatSlot::kFirst, first}] +
+                           gain[{HexaStatSlot::kSecond, second}];
+        if (sum > best) {
+          best = sum;
+          pick[0] = primary;
+          pick[1] = first;
+          pick[2] = second;
+        }
+      }
+    }
+  }
+  if (pick[0] == current.primary() && pick[1] == current.first() &&
+      pick[2] == current.second()) {
+    return;
+  }
+  const double held_rate = rate(state);
+  character.ReselectHexaStatNode(node, pick[0], pick[1], pick[2]);
+  if (rate(state) <= held_rate) {
+    character.SetHexaStats(held);
+  }
+}
+
 void SpendHexaStats(GameState& state, const SkillRate& rate) {
   CharacterInstance& character = state.character;
+  bool rolled = false;
   while (true) {
     const HexaStats& stats = character.hexa_stats();
     const int last = stats.nodes_size() - 1;
     if (last >= 0 &&
         HexaStatNodeLevels(stats.nodes(last)) < kHexaStatNodeLevels) {
       const int64_t price = HexaStatEnhancePrice(stats.nodes(last));
-      if (price > character.sol_erda_fragments() ||
-          !character.EnhanceHexaStatNode(last)) {
-        return;
+      if (price <= character.sol_erda_fragments() &&
+          character.EnhanceHexaStatNode(last)) {
+        rolled = true;
+        continue;
       }
-      continue;
+    }
+    // Only the node being rolled is rearranged: a full one was rearranged
+    // when its last level landed.
+    if (rolled) {
+      ReselectBestHexaStatNode(state, rate, last);
+      rolled = false;
+    }
+    if (last >= 0 &&
+        HexaStatNodeLevels(stats.nodes(last)) < kHexaStatNodeLevels) {
+      return;
     }
     if (!HexaStatNextNodeOpens(stats, character.proto().level(),
                                character.proto().job_stage())) {
