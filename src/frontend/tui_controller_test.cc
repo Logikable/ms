@@ -1050,6 +1050,13 @@ TEST_F(HexaStatMenuTest, ActivatePicksThreeStatsAndPaysForTheNode) {
     Press(ftxui::Event::ArrowDown);
   }
   Press(ftxui::Event::Return);  // [Activate]
+  ASSERT_EQ(controller_->screen(), kHexaStatConfirm);
+  Press(ftxui::Event::ArrowRight);
+  Press(ftxui::Event::Return);  // [Cancel], back to the picks
+  ASSERT_EQ(controller_->screen(), kHexaStatActivate);
+  EXPECT_EQ(state_->character.hexa_stats().nodes_size(), 0);
+  Press(ftxui::Event::Return);
+  Press(ftxui::Event::Return);  // [Confirm]
   EXPECT_EQ(controller_->screen(), kMain);
   ASSERT_EQ(state_->character.hexa_stats().nodes_size(), 1);
   const HexaStatNode& node = state_->character.hexa_stats().nodes(0);

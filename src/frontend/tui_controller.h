@@ -225,6 +225,9 @@ class TuiController {
   const HexaStatActivatePanel& hexa_activate_panel() const {
     return hexa_activate_panel_;
   }
+  const ConfirmPrompt& hexa_confirm_prompt() const {
+    return hexa_confirm_prompt_;
+  }
   // The node the menu and card are about, and whose it is.
   int hexa_node() const {
     return hexa_node_;
@@ -816,6 +819,7 @@ class TuiController {
   bool OnBuffBuyEvent(ftxui::Event event);
   bool OnHexaStatMenuEvent(ftxui::Event event);
   bool OnHexaStatActivateEvent(ftxui::Event event);
+  bool OnHexaStatConfirmEvent(ftxui::Event event);
   bool OnHexaStatInspectEvent(ftxui::Event event);
   // Where the HEXA Stat menu goes back to: the main view, or the Inspect
   // screen it was opened from.
@@ -1186,6 +1190,7 @@ class TuiController {
   bool hexa_from_inspect_ = false;
   ItemMenu hexa_menu_{{"Activate", "Close"}};
   HexaStatActivatePanel hexa_activate_panel_;
+  ConfirmPrompt hexa_confirm_prompt_;
   DailiesPanel dailies_panel_;
   // Measures the Sacred Symbol dailies while the player is still on the way
   // to the claim; see OpenMenuEntry.

@@ -60,6 +60,8 @@ enum Screen : int {
   // the stat picker, Inspect the node's card.
   kHexaStatMenu,
   kHexaStatActivate,
+  // [Activate]'s question, over the picker it returns to on Cancel.
+  kHexaStatConfirm,
   kHexaStatInspect,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // close. The screen it opens shows the job's book without taking the job.

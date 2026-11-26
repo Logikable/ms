@@ -465,17 +465,33 @@ bool TuiController::OnHexaStatMenuEvent(ftxui::Event event) {
 
 bool TuiController::OnHexaStatActivateEvent(ftxui::Event event) {
   switch (hexa_activate_panel_.OnEvent(event)) {
-    case HexaStatActivatePanel::Result::kActivate: {
+    case HexaStatActivatePanel::Result::kActivate:
+      hexa_confirm_prompt_.Open();
+      screen_ = kHexaStatConfirm;
+      break;
+    case HexaStatActivatePanel::Result::kCancel:
+      screen_ = kMain;
+      break;
+    case HexaStatActivatePanel::Result::kPending:
+      break;
+  }
+  return true;
+}
+
+// Cancel goes back to the picks, which are kept.
+bool TuiController::OnHexaStatConfirmEvent(ftxui::Event event) {
+  switch (hexa_confirm_prompt_.OnEvent(event)) {
+    case ConfirmChoice::kConfirmed: {
       const HexaStatNode& draft = hexa_activate_panel_.draft();
       state_.character.OpenHexaStatNode(draft.primary(), draft.first(),
                                         draft.second());
       screen_ = kMain;
       break;
     }
-    case HexaStatActivatePanel::Result::kCancel:
-      screen_ = kMain;
+    case ConfirmChoice::kCancelled:
+      screen_ = kHexaStatActivate;
       break;
-    case HexaStatActivatePanel::Result::kPending:
+    case ConfirmChoice::kPending:
       break;
   }
   return true;
@@ -1210,6 +1226,8 @@ bool TuiController::OnScreenEvent(ftxui::Event event) {
       return OnHexaStatMenuEvent(event);
     case kHexaStatActivate:
       return OnHexaStatActivateEvent(event);
+    case kHexaStatConfirm:
+      return OnHexaStatConfirmEvent(event);
     case kHexaStatInspect:
       return OnHexaStatInspectEvent(event);
     case kJobInspect:

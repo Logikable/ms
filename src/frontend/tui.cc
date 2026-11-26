@@ -1378,6 +1378,11 @@ ftxui::Element Tui::RenderScreen() {
       }
       return ftxui::dbox({std::move(screen), Floating(panel.RenderDropdown())});
     }
+    case kHexaStatConfirm:
+      return Overlay(
+          OverMain(controller_.hexa_activate_panel().Render()),
+          DialogWindow("", {CenteredRow("Activate with these stats?")},
+                       controller_.hexa_confirm_prompt().Render()));
     case kHexaStatInspect: {
       const CharacterInstance& character = controller_.hexa_character();
       const int index = controller_.hexa_node();
