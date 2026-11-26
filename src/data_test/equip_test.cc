@@ -122,7 +122,8 @@ TEST(EquipDataTest, EveryEndgameWeaponTypeHasAFinishedGenesisWeapon) {
     const Equip fresh = FreshEquip(proto);
     EXPECT_EQ(fresh.stars(), 22) << entry.first;
     EXPECT_EQ(fresh.remaining_upgrade_slots(), 0) << entry.first;
-    EXPECT_EQ(fresh.scroll_successes(), 8) << entry.first;
+    EXPECT_EQ(fresh.scroll_successes(), 8 + kBuiltInUpgradeSlots)
+        << entry.first;
     EXPECT_FALSE(fresh.has_main_potential()) << entry.first;
     EXPECT_FALSE(fresh.has_bonus_potential()) << entry.first;
     EXPECT_EQ(fresh.flame_size(), 0) << entry.first;
