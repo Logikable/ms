@@ -3474,7 +3474,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
+        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3584,7 +3584,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_INT_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_INT_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }

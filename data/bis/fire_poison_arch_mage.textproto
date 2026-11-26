@@ -6345,7 +6345,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
+        type: POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {

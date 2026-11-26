@@ -3537,7 +3537,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5254,7 +5254,7 @@ builds {
       first_level: 10
     }
     nodes {
-      primary: HEXA_STAT_MAIN_STAT
+      primary: HEXA_STAT_DAMAGE
       first: HEXA_STAT_CRIT_DAMAGE
       second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10

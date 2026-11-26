@@ -8059,7 +8059,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
