@@ -24,14 +24,15 @@ inline constexpr int64_t kEnergyPerSolErda = 1000;
 
 // The chance a kill drops a Fragment, before item drop rate. Halved
 // (2026-11-25) after a sweep finished the whole 6th job by day 190: endgame
-// farmers hold +100-180% drop, not the +70% first assumed. Now about day 300.
+// farmers hold +100-180% drop, not the +70% first assumed. Now about day 450.
 // GMS's is about 0.044%, but GMS runs ten times faster.
 inline constexpr double kFragmentDropChance = 0.0005;
 
 // The chance a kill drops a Faint Sol Erda Energy, and what one holds (GMS's
-// 10). Set with boss clears (about a tenth of the energy) so both currencies
-// run out together: ~34 Sol Erda per 1,000 Fragments earned, ~32 spent.
-inline constexpr double kEnergyDropChance = 0.0015;
+// 10). Boss clears past 260 pay about 12 Sol Erda per 1,000 Fragments, so
+// this makes ~32 against the ~34 a full 6th job spends: both run out together
+// (2026-11-25 sweep; the user took 0.1%).
+inline constexpr double kEnergyDropChance = 0.001;
 inline constexpr int64_t kEnergyPerDrop = 10;
 
 // The average Fragments and energy per kill at `item_drop_pct` (0.20 ==
