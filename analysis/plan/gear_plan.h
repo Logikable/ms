@@ -357,6 +357,11 @@ class GearShopper {
   // the next one whenever the bag or meso refuses. Returns whether it bought
   // anything.
   bool BuyBest(GameState& state, GearSpend& spend);
+  // BuyBest off `offers`, sorted as Shelf sorts them. The offer bought, or
+  // null if every one was refused.
+  const Candidate* BuyFrom(GameState& state,
+                           const std::vector<Candidate>& offers,
+                           GearSpend& spend);
   // Pays for one offer and applies it. Returns false if it was refused.
   bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
   // One function per kind of offer. False means the bag or meso refused, and

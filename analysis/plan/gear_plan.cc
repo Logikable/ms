@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "analysis/exact.h"
 #include "analysis/parallel.h"
 #include "analysis/plan/cube_plan.h"
 #include "analysis/plan/soul_plan.h"
@@ -952,7 +953,11 @@ std::vector<GearShopper::Candidate> GearShopper::Shelf(GameState& state) {
 }
 
 bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
-  std::vector<Candidate> offers = Shelf(state);
+  return BuyFrom(state, Shelf(state), spend) != nullptr;
+}
+
+const GearShopper::Candidate* GearShopper::BuyFrom(
+    GameState& state, const std::vector<Candidate>& offers, GearSpend& spend) {
   // Move down the list when an offer is refused. One piece's refusal shouldn't
   // stop buying for every other piece. It once did, and a full Etc tab silently
   // ended shopping for the rest of the run.
@@ -963,10 +968,10 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
       continue;
     }
     if (BuyOffer(state, offer, spend)) {
-      return true;
+      return &offer;
     }
   }
-  return false;
+  return nullptr;
 }
 
 // Rolls `program`'s run through: a replacing cube's roll always goes on, a
@@ -1497,7 +1502,40 @@ GearSpend GearShopper::Spend(GameState& state) {
   RecoverWaiting(state, spend);
   SellSpares(state, spend);
   ApplySouls(state, spend);
-  while (BuyBest(state, spend)) {
+  // Unless exact, a shelf is bought off for kStaleBuys purchases before it's
+  // priced again, less each bought slot's offers: one piece's upgrade moves
+  // the others' gains little, and pricing the shelf is most of shopping. A
+  // symbol or a split moves every piece's value, so it re-prices at once.
+  constexpr int kStaleBuys = 2;
+  std::vector<Candidate> shelf;
+  int stale = 0;
+  while (true) {
+    const bool fresh = shelf.empty() || stale >= kStaleBuys || Exact();
+    if (fresh) {
+      shelf = Shelf(state);
+      stale = 0;
+    }
+    const Candidate* bought = BuyFrom(state, shelf, spend);
+    if (bought == nullptr) {
+      if (fresh) {
+        break;
+      }
+      shelf.clear();
+      continue;
+    }
+    const EquipSlot slot = bought->slot;
+    const bool everything =
+        bought->symbol || !bought->symbol_run.empty() || bought->split;
+    if (everything) {
+      shelf.clear();
+      continue;
+    }
+    shelf.erase(std::remove_if(shelf.begin(), shelf.end(),
+                               [slot](const Candidate& offer) {
+                                 return offer.slot == slot;
+                               }),
+                shelf.end());
+    ++stale;
   }
   life_.Add(spend);
   return spend;

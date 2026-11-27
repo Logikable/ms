@@ -176,6 +176,7 @@ cc_library(
         ":cube_plan",
         ":flame_plan",
         ":soul_plan",
+        "//analysis:exact",
         "//analysis:parallel",
         "//analysis:sim_gear",
         "//analysis:star_force_curve",
