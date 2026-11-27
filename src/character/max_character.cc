@@ -286,10 +286,10 @@ constexpr EquipSlot kSacredSlots[] = {
 };
 
 // The level each fight's first solo clear came at, the fifth of ten branches
-// from the top in the uncapped sweep of 2026-11-22, bursts held for guards
-// (three seeds of 365 days).
-// Normal Kaling fell to none of them, so it has no entry and max mode never
-// clears it.
+// from the top in the uncapped sweep of 2026-11-27, once buff windows kept
+// the force factor (three seeds of 365 days). The Liberation isn't in the
+// sweep's table; its 264 is older. Normal Kaling fell to one branch, so it
+// has no entry and max mode never clears it.
 struct Clear {
   const char* boss;
   const char* difficulty;
@@ -307,38 +307,40 @@ constexpr Clear kClears[] = {
     {"horntail", "Chaos", 190},
     {"cygnus", "Normal", 200},
     {"pierre", "Chaos", 200},
-    {"von_bon", "Chaos", 201},
-    {"magnus", "Hard", 202},
-    {"zakum", "Chaos", 202},
-    {"crimson_queen", "Chaos", 205},
-    {"pink_bean", "Chaos", 205},
-    {"vellum", "Chaos", 205},
-    {"princess_no", "Normal", 210},
-    {"papulatus", "Chaos", 210},
-    {"damien", "Normal", 214},
-    {"lotus", "Normal", 217},
+    {"von_bon", "Chaos", 200},
+    {"crimson_queen", "Chaos", 202},
+    {"magnus", "Hard", 204},
+    {"zakum", "Chaos", 204},
+    {"pink_bean", "Chaos", 204},
+    {"vellum", "Chaos", 204},
+    {"papulatus", "Chaos", 208},
+    {"princess_no", "Normal", 209},
+    {"damien", "Normal", 220},
+    {"lotus", "Normal", 220},
     {"guardian_angel_slime", "Normal", 226},
-    {"lucid", "Normal", 240},
-    {"will", "Normal", 245},
-    {"damien", "Hard", 245},
-    {"lotus", "Hard", 246},
-    {"darknell", "Normal", 248},
-    {"gloom", "Normal", 249},
-    {"guardian_angel_slime", "Chaos", 255},
-    {"verus_hilla", "Normal", 255},
-    {"will", "Hard", 260},
-    {"verus_hilla", "Hard", 261},
-    {"darknell", "Hard", 261},
-    {"gloom", "Chaos", 261},
-    {"seren", "Normal", 261},
-    {"lucid", "Hard", 263},
+    {"lucid", "Normal", 237},
+    {"will", "Normal", 241},
+    {"damien", "Hard", 244},
+    {"lotus", "Hard", 244},
+    {"gloom", "Normal", 245},
+    {"darknell", "Normal", 246},
+    {"verus_hilla", "Normal", 251},
+    {"will", "Hard", 252},
+    {"guardian_angel_slime", "Chaos", 254},
+    {"verus_hilla", "Hard", 258},
+    {"gloom", "Chaos", 259},
+    {"lucid", "Hard", 260},
+    {"darknell", "Hard", 260},
     {"liberation", "Genesis", 264},
-    {"kalos", "Easy", 265},
-    {"black_mage", "Hard", 266},
-    {"seren", "Hard", 268},
-    {"first_adversary", "Easy", 271},
-    {"kalos", "Normal", 276},
-    {"kaling", "Easy", 276},
+    {"black_mage", "Hard", 264},
+    {"seren", "Normal", 267},
+    {"kalos", "Easy", 269},
+    {"seren", "Hard", 271},
+    {"first_adversary", "Easy", 272},
+    {"kaling", "Easy", 275},
+    {"kalos", "Normal", 277},
+    {"first_adversary", "Normal", 281},
+    {"lotus", "Extreme", 282},
 };
 
 // The alts the same sweep had levelled by each level: how many past 70, and

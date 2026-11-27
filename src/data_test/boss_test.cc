@@ -556,9 +556,8 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
 // next sweep, and a clear can't come before the fight opens. A fight the sweep
 // never beat is named here instead, and max mode never clears it.
 TEST_F(BossDataTest, MaxModeKnowsWhenEveryBuiltFightFalls) {
-  // No branch of the uncapped sweeps of 2026-11-21 to 11-23 beat these.
-  const std::set<std::string> kNeverBeaten = {
-      "kaling Normal", "first_adversary Normal", "lotus Extreme"};
+  // Only one branch of the uncapped sweep of 2026-11-27 beat it.
+  const std::set<std::string> kNeverBeaten = {"kaling Normal"};
   for (const std::pair<const std::string, Boss>& entry : bosses_) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {

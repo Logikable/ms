@@ -881,6 +881,12 @@ void WearWorkbenchTiers(GameState& state, const GearSetup& equips) {
     MakeRoomFor(state, badge->second);
     WearAll(state, {badge->first}, equips);
   }
+  std::map<std::string, EquipPrototype>::const_iterator heart =
+      state.equips.find("total_control");
+  if (heart != state.equips.end() && level >= OwnedFromLevel(heart->second)) {
+    MakeRoomFor(state, heart->second);
+    WearAll(state, {heart->first}, equips);
+  }
   WearGenesisWeapon(state, level, equips);
 }
 
@@ -1531,6 +1537,15 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
     MakeRoomFor(state, badge->second);
     WearAll(state, {badge->first}, equips);
   }
+  // Between checkpoints like the badge: the sweep wore it once it had cleared
+  // Extreme Lotus, from 282.
+  std::map<std::string, EquipPrototype>::const_iterator heart =
+      state.equips.find("total_control");
+  if (!bis && heart != state.equips.end() &&
+      reached >= OwnedFromLevel(heart->second)) {
+    MakeRoomFor(state, heart->second);
+    WearAll(state, {heart->first}, equips);
+  }
   if (!bis) {
     WearGenesisWeapon(state, reached, equips);
     WearMaxFarmPieces(state, reached, equips);
@@ -1934,8 +1949,8 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.set_family() == "Mitra's Rage") {
     return kSerenLevel;
   }
-  // Extreme Lotus opens at 210 like the others, but nobody beats a level 285
-  // fight there, so it counts from max mode's first clear.
+  // Extreme Lotus opens at 210 like the others, but it's a level 285 fight,
+  // so it counts from max mode's first clear.
   if (proto.name() == "Total Control") {
     const int cleared = MaxClearLevel("lotus", "Extreme");
     return cleared > 0 ? cleared : kNeverOwned;
