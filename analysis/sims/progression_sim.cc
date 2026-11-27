@@ -463,9 +463,10 @@ double BossRateOver(const GameState& state, const DropBasis& basis,
   if (played.seconds <= 0.0 || body <= 0) {
     return 0.0;
   }
-  double dps = WithAscents(
-      played.damage / played.seconds, static_cast<double>(body),
-      MeasureAscents(params, window), difficulty.time_limit_seconds());
+  double dps =
+      WithAscents(played.damage / played.seconds, static_cast<double>(body),
+                  MeasureAscents(params, window, played.damage),
+                  difficulty.time_limit_seconds());
   double drop_pct = DerivedStatsFor(state.character, state.skills, {},
                                     state.party, Activity::kBossing)
                         .item_drop_pct;

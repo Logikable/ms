@@ -64,7 +64,9 @@ Sequence MeasureFight(const CombatParams& params, double horizon,
 // damage over `horizon`: dealt with them released through it, less dealt
 // without, so a cast costs the swings it displaces and nothing on its own
 // clock. A measured fight never releases them: its target's HP never falls.
-double MeasureAscents(const CombatParams& params, double horizon);
+// `held` is that fight's damage without them, as MeasureFight(params, horizon)
+// dealt it, so the run is not played twice.
+double MeasureAscents(const CombatParams& params, double horizon, double held);
 
 // `dps` from a measured fight, as a fight against `body` HP whose Ascent uses
 // add `ascents`: the same time spent on less of the body. A fight past its

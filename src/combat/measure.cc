@@ -157,7 +157,7 @@ void RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
 
 }  // namespace
 
-double MeasureAscents(const CombatParams& params, double horizon) {
+double MeasureAscents(const CombatParams& params, double horizon, double held) {
   if (!params.active || params.types.empty() || horizon <= 0.0 ||
       absl::c_none_of(params.attacks,
                       [](const AttackOption& a) { return a.held; })) {
@@ -176,10 +176,7 @@ double MeasureAscents(const CombatParams& params, double horizon) {
     released.Release(1, /*at_once=*/use == kAscentUsesPerBossFight);
   }
   RunFor(released, measured, horizon - elapsed);
-  CombatSim held;
-  held.Advance(measured, 0.0);
-  RunFor(held, measured, horizon);
-  return DealtSoFar(released) - DealtSoFar(held);
+  return DealtSoFar(released) - held;
 }
 
 double WithAscents(double dps, double body, double ascents, double time_limit) {

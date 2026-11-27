@@ -49,7 +49,7 @@ double BisFightRate(GameState& state) {
   const CombatParams params = ComputeBossParams(state, kBisTarget, fight, 0);
   const Sequence played = MeasureFight(params, Window(state));
   // Spent against the one target, the only body this fight has.
-  const double ascents = MeasureAscents(params, Window(state));
+  const double ascents = MeasureAscents(params, Window(state), played.damage);
   state.mobs.erase(kBisTarget);
   return played.seconds > 0.0
              ? WithAscents(played.damage / played.seconds,

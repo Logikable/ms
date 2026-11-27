@@ -215,7 +215,7 @@ TEST(MeasureFightTest, AscentsArePricedApartAndSpentAgainstTheBody) {
   EXPECT_NEAR(played.damage, 100 * 100.0, 1e-6);
 
   // Each 2s cast deals 10,000 where the filler would have dealt 200.
-  const double ascents = MeasureAscents(params, 100.0);
+  const double ascents = MeasureAscents(params, 100.0, played.damage);
   EXPECT_NEAR(ascents, 3 * (10000.0 - 200.0), 1e-6);
   EXPECT_NEAR(WithAscents(100.0, 100000.0, ascents),
               100000.0 / ((100000.0 - ascents) / 100.0), 1e-9);
