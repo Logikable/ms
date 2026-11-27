@@ -473,7 +473,8 @@ constexpr MatrixBand kMatrixBands[] = {
     {260, 1.0, 1.0, 1.0, 1.0},
 };
 
-// The HEXA Matrix the same way, by node kind, from the sweep of 2026-11-26.
+// The HEXA Matrix the same way, by node kind, from the sweep of 2026-11-26
+// (re-read once HEXA Stats scored off bossing).
 // Only Bow Master's 6th job is written, so only it climbs past 260 and these
 // are its own shares; re-read them over every branch once others are. It
 // never bought Flashpoint, the Ascent, by 280.
@@ -488,13 +489,13 @@ struct HexaBand {
 };
 
 constexpr HexaBand kHexaBands[] = {
-    {270, 0.1, 0.0, 0.55, 0.18, 0.13, 0.23},
-    {280, 0.3, 0.0, 0.97, 0.6, 0.47, 0.63},
+    {270, 0.1, 0.0, 0.58, 0.15, 0.13, 0.23},
+    {280, 0.3, 0.0, 0.98, 0.62, 0.43, 0.63},
 };
 
 // Bow Master's HEXA Stat nodes on arriving at each band, as the sweep rolled
 // and reselected them: primary, then the two additional stats, each with its
-// level. Every branch chose from attack, damage and the main stat.
+// level.
 struct HexaStatBand {
   int level;
   int nodes;
@@ -505,16 +506,16 @@ struct HexaStatBand {
 constexpr HexaStatBand kHexaStatBands[] = {
     {270,
      2,
-     {{HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT},
-      {HEXA_STAT_MAIN_STAT, HEXA_STAT_DAMAGE, HEXA_STAT_ATTACK},
+     {{HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK, HEXA_STAT_BOSS_DAMAGE},
+      {HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT},
       {}},
-     {{8, 5, 7}, {6, 5, 9}, {}}},
+     {{5, 10, 5}, {3, 9, 8}, {}}},
     {280,
      3,
-     {{HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT},
-      {HEXA_STAT_MAIN_STAT, HEXA_STAT_DAMAGE, HEXA_STAT_ATTACK},
-      {HEXA_STAT_DAMAGE, HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK}},
-     {{8, 5, 7}, {6, 5, 9}, {6, 5, 9}}},
+     {{HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK, HEXA_STAT_BOSS_DAMAGE},
+      {HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT},
+      {HEXA_STAT_ATTACK, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_BOSS_DAMAGE}},
+     {{5, 10, 5}, {3, 9, 8}, {5, 9, 6}}},
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
