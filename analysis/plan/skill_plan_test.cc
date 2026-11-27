@@ -114,6 +114,45 @@ TEST(SpendHexaMatrixTest, BuysWhatMeasuresAndNothingThatDoesnt) {
   EXPECT_GE(state->character.sol_erda_fragments(), 0);
 }
 
+// A node that measured nothing once isn't written off: when it measures, a
+// later call with the same memo prices and buys it, though another node's
+// score leads it.
+TEST(SpendHexaMatrixTest, ANodeThatMeasuredNothingIsPricedAgain) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "the 6th job is behind --config=sixth";
+  }
+  auto state = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
+      std::map<std::string, MapData>{},
+      std::map<std::string, Skill>{{"good", MasteryNode("Good")},
+                                   {"late", MasteryNode("Late")}});
+  Character proto;
+  proto.set_level(270);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(6);
+  proto.set_sol_erda_energy(200 * kEnergyPerSolErda);
+  proto.set_sol_erda_fragments(20000);
+  state->character.RestoreFrom(proto, state->equips, state->items);
+  MatrixMemo memo;
+  SpendHexaMatrix(
+      *state,
+      [](GameState& inner) {
+        return 1.0 + inner.character.skill_level(inner.skills.at("good"));
+      },
+      &memo);
+  ASSERT_EQ(state->character.skill_level(state->skills.at("good")), 30);
+  ASSERT_EQ(state->character.skill_level(state->skills.at("late")), 0);
+  SpendHexaMatrix(
+      *state,
+      [](GameState& inner) {
+        return 1.0 + inner.character.skill_level(inner.skills.at("good")) +
+               inner.character.skill_level(inner.skills.at("late"));
+      },
+      &memo);
+  EXPECT_EQ(state->character.skill_level(state->skills.at("late")), 30);
+}
+
 // Wherever the rolls land a node's levels, the reselect moves the one stat
 // that measures onto the slot they made worth most.
 TEST(SpendHexaMatrixTest, ReselectsEachNodeOntoItsBestSlots) {

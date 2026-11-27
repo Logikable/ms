@@ -116,8 +116,13 @@ void SpendGreedily(GameState& state, const SkillRate& rate,
     return;
   }
   for (const Offer& offer : offers) {
-    if (offer.held > 0.0) {
+    // A bound of nothing would keep the node unpriced for good, so a node
+    // that measured nothing (an Ascent before any boss to aim at) is priced
+    // again next time instead.
+    if (offer.held > 0.0 && offer.score > 0.0) {
       memo->relative[offer.skill->name()] = offer.score / offer.held;
+    } else {
+      memo->relative.erase(offer.skill->name());
     }
   }
 }
