@@ -933,9 +933,15 @@ void SpendSolErda(GameState& state, GearShopper& shopper, MatrixChoice& matrix,
   DropBasis basis =
       DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
   const int64_t energy = state.character.sol_erda_energy();
+  // HEXA Stats score off bossing alone (the user's call): a stat is chosen
+  // once and kept, and bossing is what it's chosen for.
+  const SkillRate bossing = [&basis](GameState& inner) {
+    const double boss = BossRate(inner, basis);
+    return boss > 0.0 ? boss : BookRate(inner, basis);
+  };
   SpendHexaMatrix(
       state, [&basis](GameState& inner) { return BookRate(inner, basis); },
-      &matrix.hexa_memo);
+      &matrix.hexa_memo, &bossing);
   matrix.hexa_fragments = state.character.sol_erda_fragments();
   ledger.hexa_energy_spent += energy - state.character.sol_erda_energy();
   ledger.hexa_fragments_spent += fragments - matrix.hexa_fragments;
