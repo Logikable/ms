@@ -61,6 +61,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <set>
 #include <sstream>
@@ -5422,27 +5423,32 @@ void Run() {
     return;
   }
   Checkpointing saves = PrepareCheckpoints();
-  // The alt climbs run beside the mains, which wait on them only on reaching
-  // the Link Skills level. Their own threads rather than slots in the mains'
-  // pool, so a main waiting on them can never hold the thread one needs.
+  // The alt climbs go first, on the whole pool: run beside the mains, they
+  // shared one thread with sixteen climbs, and every main waited ~20s on them
+  // at the Link Skills level.
   const bool alts = absl::GetFlag(FLAGS_alts);
   std::promise<AltLadders> climbed;
   std::shared_future<AltLadders> ladders = climbed.get_future().share();
-  std::thread alt_climbs;
   if (alts) {
-    alt_climbs =
-        std::thread([&] { climbed.set_value(ClimbAlts(catalogs, maps)); });
+    climbed.set_value(ClimbAlts(catalogs, maps));
   }
   std::vector<std::vector<Climb>> runs(count, std::vector<Climb>(per_branch));
-  ParallelFor(count * per_branch, [&](int i) {
+  // Longest first, so the last climbs to finish aren't the slow ones: a job
+  // with its 6th written climbs past 260 and plays its HEXA Matrix, about
+  // half as long again as the rest. Which climb lands in which slot doesn't
+  // change: the order only schedules.
+  std::vector<int> order(count * per_branch);
+  std::iota(order.begin(), order.end(), 0);
+  std::stable_partition(order.begin(), order.end(), [&](int i) {
+    return SixthJobWritten(branches[i % count]);
+  });
+  ParallelFor(count * per_branch, [&](int k) {
+    const int i = order[k];
     unsigned int seed =
         static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)) + i / count;
     runs[i % count][i / count] = Play(catalogs, branches[i % count], maps, seed,
                                       saves, alts ? &ladders : nullptr);
   });
-  if (alts) {
-    alt_climbs.join();
-  }
 
   if (!stats_out.empty()) {
     std::string rows;
