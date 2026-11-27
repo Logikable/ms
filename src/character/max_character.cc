@@ -474,7 +474,7 @@ constexpr MatrixBand kMatrixBands[] = {
 };
 
 // The HEXA Matrix the same way, by node kind, from the sweep of 2026-11-26
-// (re-read once HEXA Stats scored off bossing).
+// (re-read after HEXA Stats scored off bossing and Ascents took KMS's rules).
 // Only Bow Master's 6th job is written, so only it climbs past 260 and these
 // are its own shares; re-read them over every branch once others are. It
 // never bought Flashpoint, the Ascent, by 280.
@@ -489,8 +489,8 @@ struct HexaBand {
 };
 
 constexpr HexaBand kHexaBands[] = {
-    {270, 0.1, 0.0, 0.58, 0.15, 0.13, 0.23},
-    {280, 0.3, 0.0, 0.98, 0.62, 0.43, 0.63},
+    {270, 0.1, 0.0, 0.55, 0.15, 0.15, 0.3},
+    {280, 0.3, 0.0, 0.97, 0.58, 0.47, 0.3},
 };
 
 // Bow Master's HEXA Stat nodes on arriving at each band, as the sweep rolled
@@ -514,8 +514,8 @@ constexpr HexaStatBand kHexaStatBands[] = {
      3,
      {{HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK, HEXA_STAT_BOSS_DAMAGE},
       {HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT},
-      {HEXA_STAT_ATTACK, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_BOSS_DAMAGE}},
-     {{5, 10, 5}, {3, 9, 8}, {5, 9, 6}}},
+      {HEXA_STAT_ATTACK, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_IGNORE_DEFENSE}},
+     {{5, 10, 5}, {3, 9, 8}, {5, 5, 10}}},
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
