@@ -101,7 +101,7 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
 // after they open; a fight it never named never falls.
 TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
   EXPECT_EQ(MaxClearLevel("zakum", "Normal"), 110);
-  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 243);
+  EXPECT_EQ(MaxClearLevel("damien", "Hard"), 244);
   EXPECT_EQ(MaxClearLevel("kaling", "Easy"), 275);
   EXPECT_EQ(MaxClearLevel("kaling", "Normal"), 0);
   EXPECT_EQ(MaxClearLevel("zakum", "Hard"), 0);
@@ -176,7 +176,7 @@ TEST(MaxCharacterTest, SymbolsClimbWithTheLevel) {
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_ESFERA, 260), 19);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 259), 0);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CERNIUM, 260), 3);
-  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CARCION, 280), 7);
+  EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_SYMBOL_CARCION, 280), 8);
   EXPECT_EQ(MaxSymbolLevel(EQUIP_SLOT_HAT, 260), 0);
   for (int slot = EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY;
        slot <= EQUIP_SLOT_SYMBOL_GEARDOCK; ++slot) {

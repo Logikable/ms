@@ -275,7 +275,7 @@ constexpr SymbolBand kSymbolBands[] = {
     {230, {14, 13, 11, 9, 0, 0}, {}},
     {260, {20, 20, 20, 20, 20, 19}, {3, 2, 0, 0, 0, 0, 0, 0}},
     {270, {20, 20, 20, 20, 20, 20}, {7, 6, 6, 5, 0, 0, 0, 0}},
-    {280, {20, 20, 20, 20, 20, 20}, {9, 7, 8, 8, 8, 7, 0, 0}},
+    {280, {20, 20, 20, 20, 20, 20}, {9, 7, 8, 8, 8, 8, 0, 0}},
 };
 
 // The Sacred Symbol slots in kSymbolBands' order.
@@ -306,40 +306,40 @@ constexpr Clear kClears[] = {
     {"arkarium", "Normal", 180},
     {"hilla", "Hard", 190},
     {"horntail", "Chaos", 190},
-    {"cygnus", "Normal", 201},
-    {"pierre", "Chaos", 201},
-    {"von_bon", "Chaos", 201},
-    {"crimson_queen", "Chaos", 204},
-    {"magnus", "Hard", 203},
-    {"zakum", "Chaos", 203},
-    {"pink_bean", "Chaos", 205},
-    {"vellum", "Chaos", 205},
-    {"papulatus", "Chaos", 209},
+    {"cygnus", "Normal", 200},
+    {"pierre", "Chaos", 200},
+    {"von_bon", "Chaos", 200},
+    {"crimson_queen", "Chaos", 202},
+    {"magnus", "Hard", 204},
+    {"zakum", "Chaos", 204},
+    {"pink_bean", "Chaos", 204},
+    {"vellum", "Chaos", 204},
+    {"papulatus", "Chaos", 208},
     {"princess_no", "Normal", 209},
     {"damien", "Normal", 220},
-    {"lotus", "Normal", 221},
-    {"guardian_angel_slime", "Normal", 227},
-    {"lucid", "Normal", 236},
+    {"lotus", "Normal", 220},
+    {"guardian_angel_slime", "Normal", 226},
+    {"lucid", "Normal", 237},
     {"will", "Normal", 241},
-    {"damien", "Hard", 243},
+    {"damien", "Hard", 244},
     {"lotus", "Hard", 244},
-    {"gloom", "Normal", 244},
-    {"darknell", "Normal", 245},
-    {"verus_hilla", "Normal", 250},
-    {"will", "Hard", 251},
-    {"guardian_angel_slime", "Chaos", 253},
-    {"verus_hilla", "Hard", 259},
+    {"gloom", "Normal", 245},
+    {"darknell", "Normal", 246},
+    {"verus_hilla", "Normal", 251},
+    {"will", "Hard", 252},
+    {"guardian_angel_slime", "Chaos", 254},
+    {"verus_hilla", "Hard", 258},
     {"gloom", "Chaos", 259},
-    {"lucid", "Hard", 261},
+    {"lucid", "Hard", 260},
     {"darknell", "Hard", 260},
     {"liberation", "Genesis", 260},
-    {"black_mage", "Hard", 265},
+    {"black_mage", "Hard", 264},
     {"seren", "Normal", 264},
     {"kalos", "Easy", 265},
-    {"seren", "Hard", 267},
+    {"seren", "Hard", 266},
     {"first_adversary", "Easy", 270},
     {"kaling", "Easy", 275},
-    {"kalos", "Normal", 273},
+    {"kalos", "Normal", 272},
     {"first_adversary", "Normal", 279},
     {"lotus", "Extreme", 281},
 };
@@ -476,8 +476,8 @@ constexpr MatrixBand kMatrixBands[] = {
     {260, 1.0, 1.0, 1.0, 1.0},
 };
 
-// The HEXA Matrix the same way, by node kind, from the sweep of 2026-11-26
-// (re-read after buff windows kept the force cut, c3599460).
+// The HEXA Matrix the same way, by node kind, from the --exact sweep of
+// 2026-11-27 (after the sweep took Sacred dailies). No Flashpoint by 280.
 // Only Bow Master's 6th job is written, so only it climbs past 260 and these
 // are its own shares; re-read them over every branch once others are.
 struct HexaBand {
@@ -491,8 +491,8 @@ struct HexaBand {
 };
 
 constexpr HexaBand kHexaBands[] = {
-    {270, 0.13, 0.0, 0.71, 0.29, 0.22, 0.23},
-    {280, 0.63, 0.27, 1.0, 0.87, 0.93, 0.63},
+    {270, 0.13, 0.0, 0.70, 0.26, 0.18, 0.27},
+    {280, 0.30, 0.0, 0.98, 0.83, 0.80, 0.63},
 };
 
 // Bow Master's HEXA Stat nodes on arriving at each band, as the sweep rolled
@@ -509,15 +509,15 @@ constexpr HexaStatBand kHexaStatBands[] = {
     {270,
      2,
      {{HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT, HEXA_STAT_BOSS_DAMAGE},
-      {HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT},
+      {HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK},
       {}},
-     {{8, 6, 6}, {3, 9, 8}, {}}},
+     {{8, 6, 6}, {4, 7, 9}, {}}},
     {280,
      3,
      {{HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT, HEXA_STAT_BOSS_DAMAGE},
-      {HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_MAIN_STAT},
-      {HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK}},
-     {{8, 6, 6}, {3, 9, 8}, {5, 5, 10}}},
+      {HEXA_STAT_IGNORE_DEFENSE, HEXA_STAT_MAIN_STAT, HEXA_STAT_ATTACK},
+      {HEXA_STAT_MAIN_STAT, HEXA_STAT_CRIT_DAMAGE, HEXA_STAT_ATTACK}},
+     {{8, 6, 6}, {4, 7, 9}, {2, 9, 9}}},
 };
 
 // The level from which the sweep's bossing Inner Ability had reached
