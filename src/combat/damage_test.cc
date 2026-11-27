@@ -237,6 +237,11 @@ TEST_F(OffenseTest, BossElementalResistanceAndWhatIgnoresIt) {
   // A normal monster has no resistance to ignore, so none of this applies.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false)),
                    kBaseline * kEqualLevel * kBaseCrit);
+  // An Ascent ignores the monster's elements: the whole hit, no halving.
+  OffenseStats ascent = Baseline();
+  ascent.ignores_elements = true;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(ascent, MakeMob(0, true)),
+                   kBaseline * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LevelMultiplierAppliesToOutput) {

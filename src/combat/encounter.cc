@@ -755,11 +755,12 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       skill, level, PassiveOffenseFor(derived, skill));
+  attack.held = skill != nullptr && skill->hexa_node() == HEXA_NODE_KIND_ASCENT;
+  offense.ignores_elements = attack.held;
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
   AddCastShape(skill, level, derived, offense, speed_factor, attack);
-  attack.held = skill != nullptr && skill->hexa_node() == HEXA_NODE_KIND_ASCENT;
   for (const SwingProc& proc : derived.procs) {
     if (attack.held) {
       break;
