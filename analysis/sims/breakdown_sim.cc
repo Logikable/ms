@@ -36,6 +36,10 @@ ABSL_FLAG(int, hexa, 0,
 ABSL_FLAG(std::string, fight, "lotus", "Boss key, as data/bosses names it.");
 ABSL_FLAG(std::string, difficulty, "Normal", "Difficulty name.");
 ABSL_FLAG(std::string, job, "", "One branch (\"dark_knight\"), or all.");
+ABSL_FLAG(bool, dummy, false,
+          "Fight one of the first phase's first boss, alone, on no clock and "
+          "with HP that outlasts --seconds: KMS's dummy runs, for comparing "
+          "shares with their battle analyses.");
 ABSL_FLAG(double, seconds, 180.0,
           "Fight seconds before the table is read, if the boss is still up.");
 
@@ -57,6 +61,39 @@ void PrintBreakdown(Job branch, const DamageBreakdown& breakdown) {
                 static_cast<long long>(row.casts),
                 static_cast<long long>(row.lines), row.per_line());
   }
+}
+
+// The fight cut down to one of its first monster, which never dies or runs
+// out of time. See --dummy.
+std::string MakeDummy(GameState& state, const std::string& key,
+                      int difficulty) {
+  BossDifficulty& fight =
+      *state.bosses.at(key).mutable_difficulties(difficulty);
+  // A fight's clock of 0 has already run out; a day outlasts any --seconds.
+  fight.set_time_limit_seconds(86400);
+  BossPhase first = fight.phases(0);
+  first.set_time_limit_seconds(0);
+  Spawn lone = first.spawns(0);
+  lone.set_count(1);
+  first.clear_spawns();
+  *first.add_spawns() = lone;
+  fight.clear_phases();
+  *fight.add_phases() = first;
+  // Far past any run, and far from overflowing what HP is multiplied into.
+  state.mobs.at(lone.mob()).set_max_hp(int64_t{1} << 57);
+  return lone.mob();
+}
+
+DamageBreakdown Play(GameState& state, const std::string& key, int difficulty) {
+  BossOptions practice_only;
+  practice_only.set_practice(true);
+  BossRun run(key, state.bosses.at(key), difficulty, /*authority=*/nullptr,
+              practice_only);
+  while (!run.done() &&
+         run.breakdown().seconds() < absl::GetFlag(FLAGS_seconds)) {
+    run.Advance(state, kStepSeconds);
+  }
+  return run.breakdown();
 }
 
 void Run() {
@@ -81,18 +118,22 @@ void Run() {
         NewMaxState(catalogs, AdvancementForJobStage(branch, StageOf(branch)),
                     level, kSeed);
     state.bosses = catalogs.bosses;
+    std::string dummy;
+    if (absl::GetFlag(FLAGS_dummy)) {
+      dummy = MakeDummy(state, boss->first, difficulty);
+    }
     if (absl::GetFlag(FLAGS_hexa) > 0) {
       LearnHexaTo(state, absl::GetFlag(FLAGS_hexa));
     }
-    BossOptions practice_only;
-    practice_only.set_practice(true);
-    BossRun run(boss->first, state.bosses.at(boss->first), difficulty,
-                /*authority=*/nullptr, practice_only);
-    while (!run.done() &&
-           run.breakdown().seconds() < absl::GetFlag(FLAGS_seconds)) {
-      run.Advance(state, kStepSeconds);
+    DamageBreakdown played = Play(state, boss->first, difficulty);
+    // Ascents go out as the HP falls, so the dummy gets the HP the first run
+    // dealt: its marks then pass across the run, as in a real fight.
+    if (!dummy.empty()) {
+      state.mobs.at(dummy).set_max_hp(
+          static_cast<int64_t>(played.total() * 1.01));
+      played = Play(state, boss->first, difficulty);
     }
-    PrintBreakdown(branch, run.breakdown());
+    PrintBreakdown(branch, played);
   }
 }
 
