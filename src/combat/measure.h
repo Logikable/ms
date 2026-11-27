@@ -60,6 +60,12 @@ struct Sequence {
 Sequence MeasureFight(const CombatParams& params, double horizon,
                       int enemies = 1);
 
+// Scales `played` to what a long fight would see of every attack whose
+// cooldown outlasts the run: a fresh run casts each once, a long fight once a
+// cooldown. The swings a scaled-down cast displaced are given back at the rate
+// the rest of the run dealt.
+void ToCycleShare(const CombatParams& params, Sequence* played);
+
 // What a boss fight's Ascent uses (kAscentUsesPerBossFight) add to its
 // damage over `horizon`: dealt with them released through it, less dealt
 // without, so a cast costs the swings it displaces and nothing on its own

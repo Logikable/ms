@@ -182,6 +182,7 @@ sim_binary(
         "//analysis:checkpoint",
         "//analysis:drop_use",
         "//analysis:drop_value",
+        "//analysis:exact",
         "//analysis:meso_rate",
         "//analysis:parallel",
         "//analysis:run_stats",

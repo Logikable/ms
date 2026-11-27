@@ -81,6 +81,7 @@
 #include "analysis/checkpoint.h"
 #include "analysis/drop_use.h"
 #include "analysis/drop_value.h"
+#include "analysis/exact.h"
 #include "analysis/meso_rate.h"
 #include "analysis/parallel.h"
 #include "analysis/plan/ability_plan.h"
@@ -144,6 +145,9 @@
 #include "src/protos/skill.pb.h"
 #include "src/sacred_dailies.h"
 
+ABSL_FLAG(bool, exact, false,
+          "Take none of the speed cuts that trade accuracy for time: the "
+          "baseline every cut is checked against, within 5%.");
 ABSL_FLAG(bool, uncapped, false,
           "Lift every job's level cap, as max mode does, and climb to the end "
           "of the EXP table: where a fight falls is then read as a level. "
@@ -359,7 +363,7 @@ double WindowFor(const GameState& state, double seconds) {
       cycle = std::max(cycle, skill.cooldown_seconds());
     }
   }
-  return std::max(seconds, kBookCycles * cycle) *
+  return std::max(seconds, kBookCycles * CappedCycle(cycle)) *
          GameSpeedFactor(state.character.proto().level());
 }
 
@@ -398,6 +402,9 @@ double CrowdRateOver(const GameState& state, const DropBasis& basis,
   }
   enemies = std::max(1, enemies);
   Sequence played = MeasureFight(params, WindowFor(state, seconds), enemies);
+  if (!Exact()) {
+    ToCycleShare(params, &played);
+  }
   if (played.seconds <= 0.0) {
     return 0.0;
   }
@@ -463,10 +470,13 @@ double BossRateOver(const GameState& state, const DropBasis& basis,
   if (played.seconds <= 0.0 || body <= 0) {
     return 0.0;
   }
+  const double ascents = MeasureAscents(params, window, played.damage);
+  if (!Exact()) {
+    ToCycleShare(params, &played);
+  }
   double dps =
       WithAscents(played.damage / played.seconds, static_cast<double>(body),
-                  MeasureAscents(params, window, played.damage),
-                  difficulty.time_limit_seconds());
+                  ascents, difficulty.time_limit_seconds());
   double drop_pct = DerivedStatsFor(state.character, state.skills, {},
                                     state.party, Activity::kBossing)
                         .item_drop_pct;
@@ -851,14 +861,17 @@ struct MatrixChoice {
   int power = 0;
   MatrixMemo memo;
   // The HEXA Matrix, which is never replanned (GMS has no reset): Fragments
-  // held after the last top-up, which waits for kHexaTopUpFragments more.
+  // held after the last top-up, which waits for HexaTopUpFragments() more.
   int64_t hexa_fragments = -1;
   MatrixMemo hexa_memo;
 };
 
 // Fragments gained before the HEXA Matrix is topped up again: about a day's
 // farming, and more than most single levels cost, so a top-up usually buys.
-constexpr int64_t kHexaTopUpFragments = 200;
+// Three days' worth unless exact, since each top-up prices every node.
+int64_t HexaTopUpFragments() {
+  return Exact() ? 200 : 600;
+}
 
 PlanKey PlanKeyFor(const GameState& state) {
   PlanKey key;
@@ -929,7 +942,7 @@ void SpendSolErda(GameState& state, GearShopper& shopper, MatrixChoice& matrix,
                   Ledger& ledger) {
   const int64_t fragments = state.character.sol_erda_fragments();
   if (state.character.proto().job_stage() < kSixthJobStage ||
-      fragments < matrix.hexa_fragments + kHexaTopUpFragments) {
+      fragments < matrix.hexa_fragments + HexaTopUpFragments()) {
     return;
   }
   DropBasis basis =
@@ -3175,8 +3188,9 @@ std::string ClimbSettings() {
       absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_clean_slates),
       ";", absl::GetFlag(FLAGS_hold_dropped_scrolls), ";",
       absl::GetFlag(FLAGS_cubes), ";", absl::GetFlag(FLAGS_dailies), ";",
-      absl::GetFlag(FLAGS_attention), ";", absl::GetFlag(FLAGS_ability_rank),
-      ";", absl::GetFlag(FLAGS_checkpoint_at), ";",
+      absl::GetFlag(FLAGS_exact), ";", absl::GetFlag(FLAGS_attention), ";",
+      absl::GetFlag(FLAGS_ability_rank), ";",
+      absl::GetFlag(FLAGS_checkpoint_at), ";",
       absl::StrJoin(absl::GetFlag(FLAGS_potential_levels), ","));
 }
 
@@ -5439,6 +5453,7 @@ void Run() {
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
+  ms::SetExact(absl::GetFlag(FLAGS_exact));
   // The daily reset reads local time; see kSimEpoch.
   setenv("TZ", "UTC", /*overwrite=*/1);
   tzset();

@@ -133,6 +133,53 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   return played;
 }
 
+void ToCycleShare(const CombatParams& params, Sequence* played) {
+  const double seconds = played->seconds;
+  if (seconds <= 0.0) {
+    return;
+  }
+  double removed = 0.0;
+  double long_damage = 0.0;  // everything the long attacks dealt, uncut
+  double busy = 0.0;         // seconds the long attacks' casts took
+  double cast_cut = 0.0;     // of those, the ones a long fight wouldn't spend
+  for (int i = 0; i < static_cast<int>(played->by_attack.size()) &&
+                  i < static_cast<int>(params.attacks.size());
+       ++i) {
+    const AttackOption& attack = params.attacks[i];
+    AttackTally& tally = played->by_attack[i];
+    if (attack.cooldown_seconds <= seconds || tally.swings == 0) {
+      continue;
+    }
+    const double kept = seconds / attack.cooldown_seconds;
+    long_damage += tally.damage;
+    double cut = tally.damage * (1.0 - kept);
+    tally.damage -= cut;
+    for (std::pair<std::string, double>& source : played->own_clock_by_source) {
+      if (source.first == attack.name) {
+        long_damage += source.second;
+        const double off = source.second * (1.0 - kept);
+        source.second -= off;
+        played->own_clock_damage -= off;
+        cut += off;
+      }
+    }
+    removed += cut;
+    busy += tally.swings * attack.swing_seconds;
+    cast_cut += tally.swings * attack.swing_seconds * (1.0 - kept);
+  }
+  if (removed <= 0.0) {
+    return;
+  }
+  // The rest of the run's rate, over the time the long casts didn't take.
+  const double rest = played->damage - long_damage;
+  const double free_seconds = std::max(1e-9, seconds - busy);
+  const double back = cast_cut * rest / free_seconds;
+  if (played->main_attack >= 0) {
+    played->by_attack[played->main_attack].damage += back;
+  }
+  played->damage += back - removed;
+}
+
 namespace {
 
 double DealtSoFar(const CombatSim& sim) {

@@ -207,6 +207,7 @@ cc_library(
     srcs = ["skill_plan.cc"],
     hdrs = ["skill_plan.h"],
     deps = [
+        "//analysis:exact",
         "//src:game_state",
         "//src/character",
         "//src/character/matrix:hexa_matrix",

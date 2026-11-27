@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "analysis/exact.h"
 #include "analysis/sim_boss.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -86,6 +87,7 @@ CombatParams AimedParams(const GameState& state, const Fight* aim,
 
 // How long to play the fight, in MeasureFight's stretched clock: twice the
 // slowest cooldown in the book, or the skill looks always up or never up.
+// Capped (see CappedCycle), with the longer cooldowns cut to their share.
 double ProfileWindow(const GameState& state) {
   constexpr double kFloorSeconds = 30.0;
   double cycle = 0.0;
@@ -94,7 +96,7 @@ double ProfileWindow(const GameState& state) {
       cycle = std::max(cycle, entry.second.cooldown_seconds());
     }
   }
-  return std::max(kFloorSeconds, 2.0 * cycle) *
+  return std::max(kFloorSeconds, 2.0 * CappedCycle(cycle)) *
          GameSpeedFactor(state.character.proto().level());
 }
 
@@ -128,6 +130,9 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target,
     return strands;
   }
   Sequence played = MeasureFight(params, ProfileWindow(state), enemies);
+  if (!Exact()) {
+    ToCycleShare(params, &played);
+  }
   if (played.seconds <= 0.0 || played.damage <= 0.0) {
     return strands;
   }

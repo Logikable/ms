@@ -199,6 +199,37 @@ TEST(MeasureFightTest, NothingToFightMeasuresNothing) {
   EXPECT_EQ(played.main_attack, -1);
 }
 
+// A 120s run casts a 360s Origin once; a long fight casts it a third as
+// often, and swings the filler in the time it no longer spends casting.
+TEST(MeasureFightTest, AnAttackPastTheRunIsCutToItsCycleShare) {
+  CombatParams params;
+  AttackOption filler;
+  filler.swing_seconds = 1.0;
+  AttackOption origin;
+  origin.name = "Origin";
+  origin.swing_seconds = 4.0;
+  origin.cooldown_seconds = 360.0;
+  params.attacks = {filler, origin};
+  Sequence played;
+  played.seconds = 120.0;
+  played.main_attack = 0;
+  played.by_attack = {AttackTally{11600.0, 116}, AttackTally{30000.0, 1}};
+  played.own_clock_by_source = {{"Origin", 6000.0}};
+  played.own_clock_damage = 6000.0;
+  played.damage = 11600.0 + 30000.0 + 6000.0;
+
+  ToCycleShare(params, &played);
+  EXPECT_NEAR(played.damage, (120.0 - 4.0 / 3.0) * 100.0 + 36000.0 / 3.0, 1e-6);
+  EXPECT_NEAR(played.own_clock_damage, 2000.0, 1e-6);
+
+  // Nothing outlasts a run as long as its longest cooldown.
+  Sequence whole = played;
+  whole.seconds = 360.0;
+  const double before = whole.damage;
+  ToCycleShare(params, &whole);
+  EXPECT_EQ(whole.damage, before);
+}
+
 // A measured fight never lets an Ascent out; MeasureAscents prices the
 // fight's three uses, and WithAscents spends them against the body.
 TEST(MeasureFightTest, AscentsArePricedApartAndSpentAgainstTheBody) {

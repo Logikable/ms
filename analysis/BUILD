@@ -88,10 +88,17 @@ cc_library(
 )
 
 cc_library(
+    name = "exact",
+    srcs = ["exact.cc"],
+    hdrs = ["exact.h"],
+)
+
+cc_library(
     name = "yardstick",
     srcs = ["yardstick.cc"],
     hdrs = ["yardstick.h"],
     deps = [
+        ":exact",
         ":sim_boss",
         "//src:game_state",
         "//src/character:character_stats",

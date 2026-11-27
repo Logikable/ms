@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "analysis/exact.h"
 #include "src/character/matrix/hexa_matrix.h"
 #include "src/character/matrix/hexa_stat.h"
 #include "src/character/matrix/sol_erda.h"
@@ -81,7 +82,8 @@ using TakeOffer = std::function<void(GameState&, const Offer&)>;
 // can come out wrong; an exact sweep would cost ten times as much.
 void SpendGreedily(GameState& state, const SkillRate& rate,
                    std::vector<Offer>& offers, const PriceOffer& price,
-                   const TakeOffer& take, MatrixMemo* memo = nullptr) {
+                   const TakeOffer& take, MatrixMemo* memo = nullptr,
+                   bool reprice_zeros = true) {
   double held = rate(state);
   if (memo != nullptr) {
     for (Offer& offer : offers) {
@@ -118,8 +120,8 @@ void SpendGreedily(GameState& state, const SkillRate& rate,
   for (const Offer& offer : offers) {
     // A bound of nothing would keep the node unpriced for good, so a node
     // that measured nothing (an Ascent before any boss to aim at) is priced
-    // again next time instead.
-    if (offer.held > 0.0 && offer.score > 0.0) {
+    // again next time instead, unless the caller would rather not pay for it.
+    if (offer.held > 0.0 && (offer.score > 0.0 || !reprice_zeros)) {
       memo->relative[offer.skill->name()] = offer.score / offer.held;
     } else {
       memo->relative.erase(offer.skill->name());
@@ -644,7 +646,9 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan,
       [](GameState& inner, const Offer& offer) {
         inner.character.LearnSkill(*offer.skill, offer.levels);
       },
-      memo);
+      // A V node that measures nothing (movement, utility) stays at nothing:
+      // re-pricing them all at every spend costs a fight each.
+      memo, /*reprice_zeros=*/Exact());
 }
 
 void SpendHexaMatrix(GameState& state, const SkillRate& rate, MatrixMemo* memo,
