@@ -48,8 +48,13 @@ double BisFightRate(GameState& state) {
   spawn->set_count(1);
   const CombatParams params = ComputeBossParams(state, kBisTarget, fight, 0);
   const Sequence played = MeasureFight(params, Window(state));
+  // Spent against the one target, the only body this fight has.
+  const double ascents = MeasureAscents(params, Window(state));
   state.mobs.erase(kBisTarget);
-  return played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
+  return played.seconds > 0.0
+             ? WithAscents(played.damage / played.seconds,
+                           static_cast<double>(target->max_hp()), ascents)
+             : 0.0;
 }
 
 }  // namespace ms

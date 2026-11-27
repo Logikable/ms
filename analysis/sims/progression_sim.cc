@@ -456,12 +456,15 @@ double BossRateOver(const GameState& state, const DropBasis& basis,
   if (!params.active) {
     return 0.0;
   }
-  Sequence played = MeasureFight(params, WindowFor(state, seconds));
+  const double window = WindowFor(state, seconds);
+  Sequence played = MeasureFight(params, window);
   int64_t body = BossTotalHp(state.mobs, difficulty);
   if (played.seconds <= 0.0 || body <= 0) {
     return 0.0;
   }
-  double dps = played.damage / played.seconds;
+  double dps =
+      WithAscents(played.damage / played.seconds, static_cast<double>(body),
+                  MeasureAscents(params, window));
   double drop_pct = DerivedStatsFor(state.character, state.skills, {},
                                     state.party, Activity::kBossing)
                         .item_drop_pct;

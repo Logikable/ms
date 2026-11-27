@@ -60,6 +60,16 @@ struct Sequence {
 Sequence MeasureFight(const CombatParams& params, double horizon,
                       int enemies = 1);
 
+// What a boss fight's Ascent uses (kAscentUsesPerBossFight) add to its
+// damage over `horizon`: dealt with them released through it, less dealt
+// without, so a cast costs the swings it displaces and nothing on its own
+// clock. A measured fight never releases them: its target's HP never falls.
+double MeasureAscents(const CombatParams& params, double horizon);
+
+// `dps` from a measured fight, as a fight against `body` HP whose Ascent uses
+// add `ascents`: the same time spent on less of the body.
+double WithAscents(double dps, double body, double ascents);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_MEASURE_H_

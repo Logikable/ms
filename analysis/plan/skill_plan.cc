@@ -617,12 +617,12 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan,
       memo);
 }
 
-void SpendHexaMatrix(GameState& state, const SkillRate& rate,
-                     MatrixMemo* memo) {
+void SpendHexaMatrix(GameState& state, const SkillRate& rate, MatrixMemo* memo,
+                     const SkillRate* stat_rate) {
   if (state.character.sol_erda_fragments() <= 0) {
     return;
   }
-  SpendHexaStats(state, rate);
+  SpendHexaStats(state, stat_rate != nullptr ? *stat_rate : rate);
   std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     // Unreachable nodes too: a purchase can meet another's requirement. One

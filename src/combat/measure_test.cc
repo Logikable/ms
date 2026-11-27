@@ -199,5 +199,28 @@ TEST(MeasureFightTest, NothingToFightMeasuresNothing) {
   EXPECT_EQ(played.main_attack, -1);
 }
 
+// A measured fight never lets an Ascent out; MeasureAscents prices the
+// fight's three uses, and WithAscents spends them against the body.
+TEST(MeasureFightTest, AscentsArePricedApartAndSpentAgainstTheBody) {
+  Mob mob = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(&mob, 1.0, 100.0);
+  AttackOption ascent;
+  ascent.max_enemies = 1;
+  ascent.swing_seconds = 2.0;
+  ascent.damage_per_hit = {10000.0};
+  ascent.held = true;
+  params.attacks.push_back(std::move(ascent));
+
+  Sequence played = MeasureFight(params, 100.0);
+  EXPECT_NEAR(played.damage, 100 * 100.0, 1e-6);
+
+  // Each 2s cast deals 10,000 where the filler would have dealt 200.
+  const double ascents = MeasureAscents(params, 100.0);
+  EXPECT_NEAR(ascents, 3 * (10000.0 - 200.0), 1e-6);
+  EXPECT_NEAR(WithAscents(100.0, 100000.0, ascents),
+              100000.0 / ((100000.0 - ascents) / 100.0), 1e-9);
+  EXPECT_EQ(WithAscents(100.0, 100000.0, 0.0), 100.0);
+}
+
 }  // namespace
 }  // namespace ms

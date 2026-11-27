@@ -351,8 +351,10 @@ cc_library(
     srcs = ["measure.cc"],
     hdrs = ["measure.h"],
     deps = [
+        ":constants",
         ":encounter",
         ":fight",
+        "@abseil-cpp//absl/algorithm:container",
     ],
 )
 

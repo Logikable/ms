@@ -88,8 +88,10 @@ void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true,
 // at level 10, in order, then rolled to 20 levels while Fragments last, and
 // reselected after each batch of rolls onto the stats that measure best on
 // the slots the levels landed in. Never reset: that throws Fragments away.
+// The stats are measured on `stat_rate` when given, else on `rate`.
 void SpendHexaMatrix(GameState& state, const SkillRate& rate,
-                     MatrixMemo* memo = nullptr);
+                     MatrixMemo* memo = nullptr,
+                     const SkillRate* stat_rate = nullptr);
 
 }  // namespace ms
 

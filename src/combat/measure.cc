@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
+#include "src/combat/constants.h"
 #include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -129,6 +131,62 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
     share /= horizon;
   }
   return played;
+}
+
+namespace {
+
+double DealtSoFar(const CombatSim& sim) {
+  double dealt = sim.own_clock_damage();
+  for (const AttackTally& tally : sim.by_attack()) {
+    dealt += tally.damage;
+  }
+  return dealt;
+}
+
+// Advances `sim` by `seconds`.
+void RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
+  double elapsed = 0.0;
+  while (elapsed < seconds) {
+    const double step =
+        std::min(std::max(sim.SecondsToNextEvent(params), kLeastStep),
+                 seconds - elapsed);
+    sim.Advance(params, step);
+    elapsed += step;
+  }
+}
+
+}  // namespace
+
+double MeasureAscents(const CombatParams& params, double horizon) {
+  if (!params.active || params.types.empty() || horizon <= 0.0 ||
+      absl::c_none_of(params.attacks,
+                      [](const AttackOption& a) { return a.held; })) {
+    return 0.0;
+  }
+  const CombatParams measured = AsMeasurement(params, 1);
+  // As a boss run lets them out at 75, 50 and 25% HP: the first two wait out
+  // a burst, the last goes at once.
+  CombatSim released;
+  released.Advance(measured, 0.0);
+  double elapsed = 0.0;
+  for (int use = 1; use <= kAscentUsesPerBossFight; ++use) {
+    const double at = horizon * use / (kAscentUsesPerBossFight + 1);
+    RunFor(released, measured, at - elapsed);
+    elapsed = at;
+    released.Release(1, /*at_once=*/use == kAscentUsesPerBossFight);
+  }
+  RunFor(released, measured, horizon - elapsed);
+  CombatSim held;
+  held.Advance(measured, 0.0);
+  RunFor(held, measured, horizon);
+  return DealtSoFar(released) - DealtSoFar(held);
+}
+
+double WithAscents(double dps, double body, double ascents) {
+  if (ascents == 0.0 || dps <= 0.0 || body <= 0.0) {
+    return dps;
+  }
+  return body / (std::max(0.0, body - ascents) / dps);
 }
 
 }  // namespace ms
