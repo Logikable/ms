@@ -2105,8 +2105,8 @@ double ReferenceDps(const CombatParams& params) {
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const std::vector<BuffUp>& ally_buffs,
-                   const EquipPrototype& weapon, double speed_factor,
-                   Activity preset, CombatParams& params) {
+                   const DerivedStats& derived, const EquipPrototype& weapon,
+                   double speed_factor, Activity preset, CombatParams& params) {
   int count = static_cast<int>(buff_skills.size() + ally_buffs.size());
   if (count == 0) {
     return;
@@ -2117,6 +2117,8 @@ void AddBuffedSets(const GameState& state,
   params.buffed_source.ally_buffs = ally_buffs;
   params.buffed_source.speed_factor = speed_factor;
   params.buffed_source.preset = preset;
+  params.buffed_source.force_damage_factor = derived.force_damage_factor;
+  params.buffed_source.force_taken_factor = derived.force_taken_factor;
   // Nothing is built here: params.buffs limits the masks, and each set is built
   // the first time the fight reaches it.
 }
@@ -2170,6 +2172,9 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
         absl::MakeConstSpan(source.state->party), source.preset);
   }
   DerivedStats derived = source.derived->With(absl::MakeConstSpan(up));
+  derived.force_damage_factor = source.force_damage_factor;
+  derived.force_taken_factor = source.force_taken_factor;
+  derived.damage_pct += source.encounter_damage_pct;
   if (source.book == nullptr || source.book->activity != derived.activity) {
     source.book = std::make_shared<const LearnedBook>(
         LearnBook(*source.state, derived.activity));
@@ -2321,8 +2326,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   std::vector<BuffUp> ally_buffs = AddAllyBuffs(
       state, speed_factor,
       kMaxBuffWindows - static_cast<int>(buff_skills.size()), params);
-  AddBuffedSets(state, buff_skills, ally_buffs, weapon, speed_factor, preset,
-                params);
+  AddBuffedSets(state, buff_skills, ally_buffs, derived, weapon, speed_factor,
+                preset, params);
   TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
   TagBuffSilencedSummons(params.buffs, buff_skills, params.auto_attacks);
   TagBuffSilencedCasts(params.buffs, params.triggered_attacks);
@@ -2520,6 +2525,8 @@ CombatParams ComputeBossParams(const GameState& state,
     }
   }
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
+  params.buffed_source.encounter_damage_pct =
+      SymbolBossDamagePct(state.character, boss_key, derived.gear);
   PriceAscentsBare(state, boss_key, difficulty, phase, rules, *weapon, params);
   params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);

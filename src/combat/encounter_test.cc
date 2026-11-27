@@ -6302,6 +6302,52 @@ TEST(ComputeBossParamsTest, ArcaneForceScalesTheDamageDealt) {
   EXPECT_NEAR(starved, full * 0.30, 1e-9 * full);
 }
 
+// A buff window is fought under the same force requirement: each buffed set
+// is built from the character alone, and once dropped the requirement, so a
+// starved character's bursts landed in full.
+TEST(ComputeBossParamsTest, ABuffWindowTakesTheForceCutToo) {
+  Skill strike;
+  strike.set_name("Strike");
+  strike.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(strike, JOB_ADVANCEMENT_SWORDMAN);
+  strike.set_max_level(1);
+  strike.set_base_delay_ms(600);
+  strike.mutable_base()->set_skill_pct(2.0);
+  Skill rage;
+  rage.set_name("Rage");
+  rage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(rage, JOB_ADVANCEMENT_SWORDMAN);
+  rage.set_max_level(1);
+  rage.set_cooldown_seconds(120.0);
+  rage.mutable_buff()->set_duration_seconds(60.0);
+  rage.mutable_buff()->mutable_base()->set_damage_pct(0.5);
+  GameState state({}, {}, {}, {{"arm", MakeMob("Zakum's Arm", 700000)}}, {},
+                  {{"strike", strike}, {"rage", rage}});
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(strike, 1));
+  ASSERT_TRUE(state.character.LearnSkill(rage, 1));
+  EquipSymbol(state, /*level=*/1);  // 30 force
+  BossDifficulty free = NormalTwoPhase();
+  BossDifficulty asking = NormalTwoPhase();
+  asking.set_arcane_force(300);
+
+  auto struck = [](const std::vector<AttackOption>& attacks) {
+    for (const AttackOption& attack : attacks) {
+      if (attack.name == "Strike") {
+        return attack.damage_per_hit[0];
+      }
+    }
+    return 0.0;
+  };
+  CombatParams full = ComputeBossParams(state, "zakum", free, 0);
+  CombatParams starved = ComputeBossParams(state, "zakum", asking, 0);
+  ASSERT_EQ(starved.buffs.size(), 1u);
+  const double buffed = struck(full.Attacks(1));
+  ASSERT_GT(buffed, struck(full.attacks));
+  EXPECT_NEAR(struck(starved.Attacks(1)), buffed * 0.30, 1e-9 * buffed);
+}
+
 // A phase asking its own Sacred Power is fought under it, and the phase that
 // names none under the difficulty's: 10 short deals 90%, 30 short 70%.
 TEST(ComputeBossParamsTest, EachPhaseIsFoughtUnderItsOwnSacredPower) {

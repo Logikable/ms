@@ -441,6 +441,13 @@ struct BuffedSetSource {
   mutable std::shared_ptr<const DerivedBasis> derived;
   // The book's levels and boosts, which no buff changes either.
   mutable std::shared_ptr<const LearnedBook> book;
+  // What the encounter adds on top of the character's own stats: the force
+  // factors (a mission's cut riding on them) and a boss's symbol damage. Each
+  // set is built from the character alone, so each takes these again; without
+  // them every buff window ignored a force shortfall.
+  double force_damage_factor = 1.0;
+  double force_taken_factor = 1.0;
+  double encounter_damage_pct = 0.0;
   // Each Ascent by its index in the attack list, priced as GMS prices it:
   // without hats, rings or any buff. Every set takes these in place of its
   // own. See AttackOption::held.
