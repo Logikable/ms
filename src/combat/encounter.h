@@ -648,15 +648,39 @@ struct CombatParams {
   // every entry up front.
   BuffedSetSource buffed_source;
   // The attack set for `mask`, built on first use. Null if out of range.
-  const AttackSet* Window(int mask) const;
+  // Inline for the repeat lookup, which a fight makes several times a swing.
+  const AttackSet* Window(int mask) const {
+    if (mask <= 0) {
+      return nullptr;
+    }
+    if (last_window.set != nullptr && last_window.mask == mask) {
+      return last_window.set;
+    }
+    return FindWindow(mask);
+  }
   // The three lists with `mask`'s buffs active. Out of range returns the
   // unbuffed lists, so a fight one step behind attacks unbuffed instead of
   // reading past the end.
-  const std::vector<AttackOption>& Attacks(int mask) const;
-  const std::vector<AttackOption>& AutoAttacks(int mask) const;
-  const std::vector<AttackOption>& TriggeredAttacks(int mask) const;
+  const std::vector<AttackOption>& Attacks(int mask) const {
+    const AttackSet* set = Window(mask);
+    return set == nullptr ? attacks : set->attacks;
+  }
+  const std::vector<AttackOption>& AutoAttacks(int mask) const {
+    const AttackSet* set = Window(mask);
+    return set == nullptr ? auto_attacks : set->auto_attacks;
+  }
+  const std::vector<AttackOption>& TriggeredAttacks(int mask) const {
+    const AttackSet* set = Window(mask);
+    return set == nullptr ? triggered_attacks : set->triggered_attacks;
+  }
   // Max Freeze Stacks with `mask`'s buffs active.
-  int FreezeCap(int mask) const;
+  int FreezeCap(int mask) const {
+    const AttackSet* set = Window(mask);
+    return set == nullptr ? freeze_cap : set->freeze_cap;
+  }
+
+ private:
+  const AttackSet* FindWindow(int mask) const;
 };
 
 // The character's equipped weapon, or null. A fight needs one, so screens that

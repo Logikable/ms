@@ -2211,15 +2211,9 @@ const AttackOption& RepeatForm(const AttackOption& attack, int pulses) {
   return *attack.repeats[step - 1];
 }
 
-// The attack set for `mask`, built on first use. Null for masks no combination
-// reaches, which the readers below treat as unbuffed.
-const AttackSet* CombatParams::Window(int mask) const {
-  if (mask <= 0) {
-    return nullptr;
-  }
-  if (last_window.set != nullptr && last_window.mask == mask) {
-    return last_window.set;
-  }
+// Window's lookup past its last answer, building the set on first use. Null for
+// masks no combination reaches, which the readers treat as unbuffed.
+const AttackSet* CombatParams::FindWindow(int mask) const {
   std::map<int, AttackSet>::iterator slot = buffed.find(mask);
   if (slot != buffed.end()) {
     last_window.mask = mask;
@@ -2232,27 +2226,6 @@ const AttackSet* CombatParams::Window(int mask) const {
     return nullptr;
   }
   return &buffed.emplace(mask, BuildBuffedSet(*this, mask)).first->second;
-}
-
-const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
-  const AttackSet* set = Window(mask);
-  return set == nullptr ? attacks : set->attacks;
-}
-
-const std::vector<AttackOption>& CombatParams::AutoAttacks(int mask) const {
-  const AttackSet* set = Window(mask);
-  return set == nullptr ? auto_attacks : set->auto_attacks;
-}
-
-const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
-    int mask) const {
-  const AttackSet* set = Window(mask);
-  return set == nullptr ? triggered_attacks : set->triggered_attacks;
-}
-
-int CombatParams::FreezeCap(int mask) const {
-  const AttackSet* set = Window(mask);
-  return set == nullptr ? freeze_cap : set->freeze_cap;
 }
 
 namespace {
