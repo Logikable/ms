@@ -5442,9 +5442,9 @@ TEST(ComputeCombatParamsTest, AscendantShadowCastsThenFlurries) {
 }
 
 // Flashpoint as shipped at 30: both presses as one fixed 2.64s swing, priced
-// as GMS says an Ascent is: no hat, no ring, no buff, no passive final damage,
-// no Final Attack. Kept out of farming.
-TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsBuffsAndPassiveFd) {
+// as GMS says an Ascent is: no hat, no ring, no buff, no Final Attack, but a
+// permanent passive's final damage. Kept out of farming.
+TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsAndBuffs) {
   if (!kSixthJobEnabled) {
     GTEST_SKIP() << "no 6th job in this build";
   }
@@ -5496,7 +5496,7 @@ TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsBuffsAndPassiveFd) {
   snail->set_mob("snail");
   snail->set_count(1);
   CombatParams before = ComputeBossParams(state, "snail_boss", normal, 0);
-  // Passive final damage doesn't reach it either.
+  // A permanent passive's final damage reaches it, as it does every attack.
   ASSERT_TRUE(state.character.LearnSkill(focus, 1));
   CombatParams bare = ComputeBossParams(state, "snail_boss", normal, 0);
   EXPECT_GT(bare.attacks[0].damage_per_hit[0],
@@ -5504,8 +5504,9 @@ TEST(ComputeCombatParamsTest, FlashpointIgnoresHatsRingsBuffsAndPassiveFd) {
   ASSERT_NE(FindAttack(before, "Flashpoint"), nullptr);
   const AttackOption* flash = FindAttack(bare, "Flashpoint");
   ASSERT_NE(flash, nullptr);
-  EXPECT_DOUBLE_EQ(flash->damage_per_hit[0],
-                   FindAttack(before, "Flashpoint")->damage_per_hit[0]);
+  EXPECT_NEAR(flash->damage_per_hit[0],
+              FindAttack(before, "Flashpoint")->damage_per_hit[0] * 1.5,
+              flash->damage_per_hit[0] * 1e-9);
   ASSERT_NE(flash, nullptr);
   EXPECT_TRUE(flash->held);
   EXPECT_NEAR(flash->swing_seconds, 2.64, 1e-9);
