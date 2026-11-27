@@ -182,9 +182,12 @@ double MeasureAscents(const CombatParams& params, double horizon) {
   return DealtSoFar(released) - DealtSoFar(held);
 }
 
-double WithAscents(double dps, double body, double ascents) {
+double WithAscents(double dps, double body, double ascents, double time_limit) {
   if (ascents == 0.0 || dps <= 0.0 || body <= 0.0) {
     return dps;
+  }
+  if (time_limit > 0.0 && body / dps > time_limit) {
+    return dps + ascents / time_limit;
   }
   return body / (std::max(0.0, body - ascents) / dps);
 }

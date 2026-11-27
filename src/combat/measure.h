@@ -67,8 +67,11 @@ Sequence MeasureFight(const CombatParams& params, double horizon,
 double MeasureAscents(const CombatParams& params, double horizon);
 
 // `dps` from a measured fight, as a fight against `body` HP whose Ascent uses
-// add `ascents`: the same time spent on less of the body.
-double WithAscents(double dps, double body, double ascents);
+// add `ascents`: the same time spent on less of the body. A fight past its
+// `time_limit` seconds (0 for none) ends there, so the uses spread over the
+// limit instead.
+double WithAscents(double dps, double body, double ascents,
+                   double time_limit = 0.0);
 
 }  // namespace ms
 

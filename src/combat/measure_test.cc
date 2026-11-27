@@ -220,6 +220,11 @@ TEST(MeasureFightTest, AscentsArePricedApartAndSpentAgainstTheBody) {
   EXPECT_NEAR(WithAscents(100.0, 100000.0, ascents),
               100000.0 / ((100000.0 - ascents) / 100.0), 1e-9);
   EXPECT_EQ(WithAscents(100.0, 100000.0, 0.0), 100.0);
+  // A fight that would outlast its 600s limit ends there, the uses with it.
+  EXPECT_NEAR(WithAscents(100.0, 100000.0, ascents, 600.0),
+              100.0 + ascents / 600.0, 1e-9);
+  EXPECT_NEAR(WithAscents(100.0, 100000.0, ascents, 2000.0),
+              WithAscents(100.0, 100000.0, ascents), 1e-9);
 }
 
 }  // namespace
