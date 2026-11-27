@@ -685,9 +685,25 @@ constexpr double kMapLevelsAbove = 40.0;
 // Moves the character to the map, among those they survive, that pays best for
 // what they're farming. Leaves them where they are if every map kills them,
 // which the give-up clock then catches.
-void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
+// How many of the last full probe's best maps a re-pick probes, unless exact.
+// A new item moves the character's rate on every map about alike, so the
+// order rarely changes beyond the top few; a new level re-probes them all.
+constexpr std::size_t kNearMaps = 4;
+
+void PickMapFor(GameState& state, const std::vector<std::string>& all,
                 const ProbeWindow& window, double step, double power_per_meso,
-                HeldYardstick& held, bool for_meso) {
+                HeldYardstick& held, bool for_meso,
+                std::vector<std::string>* ranked = nullptr, bool full = true) {
+  std::vector<std::string> near;
+  const bool partial =
+      !full && !Exact() && ranked != nullptr && !ranked->empty();
+  if (partial) {
+    near = *ranked;
+    if (std::find(near.begin(), near.end(), state.current_map) == near.end()) {
+      near.push_back(state.current_map);
+    }
+  }
+  const std::vector<std::string>& candidates = partial ? near : all;
   // One basis for every map: a drop's value depends on the character, not the
   // map that dropped it.
   DropBasis basis = DropBasisFor(state, power_per_meso, held);
@@ -712,11 +728,16 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
   });
   std::string best;
   double best_rate = 0.0;
+  std::vector<std::pair<double, std::string>> order;
   for (std::size_t i = 0; i < probed.size(); ++i) {
     const std::string& map = *probed[i];
     const Probe& probe = probes[i];
     double rate = for_meso ? probe.meso_per_second : probe.exp_per_second;
-    if (probe.died || rate <= best_rate) {
+    if (probe.died || rate <= 0.0) {
+      continue;
+    }
+    order.push_back({-rate, map});
+    if (rate <= best_rate) {
       continue;
     }
     best_rate = rate;
@@ -725,14 +746,24 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
   if (!best.empty()) {
     state.current_map = best;
   }
+  if (ranked != nullptr && !partial) {
+    std::stable_sort(
+        order.begin(), order.end(),
+        [](const auto& a, const auto& b) { return a.first < b.first; });
+    ranked->clear();
+    for (std::size_t i = 0; i < order.size() && i < kNearMaps; ++i) {
+      ranked->push_back(order[i].second);
+    }
+  }
 }
 
 // While climbing: the most EXP per second.
 void PickMap(GameState& state, const std::vector<std::string>& candidates,
              const ProbeWindow& window, double step, double power_per_meso,
-             HeldYardstick& held) {
+             HeldYardstick& held, std::vector<std::string>* ranked = nullptr,
+             bool full = true) {
   PickMapFor(state, candidates, window, step, power_per_meso, held,
-             /*for_meso=*/false);
+             /*for_meso=*/false, ranked, full);
 }
 
 // At the cap, where there's no EXP left to earn: the most meso per second.
@@ -759,6 +790,8 @@ constexpr int kScoutEveryLevels = 5;
 struct MapChoice {
   int level = 0;
   std::string worn;
+  // The last full probe's best maps, which a re-pick on new gear probes.
+  std::vector<std::string> ranked;
   // The character's damage when the money map was last chosen. At the cap the
   // level stops changing, so the endgame re-picks on damage growth instead.
   int power = 0;
@@ -1033,11 +1066,13 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   shopper.Spend(state);
   purse.Note(state.character);
   std::string worn = WornNames(state);
-  if (mapped.level != state.character.proto().level() || mapped.worn != worn) {
-    mapped.level = state.character.proto().level();
+  const int now_level = state.character.proto().level();
+  if (mapped.level != now_level || mapped.worn != worn) {
+    const bool full = mapped.level != now_level;
+    mapped.level = now_level;
     mapped.worn = std::move(worn);
     PickMap(state, maps, window, step, shopper.power_per_meso(),
-            shopper.yardstick());
+            shopper.yardstick(), &mapped.ranked, full);
   }
 }
 
@@ -1824,6 +1859,10 @@ struct Session {
   int legion_power = 0;
   std::pair<std::string, int> legion_aim;
   int legion_points = 0;
+  // The Sacred dailies' last measured shares, and when; see ClaimDailySymbols.
+  std::map<std::string, double> sacred_shares;
+  int sacred_level = 0;
+  double sacred_seconds = -1.0;
   int legion_rank = 0;
   std::pair<std::string, int> ability_aim;
   bool ability_measured = false;
@@ -2778,18 +2817,28 @@ double GiveUpAt() {
   return absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
 }
 
+constexpr double kSacredRemeasureDays = 7.0;
+
 // The daily symbol claim, taken at a look before bag cleanup, so its symbols go
 // straight into the worn ones. Refused when the bag is full, and retried at the
 // next look, as a player would.
 void ClaimDailySymbols(Session& run) {
   const int64_t now = kSimEpoch + static_cast<int64_t>(run.seconds);
   const CharacterInstance& character = run.state.character;
-  std::map<std::string, double> shares;
   if (character.proto().job_stage() >= kSixthJobStage &&
       DailiesAvailable(character.DailiesClaimedAt(), now)) {
-    shares = SacredShares(MeasureSacredAreas(run.state));
+    // Unless exact, a level or a week has to pass first: a share moves with
+    // the character's power, and a day's gear rarely moves it much.
+    const int level = character.proto().level();
+    if (Exact() || level != run.sacred_level ||
+        run.seconds - run.sacred_seconds >=
+            kSacredRemeasureDays * kDaySeconds) {
+      run.sacred_shares = SacredShares(MeasureSacredAreas(run.state));
+      run.sacred_level = level;
+      run.sacred_seconds = run.seconds;
+    }
   }
-  ClaimDailies(run.state.character, run.state.equips, now, shares);
+  ClaimDailies(run.state.character, run.state.equips, now, run.sacred_shares);
 }
 
 // What every look does after shopping for drops: buy the gear the character can
@@ -3036,7 +3085,8 @@ void ClimbToCap(Session& run) {
     // the last look left.
     if (looked && TakeOnBosses(run, reached, levelled)) {
       PickMap(run.state, run.maps, run.window, run.step,
-              run.shopper.power_per_meso(), run.shopper.yardstick());
+              run.shopper.power_per_meso(), run.shopper.yardstick(),
+              &run.mapped.ranked, /*full=*/false);
     }
     if (looked) {
       params = ComputeCombatParams(run.state);
