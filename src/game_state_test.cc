@@ -1156,7 +1156,7 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 
 // A max character wears the symbols progression_sim's climbs held on arriving
 // at each level, so Arcane Force and Sacred Power are checked against a real
-// character. The first Sacred Symbols come at Grandis, from drops.
+// character. The first Sacred Symbols come at Grandis, from drops and dailies.
 TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   struct Force {
     int level;
@@ -1165,7 +1165,7 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsTheSweepHeld) {
   };
   const Force kLevelForce[] = {{200, 30, 0},
                                {230, 4 * 20 + 47 * 10, 0},
-                               {kGrandisLevel, 119 * 10 + 6 * 20, 70}};
+                               {kGrandisLevel, 119 * 10 + 6 * 20, 50}};
   for (const Force& entry : kLevelForce) {
     GameState state = MakeMaxState(entry.level);
     EXPECT_EQ(state.character.base_arcane_force(), entry.arcane) << entry.level;

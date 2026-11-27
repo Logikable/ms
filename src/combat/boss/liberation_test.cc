@@ -17,12 +17,13 @@
 namespace ms {
 namespace {
 
-// A Hero in the workbench's gear, at 260 scrolled and at 22 stars unless
+// A Hero in the workbench's gear, at 259 scrolled and at 22 stars unless
 // `bare`: at 200 with plain gear, weak enough that no hit reaches the cap.
+// 259 is the last level before kClears wins the Liberation.
 std::unique_ptr<GameState> Hero(bool bare = false) {
   TestOptions test;
   test.job = JOB_ADVANCEMENT_HERO_V;
-  test.level = bare ? 200 : 260;
+  test.level = bare ? 200 : 259;
   test.equips.scrolled = !bare;
   test.equips.stars = bare ? 0 : 22;
   test.equips.weapon_stars = bare ? 0 : 22;

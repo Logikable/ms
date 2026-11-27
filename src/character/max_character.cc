@@ -262,7 +262,8 @@ constexpr FarmBand kFarmOutfits[] = {
 // Each symbol's level on arrival, read off the same sweep as kBands: the six
 // Arcane Symbols in EQUIP_SLOT_SYMBOL_* order, then the Sacred ones from
 // Cernium to Carcion, Tallahart and Geardock. At 200 it is the level reward
-// alone; Sacred Symbols come only from drops, so they stay low.
+// alone; Sacred Symbols trail, since a daily pays only the share of an area
+// the character farms fast enough (//src:sacred_dailies).
 struct SymbolBand {
   int level;
   int arcane[6];
@@ -272,9 +273,9 @@ struct SymbolBand {
 constexpr SymbolBand kSymbolBands[] = {
     {200, {1, 0, 0, 0, 0, 0}, {}},
     {230, {14, 13, 11, 9, 0, 0}, {}},
-    {260, {20, 20, 20, 20, 20, 19}, {3, 2, 2, 0, 0, 0, 0, 0}},
-    {270, {20, 20, 20, 20, 20, 20}, {3, 2, 2, 4, 5, 3, 0, 0}},
-    {280, {20, 20, 20, 20, 20, 20}, {3, 2, 2, 4, 5, 8, 1, 0}},
+    {260, {20, 20, 20, 20, 20, 19}, {3, 2, 0, 0, 0, 0, 0, 0}},
+    {270, {20, 20, 20, 20, 20, 20}, {7, 6, 6, 5, 0, 0, 0, 0}},
+    {280, {20, 20, 20, 20, 20, 20}, {9, 7, 8, 8, 8, 7, 0, 0}},
 };
 
 // The Sacred Symbol slots in kSymbolBands' order.
@@ -305,42 +306,42 @@ constexpr Clear kClears[] = {
     {"arkarium", "Normal", 180},
     {"hilla", "Hard", 190},
     {"horntail", "Chaos", 190},
-    {"cygnus", "Normal", 200},
-    {"pierre", "Chaos", 200},
-    {"von_bon", "Chaos", 200},
-    {"crimson_queen", "Chaos", 202},
-    {"magnus", "Hard", 204},
-    {"zakum", "Chaos", 204},
-    {"pink_bean", "Chaos", 204},
-    {"vellum", "Chaos", 204},
-    {"papulatus", "Chaos", 208},
+    {"cygnus", "Normal", 201},
+    {"pierre", "Chaos", 201},
+    {"von_bon", "Chaos", 201},
+    {"crimson_queen", "Chaos", 204},
+    {"magnus", "Hard", 203},
+    {"zakum", "Chaos", 203},
+    {"pink_bean", "Chaos", 205},
+    {"vellum", "Chaos", 205},
+    {"papulatus", "Chaos", 209},
     {"princess_no", "Normal", 209},
     {"damien", "Normal", 220},
-    {"lotus", "Normal", 220},
-    {"guardian_angel_slime", "Normal", 226},
-    {"lucid", "Normal", 237},
+    {"lotus", "Normal", 221},
+    {"guardian_angel_slime", "Normal", 227},
+    {"lucid", "Normal", 236},
     {"will", "Normal", 241},
-    {"damien", "Hard", 244},
+    {"damien", "Hard", 243},
     {"lotus", "Hard", 244},
-    {"gloom", "Normal", 245},
-    {"darknell", "Normal", 246},
-    {"verus_hilla", "Normal", 251},
-    {"will", "Hard", 252},
-    {"guardian_angel_slime", "Chaos", 254},
-    {"verus_hilla", "Hard", 258},
+    {"gloom", "Normal", 244},
+    {"darknell", "Normal", 245},
+    {"verus_hilla", "Normal", 250},
+    {"will", "Hard", 251},
+    {"guardian_angel_slime", "Chaos", 253},
+    {"verus_hilla", "Hard", 259},
     {"gloom", "Chaos", 259},
-    {"lucid", "Hard", 260},
+    {"lucid", "Hard", 261},
     {"darknell", "Hard", 260},
-    {"liberation", "Genesis", 264},
-    {"black_mage", "Hard", 264},
-    {"seren", "Normal", 267},
-    {"kalos", "Easy", 269},
-    {"seren", "Hard", 271},
-    {"first_adversary", "Easy", 272},
+    {"liberation", "Genesis", 260},
+    {"black_mage", "Hard", 265},
+    {"seren", "Normal", 264},
+    {"kalos", "Easy", 265},
+    {"seren", "Hard", 267},
+    {"first_adversary", "Easy", 270},
     {"kaling", "Easy", 275},
-    {"kalos", "Normal", 277},
-    {"first_adversary", "Normal", 281},
-    {"lotus", "Extreme", 282},
+    {"kalos", "Normal", 273},
+    {"first_adversary", "Normal", 279},
+    {"lotus", "Extreme", 281},
 };
 
 // The alts the same sweep had levelled by each level: how many past 70, and
