@@ -142,6 +142,7 @@
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/sacred_dailies.h"
 
 ABSL_FLAG(bool, uncapped, false,
           "Lift every job's level cap, as max mode does, and climb to the end "
@@ -2767,8 +2768,14 @@ double GiveUpAt() {
 // straight into the worn ones. Refused when the bag is full, and retried at the
 // next look, as a player would.
 void ClaimDailySymbols(Session& run) {
-  ClaimDailies(run.state.character, run.state.equips,
-               kSimEpoch + static_cast<int64_t>(run.seconds));
+  const int64_t now = kSimEpoch + static_cast<int64_t>(run.seconds);
+  const CharacterInstance& character = run.state.character;
+  std::map<std::string, double> shares;
+  if (character.proto().job_stage() >= kSixthJobStage &&
+      DailiesAvailable(character.DailiesClaimedAt(), now)) {
+    shares = SacredShares(MeasureSacredAreas(run.state));
+  }
+  ClaimDailies(run.state.character, run.state.equips, now, shares);
 }
 
 // What every look does after shopping for drops: buy the gear the character can
@@ -4186,6 +4193,20 @@ std::vector<FightRow> LiveFights(const Catalogs& catalogs) {
   return fights;
 }
 
+// The fights plus the Liberation, which is no catalog boss and so has no
+// difficulty: only the clear matrix reads a row without one.
+std::vector<FightRow> WithLiberation(std::vector<FightRow> fights) {
+  FightRow liberation{kLiberationKey, kLiberationKey,
+                      absl::StrCat("Genesis ", kLiberationName),
+                      kLiberationLevel, nullptr};
+  fights.insert(std::upper_bound(fights.begin(), fights.end(), liberation,
+                                 [](const FightRow& a, const FightRow& b) {
+                                   return a.unlock_level < b.unlock_level;
+                                 }),
+                liberation);
+  return fights;
+}
+
 // The last level a climb reached, which for a run that ran out of time is where
 // it stopped rather than the cap.
 int LevelReached(const Climb& climb) {
@@ -4417,7 +4438,7 @@ void PrintBossTimeline(const Catalogs& catalogs,
       "otherwise print the same level.\n\n",
       ReportCap());
   std::vector<FightRow> fights = LiveFights(catalogs);
-  PrintClearMatrix(fights, branches, climbs);
+  PrintClearMatrix(WithLiberation(fights), branches, climbs);
   PrintFinalDpm(catalogs, fights, branches, climbs);
   for (const FightRow& fight : fights) {
     PrintFightDetail(catalogs, fight, branches, climbs);

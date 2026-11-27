@@ -206,6 +206,7 @@ sim_binary(
         "//src:game_state",
         "//src:map_level",
         "//src:proto_loader",
+        "//src:sacred_dailies",
         "//src/character",
         "//src/character:boss_reset",
         "//src/character:consumables",
