@@ -770,7 +770,7 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   // Defense over 100% would make this negative if ignore defense can't bring it
   // below 100%. Clamp at 0 and let the 1-damage floor apply.
   damage *= std::max(0.0, 1.0 - mob_pdr * (1.0 - offense.ied));
-  if (is_boss && !offense.ignores_elements) {
+  if (is_boss) {
     // Every character's base ignore elemental resistance plus what their skills
     // add, like the crit base above.
     damage *= kBossElementalBase *

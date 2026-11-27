@@ -51,9 +51,6 @@ struct OffenseStats {
   // Ignored boss elemental resistance, above the base in constants.h.
   // Resistance halves boss damage, so 1.0 means no halving at all.
   double ier = 0.0;
-  // An Ascent: KMS's rule has it ignore monsters' elemental properties, so
-  // no boss resistance at all.
-  bool ignores_elements = false;
   // GMS's weapon constant; see WeaponConstant. 1.0 is a neutral default, not a
   // real weapon's value.
   double weapon_constant = 1.0;

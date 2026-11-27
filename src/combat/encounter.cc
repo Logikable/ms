@@ -755,12 +755,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       skill, level, PassiveOffenseFor(derived, skill));
-  attack.held = skill != nullptr && skill->hexa_node() == HEXA_NODE_KIND_ASCENT;
-  offense.ignores_elements = attack.held;
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
   AddCastShape(skill, level, derived, offense, speed_factor, attack);
+  attack.held = skill != nullptr && skill->hexa_node() == HEXA_NODE_KIND_ASCENT;
   for (const SwingProc& proc : derived.procs) {
     if (attack.held) {
       break;
@@ -2447,9 +2446,9 @@ DerivedStats BossDerived(const GameState& state,
 
 // GMS's Ascents ignore hats, rings and active buffs, so they're priced on the
 // character with those slots emptied, before any buff. A set the hat completes
-// loses that piece too. Permanent passives still count, KMS's rule read
-// literally: dropping their final damage too left a maxed Flashpoint worth no
-// more than the swings its cast displaced (the user's call, 2026-11-26).
+// loses that piece too. Passive final damage goes as well, GMS's "conditional
+// passives" read broadly: it brings Flashpoint's hit against Hurricane's from
+// 1.97x KMS's battle analysis to 1.22x (the user's call).
 void PriceAscentsBare(const GameState& state, const std::string& boss_key,
                       const BossDifficulty& difficulty, int phase,
                       const MissionRules& rules, const EquipPrototype& weapon,
@@ -2466,6 +2465,7 @@ void PriceAscentsBare(const GameState& state, const std::string& boss_key,
       state.character.SlotFor(PresetKind::kEquip, Activity::kBossing));
   DerivedStats derived =
       BossDerived(state, bare, boss_key, difficulty, phase, rules);
+  derived.final_dmg_pct = 0.0;
   AttackSet set = BuildAttackSet(state, *params.buffed_source.book, derived,
                                  weapon, 1.0, params.types, &bare);
   for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
