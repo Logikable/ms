@@ -3490,11 +3490,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3537,11 +3537,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3831,15 +3831,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3866,7 +3866,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4180,7 +4180,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
+      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -4269,20 +4269,19 @@ builds {
   level: 270
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_bow"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_bow"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4317,7 +4316,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_CRIT_RATE
+    soul: SOUL_LINE_ATTACK
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -4329,15 +4328,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4359,12 +4358,12 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_HAT
-    item: "arcane_umbra_archer_hat"
+    item: "eternal_archer_hat"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4396,7 +4395,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4410,7 +4409,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_TOP
-    item: "arcane_umbra_archer_suit"
+    item: "eternal_archer_hood"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -4447,7 +4446,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4461,7 +4460,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_BOTTOM
-    item: "arcane_umbra_archer_pants"
+    item: "eternal_archer_pants"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -4498,7 +4497,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4512,7 +4511,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_CAPE
-    item: "arcane_umbra_archer_cape"
+    item: "eternal_archer_cape"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -4549,7 +4548,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4591,7 +4590,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4634,15 +4633,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4665,38 +4664,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_3"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -4788,7 +4756,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4802,7 +4770,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_SHOULDER
-    item: "arcane_umbra_archer_shoulder"
+    item: "eternal_archer_shoulder"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -4837,13 +4805,13 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_POCKET
-    item: "pink_holy_cup"
+    item: "cursed_green_spellbook"
     flame {
       stat: FLAME_STAT_DEX
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -4908,7 +4876,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "meister_ring"
+    item: "guardian_angel_ring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -4928,22 +4896,53 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_4"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4
@@ -4967,7 +4966,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4982,7 +4981,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT_2
-    item: "dominator_pendant"
+    item: "daybreak_pendant"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -5033,20 +5032,20 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_GLOVES
-    item: "arcane_umbra_archer_gloves"
+    item: "eternal_archer_gloves"
     scroll: "gloves_att_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5070,7 +5069,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5084,7 +5083,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_SHOES
-    item: "arcane_umbra_archer_shoes"
+    item: "eternal_archer_shoes"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -5121,7 +5120,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5143,15 +5142,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5177,16 +5176,36 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_HEART
-    item: "black_heart"
+    item: "total_control"
+    scroll: "heart_att_30_t3"
     main_potential {
-      rank: POTENTIAL_RANK_UNIQUE
+      rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
@@ -5202,6 +5221,10 @@ builds {
     slot: EQUIP_SLOT_TOTEM_3
     item: "jade_kettle_totem"
   }
+  pieces {
+    slot: EQUIP_SLOT_CONT_RING
+    item: "continuous_ring_6"
+  }
   familiars {
     name: "Snail"
     level: 4
@@ -5210,7 +5233,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -5222,7 +5245,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -5234,18 +5257,18 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
   ability {
     rank: ABILITY_RANK_LEGENDARY
     lines {
-      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
+      type: ABILITY_LINE_TYPE_ATTACK_SPEED
       rank: ABILITY_RANK_LEGENDARY
     }
     lines {
-      type: ABILITY_LINE_TYPE_ATTACK
+      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
       rank: ABILITY_RANK_UNIQUE
     }
     lines {
@@ -5256,22 +5279,22 @@ builds {
   hexa_stats {
     nodes {
       primary: HEXA_STAT_BOSS_DAMAGE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_MAIN_STAT
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_IGNORE_DEFENSE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_CRIT_DAMAGE
-      first: HEXA_STAT_MAIN_STAT
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_BOSS_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
@@ -5325,20 +5348,19 @@ builds {
   level: 280
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_bow"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_bow"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5373,7 +5395,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_CRIT_RATE
+    soul: SOUL_LINE_ATTACK
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -5385,15 +5407,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5420,7 +5442,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5452,7 +5474,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5503,7 +5525,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5554,7 +5576,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5568,7 +5590,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_CAPE
-    item: "arcane_umbra_archer_cape"
+    item: "eternal_archer_cape"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -5605,7 +5627,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5643,11 +5665,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5690,15 +5712,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5721,38 +5743,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_3"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -5844,7 +5835,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5893,13 +5884,13 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_POCKET
-    item: "pink_holy_cup"
+    item: "cursed_green_spellbook"
     flame {
       stat: FLAME_STAT_DEX
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -5964,7 +5955,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "meister_ring"
+    item: "guardian_angel_ring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -5984,22 +5975,53 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_4"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4
@@ -6023,11 +6045,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6038,7 +6060,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT_2
-    item: "dominator_pendant"
+    item: "daybreak_pendant"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -6089,20 +6111,20 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_GLOVES
-    item: "arcane_umbra_archer_gloves"
+    item: "eternal_archer_gloves"
     scroll: "gloves_att_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6126,7 +6148,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6140,7 +6162,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_SHOES
-    item: "arcane_umbra_archer_shoes"
+    item: "eternal_archer_shoes"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -6177,7 +6199,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6199,15 +6221,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6233,16 +6255,36 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_HEART
-    item: "black_heart"
+    item: "total_control"
+    scroll: "heart_att_30_t3"
     main_potential {
-      rank: POTENTIAL_RANK_UNIQUE
+      rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
@@ -6258,6 +6300,10 @@ builds {
     slot: EQUIP_SLOT_TOTEM_3
     item: "jade_kettle_totem"
   }
+  pieces {
+    slot: EQUIP_SLOT_CONT_RING
+    item: "continuous_ring_6"
+  }
   familiars {
     name: "Snail"
     level: 4
@@ -6266,7 +6312,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -6278,7 +6324,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -6290,18 +6336,18 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
   ability {
     rank: ABILITY_RANK_LEGENDARY
     lines {
-      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
+      type: ABILITY_LINE_TYPE_ATTACK_SPEED
       rank: ABILITY_RANK_LEGENDARY
     }
     lines {
-      type: ABILITY_LINE_TYPE_ATTACK
+      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
       rank: ABILITY_RANK_UNIQUE
     }
     lines {
@@ -6312,22 +6358,22 @@ builds {
   hexa_stats {
     nodes {
       primary: HEXA_STAT_BOSS_DAMAGE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_MAIN_STAT
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_IGNORE_DEFENSE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_CRIT_DAMAGE
-      first: HEXA_STAT_MAIN_STAT
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_BOSS_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
@@ -6381,20 +6427,19 @@ builds {
   level: 290
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_bow"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_bow"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6429,7 +6474,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_CRIT_RATE
+    soul: SOUL_LINE_ATTACK
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -6441,15 +6486,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6476,7 +6521,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6508,7 +6553,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6559,7 +6604,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6610,7 +6655,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6624,7 +6669,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_CAPE
-    item: "arcane_umbra_archer_cape"
+    item: "eternal_archer_cape"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -6661,7 +6706,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6695,15 +6740,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6746,15 +6791,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6777,38 +6822,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_3"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -6832,7 +6846,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6900,7 +6914,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -6949,13 +6963,13 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_POCKET
-    item: "pink_holy_cup"
+    item: "cursed_green_spellbook"
     flame {
       stat: FLAME_STAT_DEX
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7020,7 +7034,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "meister_ring"
+    item: "guardian_angel_ring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -7040,22 +7054,53 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_4"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4
@@ -7079,11 +7124,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7094,7 +7139,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT_2
-    item: "dominator_pendant"
+    item: "daybreak_pendant"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -7145,20 +7190,20 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_GLOVES
-    item: "arcane_umbra_archer_gloves"
+    item: "eternal_archer_gloves"
     scroll: "gloves_att_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7182,7 +7227,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7196,7 +7241,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_SHOES
-    item: "arcane_umbra_archer_shoes"
+    item: "eternal_archer_shoes"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -7233,7 +7278,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7255,15 +7300,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7289,16 +7334,36 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_HEART
-    item: "black_heart"
+    item: "total_control"
+    scroll: "heart_att_30_t3"
     main_potential {
-      rank: POTENTIAL_RANK_UNIQUE
+      rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
@@ -7314,6 +7379,10 @@ builds {
     slot: EQUIP_SLOT_TOTEM_3
     item: "jade_kettle_totem"
   }
+  pieces {
+    slot: EQUIP_SLOT_CONT_RING
+    item: "continuous_ring_6"
+  }
   familiars {
     name: "Snail"
     level: 4
@@ -7322,7 +7391,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -7334,7 +7403,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -7346,18 +7415,18 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
   ability {
     rank: ABILITY_RANK_LEGENDARY
     lines {
-      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
+      type: ABILITY_LINE_TYPE_ATTACK_SPEED
       rank: ABILITY_RANK_LEGENDARY
     }
     lines {
-      type: ABILITY_LINE_TYPE_ATTACK
+      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
       rank: ABILITY_RANK_UNIQUE
     }
     lines {
@@ -7368,22 +7437,22 @@ builds {
   hexa_stats {
     nodes {
       primary: HEXA_STAT_BOSS_DAMAGE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_MAIN_STAT
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_IGNORE_DEFENSE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_CRIT_DAMAGE
-      first: HEXA_STAT_MAIN_STAT
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_BOSS_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
@@ -7437,20 +7506,19 @@ builds {
   level: 300
   pieces {
     slot: EQUIP_SLOT_PRIMARY_WEAPON
-    item: "arcane_umbra_bow"
-    scroll: "magical_scroll_for_weapon_att"
+    item: "genesis_bow"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7485,7 +7553,7 @@ builds {
       stat: FLAME_STAT_DEX
       tier: 7
     }
-    soul: SOUL_LINE_CRIT_RATE
+    soul: SOUL_LINE_ATTACK
   }
   pieces {
     slot: EQUIP_SLOT_PROJECTILE
@@ -7497,15 +7565,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7532,7 +7600,7 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_2
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7564,7 +7632,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7615,7 +7683,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7666,7 +7734,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7680,7 +7748,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_CAPE
-    item: "arcane_umbra_archer_cape"
+    item: "eternal_archer_cape"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -7717,7 +7785,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -7755,11 +7823,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7802,15 +7870,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7833,38 +7901,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_3"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -7888,15 +7925,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7956,7 +7993,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -8005,13 +8042,13 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_POCKET
-    item: "pink_holy_cup"
+    item: "cursed_green_spellbook"
     flame {
       stat: FLAME_STAT_DEX
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -8076,7 +8113,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_2
-    item: "meister_ring"
+    item: "guardian_angel_ring"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -8096,22 +8133,53 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_4"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4
@@ -8135,11 +8203,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_DEX_PER_9_LEVELS
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -8150,7 +8218,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT_2
-    item: "dominator_pendant"
+    item: "daybreak_pendant"
     scroll: "premium_scroll_for_accessory"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -8201,20 +8269,20 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_GLOVES
-    item: "arcane_umbra_archer_gloves"
+    item: "eternal_archer_gloves"
     scroll: "gloves_att_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        type: POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -8238,7 +8306,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -8252,7 +8320,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_SHOES
-    item: "arcane_umbra_archer_shoes"
+    item: "eternal_archer_shoes"
     scroll: "armour_dex_30_t3"
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
@@ -8289,7 +8357,7 @@ builds {
       tier: 7
     }
     flame {
-      stat: FLAME_STAT_ATTACK
+      stat: FLAME_STAT_STR_DEX
       tier: 7
     }
     flame {
@@ -8311,15 +8379,15 @@ builds {
     main_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_ATTACK_PCT
+        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -8345,16 +8413,36 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_HEART
-    item: "black_heart"
+    item: "total_control"
+    scroll: "heart_att_30_t3"
     main_potential {
-      rank: POTENTIAL_RANK_UNIQUE
+      rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30
-        rank: POTENTIAL_RANK_UNIQUE
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_DEX_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
       }
     }
   }
@@ -8370,6 +8458,10 @@ builds {
     slot: EQUIP_SLOT_TOTEM_3
     item: "jade_kettle_totem"
   }
+  pieces {
+    slot: EQUIP_SLOT_CONT_RING
+    item: "continuous_ring_6"
+  }
   familiars {
     name: "Snail"
     level: 4
@@ -8378,7 +8470,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -8390,7 +8482,7 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
@@ -8402,18 +8494,18 @@ builds {
       rank: POTENTIAL_RANK_LEGENDARY
     }
     lines {
-      type: FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_40
+      type: FAMILIAR_LINE_TYPE_ATTACK_PCT
       rank: POTENTIAL_RANK_LEGENDARY
     }
   }
   ability {
     rank: ABILITY_RANK_LEGENDARY
     lines {
-      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
+      type: ABILITY_LINE_TYPE_ATTACK_SPEED
       rank: ABILITY_RANK_LEGENDARY
     }
     lines {
-      type: ABILITY_LINE_TYPE_ATTACK
+      type: ABILITY_LINE_TYPE_BOSS_DAMAGE
       rank: ABILITY_RANK_UNIQUE
     }
     lines {
@@ -8424,22 +8516,22 @@ builds {
   hexa_stats {
     nodes {
       primary: HEXA_STAT_BOSS_DAMAGE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_MAIN_STAT
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_IGNORE_DEFENSE
-      first: HEXA_STAT_ATTACK
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_CRIT_DAMAGE
+      second: HEXA_STAT_BOSS_DAMAGE
       primary_level: 10
       first_level: 10
     }
     nodes {
       primary: HEXA_STAT_CRIT_DAMAGE
-      first: HEXA_STAT_MAIN_STAT
-      second: HEXA_STAT_DAMAGE
+      first: HEXA_STAT_BOSS_DAMAGE
+      second: HEXA_STAT_IGNORE_DEFENSE
       primary_level: 10
       first_level: 10
     }
