@@ -153,6 +153,39 @@ TEST(SpendHexaMatrixTest, ANodeThatMeasuredNothingIsPricedAgain) {
   EXPECT_EQ(state->character.skill_level(state->skills.at("late")), 30);
 }
 
+// A node worth nothing until its last level is still started: the purse buys
+// what it can toward it, and the next top-up finishes it.
+TEST(SpendHexaMatrixTest, ANodeThatPaysOnlyWholeIsBoughtTowardIt) {
+  if (!kSixthJobEnabled) {
+    GTEST_SKIP() << "the 6th job is behind --config=sixth";
+  }
+  auto state = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
+      std::map<std::string, MapData>{},
+      std::map<std::string, Skill>{{"late", MasteryNode("Late")}});
+  Character proto;
+  proto.set_level(260);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(6);
+  proto.set_sol_erda_energy(200 * kEnergyPerSolErda);
+  proto.set_sol_erda_fragments(1000);
+  state->character.RestoreFrom(proto, state->equips, state->items);
+  // Each level short of the top costs a little; the top pays for them all.
+  const SkillRate rate = [](GameState& inner) {
+    const int level = inner.character.skill_level(inner.skills.at("late"));
+    return level == kHexaNodeMaxLevel ? 100.0 : 1.0 - 0.001 * level;
+  };
+  SpendHexaMatrix(*state, rate);
+  const int started = state->character.skill_level(state->skills.at("late"));
+  EXPECT_GT(started, 0);
+  EXPECT_LT(started, kHexaNodeMaxLevel);
+  state->character.AddSolErdaFragments(5000);
+  SpendHexaMatrix(*state, rate);
+  EXPECT_EQ(state->character.skill_level(state->skills.at("late")),
+            kHexaNodeMaxLevel);
+}
+
 // Wherever the rolls land a node's levels, the reselect moves the one stat
 // that measures onto the slot they made worth most.
 TEST(SpendHexaMatrixTest, ReselectsEachNodeOntoItsBestSlots) {

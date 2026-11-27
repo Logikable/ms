@@ -236,7 +236,7 @@ double HexaCost(const HexaPrice& price) {
 }
 
 // One level, the levels up to the next multiple of 10, and the most the purse
-// pays for.
+// pays for. PriceHexaNode looks to the whole node as well.
 std::vector<int> HexaRungs(const CharacterInstance& character,
                            const Skill& skill) {
   const int level = character.skill_level(skill);
@@ -265,6 +265,7 @@ void PriceHexaNode(GameState& state, double held, const SkillRate& rate,
   offer->score = 0.0;
   offer->levels = 0;
   offer->afforded = false;
+  std::map<int, double> rate_at;
   for (int levels : HexaRungs(state.character, *offer->skill)) {
     // An Origin's first level is free; a free level still has to pay.
     const double cost = std::max(
@@ -274,6 +275,7 @@ void PriceHexaNode(GameState& state, double held, const SkillRate& rate,
     }
     offer->afforded = true;
     const double measured = rate(state);
+    rate_at[levels] = measured;
     const double score = (measured - held) / cost;
     if (score > offer->score) {
       offer->score = score;
@@ -282,6 +284,29 @@ void PriceHexaNode(GameState& state, double held, const SkillRate& rate,
     }
     state.character.RestoreFrom(before, state.equips, state.items);
   }
+  // The whole node too, paid for or not: an Ascent loses its cast's swings
+  // until its upper levels, so no near rung ever starts it. If the whole node
+  // pays best, the purse buys what it can toward it.
+  const CharacterInstance& character = state.character;
+  const int room = MaxHexaNodeLevel(offer->skill->hexa_node()) -
+                   character.skill_level(*offer->skill);
+  const int affordable = character.LevelsAffordable(*offer->skill);
+  std::map<int, double>::const_iterator part = rate_at.find(affordable);
+  if (room <= affordable || part == rate_at.end()) {
+    return;
+  }
+  const HexaPrice whole = character.HexaNodePriceFor(*offer->skill, room);
+  state.character.AddSolErdaEnergy(whole.energy);
+  state.character.AddSolErdaFragments(whole.fragments);
+  if (state.character.LearnSkill(*offer->skill, room)) {
+    const double score = (rate(state) - held) / std::max(1.0, HexaCost(whole));
+    if (score > offer->score) {
+      offer->score = score;
+      offer->rate = part->second;
+      offer->levels = affordable;
+    }
+  }
+  state.character.RestoreFrom(before, state.equips, state.items);
 }
 
 constexpr HexaStat kHexaStatChoices[] = {
