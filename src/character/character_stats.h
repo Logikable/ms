@@ -312,7 +312,7 @@ struct DerivedStats {
   EquipStats potential_stats;
   // STR, DEX, INT and LUK as %stat sees them: the part it multiplies, the
   // share it adds and what that share came to. Whatever the total holds past
-  // base + stat_from_pct is a final stat (symbols, Maple Warrior, Hyper Stats
+  // base + stat_from_pct is a final stat (symbols, Hyper Stats
   // and the rest added after it).
   std::array<int, 4> stat_base{};
   std::array<double, 4> stat_share{};

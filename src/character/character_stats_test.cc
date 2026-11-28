@@ -4355,8 +4355,21 @@ TEST(PotentialStatsTest, FlatLinesLandLikeAWornStat) {
   EXPECT_EQ(stats.skill_stats.dex(), 5);
 }
 
-// GMS's rule, which differs from Maple Warrior's on purpose: a potential's
-// %stat applies to the AP pool and all worn gear, its own flat lines included.
+// GMS counts the grant as an added stat, so a %STR line multiplies it.
+TEST_F(DerivedStatsTest, PercentStatMultipliesMapleWarriorsGrant) {
+  CharacterInstance c = MapleWarriorCharacter(rng_);
+  Skill mw = MapleWarrior();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
+  ASSERT_TRUE(c.LearnSkill(mw, 30));
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  // 150 from Maple Warrior, then 12% of the 1000 AP and those 150.
+  EXPECT_EQ(stats.skill_stats.str(), 150 + 138);
+}
+
+// GMS's rule: a potential's %stat applies to the AP pool and all worn gear,
+// its own flat lines included.
 TEST(PotentialStatsTest, PercentStatReadsTheApPoolAndTheGear) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);

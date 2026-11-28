@@ -1227,11 +1227,9 @@ void AddLegionJobEffects(const LegionSummary& summary, PassiveTotals& totals) {
 // pile once those flat lines are added. It is shared with PotentialStatGrant so
 // the two can't drift apart.
 //
-// A %stat line multiplies the AP pool, worn gear, the book's flat grants and
-// the potential's own flat lines. It skips the three final-stat sources, which
-// is why the symbols are taken back off. It doesn't use Maple Warrior's rule,
-// which reads the AP pool alone. Two %stat sources add rather than compound, so
-// both are applied to the same base.
+// A %stat line multiplies the AP pool, worn gear, the book's flat grants
+// (Maple Warrior's among them) and the potential's own flat lines. It skips the
+// final-stat sources, which is why the symbols are taken back off.
 EquipStats PotentialFlatGrant(const int pile[4], int level,
                               const PotentialTotals& potential,
                               std::array<int, 4>* base_out = nullptr,
@@ -1362,8 +1360,9 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
 }
 
 // Applies Maple Warrior to the AP spent. It grants what a ring grants, so it
-// goes into the passives' flat stats. It is done here rather than in AddEffect
-// because a skill's levers don't know who holds them.
+// goes into the passives' flat stats, which %stat then multiplies. It is done
+// here rather than in AddEffect because a skill's levers don't know who holds
+// them.
 //
 // Each stat is rounded down, as GMS does, after the same nudge FoldPercent
 // uses. Maple World Goddess's Blessing multiplies the share before it is
@@ -1737,13 +1736,11 @@ DerivedStats FoldDerived(const CharacterInstance& character, Activity preset,
     legion = character.legion_summary();
     AddLegionPoints(character, *legion, preset, passives);
   }
-  // Before the fold: a potential's %stat and Maple Warrior both read a base the
-  // other hasn't changed, and their shares add rather than compound.
-  AddPotentials(character, preset, worn, with_familiars, passives);
+  // Maple Warrior first: GMS counts its grant with the stats %stat multiplies.
   FoldApStats(allocated, passives);
-  // After the fold, never before: a Hyper Stat is a final stat, and Maple
-  // Warrior takes its share of the allocation alone. The activity picks the
-  // slot; see stat_preset.h.
+  AddPotentials(character, preset, worn, with_familiars, passives);
+  // After the potentials, never before: a Hyper Stat is a final stat. The
+  // activity picks the slot; see stat_preset.h.
   AddHyperStats(character, character.SlotFor(PresetKind::kHyperStats, preset),
                 passives);
   AddHexaStats(character, passives);
