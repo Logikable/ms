@@ -1077,18 +1077,18 @@ TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
 }
 
 // Every piece has the same lines on both potentials and its flame, set instead
-// of rolled: the weapon gets its own lines, and armour the job's main stat.
+// of rolled: the weapon gets its own lines, and armour the job's stats.
 TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(weapon.lines_size(), kPotentialLines);
-  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
 
   const Potential& hat = Worn(state, EQUIP_SLOT_HAT).potential();
   EXPECT_EQ(hat.rank(), POTENTIAL_RANK_LEGENDARY);
   ASSERT_EQ(hat.lines_size(), kPotentialLines);
-  EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+  EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
 
   EXPECT_EQ(Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state().flame_size(),
             kFlameLines);
@@ -1097,7 +1097,7 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
 
   const Potential& bonus =
       Worn(state, EQUIP_SLOT_HAT).equip_state().bonus_potential();
-  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(bonus.rank(), POTENTIAL_RANK_EPIC);
   ASSERT_EQ(bonus.lines_size(), kPotentialLines);
   EXPECT_EQ(bonus.lines(0).type(), POTENTIAL_LINE_TYPE_BONUS_STR_PCT);
 }
@@ -1133,7 +1133,8 @@ TEST(GameStateTest, MaxModeWearsAFarmingPreset) {
   const EquipInstance& patch =
       *character.WornAt(boss, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_GT(patch.potential().lines_size(), 0);
-  EXPECT_EQ(patch.potential().lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+  EXPECT_EQ(patch.potential().lines(0).type(),
+            POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
   EXPECT_GT(patch.equip_state().bonus_potential().lines_size(), 0);
   EXPECT_GT(patch.equip_state().flame_size(), 0);
 }

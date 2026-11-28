@@ -233,15 +233,15 @@ TEST(MaxCharacterTest, ArmourCarriesThePrimaryStat) {
   const Potential top = MaxPotentialFor(EQUIP_SLOT_TOP, gear, STAT_FIELD_STR,
                                         PotentialTrack::kMain);
   EXPECT_EQ(top.rank(), POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_STR_PCT), 2);
-  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_ALL_STATS_PCT), 1);
+  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_STR_PCT), 1);
+  EXPECT_EQ(LinesOf(top, POTENTIAL_LINE_TYPE_ALL_STATS_PCT), 2);
   EXPECT_EQ(top.lines(0).rank(), POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(top.lines(1).rank(), POTENTIAL_RANK_UNIQUE);
 
   const Potential ring = MaxPotentialFor(EQUIP_SLOT_RING, gear, STAT_FIELD_LUK,
                                          PotentialTrack::kBonus);
   EXPECT_EQ(ring.rank(), POTENTIAL_RANK_RARE);
-  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 2);
+  EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_BONUS_LUK_PCT), 1);
   EXPECT_EQ(ring.lines(2).rank(), POTENTIAL_RANK_RARE);
 }
 
@@ -252,8 +252,9 @@ TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
       EQUIP_SLOT_PRIMARY_WEAPON, gear, STAT_FIELD_INT, PotentialTrack::kMain);
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_LEGENDARY);
   EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
-  EXPECT_EQ(weapon.lines(2).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
-  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
+  EXPECT_EQ(weapon.lines(1).rank(), POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(weapon.lines(2).rank(), POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 2);
 
   const Potential bonus = MaxPotentialFor(
       EQUIP_SLOT_SECONDARY, gear, STAT_FIELD_INT, PotentialTrack::kBonus);
@@ -275,7 +276,7 @@ TEST(MaxCharacterTest, WeaponryCarriesItsOwnLines) {
       MaxPotentialFor(EQUIP_SLOT_SECONDARY, MaxGearForLevel(230),
                       STAT_FIELD_STR, PotentialTrack::kMain);
   EXPECT_EQ(early.rank(), POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  EXPECT_EQ(early.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
 }
 
 // A slot that takes no potential gets none, nor does a level with no cubing,
@@ -353,7 +354,7 @@ TEST(MaxFamiliarsTest, FollowTheSweepsBands) {
   const Familiar* snail = FindFamiliar(at_200, "Snail");
   ASSERT_NE(snail, nullptr);
   EXPECT_EQ(snail->level(), 3);
-  EXPECT_EQ(snail->lines(0).type(), FAMILIAR_LINE_TYPE_LUK_PCT);
+  EXPECT_EQ(snail->lines(0).type(), FAMILIAR_LINE_TYPE_ATTACK_PCT);
   for (const FamiliarLine& line : snail->lines()) {
     EXPECT_GT(FamiliarLineValue(line.type(), line.rank()), 0);
   }

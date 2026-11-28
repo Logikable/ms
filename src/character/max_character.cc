@@ -423,10 +423,11 @@ constexpr AltBand kAltBands[] = {
 
 // The familiars the same sweep had on reaching each level, read at the fifth
 // of ten branches from the top by total familiar levels: the three summoned
-// mains' level and lines, and every familiar's levels added up. The second
-// line is a rank below, as nine rolls in ten deal it. At 200 the mains are
-// Unique, levelled for Familiar Bond and never cubed; an unspecified line is
-// the job's own %stat.
+// mains' level and every familiar's levels added up. The lines are each
+// place's commonest over every branch's summoned mains (--exact, 2026-11-27);
+// at 270 boss and ignored defence tie and the defence leads. At 200 the
+// second is a junk stat, read as Max HP; an unspecified line is the job's own
+// %stat.
 struct FamiliarBandLine {
   FamiliarLineType type;
   PotentialRank rank;
@@ -443,8 +444,8 @@ constexpr FamiliarBand kFamiliarBands[] = {
     {200,
      3,
      26,
-     {{FAMILIAR_LINE_TYPE_UNSPECIFIED, POTENTIAL_RANK_UNIQUE},
-      {FAMILIAR_LINE_TYPE_ATTACK, POTENTIAL_RANK_EPIC}}},
+     {{FAMILIAR_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_UNIQUE},
+      {FAMILIAR_LINE_TYPE_MAX_HP, POTENTIAL_RANK_EPIC}}},
     {230,
      4,
      40,
@@ -454,9 +455,9 @@ constexpr FamiliarBand kFamiliarBands[] = {
      4,
      40,
      {{FAMILIAR_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY},
-      {FAMILIAR_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE}}},
-    // Every familiar at the top level by 270 in the sweep of 2026-11-21, and
-    // the mains' second line Legendary by 280.
+      {FAMILIAR_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE}}},
+    // Every familiar at the top level by 270, and the mains' second line
+    // Legendary by 280.
     {270,
      4,
      80,
@@ -667,73 +668,74 @@ constexpr Share C = Share::kCritDamage;
 constexpr Share D = Share::kDamage;
 
 // What //analysis/sims:progression_sim's sweeps wore on arriving at each level,
-// the fifth of ten branches from the top: a max character spent well, not
-// luckily. 230 on re-read 2026-11-21 off the uncapped sweep, three seeds of 365
-// days: weaponry Legendary by 230, armour by 260, everything by 270. Mitra's
-// Rage, the emblem from 270, is never cubed. A piece left blank has no
-// potential.
+// the fifth of ten branches from the top (each branch's median piece of the
+// kind): a max character spent well, not luckily. Read off the --exact sweep
+// of 2026-11-27, three seeds of 365 days: only the secondary Legendary by 230,
+// main armour by 260, everything by 280. An off-stat line reads as Max HP, or
+// %stat on weaponry. Mitra's Rage, the emblem from 280, is never cubed. A
+// piece left blank has no potential.
 constexpr PotentialBand kPotentialBands[] = {
-    {200, {{R, {A, S, S}, 3}, {R, {A, S, S}, 3}, {R, {A, S, S}, 3}}, {}},
+    {200, {{R, {S, A, D}, 3}, {R, {S, A, A}, 3}, {R, {S, S, D}, 3}}, {}},
     {230,
-     {{L, {A, I, B}},
-      {L, {A, A, S}},
-      {E, {A, A, S}},
-      {E, {S, S, H}, 2},
-      {U, {T, T, S}, 2},
-      {E, {T, S, H}},
-      {R, {S, H, H}, 3}},
-     {{E, {A, D, D}},
-      {R, {S, A, A}, 3},
-      {R, {D, D, A}, 3},
-      {R, {S, H, H}, 3},
-      {R, {S, H, H}, 3},
+     {{E, {I, A, A}},
+      {L, {B, A, A}},
+      {E, {S, D, A}},
+      {U, {T, S, H}, 2},
+      {U, {S, S, H}, 2},
+      {U, {S, T, T}},
+      {}},
+     {{R, {A, S, S}, 3},
+      {E, {A, A, A}},
+      {R, {S, D, A}, 3},
+      {R, {H, S, S}, 3},
       {R, {S, S, H}, 3},
+      {R, {S, H, H}, 3},
       {}}},
     {260,
-     {{L, {A, B, B}},
-      {L, {B, A, A}},
+     {{L, {B, A, B}},
+      {L, {A, B, B}},
       {L, {A, B, A}},
-      {L, {S, S, T}},
-      {L, {C, S, H}},
-      {L, {S, T, S}},
-      {U, {S, S, H}, 2}},
-     {{L, {A, S, A}},
-      {L, {A, D, A}},
-      {U, {A, A, D}},
-      {U, {S, S, H}},
-      {E, {S, H, H}},
-      {E, {S, T, H}, 2},
-      {R, {S, S, H}, 3}}},
+      {L, {T, S, T}},
+      {L, {C, H, S}},
+      {L, {T, T, S}},
+      {L, {H, H, S}}},
+     {{L, {A, A, S}},
+      {L, {A, T, A}},
+      {U, {A, T, A}},
+      {E, {S, S, S}},
+      {E, {T, S, H}, 2},
+      {E, {S, S, H}},
+      {R, {H, H, S}, 3}}},
     {270,
-     {{L, {A, B, A}, 2},
+     {{L, {B, A, A}, 2},
       {L, {B, B, A}},
-      {},
-      {L, {S, S, S}},
-      {L, {C, S, S}, 2},
-      {L, {S, T, S}},
-      {L, {S, S, T}, 2}},
-     {{L, {A, A, B}, 2},
-      {L, {A, A, B}},
-      {},
+      {L, {A, B, A}},
+      {L, {T, S, S}},
+      {L, {C, S, T}},
       {L, {S, S, T}},
-      {U, {S, S, S}},
-      {L, {S, S, H}},
-      {L, {S, S, S}, 2}}},
+      {L, {T, S, S}}},
+     {{L, {A, A, B}},
+      {L, {A, B, A}},
+      {L, {A, T, A}},
+      {L, {H, T, S}},
+      {U, {S, S, H}},
+      {L, {H, H, T}, 3},
+      {U, {S, S, S}}}},
     {280,
-     {{L, {B, A, B}, 2},
+     {{L, {B, A, A}, 2},
       {L, {B, A, B}, 2},
       {},
-      {L, {S, T, S}, 2},
-      {L, {C, C, T}, 2},
-      {L, {S, S, S}, 2},
-      {L, {S, S, S}, 2}},
-     {{L, {A, A, A}, 2},
+      {L, {S, S, S}},
+      {L, {C, C, H}, 2},
+      {L, {S, S, S}},
+      {L, {S, S, S}}},
+     {{L, {A, A, A}},
       {L, {A, A, A}},
       {},
-      {L, {S, T, T}},
+      {L, {T, T, T}},
+      {L, {T, S, H}, 2},
       {L, {S, S, T}},
-      {L, {S, S, T}},
-      {L, {S, S, T}}}},
+      {L, {S, S, H}}}},
 };
 
 // The band `level` names, or null for none.
