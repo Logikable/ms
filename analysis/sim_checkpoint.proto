@@ -142,6 +142,8 @@ message CheckpointPotentials {
   // The HEXA Matrix the same way as v_nodes, and the HEXA Stat nodes.
   map<string, int32> hexa_nodes = 12;
   HexaStats hexa_stats = 13;
+  // The familiars the bossing preset summons, for max mode's mains.
+  repeated string bossing_familiars = 14;
 }
 
 // Everything the tables have collected so far. Mirrors Climb field for field: a

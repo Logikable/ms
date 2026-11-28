@@ -1617,6 +1617,12 @@ CheckpointPotentials PotentialsNow(const GameState& state, int level,
   now.set_noblesse_sp(character.noblesse_sp_earned());
   *now.mutable_familiars() = state.character.familiars();
   now.mutable_familiars()->clear_exp();
+  for (const std::string& name :
+       PresetOf(character.proto().summoned_familiars(),
+                AutoswapSlotFor(Activity::kBossing))
+           .names()) {
+    now.add_bossing_familiars(name);
+  }
   for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
     const std::string& item = entry.second.paid_with();
     if (!item.empty()) {
@@ -4810,9 +4816,10 @@ void PrintPotentialLevels(const std::vector<Job>& branches,
 
 // One line per potential recorded, tab-separated: branch, level ("end" for the
 // run's end), days, slot, item, item level, stars, track, rank and
-// lines. A flamed piece adds a "flame" track, rank "-", its lines "STR T6",
-// and every piece a "scroll" track: scrolls taken, attack, open slots. The
-// account follows as slot ACCOUNT, then a key, a name and a value.
+// lines, each with its rank after a colon. A flamed piece adds a "flame" track,
+// rank "-", its lines "STR T6", and every piece a "scroll" track: scrolls
+// taken, attack, open slots. The account follows as slot ACCOUNT, then a key, a
+// name and a value.
 void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
                     const std::vector<Climb>& climbs) {
   std::ofstream out(path);
@@ -4836,7 +4843,8 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
         for (const Potential* potential : {&slot.main(), &slot.bonus()}) {
           std::vector<std::string> lines;
           for (const PotentialLine& line : potential->lines()) {
-            lines.push_back(LineText(line, slot.item_level()));
+            lines.push_back(absl::StrCat(LineText(line, slot.item_level()), ":",
+                                         RankLetter(line.rank())));
           }
           out << BranchName(branches[i]) << '\t'
               << (held.end() ? absl::StrCat("end:", held.level())
@@ -4892,10 +4900,15 @@ void DumpPotentials(const std::string& path, const std::vector<Job>& branches,
       for (const Familiar& familiar : held.familiars().familiars()) {
         std::vector<std::string> lines;
         for (const FamiliarLine& line : familiar.lines()) {
-          lines.push_back(FamiliarLineType_Name(line.type()).substr(19));
+          lines.push_back(
+              absl::StrCat(FamiliarLineType_Name(line.type()).substr(19), ":",
+                           RankLetter(line.rank())));
         }
         out << at << "familiar\t" << familiar.name() << '\t' << familiar.level()
             << ' ' << absl::StrJoin(lines, " ") << '\n';
+      }
+      for (const std::string& name : held.bossing_familiars()) {
+        out << at << "summoned\tbossing\t" << name << '\n';
       }
       for (const auto& [item, count] : held.scroll_items_held()) {
         out << at << "scroll_item_held\t" << item << '\t' << count << '\n';
