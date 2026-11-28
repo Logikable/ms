@@ -1188,7 +1188,7 @@ class TuiController {
   ConfirmPrompt buff_buy_prompt_;
   int hexa_node_ = 0;
   bool hexa_from_inspect_ = false;
-  ItemMenu hexa_menu_{{"Activate", "Close"}};
+  ItemMenu hexa_menu_{{"Inspect", "Activate", "Close"}};
   HexaStatActivatePanel hexa_activate_panel_;
   ConfirmPrompt hexa_confirm_prompt_;
   DailiesPanel dailies_panel_;

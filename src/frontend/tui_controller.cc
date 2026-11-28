@@ -399,13 +399,15 @@ void TuiController::OpenHexaStatMenu(int index, bool from_inspect) {
   const CharacterInstance& character = hexa_character();
   const bool opened = index < character.hexa_stats().nodes_size();
   if (from_inspect) {
-    hexa_menu_.SetLabel(kHexaStatMenuAction, "Inspect");
+    hexa_menu_.Hide(kHexaStatMenuAction);
     if (!opened) {
-      hexa_menu_.Disable(kHexaStatMenuAction);
+      hexa_menu_.Disable(kHexaStatMenuInspect);
     }
   } else if (opened) {
     hexa_menu_.SetLabel(kHexaStatMenuAction, "Enhance");
   } else {
+    // Nothing to read before it opens.
+    hexa_menu_.Hide(kHexaStatMenuInspect);
     hexa_menu_.SetLabel(kHexaStatMenuAction, "Activate");
     const HexaStatPrice price = HexaStatOpenPrice(index);
     if (character.sol_erda_energy() < price.energy ||
@@ -441,17 +443,19 @@ bool TuiController::OnHexaStatMenuEvent(ftxui::Event event) {
   if (!IsForward(event)) {
     return true;  // The menu is modal: nothing behind it hears a key.
   }
-  if (hexa_menu_.selected() != kHexaStatMenuAction) {
-    screen_ = HexaStatReturn();
-    return true;
-  }
   const CharacterInstance& character = hexa_character();
   const bool opened = hexa_node_ < character.hexa_stats().nodes_size();
-  if (hexa_from_inspect_) {
-    if (opened) {
-      screen_ = kHexaStatInspect;
-    }
-    return true;
+  switch (hexa_menu_.selected()) {
+    case kHexaStatMenuInspect:
+      if (opened) {
+        screen_ = kHexaStatInspect;
+      }
+      return true;
+    case kHexaStatMenuAction:
+      break;
+    default:
+      screen_ = HexaStatReturn();
+      return true;
   }
   // Enhance waits for its screen.
   if (opened) {

@@ -99,6 +99,15 @@ int64_t HexaStatEnhancePrice(const HexaStatNode& node);
 // evenly between the additional stats that have room.
 double HexaStatPrimaryChance(int primary_level);
 
+// The chance the next level of `node` goes to each of its stats, by the rule
+// RollHexaStatLevel draws with. All three 0 for a full node.
+struct HexaStatChances {
+  double primary = 0.0;
+  double first = 0.0;
+  double second = 0.0;
+};
+HexaStatChances HexaStatLevelChances(const HexaStatNode& node);
+
 // Raises one stat of `node` by GMS's odds. False, changing nothing, for a full
 // node.
 bool RollHexaStatLevel(HexaStatNode& node, std::mt19937& rng);

@@ -250,6 +250,10 @@ std::string HexaStatName(HexaStat stat, StatField main_stat);
 // A HEXA Stat node's numeral, "I" for the first (index 0) up to "VI".
 std::string HexaStatNodeNumeral(int index);
 
+// What `stat` at `level` adds as a primary or an additional stat, with as few
+// decimals as it needs: "+65", "+20%", "+3.15%". Empty at level 0.
+std::string HexaStatBonusText(HexaStat stat, int level, bool primary);
+
 // A preset slot's name. With the autoswap on, slots are named for their use.
 // With it off, they are numbered. `kind` matters because gear's third slot is
 // the Drop preset, while the other kinds' third slot is unnamed storage.

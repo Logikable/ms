@@ -78,6 +78,7 @@ cc_library(
         "//src/character:stat_preset",
         "//src/character/account:familiar",
         "//src/character/account:legion",
+        "//src/character/matrix:hexa_stat",
         "//src/character/matrix:hyper_stats",
         "//src/item",
         "//src/item/upgrade:flame",

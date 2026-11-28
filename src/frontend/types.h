@@ -351,11 +351,13 @@ enum BuffMenuItem : int {
   kBuffMenuBuyPerm = 2,
   kBuffMenuClose = 3,
 };
-// Entries of the HEXA Stat menu. The first is named for what the node offers:
-// Activate, Enhance, or Inspect on a party member's node.
+// Entries of the HEXA Stat menu. Inspect reads an open node; the action is
+// named for what the player's own node offers, Activate or Enhance, and is
+// hidden on someone else's.
 enum HexaStatMenuItem : int {
-  kHexaStatMenuAction = 0,
-  kHexaStatMenuClose = 1,
+  kHexaStatMenuInspect = 0,
+  kHexaStatMenuAction = 1,
+  kHexaStatMenuClose = 2,
 };
 // Entries of the Etc stackable context menu.
 enum StackMenuItem : int {

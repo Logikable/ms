@@ -1,6 +1,6 @@
-/* The HEXA Stat card, from Inspect on a party member's HEXA tab: the node's
- * numeral, its main stat and two additional ones with their levels, and
- * [Close]. Read-only, like the Hyper Stat card.
+/* The HEXA Stat card, from Inspect on a HEXA tab node: the node's
+ * numeral in the title, then its main stat and two additional ones, each with
+ * its amount, the chance the next enhance raises it, and its level. Read-only.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_HEXA_HEXA_STAT_CARD_H_
 #define MS_SRC_FRONTEND_SCREENS_HEXA_HEXA_STAT_CARD_H_

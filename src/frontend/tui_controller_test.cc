@@ -1088,18 +1088,34 @@ TEST_F(HexaStatMenuTest, CancelLeavesWithoutPaying) {
   EXPECT_EQ(state_->character.sol_erda_fragments(), 25);
 }
 
-// Enhance waits for its own screen: pressing it leaves the menu open.
-TEST_F(HexaStatMenuTest, AnOpenNodeOffersEnhance) {
+// An open node reads first, then offers Enhance, which waits for its own
+// screen: pressing it leaves the menu open.
+TEST_F(HexaStatMenuTest, AnOpenNodeOffersInspectThenEnhance) {
   state_->character.AddSolErdaEnergy(6'000);
   state_->character.AddSolErdaFragments(25);
   ASSERT_TRUE(state_->character.OpenHexaStatNode(
       HEXA_STAT_BOSS_DAMAGE, HEXA_STAT_ATTACK, HEXA_STAT_DAMAGE));
   controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
-  EXPECT_NE(RenderHexaMenu().find("Enhance"), std::string::npos);
+  const std::string menu = RenderHexaMenu();
+  ASSERT_NE(menu.find("Inspect"), std::string::npos);
+  ASSERT_NE(menu.find("Enhance"), std::string::npos);
+  EXPECT_LT(menu.find("Inspect"), menu.find("Enhance"));
+  EXPECT_EQ(controller_->hexa_menu().selected(), kHexaStatMenuInspect);
+  Press(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kHexaStatInspect);
+  Press(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kHexaStatMenu);
+  Press(ftxui::Event::ArrowDown);
   Press(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kHexaStatMenu);
   Press(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// A node not yet opened has nothing to read.
+TEST_F(HexaStatMenuTest, AnUnopenedNodeHasNoInspect) {
+  controller_->OpenHexaStatMenu(0, /*from_inspect=*/false);
+  EXPECT_EQ(RenderHexaMenu().find("Inspect"), std::string::npos);
 }
 
 // A party member's node has only Inspect, grey on one they haven't opened,
@@ -1107,6 +1123,7 @@ TEST_F(HexaStatMenuTest, AnOpenNodeOffersEnhance) {
 TEST_F(HexaStatMenuTest, AMembersNodeOffersInspect) {
   controller_->OpenHexaStatMenu(0, /*from_inspect=*/true);
   EXPECT_NE(RenderHexaMenu().find("Inspect"), std::string::npos);
+  EXPECT_EQ(RenderHexaMenu().find("Activate"), std::string::npos);
   EXPECT_EQ(controller_->hexa_menu().selected(), kHexaStatMenuClose);
   Press(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kPlayerInspect);

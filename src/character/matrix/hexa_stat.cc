@@ -227,6 +227,21 @@ double HexaStatPrimaryChance(int primary_level) {
   return kPrimaryChances[std::clamp(primary_level, 0, kHexaStatMaxLevel)];
 }
 
+HexaStatChances HexaStatLevelChances(const HexaStatNode& node) {
+  HexaStatChances chances;
+  if (HexaStatNodeLevels(node) >= kHexaStatNodeLevels) {
+    return chances;
+  }
+  chances.primary = HexaStatPrimaryChance(node.primary_level());
+  const bool first_room = node.first_level() < kHexaStatMaxLevel;
+  const bool second_room = node.second_level() < kHexaStatMaxLevel;
+  const double rest = 1.0 - chances.primary;
+  const int rooms = (first_room ? 1 : 0) + (second_room ? 1 : 0);
+  chances.first = first_room ? rest / rooms : 0.0;
+  chances.second = second_room ? rest / rooms : 0.0;
+  return chances;
+}
+
 bool RollHexaStatLevel(HexaStatNode& node, std::mt19937& rng) {
   if (HexaStatNodeLevels(node) >= kHexaStatNodeLevels) {
     return false;

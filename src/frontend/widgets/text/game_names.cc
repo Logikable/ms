@@ -11,6 +11,7 @@
 #include "src/character/account/familiar.h"
 #include "src/character/account/legion.h"
 #include "src/character/inner_ability.h"
+#include "src/character/matrix/hexa_stat.h"
 #include "src/character/matrix/hyper_stats.h"
 #include "src/character/skill_placement.h"
 #include "src/frontend/widgets/text/colors.h"
@@ -1480,6 +1481,17 @@ std::string PercentText(double fraction) {
 }
 
 }  // namespace
+
+std::string HexaStatBonusText(HexaStat stat, int level, bool primary) {
+  if (level <= 0) {
+    return "";
+  }
+  const double value = HexaStatValue(stat, level, primary);
+  if (stat == HEXA_STAT_ATTACK || stat == HEXA_STAT_MAIN_STAT) {
+    return "+" + std::to_string(static_cast<int>(value));
+  }
+  return PercentText(value);
+}
 
 std::string LegionStatName(LegionStat stat) {
   static_assert(LegionStat_ARRAYSIZE == 17, "a new Legion stat needs a name");

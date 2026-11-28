@@ -180,5 +180,39 @@ TEST(HexaStatTest, APickKeepsGmsRulesAcrossTheDraftAndTheNodes) {
                                    HEXA_STAT_UNSPECIFIED));
 }
 
+// The odds the Inspect card shows are the ones the roll draws with.
+TEST(HexaStatTest, TheChancesAreWhatTheRollDraws) {
+  for (const HexaStatNode& start :
+       {Node(HEXA_STAT_BOSS_DAMAGE, 0, HEXA_STAT_ATTACK, 0, HEXA_STAT_DAMAGE,
+             0),
+        Node(HEXA_STAT_BOSS_DAMAGE, 7, HEXA_STAT_ATTACK, 10, HEXA_STAT_DAMAGE,
+             1),
+        Node(HEXA_STAT_BOSS_DAMAGE, 10, HEXA_STAT_ATTACK, 4, HEXA_STAT_DAMAGE,
+             3)}) {
+    const HexaStatChances chances = HexaStatLevelChances(start);
+    EXPECT_NEAR(chances.primary + chances.first + chances.second, 1.0, 1e-9);
+    std::mt19937 rng(5);
+    constexpr int kRolls = 40000;
+    int primary = 0;
+    int first = 0;
+    for (int i = 0; i < kRolls; ++i) {
+      HexaStatNode node = start;
+      ASSERT_TRUE(RollHexaStatLevel(node, rng));
+      primary += node.primary_level() - start.primary_level();
+      first += node.first_level() - start.first_level();
+    }
+    EXPECT_NEAR(static_cast<double>(primary) / kRolls, chances.primary, 0.01);
+    EXPECT_NEAR(static_cast<double>(first) / kRolls, chances.first, 0.01);
+  }
+}
+
+TEST(HexaStatTest, AFullNodeHasNoChances) {
+  const HexaStatChances chances = HexaStatLevelChances(Node(
+      HEXA_STAT_BOSS_DAMAGE, 10, HEXA_STAT_ATTACK, 5, HEXA_STAT_DAMAGE, 5));
+  EXPECT_EQ(chances.primary, 0.0);
+  EXPECT_EQ(chances.first, 0.0);
+  EXPECT_EQ(chances.second, 0.0);
+}
+
 }  // namespace
 }  // namespace ms
