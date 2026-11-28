@@ -317,6 +317,10 @@ struct DerivedStats {
   std::array<int, 4> stat_base{};
   std::array<double, 4> stat_share{};
   std::array<int, 4> stat_from_pct{};
+  // stat_base without the worn potentials' own flat lines: what a potential
+  // priced in their place multiplies. Taken from the fold rather than
+  // rebuilt, since skill_stats also holds the final stats added after it.
+  std::array<int, 4> stat_pile{};
 };
 
 // The most %meso worn equipment can give. It is also the cap on all additive

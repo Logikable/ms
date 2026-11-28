@@ -1272,20 +1272,17 @@ EquipStats PotentialFlatGrant(const int pile[4], int level,
 }
 
 // The character's stat pile in the form PotentialFlatGrant wants: everything a
-// %stat line may multiply, minus the potentials' own share.
+// %stat line may multiply, given the passives' flat grant before any final
+// stat joins it.
 void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
-                 const EquipStats& paid, StatPreset gear, int pile[4]) {
+                 StatPreset gear, int pile[4]) {
   const AllocatedStats& allocated = character.proto().allocated_stats();
   const EquipStats& worn = character.equip_stats(gear);
   const EquipStats& symbols = character.symbol_stats(gear);
-  pile[0] = allocated.str() + worn.str() - symbols.str() + passives.str() -
-            paid.str();
-  pile[1] = allocated.dex() + worn.dex() - symbols.dex() + passives.dex() -
-            paid.dex();
-  pile[2] = allocated.int_() + worn.int_() - symbols.int_() + passives.int_() -
-            paid.int_();
-  pile[3] = allocated.luk() + worn.luk() - symbols.luk() + passives.luk() -
-            paid.luk();
+  pile[0] = allocated.str() + worn.str() - symbols.str() + passives.str();
+  pile[1] = allocated.dex() + worn.dex() - symbols.dex() + passives.dex();
+  pile[2] = allocated.int_() + worn.int_() - symbols.int_() + passives.int_();
+  pile[3] = allocated.luk() + worn.luk() - symbols.luk() + passives.luk();
 }
 
 // Adds `from` to `into`, the way two worn items' potentials add.
@@ -1336,7 +1333,8 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   passives.set_int_(totals.int_);
   passives.set_luk(totals.luk);
   int pile[4];
-  StatPileFor(character, passives, EquipStats(), worn, pile);
+  StatPileFor(character, passives, worn, pile);
+  std::copy(std::begin(pile), std::end(pile), totals.stat_pile.begin());
   const EquipStats paid =
       PotentialFlatGrant(pile, character.proto().level(), potential,
                          &totals.stat_base, &totals.stat_from_pct);
@@ -1907,8 +1905,7 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const PotentialTotals& totals,
                               const EquipStats& worn_extra) {
   int pile[4];
-  StatPileFor(character, derived.skill_stats, derived.potential_stats,
-              derived.gear, pile);
+  std::copy(derived.stat_pile.begin(), derived.stat_pile.end(), pile);
   pile[0] += worn_extra.str();
   pile[1] += worn_extra.dex();
   pile[2] += worn_extra.int_();

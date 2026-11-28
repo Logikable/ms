@@ -4475,6 +4475,21 @@ TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
   EXPECT_EQ(PotentialStatGrant(c, stats, better, flame).str(), 132);
 }
 
+// A final stat is added after %stat, so pricing a potential mustn't multiply
+// it either: the price of the worn potential is what the fold paid.
+TEST(PotentialStatsTest, StatGrantSkipsTheFinalStats) {
+  std::mt19937 rng(1);
+  CharacterInstance c = HyperStatCharacter(rng);
+  ASSERT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst, 10));
+  EquipPotentialRing(c, 150, POTENTIAL_RANK_UNIQUE,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  ASSERT_GT(stats.potential_stats.str(), 0);
+  EXPECT_EQ(PotentialStatGrant(c, stats, c.potential_totals()).str(),
+            stats.potential_stats.str());
+}
+
 // A per-9-levels line pays its points once per nine of the wearer's levels,
 // so it grows with the character and not the item.
 TEST(PotentialStatsTest, PerLevelLinesCountTheWearersLevel) {
