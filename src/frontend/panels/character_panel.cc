@@ -1729,25 +1729,25 @@ ftxui::Element CharacterPanel::RenderHexaRow(int index,
     cells.push_back(ftxui::text(std::to_string(HexaStatNodeLevels(node)) + "/" +
                                 std::to_string(kHexaStatNodeLevels) + " "));
   } else {
-    // The price is what the cursor acts on, so it inverts even where a short
-    // balance colours it red, rather than banding the row.
+    // The label takes the cursor, so the price can keep its red-when-short
+    // colour at the far side.
+    ftxui::Element label = ftxui::text("Inactive") | ftxui::color(kGray);
+    if (selected) {
+      label = std::move(label) | ftxui::inverted;
+    }
+    cells.push_back(std::move(label));
+    cells.push_back(ftxui::filler());
     const HexaStatPrice price = HexaStatOpenPrice(index);
     auto amount = [](const std::string& text, bool short_of) {
       ftxui::Element cell = ftxui::text(text);
       return short_of ? std::move(cell) | ftxui::color(kRed) : cell;
     };
-    ftxui::Element cost = ftxui::hbox({
-        amount(FormatSolErda(price.energy),
-               character_.sol_erda_energy() < price.energy),
-        ftxui::text("  "),
-        amount(FormatFragments(price.fragments),
-               character_.sol_erda_fragments() < price.fragments),
-    });
-    if (selected) {
-      cost = std::move(cost) | ftxui::inverted;
-    }
-    cells.push_back(std::move(cost));
-    cells.push_back(ftxui::filler());
+    cells.push_back(amount(FormatSolErda(price.energy),
+                           character_.sol_erda_energy() < price.energy));
+    cells.push_back(ftxui::text("  "));
+    cells.push_back(amount(FormatFragments(price.fragments),
+                           character_.sol_erda_fragments() < price.fragments));
+    cells.push_back(ftxui::text(" "));
   }
   ftxui::Element row = ftxui::hbox(std::move(cells));
   if (selected) {

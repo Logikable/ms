@@ -3295,7 +3295,8 @@ TEST_F(CharacterPanelTest, AnUnopenedNodeShowsItsPrice) {
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = OpenHexaTab(panel);
   const std::string text = RenderComponentText(comp);
-  EXPECT_NE(text.find("I: 🔆  5.00  🔹  10"), std::string::npos) << text;
+  EXPECT_NE(text.find("I: Inactive"), std::string::npos) << text;
+  EXPECT_NE(text.find("🔆  5.00  🔹  10"), std::string::npos) << text;
   EXPECT_EQ(text.find("II:"), std::string::npos) << text;
   EXPECT_NE(text.find("12.43"), std::string::npos) << "the footer: " << text;
   ftxui::Screen screen = ftxui::Screen::Create(
@@ -3323,7 +3324,8 @@ TEST_F(CharacterPanelTest, AnOpenNodeShowsItsStatAndLevels) {
   *stats.mutable_nodes(0) = BossNode(20);
   ASSERT_TRUE(c.SetHexaStats(stats));
   text = RenderComponentText(comp);
-  EXPECT_NE(text.find(" II: 🔆  10.00  🔹  200"), std::string::npos) << text;
+  EXPECT_NE(text.find(" II: Inactive"), std::string::npos) << text;
+  EXPECT_NE(text.find("🔆  10.00  🔹  200"), std::string::npos) << text;
   EXPECT_NE(text.find("  I: Boss Damage"), std::string::npos)
       << "the numerals right-aligned: " << text;
 }
