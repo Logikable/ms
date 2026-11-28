@@ -2557,11 +2557,11 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3513,7 +3513,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3556,15 +3556,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4566,15 +4566,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4672,11 +4672,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5641,7 +5641,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5747,15 +5747,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5798,7 +5798,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6798,38 +6798,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_6"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -6853,11 +6822,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7076,7 +7045,38 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_6"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4
@@ -7873,38 +7873,7 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING
-    item: "endless_terror"
-    scroll: "premium_scroll_for_accessory"
-    main_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PCT
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
-    bonus_potential {
-      rank: POTENTIAL_RANK_LEGENDARY
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-      lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
-        rank: POTENTIAL_RANK_LEGENDARY
-      }
-    }
+    item: "ring_of_restraint_6"
   }
   pieces {
     slot: EQUIP_SLOT_PENDANT
@@ -7936,7 +7905,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -7979,7 +7948,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_STR_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -8151,7 +8120,38 @@ builds {
   }
   pieces {
     slot: EQUIP_SLOT_RING_3
-    item: "ring_of_restraint_6"
+    item: "endless_terror"
+    scroll: "premium_scroll_for_accessory"
+    main_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
+    bonus_potential {
+      rank: POTENTIAL_RANK_LEGENDARY
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+      lines {
+        type: POTENTIAL_LINE_TYPE_BONUS_STR_PCT
+        rank: POTENTIAL_RANK_LEGENDARY
+      }
+    }
   }
   pieces {
     slot: EQUIP_SLOT_RING_4

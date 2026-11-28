@@ -2405,7 +2405,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -2448,15 +2448,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -2499,7 +2499,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3251,7 +3251,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -3455,15 +3455,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -3506,15 +3506,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4316,7 +4316,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
+        type: POTENTIAL_LINE_TYPE_COOLDOWN_1
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4520,11 +4520,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -4657,15 +4657,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -4708,7 +4708,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -5736,15 +5736,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -5787,11 +5787,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -6823,7 +6823,7 @@ builds {
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6866,15 +6866,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -6972,7 +6972,7 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
@@ -7945,15 +7945,15 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
     }
@@ -8051,11 +8051,11 @@ builds {
     bonus_potential {
       rank: POTENTIAL_RANK_LEGENDARY
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
-        type: POTENTIAL_LINE_TYPE_LUK_PER_9_LEVELS
+        type: POTENTIAL_LINE_TYPE_BONUS_LUK_PCT
         rank: POTENTIAL_RANK_LEGENDARY
       }
       lines {
