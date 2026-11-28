@@ -162,7 +162,7 @@ ftxui::Element HexaStatActivatePanel::RenderRow(int row) const {
 
 ftxui::Element HexaStatActivatePanel::Render() const {
   std::vector<ftxui::Element> body = {
-      ftxui::text(" Pick stats:"),
+      CenteredRow("Pick Stats"),
       ThemedSeparator(),
   };
   for (int row = 0; row < kButtonsRow; ++row) {

@@ -58,7 +58,7 @@ TEST_F(HexaStatActivatePanelTest, RowsStartUnselectedAndActivateWaits) {
   ftxui::Screen screen = Draw();
   const std::string text = ScreenText(screen);
   EXPECT_NE(text.find("Activate HEXA Stat"), std::string::npos);
-  EXPECT_NE(text.find("Pick stats:"), std::string::npos);
+  EXPECT_NE(text.find("Pick Stats"), std::string::npos);
   EXPECT_NE(text.find("M: Unselected"), std::string::npos);
   EXPECT_TRUE(PixelOf(screen, "[Activate]").dim);
   EXPECT_EQ(Press(ftxui::Event::ArrowDown, 3), Result::kPending);

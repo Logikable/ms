@@ -1717,7 +1717,6 @@ ftxui::Element CharacterPanel::RenderHexaRow(int index,
                   " ") |
           ftxui::color(kPurple),
   };
-  bool band = false;
   if (index < stats.nodes_size()) {
     const HexaStatNode& node = stats.nodes(index);
     ftxui::Element name = ftxui::text(HexaStatName(
@@ -1730,22 +1729,27 @@ ftxui::Element CharacterPanel::RenderHexaRow(int index,
     cells.push_back(ftxui::text(std::to_string(HexaStatNodeLevels(node)) + "/" +
                                 std::to_string(kHexaStatNodeLevels) + " "));
   } else {
-    // Coloured cells, so the cursor is the row's band rather than an inverted
-    // cell (chrome.h).
+    // The price is what the cursor acts on, so it inverts even where a short
+    // balance colours it red, rather than banding the row.
     const HexaStatPrice price = HexaStatOpenPrice(index);
     auto amount = [](const std::string& text, bool short_of) {
       ftxui::Element cell = ftxui::text(text);
       return short_of ? std::move(cell) | ftxui::color(kRed) : cell;
     };
-    cells.push_back(amount(FormatSolErda(price.energy),
-                           character_.sol_erda_energy() < price.energy));
-    cells.push_back(ftxui::text("  "));
-    cells.push_back(amount(FormatFragments(price.fragments),
-                           character_.sol_erda_fragments() < price.fragments));
+    ftxui::Element cost = ftxui::hbox({
+        amount(FormatSolErda(price.energy),
+               character_.sol_erda_energy() < price.energy),
+        ftxui::text("  "),
+        amount(FormatFragments(price.fragments),
+               character_.sol_erda_fragments() < price.fragments),
+    });
+    if (selected) {
+      cost = std::move(cost) | ftxui::inverted;
+    }
+    cells.push_back(std::move(cost));
     cells.push_back(ftxui::filler());
-    band = selected;
   }
-  ftxui::Element row = HighlightRow(ftxui::hbox(std::move(cells)), band);
+  ftxui::Element row = ftxui::hbox(std::move(cells));
   if (selected) {
     row = std::move(row) | ftxui::reflect(hexa_cursor_box_);
   }
