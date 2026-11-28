@@ -526,7 +526,6 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildLiberationDetail(
   } else {
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
-  rows.push_back(DetailRow("Party", "Solo"));
   // A blank row, not a rule: a rule here would stop short of the scroll bar's
   // lane.
   rows.push_back(ftxui::text(""));
