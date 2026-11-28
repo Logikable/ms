@@ -273,7 +273,7 @@ struct SymbolBand {
 constexpr SymbolBand kSymbolBands[] = {
     {200, {1, 0, 0, 0, 0, 0}, {}},
     {230, {14, 13, 11, 9, 0, 0}, {}},
-    {260, {20, 20, 20, 20, 20, 19}, {3, 2, 0, 0, 0, 0, 0, 0}},
+    {260, {20, 20, 20, 20, 19, 18}, {3, 2, 0, 0, 0, 0, 0, 0}},
     {270, {20, 20, 20, 20, 20, 20}, {7, 6, 6, 5, 0, 0, 0, 0}},
     {280, {20, 20, 20, 20, 20, 20}, {9, 7, 8, 8, 8, 8, 0, 0}},
 };
@@ -287,8 +287,8 @@ constexpr EquipSlot kSacredSlots[] = {
 };
 
 // The level each fight's first solo clear came at, the fifth of ten branches
-// from the top in the uncapped sweep of 2026-11-27, once buff windows kept
-// the force factor (three seeds of 365 days). The Liberation isn't in the
+// from the top in the --exact sweep of 2026-11-27, once %stat multiplied
+// Maple Warrior (three seeds of 365 days). The Liberation isn't in the
 // sweep's table; its 264 is older. Normal Kaling fell to one branch, so it
 // has no entry and max mode never clears it.
 struct Clear {
@@ -308,29 +308,29 @@ constexpr Clear kClears[] = {
     {"horntail", "Chaos", 190},
     {"cygnus", "Normal", 200},
     {"pierre", "Chaos", 200},
-    {"von_bon", "Chaos", 200},
+    {"von_bon", "Chaos", 201},
     {"crimson_queen", "Chaos", 202},
-    {"magnus", "Hard", 204},
-    {"zakum", "Chaos", 204},
-    {"pink_bean", "Chaos", 204},
-    {"vellum", "Chaos", 204},
-    {"papulatus", "Chaos", 208},
-    {"princess_no", "Normal", 209},
+    {"magnus", "Hard", 202},
+    {"zakum", "Chaos", 202},
+    {"pink_bean", "Chaos", 202},
+    {"vellum", "Chaos", 205},
+    {"papulatus", "Chaos", 220},
+    {"princess_no", "Normal", 220},
     {"damien", "Normal", 220},
-    {"lotus", "Normal", 220},
+    {"lotus", "Normal", 221},
     {"guardian_angel_slime", "Normal", 226},
-    {"lucid", "Normal", 237},
-    {"will", "Normal", 241},
-    {"damien", "Hard", 244},
+    {"lucid", "Normal", 235},
+    {"will", "Normal", 242},
+    {"damien", "Hard", 243},
     {"lotus", "Hard", 244},
     {"gloom", "Normal", 245},
     {"darknell", "Normal", 246},
-    {"verus_hilla", "Normal", 251},
+    {"verus_hilla", "Normal", 250},
     {"will", "Hard", 252},
-    {"guardian_angel_slime", "Chaos", 254},
+    {"guardian_angel_slime", "Chaos", 253},
     {"verus_hilla", "Hard", 258},
     {"gloom", "Chaos", 259},
-    {"lucid", "Hard", 260},
+    {"lucid", "Hard", 261},
     {"darknell", "Hard", 260},
     {"liberation", "Genesis", 260},
     {"black_mage", "Hard", 264},
