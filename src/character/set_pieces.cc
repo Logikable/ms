@@ -253,6 +253,21 @@ std::string MitrasRage(Job job) {
   }
 }
 
+std::string CursedSpellbook(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return "cursed_red_spellbook";
+    case JobBranch::kMagician:
+      return "cursed_blue_spellbook";
+    case JobBranch::kArcher:
+      return "cursed_green_spellbook";
+    case JobBranch::kRogue:
+      return "cursed_yellow_spellbook";
+    default:
+      return "";
+  }
+}
+
 std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
   switch (family) {
     case SetFamily::kRootAbyss:
@@ -276,6 +291,8 @@ std::string SetPieceFor(SetFamily family, EquipSlot slot, Job job) {
       return slot == EQUIP_SLOT_SHOULDER ? CygnusShoulder(job) : "";
     case SetFamily::kMitrasRage:
       return slot == EQUIP_SLOT_EMBLEM ? MitrasRage(job) : "";
+    case SetFamily::kCursedSpellbook:
+      return slot == EQUIP_SLOT_POCKET ? CursedSpellbook(job) : "";
     case SetFamily::kEternal: {
       const std::vector<std::string> armour = EternalArmour(job);
       const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP,

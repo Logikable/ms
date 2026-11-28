@@ -925,11 +925,11 @@ TEST(GameStateTest, MaxModeSpendsTheNoblesseSpItsClearsPaid) {
 }
 
 // A max account holds the alts the sweep levelled for link skills: at 260
-// six lines from 70 to 210, none of them the Hero's own. Lines of one branch
+// seven lines from 120 to 210, none of them the Hero's own. Lines of one branch
 // sum, so the two archer alts and the three magicians each add up.
 TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   GameState state = MakeMaxState(kTrialLevelCap);
-  ASSERT_EQ(state.inactive_characters.size(), 6u);
+  ASSERT_EQ(state.inactive_characters.size(), 7u);
   for (const CharacterSave& slot : state.inactive_characters) {
     const Character& sheet = slot.character();
     SCOPED_TRACE(sheet.name());
@@ -945,9 +945,9 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
   LinkTally tally = state.character.link_tally();
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 0)
       << "the Hero being played is not in the mirrored half";
-  EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 4);
-  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 8);
-  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 1);
+  EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 5);
+  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 7);
+  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 5);
   EXPECT_EQ(MakeMaxState(230).character.link_tally().LevelFor(JOB_ARCHER), 4);
 }
 
@@ -956,7 +956,7 @@ TEST(GameStateTest, MaxModeFillsTheRosterWithTheSweepsAlts) {
 TEST(GameStateTest, TheLegionSeesTheWholeAccount) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.character.legion_summary().legion_level,
-            kTrialLevelCap + 210 + 120 + 210 + 120 + 70 + 120);
+            kTrialLevelCap + 210 + 210 + 120 + 120 + 120 + 210 + 120);
 
   LegionSummary summary = state.character.legion_summary();
   // Max mode spends Farm and Boss and leaves the spare.
@@ -1104,8 +1104,8 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
 
 // The farming preset wears its own pieces cubed for meso and drop, the Drop
 // preset inherits them, and bosses keep the pieces they replaced.
-TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
-  GameState state = MakeMaxState(kTrialLevelCap);
+TEST(GameStateTest, MaxModeWearsAFarmingPreset) {
+  GameState state = MakeMaxState(270);
   const CharacterInstance& character = state.character;
   auto name_in = [&character](StatPreset preset, EquipSlot slot) {
     const EquipInstance* worn = character.WornAt(preset, slot);
@@ -1123,9 +1123,8 @@ TEST(GameStateTest, MaxModeAtTheCapWearsAFarmingPreset) {
 
   const EquipInstance& eye = *character.WornAt(farm, EQUIP_SLOT_EYE_ACCESSORY);
   ASSERT_EQ(eye.potential().lines_size(), kPotentialLines);
-  EXPECT_EQ(eye.potential().lines(0).type(),
-            POTENTIAL_LINE_TYPE_ITEM_DROP_RATE);
-  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(eye.potential().lines(0).type(), POTENTIAL_LINE_TYPE_MESO_RATE);
+  EXPECT_EQ(eye.potential().lines(1).type(), POTENTIAL_LINE_TYPE_STR_PCT);
   EXPECT_EQ(eye.equip_state().bonus_potential().lines_size(), 0);
   const EquipInstance& ring = *character.WornAt(farm, EQUIP_SLOT_RING);
   ASSERT_EQ(ring.potential().lines_size(), kPotentialLines);

@@ -68,7 +68,7 @@ struct MaxFarmPiece {
 std::vector<MaxFarmPiece> MaxFarmOutfit(int level);
 
 // The main potential of `piece`: its farm lines at Legendary, then the
-// primary stat.
+// primary stat. None for a piece with neither line, worn uncubed.
 Potential MaxFarmPotential(const MaxFarmPiece& piece, StatField primary);
 
 // The level of the symbol in `slot` a max character of `level` wears, or 0 for

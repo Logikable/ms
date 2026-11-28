@@ -41,11 +41,11 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   const MaxGear at200 = MaxGearForLevel(200);
   EXPECT_EQ(at200.stars, 10);
   EXPECT_EQ(at200.potential_level, 200);
-  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 13);
-  EXPECT_EQ(MaxGearForLevel(260).stars, 17);
+  EXPECT_EQ(MaxGearForLevel(230).weapon_stars, 14);
+  EXPECT_EQ(MaxGearForLevel(260).stars, 15);
   EXPECT_EQ(MaxGearForLevel(260).weapon_stars, 17);
-  EXPECT_EQ(MaxGearForLevel(280).stars, 22);
-  EXPECT_EQ(MaxGearForLevel(290).weapon_stars, 23);
+  EXPECT_EQ(MaxGearForLevel(280).stars, 21);
+  EXPECT_EQ(MaxGearForLevel(290).weapon_stars, 22);
   EXPECT_EQ(MaxGearForLevel(230).potential_level, 230);
   EXPECT_EQ(MaxGearForLevel(260).potential_level, 260);
   EXPECT_EQ(MaxGearForLevel(279).potential_level, 270);
@@ -81,10 +81,13 @@ TEST(MaxCharacterTest, TheOutfitFollowsTheSweep) {
   EXPECT_TRUE(wears(JOB_MARKSMAN, 230, "absolab_archer_shoulder"));
   EXPECT_TRUE(wears(JOB_SHADOWER, 260, "arcane_umbra_thief_shoulder"));
   EXPECT_TRUE(wears(JOB_HERO, 260, "arcane_umbra_knight_suit"));
-  EXPECT_TRUE(wears(JOB_HERO, 260, "endless_terror"));
+  EXPECT_TRUE(wears(JOB_HERO, 260, "guardian_angel_ring"));
+  EXPECT_TRUE(wears(JOB_HERO, 270, "endless_terror"));
   EXPECT_FALSE(wears(JOB_HERO, 260, "lightning_god_ring"));
   EXPECT_TRUE(wears(JOB_HERO, 270, "ring_of_restraint_4"));
   EXPECT_TRUE(wears(JOB_HERO, 270, "arcane_umbra_knight_suit"));
+  EXPECT_TRUE(wears(JOB_HERO, 270, "cursed_red_spellbook"));
+  EXPECT_TRUE(wears(JOB_BISHOP, 280, "cursed_blue_spellbook"));
   EXPECT_TRUE(wears(JOB_HERO, 280, "eternal_knight_helm"));
   for (Job job : {JOB_HERO, JOB_BISHOP, JOB_BOW_MASTER, JOB_NIGHT_LORD}) {
     for (int level : {100, 140, 170, 200, 230, 260, 270, 280}) {
@@ -108,17 +111,18 @@ TEST(MaxCharacterTest, ClearsComeWhenTheSweepsDid) {
   EXPECT_EQ(MaxClearLevel("wall", ""), 0);
 }
 
-// Six alts from 230, eight from 270, each at its own level, never on the
-// main's line.
+// Three alts from 200, six from 230, seven from 260, each at its own level,
+// never on the main's line.
 TEST(MaxCharacterTest, AltsComeLateAndSkipTheMainsLine) {
-  EXPECT_TRUE(MaxAlts(JOB_FIGHTER, 229).empty());
+  EXPECT_TRUE(MaxAlts(JOB_FIGHTER, 199).empty());
+  EXPECT_EQ(MaxAlts(JOB_FIGHTER, 200).size(), 3u);
   const std::vector<MaxAlt> at230 = MaxAlts(JOB_FIGHTER, 230);
   ASSERT_EQ(at230.size(), 6u);
-  EXPECT_EQ(at230[0].line, JOB_ICE_LIGHTNING_WIZARD);
+  EXPECT_EQ(at230[0].line, JOB_FIRE_POISON_WIZARD);
   EXPECT_EQ(at230[0].level, 120);
-  EXPECT_EQ(at230[1].level, 70);
+  EXPECT_EQ(at230[3].level, 70);
   const std::vector<MaxAlt> marksman = MaxAlts(JOB_CROSSBOWMAN, 270);
-  ASSERT_EQ(marksman.size(), 8u);
+  ASSERT_EQ(marksman.size(), 7u);
   for (const MaxAlt& alt : marksman) {
     EXPECT_NE(alt.line, JOB_CROSSBOWMAN);
   }
@@ -132,26 +136,26 @@ Skill Node(VNodeKind kind, int max_level) {
   return node;
 }
 
-// Nothing at 200, the sweep's share of each kind at 230, all of it at 260.
+// Nothing at 200, the sweep's share of each kind at 230 and 260, all of it at
+// 270.
 TEST(MaxCharacterTest, TheMatrixFillsByKind) {
   const Skill job = Node(V_NODE_KIND_JOB, 30);
   const Skill boost = Node(V_NODE_KIND_BOOST, 60);
   const Skill common = Node(V_NODE_KIND_COMMON, 30);
   EXPECT_EQ(MaxMatrixLevel(boost, 200), 0);
-  EXPECT_EQ(MaxMatrixLevel(job, 230), 24);
+  EXPECT_EQ(MaxMatrixLevel(job, 230), 19);
   EXPECT_EQ(MaxMatrixLevel(boost, 230), 33);
-  EXPECT_EQ(MaxMatrixLevel(Node(V_NODE_KIND_ARCHETYPE, 30), 230), 9);
-  EXPECT_EQ(MaxMatrixLevel(common, 230), 2);
-  EXPECT_EQ(MaxMatrixLevel(common, 260), 30);
+  EXPECT_EQ(MaxMatrixLevel(Node(V_NODE_KIND_ARCHETYPE, 30), 230), 11);
+  EXPECT_EQ(MaxMatrixLevel(common, 230), 4);
+  EXPECT_EQ(MaxMatrixLevel(common, 260), 28);
+  EXPECT_EQ(MaxMatrixLevel(common, 270), 30);
 }
 
 // Bossing reaches Legendary at 170; farming is rolled for meso and drop once
-// bossing settles, Epic by 230 and Legendary by 260.
+// bossing settles, straight to Legendary by 260.
 TEST(MaxCharacterTest, BossingAbilityClimbsFirst) {
-  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 229).rank(),
+  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 259).rank(),
             ABILITY_RANK_RARE);
-  EXPECT_EQ(MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 230).rank(),
-            ABILITY_RANK_EPIC);
   const AbilityPreset farm =
       MaxAbilityPreset(Activity::kFarming, STAT_FIELD_STR, 260);
   EXPECT_EQ(farm.rank(), ABILITY_RANK_LEGENDARY);
@@ -370,6 +374,20 @@ TEST(MaxFamiliarsTest, FollowTheSweepsBands) {
   EXPECT_EQ(FamiliarSkillLevel(
                 TotalFamiliarLevels(MaxFamiliars(STAT_FIELD_STR, 260))),
             5);
+}
+
+// At 230 the sweep farmed in its own pieces without cubing them, so they
+// carry no potential; from 260 they lead with the farm lines they held.
+TEST(MaxCharacterTest, FarmPiecesAreCubedFrom260) {
+  for (const MaxFarmPiece& piece : MaxFarmOutfit(230)) {
+    EXPECT_EQ(MaxFarmPotential(piece, STAT_FIELD_STR).lines_size(), 0)
+        << piece.key;
+  }
+  for (const MaxFarmPiece& piece : MaxFarmOutfit(260)) {
+    const Potential potential = MaxFarmPotential(piece, STAT_FIELD_STR);
+    ASSERT_EQ(potential.lines_size(), kPotentialLines) << piece.key;
+    EXPECT_EQ(potential.rank(), POTENTIAL_RANK_LEGENDARY);
+  }
 }
 
 }  // namespace

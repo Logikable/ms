@@ -542,18 +542,12 @@ std::vector<std::string> HardBlackHeavenGear() {
 // The pitched pieces Hard Lucid and Hard Will drop: the belt, and the
 // spellbook of the branch's main stat (every Explorer pirate is cut).
 std::vector<std::string> HardLucidAndWillGear(Job job) {
-  switch (BranchOf(job)) {
-    case JobBranch::kWarrior:
-      return {"dreamy_belt", "cursed_red_spellbook"};
-    case JobBranch::kMagician:
-      return {"dreamy_belt", "cursed_blue_spellbook"};
-    case JobBranch::kArcher:
-      return {"dreamy_belt", "cursed_green_spellbook"};
-    case JobBranch::kRogue:
-      return {"dreamy_belt", "cursed_yellow_spellbook"};
-    default:
-      return {"dreamy_belt"};
+  std::vector<std::string> names = {"dreamy_belt"};
+  const std::string spellbook = CursedSpellbook(job);
+  if (!spellbook.empty()) {
+    names.push_back(spellbook);
   }
+  return names;
 }
 
 std::vector<std::string> AbsoLabGear(Job job) {

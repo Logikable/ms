@@ -363,9 +363,9 @@ TEST_F(WorkbenchGearTest, MaxModesOutfitIsInTheCatalogForEveryJob) {
       continue;
     }
     const Job job = JobForAdvancement(advancement);
-    // Mitra's Rage comes at 270, after Hard Seren's clear at 267.
-    const std::vector<std::string> before = MaxOutfit(job, 269);
-    const std::vector<std::string> after = MaxOutfit(job, 270);
+    // Mitra's Rage comes at 280, when most branches wear it.
+    const std::vector<std::string> before = MaxOutfit(job, 279);
+    const std::vector<std::string> after = MaxOutfit(job, 280);
     EXPECT_EQ(std::count(before.begin(), before.end(), MitrasRage(job)), 0)
         << Job_Name(job);
     EXPECT_EQ(std::count(after.begin(), after.end(), MitrasRage(job)), 1)
